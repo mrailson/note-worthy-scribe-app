@@ -1,11 +1,97 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from "react";
+import { Header } from "@/components/Header";
+import { LoginForm } from "@/components/LoginForm";
+import { MeetingRecorder } from "@/components/MeetingRecorder";
+import { MeetingSettings } from "@/components/MeetingSettings";
+import { LiveTranscript } from "@/components/LiveTranscript";
+import { MeetingSummary } from "@/components/MeetingSummary";
 
 const Index = () => {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userEmail, setUserEmail] = useState("");
+  const [currentView, setCurrentView] = useState<"recording" | "summary">("recording");
+  const [transcript, setTranscript] = useState("");
+  const [duration, setDuration] = useState("00:00");
+  const [wordCount, setWordCount] = useState(0);
+  const [showTimestamps, setShowTimestamps] = useState(false);
+  const [meetingSettings, setMeetingSettings] = useState({});
+
+  const handleLogin = (email: string) => {
+    setUserEmail(email);
+    setIsLoggedIn(true);
+  };
+
+  const handleNewMeeting = () => {
+    setCurrentView("recording");
+    setTranscript("");
+    setDuration("00:00");
+    setWordCount(0);
+  };
+
+  const handleHelp = () => {
+    // TODO: Implement help/about modal
+    console.log("Help & About clicked");
+  };
+
+  const handleViewSummary = () => {
+    setCurrentView("summary");
+  };
+
+  if (!isLoggedIn) {
+    return (
+      <div className="min-h-screen bg-gradient-background">
+        <Header onNewMeeting={handleNewMeeting} onHelp={handleHelp} />
+        <div className="container mx-auto px-4 py-8">
+          <LoginForm onLogin={handleLogin} />
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
+    <div className="min-h-screen bg-gradient-background">
+      <Header onNewMeeting={handleNewMeeting} onHelp={handleHelp} />
+      
+      <div className="container mx-auto px-4 py-8 space-y-6">
+        {currentView === "recording" ? (
+          <>
+            {/* Meeting Recorder */}
+            <MeetingRecorder
+              onTranscriptUpdate={setTranscript}
+              onDurationUpdate={setDuration}
+              onWordCountUpdate={setWordCount}
+            />
+
+            {/* Meeting Settings */}
+            <MeetingSettings onSettingsChange={setMeetingSettings} />
+
+            {/* Live Transcript and Import */}
+            <LiveTranscript
+              transcript={transcript}
+              showTimestamps={showTimestamps}
+              onTimestampsToggle={setShowTimestamps}
+            />
+
+            {/* Show Summary Button when there's content */}
+            {transcript && (
+              <div className="flex justify-center">
+                <button
+                  onClick={handleViewSummary}
+                  className="px-6 py-3 bg-gradient-primary text-white rounded-lg hover:bg-primary-hover shadow-medium transition-all"
+                >
+                  View Meeting Summary
+                </button>
+              </div>
+            )}
+          </>
+        ) : (
+          <MeetingSummary
+            duration={duration}
+            wordCount={wordCount}
+            transcript={transcript}
+            onBackToRecording={() => setCurrentView("recording")}
+          />
+        )}
       </div>
     </div>
   );
