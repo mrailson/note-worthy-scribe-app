@@ -46,16 +46,6 @@ serve(async (req) => {
 
         assemblySocket.onopen = () => {
           console.log("Connected to AssemblyAI");
-          
-          // Send session configuration
-          assemblySocket!.send(JSON.stringify({
-            sample_rate: 16000,
-            word_boost: ["NHS", "medical", "patient", "consultation", "clinical", "diagnosis", "treatment", "prescription"],
-            speaker_labels: true,
-            punctuate: true,
-            format_text: true,
-          }));
-          
           socket.send(JSON.stringify({ 
             type: 'session_started',
             message: 'Real-time transcription started'
@@ -67,7 +57,16 @@ serve(async (req) => {
             const data = JSON.parse(assemblyEvent.data);
             console.log("AssemblyAI response:", data);
 
-            if (data.message_type === 'FinalTranscript') {
+            if (data.message_type === 'SessionBegins') {
+              console.log("AssemblyAI session began successfully");
+              // Send configuration after session begins
+              assemblySocket!.send(JSON.stringify({
+                word_boost: ["NHS", "medical", "patient", "consultation", "clinical", "diagnosis", "treatment", "prescription"],
+                speaker_labels: true,
+                punctuate: true,
+                format_text: true,
+              }));
+            } else if (data.message_type === 'FinalTranscript') {
               socket.send(JSON.stringify({
                 type: 'transcript',
                 text: data.text,
@@ -86,8 +85,12 @@ serve(async (req) => {
                 timestamp: new Date().toISOString(),
                 is_final: false
               }));
-            } else if (data.message_type === 'SessionBegins') {
-              console.log("AssemblyAI session began");
+            } else if (data.message_type === 'SessionTerminated') {
+              console.log("AssemblyAI session terminated:", data);
+              socket.send(JSON.stringify({
+                type: 'session_ended',
+                message: 'Transcription session ended'
+              }));
             }
           } catch (error) {
             console.error("Error parsing AssemblyAI message:", error);
@@ -102,11 +105,11 @@ serve(async (req) => {
           }));
         };
 
-        assemblySocket.onclose = () => {
-          console.log("AssemblyAI WebSocket closed");
+        assemblySocket.onclose = (event) => {
+          console.log("AssemblyAI WebSocket closed:", event.code, event.reason);
           socket.send(JSON.stringify({
             type: 'session_ended',
-            message: 'Transcription session ended'
+            message: `Transcription session ended: ${event.reason || 'Unknown reason'}`
           }));
         };
 
