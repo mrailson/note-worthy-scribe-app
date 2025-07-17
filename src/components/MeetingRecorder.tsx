@@ -258,19 +258,6 @@ export const MeetingRecorder = ({
           </div>
         )}
 
-        {/* Real-time transcript preview */}
-        {realtimeTranscripts.length > 0 && (
-          <div className="mt-4 p-3 bg-accent/30 rounded-lg">
-            <h4 className="text-sm font-medium mb-2">Live Transcript:</h4>
-            <div className="space-y-1 max-h-32 overflow-y-auto">
-              {realtimeTranscripts.slice(-3).map((t, index) => (
-                <div key={index} className={`text-xs ${t.isFinal ? 'text-foreground' : 'text-muted-foreground italic'}`}>
-                  <span className="font-medium text-primary">{t.speaker}:</span> {t.text}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </CardContent>
     </Card>
   );
