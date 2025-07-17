@@ -178,19 +178,19 @@ const Index = () => {
               initialSettings={meetingSettings}
             />
 
+            {/* Live Transcript */}
+            <LiveTranscript
+              transcript={transcript}
+              showTimestamps={showTimestamps}
+              onTimestampsToggle={setShowTimestamps}
+            />
+
             {/* Meeting Settings */}
           <MeetingSettings 
             onSettingsChange={setMeetingSettings} 
             onAudioImported={handleAudioImported}
             initialSettings={meetingSettings} 
           />
-
-            {/* Live Transcript and Import */}
-            <LiveTranscript
-              transcript={transcript}
-              showTimestamps={showTimestamps}
-              onTimestampsToggle={setShowTimestamps}
-            />
 
             {/* Show Summary Button when there's content */}
             {transcript && (
