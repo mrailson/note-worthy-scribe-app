@@ -104,11 +104,6 @@ export const LoginForm = () => {
                   )}
                 </Button>
               </div>
-              {email.toLowerCase().includes('@nhs.') && (
-                <p className="text-sm text-muted-foreground">
-                  Default password for NHS emails: "password"
-                </p>
-              )}
             </div>
 
             <Button 
