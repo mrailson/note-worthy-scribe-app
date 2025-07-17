@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useLocation } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { LoginForm } from "@/components/LoginForm";
 import { MeetingRecorder } from "@/components/MeetingRecorder";
@@ -9,11 +9,13 @@ import { MeetingSummary } from "@/components/MeetingSummary";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 const Index = () => {
   const { user, loading } = useAuth();
-  const { toast } = useToast();
+  const { toast: deprecatedToast } = useToast();
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const editMeetingId = searchParams.get('edit');
   
   const [currentView, setCurrentView] = useState<"recording" | "summary">("recording");
@@ -27,6 +29,19 @@ const Index = () => {
     meetingType: "general"
   });
   const [currentMeetingId, setCurrentMeetingId] = useState<string | null>(null);
+
+  // Check for continue meeting state
+  useEffect(() => {
+    const state = location.state as any;
+    if (state?.continueMeeting && state?.meetingData) {
+      setMeetingSettings({
+        title: state.meetingData.title || "Continued Meeting",
+        description: "Meeting continued from previous session",
+        meetingType: "general"
+      });
+      toast.success("Meeting session restored. You can continue recording.");
+    }
+  }, [location.state]);
 
   // Load meeting for editing if editMeetingId is provided
   useEffect(() => {
@@ -81,16 +96,9 @@ const Index = () => {
         setCurrentView("summary");
       }
 
-      toast({
-        title: "Meeting Loaded",
-        description: `Loaded meeting: ${meeting.title}`,
-      });
+      toast.success(`Meeting loaded: ${meeting.title}`);
     } catch (error: any) {
-      toast({
-        title: "Error Loading Meeting",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast.error(`Error loading meeting: ${error.message}`);
     }
   };
 
@@ -134,11 +142,7 @@ const Index = () => {
         return data;
       }
     } catch (error: any) {
-      toast({
-        title: "Error Saving Meeting",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast.error(`Error saving meeting: ${error.message}`);
       return null;
     }
   };
