@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      attendees: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          is_default: boolean | null
+          name: string
+          organization: string | null
+          role: string | null
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_default?: boolean | null
+          name: string
+          organization?: string | null
+          role?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_default?: boolean | null
+          name?: string
+          organization?: string | null
+          role?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       gp_practices: {
         Row: {
           created_at: string
@@ -201,6 +240,51 @@ export type Database = {
           term?: string
           updated_at?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      practice_details: {
+        Row: {
+          address: string | null
+          created_at: string
+          email: string | null
+          id: string
+          is_default: boolean | null
+          pcn_code: string | null
+          phone: string | null
+          practice_name: string
+          updated_at: string
+          use_for_all_meetings: boolean | null
+          user_id: string
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_default?: boolean | null
+          pcn_code?: string | null
+          phone?: string | null
+          practice_name: string
+          updated_at?: string
+          use_for_all_meetings?: boolean | null
+          user_id: string
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_default?: boolean | null
+          pcn_code?: string | null
+          phone?: string | null
+          practice_name?: string
+          updated_at?: string
+          use_for_all_meetings?: boolean | null
+          user_id?: string
+          website?: string | null
         }
         Relationships: []
       }

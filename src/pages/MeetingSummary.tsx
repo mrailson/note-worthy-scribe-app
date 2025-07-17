@@ -186,12 +186,15 @@ export default function MeetingSummary() {
         </Card>
 
         {/* Action Buttons */}
-        <div className="flex gap-4 justify-center">
+        <div className="flex gap-4 justify-center flex-wrap">
           <Button onClick={() => navigate('/meetings')}>
             View All Meetings
           </Button>
           <Button variant="outline" onClick={() => navigate('/')}>
             Start New Meeting
+          </Button>
+          <Button variant="secondary">
+            Create Meeting Summary
           </Button>
         </div>
       </div>
