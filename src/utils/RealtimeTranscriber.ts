@@ -31,8 +31,8 @@ export class RealtimeTranscriber {
     try {
       console.log('Setting up audio capture...');
       
-      // First, get microphone access
-      const micStream = await navigator.mediaDevices.getUserMedia({
+      // Get microphone access only
+      this.stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           sampleRate: 44100,
           channelCount: 1,
@@ -43,76 +43,21 @@ export class RealtimeTranscriber {
       });
 
       console.log('Microphone access granted');
+      this.onStatusChange('Recording microphone audio');
 
-      // Request screen/tab sharing WITH audio for system audio capture
-      let systemStream: MediaStream | null = null;
-      try {
-        console.log('Please share your screen or the Teams tab to capture computer audio...');
-        
-        // Show user notification about what to share
-        this.onStatusChange('Please share your screen or Teams tab when prompted');
-        
-        systemStream = await navigator.mediaDevices.getDisplayMedia({
-          audio: {
-            echoCancellation: false,
-            noiseSuppression: false,
-            autoGainControl: false
-          },
-          video: true // Must be true for getDisplayMedia
-        });
-        
-        // Check if audio track is available
-        const audioTracks = systemStream.getAudioTracks();
-        if (audioTracks.length > 0) {
-          console.log('System audio capture successful');
-          this.onStatusChange('Recording microphone + computer audio');
-        } else {
-          console.log('No audio in screen share - using microphone only');
-          this.onStatusChange('Recording microphone only (no computer audio available)');
-        }
-        
-      } catch (error) {
-        console.log('Screen sharing declined or failed:', error.message);
-        this.onStatusChange('Recording microphone only (screen sharing declined)');
-        systemStream = null;
-      }
-
-      // Set up audio context for mixing streams
+      // Set up audio context for voice activity detection
       this.audioContext = new AudioContext({ sampleRate: 44100 });
       
-      // Create audio sources
-      const micSource = this.audioContext.createMediaStreamSource(micStream);
+      // Create audio source from microphone
+      const micSource = this.audioContext.createMediaStreamSource(this.stream);
       
-      // Create a mixer
-      const mixer = this.audioContext.createGain();
-      mixer.gain.value = 1.0;
-      micSource.connect(mixer);
-      
-      // Add system audio if available
-      if (systemStream) {
-        const audioTracks = systemStream.getAudioTracks();
-        if (audioTracks.length > 0) {
-          const systemSource = this.audioContext.createMediaStreamSource(systemStream);
-          const systemGain = this.audioContext.createGain();
-          systemGain.gain.value = 1.0; // Equal volume mixing
-          systemSource.connect(systemGain);
-          systemGain.connect(mixer);
-          console.log('Successfully mixed microphone and system audio');
-        }
-      }
-
       // Set up analyser for voice activity detection
       this.analyser = this.audioContext.createAnalyser();
       this.analyser.fftSize = 256;
-      mixer.connect(this.analyser);
+      micSource.connect(this.analyser);
       
       const bufferLength = this.analyser.frequencyBinCount;
       this.dataArray = new Uint8Array(bufferLength);
-
-      // Create a destination for the mixed audio
-      const dest = this.audioContext.createMediaStreamDestination();
-      mixer.connect(dest);
-      this.stream = dest.stream;
 
       // Check supported MIME types for recording
       const supportedTypes = [
