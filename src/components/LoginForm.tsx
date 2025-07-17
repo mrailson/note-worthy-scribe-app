@@ -78,9 +78,6 @@ export const LoginForm = () => {
                     : ''
                 }`}
               />
-              <p className="text-sm text-muted-foreground">
-                Please use a valid @nhs.net, @nhs.uk, or @nhft.nhs.uk email address. For access requests, contact malcolm.railson@nhs.net
-              </p>
             </div>
 
             <div className="space-y-2">

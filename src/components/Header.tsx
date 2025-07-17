@@ -43,7 +43,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
               </Button>
             )}
             
-             {!isMeetingHistoryPage ? (
+             {user && !isMeetingHistoryPage ? (
                <DropdownMenu>
                  <DropdownMenuTrigger asChild>
                    <Button 
@@ -76,7 +76,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                    </DropdownMenuItem>
                  </DropdownMenuContent>
                </DropdownMenu>
-             ) : (
+             ) : user && isMeetingHistoryPage ? (
                <Button 
                  onClick={() => navigate('/')}
                  variant="secondary"
@@ -86,9 +86,9 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                  <Plus className="h-4 w-4 mr-2" />
                  Start New Meeting
                </Button>
-             )}
+             ) : null}
             
-            {!isSettingsPage && (
+            {user && !isSettingsPage && (
               <Button 
                 onClick={() => navigate('/settings')}
                 variant="secondary"
