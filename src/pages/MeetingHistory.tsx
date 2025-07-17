@@ -205,14 +205,14 @@ const MeetingHistory = () => {
     <div className="min-h-screen bg-gradient-background">
       <Header onNewMeeting={handleNewMeeting} />
       
-      <div className="container mx-auto px-4 py-8 space-y-6">
+      <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 lg:py-8 space-y-4 sm:space-y-6 max-w-6xl">
         {/* Header Section */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <FileText className="h-8 w-8 text-primary" />
+            <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
             <div>
-              <h1 className="text-3xl font-bold text-foreground">Meeting History</h1>
-              <p className="text-muted-foreground">
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Meeting History</h1>
+              <p className="text-sm sm:text-base text-muted-foreground">
                 View, edit, and manage your saved meetings
               </p>
             </div>
@@ -220,7 +220,7 @@ const MeetingHistory = () => {
           
           <Button 
             onClick={handleNewMeeting}
-            className="bg-gradient-primary hover:bg-primary-hover shadow-medium"
+            className="bg-gradient-primary hover:bg-primary-hover shadow-medium w-full sm:w-auto touch-manipulation min-h-[48px]"
           >
             <Plus className="h-4 w-4 mr-2" />
             New Meeting
@@ -228,7 +228,7 @@ const MeetingHistory = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Meetings</CardTitle>
@@ -278,15 +278,19 @@ const MeetingHistory = () => {
           <div className="flex justify-end">
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="destructive" size="sm">
+                <Button 
+                  variant="destructive" 
+                  size="sm"
+                  className="touch-manipulation min-h-[44px] text-xs sm:text-sm"
+                >
                   <Trash2 className="h-4 w-4 mr-2" />
                   Delete All Meetings
                 </Button>
               </AlertDialogTrigger>
-              <AlertDialogContent>
+              <AlertDialogContent className="mx-4 max-w-md">
                 <AlertDialogHeader>
                   <AlertDialogTitle>Delete All Meetings</AlertDialogTitle>
-                  <AlertDialogDescription>
+                  <AlertDialogDescription className="text-sm">
                     This action will permanently delete all {meetings.length} meetings, their transcripts, and summaries. This cannot be undone.
                     <br /><br />
                     To confirm, please type <strong>delete</strong> in the field below:
@@ -296,13 +300,19 @@ const MeetingHistory = () => {
                   placeholder="Type 'delete' to confirm"
                   value={deleteConfirmation}
                   onChange={(e) => setDeleteConfirmation(e.target.value)}
+                  className="touch-manipulation min-h-[44px]"
                 />
-                <AlertDialogFooter>
-                  <AlertDialogCancel onClick={() => setDeleteConfirmation("")}>Cancel</AlertDialogCancel>
+                <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                  <AlertDialogCancel 
+                    onClick={() => setDeleteConfirmation("")}
+                    className="touch-manipulation min-h-[44px]"
+                  >
+                    Cancel
+                  </AlertDialogCancel>
                   <AlertDialogAction 
                     onClick={handleDeleteAll}
                     disabled={deleteConfirmation.toLowerCase() !== 'delete'}
-                    className="bg-destructive hover:bg-destructive/90"
+                    className="bg-destructive hover:bg-destructive/90 touch-manipulation min-h-[44px]"
                   >
                     Delete All Meetings
                   </AlertDialogAction>

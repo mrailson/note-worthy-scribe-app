@@ -184,7 +184,7 @@ const Index = () => {
     return (
       <div className="min-h-screen bg-gradient-background">
         <Header onNewMeeting={handleNewMeeting} />
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-3 py-6 sm:px-4 sm:py-8">
           <LoginForm />
         </div>
       </div>
@@ -195,7 +195,7 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-background">
       <Header onNewMeeting={handleNewMeeting} />
       
-      <div className="container mx-auto px-4 py-8 space-y-6">
+      <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 lg:py-8 space-y-4 sm:space-y-6 max-w-4xl">
         <>
           {/* Meeting Recorder */}
           <MeetingRecorder
@@ -223,10 +223,10 @@ const Index = () => {
 
           {/* Show Summary Button when there's content */}
           {transcript && (
-            <div className="flex justify-center">
+            <div className="flex justify-center pt-4">
               <button
                 onClick={handleViewSummary}
-                className="px-6 py-3 bg-gradient-primary text-white rounded-lg hover:bg-primary-hover shadow-medium transition-all"
+                className="w-full sm:w-auto px-6 py-4 bg-gradient-primary text-white rounded-lg hover:bg-primary-hover shadow-medium transition-all text-lg font-medium touch-manipulation min-h-[48px]"
               >
                 View Meeting Summary
               </button>

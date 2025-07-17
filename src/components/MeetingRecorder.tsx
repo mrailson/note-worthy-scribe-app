@@ -213,19 +213,20 @@ export const MeetingRecorder = ({
 
   return (
     <Card className="shadow-medium border-accent/20">
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
+      <CardHeader className="pb-4">
+        <CardTitle className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <span className="flex items-center gap-2">
             <Mic className="h-5 w-5 text-primary" />
-            Meeting Recorder
+            <span className="text-lg sm:text-xl">Meeting Recorder</span>
           </span>
-          <div className="flex items-center gap-2">
-            <Badge variant={getConnectionStatusColor() as any} className="flex items-center gap-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant={getConnectionStatusColor() as any} className="flex items-center gap-1 text-xs">
               {getConnectionStatusIcon()}
-              {connectionStatus}
+              <span className="hidden sm:inline">{connectionStatus}</span>
+              <span className="sm:hidden">{connectionStatus.split(' ')[0]}</span>
             </Badge>
             {speakerCount > 0 && (
-              <Badge variant="secondary" className="flex items-center gap-1">
+              <Badge variant="secondary" className="flex items-center gap-1 text-xs">
                 <Users className="h-3 w-3" />
                 {speakerCount} speakers
               </Badge>
@@ -234,47 +235,47 @@ export const MeetingRecorder = ({
         </CardTitle>
       </CardHeader>
       
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-3 gap-4 text-center">
-          <div>
-            <div className="text-2xl font-bold text-primary">{formatDuration(duration)}</div>
+      <CardContent className="space-y-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+          <div className="bg-accent/20 rounded-lg p-4">
+            <div className="text-2xl sm:text-3xl font-bold text-primary">{formatDuration(duration)}</div>
             <div className="text-sm text-muted-foreground">Duration</div>
           </div>
-          <div>
-            <div className="text-2xl font-bold text-primary">{wordCount}</div>
-            <div className="text-sm text-muted-foreground">Words Transcribed</div>
+          <div className="bg-accent/20 rounded-lg p-4">
+            <div className="text-2xl sm:text-3xl font-bold text-primary">{wordCount}</div>
+            <div className="text-sm text-muted-foreground">Words</div>
           </div>
-          <div>
-            <div className="text-2xl font-bold text-primary">{speakerCount}</div>
-            <div className="text-sm text-muted-foreground">Speakers Detected</div>
+          <div className="bg-accent/20 rounded-lg p-4">
+            <div className="text-2xl sm:text-3xl font-bold text-primary">{speakerCount}</div>
+            <div className="text-sm text-muted-foreground">Speakers</div>
           </div>
         </div>
 
-        <div className="flex gap-2 justify-center">
+        <div className="flex justify-center">
           {!isRecording ? (
             <Button 
               onClick={startRecording}
-              className="bg-gradient-primary hover:bg-primary-hover shadow-subtle"
+              className="bg-gradient-primary hover:bg-primary-hover shadow-subtle w-full sm:w-auto px-8 py-4 text-lg font-medium touch-manipulation min-h-[56px]"
             >
-              <Mic className="h-4 w-4 mr-2" />
+              <Mic className="h-5 w-5 mr-3" />
               Start Recording
             </Button>
           ) : (
             <Button 
               onClick={stopRecording}
               variant="destructive"
-              className="shadow-subtle"
+              className="shadow-subtle w-full sm:w-auto px-8 py-4 text-lg font-medium touch-manipulation min-h-[56px]"
             >
-              <Square className="h-4 w-4 mr-2" />
+              <Square className="h-5 w-5 mr-3" />
               Stop Recording
             </Button>
           )}
         </div>
 
         {isRecording && (
-          <div className="flex items-center justify-center gap-2 text-primary animate-pulse">
-            <div className="w-2 h-2 bg-primary rounded-full"></div>
-            <span className="text-sm font-medium">Recording with real-time transcription...</span>
+          <div className="flex items-center justify-center gap-3 text-primary animate-pulse bg-accent/20 rounded-lg p-4">
+            <div className="w-3 h-3 bg-primary rounded-full"></div>
+            <span className="text-base font-medium">Recording with real-time transcription...</span>
           </div>
         )}
 
