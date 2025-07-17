@@ -37,7 +37,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { saveAs } from "file-saver";
-import { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel } from "docx";
+import { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel, Table, TableRow, TableCell, WidthType } from "docx";
 import jsPDF from "jspdf";
 import emailjs from '@emailjs/browser';
 
@@ -668,42 +668,172 @@ export default function MeetingSummary() {
   // Helper function to generate DOCX as blob
   const generateDocxBlob = async (): Promise<Blob> => {
     try {
-      const content = generateNHSSummaryContent();
-      const lines = content.split('\n');
+      // Use AI-generated content if available, otherwise use basic content
+      let content;
+      if (aiGeneratedMinutes) {
+        content = aiGeneratedMinutes;
+      } else {
+        content = generateNHSSummaryContent();
+      }
+      
       const documentChildren = [];
       
-      for (const line of lines) {
-        if (!line.trim()) {
-          documentChildren.push(new Paragraph({ text: "" }));
-          continue;
-        }
+      // Split content into sections and process each
+      const sections = content.split(/(?=\d+\.|\d+️⃣)/);
+      
+      for (const section of sections) {
+        if (!section.trim()) continue;
         
-        if (line.includes('AI Generated Meeting Minutes') || line.includes('NHS MEETING MINUTES')) {
-          documentChildren.push(
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: line,
-                  bold: true,
-                  size: 32
+        // Check if this section contains a table
+        if (section.includes('| Action/Decision') || section.includes('|Action/Decision')) {
+          // Process table section
+          const lines = section.split('\n');
+          let tableRows = [];
+          let headerAdded = false;
+          
+          for (const line of lines) {
+            // Add section header
+            if (!headerAdded && (line.includes('Actions') || line.includes('Decisions'))) {
+              documentChildren.push(
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: line.replace(/\d+️⃣\s*/, '').trim(),
+                      bold: true,
+                      size: 24
+                    })
+                  ],
+                  spacing: { before: 300, after: 200 },
+                  heading: HeadingLevel.HEADING_2
                 })
-              ],
-              alignment: AlignmentType.CENTER,
-              spacing: { after: 400 }
-            })
-          );
+              );
+              headerAdded = true;
+              continue;
+            }
+            
+            // Process table rows
+            if (line.includes('|') && !line.match(/^\s*\|[-\s\|:]+\|\s*$/)) {
+              const cells = line.split('|')
+                .map(cell => cell.trim())
+                .filter((cell, index, arr) => index > 0 && index < arr.length - 1)
+                .filter(cell => cell.length > 0);
+              
+              if (cells.length >= 3) {
+                tableRows.push(cells);
+              }
+            }
+          }
+          
+          // Create the table
+          if (tableRows.length > 0) {
+            const rows = tableRows.map((rowData, index) => {
+              const cells = rowData.map((cellText, cellIndex) => {
+                const width = cellIndex === 0 ? 50 : 25; // 50% for first column, 25% for others
+                
+                return new TableCell({
+                  children: [
+                    new Paragraph({
+                      children: [
+                        new TextRun({
+                          text: cellText,
+                          size: 20,
+                          bold: index === 0 // Make header row bold
+                        })
+                      ]
+                    })
+                  ],
+                  width: {
+                    size: width,
+                    type: WidthType.PERCENTAGE
+                  }
+                });
+              });
+              
+              return new TableRow({
+                children: cells
+              });
+            });
+
+            documentChildren.push(
+              new Table({
+                rows: rows,
+                width: {
+                  size: 100,
+                  type: WidthType.PERCENTAGE
+                }
+              })
+            );
+          }
         } else {
-          documentChildren.push(
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: line,
-                  size: 22
+          // Process regular text section
+          const lines = section.split('\n');
+          
+          for (const line of lines) {
+            if (!line.trim()) {
+              documentChildren.push(new Paragraph({ text: "" }));
+              continue;
+            }
+            
+            // Process different types of lines
+            if (line.includes('AI Generated Meeting Minutes') || line.includes('NHS MEETING MINUTES')) {
+              documentChildren.push(
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: line,
+                      bold: true,
+                      size: 32
+                    })
+                  ],
+                  alignment: AlignmentType.CENTER,
+                  spacing: { after: 400 }
                 })
-              ],
-              spacing: { after: 100 }
-            })
-          );
+              );
+            } else if (line.includes('###') || line.includes('ATTENDEES:') || line.includes('AGENDA:') || 
+                      line.includes('KEY DISCUSSION POINTS:') || line.includes('DECISIONS MADE:') || 
+                      line.includes('ACTION ITEMS:') || line.includes('NEXT STEPS:') || line.includes('ADDITIONAL NOTES:')) {
+              documentChildren.push(
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: line.replace(/###\s*/, '').replace(/\d+️⃣\s*/, ''),
+                      bold: true,
+                      size: 24
+                    })
+                  ],
+                  spacing: { before: 300, after: 200 },
+                  heading: HeadingLevel.HEADING_2
+                })
+              );
+            } else if (line.startsWith('-') || line.startsWith('•') || line.match(/^\d+\./)) {
+              // Bullet points or numbered lists
+              documentChildren.push(
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: line,
+                      size: 22
+                    })
+                  ],
+                  spacing: { after: 100 },
+                  bullet: { level: 0 }
+                })
+              );
+            } else {
+              // Regular text
+              documentChildren.push(
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: line,
+                      size: 22
+                    })
+                  ],
+                  spacing: { after: 100 }
+                })
+              );
+            }
+          }
         }
       }
 
@@ -870,91 +1000,7 @@ Speakers detected: ${meetingData?.speakerCount || 0}`;
           documentChildren.push(new Paragraph({ text: "" }));
           continue;
         }
-        
-        // Check if it's a heading (starts with ### or contains "Meeting Minutes" or section headers)
-        if (line.includes('AI Generated Meeting Minutes') || line.includes('NHS MEETING MINUTES')) {
-          documentChildren.push(
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: line,
-                  bold: true,
-                  size: 32
-                })
-              ],
-              alignment: AlignmentType.CENTER,
-              spacing: { after: 400 }
-            })
-          );
-        } else if (line.includes('###') || line.includes('ATTENDEES:') || line.includes('AGENDA:') || 
-                  line.includes('KEY DISCUSSION POINTS:') || line.includes('DECISIONS MADE:') || 
-                  line.includes('ACTION ITEMS:') || line.includes('NEXT STEPS:') || line.includes('ADDITIONAL NOTES:')) {
-          documentChildren.push(
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: line.replace(/###\s*/, ''),
-                  bold: true,
-                  size: 24
-                })
-              ],
-              spacing: { before: 300, after: 200 },
-              heading: HeadingLevel.HEADING_2
-            })
-          );
-        } else if (line.startsWith('-') || line.startsWith('•') || line.match(/^\d+\./)) {
-          // Bullet points or numbered lists
-          documentChildren.push(
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: line,
-                  size: 22
-                })
-              ],
-              spacing: { after: 100 },
-              bullet: { level: 0 }
-            })
-          );
-        } else {
-          // Regular text
-          documentChildren.push(
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: line,
-                  size: 22
-                })
-              ],
-              spacing: { after: 100 }
-            })
-          );
-        }
-      }
-
-      // Create footer content
-      const footerText = practiceData?.footer_text || 
-        (practiceData?.practice_name ? `${practiceData.practice_name}\n${practiceData.address || ''}` : '');
       
-      const footerChildren = [];
-      if (footerText) {
-        footerChildren.push(
-          new Paragraph({
-            children: [new TextRun({ text: footerText, size: 20 })],
-            alignment: AlignmentType.CENTER
-          })
-        );
-      }
-      
-      if (practiceData?.show_page_numbers !== false) {
-        footerChildren.push(
-          new Paragraph({
-            children: [new TextRun({ text: "Page ", size: 20 })],
-            alignment: AlignmentType.CENTER
-          })
-        );
-      }
-
       const doc = new Document({
         sections: [{
           properties: {
@@ -966,7 +1012,16 @@ Speakers detected: ${meetingData?.speakerCount || 0}`;
         }]
       });
 
-      const blob = await Packer.toBlob(doc);
+      return await Packer.toBlob(doc);
+    } catch (error) {
+      console.error('Error generating DOCX blob:', error);
+      throw error;
+    }
+  };
+  const downloadDocx = async () => {
+    try {
+      // Use the new generateDocxBlob function
+      const blob = await generateDocxBlob();
       saveAs(blob, `${meetingData?.title || 'meeting'}_minutes.docx`);
       toast.success("DOCX file downloaded successfully");
     } catch (error) {
