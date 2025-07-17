@@ -1058,6 +1058,32 @@ Speakers detected: ${meetingData?.speakerCount || 0}`;
               children: [new TextRun({ text: headerText, bold: true, size: 26, color: "1f4e79" })],
               spacing: { before: 300, after: 150 }
             }));
+          } else if (line.startsWith('# ')) {
+            // Main headers (like # 1. Ambient Voice Technology)
+            const headerText = line.replace(/^#\s*/, '');
+            documentChildren.push(new Paragraph({
+              children: [new TextRun({ text: headerText, bold: true, size: 28, color: "1f4e79" })],
+              spacing: { before: 400, after: 200 }
+            }));
+          } else if (line.includes('**') && line.includes(':**')) {
+            // Lines with inline bold text (like **Others referenced:**)
+            const parts = line.split(/(\*\*[^*]+\*\*)/);
+            const children = parts.map(part => {
+              if (part.startsWith('**') && part.endsWith('**')) {
+                return new TextRun({ 
+                  text: part.replace(/^\*\*|\*\*$/g, ''), 
+                  bold: true, 
+                  size: 24, 
+                  color: "2c5aa0" 
+                });
+              } else {
+                return new TextRun({ text: part, size: 22 });
+              }
+            });
+            documentChildren.push(new Paragraph({
+              children: children,
+              spacing: { before: 150, after: 100 }
+            }));
           } else if (line.startsWith('**') && line.endsWith('**')) {
             // Bold text (like **Present:**)
             const boldText = line.replace(/^\*\*|\*\*$/g, '');
