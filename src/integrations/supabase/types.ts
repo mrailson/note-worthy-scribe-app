@@ -174,6 +174,36 @@ export type Database = {
         }
         Relationships: []
       }
+      nhs_terms: {
+        Row: {
+          created_at: string
+          definition: string
+          id: string
+          is_master: boolean
+          term: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          definition: string
+          id?: string
+          is_master?: boolean
+          term: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          definition?: string
+          id?: string
+          is_master?: boolean
+          term?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       primary_care_networks: {
         Row: {
           created_at: string

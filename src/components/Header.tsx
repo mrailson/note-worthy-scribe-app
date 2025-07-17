@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Plus, HelpCircle, LogOut, FileText, Home } from "lucide-react";
+import { Plus, HelpCircle, LogOut, FileText, Home, BookOpen } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -15,6 +15,7 @@ export const Header = ({ onNewMeeting, onHelp }: HeaderProps) => {
   
   const isHomePage = location.pathname === '/';
   const isMeetingHistoryPage = location.pathname === '/meetings';
+  const isTerminologyPage = location.pathname === '/nhs-terminology';
   return (
     <header className="bg-gradient-primary text-primary-foreground shadow-strong">
       <div className="container mx-auto px-4 py-4">
@@ -46,6 +47,18 @@ export const Header = ({ onNewMeeting, onHelp }: HeaderProps) => {
               >
                 <FileText className="h-4 w-4 mr-2" />
                 Meeting History
+              </Button>
+            )}
+            
+            {!isTerminologyPage && (
+              <Button 
+                onClick={() => navigate('/nhs-terminology')}
+                variant="secondary"
+                size="sm"
+                className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+              >
+                <BookOpen className="h-4 w-4 mr-2" />
+                NHS Terms
               </Button>
             )}
             

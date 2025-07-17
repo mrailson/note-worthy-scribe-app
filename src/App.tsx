@@ -5,6 +5,7 @@ import { Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import MeetingHistory from "./pages/MeetingHistory";
 import MeetingSummary from "./pages/MeetingSummary";
+import NHSTerminology from "./pages/NHSTerminology";
 import NotFound from "./pages/NotFound";
 
 const App = () => (
@@ -15,6 +16,7 @@ const App = () => (
       <Route path="/" element={<Index />} />
       <Route path="/meetings" element={<MeetingHistory />} />
       <Route path="/meeting-summary" element={<MeetingSummary />} />
+      <Route path="/nhs-terminology" element={<NHSTerminology />} />
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
       <Route path="*" element={<NotFound />} />
     </Routes>
