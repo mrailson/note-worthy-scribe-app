@@ -296,8 +296,25 @@ export default function MeetingSummary() {
       const allEmails = [...attendeeEmailList, ...manualEmails];
       const allEmailsString = [userEmail, ...allEmails].join(', ');
 
-      // Prepare email content
-      const meetingNotes = generateNHSSummaryContent();
+      // Prepare email content - prioritize AI-generated content
+      let meetingNotes;
+      
+      if (aiGeneratedMinutes) {
+        // Use AI-generated content if available
+        meetingNotes = aiGeneratedMinutes;
+        console.log('Using AI-generated minutes for email');
+      } else {
+        // Fall back to basic template
+        meetingNotes = generateNHSSummaryContent();
+        
+        // If the content is mostly "Not specified", include the transcript
+        if (meetingNotes.includes('Not specified') && meetingData?.transcript) {
+          meetingNotes += `\n\n---\nMEETING TRANSCRIPT:\n${meetingData.transcript}`;
+        }
+        console.log('Using basic template + transcript for email');
+      }
+      
+      console.log('Meeting notes length:', meetingNotes.length);
       
       // EmailJS credentials
       const serviceId = 'notewell'; // Your service ID
