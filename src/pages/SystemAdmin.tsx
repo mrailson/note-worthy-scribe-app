@@ -424,7 +424,7 @@ This is an automated message. Please do not reply to this email.
 
         await emailjs.send(
           'notewell', // Your correct EmailJS service ID
-          'template_jl7hq5e', // Your existing EmailJS template ID
+          'template_n236grs', // Your correct EmailJS template ID
           {
             to_email: newUserEmail,
             subject: "Welcome to Notewell AI Meeting Notes Service",
