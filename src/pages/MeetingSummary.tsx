@@ -291,10 +291,12 @@ export default function MeetingSummary() {
       // Convert *italic* to HTML italic
       .replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em style="font-style: italic;">$1</em>');
     
-    // Convert markdown tables to HTML tables
-    const tableRegex = /\|(.+)\|\n\|[-\s\|]+\|\n((?:\|.+\|\n?)+)/gm;
+    // Convert markdown tables to HTML tables with improved detection
+    const tableRegex = /\|(.+?)\|\s*\n\s*\|[-\s\|:]+\|\s*\n((?:\s*\|.+?\|\s*(?:\n|$))+)/gm;
     formatted = formatted.replace(tableRegex, (match, header, rows) => {
-      // Process header with dynamic widths
+      console.log('Found table:', { header, rows: rows.substring(0, 100) + '...' });
+      
+      // Process header
       const headerCells = header.split('|')
         .map(cell => cell.trim())
         .filter(cell => cell.length > 0)
@@ -307,21 +309,74 @@ export default function MeetingSummary() {
       
       // Process rows
       const rowsHtml = rows.trim().split('\n')
+        .filter(row => row.trim().length > 0)
         .map(row => {
           const cells = row.split('|')
             .map(cell => cell.trim())
             .filter((cell, index, arr) => index > 0 && index < arr.length - 1) // Remove first and last empty elements
+            .filter(cell => cell.length > 0) // Remove empty cells
             .map(cell => `<td style="padding: 10px 8px; border: 1px solid #ddd; line-height: 1.4; vertical-align: top; word-wrap: break-word;">${cell}</td>`)
             .join('');
-          return `<tr>${cells}</tr>`;
+          return cells ? `<tr>${cells}</tr>` : '';
         })
+        .filter(row => row.length > 0)
         .join('');
       
-      return `<table style="width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 14px; table-layout: fixed;">
+      return `<div style="margin: 20px 0;"><table style="width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 14px; table-layout: fixed;">
         <thead><tr>${headerCells}</tr></thead>
         <tbody>${rowsHtml}</tbody>
-      </table>`;
+      </table></div>`;
     });
+    
+    // If tables still aren't detected, try a more aggressive approach for action tables
+    if (formatted.includes('| Action/Decision') || formatted.includes('|Action/Decision')) {
+      console.log('Detected Action/Decision table, applying fallback conversion');
+      
+      // Find and convert action tables specifically
+      const actionTableRegex = /(.*Action\/Decision.*\n[\s\S]*?)(?=\n\n|\n(?:[1-9]️⃣|#{1,4})|$)/g;
+      formatted = formatted.replace(actionTableRegex, (match) => {
+        if (match.includes('|') && match.includes('Action/Decision')) {
+          // Split into lines and process as table
+          const lines = match.split('\n').filter(line => line.trim().length > 0);
+          const headerLine = lines.find(line => line.includes('Action/Decision'));
+          const separatorIndex = lines.findIndex(line => /^\s*\|[-\s\|:]+\|\s*$/.test(line));
+          
+          if (headerLine && separatorIndex > -1) {
+            const dataLines = lines.slice(separatorIndex + 1).filter(line => line.includes('|'));
+            
+            // Process header
+            const headerCells = headerLine.split('|')
+              .map(cell => cell.trim())
+              .filter(cell => cell.length > 0)
+              .map((cell, index) => {
+                const width = index === 0 ? '50%' : '25%';
+                return `<th style="background-color: #0066cc; color: white; padding: 12px 8px; text-align: left; font-weight: bold; border: 1px solid #ddd; width: ${width};">${cell}</th>`;
+              })
+              .join('');
+            
+            // Process data rows
+            const rowsHtml = dataLines
+              .map(row => {
+                const cells = row.split('|')
+                  .map(cell => cell.trim())
+                  .filter((cell, index, arr) => index > 0 && index < arr.length - 1)
+                  .filter(cell => cell.length > 0)
+                  .map(cell => `<td style="padding: 10px 8px; border: 1px solid #ddd; line-height: 1.4; vertical-align: top; word-wrap: break-word;">${cell}</td>`)
+                  .join('');
+                return cells ? `<tr>${cells}</tr>` : '';
+              })
+              .filter(row => row.length > 0)
+              .join('');
+            
+            return `<div style="margin: 20px 0;"><table style="width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 14px; table-layout: fixed;">
+              <thead><tr>${headerCells}</tr></thead>
+              <tbody>${rowsHtml}</tbody>
+            </table></div>`;
+          }
+        }
+        return match;
+      });
+    }
     
     // Handle bullet points properly - group them into proper HTML lists
     const lines = formatted.split('\n');
