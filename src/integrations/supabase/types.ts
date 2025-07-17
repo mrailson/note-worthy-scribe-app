@@ -174,6 +174,27 @@ export type Database = {
         }
         Relationships: []
       }
+      primary_care_networks: {
+        Row: {
+          created_at: string
+          id: string
+          pcn_code: string
+          pcn_name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          pcn_code: string
+          pcn_name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          pcn_code?: string
+          pcn_name?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
