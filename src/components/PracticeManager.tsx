@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Building, Plus, Edit, Trash2, Check, X, Globe } from "lucide-react";
+import { Building, Plus, Edit, Trash2, Check, X, Globe, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -27,6 +27,7 @@ interface PracticeManagerProps {
 
 export const PracticeManager = ({ onPracticeChange }: PracticeManagerProps) => {
   const [practices, setPractices] = useState<PracticeDetail[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [isEditing, setIsEditing] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [formData, setFormData] = useState({
@@ -178,6 +179,12 @@ export const PracticeManager = ({ onPracticeChange }: PracticeManagerProps) => {
     setIsAdding(false);
   };
 
+  // Filter practices based on search term
+  const filteredPractices = practices.filter(practice => 
+    practice.practice_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (practice.pcn_code && practice.pcn_code.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
   return (
     <Card>
       <CardHeader>
@@ -301,15 +308,26 @@ export const PracticeManager = ({ onPracticeChange }: PracticeManagerProps) => {
 
         {/* Add Button */}
         {!isAdding && (
-          <Button variant="outline" onClick={() => setIsAdding(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Practice
-          </Button>
+          <div className="flex gap-4 items-center">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Search by practice name or PCN code..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Button variant="outline" onClick={() => setIsAdding(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Practice
+            </Button>
+          </div>
         )}
 
         {/* Practices List */}
         <div className="space-y-2">
-          {practices.map((practice) => (
+          {filteredPractices.map((practice) => (
             <div key={practice.id} className="p-4 border rounded-lg">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
@@ -353,6 +371,12 @@ export const PracticeManager = ({ onPracticeChange }: PracticeManagerProps) => {
               </div>
             </div>
           ))}
+          
+          {filteredPractices.length === 0 && practices.length > 0 && (
+            <div className="text-center py-8 text-muted-foreground">
+              No practices found matching your search. Try a different search term.
+            </div>
+          )}
           
           {practices.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
