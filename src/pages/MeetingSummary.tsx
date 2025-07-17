@@ -187,7 +187,7 @@ export default function MeetingSummary() {
 
         {/* Action Buttons */}
         <div className="flex gap-4 justify-center">
-          <Button onClick={() => navigate('/meeting-history')}>
+          <Button onClick={() => navigate('/meetings')}>
             View All Meetings
           </Button>
           <Button variant="outline" onClick={() => navigate('/')}>

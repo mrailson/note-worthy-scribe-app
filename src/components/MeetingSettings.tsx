@@ -26,7 +26,7 @@ interface MeetingSettingsProps {
 }
 
 export const MeetingSettings = ({ onSettingsChange, initialSettings }: MeetingSettingsProps) => {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
   const [settings, setSettings] = useState({
     title: initialSettings?.title || "General Meeting",
     description: initialSettings?.description || "",

@@ -23,7 +23,7 @@ export const LiveTranscript = ({
   showTimestamps, 
   onTimestampsToggle 
 }: LiveTranscriptProps) => {
-  const [isTranscriptOpen, setIsTranscriptOpen] = useState(true);
+  const [isTranscriptOpen, setIsTranscriptOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
