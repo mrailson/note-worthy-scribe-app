@@ -343,54 +343,53 @@ This is an automated message. Please do not reply to this email.`;
     try {
       // Use default password "letmein1st"
       const tempPassword = getDefaultPassword();
+      const practiceId = newUserPractice === "none" ? null : newUserPractice;
       
-      // Create the user in Supabase Auth with password change required
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: newUserEmail,
-        password: tempPassword,
-        email_confirm: false // Require email confirmation to force password change
+      // Create user via edge function with admin privileges
+      const { data: createUserData, error: createUserError } = await supabase.functions.invoke('create-user-admin', {
+        body: {
+          email: newUserEmail,
+          name: newUserName,
+          password: tempPassword,
+          role: newUserRole,
+          practice_id: practiceId,
+          assigned_by: user?.id
+        }
       });
 
-      if (authError) throw authError;
+      if (createUserError) {
+        console.error("Error creating user:", createUserError);
+        throw createUserError;
+      }
 
-      // Create user role
-      if (authData.user) {
-        const practiceId = newUserPractice === "none" ? null : newUserPractice;
-        
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .insert({
-            user_id: authData.user.id,
-            role: newUserRole as any,
-            practice_id: practiceId,
-            assigned_by: user?.id
-          });
+      if (!createUserData?.success) {
+        throw new Error(createUserData?.error || "Failed to create user");
+      }
 
-        if (roleError) throw roleError;
+      console.log("User created successfully:", createUserData);
 
-        // Send welcome email
-        try {
-          const { error: emailError } = await supabase.functions.invoke('send-welcome-email', {
-            body: {
-              to_email: newUserEmail,
-              user_name: newUserName,
-              user_email: newUserEmail,
-              temporary_password: tempPassword,
-              user_role: newUserRole,
-              practice_name: practices.find(p => p.id === practiceId)?.practice_name || "No practice assigned"
-            }
-          });
-
-          if (emailError) {
-            console.error('Error sending welcome email:', emailError);
-            toast.error("User created successfully, but welcome email failed to send");
-          } else {
-            toast.success("User created successfully and welcome email sent");
+      // Send welcome email
+      try {
+        const { error: emailError } = await supabase.functions.invoke('send-welcome-email', {
+          body: {
+            to_email: newUserEmail,
+            user_name: newUserName,
+            user_email: newUserEmail,
+            temporary_password: tempPassword,
+            user_role: newUserRole,
+            practice_name: practices.find(p => p.id === practiceId)?.practice_name || "No practice assigned"
           }
-        } catch (emailError) {
+        });
+
+        if (emailError) {
           console.error('Error sending welcome email:', emailError);
           toast.error("User created successfully, but welcome email failed to send");
+        } else {
+          toast.success("User created successfully and welcome email sent");
         }
+      } catch (emailError) {
+        console.error('Error sending welcome email:', emailError);
+        toast.error("User created successfully, but welcome email failed to send");
       }
       
       await fetchUsers();
