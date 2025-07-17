@@ -968,6 +968,7 @@ Speakers detected: ${meetingData?.speakerCount || 0}`;
       // Parse the content to create properly formatted paragraphs
       const lines = content.split('\n');
       const documentChildren = [];
+      let currentTable = null;
       
       // Add logo if available
       if (practiceData?.logo_url) {
@@ -1000,6 +1001,64 @@ Speakers detected: ${meetingData?.speakerCount || 0}`;
           documentChildren.push(new Paragraph({ text: "" }));
           continue;
         }
+        
+        // Check if this is a table
+        if (line.includes('|')) {
+          // Parse markdown table
+          const cells = line.split('|').map(cell => cell.trim()).filter(cell => cell);
+          if (cells.length > 0) {
+            const tableRow = new TableRow({
+              children: cells.map(cellText => 
+                new TableCell({
+                  children: [new Paragraph({
+                    children: [new TextRun({ text: cellText, bold: line.includes('Action/Decision') })]
+                  })],
+                  width: { size: cells.length === 3 ? (cellText === cells[0] ? 50 : 25) : 100/cells.length, type: WidthType.PERCENTAGE }
+                })
+              )
+            });
+            
+            if (!currentTable) {
+              currentTable = new Table({
+                rows: [tableRow],
+                width: { size: 100, type: WidthType.PERCENTAGE }
+              });
+            } else {
+              currentTable.root[0].children.push(tableRow);
+            }
+          }
+        } else {
+          // If we were building a table and now have a non-table line, add the table to document
+          if (currentTable) {
+            documentChildren.push(currentTable);
+            currentTable = null;
+          }
+          
+          // Handle different types of lines
+          if (line.startsWith('NHS MEETING MINUTES') || line.includes('Meeting Title:')) {
+            documentChildren.push(new Paragraph({
+              children: [new TextRun({ text: line, bold: true, size: 28, color: "1f4e79" })],
+              alignment: AlignmentType.CENTER,
+              spacing: { after: 200 }
+            }));
+          } else if (line.match(/^[A-Z\s]+:$/) || line.includes('ATTENDEES:') || line.includes('AGENDA:')) {
+            documentChildren.push(new Paragraph({
+              children: [new TextRun({ text: line, bold: true, size: 24, color: "1f4e79" })],
+              spacing: { before: 200, after: 100 }
+            }));
+          } else {
+            documentChildren.push(new Paragraph({
+              children: [new TextRun({ text: line, size: 22 })],
+              spacing: { after: 100 }
+            }));
+          }
+        }
+      }
+      
+      // Add any remaining table
+      if (currentTable) {
+        documentChildren.push(currentTable);
+      }
       
       const doc = new Document({
         sections: [{
@@ -1012,16 +1071,7 @@ Speakers detected: ${meetingData?.speakerCount || 0}`;
         }]
       });
 
-      return await Packer.toBlob(doc);
-    } catch (error) {
-      console.error('Error generating DOCX blob:', error);
-      throw error;
-    }
-  };
-  const downloadDocx = async () => {
-    try {
-      // Use the new generateDocxBlob function
-      const blob = await generateDocxBlob();
+      const blob = await Packer.toBlob(doc);
       saveAs(blob, `${meetingData?.title || 'meeting'}_minutes.docx`);
       toast.success("DOCX file downloaded successfully");
     } catch (error) {
