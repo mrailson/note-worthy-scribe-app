@@ -5,16 +5,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, HelpCircle, LogOut, FileText, Home, Settings, ChevronDown } from "lucide-react";
+import { Plus, LogOut, FileText, Home, Settings, ChevronDown } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation, useNavigate } from "react-router-dom";
 
 interface HeaderProps {
   onNewMeeting: () => void;
-  onHelp: () => void;
 }
 
-export const Header = ({ onNewMeeting, onHelp }: HeaderProps) => {
+export const Header = ({ onNewMeeting }: HeaderProps) => {
   const { user, signOut } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -101,16 +100,6 @@ export const Header = ({ onNewMeeting, onHelp }: HeaderProps) => {
               </Button>
             )}
             
-            
-            <Button
-              onClick={onHelp}
-              variant="secondary"
-              size="sm"
-              className="bg-white/20 hover:bg-white/30 text-white border-white/30"
-            >
-              <HelpCircle className="h-4 w-4 mr-2" />
-              Help & About
-            </Button>
             
             {user && (
               <Button

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Settings as SettingsIcon, Users, Building, BookOpen, Search, Plus, Pencil, Trash2, X, Clock } from "lucide-react";
+import { Settings as SettingsIcon, Users, Building, BookOpen, Search, Plus, Pencil, Trash2, X, Clock, HelpCircle, Mail, Globe, Github, ExternalLink } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
@@ -205,7 +205,7 @@ export default function Settings() {
   };
   return (
     <div className="min-h-screen bg-background">
-      <Header onNewMeeting={() => {}} onHelp={() => {}} />
+      <Header onNewMeeting={() => {}} />
       
       <div className="container mx-auto p-6">
         <div className="max-w-6xl mx-auto space-y-6">
@@ -219,7 +219,7 @@ export default function Settings() {
 
           {/* Settings Tabs */}
           <Tabs defaultValue="general" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="general" className="flex items-center gap-2">
                 <SettingsIcon className="h-4 w-4" />
                 General
@@ -235,6 +235,10 @@ export default function Settings() {
               <TabsTrigger value="nhs-terms" className="flex items-center gap-2">
                 <BookOpen className="h-4 w-4" />
                 NHS Terms
+              </TabsTrigger>
+              <TabsTrigger value="help" className="flex items-center gap-2">
+                <HelpCircle className="h-4 w-4" />
+                Help & About
               </TabsTrigger>
             </TabsList>
 
@@ -540,6 +544,134 @@ export default function Settings() {
                   </div>
                 </div>
               )}
+            </TabsContent>
+
+            <TabsContent value="help" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <HelpCircle className="h-5 w-5" />
+                    Help & About
+                  </CardTitle>
+                  <p className="text-muted-foreground">
+                    Information about Notewell AI Meeting Notes Service and how to get help.
+                  </p>
+                </CardHeader>
+              </Card>
+
+              {/* About Section */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">About Notewell AI</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <h4 className="font-semibold mb-2">What is Notewell AI?</h4>
+                    <p className="text-muted-foreground text-sm leading-relaxed">
+                      Notewell AI is a comprehensive meeting notes service designed specifically for healthcare professionals. 
+                      It provides AI-powered transcription, intelligent meeting summaries, and automated action item tracking 
+                      to help you focus on what matters most - patient care and collaboration.
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-semibold mb-2">Key Features</h4>
+                    <ul className="text-muted-foreground text-sm space-y-1 list-disc list-inside">
+                      <li>Real-time meeting transcription with speaker identification</li>
+                      <li>AI-generated meeting summaries with action items and key decisions</li>
+                      <li>Support for multiple meeting types (Patient meetings, PCN meetings, ICB meetings, etc.)</li>
+                      <li>Attendee and practice management</li>
+                      <li>NHS terminology database</li>
+                      <li>Secure data handling with configurable retention policies</li>
+                      <li>Meeting history and search functionality</li>
+                    </ul>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-semibold mb-2">Version Information</h4>
+                    <p className="text-muted-foreground text-sm">
+                      Notewell AI Meeting Notes Service v1.0.0
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Help Section */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Getting Help</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <h4 className="font-semibold mb-2">Quick Start Guide</h4>
+                    <div className="text-muted-foreground text-sm space-y-2">
+                      <p><strong>1. Set up your profile:</strong> Add your practice details and regular attendees in the Settings tabs.</p>
+                      <p><strong>2. Start a meeting:</strong> Click "Start New Meeting" and configure your meeting settings.</p>
+                      <p><strong>3. Record or import:</strong> Use live recording or import an audio file for transcription.</p>
+                      <p><strong>4. Review results:</strong> Check your transcript, generate summaries, and export or email your notes.</p>
+                      <p><strong>5. Manage history:</strong> Access all your meetings in the Meeting History section.</p>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-semibold mb-2">Support Resources</h4>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <Mail className="h-4 w-4 text-muted-foreground" />
+                        <div>
+                          <p className="text-sm font-medium">Email Support</p>
+                          <p className="text-xs text-muted-foreground">support@notewell.ai</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-3">
+                        <Globe className="h-4 w-4 text-muted-foreground" />
+                        <div>
+                          <p className="text-sm font-medium">Documentation</p>
+                          <Button variant="link" className="p-0 h-auto text-xs" asChild>
+                            <a href="https://docs.notewell.ai" target="_blank" rel="noopener noreferrer">
+                              Visit our documentation site
+                              <ExternalLink className="h-3 w-3 ml-1" />
+                            </a>
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-3">
+                        <Github className="h-4 w-4 text-muted-foreground" />
+                        <div>
+                          <p className="text-sm font-medium">GitHub</p>
+                          <Button variant="link" className="p-0 h-auto text-xs" asChild>
+                            <a href="https://github.com/notewell-ai" target="_blank" rel="noopener noreferrer">
+                              Report issues or contribute
+                              <ExternalLink className="h-3 w-3 ml-1" />
+                            </a>
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-semibold mb-2">Privacy & Security</h4>
+                    <p className="text-muted-foreground text-sm leading-relaxed">
+                      Notewell AI is designed with healthcare data security in mind. All meeting data is encrypted in transit and at rest. 
+                      You have full control over your data retention policies and can delete your data at any time. We comply with relevant 
+                      healthcare data protection regulations.
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-semibold mb-2">System Requirements</h4>
+                    <ul className="text-muted-foreground text-sm space-y-1 list-disc list-inside">
+                      <li>Modern web browser (Chrome, Firefox, Safari, Edge)</li>
+                      <li>Microphone access for live recording</li>
+                      <li>Stable internet connection</li>
+                      <li>JavaScript enabled</li>
+                    </ul>
+                  </div>
+                </CardContent>
+              </Card>
             </TabsContent>
           </Tabs>
         </div>

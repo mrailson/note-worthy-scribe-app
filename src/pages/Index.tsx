@@ -136,10 +136,6 @@ const Index = () => {
     window.history.replaceState({}, '', '/');
   };
 
-  const handleHelp = () => {
-    // TODO: Implement help/about modal
-    console.log("Help & About clicked");
-  };
 
   const handleViewSummary = () => {
     setCurrentView("summary");
@@ -159,7 +155,7 @@ const Index = () => {
   if (!user) {
     return (
       <div className="min-h-screen bg-gradient-background">
-        <Header onNewMeeting={handleNewMeeting} onHelp={handleHelp} />
+        <Header onNewMeeting={handleNewMeeting} />
         <div className="container mx-auto px-4 py-8">
           <LoginForm />
         </div>
@@ -169,7 +165,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-background">
-      <Header onNewMeeting={handleNewMeeting} onHelp={handleHelp} />
+      <Header onNewMeeting={handleNewMeeting} />
       
       <div className="container mx-auto px-4 py-8 space-y-6">
         {currentView === "recording" ? (

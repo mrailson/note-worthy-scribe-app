@@ -50,9 +50,6 @@ const MeetingHistory = () => {
     navigate("/");
   };
 
-  const handleHelp = () => {
-    console.log("Help & About clicked");
-  };
 
   useEffect(() => {
     if (user) {
@@ -193,7 +190,7 @@ const MeetingHistory = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-background">
-        <Header onNewMeeting={handleNewMeeting} onHelp={handleHelp} />
+        <Header onNewMeeting={handleNewMeeting} />
         <div className="container mx-auto px-4 py-8 flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
@@ -206,7 +203,7 @@ const MeetingHistory = () => {
 
   return (
     <div className="min-h-screen bg-gradient-background">
-      <Header onNewMeeting={handleNewMeeting} onHelp={handleHelp} />
+      <Header onNewMeeting={handleNewMeeting} />
       
       <div className="container mx-auto px-4 py-8 space-y-6">
         {/* Header Section */}
