@@ -294,11 +294,15 @@ export default function MeetingSummary() {
     // Convert markdown tables to HTML tables
     const tableRegex = /\|(.+)\|\n\|[-\s\|]+\|\n((?:\|.+\|\n?)+)/gm;
     formatted = formatted.replace(tableRegex, (match, header, rows) => {
-      // Process header
+      // Process header with dynamic widths
       const headerCells = header.split('|')
         .map(cell => cell.trim())
         .filter(cell => cell.length > 0)
-        .map(cell => `<th style="background-color: #0066cc; color: white; padding: 12px 8px; text-align: left; font-weight: bold; border: 1px solid #ddd;">${cell}</th>`)
+        .map((cell, index) => {
+          // Set dynamic widths: Action/Decision (50%), Responsible (25%), Deadline (25%)
+          const width = index === 0 ? '50%' : '25%';
+          return `<th style="background-color: #0066cc; color: white; padding: 12px 8px; text-align: left; font-weight: bold; border: 1px solid #ddd; width: ${width};">${cell}</th>`;
+        })
         .join('');
       
       // Process rows
@@ -307,13 +311,13 @@ export default function MeetingSummary() {
           const cells = row.split('|')
             .map(cell => cell.trim())
             .filter((cell, index, arr) => index > 0 && index < arr.length - 1) // Remove first and last empty elements
-            .map(cell => `<td style="padding: 10px 8px; border: 1px solid #ddd; line-height: 1.4; vertical-align: top;">${cell}</td>`)
+            .map(cell => `<td style="padding: 10px 8px; border: 1px solid #ddd; line-height: 1.4; vertical-align: top; word-wrap: break-word;">${cell}</td>`)
             .join('');
           return `<tr>${cells}</tr>`;
         })
         .join('');
       
-      return `<table style="width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 14px;">
+      return `<table style="width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 14px; table-layout: fixed;">
         <thead><tr>${headerCells}</tr></thead>
         <tbody>${rowsHtml}</tbody>
       </table>`;
