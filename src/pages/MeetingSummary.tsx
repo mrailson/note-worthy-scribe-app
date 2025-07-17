@@ -24,22 +24,23 @@ export default function MeetingSummary() {
   const { toast } = useToast();
   const [meetingData, setMeetingData] = useState<MeetingData | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [hasBeenSaved, setHasBeenSaved] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
 
   useEffect(() => {
     // Get meeting data from navigation state
     const data = location.state as MeetingData;
-    if (data && !hasBeenSaved) {
+    if (data && !isSaved) {
       setMeetingData(data);
       saveMeetingToDatabase(data);
-      setHasBeenSaved(true);
     } else if (!data) {
       // If no data, redirect back to home
       navigate('/');
     }
-  }, [location.state, navigate, hasBeenSaved]);
+  }, [location.state, navigate, isSaved]);
 
   const saveMeetingToDatabase = async (data: MeetingData) => {
+    if (isSaving || isSaved) return; // Prevent duplicate saves
+    
     setIsSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -80,6 +81,7 @@ export default function MeetingSummary() {
       }
 
       setMeetingData(prev => prev ? { ...prev, id: meeting.id } : null);
+      setIsSaved(true);
       
       toast({
         title: "Meeting Saved",
@@ -115,12 +117,7 @@ export default function MeetingSummary() {
             <h1 className="text-2xl font-bold text-foreground">{meetingData.title}</h1>
             <p className="text-muted-foreground">Meeting Summary</p>
           </div>
-          {isSaving && (
-            <Badge variant="secondary" className="ml-auto">
-              Saving...
-            </Badge>
-          )}
-          {meetingData.id && (
+          {isSaved && (
             <Badge variant="default" className="ml-auto">
               <CheckCircle className="h-3 w-3 mr-1" />
               Saved
