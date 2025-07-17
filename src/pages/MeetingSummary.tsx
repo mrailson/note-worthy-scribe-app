@@ -321,15 +321,17 @@ export default function MeetingSummary() {
       }
 
       const templateParams = {
-        // Standard EmailJS variables
-        to_name: userEmail.split('@')[0], // Name from email
-        to_email: userEmail,
-        from_name: 'Notewell AI Meeting Notes Service',
-        reply_to: userEmail,
+        // Main EmailJS template variables (matching your template)
         subject: `Meeting Notes: ${meetingData?.title || 'Meeting'}`,
         message: meetingNotes,
+        to_email: userEmail,
         
-        // Additional meeting details
+        // Additional variables for reference
+        to_name: userEmail.split('@')[0],
+        from_name: 'NoteWell Meeting Service',
+        reply_to: 'noreply@pcn-services.co.uk',
+        
+        // Meeting details
         meeting_title: meetingData?.title || 'Meeting',
         meeting_date: new Date(meetingData?.startTime || new Date()).toLocaleDateString('en-GB'),
         duration: meetingData?.duration || '00:00',
@@ -343,6 +345,14 @@ export default function MeetingSummary() {
         transcript_attachment: transcriptAttachment,
         transcript_filename: `${meetingData?.title || 'meeting'}_transcript.txt`
       };
+
+      // Debug logging
+      console.log('EmailJS Template Params:', {
+        subject: templateParams.subject,
+        message: templateParams.message?.substring(0, 100) + '...', // First 100 chars
+        to_email: templateParams.to_email,
+        messageLength: templateParams.message?.length
+      });
 
       // Send email using EmailJS from browser
       const response = await emailjs.send(
