@@ -11,18 +11,17 @@ import {
   ChevronDown, 
   Users, 
   Monitor, 
-  FileText, 
   ClipboardPaste,
-  Upload 
+  Upload,
+  Mic
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { FileImporter, ImportedTranscript } from "@/utils/FileImporter";
 import { toast } from "sonner";
 
 interface MeetingSettingsProps {
   onSettingsChange: (settings: any) => void;
-  onTranscriptImported?: (transcript: ImportedTranscript) => void;
+  onAudioImported?: (audioFile: File) => void;
   initialSettings?: {
     title: string;
     description: string;
@@ -30,7 +29,7 @@ interface MeetingSettingsProps {
   };
 }
 
-export const MeetingSettings = ({ onSettingsChange, onTranscriptImported, initialSettings }: MeetingSettingsProps) => {
+export const MeetingSettings = ({ onSettingsChange, onAudioImported, initialSettings }: MeetingSettingsProps) => {
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
@@ -43,8 +42,7 @@ export const MeetingSettings = ({ onSettingsChange, onTranscriptImported, initia
     attendees: "",
     agenda: "",
     date: new Date().toISOString().split('T')[0],
-    startTime: new Date().toLocaleTimeString('en-GB', { hour12: false, hour: '2-digit', minute: '2-digit' }),
-    summary: ""
+    startTime: new Date().toLocaleTimeString('en-GB', { hour12: false, hour: '2-digit', minute: '2-digit' })
   });
 
   // Fetch default practice on mount
@@ -79,37 +77,28 @@ export const MeetingSettings = ({ onSettingsChange, onTranscriptImported, initia
     fetchDefaultPractice();
   }, [user]);
 
-  const handleFileImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAudioImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // Check if file is audio
+    if (!file.type.startsWith('audio/')) {
+      toast.error('Please select a valid audio file');
+      event.target.value = '';
+      return;
+    }
+
     setIsImporting(true);
     try {
-      const importedData = await FileImporter.importTranscriptFile(file);
-      
-      // Update settings with extracted data
-      if (importedData.extractedSettings) {
-        const newSettings = {
-          ...settings,
-          title: importedData.extractedSettings.title || settings.title,
-          description: importedData.extractedSettings.description || settings.description,
-          attendees: importedData.extractedSettings.attendees || settings.attendees,
-          agenda: importedData.extractedSettings.agenda || settings.agenda,
-          date: importedData.extractedSettings.date || settings.date
-        };
-        setSettings(newSettings);
-        onSettingsChange(newSettings);
+      // Notify parent component about the imported audio
+      if (onAudioImported) {
+        onAudioImported(file);
       }
 
-      // Notify parent component about the imported transcript
-      if (onTranscriptImported) {
-        onTranscriptImported(importedData);
-      }
-
-      toast.success(`Transcript imported successfully! ${importedData.wordCount} words processed.`);
+      toast.success(`Audio file imported: ${file.name}`);
     } catch (error) {
-      console.error('Error importing file:', error);
-      toast.error(`Failed to import file: ${error}`);
+      console.error('Error importing audio file:', error);
+      toast.error(`Failed to import audio file: ${error}`);
     } finally {
       setIsImporting(false);
       // Reset the input so the same file can be selected again
@@ -204,7 +193,7 @@ export const MeetingSettings = ({ onSettingsChange, onTranscriptImported, initia
               </Select>
             </div>
 
-            {/* Site/Location */}
+            {/* Site/Location - Removed K-Codes section */}
             <div className="space-y-2">
               <Label htmlFor="location">Site/Location</Label>
               <Input
@@ -213,9 +202,6 @@ export const MeetingSettings = ({ onSettingsChange, onTranscriptImported, initia
                 value={settings.location}
                 onChange={(e) => updateSetting('location', e.target.value)}
               />
-              <p className="text-xs text-muted-foreground">
-                K-Codes removed due to data inconsistencies
-              </p>
             </div>
 
             {/* Meeting Format */}
@@ -267,27 +253,10 @@ export const MeetingSettings = ({ onSettingsChange, onTranscriptImported, initia
             <div className="space-y-2">
               <Label htmlFor="agenda">Meeting Agenda</Label>
               <div className="flex gap-2 mb-2">
-                <label htmlFor="transcript-import">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="flex-1 cursor-pointer"
-                    disabled={isImporting}
-                    asChild
-                  >
-                    <span>
-                      <Upload className="h-4 w-4 mr-2" />
-                      {isImporting ? 'Importing...' : 'Import Transcript File'}
-                    </span>
-                  </Button>
-                </label>
-                <input
-                  id="transcript-import"
-                  type="file"
-                  accept=".txt,.doc,.docx,.pdf"
-                  onChange={handleFileImport}
-                  className="hidden"
-                />
+                <Button variant="outline" size="sm" className="flex-1">
+                  <Upload className="h-4 w-4 mr-2" />
+                  Import from File
+                </Button>
                 <Button variant="outline" size="sm" className="flex-1">
                   <ClipboardPaste className="h-4 w-4 mr-2" />
                   Paste from Clipboard
@@ -302,16 +271,35 @@ export const MeetingSettings = ({ onSettingsChange, onTranscriptImported, initia
               />
             </div>
 
-            {/* Meeting Summary */}
+            {/* Audio Import Section */}
             <div className="space-y-2">
-              <Label htmlFor="summary">Key Discussion Summary</Label>
-              <Textarea
-                id="summary"
-                placeholder="Brief summary of key discussions and outcomes..."
-                value={settings.summary}
-                onChange={(e) => updateSetting('summary', e.target.value)}
-                rows={3}
-              />
+              <Label htmlFor="audio-import">Import Audio Recording</Label>
+              <div className="flex gap-2 mb-2">
+                <label htmlFor="audio-import-file" className="flex-1">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full cursor-pointer"
+                    disabled={isImporting}
+                    asChild
+                  >
+                    <span>
+                      <Mic className="h-4 w-4 mr-2" />
+                      {isImporting ? 'Importing...' : 'Import Audio File'}
+                    </span>
+                  </Button>
+                </label>
+                <input
+                  id="audio-import-file"
+                  type="file"
+                  accept="audio/*,.mp3,.wav,.m4a,.mp4,.webm"
+                  onChange={handleAudioImport}
+                  className="hidden"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Supports MP3, WAV, M4A, MP4, and WebM audio formats
+              </p>
             </div>
           </CardContent>
         </CollapsibleContent>

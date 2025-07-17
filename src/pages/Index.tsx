@@ -105,31 +105,11 @@ const Index = () => {
     }
   };
 
-  const handleTranscriptImported = (transcript: ImportedTranscript) => {
-    setImportedTranscript(transcript);
-    
-    // Update meeting settings with imported data
-    if (transcript.extractedSettings) {
-      setMeetingSettings(prev => ({
-        ...prev,
-        title: transcript.extractedSettings?.title || prev.title,
-        description: transcript.extractedSettings?.description || prev.description
-      }));
-    }
-
-    // Automatically navigate to meeting summary with imported data
-    const meetingData = {
-      title: transcript.extractedSettings?.title || meetingSettings.title,
-      duration: transcript.duration || "00:00",
-      wordCount: transcript.wordCount,
-      transcript: transcript.content,
-      speakerCount: 1, // Default for imported transcripts
-      startTime: new Date().toISOString(),
-      extractedSettings: transcript.extractedSettings
-    };
-
-    navigate('/meeting-summary', { state: meetingData });
-    toast.success("Transcript imported and meeting summary created!");
+  const handleAudioImported = (audioFile: File) => {
+    // Handle the imported audio file
+    // This could be extended to process the audio file for transcription
+    toast.success(`Audio file imported: ${audioFile.name}`);
+    console.log("Audio file imported:", audioFile);
   };
 
   const parseDurationToMinutes = (duration: string): number => {
@@ -201,7 +181,7 @@ const Index = () => {
             {/* Meeting Settings */}
           <MeetingSettings 
             onSettingsChange={setMeetingSettings} 
-            onTranscriptImported={handleTranscriptImported}
+            onAudioImported={handleAudioImported}
             initialSettings={meetingSettings} 
           />
 
