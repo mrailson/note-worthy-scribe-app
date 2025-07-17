@@ -36,7 +36,7 @@ export default function MeetingSummary() {
       // If no data, redirect back to home
       navigate('/');
     }
-  }, [location.state, navigate, isSaved]);
+  }, [location.state, navigate]); // Removed isSaved from dependencies to prevent re-runs
 
   const saveMeetingToDatabase = async (data: MeetingData) => {
     if (isSaving || isSaved) return; // Prevent duplicate saves
