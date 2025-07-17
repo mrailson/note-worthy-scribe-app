@@ -18,12 +18,19 @@ import {
 
 interface MeetingSettingsProps {
   onSettingsChange: (settings: any) => void;
+  initialSettings?: {
+    title: string;
+    description: string;
+    meetingType: string;
+  };
 }
 
-export const MeetingSettings = ({ onSettingsChange }: MeetingSettingsProps) => {
+export const MeetingSettings = ({ onSettingsChange, initialSettings }: MeetingSettingsProps) => {
   const [isOpen, setIsOpen] = useState(true);
   const [settings, setSettings] = useState({
-    meetingType: "",
+    title: initialSettings?.title || "",
+    description: initialSettings?.description || "",
+    meetingType: initialSettings?.meetingType || "",
     location: "",
     format: "",
     attendees: "",
@@ -55,19 +62,42 @@ export const MeetingSettings = ({ onSettingsChange }: MeetingSettingsProps) => {
         
         <CollapsibleContent>
           <CardContent className="space-y-6">
+            {/* Meeting Title */}
+            <div className="space-y-2">
+              <Label htmlFor="meeting-title">Meeting Title</Label>
+              <Input
+                id="meeting-title"
+                placeholder="Enter meeting title"
+                value={settings.title}
+                onChange={(e) => updateSetting('title', e.target.value)}
+              />
+            </div>
+
+            {/* Meeting Description */}
+            <div className="space-y-2">
+              <Label htmlFor="meeting-description">Meeting Description</Label>
+              <Textarea
+                id="meeting-description"
+                placeholder="Brief description of the meeting"
+                value={settings.description}
+                onChange={(e) => updateSetting('description', e.target.value)}
+                rows={2}
+              />
+            </div>
+
             {/* Meeting Type */}
             <div className="space-y-2">
               <Label htmlFor="meeting-type">Meeting Type</Label>
-              <Select onValueChange={(value) => updateSetting('meetingType', value)}>
+              <Select value={settings.meetingType} onValueChange={(value) => updateSetting('meetingType', value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select meeting type" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="general">General Meeting</SelectItem>
-                  <SelectItem value="icb">ICB Meeting</SelectItem>
-                  <SelectItem value="it-systems">IT and Systems Meeting</SelectItem>
-                  <SelectItem value="pcn">PCN Meeting</SelectItem>
-                  <SelectItem value="partnership">Partnership Meeting</SelectItem>
+                  <SelectItem value="patient-consultation">Patient Consultation</SelectItem>
+                  <SelectItem value="team-meeting">Team Meeting</SelectItem>
+                  <SelectItem value="clinical-review">Clinical Review</SelectItem>
+                  <SelectItem value="training">Training Session</SelectItem>
                 </SelectContent>
               </Select>
             </div>

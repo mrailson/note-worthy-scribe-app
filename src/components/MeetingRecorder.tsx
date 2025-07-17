@@ -8,12 +8,18 @@ interface MeetingRecorderProps {
   onTranscriptUpdate: (transcript: string) => void;
   onDurationUpdate: (duration: string) => void;
   onWordCountUpdate: (count: number) => void;
+  initialSettings?: {
+    title: string;
+    description: string;
+    meetingType: string;
+  };
 }
 
 export const MeetingRecorder = ({ 
   onTranscriptUpdate, 
   onDurationUpdate, 
-  onWordCountUpdate 
+  onWordCountUpdate,
+  initialSettings
 }: MeetingRecorderProps) => {
   const [isRecording, setIsRecording] = useState(false);
   const [duration, setDuration] = useState(0);

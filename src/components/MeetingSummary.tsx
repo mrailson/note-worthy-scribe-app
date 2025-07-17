@@ -23,13 +23,23 @@ interface MeetingSummaryProps {
   wordCount: number;
   transcript: string;
   onBackToRecording: () => void;
+  meetingSettings?: {
+    title: string;
+    description: string;
+    meetingType: string;
+  };
+  currentMeetingId?: string | null;
+  onSave?: () => Promise<any>;
 }
 
 export const MeetingSummary = ({ 
   duration, 
   wordCount, 
   transcript, 
-  onBackToRecording 
+  onBackToRecording,
+  meetingSettings,
+  currentMeetingId,
+  onSave
 }: MeetingSummaryProps) => {
   const [detailLevel, setDetailLevel] = useState("balanced");
   const [notes, setNotes] = useState(generateMeetingNotes(transcript, "balanced"));
