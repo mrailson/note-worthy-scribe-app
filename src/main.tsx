@@ -13,9 +13,9 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
+        <Toaster />
         <AuthProvider>
           <App />
-          <Toaster />
         </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>
