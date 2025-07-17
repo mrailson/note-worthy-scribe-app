@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -19,13 +18,14 @@ serve(async (req) => {
     return new Response("Expected WebSocket connection", { status: 400 });
   }
 
-  const ASSEMBLYAI_API_KEY = Deno.env.get('ASSEMBLYAI_API_KEY');
-  if (!ASSEMBLYAI_API_KEY) {
-    return new Response("AssemblyAI API key not configured", { status: 500 });
+  const GOOGLE_CLOUD_API_KEY = Deno.env.get('GOOGLE_CLOUD_API_KEY');
+  if (!GOOGLE_CLOUD_API_KEY) {
+    return new Response("Google Cloud API key not configured", { status: 500 });
   }
 
   const { socket, response } = Deno.upgradeWebSocket(req);
-  let assemblySocket: WebSocket | null = null;
+  let isRecording = false;
+  let audioBuffer: Uint8Array[] = [];
 
   socket.onopen = () => {
     console.log("Client WebSocket connected");
@@ -37,86 +37,34 @@ serve(async (req) => {
       console.log("Received message:", message.type);
 
       if (message.type === 'start_transcription') {
-        // Connect to AssemblyAI real-time WebSocket with minimal configuration
-        const ws_url = `wss://api.assemblyai.com/v2/realtime/ws?sample_rate=16000&token=${ASSEMBLYAI_API_KEY}`;
-        console.log("Connecting to AssemblyAI WebSocket");
+        isRecording = true;
+        audioBuffer = [];
+        
+        socket.send(JSON.stringify({ 
+          type: 'session_started',
+          message: 'Real-time transcription started'
+        }));
 
-        // Connect to AssemblyAI WebSocket
-        assemblySocket = new WebSocket(ws_url);
+      } else if (message.type === 'audio_data' && isRecording) {
+        // Store audio data for batched processing
+        const audioData = Uint8Array.from(atob(message.audio_data), c => c.charCodeAt(0));
+        audioBuffer.push(audioData);
 
-        assemblySocket.onopen = () => {
-          console.log("Connected to AssemblyAI - waiting for SessionBegins");
-        };
-
-        assemblySocket.onmessage = (assemblyEvent) => {
-          try {
-            const data = JSON.parse(assemblyEvent.data);
-            console.log("AssemblyAI message:", data.message_type, data);
-
-            if (data.message_type === 'SessionBegins') {
-              console.log("AssemblyAI session began - session_id:", data.session_id);
-              socket.send(JSON.stringify({ 
-                type: 'session_started',
-                message: 'Real-time transcription started',
-                session_id: data.session_id
-              }));
-            } else if (data.message_type === 'FinalTranscript' && data.text && data.text.trim()) {
-              socket.send(JSON.stringify({
-                type: 'transcript',
-                text: data.text,
-                speaker: data.speaker || 'Speaker 1',
-                confidence: data.confidence || 0.5,
-                words: data.words || [],
-                timestamp: new Date().toISOString(),
-                is_final: true
-              }));
-            } else if (data.message_type === 'PartialTranscript' && data.text && data.text.trim()) {
-              socket.send(JSON.stringify({
-                type: 'partial_transcript',
-                text: data.text,
-                speaker: data.speaker || 'Speaker 1',
-                confidence: data.confidence || 0.5,
-                timestamp: new Date().toISOString(),
-                is_final: false
-              }));
-            } else if (data.message_type === 'SessionTerminated') {
-              console.log("AssemblyAI session terminated");
-            } else {
-              console.log("Other AssemblyAI message:", data.message_type);
-            }
-          } catch (error) {
-            console.error("Error parsing AssemblyAI message:", error, assemblyEvent.data);
-          }
-        };
-
-        assemblySocket.onerror = (error) => {
-          console.error("AssemblyAI WebSocket error:", error);
-          socket.send(JSON.stringify({
-            type: 'error',
-            message: 'AssemblyAI connection error'
-          }));
-        };
-
-        assemblySocket.onclose = (event) => {
-          console.log("AssemblyAI WebSocket closed:", event.code, event.reason);
-          socket.send(JSON.stringify({
-            type: 'session_ended',
-            message: `Session closed: ${event.code} ${event.reason || 'Unknown'}`
-          }));
-        };
-
-      } else if (message.type === 'audio_data' && assemblySocket) {
-        // Forward audio data to AssemblyAI
-        if (assemblySocket.readyState === WebSocket.OPEN) {
-          assemblySocket.send(JSON.stringify({
-            audio_data: message.audio_data
-          }));
+        // Process audio every 1 second (adjust as needed)
+        if (audioBuffer.length >= 4) { // Roughly 1 second at 250ms chunks
+          await processAudioBatch();
         }
-      } else if (message.type === 'stop_transcription' && assemblySocket) {
-        // Terminate the session
-        assemblySocket.send(JSON.stringify({ terminate_session: true }));
-        assemblySocket.close();
-        assemblySocket = null;
+
+      } else if (message.type === 'stop_transcription') {
+        isRecording = false;
+        // Process any remaining audio
+        if (audioBuffer.length > 0) {
+          await processAudioBatch();
+        }
+        socket.send(JSON.stringify({
+          type: 'session_ended',
+          message: 'Transcription session ended'
+        }));
       }
     } catch (error) {
       console.error("Error processing message:", error);
@@ -127,18 +75,95 @@ serve(async (req) => {
     }
   };
 
+  async function processAudioBatch() {
+    if (audioBuffer.length === 0) return;
+
+    try {
+      // Combine audio chunks
+      const totalLength = audioBuffer.reduce((acc, chunk) => acc + chunk.length, 0);
+      const combinedAudio = new Uint8Array(totalLength);
+      let offset = 0;
+      
+      for (const chunk of audioBuffer) {
+        combinedAudio.set(chunk, offset);
+        offset += chunk.length;
+      }
+
+      // Convert to base64 for Google Cloud API
+      const base64Audio = btoa(String.fromCharCode(...combinedAudio));
+
+      // Call Google Cloud Speech-to-Text API
+      const response = await fetch(`https://speech.googleapis.com/v1/speech:recognize?key=${GOOGLE_CLOUD_API_KEY}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          config: {
+            encoding: 'LINEAR16',
+            sampleRateHertz: 16000,
+            languageCode: 'en-US',
+            enableSpeakerDiarization: true,
+            diarizationSpeakerCount: 5,
+            enableAutomaticPunctuation: true,
+            speechContexts: [{
+              phrases: ['NHS', 'medical', 'patient', 'consultation', 'clinical', 'diagnosis', 'treatment', 'prescription']
+            }]
+          },
+          audio: {
+            content: base64Audio
+          }
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Google Cloud API error:", errorText);
+        return;
+      }
+
+      const result = await response.json();
+      console.log("Google Cloud response:", result);
+
+      if (result.results && result.results.length > 0) {
+        for (const resultItem of result.results) {
+          if (resultItem.alternatives && resultItem.alternatives.length > 0) {
+            const alternative = resultItem.alternatives[0];
+            
+            let speaker = 'Speaker 1';
+            if (resultItem.speakerTag) {
+              speaker = `Speaker ${resultItem.speakerTag}`;
+            }
+
+            socket.send(JSON.stringify({
+              type: 'transcript',
+              text: alternative.transcript,
+              speaker: speaker,
+              confidence: alternative.confidence || 0.8,
+              timestamp: new Date().toISOString(),
+              is_final: true,
+              words: alternative.words || []
+            }));
+          }
+        }
+      }
+
+      // Clear the buffer after processing
+      audioBuffer = [];
+
+    } catch (error) {
+      console.error("Error processing audio:", error);
+    }
+  }
+
   socket.onclose = () => {
     console.log("Client WebSocket disconnected");
-    if (assemblySocket) {
-      assemblySocket.close();
-    }
+    isRecording = false;
   };
 
   socket.onerror = (error) => {
     console.error("Client WebSocket error:", error);
-    if (assemblySocket) {
-      assemblySocket.close();
-    }
+    isRecording = false;
   };
 
   return response;
