@@ -286,6 +286,7 @@ Speakers detected: ${meetingData?.speakerCount || 0}`;
       const { data: practiceData, error: practiceError } = await supabase
         .from('practice_details')
         .select('logo_url, footer_text, show_page_numbers, practice_name, address')
+        .eq('user_id', user?.id)
         .eq('is_default', true)
         .maybeSingle();
       
@@ -350,7 +351,7 @@ Speakers detected: ${meetingData?.speakerCount || 0}`;
           );
         } else if (line.includes('###') || line.includes('ATTENDEES:') || line.includes('AGENDA:') || 
                   line.includes('KEY DISCUSSION POINTS:') || line.includes('DECISIONS MADE:') || 
-                  line.includes('ACTION ITEMS:') || line.includes('NEXT STEPS:')) {
+                  line.includes('ACTION ITEMS:') || line.includes('NEXT STEPS:') || line.includes('ADDITIONAL NOTES:')) {
           documentChildren.push(
             new Paragraph({
               children: [
@@ -360,7 +361,8 @@ Speakers detected: ${meetingData?.speakerCount || 0}`;
                   size: 24
                 })
               ],
-              spacing: { before: 300, after: 200 }
+              spacing: { before: 300, after: 200 },
+              heading: HeadingLevel.HEADING_2
             })
           );
         } else if (line.startsWith('-') || line.startsWith('•') || line.match(/^\d+\./)) {
@@ -442,6 +444,7 @@ Speakers detected: ${meetingData?.speakerCount || 0}`;
       const { data: practiceData, error: practiceError } = await supabase
         .from('practice_details')
         .select('logo_url, footer_text, show_page_numbers, practice_name, address')
+        .eq('user_id', user?.id)
         .eq('is_default', true)
         .maybeSingle();
       
@@ -548,7 +551,7 @@ Speakers detected: ${meetingData?.speakerCount || 0}`;
         // Section headers
         else if (line.includes('###') || line.includes('ATTENDEES:') || line.includes('AGENDA:') || 
                 line.includes('KEY DISCUSSION POINTS:') || line.includes('DECISIONS MADE:') || 
-                line.includes('ACTION ITEMS:') || line.includes('NEXT STEPS:')) {
+                line.includes('ACTION ITEMS:') || line.includes('NEXT STEPS:') || line.includes('ADDITIONAL NOTES:')) {
           pdf.setFontSize(12);
           pdf.setFont('helvetica', 'bold');
           const cleanLine = line.replace(/###\s*/, '');
