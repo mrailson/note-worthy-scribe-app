@@ -757,6 +757,7 @@ This is an automated message. Please do not reply to this email.`;
                   <TableRow>
                     <TableHead>User</TableHead>
                     <TableHead>Roles</TableHead>
+                    <TableHead>Practice/PCN</TableHead>
                     <TableHead>Last Login</TableHead>
                     <TableHead>Meetings (30d)</TableHead>
                     <TableHead>Total Meetings</TableHead>
@@ -782,9 +783,23 @@ This is an automated message. Please do not reply to this email.`;
                               className={getRoleBadgeColor(role.role)}
                             >
                               {formatRole(role.role)}
-                              {role.practice_name && ` @ ${role.practice_name}`}
                             </Badge>
                           ))}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">
+                          {user.roles.length > 0 ? (
+                            user.roles.map((role, index) => (
+                              <div key={index} className="mb-1">
+                                {role.practice_name || (
+                                  <span className="text-muted-foreground">No practice assigned</span>
+                                )}
+                              </div>
+                            ))
+                          ) : (
+                            <span className="text-muted-foreground">No practice assigned</span>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell>
