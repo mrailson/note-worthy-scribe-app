@@ -151,7 +151,7 @@ export default function SystemAdmin() {
           user_id,
           role,
           practice_id,
-          practice_details(practice_name)
+          gp_practices(practice_name:name)
         `);
 
       if (rolesError) throw rolesError;
@@ -187,7 +187,7 @@ export default function SystemAdmin() {
           created_at: profile.created_at,
           roles: userRoles.map(role => ({
             role: role.role,
-            practice_name: role.practice_details?.practice_name || null,
+            practice_name: role.gp_practices?.practice_name || null,
             practice_id: role.practice_id
           })),
           meeting_stats: {
