@@ -454,6 +454,7 @@ export default function MeetingSummary() {
       // Create attachments if needed - EmailJS requires specific format
       let wordAttachment = null;
       let transcriptAttachment = null;
+      let pdfAttachment = null;
 
       if (includeDocx) {
         try {
@@ -472,6 +473,26 @@ export default function MeetingSummary() {
           };
         } catch (error) {
           console.error('Error creating DOCX attachment:', error);
+        }
+      }
+
+      if (includePdf) {
+        try {
+          // Generate PDF using existing downloadPDF logic but return blob
+          const pdfBlob = await generatePdfBlob();
+          
+          // Convert blob to base64 for EmailJS
+          const arrayBuffer = await pdfBlob.arrayBuffer();
+          const uint8Array = new Uint8Array(arrayBuffer);
+          const base64String = btoa(String.fromCharCode.apply(null, Array.from(uint8Array)));
+          
+          pdfAttachment = {
+            name: `${meetingData?.title || 'meeting'}_minutes.pdf`,
+            data: base64String,
+            type: 'application/pdf'
+          };
+        } catch (error) {
+          console.error('Error creating PDF attachment:', error);
         }
       }
 
@@ -513,6 +534,8 @@ export default function MeetingSummary() {
         // Attachments - only include if they exist
         ...(wordAttachment && { word_attachment: wordAttachment }),
         ...(wordAttachment && { word_filename: wordAttachment.name }),
+        ...(pdfAttachment && { pdf_attachment: pdfAttachment }),
+        ...(pdfAttachment && { pdf_filename: pdfAttachment.name }),
         ...(transcriptAttachment && { transcript_attachment: transcriptAttachment }),
         ...(transcriptAttachment && { transcript_filename: transcriptAttachment.name })
       };
@@ -520,6 +543,7 @@ export default function MeetingSummary() {
       console.log('Template params with attachments:', {
         ...templateParams,
         word_attachment: wordAttachment ? 'DOCX file prepared' : 'No DOCX',
+        pdf_attachment: pdfAttachment ? 'PDF file prepared' : 'No PDF',
         transcript_attachment: transcriptAttachment ? 'Transcript prepared' : 'No transcript'
       });
 
@@ -609,6 +633,50 @@ export default function MeetingSummary() {
       return await Packer.toBlob(doc);
     } catch (error) {
       console.error('Error generating DOCX blob:', error);
+      throw error;
+    }
+  };
+
+  // Helper function to generate PDF as blob
+  const generatePdfBlob = async (): Promise<Blob> => {
+    try {
+      const content = generateNHSSummaryContent();
+      
+      // Clean content for PDF (remove HTML tags if any)
+      let pdfContent;
+      if (aiGeneratedMinutes) {
+        pdfContent = content
+          .replace(/<[^>]*>/g, '') // Remove HTML tags
+          .replace(/&nbsp;/g, ' ')  // Replace HTML entities
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>');
+      } else {
+        pdfContent = content;
+      }
+
+      const pdf = new jsPDF();
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 20;
+      
+      // Add content to PDF
+      const lines = pdf.splitTextToSize(pdfContent, pageWidth - 2 * margin);
+      let yPosition = margin;
+      
+      for (const line of lines) {
+        if (yPosition > pageHeight - margin) {
+          pdf.addPage();
+          yPosition = margin;
+        }
+        pdf.text(line, margin, yPosition);
+        yPosition += 6;
+      }
+
+      // Return as blob
+      return pdf.output('blob');
+    } catch (error) {
+      console.error('Error generating PDF blob:', error);
       throw error;
     }
   };
