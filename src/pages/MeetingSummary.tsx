@@ -461,16 +461,21 @@ export default function MeetingSummary() {
           // Generate DOCX file as blob
           const docxBlob = await generateDocxBlob();
           
-          // Convert blob to base64 for EmailJS
-          const arrayBuffer = await docxBlob.arrayBuffer();
-          const uint8Array = new Uint8Array(arrayBuffer);
-          const base64String = btoa(String.fromCharCode.apply(null, Array.from(uint8Array)));
+          // For EmailJS, we need to create a File object or use a different approach
+          const filename = `${meetingData?.title || 'meeting'}_minutes.docx`;
           
-          wordAttachment = {
-            name: `${meetingData?.title || 'meeting'}_minutes.docx`,
-            data: base64String,
+          // Try creating a File object instead of base64
+          const file = new File([docxBlob], filename, {
             type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-          };
+          });
+          
+          wordAttachment = file;
+          
+          console.log('DOCX attachment created:', {
+            name: file.name,
+            size: file.size,
+            type: file.type
+          });
         } catch (error) {
           console.error('Error creating DOCX attachment:', error);
         }
@@ -481,16 +486,19 @@ export default function MeetingSummary() {
           // Generate PDF using existing downloadPDF logic but return blob
           const pdfBlob = await generatePdfBlob();
           
-          // Convert blob to base64 for EmailJS
-          const arrayBuffer = await pdfBlob.arrayBuffer();
-          const uint8Array = new Uint8Array(arrayBuffer);
-          const base64String = btoa(String.fromCharCode.apply(null, Array.from(uint8Array)));
-          
-          pdfAttachment = {
-            name: `${meetingData?.title || 'meeting'}_minutes.pdf`,
-            data: base64String,
+          // Create File object for EmailJS
+          const filename = `${meetingData?.title || 'meeting'}_minutes.pdf`;
+          const file = new File([pdfBlob], filename, {
             type: 'application/pdf'
-          };
+          });
+          
+          pdfAttachment = file;
+          
+          console.log('PDF attachment created:', {
+            name: file.name,
+            size: file.size,
+            type: file.type
+          });
         } catch (error) {
           console.error('Error creating PDF attachment:', error);
         }
@@ -500,13 +508,20 @@ export default function MeetingSummary() {
         try {
           // Create transcript text file
           const transcriptContent = meetingData.transcript;
-          const base64Transcript = btoa(unescape(encodeURIComponent(transcriptContent)));
+          const filename = `${meetingData?.title || 'meeting'}_transcript.txt`;
           
-          transcriptAttachment = {
-            name: `${meetingData?.title || 'meeting'}_transcript.txt`,
-            data: base64Transcript,
+          // Create File object
+          const file = new File([transcriptContent], filename, {
             type: 'text/plain'
-          };
+          });
+          
+          transcriptAttachment = file;
+          
+          console.log('Transcript attachment created:', {
+            name: file.name,
+            size: file.size,
+            type: file.type
+          });
         } catch (error) {
           console.error('Error creating transcript attachment:', error);
         }
@@ -531,20 +546,18 @@ export default function MeetingSummary() {
         all_emails: allEmailsString,
         include_transcript: includeTranscriptInEmail ? 'Yes' : 'No',
         
-        // Attachments - only include if they exist
+        // Attachments - EmailJS expects File objects directly
         ...(wordAttachment && { word_attachment: wordAttachment }),
-        ...(wordAttachment && { word_filename: wordAttachment.name }),
         ...(pdfAttachment && { pdf_attachment: pdfAttachment }),
-        ...(pdfAttachment && { pdf_filename: pdfAttachment.name }),
-        ...(transcriptAttachment && { transcript_attachment: transcriptAttachment }),
-        ...(transcriptAttachment && { transcript_filename: transcriptAttachment.name })
+        ...(transcriptAttachment && { transcript_attachment: transcriptAttachment })
       };
 
       console.log('Template params with attachments:', {
-        ...templateParams,
-        word_attachment: wordAttachment ? 'DOCX file prepared' : 'No DOCX',
-        pdf_attachment: pdfAttachment ? 'PDF file prepared' : 'No PDF',
-        transcript_attachment: transcriptAttachment ? 'Transcript prepared' : 'No transcript'
+        subject: templateParams.subject,
+        to_email: templateParams.to_email,
+        word_attachment: wordAttachment ? `File: ${wordAttachment.name} (${wordAttachment.size} bytes)` : 'No DOCX',
+        pdf_attachment: pdfAttachment ? `File: ${pdfAttachment.name} (${pdfAttachment.size} bytes)` : 'No PDF',
+        transcript_attachment: transcriptAttachment ? `File: ${transcriptAttachment.name} (${transcriptAttachment.size} bytes)` : 'No transcript'
       });
 
       // Debug logging
