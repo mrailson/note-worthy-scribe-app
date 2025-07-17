@@ -293,28 +293,43 @@ export default function MeetingSummary() {
         .filter(email => email.length > 0);
 
       const allEmails = [...attendeeEmailList, ...manualEmails];
+      const allEmailsString = [userEmail, ...allEmails].join(', ');
 
-      const response = await supabase.functions.invoke('send-meeting-summary', {
-        body: {
-          userEmail,
-          attendeeEmails: allEmails,
-          meetingTitle: meetingData?.title || 'Meeting',
-          meetingDate: new Date(meetingData?.startTime || new Date()).toLocaleDateString('en-GB'),
-          duration: meetingData?.duration || '00:00',
-          summary: generateNHSSummaryContent(),
-          includeTranscript: includeTranscriptInEmail,
-          transcript: includeTranscriptInEmail ? meetingData?.transcript : undefined,
-          practiceName: meetingData?.practiceName
-        }
+      // Prepare email content
+      const meetingNotes = generateNHSSummaryContent();
+      
+      const emailData = {
+        to_email: userEmail,
+        all_emails: allEmailsString,
+        meeting_title: meetingData?.title || 'Meeting',
+        meeting_date: new Date(meetingData?.startTime || new Date()).toLocaleDateString('en-GB'),
+        duration: meetingData?.duration || '00:00',
+        practice_name: meetingData?.practiceName || '',
+        meeting_notes: meetingNotes,
+        include_transcript: includeTranscriptInEmail ? 'Yes' : 'No',
+        transcript: includeTranscriptInEmail ? meetingData?.transcript || '' : '',
+        from_name: 'Notewell AI Meeting Notes Service',
+        reply_to: userEmail
+      };
+
+      // Send email using our EmailJS edge function
+      const response = await supabase.functions.invoke('send-email-via-emailjs', {
+        body: emailData
       });
 
-      if (response.error) throw response.error;
-      
-      toast.success("Email sent successfully");
-      setIsEmailModalOpen(false);
+      if (response.error) {
+        throw new Error(response.error.message || 'Failed to send email');
+      }
+
+      if (response.data?.success) {
+        toast.success("Email sent successfully via EmailJS");
+        setIsEmailModalOpen(false);
+      } else {
+        throw new Error('Email sending failed');
+      }
     } catch (error) {
       console.error('Error sending email:', error);
-      toast.error("Failed to send email");
+      toast.error("Failed to send email. Please check your EmailJS configuration.");
     } finally {
       setIsEmailLoading(false);
     }
