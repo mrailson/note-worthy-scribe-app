@@ -31,7 +31,7 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Slider } from "@/components/ui/slider";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { MeetingSettings } from "@/components/MeetingSettings";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -39,6 +39,7 @@ import { toast } from "sonner";
 import { saveAs } from "file-saver";
 import { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel } from "docx";
 import jsPDF from "jspdf";
+import emailjs from '@emailjs/browser';
 
 interface MeetingData {
   id?: string;
@@ -298,7 +299,28 @@ export default function MeetingSummary() {
       // Prepare email content
       const meetingNotes = generateNHSSummaryContent();
       
-      const emailData = {
+      // Get EmailJS credentials - you'll need to replace with your actual public key
+      const serviceId = 'notewell'; // Your service ID from the logs
+      const templateId = 'template_n236grs'; // Your template ID from the logs  
+      const publicKey = 'YOUR_EMAILJS_PUBLIC_KEY'; // Replace this with your actual public key
+
+      // Create attachments if needed
+      let wordAttachment = null;
+      let transcriptAttachment = null;
+
+      if (includeDocx) {
+        // Generate DOCX file as blob
+        const doc = await generateDocxBlob();
+        wordAttachment = doc;
+      }
+
+      if (includeTranscriptInEmail && meetingData?.transcript) {
+        // Create transcript text file
+        const transcriptBlob = new Blob([meetingData.transcript], { type: 'text/plain' });
+        transcriptAttachment = transcriptBlob;
+      }
+
+      const templateParams = {
         to_email: userEmail,
         all_emails: allEmailsString,
         meeting_title: meetingData?.title || 'Meeting',
@@ -307,31 +329,93 @@ export default function MeetingSummary() {
         practice_name: meetingData?.practiceName || '',
         meeting_notes: meetingNotes,
         include_transcript: includeTranscriptInEmail ? 'Yes' : 'No',
-        transcript: includeTranscriptInEmail ? meetingData?.transcript || '' : '',
         from_name: 'Notewell AI Meeting Notes Service',
-        reply_to: userEmail
+        reply_to: userEmail,
+        word_attachment: wordAttachment,
+        word_filename: `${meetingData?.title || 'meeting'}_minutes.docx`,
+        transcript_attachment: transcriptAttachment,
+        transcript_filename: `${meetingData?.title || 'meeting'}_transcript.txt`
       };
 
-      // Send email using our EmailJS edge function
-      const response = await supabase.functions.invoke('send-email-via-emailjs', {
-        body: emailData
-      });
+      // Send email using EmailJS from browser
+      const response = await emailjs.send(
+        serviceId,
+        templateId,
+        templateParams,
+        publicKey
+      );
 
-      if (response.error) {
-        throw new Error(response.error.message || 'Failed to send email');
-      }
-
-      if (response.data?.success) {
+      if (response.status === 200) {
         toast.success("Email sent successfully via EmailJS");
         setIsEmailModalOpen(false);
       } else {
-        throw new Error('Email sending failed');
+        throw new Error('Failed to send email');
       }
     } catch (error) {
       console.error('Error sending email:', error);
       toast.error("Failed to send email. Please check your EmailJS configuration.");
     } finally {
       setIsEmailLoading(false);
+    }
+  };
+
+  // Helper function to generate DOCX as blob
+  const generateDocxBlob = async (): Promise<Blob> => {
+    try {
+      const content = generateNHSSummaryContent();
+      const lines = content.split('\n');
+      const documentChildren = [];
+      
+      for (const line of lines) {
+        if (!line.trim()) {
+          documentChildren.push(new Paragraph({ text: "" }));
+          continue;
+        }
+        
+        if (line.includes('AI Generated Meeting Minutes') || line.includes('NHS MEETING MINUTES')) {
+          documentChildren.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: line,
+                  bold: true,
+                  size: 32
+                })
+              ],
+              alignment: AlignmentType.CENTER,
+              spacing: { after: 400 }
+            })
+          );
+        } else {
+          documentChildren.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: line,
+                  size: 22
+                })
+              ],
+              spacing: { after: 100 }
+            })
+          );
+        }
+      }
+
+      const doc = new Document({
+        sections: [{
+          properties: {
+            page: {
+              margin: { top: 720, right: 720, bottom: 720, left: 720 }
+            }
+          },
+          children: documentChildren
+        }]
+      });
+
+      return await Packer.toBlob(doc);
+    } catch (error) {
+      console.error('Error generating DOCX blob:', error);
+      throw error;
     }
   };
 
@@ -957,6 +1041,9 @@ Generated by Notewell AI Meeting Notes Service`;
               <DialogContent className="max-w-2xl">
                 <DialogHeader>
                   <DialogTitle>Email Meeting Notes</DialogTitle>
+                  <DialogDescription>
+                    Send meeting notes and attachments to attendees and other recipients.
+                  </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
                   {/* User Email */}
