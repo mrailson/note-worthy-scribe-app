@@ -81,15 +81,12 @@ export const MeetingHistoryList = ({
   const getMeetingTypeLabel = (type: string) => {
     const types: Record<string, string> = {
       'general': 'General Meeting',
-      'patient-consultation': 'Patient Meeting (Complaint Handling or other Administration Reason)',
-      'pcn-meeting': 'PCN Meeting',
-      'icb-meeting': 'ICB Meeting',
-      'neighbourhood-meeting': 'Neighbourhood Meeting',
+      'consultation': 'Consultation',
       'team-meeting': 'Team Meeting',
       'clinical-review': 'Clinical Review',
       'training': 'Training Session',
     };
-    return types[type] || type;
+    return types[type] || type.charAt(0).toUpperCase() + type.slice(1);
   };
 
   const formatDuration = (minutes: number | null) => {
@@ -188,6 +185,9 @@ export const MeetingHistoryList = ({
                 <div className="flex items-center gap-2 mb-1">
                   {getStatusIcon(meeting.status)}
                   <h3 className="font-semibold text-lg">{meeting.title}</h3>
+                  <Badge variant="secondary" className="text-xs">
+                    {getMeetingTypeLabel(meeting.meeting_type)}
+                  </Badge>
                   {getStatusBadge(meeting.status)}
                 </div>
                 
