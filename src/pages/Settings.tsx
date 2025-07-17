@@ -620,7 +620,7 @@ export default function Settings() {
                         <Mail className="h-4 w-4 text-muted-foreground" />
                         <div>
                           <p className="text-sm font-medium">Email Support</p>
-                          <p className="text-xs text-muted-foreground">support@notewell.ai</p>
+                          <p className="text-xs text-muted-foreground">malcolm.railson@nhs.net</p>
                         </div>
                       </div>
                       
