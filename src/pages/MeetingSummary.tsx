@@ -1051,9 +1051,9 @@ Speakers detected: ${meetingData?.speakerCount || 0}`;
           }
           
           // Handle different types of lines with proper formatting
-          if (line.startsWith('# ') && !line.startsWith('###')) {
+          if (line.startsWith('# ')) {
             // Main headers (like # 1. Ambient Voice Technology) - prioritize this
-            const headerText = line.replace(/^#\s+/, '');
+            const headerText = line.substring(2); // Remove "# "
             console.log('Processing header:', line, '-> cleaned:', headerText);
             documentChildren.push(new Paragraph({
               children: [new TextRun({ text: headerText, bold: true, size: 24, color: "1f4e79" })],
