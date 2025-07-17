@@ -50,6 +50,61 @@ const MeetingHistory = () => {
     navigate("/");
   };
 
+  const handleViewMeetingSummary = async (meetingId: string) => {
+    try {
+      // Fetch meeting details
+      const { data: meeting, error: meetingError } = await supabase
+        .from('meetings')
+        .select('*')
+        .eq('id', meetingId)
+        .eq('user_id', user?.id)
+        .single();
+
+      if (meetingError) throw meetingError;
+
+      // Fetch transcript
+      const { data: transcripts, error: transcriptError } = await supabase
+        .from('meeting_transcripts')
+        .select('*')
+        .eq('meeting_id', meetingId)
+        .order('timestamp_seconds', { ascending: true });
+
+      if (transcriptError) throw transcriptError;
+
+      // Combine all transcript content
+      const fullTranscript = transcripts?.map(t => t.content).join(' ') || '';
+      const wordCount = fullTranscript.split(' ').length;
+
+      // Calculate duration
+      const startTime = new Date(meeting.start_time);
+      const endTime = meeting.end_time ? new Date(meeting.end_time) : new Date();
+      const durationMs = endTime.getTime() - startTime.getTime();
+      const durationMinutes = Math.floor(durationMs / (1000 * 60));
+      const durationSeconds = Math.floor((durationMs % (1000 * 60)) / 1000);
+      const duration = `${durationMinutes}:${durationSeconds.toString().padStart(2, '0')}`;
+
+      // Navigate to meeting summary with data
+      navigate('/meeting-summary', {
+        state: {
+          id: meeting.id,
+          title: meeting.title,
+          duration: duration,
+          wordCount: wordCount,
+          transcript: fullTranscript,
+          speakerCount: 1,
+          startTime: meeting.start_time,
+          practiceName: ""
+        }
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error Loading Meeting",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
 
   useEffect(() => {
     if (user) {
@@ -326,6 +381,7 @@ const MeetingHistory = () => {
         <MeetingHistoryList 
           meetings={filteredMeetings}
           onEdit={handleMeetingEdit}
+          onViewSummary={handleViewMeetingSummary}
           onDelete={handleMeetingDelete}
           loading={loading}
         />

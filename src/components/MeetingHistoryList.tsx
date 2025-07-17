@@ -42,6 +42,7 @@ interface Meeting {
 interface MeetingHistoryListProps {
   meetings: Meeting[];
   onEdit: (meetingId: string) => void;
+  onViewSummary: (meetingId: string) => void;
   onDelete: (meetingId: string) => void;
   loading: boolean;
 }
@@ -49,6 +50,7 @@ interface MeetingHistoryListProps {
 export const MeetingHistoryList = ({ 
   meetings, 
   onEdit, 
+  onViewSummary,
   onDelete, 
   loading 
 }: MeetingHistoryListProps) => {
@@ -209,11 +211,11 @@ export const MeetingHistoryList = ({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => onEdit(meeting.id)}
+                  onClick={() => onViewSummary(meeting.id)}
                   className="flex items-center gap-1"
                 >
                   <Eye className="h-3 w-3" />
-                  View
+                  View Summary
                 </Button>
                 
                 <AlertDialog>
