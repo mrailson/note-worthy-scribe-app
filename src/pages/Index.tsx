@@ -28,7 +28,8 @@ const Index = () => {
   const [meetingSettings, setMeetingSettings] = useState({
     title: "",
     description: "",
-    meetingType: "general"
+    meetingType: "general",
+    attendees: ""
   });
   const [currentMeetingId, setCurrentMeetingId] = useState<string | null>(null);
   const [importedTranscript, setImportedTranscript] = useState<ImportedTranscript | null>(null);
@@ -40,7 +41,8 @@ const Index = () => {
       setMeetingSettings({
         title: state.meetingData.title || "Continued Meeting",
         description: "Meeting continued from previous session",
-        meetingType: "general"
+        meetingType: "general",
+        attendees: ""
       });
       toast.success("Meeting session restored. You can continue recording.");
     }
@@ -84,7 +86,8 @@ const Index = () => {
       setMeetingSettings({
         title: meeting.title,
         description: meeting.description || "",
-        meetingType: meeting.meeting_type
+        meetingType: meeting.meeting_type,
+        attendees: ""
       });
       
       setCurrentMeetingId(meetingId);
@@ -126,7 +129,8 @@ const Index = () => {
     setMeetingSettings({
       title: "",
       description: "",
-      meetingType: "general"
+      meetingType: "general",
+      attendees: ""
     });
     // Clear URL parameters
     window.history.replaceState({}, '', '/');
@@ -183,6 +187,7 @@ const Index = () => {
               transcript={transcript}
               showTimestamps={showTimestamps}
               onTimestampsToggle={setShowTimestamps}
+              attendees={meetingSettings.attendees}
             />
 
             {/* Meeting Settings */}
