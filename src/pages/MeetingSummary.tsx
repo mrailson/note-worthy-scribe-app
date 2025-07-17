@@ -66,9 +66,19 @@ export default function MeetingSummary() {
   const [isEmailLoading, setIsEmailLoading] = useState(false);
 
   useEffect(() => {
-    const data = location.state as MeetingData;
+    const data = location.state as MeetingData & { extractedSettings?: any };
     if (data && !isSaved && !isSaving && !meetingData?.id) {
       setMeetingData(data);
+      
+      // Auto-populate summary content from imported data
+      if (data.extractedSettings) {
+        setSummaryContent(prev => ({
+          ...prev,
+          attendees: data.extractedSettings.attendees || prev.attendees,
+          agenda: data.extractedSettings.agenda || prev.agenda,
+        }));
+      }
+      
       saveMeetingToDatabase(data);
     } else if (!data) {
       navigate('/');

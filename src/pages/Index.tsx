@@ -124,7 +124,8 @@ const Index = () => {
       wordCount: transcript.wordCount,
       transcript: transcript.content,
       speakerCount: 1, // Default for imported transcripts
-      startTime: new Date().toISOString()
+      startTime: new Date().toISOString(),
+      extractedSettings: transcript.extractedSettings
     };
 
     navigate('/meeting-summary', { state: meetingData });
