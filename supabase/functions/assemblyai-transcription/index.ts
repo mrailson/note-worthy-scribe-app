@@ -18,9 +18,9 @@ serve(async (req) => {
     return new Response("Expected WebSocket connection", { status: 400 });
   }
 
-  const GOOGLE_CLOUD_API_KEY = Deno.env.get('GOOGLE_CLOUD_API_KEY');
-  if (!GOOGLE_CLOUD_API_KEY) {
-    return new Response("Google Cloud API key not configured", { status: 500 });
+  const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+  if (!OPENAI_API_KEY) {
+    return new Response("OpenAI API key not configured", { status: 500 });
   }
 
   const { socket, response } = Deno.upgradeWebSocket(req);
@@ -95,71 +95,55 @@ serve(async (req) => {
         offset += chunk.length;
       }
 
-      // Convert to base64 for Google Cloud API
+      // Convert to base64 for OpenAI Whisper API
       const base64Audio = btoa(String.fromCharCode(...combinedAudio));
 
-      // Call Google Cloud Speech-to-Text API with simplified settings
-      const requestBody = {
-        config: {
-          encoding: 'WEBM_OPUS',
-          sampleRateHertz: 48000,
-          languageCode: 'en-US',
-          enableAutomaticPunctuation: true,
-          model: 'latest_short',
-          speechContexts: [{
-            phrases: ['NHS', 'medical', 'patient', 'consultation', 'clinical', 'diagnosis', 'treatment', 'prescription', 'testing', 'service']
-          }]
-        },
-        audio: {
-          content: base64Audio
-        }
-      };
+      // Prepare form data for Whisper API
+      const formData = new FormData();
+      const blob = new Blob([combinedAudio], { type: 'audio/webm' });
+      formData.append('file', blob, 'audio.webm');
+      formData.append('model', 'whisper-1');
+      formData.append('language', 'en');
+      formData.append('response_format', 'verbose_json');
 
-      console.log("Sending request to Google Cloud with config:", requestBody.config);
+      console.log("Sending request to OpenAI Whisper API");
       
-      const response = await fetch(`https://speech.googleapis.com/v1/speech:recognize?key=${GOOGLE_CLOUD_API_KEY}`, {
+      const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${OPENAI_API_KEY}`,
         },
-        body: JSON.stringify(requestBody)
+        body: formData
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Google Cloud API error:", response.status, errorText);
+        console.error("OpenAI Whisper API error:", response.status, errorText);
         socket.send(JSON.stringify({
           type: 'error',
-          message: `Google Cloud API error: ${response.status}`
+          message: `Whisper API error: ${response.status}`
         }));
         return;
       }
 
       const result = await response.json();
-      console.log("Google Cloud response:", result);
-      console.log("Number of results:", result.results?.length || 0);
+      console.log("OpenAI Whisper response:", result);
 
-      if (result.results && result.results.length > 0) {
-        for (const resultItem of result.results) {
-          if (resultItem.alternatives && resultItem.alternatives.length > 0) {
-            const alternative = resultItem.alternatives[0];
-            
-            let speaker = 'Speaker 1';
-            if (resultItem.speakerTag) {
-              speaker = `Speaker ${resultItem.speakerTag}`;
-            }
-
-            socket.send(JSON.stringify({
-              type: 'transcript',
-              text: alternative.transcript,
-              speaker: speaker,
-              confidence: alternative.confidence || 0.8,
-              timestamp: new Date().toISOString(),
-              is_final: true,
-              words: alternative.words || []
-            }));
-          }
-        }
+      if (result.text && result.text.trim()) {
+        // Whisper returns a single text result
+        socket.send(JSON.stringify({
+          type: 'transcript',
+          text: result.text.trim(),
+          speaker: 'Speaker 1',
+          confidence: 0.95, // Whisper doesn't provide confidence, use high default
+          timestamp: new Date().toISOString(),
+          is_final: true,
+          words: result.words || []
+        }));
+        
+        console.log("Transcription sent:", result.text.trim());
+      } else {
+        console.log("No transcription text received from Whisper");
       }
 
       // Clear the buffer after processing
