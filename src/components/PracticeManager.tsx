@@ -78,7 +78,14 @@ export const PracticeManager = ({ onPracticeChange }: PracticeManagerProps) => {
     try {
       const { data, error } = await supabase
         .from('gp_practices')
-        .select('practice_code, name, pcn_code, ics_name, organisation_type')
+        .select(`
+          practice_code, 
+          name, 
+          pcn_code, 
+          ics_name, 
+          organisation_type,
+          primary_care_networks!inner(pcn_name)
+        `)
         .order('name');
 
       if (error) throw error;
@@ -386,7 +393,7 @@ export const PracticeManager = ({ onPracticeChange }: PracticeManagerProps) => {
                       <div>
                         <div className="font-medium">{gpPractice.name}</div>
                         <div className="text-muted-foreground">
-                          K-Code: {gpPractice.practice_code} • PCN: {gpPractice.pcn_code} • {gpPractice.ics_name}
+                          U-Code: {gpPractice.practice_code} • PCN: {gpPractice.primary_care_networks?.pcn_name || gpPractice.pcn_code} ({gpPractice.pcn_code}) • {gpPractice.ics_name}
                         </div>
                       </div>
                       <Button size="sm" variant="outline" onClick={() => addFromGpPractices(gpPractice)}>
