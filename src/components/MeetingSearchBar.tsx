@@ -32,7 +32,6 @@ export const MeetingSearchBar = ({
 
   const filters = [
     { value: "all", label: "All Meetings" },
-    { value: "consultation", label: "Consultation" },
     { value: "general", label: "General" },
     { value: "team-meeting", label: "Team Meeting" },
     { value: "clinical-review", label: "Clinical Review" },
