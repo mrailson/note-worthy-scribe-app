@@ -431,7 +431,7 @@ This is an automated message. Please do not reply to this email.
             message: welcomeEmailContent,
             to_name: newUserName
           },
-          'btJqhz9Y6K7lQoLqm' // Your EmailJS public key - please replace with actual key
+          'OknbPskm8GVoUZFiD' // Your actual EmailJS public key
         );
 
         toast.success("User created successfully and welcome email sent");
