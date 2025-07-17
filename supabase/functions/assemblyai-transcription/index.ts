@@ -46,6 +46,16 @@ serve(async (req) => {
 
         assemblySocket.onopen = () => {
           console.log("Connected to AssemblyAI");
+          
+          // Send session configuration
+          assemblySocket!.send(JSON.stringify({
+            sample_rate: 16000,
+            word_boost: ["NHS", "medical", "patient", "consultation", "clinical", "diagnosis", "treatment", "prescription"],
+            speaker_labels: true,
+            punctuate: true,
+            format_text: true,
+          }));
+          
           socket.send(JSON.stringify({ 
             type: 'session_started',
             message: 'Real-time transcription started'
