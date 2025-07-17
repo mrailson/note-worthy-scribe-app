@@ -52,8 +52,8 @@ serve(async (req) => {
         audioBuffer.push(audioData);
         console.log(`Received audio chunk, buffer size: ${audioBuffer.length}`);
 
-        // Process audio every 4 chunks (roughly 4 seconds) for better accuracy
-        if (audioBuffer.length >= 4 && !isProcessing) {
+        // Process audio every 2 chunks (roughly 6 seconds) for better accuracy
+        if (audioBuffer.length >= 2 && !isProcessing) {
           console.log("Processing audio batch...");
           processAudioBatch(); // Don't await to prevent blocking
         }

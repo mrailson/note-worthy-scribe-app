@@ -100,8 +100,8 @@ export class RealtimeTranscriber {
         }
       };
 
-      // Start recording with longer intervals for better audio quality
-      this.mediaRecorder.start(1000); // Send audio chunks every 1 second
+      // Start recording with longer intervals for better transcription
+      this.mediaRecorder.start(3000); // Send audio chunks every 3 seconds
       this.isRecording = true;
 
       if (this.socket?.readyState === WebSocket.OPEN) {
