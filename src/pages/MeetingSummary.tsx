@@ -117,6 +117,7 @@ export default function MeetingSummary() {
   useEffect(() => {
     const data = location.state as MeetingData & { extractedSettings?: any };
     if (data && !isSaved && !isSaving && !meetingData?.id) {
+      console.log('MeetingSummary useEffect triggered with data:', data.title, data.startTime);
       setMeetingData(data);
       
       // Initialize meeting settings
@@ -137,12 +138,17 @@ export default function MeetingSummary() {
         }));
       }
       
-      saveMeetingToDatabase(data);
+      // Add a small delay to prevent race conditions
+      const timer = setTimeout(() => {
+        saveMeetingToDatabase(data);
+      }, 100);
       
       // Load existing summary if available
       if (data.id) {
         loadExistingSummary(data.id);
       }
+      
+      return () => clearTimeout(timer);
     } else if (!data) {
       navigate('/');
     }
@@ -206,18 +212,23 @@ export default function MeetingSummary() {
     try {
       if (!user) throw new Error('User not authenticated');
 
-      // Check if meeting already exists with same start time and user
-      const { data: existingMeeting, error: existingError } = await supabase
+      // Check if meeting already exists with same start time and user within 1 minute
+      const startTimeDate = new Date(data.startTime);
+      const beforeTime = new Date(startTimeDate.getTime() - 60000); // 1 minute before
+      const afterTime = new Date(startTimeDate.getTime() + 60000);  // 1 minute after
+      
+      const { data: existingMeetings, error: existingError } = await supabase
         .from('meetings')
-        .select('id')
+        .select('id, created_at')
         .eq('user_id', user.id)
-        .eq('start_time', data.startTime)
         .eq('title', data.title)
-        .maybeSingle();
+        .gte('start_time', beforeTime.toISOString())
+        .lte('start_time', afterTime.toISOString())
+        .order('created_at', { ascending: true });
 
-      if (existingMeeting && !existingError) {
-        console.log('Meeting already exists, skipping save');
-        setMeetingData(prev => prev ? { ...prev, id: existingMeeting.id } : null);
+      if (existingMeetings && existingMeetings.length > 0 && !existingError) {
+        console.log('Meeting already exists, skipping save. Found:', existingMeetings.length, 'meetings');
+        setMeetingData(prev => prev ? { ...prev, id: existingMeetings[0].id } : null);
         setIsSaved(true);
         return;
       }
