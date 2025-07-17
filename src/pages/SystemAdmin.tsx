@@ -593,24 +593,24 @@ This is an automated message. Please do not reply to this email.`;
 
         {/* Main Content with Tabs */}
         <Tabs defaultValue="dashboard" className="w-full">
-          <TabsList className="grid w-full grid-cols-5 mb-6">
-            <TabsTrigger value="dashboard" className="flex items-center gap-2">
+          <TabsList className="grid w-full grid-cols-5 mb-6 bg-muted p-1 rounded-md">
+            <TabsTrigger value="dashboard" className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground">
               <BarChart3 className="h-4 w-4" />
               Dashboard
             </TabsTrigger>
-            <TabsTrigger value="users" className="flex items-center gap-2">
+            <TabsTrigger value="users" className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground">
               <Users className="h-4 w-4" />
               User Management
             </TabsTrigger>
-            <TabsTrigger value="practices" className="flex items-center gap-2">
+            <TabsTrigger value="practices" className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground">
               <Building2 className="h-4 w-4" />
               Practices
             </TabsTrigger>
-            <TabsTrigger value="meetings" className="flex items-center gap-2">
+            <TabsTrigger value="meetings" className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground">
               <Calendar className="h-4 w-4" />
               Meetings
             </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center gap-2">
+            <TabsTrigger value="settings" className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground">
               <Shield className="h-4 w-4" />
               Settings
             </TabsTrigger>
