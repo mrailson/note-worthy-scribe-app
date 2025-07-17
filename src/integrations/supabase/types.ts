@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      gp_practices: {
+        Row: {
+          created_at: string
+          ics_code: string
+          ics_name: string
+          id: string
+          name: string
+          organisation_type: string
+          pcn_code: string | null
+          practice_code: string
+        }
+        Insert: {
+          created_at?: string
+          ics_code: string
+          ics_name: string
+          id?: string
+          name: string
+          organisation_type: string
+          pcn_code?: string | null
+          practice_code: string
+        }
+        Update: {
+          created_at?: string
+          ics_code?: string
+          ics_name?: string
+          id?: string
+          name?: string
+          organisation_type?: string
+          pcn_code?: string | null
+          practice_code?: string
+        }
+        Relationships: []
+      }
       meeting_summaries: {
         Row: {
           action_items: string[] | null

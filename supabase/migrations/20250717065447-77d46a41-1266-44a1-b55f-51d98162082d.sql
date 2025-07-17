@@ -1,0 +1,91 @@
+-- Create GP practices table for Northamptonshire
+CREATE TABLE public.gp_practices (
+  id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  practice_code TEXT NOT NULL UNIQUE,
+  pcn_code TEXT,
+  ics_code TEXT NOT NULL,
+  ics_name TEXT NOT NULL,
+  organisation_type TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
+
+-- Insert all Northamptonshire GP practices
+INSERT INTO public.gp_practices (name, practice_code, pcn_code, ics_code, ics_name, organisation_type) VALUES
+('Abbey House Medical Practice', 'K83032', 'U79464', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Abbey Medical Practice', 'K83047', 'U19031', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Abington Medical Centre', 'K83043', 'U09187', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Abington Park Surgery', 'K83029', 'U09187', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Albany House Medical Centre', 'K83026', 'U19031', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Aspiro Healthcare', 'Y06354', 'Unaligned', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Aspiro Healthcare Studfall Med Centre', 'K83614', 'U09772', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Brackley Medical Centre', 'K83049', 'U07902', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Brook Medical Centre', 'K83048', 'U52261', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Bugbrooke Medical Practice', 'K83070', 'U52261', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Byfield Medical Centre', 'K83031', 'U96568', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('County Surgery', 'K83056', 'U52261', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Crick Medical Practice', 'K83053', 'U96568', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Danes Camp Medical Centre', 'K83610', 'U69252', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Danetre Medical Practice', 'K83015', 'U79464', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Denton Village Surgery', 'K83068', 'U36651', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Dr Abbas', 'K83618', 'U40159', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Dr Pasquali', 'Y00399', 'U19031', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Dr Spencer & Partners', 'K83037', 'U35821', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Dryland Medical Centre', 'K83039', 'U35821', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Earls Barton Medical Centre', 'K83601', 'U69252', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Eleanor Cross Healthcare', 'K83010', 'U97651', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Eskdaill Medical', 'K83013', 'U09772', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Great Oakley Medical Centre', 'K83622', 'U21248', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Greens Norton & Weedon Medical Practice', 'K83066', 'U96568', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Greenview Surgery', 'K83077', 'U09187', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Harborough Field Surgery', 'K83007', 'U28255', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Headlands Surgery', 'K83006', 'U53419', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Higham Ferrers Surgery', 'K83080', 'U28255', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('King Edward Road Surgery', 'K83012', 'U09187', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Kingsthorpe Medical Ctr.', 'K83035', 'U36651', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Lakeside Healthcare', 'K83002', 'U53419', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Langham Place Surgery', 'K83027', 'U58673', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Leicester Tce Healthcare Ctr', 'K83014', 'U09187', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Linden Medical Group', 'K83036', 'U09772', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Maple Access Partnership LLP', 'K83621', 'U40159', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Marshalls Road Surgery', 'K83069', 'U28255', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Mayfield Surgery', 'K83076', 'U40159', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Moulton Surgery', 'K83009', 'U36651', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Nene Valley Surgery', 'K83065', 'U28255', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Oundle', 'K83023', 'U53419', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Park Ave Med Cnt & Kings Heath Practice', 'K83042', 'U52261', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Parklands Medical Centre', 'K83044', 'U28255', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Penvale Park Medical Centre', 'Y08368', 'Unaligned', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Queensview Medical Centre', 'K83003', 'U58673', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Queensway Medical Centre', 'K83005', 'U19031', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Rillwood Medical Centre', 'K83020', 'U69252', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Rothwell Medical Centre', 'K83021', 'U21248', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Rushden Medical Centre', 'K83024', 'U52261', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Spinney Brook Medical Centre', 'K83028', 'U28255', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Springfield Surgery', 'K83018', 'U07902', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('St Lukes Primary Care Centre', 'K83041', 'U97651', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Summerlee Medical Centre', 'K83081', 'U19031', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('The Brook Health Centre', 'K83620', 'U07902', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('The Cottons Medical Centre', 'K83030', 'U28255', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('The Crescent Medical Ctr.', 'K83050', 'U52261', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('The Long Buckby Practice', 'K83019', 'U96568', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('The Meadows Surgery', 'K83616', 'U28255', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('The Mounts Medical Centre', 'K83025', 'U40159', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('The Parks Medical Practice', 'K83052', 'U69252', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('The Pines Surgery', 'K83008', 'U58673', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('The Redwell Medical Centre', 'K83011', 'U19031', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('The Saxon Spires Practice', 'K83064', 'U96568', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Towcester Medical Centre', 'K83022', 'U07902', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Weavers Medical', 'K83051', 'U09772', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Woodsend Medical Centre', 'K83059', 'U09772', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Woodview Medical Centre', 'K83040', 'U36651', 'QPM', 'Northamptonshire ICB', 'Practice'),
+('Wootton Medical Centre', 'K83055', 'U36651', 'QPM', 'Northamptonshire ICB', 'Practice');
+
+-- Enable RLS on GP practices table (read-only for authenticated users)
+ALTER TABLE public.gp_practices ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "GP practices are viewable by authenticated users" 
+ON public.gp_practices 
+FOR SELECT 
+TO authenticated
+USING (true);
