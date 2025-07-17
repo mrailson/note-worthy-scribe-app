@@ -264,8 +264,22 @@ export default function MeetingSummary() {
     
     let formatted = content;
     
+    // First, replace emojis with text equivalents for email compatibility
+    formatted = formatted
+      .replace(/1️⃣/g, '1.')
+      .replace(/2️⃣/g, '2.')
+      .replace(/3️⃣/g, '3.')
+      .replace(/4️⃣/g, '4.')
+      .replace(/5️⃣/g, '5.')
+      .replace(/6️⃣/g, '6.')
+      .replace(/7️⃣/g, '7.')
+      .replace(/8️⃣/g, '8.')
+      .replace(/9️⃣/g, '9.');
+    
     // Convert to HTML with proper styling
     formatted = formatted
+      // Convert #### headers (level 4) to styled h4
+      .replace(/^#### (.*$)/gm, '<h4 style="color: #0066cc; font-size: 16px; font-weight: bold; margin: 15px 0 8px 0; border-bottom: 1px solid #ccc; padding-bottom: 3px;">$1</h4>')
       // Convert ### headers to styled h3
       .replace(/^### (.*$)/gm, '<h3 style="color: #0066cc; font-size: 18px; font-weight: bold; margin: 20px 0 10px 0; border-bottom: 2px solid #0066cc; padding-bottom: 5px;">$1</h3>')
       // Convert ## headers to styled h2  
@@ -275,12 +289,40 @@ export default function MeetingSummary() {
       // Convert **bold** to HTML bold
       .replace(/\*\*(.*?)\*\*/g, '<strong style="font-weight: bold;">$1</strong>')
       // Convert *italic* to HTML italic
-      .replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em style="font-style: italic;">$1</em>')
-      // Convert bullet points to proper HTML lists
-      .replace(/^[•\-\*] (.*$)/gm, '<li style="margin: 5px 0;">$1</li>')
-      // Convert numbered lists
-      .replace(/^(\d+)\. (.*$)/gm, '<li style="margin: 5px 0;">$2</li>')
-      // Convert line breaks
+      .replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em style="font-style: italic;">$1</em>');
+    
+    // Handle bullet points properly - group them into proper HTML lists
+    const lines = formatted.split('\n');
+    let inList = false;
+    let processedLines = [];
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const isBulletPoint = /^[•\-\*] /.test(line);
+      
+      if (isBulletPoint) {
+        if (!inList) {
+          processedLines.push('<ul style="margin: 10px 0; padding-left: 20px;">');
+          inList = true;
+        }
+        processedLines.push(`<li style="margin: 5px 0; line-height: 1.4;">${line.replace(/^[•\-\*] /, '')}</li>`);
+      } else {
+        if (inList) {
+          processedLines.push('</ul>');
+          inList = false;
+        }
+        processedLines.push(line);
+      }
+    }
+    
+    if (inList) {
+      processedLines.push('</ul>');
+    }
+    
+    formatted = processedLines.join('\n');
+    
+    // Convert remaining line breaks
+    formatted = formatted
       .replace(/\n\n/g, '</p><p style="margin: 10px 0; line-height: 1.6;">')
       .replace(/\n/g, '<br />');
 
