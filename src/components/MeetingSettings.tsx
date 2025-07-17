@@ -13,15 +13,18 @@ import {
   Monitor, 
   ClipboardPaste,
   Upload,
-  Mic
+  Mic,
+  FileText
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { FileImporter, ImportedTranscript } from "@/utils/FileImporter";
 
 interface MeetingSettingsProps {
   onSettingsChange: (settings: any) => void;
   onAudioImported?: (audioFile: File) => void;
+  onTranscriptImported?: (importedTranscript: ImportedTranscript) => void;
   initialSettings?: {
     title: string;
     description: string;
@@ -29,10 +32,11 @@ interface MeetingSettingsProps {
   };
 }
 
-export const MeetingSettings = ({ onSettingsChange, onAudioImported, initialSettings }: MeetingSettingsProps) => {
+export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscriptImported, initialSettings }: MeetingSettingsProps) => {
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [isImportingTranscript, setIsImportingTranscript] = useState(false);
   const [settings, setSettings] = useState({
     title: initialSettings?.title || "General Meeting",
     description: initialSettings?.description || "",
@@ -101,6 +105,54 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, initialSett
       toast.error(`Failed to import audio file: ${error}`);
     } finally {
       setIsImporting(false);
+      // Reset the input so the same file can be selected again
+      event.target.value = '';
+    }
+  };
+
+  const handleTranscriptImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Check if file is a supported document type
+    const supportedTypes = ['.txt', '.doc', '.docx', '.pdf'];
+    const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+    
+    if (!supportedTypes.includes(fileExtension)) {
+      toast.error('Please select a valid document file (.txt, .doc, .docx, .pdf)');
+      event.target.value = '';
+      return;
+    }
+
+    setIsImportingTranscript(true);
+    try {
+      const importedTranscript = await FileImporter.importTranscriptFile(file);
+      
+      // Update settings with extracted data
+      if (importedTranscript.extractedSettings) {
+        const newSettings = {
+          ...settings,
+          title: importedTranscript.extractedSettings.title || settings.title,
+          description: importedTranscript.extractedSettings.description || settings.description,
+          attendees: importedTranscript.extractedSettings.attendees || settings.attendees,
+          agenda: importedTranscript.extractedSettings.agenda || settings.agenda,
+          date: importedTranscript.extractedSettings.date || settings.date
+        };
+        setSettings(newSettings);
+        onSettingsChange(newSettings);
+      }
+
+      // Notify parent component about the imported transcript
+      if (onTranscriptImported) {
+        onTranscriptImported(importedTranscript);
+      }
+
+      toast.success(`Transcript imported: ${file.name}${importedTranscript.wordCount ? ` (${importedTranscript.wordCount} words)` : ''}`);
+    } catch (error) {
+      console.error('Error importing transcript file:', error);
+      toast.error(`Failed to import transcript: ${error}`);
+    } finally {
+      setIsImportingTranscript(false);
       // Reset the input so the same file can be selected again
       event.target.value = '';
     }
@@ -302,6 +354,37 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, initialSett
               </div>
               <p className="text-xs text-muted-foreground">
                 Supports MP3, WAV, M4A, MP4, and WebM audio formats
+              </p>
+            </div>
+
+            {/* Transcript Import Section */}
+            <div className="space-y-2">
+              <Label htmlFor="transcript-import">Import Existing Transcript</Label>
+              <div className="flex gap-2 mb-2">
+                <label htmlFor="transcript-import-file" className="flex-1">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full cursor-pointer"
+                    disabled={isImportingTranscript}
+                    asChild
+                  >
+                    <span>
+                      <FileText className="h-4 w-4 mr-2" />
+                      {isImportingTranscript ? 'Importing...' : 'Import Transcript File'}
+                    </span>
+                  </Button>
+                </label>
+                <input
+                  id="transcript-import-file"
+                  type="file"
+                  accept=".txt,.doc,.docx,.pdf"
+                  onChange={handleTranscriptImport}
+                  className="hidden"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Supports TXT, DOC, DOCX, and PDF files. Will automatically extract meeting details like title, attendees, and agenda.
               </p>
             </div>
           </CardContent>

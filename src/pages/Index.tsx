@@ -115,6 +115,21 @@ const Index = () => {
     console.log("Audio file imported:", audioFile);
   };
 
+  const handleTranscriptImported = (importedTranscript: ImportedTranscript) => {
+    // Set the imported transcript content
+    setTranscript(importedTranscript.content);
+    setWordCount(importedTranscript.wordCount);
+    
+    // Set duration if available
+    if (importedTranscript.duration) {
+      setDuration(importedTranscript.duration);
+    }
+    
+    setImportedTranscript(importedTranscript);
+    
+    toast.success(`Transcript imported successfully! ${importedTranscript.wordCount} words loaded.`);
+  };
+
   const parseDurationToMinutes = (duration: string): number => {
     const [hours, minutes] = duration.split(':').map(Number);
     return (hours || 0) * 60 + (minutes || 0);
@@ -190,6 +205,7 @@ const Index = () => {
           <MeetingSettings 
             onSettingsChange={setMeetingSettings} 
             onAudioImported={handleAudioImported}
+            onTranscriptImported={handleTranscriptImported}
             initialSettings={meetingSettings} 
           />
 
