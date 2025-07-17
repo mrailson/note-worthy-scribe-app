@@ -4,17 +4,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Mail, Lightbulb } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
-interface LoginFormProps {
-  onLogin: (email: string) => void;
-}
-
-export const LoginForm = ({ onLogin }: LoginFormProps) => {
+export const LoginForm = () => {
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isValid, setIsValid] = useState(false);
-  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const { signIn, signUp } = useAuth();
 
   const validateEmail = (email: string) => {
     const validDomains = ['@nhs.net', '@nhs.uk', '@nhft.nhs.uk'];
@@ -29,73 +29,171 @@ export const LoginForm = ({ onLogin }: LoginFormProps) => {
     const newEmail = e.target.value;
     setEmail(newEmail);
     validateEmail(newEmail);
+    
+    // Auto-fill password for NHS emails
+    if (newEmail.toLowerCase().includes('@nhs.') && !password) {
+      getDefaultPassword(newEmail);
+    }
   };
 
-  const handleLogin = () => {
-    if (validateEmail(email)) {
-      onLogin(email);
-      toast({
-        title: "Login Successful",
-        description: "Welcome to Notewell AI Meeting Notes Service",
-      });
-    } else {
-      toast({
-        title: "Invalid Email",
-        description: "Please use a valid NHS email address",
-        variant: "destructive",
-      });
+  const handleLogin = async () => {
+    if (!validateEmail(email) || !password) return;
+    
+    setLoading(true);
+    await signIn(email, password);
+    setLoading(false);
+  };
+
+  const handleSignUp = async () => {
+    if (!validateEmail(email) || !password) return;
+    
+    setLoading(true);
+    await signUp(email, password);
+    setLoading(false);
+  };
+
+  const getDefaultPassword = (email: string) => {
+    if (email.toLowerCase().includes('@nhs.')) {
+      setPassword('password');
     }
   };
 
   return (
-    <div className="min-h-[400px] flex items-center justify-center">
+    <div className="min-h-[500px] flex items-center justify-center">
       <Card className="w-full max-w-md shadow-strong">
         <CardHeader className="text-center">
           <CardTitle className="flex items-center justify-center gap-2 text-primary">
             <Mail className="h-5 w-5" />
-            NHS Staff Login
+            NHS Staff Access
           </CardTitle>
         </CardHeader>
         
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">Email Address</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="your.name@nhs.net or name@nhft.nhs.uk"
-              value={email}
-              onChange={handleEmailChange}
-              className={`transition-colors ${
-                email && !isValid 
-                  ? 'border-destructive focus:border-destructive' 
-                  : email && isValid 
-                  ? 'border-success focus:border-success'
-                  : ''
-              }`}
-            />
-            <p className="text-sm text-muted-foreground">
-              Please use a valid @nhs.net, @nhs.uk, or @nhft.nhs.uk email address
-            </p>
-          </div>
+        <CardContent>
+          <Tabs defaultValue="signin" className="space-y-4">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="signin">Sign In</TabsTrigger>
+              <TabsTrigger value="signup">Sign Up</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="signin" className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="signin-email">Email Address</Label>
+                <Input
+                  id="signin-email"
+                  type="email"
+                  placeholder="your.name@nhs.net"
+                  value={email}
+                  onChange={handleEmailChange}
+                  className={`transition-colors ${
+                    email && !isValid 
+                      ? 'border-destructive focus:border-destructive' 
+                      : email && isValid 
+                      ? 'border-success focus:border-success'
+                      : ''
+                  }`}
+                />
+              </div>
 
-          <div className="flex items-start gap-2 p-3 bg-accent/50 rounded-lg">
-            <Lightbulb className="h-4 w-4 text-warning mt-0.5" />
-            <p className="text-sm text-muted-foreground">
-              Your email will be remembered for next time
-            </p>
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="signin-password">Password</Label>
+                <div className="relative">
+                  <Input
+                    id="signin-password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Enter password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+                {email.toLowerCase().includes('@nhs.') && (
+                  <p className="text-sm text-muted-foreground">
+                    Default password for NHS emails: "password"
+                  </p>
+                )}
+              </div>
 
-          <Button 
-            onClick={handleLogin}
-            disabled={!isValid}
-            className="w-full bg-gradient-primary hover:bg-primary-hover shadow-subtle disabled:opacity-50"
-          >
-            Login
-          </Button>
+              <Button 
+                onClick={handleLogin}
+                disabled={!isValid || !password || loading}
+                className="w-full bg-gradient-primary hover:bg-primary-hover shadow-subtle disabled:opacity-50"
+              >
+                {loading ? "Signing In..." : "Sign In"}
+              </Button>
+            </TabsContent>
+
+            <TabsContent value="signup" className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="signup-email">Email Address</Label>
+                <Input
+                  id="signup-email"
+                  type="email"
+                  placeholder="your.name@nhs.net"
+                  value={email}
+                  onChange={handleEmailChange}
+                  className={`transition-colors ${
+                    email && !isValid 
+                      ? 'border-destructive focus:border-destructive' 
+                      : email && isValid 
+                      ? 'border-success focus:border-success'
+                      : ''
+                  }`}
+                />
+                <p className="text-sm text-muted-foreground">
+                  Please use a valid @nhs.net, @nhs.uk, or @nhft.nhs.uk email address
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="signup-password">Password</Label>
+                <div className="relative">
+                  <Input
+                    id="signup-password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Create password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              <Button 
+                onClick={handleSignUp}
+                disabled={!isValid || !password || loading}
+                className="w-full bg-gradient-primary hover:bg-primary-hover shadow-subtle disabled:opacity-50"
+              >
+                {loading ? "Creating Account..." : "Create Account"}
+              </Button>
+            </TabsContent>
+          </Tabs>
 
           {/* Valid domains display */}
-          <div className="flex flex-wrap gap-1 justify-center">
+          <div className="flex flex-wrap gap-1 justify-center mt-4">
             <Badge variant="outline" className="text-xs">@nhs.net</Badge>
             <Badge variant="outline" className="text-xs">@nhs.uk</Badge>
             <Badge variant="outline" className="text-xs">@nhft.nhs.uk</Badge>

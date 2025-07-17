@@ -5,21 +5,16 @@ import { MeetingRecorder } from "@/components/MeetingRecorder";
 import { MeetingSettings } from "@/components/MeetingSettings";
 import { LiveTranscript } from "@/components/LiveTranscript";
 import { MeetingSummary } from "@/components/MeetingSummary";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Index = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userEmail, setUserEmail] = useState("");
+  const { user, loading } = useAuth();
   const [currentView, setCurrentView] = useState<"recording" | "summary">("recording");
   const [transcript, setTranscript] = useState("");
   const [duration, setDuration] = useState("00:00");
   const [wordCount, setWordCount] = useState(0);
   const [showTimestamps, setShowTimestamps] = useState(false);
   const [meetingSettings, setMeetingSettings] = useState({});
-
-  const handleLogin = (email: string) => {
-    setUserEmail(email);
-    setIsLoggedIn(true);
-  };
 
   const handleNewMeeting = () => {
     setCurrentView("recording");
@@ -37,12 +32,23 @@ const Index = () => {
     setCurrentView("summary");
   };
 
-  if (!isLoggedIn) {
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-2 text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
     return (
       <div className="min-h-screen bg-gradient-background">
         <Header onNewMeeting={handleNewMeeting} onHelp={handleHelp} />
         <div className="container mx-auto px-4 py-8">
-          <LoginForm onLogin={handleLogin} />
+          <LoginForm />
         </div>
       </div>
     );

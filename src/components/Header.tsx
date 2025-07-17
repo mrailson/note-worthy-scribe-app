@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
-import { Plus, HelpCircle } from "lucide-react";
+import { Plus, HelpCircle, LogOut } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface HeaderProps {
   onNewMeeting: () => void;
@@ -7,6 +8,7 @@ interface HeaderProps {
 }
 
 export const Header = ({ onNewMeeting, onHelp }: HeaderProps) => {
+  const { user, signOut } = useAuth();
   return (
     <header className="bg-gradient-primary text-primary-foreground shadow-strong">
       <div className="container mx-auto px-4 py-4">
@@ -34,6 +36,18 @@ export const Header = ({ onNewMeeting, onHelp }: HeaderProps) => {
               <HelpCircle className="h-4 w-4 mr-2" />
               Help & About
             </Button>
+            
+            {user && (
+              <Button
+                onClick={signOut}
+                variant="secondary"
+                size="sm"
+                className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </Button>
+            )}
           </div>
         </div>
       </div>
