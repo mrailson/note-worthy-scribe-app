@@ -87,15 +87,8 @@ This is an automated message. Please do not reply to this email.
       accessToken: privateKey,
       template_params: {
         to_email: emailData.to_email,
-        to_name: emailData.user_name,
-        from_name: "Notewell AI Team",
-        reply_to: "support@notewell.dialai.co.uk",
         subject: "Welcome to Notewell AI Meeting Notes Service",
-        message: welcomeEmailContent,
-        user_email: emailData.user_email,
-        temporary_password: emailData.temporary_password,
-        user_role: emailData.user_role,
-        practice_name: emailData.practice_name
+        message: welcomeEmailContent
       }
     };
 
