@@ -46,6 +46,7 @@ export const MeetingRecorder = ({
   };
 
   const handleTranscript = (transcriptData: TranscriptData) => {
+    // Use functional updates to avoid stale closure issues
     setRealtimeTranscripts(prev => {
       const filtered = prev.filter(t => 
         !(t.speaker === transcriptData.speaker && !t.isFinal)
@@ -55,25 +56,33 @@ export const MeetingRecorder = ({
 
     // Update speaker count
     setSpeakerCount(prev => {
-      const speakers = new Set(realtimeTranscripts.map(t => t.speaker));
-      speakers.add(transcriptData.speaker);
+      // Use current state directly instead of accessing realtimeTranscripts
+      const currentTranscripts = [...realtimeTranscripts, transcriptData];
+      const speakers = new Set(currentTranscripts.map(t => t.speaker));
       return speakers.size;
     });
 
     // Update main transcript with final transcripts only
     if (transcriptData.isFinal) {
-      const fullTranscript = realtimeTranscripts
-        .filter(t => t.isFinal)
-        .map(t => `${t.speaker}: ${t.text}`)
-        .join('\n') + `\n${transcriptData.speaker}: ${transcriptData.text}`;
-      
-      setTranscript(fullTranscript);
-      onTranscriptUpdate(fullTranscript);
-      
-      // Update word count
-      const words = fullTranscript.split(' ').filter(word => word.length > 0);
-      setWordCount(words.length);
-      onWordCountUpdate(words.length);
+      setRealtimeTranscripts(prev => {
+        const finalTranscripts = prev.filter(t => t.isFinal);
+        const fullTranscript = [...finalTranscripts, transcriptData]
+          .map(t => `${t.speaker}: ${t.text}`)
+          .join('\n');
+        
+        // Use setTimeout to avoid state updates during render
+        setTimeout(() => {
+          setTranscript(fullTranscript);
+          onTranscriptUpdate(fullTranscript);
+          
+          // Update word count
+          const words = fullTranscript.split(' ').filter(word => word.length > 0);
+          setWordCount(words.length);
+          onWordCountUpdate(words.length);
+        }, 0);
+        
+        return prev;
+      });
     }
   };
 
