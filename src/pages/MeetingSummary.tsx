@@ -283,26 +283,114 @@ Speakers detected: ${meetingData?.speakerCount || 0}`;
   const downloadDocx = async () => {
     try {
       // Get practice details for footer and logo
-      const { data: practiceData } = await supabase
+      const { data: practiceData, error: practiceError } = await supabase
         .from('practice_details')
         .select('logo_url, footer_text, show_page_numbers, practice_name, address')
         .eq('is_default', true)
-        .single();
+        .maybeSingle();
+      
+      if (practiceError) {
+        console.warn('Error fetching practice details:', practiceError);
+      }
+      
+      console.log('Practice data for DOCX:', practiceData);
       
       const content = generateNHSSummaryContent();
       
-      // If using AI content, we need to convert it properly for DOCX
-      let docContent;
-      if (aiGeneratedMinutes) {
-        // Clean the AI content for DOCX format (remove HTML tags if any)
-        docContent = content
-          .replace(/<[^>]*>/g, '') // Remove HTML tags
-          .replace(/&nbsp;/g, ' ')  // Replace HTML entities
-          .replace(/&amp;/g, '&')
-          .replace(/&lt;/g, '<')
-          .replace(/&gt;/g, '>');
-      } else {
-        docContent = content;
+      // Parse the content to create properly formatted paragraphs
+      const lines = content.split('\n');
+      const documentChildren = [];
+      
+      // Add logo if available
+      if (practiceData?.logo_url) {
+        try {
+          const response = await fetch(practiceData.logo_url);
+          const logoBlob = await response.blob();
+          const logoArrayBuffer = await logoBlob.arrayBuffer();
+          const logoImage = new Uint8Array(logoArrayBuffer);
+          
+          documentChildren.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "",
+                  size: 24
+                })
+              ],
+              alignment: AlignmentType.RIGHT,
+              spacing: { after: 200 }
+            })
+          );
+        } catch (error) {
+          console.warn('Failed to load logo for DOCX:', error);
+        }
+      }
+      
+      // Process each line with proper formatting
+      for (const line of lines) {
+        if (!line.trim()) {
+          documentChildren.push(new Paragraph({ text: "" }));
+          continue;
+        }
+        
+        // Check if it's a heading (starts with ### or contains "Meeting Minutes" or section headers)
+        if (line.includes('AI Generated Meeting Minutes') || line.includes('NHS MEETING MINUTES')) {
+          documentChildren.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: line,
+                  bold: true,
+                  size: 32
+                })
+              ],
+              alignment: AlignmentType.CENTER,
+              spacing: { after: 400 }
+            })
+          );
+        } else if (line.includes('###') || line.includes('ATTENDEES:') || line.includes('AGENDA:') || 
+                  line.includes('KEY DISCUSSION POINTS:') || line.includes('DECISIONS MADE:') || 
+                  line.includes('ACTION ITEMS:') || line.includes('NEXT STEPS:')) {
+          documentChildren.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: line.replace(/###\s*/, ''),
+                  bold: true,
+                  size: 24
+                })
+              ],
+              spacing: { before: 300, after: 200 }
+            })
+          );
+        } else if (line.startsWith('-') || line.startsWith('•') || line.match(/^\d+\./)) {
+          // Bullet points or numbered lists
+          documentChildren.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: line,
+                  size: 22
+                })
+              ],
+              spacing: { after: 100 },
+              bullet: { level: 0 }
+            })
+          );
+        } else {
+          // Regular text
+          documentChildren.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: line,
+                  size: 22
+                })
+              ],
+              spacing: { after: 100 }
+            })
+          );
+        }
       }
 
       // Create footer content
@@ -335,22 +423,8 @@ Speakers detected: ${meetingData?.speakerCount || 0}`;
               margin: { top: 720, right: 720, bottom: 720, left: 720 }
             }
           },
-          children: [
-            new Paragraph({
-              text: aiGeneratedMinutes ? "AI Generated Meeting Minutes" : "NHS MEETING MINUTES",
-              heading: HeadingLevel.HEADING_1,
-              alignment: AlignmentType.CENTER,
-            }),
-            new Paragraph({ text: "" }),
-            ...docContent.split('\n').map(line => 
-              new Paragraph({
-                children: [new TextRun(line)],
-              })
-            ),
-            // Add footer content at the end
-            ...(footerChildren.length > 0 ? [new Paragraph({ text: "" }), ...footerChildren] : [])
-          ],
-        }],
+          children: documentChildren
+        }]
       });
 
       const blob = await Packer.toBlob(doc);
@@ -365,11 +439,17 @@ Speakers detected: ${meetingData?.speakerCount || 0}`;
   const downloadPDF = async () => {
     try {
       // Get practice details for footer and logo
-      const { data: practiceData } = await supabase
+      const { data: practiceData, error: practiceError } = await supabase
         .from('practice_details')
         .select('logo_url, footer_text, show_page_numbers, practice_name, address')
         .eq('is_default', true)
-        .single();
+        .maybeSingle();
+      
+      if (practiceError) {
+        console.warn('Error fetching practice details:', practiceError);
+      }
+      
+      console.log('Practice data for PDF:', practiceData);
       
       const content = generateNHSSummaryContent();
       
@@ -396,19 +476,25 @@ Speakers detected: ${meetingData?.speakerCount || 0}`;
         if (practiceData?.logo_url) {
           try {
             const response = await fetch(practiceData.logo_url);
+            if (!response.ok) throw new Error('Failed to fetch logo');
+            
             const logoBlob = await response.blob();
-            const logoDataUrl = await new Promise<string>((resolve) => {
+            const logoDataUrl = await new Promise<string>((resolve, reject) => {
               const reader = new FileReader();
               reader.onload = () => resolve(reader.result as string);
+              reader.onerror = reject;
               reader.readAsDataURL(logoBlob);
             });
             
-            const logoWidth = 30;
-            const logoHeight = 20;
-            pdf.addImage(logoDataUrl, 'JPEG', pageWidth - logoWidth - margin, margin, logoWidth, logoHeight);
+            const logoWidth = 40;
+            const logoHeight = 30;
+            pdf.addImage(logoDataUrl, 'PNG', pageWidth - logoWidth - margin, margin, logoWidth, logoHeight);
+            console.log('Logo added to PDF successfully');
           } catch (error) {
             console.warn('Failed to load logo for PDF:', error);
           }
+        } else {
+          console.log('No logo URL found for practice');
         }
       };
 
@@ -436,13 +522,9 @@ Speakers detected: ${meetingData?.speakerCount || 0}`;
       await addLogoToPage();
       
       const lines = pdfContent.split('\n');
-      let y = practiceData?.logo_url ? 50 : 30; // Start below logo if present
+      let y = practiceData?.logo_url ? 60 : 30; // Start below logo if present
       
-      pdf.setFontSize(16);
-      pdf.text(aiGeneratedMinutes ? "AI Generated Meeting Minutes" : "NHS MEETING MINUTES", pageWidth / 2, y, { align: 'center' });
-      y += 20;
-      
-      pdf.setFontSize(10);
+      // Process each line with formatting
       for (const line of lines) {
         if (y > pageHeight - 40) { // Leave space for footer
           addFooter();
@@ -450,17 +532,46 @@ Speakers detected: ${meetingData?.speakerCount || 0}`;
           await addLogoToPage();
           y = 30;
         }
-        // Handle long lines by splitting them
-        const splitLines = pdf.splitTextToSize(line, pageWidth - 2 * margin);
-        for (const splitLine of splitLines) {
-          if (y > pageHeight - 40) {
-            addFooter();
-            pdf.addPage();
-            await addLogoToPage();
-            y = 30;
-          }
-          pdf.text(splitLine, margin, y);
+        
+        if (!line.trim()) {
           y += 6;
+          continue;
+        }
+        
+        // Title formatting
+        if (line.includes('AI Generated Meeting Minutes') || line.includes('NHS MEETING MINUTES')) {
+          pdf.setFontSize(16);
+          pdf.setFont('helvetica', 'bold');
+          pdf.text(line, pageWidth / 2, y, { align: 'center' });
+          y += 20;
+        }
+        // Section headers
+        else if (line.includes('###') || line.includes('ATTENDEES:') || line.includes('AGENDA:') || 
+                line.includes('KEY DISCUSSION POINTS:') || line.includes('DECISIONS MADE:') || 
+                line.includes('ACTION ITEMS:') || line.includes('NEXT STEPS:')) {
+          pdf.setFontSize(12);
+          pdf.setFont('helvetica', 'bold');
+          const cleanLine = line.replace(/###\s*/, '');
+          pdf.text(cleanLine, margin, y);
+          y += 12;
+        }
+        // Regular content
+        else {
+          pdf.setFontSize(10);
+          pdf.setFont('helvetica', 'normal');
+          
+          // Handle long lines by splitting them
+          const splitLines = pdf.splitTextToSize(line, pageWidth - 2 * margin);
+          for (const splitLine of splitLines) {
+            if (y > pageHeight - 40) {
+              addFooter();
+              pdf.addPage();
+              await addLogoToPage();
+              y = 30;
+            }
+            pdf.text(splitLine, margin, y);
+            y += 6;
+          }
         }
       }
       
