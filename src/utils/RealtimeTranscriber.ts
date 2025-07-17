@@ -80,28 +80,44 @@ export class RealtimeTranscriber {
         }
       });
 
-      this.mediaRecorder = new MediaRecorder(this.stream, {
-        mimeType: 'audio/webm;codecs=opus',
-        audioBitsPerSecond: 16000
-      });
-
-      this.mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0 && this.socket?.readyState === WebSocket.OPEN) {
-          // Convert audio blob to base64
-          const reader = new FileReader();
-          reader.onload = () => {
-            const base64Data = (reader.result as string).split(',')[1];
-            this.socket?.send(JSON.stringify({
-              type: 'audio_data',
-              audio_data: base64Data
-            }));
-          };
-          reader.readAsDataURL(event.data);
+      // Create AudioContext for processing raw audio
+      const audioContext = new AudioContext({ sampleRate: 16000 });
+      const source = audioContext.createMediaStreamSource(this.stream);
+      
+      // Create a ScriptProcessor to get raw audio data
+      const processor = audioContext.createScriptProcessor(4096, 1, 1);
+      
+      processor.onaudioprocess = (event) => {
+        if (this.socket?.readyState === WebSocket.OPEN && this.isRecording) {
+          const inputBuffer = event.inputBuffer;
+          const inputData = inputBuffer.getChannelData(0);
+          
+          // Convert Float32Array to Int16Array (PCM 16-bit)
+          const pcmData = new Int16Array(inputData.length);
+          for (let i = 0; i < inputData.length; i++) {
+            const sample = Math.max(-1, Math.min(1, inputData[i]));
+            pcmData[i] = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
+          }
+          
+          // Convert to base64
+          const buffer = new ArrayBuffer(pcmData.length * 2);
+          const view = new DataView(buffer);
+          for (let i = 0; i < pcmData.length; i++) {
+            view.setInt16(i * 2, pcmData[i], true);
+          }
+          
+          const base64Data = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+          
+          this.socket.send(JSON.stringify({
+            type: 'audio_data',
+            audio_data: base64Data
+          }));
         }
       };
 
-      // Start recording and request transcription session
-      this.mediaRecorder.start(250); // Send audio chunks every 250ms
+      source.connect(processor);
+      processor.connect(audioContext.destination);
+      
       this.isRecording = true;
 
       if (this.socket?.readyState === WebSocket.OPEN) {
