@@ -589,254 +589,308 @@ This is an automated message. Please do not reply to this email.`;
             <h1 className="text-3xl font-bold text-foreground">System Administration</h1>
             <p className="text-muted-foreground">Manage users, roles, and system analytics</p>
           </div>
-          
-          <Dialog open={addUserOpen} onOpenChange={setAddUserOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <UserPlus className="h-4 w-4 mr-2" />
-                Add User
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add New User</DialogTitle>
-                <DialogDescription>
-                  Create a new user account and assign initial roles.
-                </DialogDescription>
-              </DialogHeader>
-              
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="email">Email Address</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={newUserEmail}
-                    onChange={(e) => setNewUserEmail(e.target.value)}
-                    placeholder="user@example.com"
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="name">Full Name</Label>
-                  <Input
-                    id="name"
-                    value={newUserName}
-                    onChange={(e) => setNewUserName(e.target.value)}
-                    placeholder="John Doe"
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="role">Initial Role</Label>
-                  <Select value={newUserRole} onValueChange={setNewUserRole}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="user">User</SelectItem>
-                      <SelectItem value="receptionist">Receptionist</SelectItem>
-                      <SelectItem value="nurse">Nurse</SelectItem>
-                      <SelectItem value="administrator">Administrator</SelectItem>
-                      <SelectItem value="gp">GP</SelectItem>
-                      <SelectItem value="practice_manager">Practice Manager</SelectItem>
-                      <SelectItem value="system_admin">System Admin</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div>
-                  <Label htmlFor="practice">Practice (Optional)</Label>
-                  <Select value={newUserPractice} onValueChange={setNewUserPractice}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a practice" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No Practice</SelectItem>
-                      {practices.map(practice => (
-                        <SelectItem key={practice.id} value={practice.id}>
-                          {practice.practice_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div>
-                  <Label htmlFor="pcn">Primary Care Network (Optional)</Label>
-                  <Select value={newUserPCN} onValueChange={setNewUserPCN}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a PCN" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No PCN</SelectItem>
-                      {pcns.map(pcn => (
-                        <SelectItem key={pcn.id} value={pcn.id}>
-                          {pcn.pcn_name} ({pcn.pcn_code})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setAddUserOpen(false)}>
-                  Cancel
-                </Button>
-                <Button variant="outline" onClick={handlePreviewEmail}>
-                  <Eye className="h-4 w-4 mr-2" />
-                  Preview Email
-                </Button>
-                <Button onClick={handleCreateUser} disabled={isCreatingUser}>
-                  <Send className="h-4 w-4 mr-2" />
-                  {isCreatingUser ? "Creating..." : "Create & Send"}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
         </div>
 
-        {/* Dashboard Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{dashboardStats.totalUsers}</div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Users (30d)</CardTitle>
-              <Activity className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{dashboardStats.activeUsers}</div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Meetings</CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{dashboardStats.totalMeetings}</div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Meeting Hours</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{dashboardStats.totalMeetingHours}h</div>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Main Content with Tabs */}
+        <Tabs defaultValue="dashboard" className="w-full">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="dashboard">
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Dashboard
+            </TabsTrigger>
+            <TabsTrigger value="users">
+              <Users className="h-4 w-4 mr-2" />
+              User Management
+            </TabsTrigger>
+            <TabsTrigger value="practices">
+              <Building2 className="h-4 w-4 mr-2" />
+              Practices
+            </TabsTrigger>
+            <TabsTrigger value="meetings">
+              <Calendar className="h-4 w-4 mr-2" />
+              Meetings
+            </TabsTrigger>
+            <TabsTrigger value="settings">
+              <Shield className="h-4 w-4 mr-2" />
+              Settings
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Users Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>User Management</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                <p className="mt-2 text-muted-foreground">Loading users...</p>
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>User</TableHead>
-                    <TableHead>Roles</TableHead>
-                    <TableHead>Practice/PCN</TableHead>
-                    <TableHead>Last Login</TableHead>
-                    <TableHead>Meetings (30d)</TableHead>
-                    <TableHead>Total Meetings</TableHead>
-                    <TableHead>Meeting Hours</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {users.map(user => (
-                    <TableRow key={user.id}>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">{user.full_name}</div>
-                          <div className="text-sm text-muted-foreground">{user.email}</div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="space-y-1">
-                          {user.roles.map((role, index) => (
-                            <Badge 
-                              key={index} 
-                              variant="secondary" 
-                              className={getRoleBadgeColor(role.role)}
-                            >
-                              {formatRole(role.role)}
-                            </Badge>
+          {/* Dashboard Tab */}
+          <TabsContent value="dashboard" className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{dashboardStats.totalUsers}</div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Active Users (30d)</CardTitle>
+                  <Activity className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{dashboardStats.activeUsers}</div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Meetings</CardTitle>
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{dashboardStats.totalMeetings}</div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Meeting Hours</CardTitle>
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{dashboardStats.totalMeetingHours}h</div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* Users Tab */}
+          <TabsContent value="users" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold">User Management</h2>
+              <Dialog open={addUserOpen} onOpenChange={setAddUserOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Add User
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add New User</DialogTitle>
+                    <DialogDescription>
+                      Create a new user account and assign initial roles.
+                    </DialogDescription>
+                  </DialogHeader>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="email">Email Address</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={newUserEmail}
+                        onChange={(e) => setNewUserEmail(e.target.value)}
+                        placeholder="user@example.com"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="name">Full Name</Label>
+                      <Input
+                        id="name"
+                        value={newUserName}
+                        onChange={(e) => setNewUserName(e.target.value)}
+                        placeholder="John Doe"
+                      />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="role">Initial Role</Label>
+                      <Select value={newUserRole} onValueChange={setNewUserRole}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="user">User</SelectItem>
+                          <SelectItem value="receptionist">Receptionist</SelectItem>
+                          <SelectItem value="nurse">Nurse</SelectItem>
+                          <SelectItem value="administrator">Administrator</SelectItem>
+                          <SelectItem value="gp">GP</SelectItem>
+                          <SelectItem value="practice_manager">Practice Manager</SelectItem>
+                          <SelectItem value="system_admin">System Admin</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="practice">Practice (Optional)</Label>
+                      <Select value={newUserPractice} onValueChange={setNewUserPractice}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a practice" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">No Practice</SelectItem>
+                          {practices.map(practice => (
+                            <SelectItem key={practice.id} value={practice.id}>
+                              {practice.practice_name}
+                            </SelectItem>
                           ))}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm">
-                          {user.roles.length > 0 ? (
-                            user.roles.map((role, index) => (
-                              <div key={index} className="mb-1">
-                                {role.practice_name || (
-                                  <span className="text-muted-foreground">No practice assigned</span>
-                                )}
-                              </div>
-                            ))
-                          ) : (
-                            <span className="text-muted-foreground">No practice assigned</span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {user.last_login ? 
-                          format(new Date(user.last_login), 'MMM d, yyyy') : 
-                          'Never'
-                        }
-                      </TableCell>
-                      <TableCell>{user.meeting_stats.meetings_last_30_days}</TableCell>
-                      <TableCell>{user.meeting_stats.total_meetings}</TableCell>
-                      <TableCell>{Math.round(user.meeting_stats.total_duration_minutes / 60 * 10) / 10}h</TableCell>
-                       <TableCell>
-                         <div className="flex gap-2">
-                           <Button 
-                             variant="outline" 
-                             size="sm"
-                             onClick={() => handleEditUser(user)}
-                           >
-                             <Edit className="h-3 w-3" />
-                           </Button>
-                           <Button 
-                             variant="outline" 
-                             size="sm" 
-                             className="text-destructive"
-                             onClick={() => handleDeleteUser(user)}
-                           >
-                             <Trash2 className="h-3 w-3" />
-                           </Button>
-                         </div>
-                       </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="pcn">Primary Care Network (Optional)</Label>
+                      <Select value={newUserPCN} onValueChange={setNewUserPCN}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a PCN" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">No PCN</SelectItem>
+                          {pcns.map(pcn => (
+                            <SelectItem key={pcn.id} value={pcn.id}>
+                              {pcn.pcn_name} ({pcn.pcn_code})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setAddUserOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button variant="outline" onClick={handlePreviewEmail}>
+                      <Eye className="h-4 w-4 mr-2" />
+                      Preview Email
+                    </Button>
+                    <Button onClick={handleCreateUser} disabled={isCreatingUser}>
+                      <Send className="h-4 w-4 mr-2" />
+                      {isCreatingUser ? "Creating..." : "Create & Send"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Users</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                    <p className="mt-2 text-muted-foreground">Loading users...</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>User</TableHead>
+                        <TableHead>Roles</TableHead>
+                        <TableHead>Practice/PCN</TableHead>
+                        <TableHead>Last Login</TableHead>
+                        <TableHead>Meetings (30d)</TableHead>
+                        <TableHead>Total Meetings</TableHead>
+                        <TableHead>Meeting Hours</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {users.map(user => (
+                        <TableRow key={user.id}>
+                          <TableCell>
+                            <div>
+                              <div className="font-medium">{user.full_name}</div>
+                              <div className="text-sm text-muted-foreground">{user.email}</div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="space-y-1">
+                              {user.roles.map((role, index) => (
+                                <Badge 
+                                  key={index} 
+                                  variant="secondary" 
+                                  className={getRoleBadgeColor(role.role)}
+                                >
+                                  {formatRole(role.role)}
+                                </Badge>
+                              ))}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm">
+                              {user.roles.length > 0 ? (
+                                user.roles.map((role, index) => (
+                                  <div key={index} className="mb-1">
+                                    {role.practice_name || (
+                                      <span className="text-muted-foreground">No practice assigned</span>
+                                    )}
+                                  </div>
+                                ))
+                              ) : (
+                                <span className="text-muted-foreground">No practice assigned</span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {user.last_login ? 
+                              format(new Date(user.last_login), 'MMM d, yyyy') : 
+                              'Never'
+                            }
+                          </TableCell>
+                          <TableCell>{user.meeting_stats.meetings_last_30_days}</TableCell>
+                          <TableCell>{user.meeting_stats.total_meetings}</TableCell>
+                          <TableCell>{Math.round(user.meeting_stats.total_duration_minutes / 60 * 10) / 10}h</TableCell>
+                           <TableCell>
+                             <div className="flex gap-2">
+                               <Button 
+                                 variant="outline" 
+                                 size="sm"
+                                 onClick={() => handleEditUser(user)}
+                               >
+                                 <Edit className="h-3 w-3" />
+                               </Button>
+                               <Button 
+                                 variant="outline" 
+                                 size="sm" 
+                                 className="text-destructive"
+                                 onClick={() => handleDeleteUser(user)}
+                               >
+                                 <Trash2 className="h-3 w-3" />
+                               </Button>
+                             </div>
+                           </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Practices Tab */}
+          <TabsContent value="practices" className="space-y-6">
+            <h2 className="text-2xl font-bold">Practice Management</h2>
+            <p className="text-muted-foreground">Manage GP practices and Primary Care Networks</p>
+            {/* Add practice management content here */}
+          </TabsContent>
+
+          {/* Meetings Tab */}
+          <TabsContent value="meetings" className="space-y-6">
+            <h2 className="text-2xl font-bold">Meeting Analytics</h2>
+            <p className="text-muted-foreground">View meeting statistics and analytics</p>
+            {/* Add meeting analytics content here */}
+          </TabsContent>
+
+          {/* Settings Tab */}
+          <TabsContent value="settings" className="space-y-6">
+            <h2 className="text-2xl font-bold">System Settings</h2>
+            <p className="text-muted-foreground">Configure system-wide settings and preferences</p>
+            {/* Add system settings content here */}
+          </TabsContent>
+        </Tabs>
       </div>
       
       {/* Email Preview Dialog */}
