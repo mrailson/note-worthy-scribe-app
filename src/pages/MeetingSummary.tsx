@@ -24,18 +24,20 @@ export default function MeetingSummary() {
   const { toast } = useToast();
   const [meetingData, setMeetingData] = useState<MeetingData | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [hasBeenSaved, setHasBeenSaved] = useState(false);
 
   useEffect(() => {
     // Get meeting data from navigation state
     const data = location.state as MeetingData;
-    if (data) {
+    if (data && !hasBeenSaved) {
       setMeetingData(data);
       saveMeetingToDatabase(data);
-    } else {
+      setHasBeenSaved(true);
+    } else if (!data) {
       // If no data, redirect back to home
       navigate('/');
     }
-  }, [location.state, navigate]);
+  }, [location.state, navigate, hasBeenSaved]);
 
   const saveMeetingToDatabase = async (data: MeetingData) => {
     setIsSaving(true);

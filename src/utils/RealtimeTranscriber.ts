@@ -14,57 +14,56 @@ export class RealtimeTranscriber {
     try {
       this.onStatusChange('Connecting...');
       
-      // Connect to our Supabase Edge Function WebSocket
-      const wsUrl = `wss://dphcnbricafkbtizkoal.functions.supabase.co/functions/v1/assemblyai-transcription`;
-      this.socket = new WebSocket(wsUrl);
-
-      this.socket.onopen = () => {
-        console.log('Connected to transcription service');
-        this.onStatusChange('Connected');
-        this.startAudioCapture();
-      };
-
-      this.socket.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        console.log('Received:', data);
-
-        switch (data.type) {
-          case 'session_started':
-            this.onStatusChange('Transcription active');
-            break;
-          case 'transcript':
-          case 'partial_transcript':
-            this.onTranscript({
-              text: data.text,
-              speaker: data.speaker,
-              confidence: data.confidence,
-              timestamp: data.timestamp,
-              isFinal: data.is_final,
-              words: data.words
-            });
-            break;
-          case 'error':
-            this.onError(data.message);
-            break;
-          case 'session_ended':
-            this.onStatusChange('Session ended');
-            break;
-        }
-      };
-
-      this.socket.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        this.onError('Connection error');
-      };
-
-      this.socket.onclose = () => {
-        console.log('WebSocket closed');
-        this.onStatusChange('Disconnected');
-      };
-
+      // Start audio capture first
+      await this.startAudioCapture();
+      
+      this.onStatusChange('Connected');
+      
     } catch (error) {
       console.error('Failed to start transcription:', error);
       this.onError('Failed to start transcription');
+    }
+  }
+
+  private async sendAudioChunk(audioBlob: Blob) {
+    try {
+      // Convert blob to base64
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64Data = (reader.result as string).split(',')[1];
+        
+        // Send to our Supabase Edge Function
+        const response = await fetch('https://dphcnbricafkbtizkoal.functions.supabase.co/functions/v1/assemblyai-transcription', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            audio: base64Data
+          })
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          if (result.text && result.text.trim()) {
+            this.onTranscript({
+              text: result.text.trim(),
+              speaker: 'Speaker 1',
+              confidence: 0.95,
+              timestamp: new Date().toISOString(),
+              isFinal: true,
+              words: result.words || []
+            });
+          }
+        } else {
+          console.error('Transcription API error:', response.status);
+          this.onError('Transcription service error');
+        }
+      };
+      reader.readAsDataURL(audioBlob);
+    } catch (error) {
+      console.error('Error sending audio chunk:', error);
+      this.onError('Failed to process audio');
     }
   }
 
@@ -86,27 +85,18 @@ export class RealtimeTranscriber {
       });
 
       this.mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0 && this.socket?.readyState === WebSocket.OPEN && this.isRecording) {
-          // Convert audio blob to base64
-          const reader = new FileReader();
-          reader.onload = () => {
-            const base64Data = (reader.result as string).split(',')[1];
-            this.socket?.send(JSON.stringify({
-              type: 'audio_data',
-              audio_data: base64Data
-            }));
-          };
-          reader.readAsDataURL(event.data);
+        if (event.data.size > 0 && this.isRecording) {
+          console.log('Audio chunk available, size:', event.data.size);
+          this.sendAudioChunk(event.data);
         }
       };
 
-      // Start recording with longer intervals for better transcription
-      this.mediaRecorder.start(3000); // Send audio chunks every 3 seconds
+      // Start recording with 5-second intervals for better transcription
+      this.mediaRecorder.start(5000);
       this.isRecording = true;
-
-      if (this.socket?.readyState === WebSocket.OPEN) {
-        this.socket.send(JSON.stringify({ type: 'start_transcription' }));
-      }
+      this.onStatusChange('Transcription active');
+      
+      console.log('Audio recording started');
 
     } catch (error) {
       console.error('Failed to start audio capture:', error);
@@ -127,18 +117,13 @@ export class RealtimeTranscriber {
       this.stream = null;
     }
 
-    if (this.socket?.readyState === WebSocket.OPEN) {
-      this.socket.send(JSON.stringify({ type: 'stop_transcription' }));
-      this.socket.close();
-    }
-
     this.socket = null;
     this.mediaRecorder = null;
     this.onStatusChange('Stopped');
   }
 
   isActive() {
-    return this.isRecording && this.socket?.readyState === WebSocket.OPEN;
+    return this.isRecording;
   }
 }
 
