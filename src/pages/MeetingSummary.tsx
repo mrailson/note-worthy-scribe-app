@@ -1110,6 +1110,10 @@ Speakers detected: ${meetingData?.speakerCount || 0}`;
               spacing: { before: 200, after: 100 }
             }));
           } else {
+            // Default case - log what we're processing
+            if (line.includes('#')) {
+              console.log('Default processing line with #:', line);
+            }
             documentChildren.push(new Paragraph({
               children: [new TextRun({ text: line, size: 22 })],
               spacing: { after: 100 }
