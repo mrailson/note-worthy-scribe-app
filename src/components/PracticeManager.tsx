@@ -84,7 +84,7 @@ export const PracticeManager = ({ onPracticeChange }: PracticeManagerProps) => {
           pcn_code, 
           ics_name, 
           organisation_type,
-          primary_care_networks!inner(pcn_name)
+          primary_care_networks(pcn_name)
         `)
         .order('name');
 
