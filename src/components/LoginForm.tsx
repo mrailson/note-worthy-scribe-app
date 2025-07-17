@@ -121,12 +121,6 @@ export const LoginForm = () => {
           </div>
 
 
-          {/* Valid domains display */}
-          <div className="flex flex-wrap gap-1 justify-center mt-4">
-            <Badge variant="outline" className="text-xs">@nhs.net</Badge>
-            <Badge variant="outline" className="text-xs">@nhs.uk</Badge>
-            <Badge variant="outline" className="text-xs">@nhft.nhs.uk</Badge>
-          </div>
         </CardContent>
       </Card>
     </div>
