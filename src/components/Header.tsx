@@ -101,19 +101,8 @@ export const Header = ({ onNewMeeting, onHelp }: HeaderProps) => {
               </Button>
             )}
             
-            {isHomePage && (
-              <Button 
-                onClick={onNewMeeting}
-                variant="secondary"
-                size="sm"
-                className="bg-white/20 hover:bg-white/30 text-white border-white/30"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Start Recording
-              </Button>
-            )}
             
-            <Button 
+            <Button
               onClick={onHelp}
               variant="secondary"
               size="sm"
