@@ -138,17 +138,23 @@ export default function MeetingSummary() {
         }));
       }
       
-      // Add a small delay to prevent race conditions
-      const timer = setTimeout(() => {
-        saveMeetingToDatabase(data);
-      }, 100);
-      
-      // Load existing summary if available
-      if (data.id) {
+      // Only save to database if this is a new meeting (no ID)
+      if (!data.id) {
+        const timer = setTimeout(() => {
+          saveMeetingToDatabase(data);
+        }, 100);
+        
+        // Load existing summary if available
+        if (data.id) {
+          loadExistingSummary(data.id);
+        }
+        
+        return () => clearTimeout(timer);
+      } else {
+        // For existing meetings, just mark as saved and load summary
+        setIsSaved(true);
         loadExistingSummary(data.id);
       }
-      
-      return () => clearTimeout(timer);
     } else if (!data) {
       navigate('/');
     }
