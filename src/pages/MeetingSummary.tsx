@@ -1078,6 +1078,13 @@ Speakers detected: ${meetingData?.speakerCount || 0}`;
               children: [new TextRun({ text: line, bold: true, size: 26, color: "1f4e79" })],
               spacing: { before: 300, after: 150 }
             }));
+          } else if (line.includes('**') && (line.includes('–') || line.includes('-'))) {
+            // Attendee lines like **Dal Samra** – GP Partner, Springfield Surgery
+            const cleanLine = line.replace(/\*\*/g, ''); // Remove all ** markers
+            documentChildren.push(new Paragraph({
+              children: [new TextRun({ text: cleanLine, size: 22 })],
+              spacing: { after: 100 }
+            }));
           } else if (line.includes('**') && line.includes(':**')) {
             // Lines with inline bold text (like **Others referenced:**)
             const parts = line.split(/(\*\*[^*]+\*\*)/);
