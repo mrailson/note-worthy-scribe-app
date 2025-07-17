@@ -484,11 +484,13 @@ const MeetingHistory = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="general">General Meeting</SelectItem>
+                    <SelectItem value="patient-consultation">Patient Meeting (Complaint Handling or other Administration Reason)</SelectItem>
                     <SelectItem value="team-meeting">Team Meeting</SelectItem>
                     <SelectItem value="clinical-review">Clinical Review</SelectItem>
                     <SelectItem value="training">Training Session</SelectItem>
-                    <SelectItem value="consultation">Consultation</SelectItem>
-                    <SelectItem value="emergency">Emergency Meeting</SelectItem>
+                    <SelectItem value="pcn-meeting">PCN Meeting</SelectItem>
+                    <SelectItem value="icb-meeting">ICB Meeting</SelectItem>
+                    <SelectItem value="neighbourhood-meeting">Neighbourhood Meeting</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
