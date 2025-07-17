@@ -299,10 +299,10 @@ export default function MeetingSummary() {
       // Prepare email content
       const meetingNotes = generateNHSSummaryContent();
       
-      // Get EmailJS credentials - you'll need to replace with your actual public key
-      const serviceId = 'notewell'; // Your service ID from the logs
-      const templateId = 'template_n236grs'; // Your template ID from the logs  
-      const publicKey = 'YOUR_EMAILJS_PUBLIC_KEY'; // Replace this with your actual public key
+      // EmailJS credentials
+      const serviceId = 'notewell'; // Your service ID
+      const templateId = 'template_n236grs'; // Your template ID  
+      const publicKey = 'OknbPskm8GVoUZFiD'; // Your public key
 
       // Create attachments if needed
       let wordAttachment = null;
