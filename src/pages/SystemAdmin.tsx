@@ -434,7 +434,7 @@ The Notewell AI Team</p>
           {
             to_email: newUserEmail,
             subject: "Welcome to Notewell AI Meeting Notes Service",
-            html_message: welcomeEmailContent, // Use html_message instead of message
+            message: welcomeEmailContent,
             to_name: newUserName
           },
           'OknbPskm8GVoUZFiD' // Your actual EmailJS public key
