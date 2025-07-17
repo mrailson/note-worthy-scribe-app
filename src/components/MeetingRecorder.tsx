@@ -145,6 +145,26 @@ export const MeetingRecorder = ({
     
     setIsRecording(false);
     
+    // Check if recording has at least 5 seconds of content
+    if (duration < 5) {
+      toast({
+        title: "Recording Too Short",
+        description: "Meeting must be at least 5 seconds long to save. Recording discarded.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if there's meaningful transcript content
+    if (!transcript || transcript.trim().length < 10) {
+      toast({
+        title: "No Transcript Content",
+        description: "No meaningful transcript was captured. Recording discarded.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     // Navigate to meeting summary with data
     const meetingData = {
       title: initialSettings?.title || 'General Meeting',

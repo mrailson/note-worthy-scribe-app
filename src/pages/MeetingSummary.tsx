@@ -183,6 +183,24 @@ export default function MeetingSummary() {
   const saveMeetingToDatabase = async (data: MeetingData) => {
     if (isSaving || isSaved) return;
     
+    // Validate meeting has sufficient content before saving
+    const durationParts = data.duration.split(':');
+    const totalSeconds = parseInt(durationParts[0]) * 60 + parseInt(durationParts[1]);
+    
+    if (totalSeconds < 5) {
+      console.log('Meeting too short, not saving to database');
+      toast.error("Meeting must be at least 5 seconds long to save");
+      navigate('/');
+      return;
+    }
+
+    if (!data.transcript || data.transcript.trim().length < 10) {
+      console.log('No meaningful transcript content, not saving to database');
+      toast.error("No meaningful transcript content to save");
+      navigate('/');
+      return;
+    }
+    
     setIsSaving(true);
     try {
       if (!user) throw new Error('User not authenticated');
@@ -226,7 +244,7 @@ export default function MeetingSummary() {
           end_time: new Date().toISOString(),
           duration_minutes: Math.floor(parseInt(data.duration.split(':')[0]) + parseInt(data.duration.split(':')[1]) / 60),
           status: 'completed',
-          meeting_type: 'consultation'
+          meeting_type: 'general'
         })
         .select()
         .single();
