@@ -18,7 +18,7 @@ export class RealtimeTranscriber {
 
   async startTranscription() {
     try {
-      this.onStatusChange('Requesting microphone access...');
+      this.onStatusChange('Requesting microphone and system audio access...');
       await this.startAudioCapture();
       this.onStatusChange('Listening for speech...');
     } catch (error) {
@@ -29,10 +29,10 @@ export class RealtimeTranscriber {
 
   private async startAudioCapture() {
     try {
-      console.log('Requesting microphone access...');
+      console.log('Requesting microphone and system audio access...');
       
-      // Get microphone access with optimal settings for speech
-      this.stream = await navigator.mediaDevices.getUserMedia({
+      // Get microphone access
+      const micStream = await navigator.mediaDevices.getUserMedia({
         audio: {
           sampleRate: 44100,
           channelCount: 1,
@@ -44,17 +44,54 @@ export class RealtimeTranscriber {
 
       console.log('Microphone access granted');
 
-      // Set up audio context for voice activity detection
-      this.audioContext = new AudioContext();
-      const source = this.audioContext.createMediaStreamSource(this.stream);
+      // Request system audio capture (for Teams, etc.)
+      let systemStream: MediaStream | null = null;
+      try {
+        console.log('Requesting system audio access...');
+        systemStream = await navigator.mediaDevices.getDisplayMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: false
+          },
+          video: false // We only want audio
+        });
+        console.log('System audio access granted');
+      } catch (error) {
+        console.log('System audio not available or denied, using microphone only:', error.message);
+      }
+
+      // Set up audio context for mixing streams and voice activity detection
+      this.audioContext = new AudioContext({ sampleRate: 44100 });
+      
+      // Create audio sources
+      const micSource = this.audioContext.createMediaStreamSource(micStream);
+      
+      // Create a mixer for combining audio streams
+      const mixer = this.audioContext.createGain();
+      micSource.connect(mixer);
+      
+      // Add system audio if available
+      if (systemStream && systemStream.getAudioTracks().length > 0) {
+        const systemSource = this.audioContext.createMediaStreamSource(systemStream);
+        systemSource.connect(mixer);
+        console.log('Mixed microphone and system audio');
+      }
+
+      // Set up analyser for voice activity detection
       this.analyser = this.audioContext.createAnalyser();
       this.analyser.fftSize = 256;
-      source.connect(this.analyser);
+      mixer.connect(this.analyser);
       
       const bufferLength = this.analyser.frequencyBinCount;
       this.dataArray = new Uint8Array(bufferLength);
 
-      // Check supported MIME types
+      // Create a destination for the mixed audio
+      const dest = this.audioContext.createMediaStreamDestination();
+      mixer.connect(dest);
+      this.stream = dest.stream;
+
+      // Check supported MIME types for recording
       const supportedTypes = [
         'audio/webm;codecs=opus',
         'audio/webm',
@@ -72,6 +109,7 @@ export class RealtimeTranscriber {
 
       console.log('Using MIME type:', mimeType);
 
+      // Initialize MediaRecorder with the mixed stream
       this.mediaRecorder = new MediaRecorder(this.stream, { mimeType });
       this.audioChunks = [];
       this.chunkCounter = 0;
