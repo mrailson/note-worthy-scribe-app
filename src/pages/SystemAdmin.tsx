@@ -423,7 +423,7 @@ This is an automated message. Please do not reply to this email.
         `;
 
         await emailjs.send(
-          'service_yfksj4p', // Your existing EmailJS service ID
+          'notewell', // Your correct EmailJS service ID
           'template_jl7hq5e', // Your existing EmailJS template ID
           {
             to_email: newUserEmail,
