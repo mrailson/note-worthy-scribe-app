@@ -423,15 +423,15 @@ This is an automated message. Please do not reply to this email.
         `;
 
         await emailjs.send(
-          'service_yfksj4p', // You'll need to replace with your EmailJS service ID
-          'template_welcome', // You'll need to replace with your EmailJS template ID
+          'service_yfksj4p', // Your existing EmailJS service ID
+          'template_jl7hq5e', // Your existing EmailJS template ID
           {
             to_email: newUserEmail,
             subject: "Welcome to Notewell AI Meeting Notes Service",
             message: welcomeEmailContent,
             to_name: newUserName
           },
-          'your_public_key' // You'll need to replace with your EmailJS public key
+          'btJqhz9Y6K7lQoLqm' // Your EmailJS public key - please replace with actual key
         );
 
         toast.success("User created successfully and welcome email sent");
