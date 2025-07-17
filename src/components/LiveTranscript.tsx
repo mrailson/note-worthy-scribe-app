@@ -2,14 +2,10 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Badge } from "@/components/ui/badge";
 import { 
   MessageSquare, 
   ChevronDown, 
-  Clock,
-  Upload,
-  FileAudio,
-  Film
+  Clock
 } from "lucide-react";
 
 interface LiveTranscriptProps {
@@ -24,15 +20,6 @@ export const LiveTranscript = ({
   onTimestampsToggle 
 }: LiveTranscriptProps) => {
   const [isTranscriptOpen, setIsTranscriptOpen] = useState(false);
-  const [isImportOpen, setIsImportOpen] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
-
-  const handleDemoMeeting = (type: string) => {
-    setIsProcessing(true);
-    setTimeout(() => {
-      setIsProcessing(false);
-    }, 2000);
-  };
 
   const formatTranscriptWithTimestamps = (text: string) => {
     if (!text) return "";
@@ -92,107 +79,6 @@ export const LiveTranscript = ({
         </Collapsible>
       </Card>
 
-      {/* Import Options */}
-      <Card className="shadow-medium">
-        <Collapsible open={isImportOpen} onOpenChange={setIsImportOpen}>
-          <CollapsibleTrigger asChild>
-            <CardHeader className="cursor-pointer hover:bg-accent/50 transition-colors">
-              <CardTitle className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Upload className="h-5 w-5" />
-                  Import Previous Meeting Transcript or Load Demonstration Meeting
-                </div>
-                <ChevronDown 
-                  className={`h-4 w-4 transition-transform ${isImportOpen ? 'rotate-180' : ''}`}
-                />
-              </CardTitle>
-            </CardHeader>
-          </CollapsibleTrigger>
-          
-          <CollapsibleContent>
-            <CardContent className="space-y-6">
-              {/* Import Options */}
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <h4 className="font-medium">Import Text Transcript</h4>
-                  <Button variant="outline" className="w-full justify-start">
-                    <Upload className="h-4 w-4 mr-2" />
-                    Click to import transcript
-                  </Button>
-                </div>
-                
-                <div className="space-y-2">
-                  <h4 className="font-medium">Import Audio File</h4>
-                  <Button variant="outline" className="w-full justify-start">
-                    <FileAudio className="h-4 w-4 mr-2" />
-                    Click to import audio
-                  </Button>
-                  {isProcessing && (
-                    <div className="text-sm text-muted-foreground">
-                      Processing audio file...
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Demo Examples */}
-              <div className="space-y-3">
-                <h4 className="font-medium">Demo Meeting Examples</h4>
-                
-                <div className="space-y-3">
-                  <Button 
-                    variant="outline" 
-                    className="w-full justify-start text-left h-auto p-4"
-                    onClick={() => handleDemoMeeting('icb')}
-                  >
-                    <div className="flex items-start gap-3">
-                      <Film className="h-5 w-5 mt-0.5 text-primary" />
-                      <div>
-                        <div className="font-medium">ICB Meeting (2+ hours)</div>
-                        <div className="text-sm text-muted-foreground">
-                          Integrated Care Board strategic planning meeting with 10 senior NHS leaders
-                        </div>
-                      </div>
-                    </div>
-                  </Button>
-
-                  <Button 
-                    variant="outline" 
-                    className="w-full justify-start text-left h-auto p-4"
-                    onClick={() => handleDemoMeeting('gp')}
-                  >
-                    <div className="flex items-start gap-3">
-                      <Film className="h-5 w-5 mt-0.5 text-primary" />
-                      <div>
-                        <div className="font-medium">GP Partnership (1 hour)</div>
-                        <div className="text-sm text-muted-foreground">
-                          General Practice partnership meeting covering operations and planning
-                        </div>
-                      </div>
-                    </div>
-                  </Button>
-
-                  <Button 
-                    variant="outline" 
-                    className="w-full justify-start text-left h-auto p-4"
-                    onClick={() => handleDemoMeeting('hospital')}
-                  >
-                    <div className="flex items-start gap-3">
-                      <Film className="h-5 w-5 mt-0.5 text-primary" />
-                      <div>
-                        <div className="font-medium">Hospital Management (1 hour)</div>
-                        <div className="text-sm text-muted-foreground">
-                          Hospital executive meeting covering capacity, quality, and operations
-                        </div>
-                      </div>
-                    </div>
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </CollapsibleContent>
-        </Collapsible>
-      </Card>
     </div>
   );
 };
