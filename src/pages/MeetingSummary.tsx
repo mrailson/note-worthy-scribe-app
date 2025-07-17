@@ -67,13 +67,13 @@ export default function MeetingSummary() {
 
   useEffect(() => {
     const data = location.state as MeetingData;
-    if (data && !isSaved) {
+    if (data && !isSaved && !isSaving && !meetingData?.id) {
       setMeetingData(data);
       saveMeetingToDatabase(data);
     } else if (!data) {
       navigate('/');
     }
-  }, [location.state, navigate]);
+  }, [location.state, navigate, isSaved, isSaving, meetingData?.id]);
 
   const saveMeetingToDatabase = async (data: MeetingData) => {
     if (isSaving || isSaved) return;
@@ -81,6 +81,22 @@ export default function MeetingSummary() {
     setIsSaving(true);
     try {
       if (!user) throw new Error('User not authenticated');
+
+      // Check if meeting already exists with same start time and user
+      const { data: existingMeeting } = await supabase
+        .from('meetings')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('start_time', data.startTime)
+        .eq('title', data.title)
+        .single();
+
+      if (existingMeeting) {
+        console.log('Meeting already exists, skipping save');
+        setMeetingData(prev => prev ? { ...prev, id: existingMeeting.id } : null);
+        setIsSaved(true);
+        return;
+      }
 
       // Get default practice name
       let practiceName = "";
