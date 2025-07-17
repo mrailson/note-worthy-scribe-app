@@ -321,16 +321,23 @@ export default function MeetingSummary() {
       }
 
       const templateParams = {
+        // Standard EmailJS variables
+        to_name: userEmail.split('@')[0], // Name from email
         to_email: userEmail,
-        all_emails: allEmailsString,
+        from_name: 'Notewell AI Meeting Notes Service',
+        reply_to: userEmail,
+        subject: `Meeting Notes: ${meetingData?.title || 'Meeting'}`,
+        message: meetingNotes,
+        
+        // Additional meeting details
         meeting_title: meetingData?.title || 'Meeting',
         meeting_date: new Date(meetingData?.startTime || new Date()).toLocaleDateString('en-GB'),
         duration: meetingData?.duration || '00:00',
         practice_name: meetingData?.practiceName || '',
-        meeting_notes: meetingNotes,
+        all_emails: allEmailsString,
         include_transcript: includeTranscriptInEmail ? 'Yes' : 'No',
-        from_name: 'Notewell AI Meeting Notes Service',
-        reply_to: userEmail,
+        
+        // Attachments
         word_attachment: wordAttachment,
         word_filename: `${meetingData?.title || 'meeting'}_minutes.docx`,
         transcript_attachment: transcriptAttachment,
