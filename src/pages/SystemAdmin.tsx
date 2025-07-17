@@ -84,6 +84,13 @@ export default function SystemAdmin() {
   // Email Preview Dialog State
   const [emailPreviewOpen, setEmailPreviewOpen] = useState(false);
   const [emailPreviewContent, setEmailPreviewContent] = useState("");
+  
+  // Edit User Dialog State
+  const [editUserOpen, setEditUserOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editUserRole, setEditUserRole] = useState("");
+  const [editUserPractice, setEditUserPractice] = useState("");
+  const [isUpdatingUser, setIsUpdatingUser] = useState(false);
 
   // Dashboard Stats
   const [dashboardStats, setDashboardStats] = useState({
@@ -455,6 +462,89 @@ This is an automated message. Please do not reply to this email.`;
     }
   };
 
+  const handleEditUser = (userData: User) => {
+    setEditingUser(userData);
+    // Set current role and practice if user has any
+    if (userData.roles.length > 0) {
+      setEditUserRole(userData.roles[0].role);
+      setEditUserPractice(userData.roles[0].practice_id || "none");
+    } else {
+      setEditUserRole("");
+      setEditUserPractice("none");
+    }
+    setEditUserOpen(true);
+  };
+
+  const handleUpdateUser = async () => {
+    if (!editingUser || !editUserRole) {
+      toast.error("Please select a role");
+      return;
+    }
+
+    setIsUpdatingUser(true);
+    
+    try {
+      // Remove existing roles for this user
+      await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', editingUser.id);
+
+      // Add new role
+      const practiceId = editUserPractice === "none" ? null : editUserPractice;
+      await assignRole(editingUser.id, editUserRole, practiceId);
+      
+      toast.success("User updated successfully");
+      setEditUserOpen(false);
+      setEditingUser(null);
+      await fetchUsers();
+      
+    } catch (error: any) {
+      console.error('Error updating user:', error);
+      toast.error("Failed to update user");
+    } finally {
+      setIsUpdatingUser(false);
+    }
+  };
+
+  const handleDeleteUser = async (userData: User) => {
+    if (!confirm(`Are you sure you want to delete user ${userData.full_name}? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      // First remove all roles
+      await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', userData.id);
+
+      // Then delete the profile
+      await supabase
+        .from('profiles')
+        .delete()
+        .eq('user_id', userData.id);
+
+      // Finally delete from auth (this requires admin privileges)
+      const { error: authError } = await supabase.functions.invoke('delete-user-admin', {
+        body: { user_id: userData.id }
+      });
+
+      if (authError) {
+        console.error('Error deleting user from auth:', authError);
+        toast.error("User profile deleted but auth account may still exist");
+      } else {
+        toast.success("User deleted successfully");
+      }
+      
+      await fetchUsers();
+      
+    } catch (error: any) {
+      console.error('Error deleting user:', error);
+      toast.error("Failed to delete user");
+    }
+  };
+
   const getRoleBadgeColor = (role: string) => {
     const colors = {
       'system_admin': 'bg-red-100 text-red-800',
@@ -706,16 +796,25 @@ This is an automated message. Please do not reply to this email.`;
                       <TableCell>{user.meeting_stats.meetings_last_30_days}</TableCell>
                       <TableCell>{user.meeting_stats.total_meetings}</TableCell>
                       <TableCell>{Math.round(user.meeting_stats.total_duration_minutes / 60 * 10) / 10}h</TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button variant="outline" size="sm">
-                            <Edit className="h-3 w-3" />
-                          </Button>
-                          <Button variant="outline" size="sm" className="text-destructive">
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </TableCell>
+                       <TableCell>
+                         <div className="flex gap-2">
+                           <Button 
+                             variant="outline" 
+                             size="sm"
+                             onClick={() => handleEditUser(user)}
+                           >
+                             <Edit className="h-3 w-3" />
+                           </Button>
+                           <Button 
+                             variant="outline" 
+                             size="sm" 
+                             className="text-destructive"
+                             onClick={() => handleDeleteUser(user)}
+                           >
+                             <Trash2 className="h-3 w-3" />
+                           </Button>
+                         </div>
+                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -751,6 +850,74 @@ This is an automated message. Please do not reply to this email.`;
             }} disabled={isCreatingUser}>
               <Send className="h-4 w-4 mr-2" />
               {isCreatingUser ? "Creating..." : "Create User & Send Email"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Edit User Dialog */}
+      <Dialog open={editUserOpen} onOpenChange={setEditUserOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+            <DialogDescription>
+              Update the user's role and practice assignment.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {editingUser && (
+            <div className="space-y-4">
+              <div>
+                <Label>User</Label>
+                <div className="p-2 bg-muted rounded">
+                  <div className="font-medium">{editingUser.full_name}</div>
+                  <div className="text-sm text-muted-foreground">{editingUser.email}</div>
+                </div>
+              </div>
+              
+              <div>
+                <Label htmlFor="edit-role">Role</Label>
+                <Select value={editUserRole} onValueChange={setEditUserRole}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="user">User</SelectItem>
+                    <SelectItem value="receptionist">Receptionist</SelectItem>
+                    <SelectItem value="nurse">Nurse</SelectItem>
+                    <SelectItem value="administrator">Administrator</SelectItem>
+                    <SelectItem value="gp">GP</SelectItem>
+                    <SelectItem value="practice_manager">Practice Manager</SelectItem>
+                    <SelectItem value="system_admin">System Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label htmlFor="edit-practice">Practice</Label>
+                <Select value={editUserPractice} onValueChange={setEditUserPractice}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a practice" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No Practice</SelectItem>
+                    {practices.map(practice => (
+                      <SelectItem key={practice.id} value={practice.id}>
+                        {practice.practice_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditUserOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateUser} disabled={isUpdatingUser}>
+              {isUpdatingUser ? "Updating..." : "Update User"}
             </Button>
           </DialogFooter>
         </DialogContent>
