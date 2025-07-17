@@ -52,8 +52,8 @@ serve(async (req) => {
         audioBuffer.push(audioData);
         console.log(`Received audio chunk, buffer size: ${audioBuffer.length}`);
 
-        // Process audio every 3 chunks (roughly 3 seconds) for better transcription accuracy
-        if (audioBuffer.length >= 3 && !isProcessing) {
+        // Process audio every 4 chunks (roughly 4 seconds) for better accuracy
+        if (audioBuffer.length >= 4 && !isProcessing) {
           console.log("Processing audio batch...");
           processAudioBatch(); // Don't await to prevent blocking
         }
@@ -98,17 +98,24 @@ serve(async (req) => {
       // Convert to base64 for Google Cloud API
       const base64Audio = btoa(String.fromCharCode(...combinedAudio));
 
-      // Call Google Cloud Speech-to-Text API
+      // Call Google Cloud Speech-to-Text API with improved settings
       const requestBody = {
         config: {
           encoding: 'WEBM_OPUS',
           sampleRateHertz: 48000,
           languageCode: 'en-US',
           enableAutomaticPunctuation: true,
-          model: 'latest_short',
+          enableWordTimeOffsets: true,
+          enableWordConfidence: true,
+          model: 'latest_long',  // Better for continuous speech
+          useEnhanced: true,      // Use enhanced model for better accuracy
+          profanityFilter: false,
           speechContexts: [{
-            phrases: ['NHS', 'medical', 'patient', 'consultation', 'clinical', 'diagnosis', 'treatment', 'prescription']
-          }]
+            phrases: ['NHS', 'medical', 'patient', 'consultation', 'clinical', 'diagnosis', 'treatment', 'prescription', 'testing', 'service']
+          }],
+          maxAlternatives: 1,
+          enableSpeakerDiarization: true,
+          diarizationSpeakerCount: 2
         },
         audio: {
           content: base64Audio
