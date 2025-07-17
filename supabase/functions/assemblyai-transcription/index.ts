@@ -26,6 +26,7 @@ serve(async (req) => {
   const { socket, response } = Deno.upgradeWebSocket(req);
   let isRecording = false;
   let audioBuffer: Uint8Array[] = [];
+  let isProcessing = false; // Prevent concurrent processing
 
   socket.onopen = () => {
     console.log("Client WebSocket connected");
@@ -52,16 +53,16 @@ serve(async (req) => {
         console.log(`Received audio chunk, buffer size: ${audioBuffer.length}`);
 
         // Process audio every 2 chunks (roughly 2 seconds) for more reliable transcription
-        if (audioBuffer.length >= 2) {
+        if (audioBuffer.length >= 2 && !isProcessing) {
           console.log("Processing audio batch...");
-          await processAudioBatch();
+          processAudioBatch(); // Don't await to prevent blocking
         }
 
       } else if (message.type === 'stop_transcription') {
         isRecording = false;
         // Process any remaining audio
-        if (audioBuffer.length > 0) {
-          await processAudioBatch();
+        if (audioBuffer.length > 0 && !isProcessing) {
+          processAudioBatch(); // Don't await to prevent blocking
         }
         socket.send(JSON.stringify({
           type: 'session_ended',
@@ -78,7 +79,10 @@ serve(async (req) => {
   };
 
   async function processAudioBatch() {
-    if (audioBuffer.length === 0) return;
+    if (audioBuffer.length === 0 || isProcessing) return;
+    
+    isProcessing = true;
+    console.log("Starting audio processing...");
 
     try {
       // Combine audio chunks
@@ -164,11 +168,15 @@ serve(async (req) => {
 
     } catch (error) {
       console.error("Error processing audio:", error);
-      // Don't clear buffer on error, try again later
+      // Clear buffer on error to prevent stuck state
+      audioBuffer = [];
       socket.send(JSON.stringify({
         type: 'error',
         message: `Processing error: ${error.message}`
       }));
+    } finally {
+      isProcessing = false;
+      console.log("Processing complete, ready for next batch");
     }
   }
 
