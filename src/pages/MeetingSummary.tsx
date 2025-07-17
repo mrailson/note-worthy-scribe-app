@@ -1051,7 +1051,15 @@ Speakers detected: ${meetingData?.speakerCount || 0}`;
           }
           
           // Handle different types of lines with proper formatting
-          if (line.startsWith('###')) {
+          if (line.startsWith('# ') && !line.startsWith('###')) {
+            // Main headers (like # 1. Ambient Voice Technology) - prioritize this
+            const headerText = line.replace(/^#\s+/, '');
+            console.log('Processing header:', line, '-> cleaned:', headerText);
+            documentChildren.push(new Paragraph({
+              children: [new TextRun({ text: headerText, bold: true, size: 24, color: "1f4e79" })],
+              spacing: { before: 200, after: 150 }
+            }));
+          } else if (line.startsWith('###')) {
             // Section headers with emojis (like ### 1️⃣ Attendees)
             const headerText = line.replace(/^###\s*/, '');
             documentChildren.push(new Paragraph({
@@ -1063,13 +1071,6 @@ Speakers detected: ${meetingData?.speakerCount || 0}`;
             documentChildren.push(new Paragraph({
               children: [new TextRun({ text: line, bold: true, size: 26, color: "1f4e79" })],
               spacing: { before: 300, after: 150 }
-            }));
-          } else if (line.startsWith('# ') && !line.startsWith('###')) {
-            // Main headers (like # 1. Ambient Voice Technology)
-            const headerText = line.replace(/^#\s+/, '');
-            documentChildren.push(new Paragraph({
-              children: [new TextRun({ text: headerText, bold: true, size: 24, color: "1f4e79" })],
-              spacing: { before: 200, after: 150 }
             }));
           } else if (line.includes('**') && line.includes(':**')) {
             // Lines with inline bold text (like **Others referenced:**)
