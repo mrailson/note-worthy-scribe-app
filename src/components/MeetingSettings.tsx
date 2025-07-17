@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,8 @@ import {
   ClipboardPaste,
   Upload 
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface MeetingSettingsProps {
   onSettingsChange: (settings: any) => void;
@@ -26,6 +28,7 @@ interface MeetingSettingsProps {
 }
 
 export const MeetingSettings = ({ onSettingsChange, initialSettings }: MeetingSettingsProps) => {
+  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [settings, setSettings] = useState({
     title: initialSettings?.title || "General Meeting",
@@ -39,6 +42,38 @@ export const MeetingSettings = ({ onSettingsChange, initialSettings }: MeetingSe
     startTime: new Date().toLocaleTimeString('en-GB', { hour12: false, hour: '2-digit', minute: '2-digit' }),
     summary: ""
   });
+
+  // Fetch default practice on mount
+  useEffect(() => {
+    const fetchDefaultPractice = async () => {
+      if (!user) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('practice_details')
+          .select('practice_name')
+          .eq('user_id', user.id)
+          .eq('is_default', true)
+          .single();
+
+        if (error) {
+          // No default practice found, which is fine
+          return;
+        }
+
+        if (data?.practice_name) {
+          const newSettings = { ...settings, location: data.practice_name };
+          setSettings(newSettings);
+          onSettingsChange(newSettings);
+        }
+      } catch (error) {
+        // Silent fail - default practice is optional
+        console.log('No default practice found');
+      }
+    };
+
+    fetchDefaultPractice();
+  }, [user]);
 
   const updateSetting = (key: string, value: string) => {
     const newSettings = { ...settings, [key]: value };
