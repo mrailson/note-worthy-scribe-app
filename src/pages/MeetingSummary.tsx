@@ -1066,7 +1066,8 @@ Speakers detected: ${meetingData?.speakerCount || 0}`;
             }));
           } else if (line.startsWith('###')) {
             // Section headers with emojis (like ### 1️⃣ Attendees)
-            const headerText = line.replace(/^###\s*/, '');
+            const headerText = line.substring(3).trim(); // Remove "###" and trim spaces
+            console.log('Processing ### header:', line, '-> cleaned:', headerText);
             documentChildren.push(new Paragraph({
               children: [new TextRun({ text: headerText, bold: true, size: 26, color: "1f4e79" })],
               spacing: { before: 300, after: 150 }
