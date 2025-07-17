@@ -393,7 +393,7 @@ export const PracticeManager = ({ onPracticeChange }: PracticeManagerProps) => {
                       <div>
                         <div className="font-medium">{gpPractice.name}</div>
                         <div className="text-muted-foreground">
-                          U-Code: {gpPractice.practice_code} • PCN: {gpPractice.primary_care_networks?.pcn_name || gpPractice.pcn_code} ({gpPractice.pcn_code}) • {gpPractice.ics_name}
+                          K-Code: {gpPractice.practice_code} • PCN: {gpPractice.primary_care_networks?.pcn_name || gpPractice.pcn_code} (U-Code: {gpPractice.pcn_code}) • {gpPractice.ics_name}
                         </div>
                       </div>
                       <Button size="sm" variant="outline" onClick={() => addFromGpPractices(gpPractice)}>
