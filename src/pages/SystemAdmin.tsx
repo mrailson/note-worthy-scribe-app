@@ -380,46 +380,52 @@ This is an automated message. Please do not reply to this email.`;
       // Send welcome email using EmailJS
       try {
         const welcomeEmailContent = `
-Dear ${newUserName},
+<p>Dear ${newUserName},</p>
 
-Welcome to Notewell AI Meeting Notes Service!
+<p>Welcome to Notewell AI Meeting Notes Service!</p>
 
-Your account has been successfully created with the following details:
+<p>Your account has been successfully created with the following details:</p>
 
-• Email: ${newUserEmail}
-• Role: ${newUserRole.replace('_', ' ').replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase())}
-• Practice: ${practices.find(p => p.id === practiceId)?.practice_name || "No practice assigned"}
-• Temporary Password: ${tempPassword}
+<ul>
+<li>Email: ${newUserEmail}</li>
+<li>Role: ${newUserRole.replace('_', ' ').replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase())}</li>
+<li>Practice: ${practices.find(p => p.id === practiceId)?.practice_name || "No practice assigned"}</li>
+<li>Temporary Password: ${tempPassword}</li>
+</ul>
 
-ABOUT NOTEWELL AI MEETING NOTES SERVICE:
+<h3>ABOUT NOTEWELL AI MEETING NOTES SERVICE:</h3>
 
-Notewell AI is a revolutionary healthcare meeting documentation service designed specifically for NHS practices and healthcare organizations. Our platform transforms how you capture, organize, and share meeting insights.
+<p>Notewell AI is a revolutionary healthcare meeting documentation service designed specifically for NHS practices and healthcare organizations. Our platform transforms how you capture, organize, and share meeting insights.</p>
 
-KEY FEATURES:
-✓ Real-time AI transcription during meetings
-✓ Automatic generation of meeting summaries and action items
-✓ NHS-compliant data security and privacy protection
-✓ Integration with healthcare workflows
-✓ Searchable meeting archives
-✓ Customizable templates for different meeting types
-✓ Automated distribution of meeting notes to attendees
+<h3>KEY FEATURES:</h3>
+<ul>
+<li>✓ Real-time AI transcription during meetings</li>
+<li>✓ Automatic generation of meeting summaries and action items</li>
+<li>✓ NHS-compliant data security and privacy protection</li>
+<li>✓ Integration with healthcare workflows</li>
+<li>✓ Searchable meeting archives</li>
+<li>✓ Customizable templates for different meeting types</li>
+<li>✓ Automated distribution of meeting notes to attendees</li>
+</ul>
 
-GETTING STARTED:
-1. Visit: https://notewell.dialai.co.uk/
-2. Sign in using your email address: ${newUserEmail}
-3. Use your temporary password: ${tempPassword}
-4. You'll be prompted to change your password on first login
+<h3>GETTING STARTED:</h3>
+<ol>
+<li>Visit: <a href="https://notewell.dialai.co.uk/" target="_blank">https://notewell.dialai.co.uk/</a></li>
+<li>Sign in using your email address: ${newUserEmail}</li>
+<li>Use your temporary password: ${tempPassword}</li>
+<li>You'll be prompted to change your password on first login</li>
+</ol>
 
-SECURITY NOTE:
-Please change your temporary password immediately after logging in for security purposes.
+<h3>SECURITY NOTE:</h3>
+<p>Please change your temporary password immediately after logging in for security purposes.</p>
 
-If you have any questions or need assistance, please don't hesitate to contact our support team.
+<p>If you have any questions or need assistance, please don't hesitate to contact our support team.</p>
 
-Best regards,
-The Notewell AI Team
+<p>Best regards,<br>
+The Notewell AI Team</p>
 
----
-This is an automated message. Please do not reply to this email.
+<hr>
+<p><em>This is an automated message. Please do not reply to this email.</em></p>
         `;
 
         await emailjs.send(
@@ -428,7 +434,7 @@ This is an automated message. Please do not reply to this email.
           {
             to_email: newUserEmail,
             subject: "Welcome to Notewell AI Meeting Notes Service",
-            message: welcomeEmailContent,
+            html_message: welcomeEmailContent, // Use html_message instead of message
             to_name: newUserName
           },
           'OknbPskm8GVoUZFiD' // Your actual EmailJS public key
