@@ -316,6 +316,7 @@ export type Database = {
           email: string
           full_name: string
           id: string
+          meeting_retention_policy: string | null
           nhs_trust: string | null
           role: string | null
           updated_at: string
@@ -327,6 +328,7 @@ export type Database = {
           email: string
           full_name: string
           id?: string
+          meeting_retention_policy?: string | null
           nhs_trust?: string | null
           role?: string | null
           updated_at?: string
@@ -338,6 +340,7 @@ export type Database = {
           email?: string
           full_name?: string
           id?: string
+          meeting_retention_policy?: string | null
           nhs_trust?: string | null
           role?: string | null
           updated_at?: string

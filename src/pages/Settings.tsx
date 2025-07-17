@@ -8,7 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Settings as SettingsIcon, Users, Building, BookOpen, Search, Plus, Pencil, Trash2, X } from "lucide-react";
+import { Settings as SettingsIcon, Users, Building, BookOpen, Search, Plus, Pencil, Trash2, X, Clock } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -33,6 +35,10 @@ export default function Settings() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingTerm, setEditingTerm] = useState<NHSTerm | null>(null);
   const [newTerm, setNewTerm] = useState({ term: "", definition: "" });
+  
+  // Meeting retention policy state
+  const [retentionPolicy, setRetentionPolicy] = useState<string>('forever');
+  const [retentionLoading, setRetentionLoading] = useState(false);
 
   // Fetch NHS terms
   const fetchTerms = async () => {
@@ -70,10 +76,55 @@ export default function Settings() {
     }
   }, [terms, searchQuery]);
 
-  // Fetch terms on mount
+  // Fetch terms and retention policy on mount
   useEffect(() => {
     fetchTerms();
+    fetchRetentionPolicy();
   }, [user]);
+
+  // Fetch retention policy
+  const fetchRetentionPolicy = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('meeting_retention_policy')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+      
+      if (data?.meeting_retention_policy) {
+        setRetentionPolicy(data.meeting_retention_policy);
+      }
+    } catch (error) {
+      console.error('Error fetching retention policy:', error);
+    }
+  };
+
+  // Update retention policy
+  const handleRetentionPolicyChange = async (value: string) => {
+    if (!user) return;
+
+    setRetentionLoading(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ meeting_retention_policy: value })
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      setRetentionPolicy(value);
+      toast.success('Meeting retention policy updated successfully');
+    } catch (error) {
+      console.error('Error updating retention policy:', error);
+      toast.error('Failed to update retention policy');
+    } finally {
+      setRetentionLoading(false);
+    }
+  };
 
   // Add new term
   const handleAddTerm = async () => {
@@ -167,8 +218,12 @@ export default function Settings() {
           </div>
 
           {/* Settings Tabs */}
-          <Tabs defaultValue="attendees" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3">
+          <Tabs defaultValue="general" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="general" className="flex items-center gap-2">
+                <SettingsIcon className="h-4 w-4" />
+                General
+              </TabsTrigger>
               <TabsTrigger value="attendees" className="flex items-center gap-2">
                 <Users className="h-4 w-4" />
                 Attendees
@@ -182,6 +237,57 @@ export default function Settings() {
                 NHS Terms
               </TabsTrigger>
             </TabsList>
+
+            <TabsContent value="general" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Clock className="h-5 w-5" />
+                    Meeting Retention Policy
+                  </CardTitle>
+                  <p className="text-muted-foreground">
+                    Choose how long to keep your meeting records in the system.
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="retention-policy">Meeting Data Retention</Label>
+                      <Select
+                        value={retentionPolicy}
+                        onValueChange={handleRetentionPolicyChange}
+                        disabled={retentionLoading}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select retention policy" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="forever">Keep Forever</SelectItem>
+                          <SelectItem value="after_email">Delete as soon as I have emailed the notes to me</SelectItem>
+                          <SelectItem value="1_week">Delete after 1 week</SelectItem>
+                          <SelectItem value="1_month">Delete after 1 month</SelectItem>
+                          <SelectItem value="1_year">Delete after 1 year</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      <p className="mb-2">
+                        <strong>Current setting:</strong> {
+                          retentionPolicy === 'forever' ? 'Keep Forever (default)' :
+                          retentionPolicy === 'after_email' ? 'Delete after emailing notes' :
+                          retentionPolicy === '1_week' ? 'Delete after 1 week' :
+                          retentionPolicy === '1_month' ? 'Delete after 1 month' :
+                          retentionPolicy === '1_year' ? 'Delete after 1 year' : 'Keep Forever'
+                        }
+                      </p>
+                      <p>
+                        This setting affects all future meetings. Existing meetings will not be automatically deleted unless you change this setting.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
             <TabsContent value="attendees" className="space-y-6">
               <Card>
