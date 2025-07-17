@@ -5,7 +5,7 @@ import {
   Clock, 
   Calendar, 
   FileText, 
-  Edit, 
+  Eye,
   Trash2, 
   Play,
   MessageSquare,
@@ -213,8 +213,8 @@ export const MeetingHistoryList = ({
                   onClick={() => onEdit(meeting.id)}
                   className="flex items-center gap-1"
                 >
-                  <Edit className="h-3 w-3" />
-                  Edit
+                  <Eye className="h-3 w-3" />
+                  View
                 </Button>
                 
                 <AlertDialog>
@@ -260,9 +260,6 @@ export const MeetingHistoryList = ({
               
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <Badge variant="secondary" className="text-xs">
-                    {getMeetingTypeLabel(meeting.meeting_type)}
-                  </Badge>
                   
                   {meeting.transcript_count ? (
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
