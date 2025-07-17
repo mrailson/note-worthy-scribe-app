@@ -3,6 +3,7 @@ export class RealtimeTranscriber {
   private stream: MediaStream | null = null;
   private isRecording = false;
   private audioChunks: Blob[] = [];
+  private chunkCounter = 0;
 
   constructor(
     private onTranscript: (transcript: TranscriptData) => void,
@@ -12,21 +13,23 @@ export class RealtimeTranscriber {
 
   async startTranscription() {
     try {
-      this.onStatusChange('Connecting...');
+      this.onStatusChange('Requesting microphone access...');
       await this.startAudioCapture();
-      this.onStatusChange('Connected');
+      this.onStatusChange('Transcription active');
     } catch (error) {
       console.error('Failed to start transcription:', error);
-      this.onError('Failed to start transcription');
+      this.onError('Failed to start transcription: ' + error.message);
     }
   }
 
   private async startAudioCapture() {
     try {
-      // Get microphone access
+      console.log('Requesting microphone access...');
+      
+      // Get microphone access with optimal settings for speech
       this.stream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          sampleRate: 16000, // Standard for speech recognition
+          sampleRate: 44100, // Higher quality for better transcription
           channelCount: 1,
           echoCancellation: true,
           noiseSuppression: true,
@@ -34,39 +37,56 @@ export class RealtimeTranscriber {
         }
       });
 
-      // Create MediaRecorder with WAV format
-      this.mediaRecorder = new MediaRecorder(this.stream, {
-        mimeType: 'audio/webm;codecs=opus'
-      });
+      console.log('Microphone access granted');
 
+      // Check supported MIME types
+      const supportedTypes = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/mp4',
+        'audio/ogg;codecs=opus'
+      ];
+
+      let mimeType = 'audio/webm;codecs=opus'; // default
+      for (const type of supportedTypes) {
+        if (MediaRecorder.isTypeSupported(type)) {
+          mimeType = type;
+          break;
+        }
+      }
+
+      console.log('Using MIME type:', mimeType);
+
+      this.mediaRecorder = new MediaRecorder(this.stream, { mimeType });
       this.audioChunks = [];
+      this.chunkCounter = 0;
 
       // Collect audio data
       this.mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           this.audioChunks.push(event.data);
-          console.log('Audio chunk collected:', event.data.size, 'bytes');
+          console.log(`Audio chunk ${this.chunkCounter++} collected:`, event.data.size, 'bytes');
         }
       };
 
-      // Process when recording stops
+      // Process when recording stops for chunking
       this.mediaRecorder.onstop = async () => {
         if (this.audioChunks.length > 0) {
           await this.processAudioChunks();
         }
       };
 
-      // Start recording - collect for 10 seconds at a time
+      // Start recording in 8-second chunks for more responsive transcription
       this.mediaRecorder.start();
       this.isRecording = true;
-      this.onStatusChange('Transcription active');
 
-      // Process audio every 10 seconds
+      // Process audio every 8 seconds for more real-time feel
       this.scheduleNextProcessing();
 
     } catch (error) {
       console.error('Failed to start audio capture:', error);
-      this.onError('Microphone access denied');
+      this.onError('Microphone access denied: ' + error.message);
+      throw error;
     }
   }
 
@@ -75,20 +95,37 @@ export class RealtimeTranscriber {
     
     setTimeout(() => {
       if (this.isRecording && this.mediaRecorder?.state === 'recording') {
-        // Stop current recording to trigger processing
+        console.log('Stopping current recording chunk for processing...');
         this.mediaRecorder.stop();
         
         // Start new recording for next chunk
         setTimeout(() => {
-          if (this.isRecording && this.mediaRecorder && this.stream) {
-            this.mediaRecorder = new MediaRecorder(this.stream, {
-              mimeType: 'audio/webm;codecs=opus'
-            });
+          if (this.isRecording && this.stream) {
+            console.log('Starting new recording chunk...');
+            
+            // Check supported MIME types again
+            const supportedTypes = [
+              'audio/webm;codecs=opus',
+              'audio/webm',
+              'audio/mp4',
+              'audio/ogg;codecs=opus'
+            ];
+
+            let mimeType = 'audio/webm;codecs=opus';
+            for (const type of supportedTypes) {
+              if (MediaRecorder.isTypeSupported(type)) {
+                mimeType = type;
+                break;
+              }
+            }
+            
+            this.mediaRecorder = new MediaRecorder(this.stream, { mimeType });
             
             // Reset event handlers
             this.mediaRecorder.ondataavailable = (event) => {
               if (event.data.size > 0) {
                 this.audioChunks.push(event.data);
+                console.log(`Audio chunk ${this.chunkCounter++} collected:`, event.data.size, 'bytes');
               }
             };
             
@@ -103,23 +140,26 @@ export class RealtimeTranscriber {
           }
         }, 100);
       }
-    }, 10000); // 10 seconds
+    }, 8000); // 8 seconds for more responsive transcription
   }
 
   private async processAudioChunks() {
-    if (this.audioChunks.length === 0) return;
+    if (this.audioChunks.length === 0) {
+      console.log('No audio chunks to process');
+      return;
+    }
 
     try {
       // Combine all audio chunks into one blob
       const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
-      console.log('Processing audio blob:', audioBlob.size, 'bytes');
+      console.log(`Processing audio blob: ${audioBlob.size} bytes, ${this.audioChunks.length} chunks`);
       
       // Clear chunks for next batch
       this.audioChunks = [];
 
-      // Skip very small audio files (less than 1KB)
-      if (audioBlob.size < 1000) {
-        console.log('Skipping small audio chunk');
+      // Skip very small audio files (less than 5KB to ensure meaningful content)
+      if (audioBlob.size < 5000) {
+        console.log('Skipping small audio chunk:', audioBlob.size, 'bytes');
         return;
       }
 
@@ -128,40 +168,65 @@ export class RealtimeTranscriber {
       reader.onload = async () => {
         try {
           const base64Data = (reader.result as string).split(',')[1];
+          console.log('Sending audio to transcription service...');
           
           // Send to transcription service
           const response = await fetch('https://dphcnbricafkbtizkoal.functions.supabase.co/functions/v1/assemblyai-transcription', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwaGNuYnJpY2Fma2J0aXprb2FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MzIyMzIsImV4cCI6MjA2ODMwODIzMn0.U3bJI6P1yzgRBz_k2s0zlJGu1GWiVRTHjYgv9QQggPs'
             },
             body: JSON.stringify({
               audio: base64Data
             })
           });
 
+          console.log('Transcription response status:', response.status);
+
           if (response.ok) {
             const result = await response.json();
+            console.log('Transcription API response:', result);
+            
             if (result.text && result.text.trim()) {
-              console.log('Transcription received:', result.text);
-              this.onTranscript({
-                text: result.text.trim(),
-                speaker: 'Speaker 1',
-                confidence: 0.95,
-                timestamp: new Date().toISOString(),
-                isFinal: true,
-                words: result.words || []
-              });
+              // Filter out common false positives and non-speech
+              const text = result.text.trim();
+              const lowercaseText = text.toLowerCase();
+              
+              // Skip if it's just background noise transcription
+              const noiseWords = ['thank you', 'thanks for watching', 'bye bye', 'chair please consider'];
+              const isNoise = noiseWords.some(noise => lowercaseText.includes(noise));
+              
+              if (!isNoise && text.length > 3) {
+                console.log('Valid transcription received:', text);
+                this.onTranscript({
+                  text: text,
+                  speaker: 'Speaker 1',
+                  confidence: result.confidence || 0.85,
+                  timestamp: new Date().toISOString(),
+                  isFinal: true,
+                  words: result.words || []
+                });
+              } else {
+                console.log('Filtered out likely false positive:', text);
+              }
+            } else {
+              console.log('No valid text in transcription response');
             }
           } else {
             const errorData = await response.json();
-            console.error('Transcription API error:', errorData);
+            console.error('Transcription API error:', response.status, errorData);
             this.onError(`Transcription error: ${errorData.error || 'Unknown error'}`);
           }
         } catch (error) {
-          console.error('Error processing transcription:', error);
-          this.onError('Failed to process audio');
+          console.error('Error processing transcription response:', error);
+          this.onError('Failed to process transcription response');
         }
+      };
+      
+      reader.onerror = () => {
+        console.error('FileReader error');
+        this.onError('Failed to read audio data');
       };
       
       reader.readAsDataURL(audioBlob);
