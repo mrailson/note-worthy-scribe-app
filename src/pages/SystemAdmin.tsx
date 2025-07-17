@@ -410,7 +410,7 @@ export default function SystemAdmin() {
                       <SelectValue placeholder="Select a practice" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No Practice</SelectItem>
+                      <SelectItem value="none">No Practice</SelectItem>
                       {practices.map(practice => (
                         <SelectItem key={practice.id} value={practice.id}>
                           {practice.practice_name}
