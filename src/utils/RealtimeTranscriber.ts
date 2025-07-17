@@ -82,8 +82,7 @@ export class RealtimeTranscriber {
 
       // Use MediaRecorder for WebM format that Google Cloud supports
       this.mediaRecorder = new MediaRecorder(this.stream, {
-        mimeType: 'audio/webm;codecs=opus',
-        audioBitsPerSecond: 48000
+        mimeType: 'audio/webm;codecs=opus'
       });
 
       this.mediaRecorder.ondataavailable = (event) => {

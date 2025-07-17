@@ -93,28 +93,30 @@ serve(async (req) => {
       const base64Audio = btoa(String.fromCharCode(...combinedAudio));
 
       // Call Google Cloud Speech-to-Text API
+      const requestBody = {
+        config: {
+          encoding: 'WEBM_OPUS',
+          sampleRateHertz: 48000,
+          languageCode: 'en-US',
+          enableAutomaticPunctuation: true,
+          model: 'latest_short',
+          speechContexts: [{
+            phrases: ['NHS', 'medical', 'patient', 'consultation', 'clinical', 'diagnosis', 'treatment', 'prescription']
+          }]
+        },
+        audio: {
+          content: base64Audio
+        }
+      };
+
+      console.log("Sending request to Google Cloud with config:", requestBody.config);
+      
       const response = await fetch(`https://speech.googleapis.com/v1/speech:recognize?key=${GOOGLE_CLOUD_API_KEY}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          config: {
-            encoding: 'WEBM_OPUS',
-            sampleRateHertz: 48000,
-            languageCode: 'en-US',
-            enableSpeakerDiarization: true,
-            diarizationSpeakerCount: 5,
-            enableAutomaticPunctuation: true,
-            model: 'latest_long',
-            speechContexts: [{
-              phrases: ['NHS', 'medical', 'patient', 'consultation', 'clinical', 'diagnosis', 'treatment', 'prescription']
-            }]
-          },
-          audio: {
-            content: base64Audio
-          }
-        })
+        body: JSON.stringify(requestBody)
       });
 
       if (!response.ok) {
