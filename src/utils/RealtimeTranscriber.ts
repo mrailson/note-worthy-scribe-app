@@ -18,7 +18,7 @@ export class RealtimeTranscriber {
 
   async startTranscription() {
     try {
-      this.onStatusChange('Requesting microphone and system audio access...');
+      this.onStatusChange('Setting up audio capture...');
       await this.startAudioCapture();
       this.onStatusChange('Listening for speech...');
     } catch (error) {
@@ -29,9 +29,9 @@ export class RealtimeTranscriber {
 
   private async startAudioCapture() {
     try {
-      console.log('Requesting microphone and system audio access...');
+      console.log('Setting up audio capture...');
       
-      // Get microphone access
+      // First, get microphone access
       const micStream = await navigator.mediaDevices.getUserMedia({
         audio: {
           sampleRate: 44100,
@@ -44,38 +44,61 @@ export class RealtimeTranscriber {
 
       console.log('Microphone access granted');
 
-      // Request system audio capture (for Teams, etc.)
+      // Request screen/tab sharing WITH audio for system audio capture
       let systemStream: MediaStream | null = null;
       try {
-        console.log('Requesting system audio access...');
+        console.log('Please share your screen or the Teams tab to capture computer audio...');
+        
+        // Show user notification about what to share
+        this.onStatusChange('Please share your screen or Teams tab when prompted');
+        
         systemStream = await navigator.mediaDevices.getDisplayMedia({
           audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
+            echoCancellation: false,
+            noiseSuppression: false,
             autoGainControl: false
           },
-          video: false // We only want audio
+          video: true // Must be true for getDisplayMedia
         });
-        console.log('System audio access granted');
+        
+        // Check if audio track is available
+        const audioTracks = systemStream.getAudioTracks();
+        if (audioTracks.length > 0) {
+          console.log('System audio capture successful');
+          this.onStatusChange('Recording microphone + computer audio');
+        } else {
+          console.log('No audio in screen share - using microphone only');
+          this.onStatusChange('Recording microphone only (no computer audio available)');
+        }
+        
       } catch (error) {
-        console.log('System audio not available or denied, using microphone only:', error.message);
+        console.log('Screen sharing declined or failed:', error.message);
+        this.onStatusChange('Recording microphone only (screen sharing declined)');
+        systemStream = null;
       }
 
-      // Set up audio context for mixing streams and voice activity detection
+      // Set up audio context for mixing streams
       this.audioContext = new AudioContext({ sampleRate: 44100 });
       
       // Create audio sources
       const micSource = this.audioContext.createMediaStreamSource(micStream);
       
-      // Create a mixer for combining audio streams
+      // Create a mixer
       const mixer = this.audioContext.createGain();
+      mixer.gain.value = 1.0;
       micSource.connect(mixer);
       
       // Add system audio if available
-      if (systemStream && systemStream.getAudioTracks().length > 0) {
-        const systemSource = this.audioContext.createMediaStreamSource(systemStream);
-        systemSource.connect(mixer);
-        console.log('Mixed microphone and system audio');
+      if (systemStream) {
+        const audioTracks = systemStream.getAudioTracks();
+        if (audioTracks.length > 0) {
+          const systemSource = this.audioContext.createMediaStreamSource(systemStream);
+          const systemGain = this.audioContext.createGain();
+          systemGain.gain.value = 1.0; // Equal volume mixing
+          systemSource.connect(systemGain);
+          systemGain.connect(mixer);
+          console.log('Successfully mixed microphone and system audio');
+        }
       }
 
       // Set up analyser for voice activity detection
