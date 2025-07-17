@@ -15,7 +15,7 @@ export class RealtimeTranscriber {
       this.onStatusChange('Connecting...');
       
       // Connect to our Supabase Edge Function WebSocket
-      const wsUrl = `wss://dphcnbricafkbtizkoal.functions.supabase.co/assemblyai-transcription`;
+      const wsUrl = `wss://dphcnbricafkbtizkoal.functions.supabase.co/functions/v1/assemblyai-transcription`;
       this.socket = new WebSocket(wsUrl);
 
       this.socket.onopen = () => {
