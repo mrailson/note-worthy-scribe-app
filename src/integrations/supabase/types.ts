@@ -393,7 +393,7 @@ export type Database = {
             foreignKeyName: "user_roles_practice_id_fkey"
             columns: ["practice_id"]
             isOneToOne: false
-            referencedRelation: "practice_details"
+            referencedRelation: "gp_practices"
             referencedColumns: ["id"]
           },
         ]
