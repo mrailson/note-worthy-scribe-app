@@ -458,72 +458,82 @@ export default function MeetingSummary() {
 
       if (includeDocx) {
         try {
+          console.log('Creating DOCX attachment...');
           // Generate DOCX file as blob
           const docxBlob = await generateDocxBlob();
           
-          // For EmailJS, we need to create a File object or use a different approach
-          const filename = `${meetingData?.title || 'meeting'}_minutes.docx`;
-          
-          // Try creating a File object instead of base64
-          const file = new File([docxBlob], filename, {
-            type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-          });
-          
-          wordAttachment = file;
-          
-          console.log('DOCX attachment created:', {
-            name: file.name,
-            size: file.size,
-            type: file.type
-          });
+          // Ensure we have a valid blob before creating File
+          if (docxBlob && docxBlob.size > 0) {
+            const filename = `${meetingData?.title || 'meeting'}_minutes.docx`;
+            
+            // Create File object with proper error handling
+            wordAttachment = new File([docxBlob], filename, {
+              type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            });
+            
+            console.log('DOCX attachment created successfully:', {
+              name: wordAttachment.name,
+              size: wordAttachment.size,
+              type: wordAttachment.type
+            });
+          } else {
+            console.error('Invalid DOCX blob generated');
+          }
         } catch (error) {
           console.error('Error creating DOCX attachment:', error);
+          wordAttachment = null;
         }
       }
 
       if (includePdf) {
         try {
-          // Generate PDF using existing downloadPDF logic but return blob
+          console.log('Creating PDF attachment...');
           const pdfBlob = await generatePdfBlob();
           
-          // Create File object for EmailJS
-          const filename = `${meetingData?.title || 'meeting'}_minutes.pdf`;
-          const file = new File([pdfBlob], filename, {
-            type: 'application/pdf'
-          });
-          
-          pdfAttachment = file;
-          
-          console.log('PDF attachment created:', {
-            name: file.name,
-            size: file.size,
-            type: file.type
-          });
+          if (pdfBlob && pdfBlob.size > 0) {
+            const filename = `${meetingData?.title || 'meeting'}_minutes.pdf`;
+            
+            pdfAttachment = new File([pdfBlob], filename, {
+              type: 'application/pdf'
+            });
+            
+            console.log('PDF attachment created successfully:', {
+              name: pdfAttachment.name,
+              size: pdfAttachment.size,
+              type: pdfAttachment.type
+            });
+          } else {
+            console.error('Invalid PDF blob generated');
+          }
         } catch (error) {
           console.error('Error creating PDF attachment:', error);
+          pdfAttachment = null;
         }
       }
 
       if (includeTranscriptInEmail && meetingData?.transcript) {
         try {
-          // Create transcript text file
+          console.log('Creating transcript attachment...');
           const transcriptContent = meetingData.transcript;
-          const filename = `${meetingData?.title || 'meeting'}_transcript.txt`;
           
-          // Create File object
-          const file = new File([transcriptContent], filename, {
-            type: 'text/plain'
-          });
-          
-          transcriptAttachment = file;
-          
-          console.log('Transcript attachment created:', {
-            name: file.name,
-            size: file.size,
-            type: file.type
-          });
+          if (transcriptContent && transcriptContent.length > 0) {
+            const filename = `${meetingData?.title || 'meeting'}_transcript.txt`;
+            
+            transcriptAttachment = new File([transcriptContent], filename, {
+              type: 'text/plain'
+            });
+            
+            console.log('Transcript attachment created successfully:', {
+              name: transcriptAttachment.name,
+              size: transcriptAttachment.size,
+              type: transcriptAttachment.type
+            });
+          } else {
+            console.error('No transcript content available');
+          }
         } catch (error) {
           console.error('Error creating transcript attachment:', error);
+          transcriptAttachment = null;
         }
       }
 
@@ -569,6 +579,7 @@ export default function MeetingSummary() {
       });
 
       // Send email using EmailJS from browser
+      console.log('Sending email via EmailJS...');
       const response = await emailjs.send(
         serviceId,
         templateId,
@@ -576,11 +587,20 @@ export default function MeetingSummary() {
         publicKey
       );
 
+      console.log('EmailJS response:', response);
+
       if (response.status === 200) {
         toast.success("Email sent successfully via EmailJS");
         setIsEmailModalOpen(false);
+        
+        // Reset attachment states
+        setIncludeDocx(true);
+        setIncludePdf(false);
+        setIncludeTranscriptInEmail(false);
+        setSelectedAttendees([]);
+        setAdditionalEmails("");
       } else {
-        throw new Error('Failed to send email');
+        throw new Error(`EmailJS returned status: ${response.status}`);
       }
     } catch (error) {
       console.error('Error sending email:', error);
