@@ -14,7 +14,169 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      meeting_summaries: {
+        Row: {
+          action_items: string[] | null
+          ai_generated: boolean
+          created_at: string
+          decisions: string[] | null
+          id: string
+          key_points: string[] | null
+          meeting_id: string
+          next_steps: string[] | null
+          summary: string
+          updated_at: string
+        }
+        Insert: {
+          action_items?: string[] | null
+          ai_generated?: boolean
+          created_at?: string
+          decisions?: string[] | null
+          id?: string
+          key_points?: string[] | null
+          meeting_id: string
+          next_steps?: string[] | null
+          summary: string
+          updated_at?: string
+        }
+        Update: {
+          action_items?: string[] | null
+          ai_generated?: boolean
+          created_at?: string
+          decisions?: string[] | null
+          id?: string
+          key_points?: string[] | null
+          meeting_id?: string
+          next_steps?: string[] | null
+          summary?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_summaries_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: true
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_transcripts: {
+        Row: {
+          confidence_score: number | null
+          content: string
+          created_at: string
+          id: string
+          meeting_id: string
+          speaker_name: string | null
+          timestamp_seconds: number
+        }
+        Insert: {
+          confidence_score?: number | null
+          content: string
+          created_at?: string
+          id?: string
+          meeting_id: string
+          speaker_name?: string | null
+          timestamp_seconds?: number
+        }
+        Update: {
+          confidence_score?: number | null
+          content?: string
+          created_at?: string
+          id?: string
+          meeting_id?: string
+          speaker_name?: string | null
+          timestamp_seconds?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_transcripts_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meetings: {
+        Row: {
+          created_at: string
+          description: string | null
+          duration_minutes: number | null
+          end_time: string | null
+          id: string
+          meeting_type: string
+          start_time: string
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number | null
+          end_time?: string | null
+          id?: string
+          meeting_type?: string
+          start_time?: string
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number | null
+          end_time?: string | null
+          id?: string
+          meeting_type?: string
+          start_time?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          department: string | null
+          email: string
+          full_name: string
+          id: string
+          nhs_trust: string | null
+          role: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          department?: string | null
+          email: string
+          full_name: string
+          id?: string
+          nhs_trust?: string | null
+          role?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          department?: string | null
+          email?: string
+          full_name?: string
+          id?: string
+          nhs_trust?: string | null
+          role?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
