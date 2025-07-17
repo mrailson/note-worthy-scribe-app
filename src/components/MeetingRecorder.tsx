@@ -225,18 +225,12 @@ export const MeetingRecorder = ({
               <span className="hidden sm:inline">{connectionStatus}</span>
               <span className="sm:hidden">{connectionStatus.split(' ')[0]}</span>
             </Badge>
-            {speakerCount > 0 && (
-              <Badge variant="secondary" className="flex items-center gap-1 text-xs">
-                <Users className="h-3 w-3" />
-                {speakerCount} speakers
-              </Badge>
-            )}
           </div>
         </CardTitle>
       </CardHeader>
       
       <CardContent className="space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-center">
           <div className="bg-accent/20 rounded-lg p-4">
             <div className="text-2xl sm:text-3xl font-bold text-primary">{formatDuration(duration)}</div>
             <div className="text-sm text-muted-foreground">Duration</div>
@@ -244,10 +238,6 @@ export const MeetingRecorder = ({
           <div className="bg-accent/20 rounded-lg p-4">
             <div className="text-2xl sm:text-3xl font-bold text-primary">{wordCount}</div>
             <div className="text-sm text-muted-foreground">Words</div>
-          </div>
-          <div className="bg-accent/20 rounded-lg p-4">
-            <div className="text-2xl sm:text-3xl font-bold text-primary">{speakerCount}</div>
-            <div className="text-sm text-muted-foreground">Speakers</div>
           </div>
         </div>
 
