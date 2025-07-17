@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useSearchParams, useLocation } from "react-router-dom";
+import { useSearchParams, useLocation, useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { LoginForm } from "@/components/LoginForm";
 import { MeetingRecorder } from "@/components/MeetingRecorder";
@@ -10,12 +10,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { toast } from "sonner";
+import { ImportedTranscript } from "@/utils/FileImporter";
 
 const Index = () => {
   const { user, loading } = useAuth();
   const { toast: deprecatedToast } = useToast();
   const [searchParams] = useSearchParams();
   const location = useLocation();
+  const navigate = useNavigate();
   const editMeetingId = searchParams.get('edit');
   
   const [currentView, setCurrentView] = useState<"recording" | "summary">("recording");
@@ -29,6 +31,7 @@ const Index = () => {
     meetingType: "general"
   });
   const [currentMeetingId, setCurrentMeetingId] = useState<string | null>(null);
+  const [importedTranscript, setImportedTranscript] = useState<ImportedTranscript | null>(null);
 
   // Check for continue meeting state
   useEffect(() => {
@@ -102,49 +105,30 @@ const Index = () => {
     }
   };
 
-  const saveMeeting = async () => {
-    if (!user || !meetingSettings.title) return null;
-
-    try {
-      const meetingData = {
-        user_id: user.id,
-        title: meetingSettings.title,
-        description: meetingSettings.description || null,
-        meeting_type: meetingSettings.meetingType,
-        start_time: new Date().toISOString(),
-        end_time: new Date().toISOString(),
-        duration_minutes: parseDurationToMinutes(duration),
-        status: 'completed'
-      };
-
-      if (currentMeetingId) {
-        // Update existing meeting
-        const { data, error } = await supabase
-          .from('meetings')
-          .update(meetingData)
-          .eq('id', currentMeetingId)
-          .eq('user_id', user.id)
-          .select()
-          .single();
-
-        if (error) throw error;
-        return data;
-      } else {
-        // Create new meeting
-        const { data, error } = await supabase
-          .from('meetings')
-          .insert(meetingData)
-          .select()
-          .single();
-
-        if (error) throw error;
-        setCurrentMeetingId(data.id);
-        return data;
-      }
-    } catch (error: any) {
-      toast.error(`Error saving meeting: ${error.message}`);
-      return null;
+  const handleTranscriptImported = (transcript: ImportedTranscript) => {
+    setImportedTranscript(transcript);
+    
+    // Update meeting settings with imported data
+    if (transcript.extractedSettings) {
+      setMeetingSettings(prev => ({
+        ...prev,
+        title: transcript.extractedSettings?.title || prev.title,
+        description: transcript.extractedSettings?.description || prev.description
+      }));
     }
+
+    // Automatically navigate to meeting summary with imported data
+    const meetingData = {
+      title: transcript.extractedSettings?.title || meetingSettings.title,
+      duration: transcript.duration || "00:00",
+      wordCount: transcript.wordCount,
+      transcript: transcript.content,
+      speakerCount: 1, // Default for imported transcripts
+      startTime: new Date().toISOString()
+    };
+
+    navigate('/meeting-summary', { state: meetingData });
+    toast.success("Transcript imported and meeting summary created!");
   };
 
   const parseDurationToMinutes = (duration: string): number => {
@@ -172,9 +156,7 @@ const Index = () => {
     console.log("Help & About clicked");
   };
 
-  const handleViewSummary = async () => {
-    // Save meeting before viewing summary
-    await saveMeeting();
+  const handleViewSummary = () => {
     setCurrentView("summary");
   };
 
@@ -216,10 +198,11 @@ const Index = () => {
             />
 
             {/* Meeting Settings */}
-            <MeetingSettings 
-              onSettingsChange={setMeetingSettings}
-              initialSettings={meetingSettings}
-            />
+          <MeetingSettings 
+            onSettingsChange={setMeetingSettings} 
+            onTranscriptImported={handleTranscriptImported}
+            initialSettings={meetingSettings} 
+          />
 
             {/* Live Transcript and Import */}
             <LiveTranscript
@@ -241,15 +224,9 @@ const Index = () => {
             )}
           </>
         ) : (
-          <MeetingSummary
-            duration={duration}
-            wordCount={wordCount}
-            transcript={transcript}
-            meetingSettings={meetingSettings}
-            currentMeetingId={currentMeetingId}
-            onBackToRecording={() => setCurrentView("recording")}
-            onSave={saveMeeting}
-          />
+          <div className="text-center py-8 text-muted-foreground">
+            <p>Meeting summary view - functionality moved to dedicated summary page</p>
+          </div>
         )}
       </div>
     </div>

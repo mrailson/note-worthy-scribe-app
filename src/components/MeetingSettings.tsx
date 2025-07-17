@@ -17,9 +17,12 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { FileImporter, ImportedTranscript } from "@/utils/FileImporter";
+import { toast } from "sonner";
 
 interface MeetingSettingsProps {
   onSettingsChange: (settings: any) => void;
+  onTranscriptImported?: (transcript: ImportedTranscript) => void;
   initialSettings?: {
     title: string;
     description: string;
@@ -27,9 +30,10 @@ interface MeetingSettingsProps {
   };
 }
 
-export const MeetingSettings = ({ onSettingsChange, initialSettings }: MeetingSettingsProps) => {
+export const MeetingSettings = ({ onSettingsChange, onTranscriptImported, initialSettings }: MeetingSettingsProps) => {
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
   const [settings, setSettings] = useState({
     title: initialSettings?.title || "General Meeting",
     description: initialSettings?.description || "",
@@ -74,6 +78,44 @@ export const MeetingSettings = ({ onSettingsChange, initialSettings }: MeetingSe
 
     fetchDefaultPractice();
   }, [user]);
+
+  const handleFileImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    try {
+      const importedData = await FileImporter.importTranscriptFile(file);
+      
+      // Update settings with extracted data
+      if (importedData.extractedSettings) {
+        const newSettings = {
+          ...settings,
+          title: importedData.extractedSettings.title || settings.title,
+          description: importedData.extractedSettings.description || settings.description,
+          attendees: importedData.extractedSettings.attendees || settings.attendees,
+          agenda: importedData.extractedSettings.agenda || settings.agenda,
+          date: importedData.extractedSettings.date || settings.date
+        };
+        setSettings(newSettings);
+        onSettingsChange(newSettings);
+      }
+
+      // Notify parent component about the imported transcript
+      if (onTranscriptImported) {
+        onTranscriptImported(importedData);
+      }
+
+      toast.success(`Transcript imported successfully! ${importedData.wordCount} words processed.`);
+    } catch (error) {
+      console.error('Error importing file:', error);
+      toast.error(`Failed to import file: ${error}`);
+    } finally {
+      setIsImporting(false);
+      // Reset the input so the same file can be selected again
+      event.target.value = '';
+    }
+  };
 
   const updateSetting = (key: string, value: string) => {
     const newSettings = { ...settings, [key]: value };
@@ -225,10 +267,27 @@ export const MeetingSettings = ({ onSettingsChange, initialSettings }: MeetingSe
             <div className="space-y-2">
               <Label htmlFor="agenda">Meeting Agenda</Label>
               <div className="flex gap-2 mb-2">
-                <Button variant="outline" size="sm" className="flex-1">
-                  <Upload className="h-4 w-4 mr-2" />
-                  Import from File
-                </Button>
+                <label htmlFor="transcript-import">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex-1 cursor-pointer"
+                    disabled={isImporting}
+                    asChild
+                  >
+                    <span>
+                      <Upload className="h-4 w-4 mr-2" />
+                      {isImporting ? 'Importing...' : 'Import Transcript File'}
+                    </span>
+                  </Button>
+                </label>
+                <input
+                  id="transcript-import"
+                  type="file"
+                  accept=".txt,.doc,.docx,.pdf"
+                  onChange={handleFileImport}
+                  className="hidden"
+                />
                 <Button variant="outline" size="sm" className="flex-1">
                   <ClipboardPaste className="h-4 w-4 mr-2" />
                   Paste from Clipboard
