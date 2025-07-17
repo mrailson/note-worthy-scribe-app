@@ -119,16 +119,8 @@ export const MeetingRecorder = ({
         });
       }, 1000);
 
-      toast({
-        title: "Recording Started",
-        description: "Real-time transcription is now active",
-      });
     } catch (error) {
-      toast({
-        title: "Recording Failed",
-        description: "Could not start recording",
-        variant: "destructive",
-      });
+      // Silent error handling - could add console.log if needed for debugging
     }
   };
 
@@ -147,21 +139,13 @@ export const MeetingRecorder = ({
     
     // Check if recording has at least 5 seconds of content
     if (duration < 5) {
-      toast({
-        title: "Recording Too Short",
-        description: "Meeting must be at least 5 seconds long to save. Recording discarded.",
-        variant: "destructive",
-      });
+      // Silent validation - just return without saving
       return;
     }
 
     // Check if there's meaningful transcript content
     if (!transcript || transcript.trim().length < 10) {
-      toast({
-        title: "No Transcript Content",
-        description: "No meaningful transcript was captured. Recording discarded.",
-        variant: "destructive",
-      });
+      // Silent validation - just return without saving
       return;
     }
     
@@ -177,10 +161,6 @@ export const MeetingRecorder = ({
 
     navigate('/meeting-summary', { state: meetingData });
     
-    toast({
-      title: "Recording Stopped",
-      description: "Meeting recording and transcription completed",
-    });
   };
 
   const getConnectionStatusIcon = () => {
