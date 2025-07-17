@@ -28,7 +28,9 @@ import {
   Trash2,
   Building2,
   Calendar,
-  BarChart3
+  BarChart3,
+  Eye,
+  Send
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -78,6 +80,10 @@ export default function SystemAdmin() {
   const [newUserPractice, setNewUserPractice] = useState("");
   const [newUserPCN, setNewUserPCN] = useState("");
   const [isCreatingUser, setIsCreatingUser] = useState(false);
+  
+  // Email Preview Dialog State
+  const [emailPreviewOpen, setEmailPreviewOpen] = useState(false);
+  const [emailPreviewContent, setEmailPreviewContent] = useState("");
 
   // Dashboard Stats
   const [dashboardStats, setDashboardStats] = useState({
@@ -264,14 +270,66 @@ export default function SystemAdmin() {
     }
   };
 
-  const generateRandomPassword = () => {
-    const length = 12;
-    const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
-    let password = "";
-    for (let i = 0; i < length; i++) {
-      password += charset.charAt(Math.floor(Math.random() * charset.length));
+  const getDefaultPassword = () => {
+    return "letmein1st";
+  };
+
+  const generateEmailPreview = () => {
+    const tempPassword = getDefaultPassword();
+    const practiceId = newUserPractice === "none" ? null : newUserPractice;
+    const practiceName = practices.find(p => p.id === practiceId)?.practice_name || "No practice assigned";
+    
+    return `Dear ${newUserName},
+
+Welcome to Notewell AI Meeting Notes Service!
+
+Your account has been successfully created with the following details:
+
+• Email: ${newUserEmail}
+• Role: ${newUserRole.replace('_', ' ').replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase())}
+• Practice: ${practiceName}
+• Temporary Password: ${tempPassword}
+
+ABOUT NOTEWELL AI MEETING NOTES SERVICE:
+
+Notewell AI is a revolutionary healthcare meeting documentation service designed specifically for NHS practices and healthcare organizations. Our platform transforms how you capture, organize, and share meeting insights.
+
+KEY FEATURES:
+✓ Real-time AI transcription during meetings
+✓ Automatic generation of meeting summaries and action items
+✓ NHS-compliant data security and privacy protection
+✓ Integration with healthcare workflows
+✓ Searchable meeting archives
+✓ Customizable templates for different meeting types
+✓ Automated distribution of meeting notes to attendees
+
+GETTING STARTED:
+1. Visit: https://notewell.dialai.co.uk/
+2. Sign in using your email address: ${newUserEmail}
+3. Use your temporary password: ${tempPassword}
+4. You'll be prompted to change your password on first login
+
+SECURITY NOTE:
+Please change your temporary password immediately after logging in for security purposes.
+
+If you have any questions or need assistance, please don't hesitate to contact our support team.
+
+Best regards,
+The Notewell AI Team
+
+---
+This is an automated message. Please do not reply to this email.`;
+  };
+
+  const handlePreviewEmail = () => {
+    if (!newUserEmail || !newUserName || !newUserRole) {
+      toast.error("Please fill in all required fields first");
+      return;
     }
-    return password;
+    
+    const preview = generateEmailPreview();
+    setEmailPreviewContent(preview);
+    setEmailPreviewOpen(true);
   };
 
   const handleCreateUser = async () => {
@@ -283,14 +341,14 @@ export default function SystemAdmin() {
     setIsCreatingUser(true);
     
     try {
-      // Generate a random temporary password
-      const tempPassword = generateRandomPassword();
+      // Use default password "letmein1st"
+      const tempPassword = getDefaultPassword();
       
-      // Create the user in Supabase Auth
+      // Create the user in Supabase Auth with password change required
       const { data: authData, error: authError } = await supabase.auth.admin.createUser({
         email: newUserEmail,
         password: tempPassword,
-        email_confirm: true
+        email_confirm: false // Require email confirmation to force password change
       });
 
       if (authError) throw authError;
@@ -537,8 +595,13 @@ export default function SystemAdmin() {
                 <Button variant="outline" onClick={() => setAddUserOpen(false)}>
                   Cancel
                 </Button>
+                <Button variant="outline" onClick={handlePreviewEmail}>
+                  <Eye className="h-4 w-4 mr-2" />
+                  Preview Email
+                </Button>
                 <Button onClick={handleCreateUser} disabled={isCreatingUser}>
-                  {isCreatingUser ? "Creating..." : "Create User"}
+                  <Send className="h-4 w-4 mr-2" />
+                  {isCreatingUser ? "Creating..." : "Create & Send"}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -662,6 +725,37 @@ export default function SystemAdmin() {
           </CardContent>
         </Card>
       </div>
+      
+      {/* Email Preview Dialog */}
+      <Dialog open={emailPreviewOpen} onOpenChange={setEmailPreviewOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Email Preview</DialogTitle>
+            <DialogDescription>
+              Preview of the welcome email that will be sent to the new user.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <pre className="whitespace-pre-wrap text-sm font-mono">
+              {emailPreviewContent}
+            </pre>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEmailPreviewOpen(false)}>
+              Close Preview
+            </Button>
+            <Button onClick={() => {
+              setEmailPreviewOpen(false);
+              handleCreateUser();
+            }} disabled={isCreatingUser}>
+              <Send className="h-4 w-4 mr-2" />
+              {isCreatingUser ? "Creating..." : "Create User & Send Email"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
