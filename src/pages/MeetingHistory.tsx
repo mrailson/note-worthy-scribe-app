@@ -5,7 +5,9 @@ import { MeetingSearchBar } from "@/components/MeetingSearchBar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Clock, FileText, Trash2 } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Clock, FileText, Trash2, Edit } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,6 +19,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -45,6 +55,13 @@ const MeetingHistory = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
+  
+  // Edit dialog state
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingMeeting, setEditingMeeting] = useState<Meeting | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editMeetingType, setEditMeetingType] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleNewMeeting = () => {
     navigate("/");
@@ -189,7 +206,58 @@ const MeetingHistory = () => {
   };
 
   const handleMeetingEdit = (meetingId: string) => {
-    navigate(`/?edit=${meetingId}`);
+    const meeting = meetings.find(m => m.id === meetingId);
+    if (meeting) {
+      setEditingMeeting(meeting);
+      setEditTitle(meeting.title);
+      setEditMeetingType(meeting.meeting_type);
+      setEditDialogOpen(true);
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingMeeting || !editTitle.trim()) return;
+    
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('meetings')
+        .update({
+          title: editTitle.trim(),
+          meeting_type: editMeetingType,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', editingMeeting.id)
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Meeting Updated",
+        description: "Meeting has been successfully updated",
+      });
+
+      setEditDialogOpen(false);
+      setEditingMeeting(null);
+      setEditTitle("");
+      setEditMeetingType("");
+      fetchMeetings(); // Refresh the list
+    } catch (error: any) {
+      toast({
+        title: "Error Updating Meeting",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditDialogOpen(false);
+    setEditingMeeting(null);
+    setEditTitle("");
+    setEditMeetingType("");
   };
 
   const handleMeetingDelete = async (meetingId: string) => {
@@ -385,6 +453,73 @@ const MeetingHistory = () => {
           onDelete={handleMeetingDelete}
           loading={loading}
         />
+
+        {/* Edit Meeting Dialog */}
+        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Edit Meeting</DialogTitle>
+              <DialogDescription>
+                Update the meeting name and type. Changes will be saved immediately.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-title">Meeting Name</Label>
+                <Input
+                  id="edit-title"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  placeholder="Enter meeting name"
+                  className="w-full"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="edit-type">Meeting Type</Label>
+                <Select value={editMeetingType} onValueChange={setEditMeetingType}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select meeting type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="general">General Meeting</SelectItem>
+                    <SelectItem value="team-meeting">Team Meeting</SelectItem>
+                    <SelectItem value="clinical-review">Clinical Review</SelectItem>
+                    <SelectItem value="training">Training Session</SelectItem>
+                    <SelectItem value="consultation">Consultation</SelectItem>
+                    <SelectItem value="emergency">Emergency Meeting</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <DialogFooter className="flex flex-col sm:flex-row gap-2">
+              <Button 
+                variant="outline" 
+                onClick={handleCancelEdit}
+                disabled={isSaving}
+                className="w-full sm:w-auto"
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleSaveEdit}
+                disabled={isSaving || !editTitle.trim()}
+                className="w-full sm:w-auto"
+              >
+                {isSaving ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Saving...
+                  </>
+                ) : (
+                  'Save Changes'
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

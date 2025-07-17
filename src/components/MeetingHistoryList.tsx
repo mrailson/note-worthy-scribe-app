@@ -10,7 +10,8 @@ import {
   Play,
   MessageSquare,
   CheckCircle,
-  AlertCircle 
+  AlertCircle,
+  Edit
 } from "lucide-react";
 import {
   AlertDialog,
@@ -216,6 +217,16 @@ export const MeetingHistoryList = ({
                 >
                   <Eye className="h-3 w-3" />
                   View Summary
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onEdit(meeting.id)}
+                  className="flex items-center gap-1"
+                >
+                  <Edit className="h-3 w-3" />
+                  Edit
                 </Button>
                 
                 <AlertDialog>
