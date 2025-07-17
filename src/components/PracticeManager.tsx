@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Building, Plus, Edit, Trash2, Check, X, Globe, Search } from "lucide-react";
+import { Building, Plus, Edit, Trash2, Check, X, Globe, Search, Database } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -28,6 +28,8 @@ interface PracticeManagerProps {
 export const PracticeManager = ({ onPracticeChange }: PracticeManagerProps) => {
   const [practices, setPractices] = useState<PracticeDetail[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [gpPractices, setGpPractices] = useState<any[]>([]);
+  const [showGpSearch, setShowGpSearch] = useState(false);
   const [isEditing, setIsEditing] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [formData, setFormData] = useState({
@@ -44,6 +46,7 @@ export const PracticeManager = ({ onPracticeChange }: PracticeManagerProps) => {
 
   useEffect(() => {
     fetchPractices();
+    fetchGpPractices();
   }, []);
 
   const fetchPractices = async () => {
@@ -66,6 +69,25 @@ export const PracticeManager = ({ onPracticeChange }: PracticeManagerProps) => {
       toast({
         title: "Error",
         description: "Failed to fetch practice details",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchGpPractices = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('gp_practices')
+        .select('practice_code, name, pcn_code, ics_name, organisation_type')
+        .order('name');
+
+      if (error) throw error;
+      setGpPractices(data || []);
+    } catch (error) {
+      console.error('Error fetching GP practices:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch GP practices",
         variant: "destructive",
       });
     }
@@ -184,6 +206,28 @@ export const PracticeManager = ({ onPracticeChange }: PracticeManagerProps) => {
     practice.practice_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (practice.pcn_code && practice.pcn_code.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+
+  // Filter GP practices based on search term  
+  const filteredGpPractices = gpPractices.filter(practice => 
+    practice.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (practice.practice_code && practice.practice_code.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (practice.pcn_code && practice.pcn_code.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
+  const addFromGpPractices = (gpPractice: any) => {
+    setFormData({
+      practice_name: gpPractice.name,
+      address: "",
+      website: "",
+      phone: "",
+      email: "",
+      pcn_code: gpPractice.pcn_code || "",
+      is_default: false,
+      use_for_all_meetings: true
+    });
+    setIsAdding(true);
+    setShowGpSearch(false);
+  };
 
   return (
     <Card>
@@ -306,27 +350,71 @@ export const PracticeManager = ({ onPracticeChange }: PracticeManagerProps) => {
           </div>
         )}
 
-        {/* Add Button */}
+        {/* Search and Add Controls */}
         {!isAdding && (
-          <div className="flex gap-4 items-center">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder="Search by practice name or PCN code..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
+          <div className="space-y-4">
+            <div className="flex gap-4 items-center">
+              <div className="relative flex-1 max-w-sm">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input
+                  placeholder="Search your practices or GP practices..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Button variant="outline" onClick={() => setShowGpSearch(!showGpSearch)}>
+                <Database className="h-4 w-4 mr-2" />
+                {showGpSearch ? 'Hide' : 'Search'} GP Practices
+              </Button>
+              <Button variant="outline" onClick={() => setIsAdding(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Practice
+              </Button>
             </div>
-            <Button variant="outline" onClick={() => setIsAdding(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Practice
-            </Button>
+
+            {/* GP Practices Search Results */}
+            {showGpSearch && searchTerm && (
+              <div className="border rounded-lg p-4 bg-accent/20">
+                <h4 className="font-medium mb-3 flex items-center gap-2">
+                  <Database className="h-4 w-4" />
+                  GP Practices Database ({filteredGpPractices.length} found)
+                </h4>
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {filteredGpPractices.slice(0, 20).map((gpPractice, index) => (
+                    <div key={index} className="flex items-center justify-between p-2 border rounded text-sm">
+                      <div>
+                        <div className="font-medium">{gpPractice.name}</div>
+                        <div className="text-muted-foreground">
+                          K-Code: {gpPractice.practice_code} • PCN: {gpPractice.pcn_code} • {gpPractice.ics_name}
+                        </div>
+                      </div>
+                      <Button size="sm" variant="outline" onClick={() => addFromGpPractices(gpPractice)}>
+                        <Plus className="h-3 w-3 mr-1" />
+                        Add
+                      </Button>
+                    </div>
+                  ))}
+                  {filteredGpPractices.length > 20 && (
+                    <div className="text-center text-muted-foreground py-2">
+                      Showing first 20 results. Refine your search for more specific results.
+                    </div>
+                  )}
+                  {filteredGpPractices.length === 0 && (
+                    <div className="text-center text-muted-foreground py-4">
+                      No GP practices found matching your search.
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
-        {/* Practices List */}
-        <div className="space-y-2">
+        {/* Your Practices List */}
+        <div className="space-y-4">
+          <h4 className="font-medium text-sm text-muted-foreground">Your Practice Details</h4>
+          <div className="space-y-2">
           {filteredPractices.map((practice) => (
             <div key={practice.id} className="p-4 border rounded-lg">
               <div className="flex items-start justify-between">
@@ -384,6 +472,7 @@ export const PracticeManager = ({ onPracticeChange }: PracticeManagerProps) => {
             </div>
           )}
         </div>
+      </div>
       </CardContent>
     </Card>
   );
