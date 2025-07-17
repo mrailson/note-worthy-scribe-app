@@ -4,6 +4,11 @@ export class RealtimeTranscriber {
   private isRecording = false;
   private audioChunks: Blob[] = [];
   private chunkCounter = 0;
+  private audioContext: AudioContext | null = null;
+  private analyser: AnalyserNode | null = null;
+  private dataArray: Uint8Array | null = null;
+  private silenceThreshold = 30; // Minimum volume threshold
+  private hasDetectedSpeech = false;
 
   constructor(
     private onTranscript: (transcript: TranscriptData) => void,
@@ -15,7 +20,7 @@ export class RealtimeTranscriber {
     try {
       this.onStatusChange('Requesting microphone access...');
       await this.startAudioCapture();
-      this.onStatusChange('Transcription active');
+      this.onStatusChange('Listening for speech...');
     } catch (error) {
       console.error('Failed to start transcription:', error);
       this.onError('Failed to start transcription: ' + error.message);
@@ -29,7 +34,7 @@ export class RealtimeTranscriber {
       // Get microphone access with optimal settings for speech
       this.stream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          sampleRate: 44100, // Higher quality for better transcription
+          sampleRate: 44100,
           channelCount: 1,
           echoCancellation: true,
           noiseSuppression: true,
@@ -39,6 +44,16 @@ export class RealtimeTranscriber {
 
       console.log('Microphone access granted');
 
+      // Set up audio context for voice activity detection
+      this.audioContext = new AudioContext();
+      const source = this.audioContext.createMediaStreamSource(this.stream);
+      this.analyser = this.audioContext.createAnalyser();
+      this.analyser.fftSize = 256;
+      source.connect(this.analyser);
+      
+      const bufferLength = this.analyser.frequencyBinCount;
+      this.dataArray = new Uint8Array(bufferLength);
+
       // Check supported MIME types
       const supportedTypes = [
         'audio/webm;codecs=opus',
@@ -47,7 +62,7 @@ export class RealtimeTranscriber {
         'audio/ogg;codecs=opus'
       ];
 
-      let mimeType = 'audio/webm;codecs=opus'; // default
+      let mimeType = 'audio/webm;codecs=opus';
       for (const type of supportedTypes) {
         if (MediaRecorder.isTypeSupported(type)) {
           mimeType = type;
@@ -60,6 +75,7 @@ export class RealtimeTranscriber {
       this.mediaRecorder = new MediaRecorder(this.stream, { mimeType });
       this.audioChunks = [];
       this.chunkCounter = 0;
+      this.hasDetectedSpeech = false;
 
       // Collect audio data
       this.mediaRecorder.ondataavailable = (event) => {
@@ -71,16 +87,23 @@ export class RealtimeTranscriber {
 
       // Process when recording stops for chunking
       this.mediaRecorder.onstop = async () => {
-        if (this.audioChunks.length > 0) {
+        if (this.audioChunks.length > 0 && this.hasDetectedSpeech) {
           await this.processAudioChunks();
+        } else if (!this.hasDetectedSpeech) {
+          console.log('No speech detected in this chunk, skipping transcription');
+          this.audioChunks = []; // Clear chunks
         }
+        this.hasDetectedSpeech = false; // Reset for next chunk
       };
 
-      // Start recording in 8-second chunks for more responsive transcription
+      // Start recording in chunks
       this.mediaRecorder.start();
       this.isRecording = true;
 
-      // Process audio every 8 seconds for more real-time feel
+      // Start voice activity detection
+      this.startVoiceActivityDetection();
+
+      // Process audio every 10 seconds
       this.scheduleNextProcessing();
 
     } catch (error) {
@@ -88,6 +111,37 @@ export class RealtimeTranscriber {
       this.onError('Microphone access denied: ' + error.message);
       throw error;
     }
+  }
+
+  private startVoiceActivityDetection() {
+    const checkAudioLevel = () => {
+      if (!this.analyser || !this.dataArray || !this.isRecording) return;
+
+      this.analyser.getByteFrequencyData(this.dataArray);
+      
+      // Calculate average volume
+      let sum = 0;
+      for (let i = 0; i < this.dataArray.length; i++) {
+        sum += this.dataArray[i];
+      }
+      const average = sum / this.dataArray.length;
+
+      // Check if volume is above threshold (indicating speech)
+      if (average > this.silenceThreshold) {
+        if (!this.hasDetectedSpeech) {
+          console.log('Speech detected! Average volume:', average);
+          this.hasDetectedSpeech = true;
+          this.onStatusChange('Recording speech...');
+        }
+      }
+
+      // Continue monitoring if recording
+      if (this.isRecording) {
+        requestAnimationFrame(checkAudioLevel);
+      }
+    };
+
+    checkAudioLevel();
   }
 
   private scheduleNextProcessing() {
@@ -103,7 +157,6 @@ export class RealtimeTranscriber {
           if (this.isRecording && this.stream) {
             console.log('Starting new recording chunk...');
             
-            // Check supported MIME types again
             const supportedTypes = [
               'audio/webm;codecs=opus',
               'audio/webm',
@@ -130,9 +183,13 @@ export class RealtimeTranscriber {
             };
             
             this.mediaRecorder.onstop = async () => {
-              if (this.audioChunks.length > 0) {
+              if (this.audioChunks.length > 0 && this.hasDetectedSpeech) {
                 await this.processAudioChunks();
+              } else if (!this.hasDetectedSpeech) {
+                console.log('No speech detected in this chunk, skipping transcription');
+                this.audioChunks = [];
               }
+              this.hasDetectedSpeech = false;
             };
             
             this.mediaRecorder.start();
@@ -140,7 +197,7 @@ export class RealtimeTranscriber {
           }
         }, 100);
       }
-    }, 8000); // 8 seconds for more responsive transcription
+    }, 10000); // 10 seconds
   }
 
   private async processAudioChunks() {
@@ -189,16 +246,44 @@ export class RealtimeTranscriber {
             console.log('Transcription API response:', result);
             
             if (result.text && result.text.trim()) {
-              // Filter out common false positives and non-speech
+              // Enhanced filtering for false positives
               const text = result.text.trim();
               const lowercaseText = text.toLowerCase();
               
-              // Skip if it's just background noise transcription
-              const noiseWords = ['thank you', 'thanks for watching', 'bye bye', 'chair please consider'];
-              const isNoise = noiseWords.some(noise => lowercaseText.includes(noise));
+              // Comprehensive list of common false positives from Whisper
+              const falsePositives = [
+                'thank you',
+                'thanks for watching',
+                'bye bye',
+                'chair please consider',
+                'thank you for watching',
+                'thanks for',
+                'please consider',
+                'goodbye',
+                'see you',
+                'until next time',
+                'have a good',
+                'take care',
+                'music',
+                'applause',
+                'laughter',
+                '♪',
+                'you'
+              ];
               
-              if (!isNoise && text.length > 3) {
+              // Check if the text is likely a false positive
+              const isFalsePositive = falsePositives.some(phrase => 
+                lowercaseText.includes(phrase) || 
+                lowercaseText === phrase ||
+                text.length < 4 // Very short texts are usually false positives
+              );
+              
+              // Additional check: if text is repetitive or very generic
+              const isRepetitive = /^(.{1,10})\1+$/.test(text.toLowerCase());
+              
+              if (!isFalsePositive && !isRepetitive && text.length > 4) {
                 console.log('Valid transcription received:', text);
+                this.onStatusChange('Transcription active');
                 this.onTranscript({
                   text: text,
                   speaker: 'Speaker 1',
@@ -208,10 +293,12 @@ export class RealtimeTranscriber {
                   words: result.words || []
                 });
               } else {
-                console.log('Filtered out likely false positive:', text);
+                console.log('Filtered out false positive/noise:', text);
+                this.onStatusChange('Listening for speech...');
               }
             } else {
               console.log('No valid text in transcription response');
+              this.onStatusChange('Listening for speech...');
             }
           } else {
             const errorData = await response.json();
@@ -250,7 +337,14 @@ export class RealtimeTranscriber {
       this.stream = null;
     }
 
+    if (this.audioContext) {
+      this.audioContext.close();
+      this.audioContext = null;
+    }
+
     this.mediaRecorder = null;
+    this.analyser = null;
+    this.dataArray = null;
     this.audioChunks = [];
     this.onStatusChange('Stopped');
   }
