@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Settings as SettingsIcon, Users, Building, BookOpen, Search, Plus, Pencil, Trash2, X, Clock, HelpCircle, Mail, Globe, Github, ExternalLink } from "lucide-react";
+import { Settings as SettingsIcon, Users, Building, BookOpen, Search, Plus, Pencil, Trash2, X, Clock, HelpCircle, Mail, Globe, Github, ExternalLink, BarChart3, Calendar, Timer } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
@@ -39,6 +39,15 @@ export default function Settings() {
   // Meeting retention policy state
   const [retentionPolicy, setRetentionPolicy] = useState<string>('forever');
   const [retentionLoading, setRetentionLoading] = useState(false);
+  
+  // Usage statistics state
+  const [usageStats, setUsageStats] = useState({
+    lastLogin: null as string | null,
+    currentMonth: { meetings: 0, hours: 0 },
+    lastMonth: { meetings: 0, hours: 0 },
+    last12Months: { meetings: 0, hours: 0 }
+  });
+  const [statsLoading, setStatsLoading] = useState(false);
 
   // Fetch NHS terms
   const fetchTerms = async () => {
@@ -76,10 +85,11 @@ export default function Settings() {
     }
   }, [terms, searchQuery]);
 
-  // Fetch terms and retention policy on mount
+  // Fetch terms, retention policy, and usage stats on mount
   useEffect(() => {
     fetchTerms();
     fetchRetentionPolicy();
+    fetchUsageStats();
   }, [user]);
 
   // Fetch retention policy
@@ -123,6 +133,66 @@ export default function Settings() {
       toast.error('Failed to update retention policy');
     } finally {
       setRetentionLoading(false);
+    }
+  };
+
+  // Fetch usage statistics
+  const fetchUsageStats = async () => {
+    if (!user) return;
+
+    setStatsLoading(true);
+    try {
+      // Get user's last_sign_in_at from auth metadata
+      const { data: authData } = await supabase.auth.getUser();
+      const lastLogin = authData.user?.last_sign_in_at || null;
+
+      // Calculate date ranges
+      const now = new Date();
+      const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+      const last12MonthsStart = new Date(now.getFullYear() - 1, now.getMonth(), 1);
+
+      // Fetch meetings for different periods
+      const [currentMonthData, lastMonthData, last12MonthsData] = await Promise.all([
+        // Current month
+        supabase
+          .from('meetings')
+          .select('duration_minutes')
+          .eq('user_id', user.id)
+          .gte('created_at', currentMonthStart.toISOString()),
+
+        // Last month  
+        supabase
+          .from('meetings')
+          .select('duration_minutes')
+          .eq('user_id', user.id)
+          .gte('created_at', lastMonthStart.toISOString())
+          .lt('created_at', currentMonthStart.toISOString()),
+
+        // Last 12 months
+        supabase
+          .from('meetings')
+          .select('duration_minutes')
+          .eq('user_id', user.id)
+          .gte('created_at', last12MonthsStart.toISOString())
+      ]);
+
+      const calculateStats = (meetings: any[]) => ({
+        meetings: meetings.length,
+        hours: Math.round((meetings.reduce((sum, m) => sum + (m.duration_minutes || 0), 0) / 60) * 10) / 10
+      });
+
+      setUsageStats({
+        lastLogin,
+        currentMonth: calculateStats(currentMonthData.data || []),
+        lastMonth: calculateStats(lastMonthData.data || []),
+        last12Months: calculateStats(last12MonthsData.data || [])
+      });
+    } catch (error) {
+      console.error('Error fetching usage stats:', error);
+    } finally {
+      setStatsLoading(false);
     }
   };
 
@@ -289,6 +359,102 @@ export default function Settings() {
                       </p>
                     </div>
                   </div>
+                </CardContent>
+              </Card>
+
+              {/* Usage Statistics Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5" />
+                    Usage Statistics
+                  </CardTitle>
+                  <p className="text-muted-foreground">
+                    Your account activity and meeting usage overview.
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  {statsLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="text-muted-foreground">Loading statistics...</div>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      {/* Last Login */}
+                      <div className="space-y-2">
+                        <h4 className="font-semibold text-sm">Account Activity</h4>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Calendar className="h-4 w-4" />
+                          <span>Last login: </span>
+                          {usageStats.lastLogin ? (
+                            <span>{new Date(usageStats.lastLogin).toLocaleString()}</span>
+                          ) : (
+                            <span>Unknown</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Meeting Statistics */}
+                      <div className="space-y-4">
+                        <h4 className="font-semibold text-sm">Meeting Statistics</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          {/* Current Month */}
+                          <div className="p-4 border rounded-lg bg-accent/20">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Calendar className="h-4 w-4 text-primary" />
+                              <span className="font-medium text-sm">Current Month</span>
+                            </div>
+                            <div className="space-y-1">
+                              <div className="text-2xl font-bold text-primary">
+                                {usageStats.currentMonth.meetings}
+                              </div>
+                              <div className="text-xs text-muted-foreground">meetings</div>
+                              <div className="flex items-center gap-1 text-sm">
+                                <Timer className="h-3 w-3" />
+                                <span>{usageStats.currentMonth.hours}h</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Last Month */}
+                          <div className="p-4 border rounded-lg">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Calendar className="h-4 w-4 text-muted-foreground" />
+                              <span className="font-medium text-sm">Last Month</span>
+                            </div>
+                            <div className="space-y-1">
+                              <div className="text-2xl font-bold">
+                                {usageStats.lastMonth.meetings}
+                              </div>
+                              <div className="text-xs text-muted-foreground">meetings</div>
+                              <div className="flex items-center gap-1 text-sm">
+                                <Timer className="h-3 w-3" />
+                                <span>{usageStats.lastMonth.hours}h</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Last 12 Months */}
+                          <div className="p-4 border rounded-lg">
+                            <div className="flex items-center gap-2 mb-2">
+                              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                              <span className="font-medium text-sm">Last 12 Months</span>
+                            </div>
+                            <div className="space-y-1">
+                              <div className="text-2xl font-bold">
+                                {usageStats.last12Months.meetings}
+                              </div>
+                              <div className="text-xs text-muted-foreground">meetings</div>
+                              <div className="flex items-center gap-1 text-sm">
+                                <Timer className="h-3 w-3" />
+                                <span>{usageStats.last12Months.hours}h</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
