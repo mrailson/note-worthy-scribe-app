@@ -153,7 +153,20 @@ const Index = () => {
 
 
   const handleViewSummary = () => {
-    setCurrentView("summary");
+    // Navigate to the dedicated summary page with the meeting data
+    const meetingData = {
+      title: meetingSettings.title || "General Meeting",
+      duration,
+      wordCount,
+      transcript,
+      speakerCount: 1, // Default speaker count
+      startTime: new Date().toISOString(),
+      extractedSettings: importedTranscript?.extractedSettings
+    };
+
+    navigate('/meeting-summary', { 
+      state: meetingData 
+    });
   };
 
   if (loading) {
@@ -183,25 +196,24 @@ const Index = () => {
       <Header onNewMeeting={handleNewMeeting} />
       
       <div className="container mx-auto px-4 py-8 space-y-6">
-        {currentView === "recording" ? (
-          <>
-            {/* Meeting Recorder */}
-            <MeetingRecorder
-              onTranscriptUpdate={setTranscript}
-              onDurationUpdate={setDuration}
-              onWordCountUpdate={setWordCount}
-              initialSettings={meetingSettings}
-            />
+        <>
+          {/* Meeting Recorder */}
+          <MeetingRecorder
+            onTranscriptUpdate={setTranscript}
+            onDurationUpdate={setDuration}
+            onWordCountUpdate={setWordCount}
+            initialSettings={meetingSettings}
+          />
 
-            {/* Live Transcript */}
-            <LiveTranscript
-              transcript={transcript}
-              showTimestamps={showTimestamps}
-              onTimestampsToggle={setShowTimestamps}
-              attendees={meetingSettings.attendees}
-            />
+          {/* Live Transcript */}
+          <LiveTranscript
+            transcript={transcript}
+            showTimestamps={showTimestamps}
+            onTimestampsToggle={setShowTimestamps}
+            attendees={meetingSettings.attendees}
+          />
 
-            {/* Meeting Settings */}
+          {/* Meeting Settings */}
           <MeetingSettings 
             onSettingsChange={setMeetingSettings} 
             onAudioImported={handleAudioImported}
@@ -209,23 +221,18 @@ const Index = () => {
             initialSettings={meetingSettings} 
           />
 
-            {/* Show Summary Button when there's content */}
-            {transcript && (
-              <div className="flex justify-center">
-                <button
-                  onClick={handleViewSummary}
-                  className="px-6 py-3 bg-gradient-primary text-white rounded-lg hover:bg-primary-hover shadow-medium transition-all"
-                >
-                  View Meeting Summary
-                </button>
-              </div>
-            )}
-          </>
-        ) : (
-          <div className="text-center py-8 text-muted-foreground">
-            <p>Meeting summary view - functionality moved to dedicated summary page</p>
-          </div>
-        )}
+          {/* Show Summary Button when there's content */}
+          {transcript && (
+            <div className="flex justify-center">
+              <button
+                onClick={handleViewSummary}
+                className="px-6 py-3 bg-gradient-primary text-white rounded-lg hover:bg-primary-hover shadow-medium transition-all"
+              >
+                View Meeting Summary
+              </button>
+            </div>
+          )}
+        </>
       </div>
     </div>
   );
