@@ -98,24 +98,17 @@ serve(async (req) => {
       // Convert to base64 for Google Cloud API
       const base64Audio = btoa(String.fromCharCode(...combinedAudio));
 
-      // Call Google Cloud Speech-to-Text API with improved settings
+      // Call Google Cloud Speech-to-Text API with simplified settings
       const requestBody = {
         config: {
           encoding: 'WEBM_OPUS',
           sampleRateHertz: 48000,
           languageCode: 'en-US',
           enableAutomaticPunctuation: true,
-          enableWordTimeOffsets: true,
-          enableWordConfidence: true,
-          model: 'latest_long',  // Better for continuous speech
-          useEnhanced: true,      // Use enhanced model for better accuracy
-          profanityFilter: false,
+          model: 'latest_short',
           speechContexts: [{
             phrases: ['NHS', 'medical', 'patient', 'consultation', 'clinical', 'diagnosis', 'treatment', 'prescription', 'testing', 'service']
-          }],
-          maxAlternatives: 1,
-          enableSpeakerDiarization: true,
-          diarizationSpeakerCount: 2
+          }]
         },
         audio: {
           content: base64Audio
