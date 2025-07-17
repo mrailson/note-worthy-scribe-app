@@ -109,6 +109,7 @@ export default function MeetingSummary() {
   useEffect(() => {
     if (user) {
       fetchAvailableAttendees();
+      setUserEmail(user.email || ""); // Update user email when user loads
     }
   }, [user]);
 
