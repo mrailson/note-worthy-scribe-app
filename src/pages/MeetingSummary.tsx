@@ -451,20 +451,44 @@ export default function MeetingSummary() {
       const templateId = 'template_n236grs'; // Your template ID  
       const publicKey = 'OknbPskm8GVoUZFiD'; // Your public key
 
-      // Create attachments if needed
+      // Create attachments if needed - EmailJS requires specific format
       let wordAttachment = null;
       let transcriptAttachment = null;
 
       if (includeDocx) {
-        // Generate DOCX file as blob
-        const doc = await generateDocxBlob();
-        wordAttachment = doc;
+        try {
+          // Generate DOCX file as blob
+          const docxBlob = await generateDocxBlob();
+          
+          // Convert blob to base64 for EmailJS
+          const arrayBuffer = await docxBlob.arrayBuffer();
+          const uint8Array = new Uint8Array(arrayBuffer);
+          const base64String = btoa(String.fromCharCode.apply(null, Array.from(uint8Array)));
+          
+          wordAttachment = {
+            name: `${meetingData?.title || 'meeting'}_minutes.docx`,
+            data: base64String,
+            type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+          };
+        } catch (error) {
+          console.error('Error creating DOCX attachment:', error);
+        }
       }
 
       if (includeTranscriptInEmail && meetingData?.transcript) {
-        // Create transcript text file
-        const transcriptBlob = new Blob([meetingData.transcript], { type: 'text/plain' });
-        transcriptAttachment = transcriptBlob;
+        try {
+          // Create transcript text file
+          const transcriptContent = meetingData.transcript;
+          const base64Transcript = btoa(unescape(encodeURIComponent(transcriptContent)));
+          
+          transcriptAttachment = {
+            name: `${meetingData?.title || 'meeting'}_transcript.txt`,
+            data: base64Transcript,
+            type: 'text/plain'
+          };
+        } catch (error) {
+          console.error('Error creating transcript attachment:', error);
+        }
       }
 
       const templateParams = {
@@ -486,12 +510,18 @@ export default function MeetingSummary() {
         all_emails: allEmailsString,
         include_transcript: includeTranscriptInEmail ? 'Yes' : 'No',
         
-        // Attachments
-        word_attachment: wordAttachment,
-        word_filename: `${meetingData?.title || 'meeting'}_minutes.docx`,
-        transcript_attachment: transcriptAttachment,
-        transcript_filename: `${meetingData?.title || 'meeting'}_transcript.txt`
+        // Attachments - only include if they exist
+        ...(wordAttachment && { word_attachment: wordAttachment }),
+        ...(wordAttachment && { word_filename: wordAttachment.name }),
+        ...(transcriptAttachment && { transcript_attachment: transcriptAttachment }),
+        ...(transcriptAttachment && { transcript_filename: transcriptAttachment.name })
       };
+
+      console.log('Template params with attachments:', {
+        ...templateParams,
+        word_attachment: wordAttachment ? 'DOCX file prepared' : 'No DOCX',
+        transcript_attachment: transcriptAttachment ? 'Transcript prepared' : 'No transcript'
+      });
 
       // Debug logging
       console.log('EmailJS Template Params:', {
