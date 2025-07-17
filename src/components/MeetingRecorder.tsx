@@ -46,44 +46,35 @@ export const MeetingRecorder = ({
   };
 
   const handleTranscript = (transcriptData: TranscriptData) => {
-    // Use functional updates to avoid stale closure issues
+    // Update transcripts array
     setRealtimeTranscripts(prev => {
       const filtered = prev.filter(t => 
         !(t.speaker === transcriptData.speaker && !t.isFinal)
       );
-      return [...filtered, transcriptData];
-    });
-
-    // Update speaker count
-    setSpeakerCount(prev => {
-      // Use current state directly instead of accessing realtimeTranscripts
-      const currentTranscripts = [...realtimeTranscripts, transcriptData];
-      const speakers = new Set(currentTranscripts.map(t => t.speaker));
-      return speakers.size;
-    });
-
-    // Update main transcript with final transcripts only
-    if (transcriptData.isFinal) {
-      setRealtimeTranscripts(prev => {
-        const finalTranscripts = prev.filter(t => t.isFinal);
-        const fullTranscript = [...finalTranscripts, transcriptData]
+      const newTranscripts = [...filtered, transcriptData];
+      
+      // Calculate speaker count from the new array
+      const speakers = new Set(newTranscripts.map(t => t.speaker));
+      setSpeakerCount(speakers.size);
+      
+      // Update main transcript if this is final
+      if (transcriptData.isFinal) {
+        const finalTranscripts = newTranscripts.filter(t => t.isFinal);
+        const fullTranscript = finalTranscripts
           .map(t => `${t.speaker}: ${t.text}`)
           .join('\n');
         
-        // Use setTimeout to avoid state updates during render
-        setTimeout(() => {
-          setTranscript(fullTranscript);
-          onTranscriptUpdate(fullTranscript);
-          
-          // Update word count
-          const words = fullTranscript.split(' ').filter(word => word.length > 0);
-          setWordCount(words.length);
-          onWordCountUpdate(words.length);
-        }, 0);
+        setTranscript(fullTranscript);
+        onTranscriptUpdate(fullTranscript);
         
-        return prev;
-      });
-    }
+        // Update word count
+        const words = fullTranscript.split(' ').filter(word => word.length > 0);
+        setWordCount(words.length);
+        onWordCountUpdate(words.length);
+      }
+      
+      return newTranscripts;
+    });
   };
 
   const handleTranscriptionError = (error: string) => {
