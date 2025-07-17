@@ -52,12 +52,21 @@ interface User {
 interface Practice {
   id: string;
   practice_name: string;
+  practice_code?: string;
+  pcn_code?: string;
+}
+
+interface PCN {
+  id: string;
+  pcn_name: string;
+  pcn_code: string;
 }
 
 export default function SystemAdmin() {
   const { user } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [practices, setPractices] = useState<Practice[]>([]);
+  const [pcns, setPcns] = useState<PCN[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   
@@ -67,6 +76,7 @@ export default function SystemAdmin() {
   const [newUserName, setNewUserName] = useState("");
   const [newUserRole, setNewUserRole] = useState("");
   const [newUserPractice, setNewUserPractice] = useState("");
+  const [newUserPCN, setNewUserPCN] = useState("");
   const [isCreatingUser, setIsCreatingUser] = useState(false);
 
   // Dashboard Stats
@@ -85,6 +95,7 @@ export default function SystemAdmin() {
     if (isAdmin) {
       fetchUsers();
       fetchPractices();
+      fetchPCNs();
       fetchDashboardStats();
     }
   }, [isAdmin]);
@@ -185,15 +196,39 @@ export default function SystemAdmin() {
 
   const fetchPractices = async () => {
     try {
+      // Get all practices from gp_practices table instead of just practice_details
       const { data, error } = await supabase
-        .from('practice_details')
-        .select('id, practice_name')
-        .order('practice_name');
+        .from('gp_practices')
+        .select('id, name, practice_code, pcn_code')
+        .order('name');
 
       if (error) throw error;
-      setPractices(data || []);
+      
+      // Map the data to match our interface
+      const practicesData = data?.map(practice => ({
+        id: practice.id,
+        practice_name: practice.name,
+        practice_code: practice.practice_code,
+        pcn_code: practice.pcn_code
+      })) || [];
+      
+      setPractices(practicesData);
     } catch (error) {
       console.error('Error fetching practices:', error);
+    }
+  };
+
+  const fetchPCNs = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('primary_care_networks')
+        .select('id, pcn_name, pcn_code')
+        .order('pcn_name');
+
+      if (error) throw error;
+      setPcns(data || []);
+    } catch (error) {
+      console.error('Error fetching PCNs:', error);
     }
   };
 
@@ -246,6 +281,7 @@ export default function SystemAdmin() {
       setNewUserName("");
       setNewUserRole("");
       setNewUserPractice("");
+      setNewUserPCN("");
       setAddUserOpen(false);
       
     } catch (error) {
@@ -414,6 +450,23 @@ export default function SystemAdmin() {
                       {practices.map(practice => (
                         <SelectItem key={practice.id} value={practice.id}>
                           {practice.practice_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <Label htmlFor="pcn">Primary Care Network (Optional)</Label>
+                  <Select value={newUserPCN} onValueChange={setNewUserPCN}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a PCN" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No PCN</SelectItem>
+                      {pcns.map(pcn => (
+                        <SelectItem key={pcn.id} value={pcn.id}>
+                          {pcn.pcn_name} ({pcn.pcn_code})
                         </SelectItem>
                       ))}
                     </SelectContent>
