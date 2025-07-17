@@ -998,6 +998,11 @@ Speakers detected: ${meetingData?.speakerCount || 0}`;
       
       // Process each line with proper formatting
       for (const line of lines) {
+        // Debug every line
+        if (line.includes('#')) {
+          console.log('Line with #:', JSON.stringify(line), 'starts with # ?', line.startsWith('# '));
+        }
+        
         if (!line.trim()) {
           documentChildren.push(new Paragraph({ text: "" }));
           continue;
