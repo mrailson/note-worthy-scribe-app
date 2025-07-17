@@ -291,6 +291,34 @@ export default function MeetingSummary() {
       // Convert *italic* to HTML italic
       .replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em style="font-style: italic;">$1</em>');
     
+    // Convert markdown tables to HTML tables
+    const tableRegex = /\|(.+)\|\n\|[-\s\|]+\|\n((?:\|.+\|\n?)+)/gm;
+    formatted = formatted.replace(tableRegex, (match, header, rows) => {
+      // Process header
+      const headerCells = header.split('|')
+        .map(cell => cell.trim())
+        .filter(cell => cell.length > 0)
+        .map(cell => `<th style="background-color: #0066cc; color: white; padding: 12px 8px; text-align: left; font-weight: bold; border: 1px solid #ddd;">${cell}</th>`)
+        .join('');
+      
+      // Process rows
+      const rowsHtml = rows.trim().split('\n')
+        .map(row => {
+          const cells = row.split('|')
+            .map(cell => cell.trim())
+            .filter((cell, index, arr) => index > 0 && index < arr.length - 1) // Remove first and last empty elements
+            .map(cell => `<td style="padding: 10px 8px; border: 1px solid #ddd; line-height: 1.4; vertical-align: top;">${cell}</td>`)
+            .join('');
+          return `<tr>${cells}</tr>`;
+        })
+        .join('');
+      
+      return `<table style="width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 14px;">
+        <thead><tr>${headerCells}</tr></thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>`;
+    });
+    
     // Handle bullet points properly - group them into proper HTML lists
     const lines = formatted.split('\n');
     let inList = false;
