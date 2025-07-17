@@ -202,19 +202,20 @@ export default function MeetingSummary() {
     }
     
     setIsSaving(true);
+    console.log('Attempting to save meeting with startTime:', data.startTime, 'title:', data.title);
     try {
       if (!user) throw new Error('User not authenticated');
 
       // Check if meeting already exists with same start time and user
-      const { data: existingMeeting } = await supabase
+      const { data: existingMeeting, error: existingError } = await supabase
         .from('meetings')
         .select('id')
         .eq('user_id', user.id)
         .eq('start_time', data.startTime)
         .eq('title', data.title)
-        .single();
+        .maybeSingle();
 
-      if (existingMeeting) {
+      if (existingMeeting && !existingError) {
         console.log('Meeting already exists, skipping save');
         setMeetingData(prev => prev ? { ...prev, id: existingMeeting.id } : null);
         setIsSaved(true);
