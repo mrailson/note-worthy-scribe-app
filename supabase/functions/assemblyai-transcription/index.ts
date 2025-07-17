@@ -49,9 +49,11 @@ serve(async (req) => {
         // Store audio data for batched processing
         const audioData = Uint8Array.from(atob(message.audio_data), c => c.charCodeAt(0));
         audioBuffer.push(audioData);
+        console.log(`Received audio chunk, buffer size: ${audioBuffer.length}`);
 
-        // Process audio every 1 second (adjust as needed)
-        if (audioBuffer.length >= 4) { // Roughly 1 second at 250ms chunks
+        // Process audio every 2 chunks (roughly 2 seconds) for more reliable transcription
+        if (audioBuffer.length >= 2) {
+          console.log("Processing audio batch...");
           await processAudioBatch();
         }
 
@@ -158,9 +160,15 @@ serve(async (req) => {
 
       // Clear the buffer after processing
       audioBuffer = [];
+      console.log("Audio batch processed successfully, buffer cleared");
 
     } catch (error) {
       console.error("Error processing audio:", error);
+      // Don't clear buffer on error, try again later
+      socket.send(JSON.stringify({
+        type: 'error',
+        message: `Processing error: ${error.message}`
+      }));
     }
   }
 
