@@ -248,11 +248,14 @@ export type Database = {
           address: string | null
           created_at: string
           email: string | null
+          footer_text: string | null
           id: string
           is_default: boolean | null
+          logo_url: string | null
           pcn_code: string | null
           phone: string | null
           practice_name: string
+          show_page_numbers: boolean | null
           updated_at: string
           use_for_all_meetings: boolean | null
           user_id: string
@@ -262,11 +265,14 @@ export type Database = {
           address?: string | null
           created_at?: string
           email?: string | null
+          footer_text?: string | null
           id?: string
           is_default?: boolean | null
+          logo_url?: string | null
           pcn_code?: string | null
           phone?: string | null
           practice_name: string
+          show_page_numbers?: boolean | null
           updated_at?: string
           use_for_all_meetings?: boolean | null
           user_id: string
@@ -276,11 +282,14 @@ export type Database = {
           address?: string | null
           created_at?: string
           email?: string | null
+          footer_text?: string | null
           id?: string
           is_default?: boolean | null
+          logo_url?: string | null
           pcn_code?: string | null
           phone?: string | null
           practice_name?: string
+          show_page_numbers?: boolean | null
           updated_at?: string
           use_for_all_meetings?: boolean | null
           user_id?: string

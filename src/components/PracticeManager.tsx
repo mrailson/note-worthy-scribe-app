@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Building, Plus, Edit, Trash2, Check, X, Globe, Search, Database } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Building, Plus, Edit, Trash2, Check, X, Globe, Search, Database, Upload, Image } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -19,6 +20,9 @@ interface PracticeDetail {
   pcn_code: string;
   is_default: boolean;
   use_for_all_meetings: boolean;
+  logo_url?: string;
+  footer_text?: string;
+  show_page_numbers?: boolean;
 }
 
 interface PracticeManagerProps {
@@ -40,8 +44,13 @@ export const PracticeManager = ({ onPracticeChange }: PracticeManagerProps) => {
     email: "",
     pcn_code: "",
     is_default: false,
-    use_for_all_meetings: true
+    use_for_all_meetings: true,
+    logo_url: "",
+    footer_text: "",
+    show_page_numbers: true
   });
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string>("");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -93,24 +102,56 @@ export const PracticeManager = ({ onPracticeChange }: PracticeManagerProps) => {
     }
   };
 
+  const uploadLogo = async (file: File): Promise<string> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${user.id}/logo-${Date.now()}.${fileExt}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('practice-logos')
+      .upload(fileName, file);
+
+    if (uploadError) throw uploadError;
+
+    const { data } = supabase.storage
+      .from('practice-logos')
+      .getPublicUrl(fileName);
+
+    return data.publicUrl;
+  };
+
   const savePractice = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
+      let logoUrl = formData.logo_url;
+      
+      // Upload new logo if file is selected
+      if (logoFile) {
+        logoUrl = await uploadLogo(logoFile);
+      }
+
+      const practiceData = {
+        practice_name: formData.practice_name,
+        address: formData.address,
+        website: formData.website,
+        phone: formData.phone,
+        email: formData.email,
+        pcn_code: formData.pcn_code,
+        is_default: formData.is_default,
+        use_for_all_meetings: formData.use_for_all_meetings,
+        logo_url: logoUrl,
+        footer_text: formData.footer_text || `${formData.practice_name}\n${formData.address}`,
+        show_page_numbers: formData.show_page_numbers
+      };
+
       if (isEditing) {
         const { error } = await supabase
           .from('practice_details')
-          .update({
-            practice_name: formData.practice_name,
-            address: formData.address,
-            website: formData.website,
-            phone: formData.phone,
-            email: formData.email,
-            pcn_code: formData.pcn_code,
-            is_default: formData.is_default,
-            use_for_all_meetings: formData.use_for_all_meetings
-          })
+          .update(practiceData)
           .eq('id', isEditing);
 
         if (error) throw error;
@@ -119,14 +160,7 @@ export const PracticeManager = ({ onPracticeChange }: PracticeManagerProps) => {
           .from('practice_details')
           .insert({
             user_id: user.id,
-            practice_name: formData.practice_name,
-            address: formData.address,
-            website: formData.website,
-            phone: formData.phone,
-            email: formData.email,
-            pcn_code: formData.pcn_code,
-            is_default: formData.is_default,
-            use_for_all_meetings: formData.use_for_all_meetings
+            ...practiceData
           });
 
         if (error) throw error;
@@ -180,8 +214,12 @@ export const PracticeManager = ({ onPracticeChange }: PracticeManagerProps) => {
       email: practice.email,
       pcn_code: practice.pcn_code,
       is_default: practice.is_default,
-      use_for_all_meetings: practice.use_for_all_meetings
+      use_for_all_meetings: practice.use_for_all_meetings,
+      logo_url: practice.logo_url || "",
+      footer_text: practice.footer_text || "",
+      show_page_numbers: practice.show_page_numbers ?? true
     });
+    setLogoPreview(practice.logo_url || "");
     setIsEditing(practice.id);
     setIsAdding(true);
   };
@@ -195,10 +233,27 @@ export const PracticeManager = ({ onPracticeChange }: PracticeManagerProps) => {
       email: "",
       pcn_code: "",
       is_default: false,
-      use_for_all_meetings: true
+      use_for_all_meetings: true,
+      logo_url: "",
+      footer_text: "",
+      show_page_numbers: true
     });
+    setLogoFile(null);
+    setLogoPreview("");
     setIsEditing(null);
     setIsAdding(false);
+  };
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setLogoFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   // Filter practices based on search term
@@ -223,7 +278,10 @@ export const PracticeManager = ({ onPracticeChange }: PracticeManagerProps) => {
       email: "",
       pcn_code: gpPractice.pcn_code || "",
       is_default: false,
-      use_for_all_meetings: true
+      use_for_all_meetings: true,
+      logo_url: "",
+      footer_text: "",
+      show_page_numbers: true
     });
     setIsAdding(true);
     setShowGpSearch(false);
@@ -313,6 +371,61 @@ export const PracticeManager = ({ onPracticeChange }: PracticeManagerProps) => {
                   onChange={(e) => setFormData({...formData, pcn_code: e.target.value})}
                   placeholder="PCN code if applicable"
                 />
+              </div>
+            </div>
+
+            {/* Logo Upload */}
+            <div className="space-y-2">
+              <Label>Practice Logo</Label>
+              <div className="flex items-center gap-4">
+                <div className="flex-1">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoChange}
+                    className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/80"
+                  />
+                </div>
+                {(logoPreview || formData.logo_url) && (
+                  <div className="w-16 h-16 border rounded overflow-hidden">
+                    <img 
+                      src={logoPreview || formData.logo_url} 
+                      alt="Logo preview" 
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Upload a logo to be automatically included in Word and PDF meeting outputs (top right)
+              </p>
+            </div>
+
+            {/* Footer Settings */}
+            <div className="space-y-4">
+              <Label>Document Footer Settings</Label>
+              
+              <div className="space-y-2">
+                <Label htmlFor="footer_text">Footer Text</Label>
+                <Textarea
+                  id="footer_text"
+                  value={formData.footer_text}
+                  onChange={(e) => setFormData({...formData, footer_text: e.target.value})}
+                  placeholder={`${formData.practice_name || 'Practice Name'}\n${formData.address || 'Practice Address'}`}
+                  rows={3}
+                />
+                <p className="text-xs text-muted-foreground">
+                  This text will appear at the bottom of generated Word and PDF documents
+                </p>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="show_page_numbers"
+                  checked={formData.show_page_numbers}
+                  onCheckedChange={(checked) => setFormData({...formData, show_page_numbers: checked})}
+                />
+                <Label htmlFor="show_page_numbers">Show page numbers in documents</Label>
               </div>
             </div>
 
@@ -443,10 +556,16 @@ export const PracticeManager = ({ onPracticeChange }: PracticeManagerProps) => {
                           {practice.website}
                         </a>
                       </div>
-                    )}
-                    {practice.pcn_code && <div>PCN: {practice.pcn_code}</div>}
-                  </div>
-                </div>
+                     )}
+                     {practice.pcn_code && <div>PCN: {practice.pcn_code}</div>}
+                     {practice.logo_url && (
+                       <div className="flex items-center gap-2 mt-2">
+                         <Image className="h-3 w-3" />
+                         <span className="text-xs">Logo configured</span>
+                       </div>
+                     )}
+                   </div>
+                 </div>
                 
                 <div className="space-x-2">
                   <Button variant="ghost" size="sm" onClick={() => editPractice(practice)}>
