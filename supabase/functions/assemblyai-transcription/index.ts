@@ -119,12 +119,17 @@ serve(async (req) => {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Google Cloud API error:", errorText);
+        console.error("Google Cloud API error:", response.status, errorText);
+        socket.send(JSON.stringify({
+          type: 'error',
+          message: `Google Cloud API error: ${response.status}`
+        }));
         return;
       }
 
       const result = await response.json();
       console.log("Google Cloud response:", result);
+      console.log("Number of results:", result.results?.length || 0);
 
       if (result.results && result.results.length > 0) {
         for (const resultItem of result.results) {

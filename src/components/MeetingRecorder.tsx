@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -30,7 +31,9 @@ export const MeetingRecorder = ({
   const [connectionStatus, setConnectionStatus] = useState<string>("Disconnected");
   const [speakerCount, setSpeakerCount] = useState(0);
   const [wordCount, setWordCount] = useState(0);
+  const [startTime, setStartTime] = useState<string>("");
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const transciberRef = useRef<RealtimeTranscriber | null>(null);
@@ -102,6 +105,7 @@ export const MeetingRecorder = ({
       setIsRecording(true);
       setRealtimeTranscripts([]);
       setSpeakerCount(0);
+      setStartTime(new Date().toISOString());
       
       // Start duration timer
       intervalRef.current = setInterval(() => {
@@ -140,6 +144,18 @@ export const MeetingRecorder = ({
     }
     
     setIsRecording(false);
+    
+    // Navigate to meeting summary with data
+    const meetingData = {
+      title: initialSettings?.title || 'Medical Consultation',
+      duration: formatDuration(duration),
+      wordCount: wordCount,
+      transcript: transcript,
+      speakerCount: speakerCount,
+      startTime: startTime
+    };
+
+    navigate('/meeting-summary', { state: meetingData });
     
     toast({
       title: "Recording Stopped",
