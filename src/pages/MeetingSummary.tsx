@@ -1046,20 +1046,26 @@ Speakers detected: ${meetingData?.speakerCount || 0}`;
           if (!line.trim() || line.includes('---')) {
             if (line.trim()) {
               documentChildren.push(new Paragraph({ text: "" }));
-      }
-      
-      // Add any remaining table at the end
-      if (inTable && currentTableRows.length > 0) {
-        const table = new Table({
-          rows: currentTableRows,
-          width: { size: 100, type: WidthType.PERCENTAGE }
-        });
-        documentChildren.push(table);
-      }
+            }
             continue;
           }
-          // Handle different types of lines
-          if (line.startsWith('NHS MEETING MINUTES') || line.includes('Meeting Title:')) {
+          
+          // Handle different types of lines with proper formatting
+          if (line.startsWith('###')) {
+            // Section headers with emojis (like ### 1️⃣ Attendees)
+            const headerText = line.replace(/^###\s*/, '');
+            documentChildren.push(new Paragraph({
+              children: [new TextRun({ text: headerText, bold: true, size: 26, color: "1f4e79" })],
+              spacing: { before: 300, after: 150 }
+            }));
+          } else if (line.startsWith('**') && line.endsWith('**')) {
+            // Bold text (like **Present:**)
+            const boldText = line.replace(/^\*\*|\*\*$/g, '');
+            documentChildren.push(new Paragraph({
+              children: [new TextRun({ text: boldText, bold: true, size: 24, color: "2c5aa0" })],
+              spacing: { before: 150, after: 100 }
+            }));
+          } else if (line.startsWith('NHS MEETING MINUTES') || line.includes('Meeting Title:')) {
             documentChildren.push(new Paragraph({
               children: [new TextRun({ text: line, bold: true, size: 28, color: "1f4e79" })],
               alignment: AlignmentType.CENTER,
@@ -1079,6 +1085,14 @@ Speakers detected: ${meetingData?.speakerCount || 0}`;
         }
       }
       
+      // Add any remaining table at the end
+      if (inTable && currentTableRows.length > 0) {
+        const table = new Table({
+          rows: currentTableRows,
+          width: { size: 100, type: WidthType.PERCENTAGE }
+        });
+        documentChildren.push(table);
+      }
       
       const doc = new Document({
         sections: [{
