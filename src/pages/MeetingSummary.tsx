@@ -968,6 +968,8 @@ Speakers detected: ${meetingData?.speakerCount || 0}`;
       // Parse the content to create properly formatted paragraphs
       const lines = content.split('\n');
       const documentChildren = [];
+      let currentTableRows = [];
+      let inTable = false;
       
       // Add logo if available
       if (practiceData?.logo_url) {
@@ -1001,22 +1003,61 @@ Speakers detected: ${meetingData?.speakerCount || 0}`;
           continue;
         }
         
-        // Check if this is a table (simple approach - treat as formatted text)
-        if (line.includes('|')) {
-          // Format table lines as structured text instead of complex tables
+        // Check if this is a table row
+        if (line.includes('|') && line.trim() !== '' && !line.includes('---')) {
           const cells = line.split('|').map(cell => cell.trim()).filter(cell => cell);
           if (cells.length > 0) {
-            const formattedLine = cells.join(' | ');
-            documentChildren.push(new Paragraph({
-              children: [new TextRun({ 
-                text: formattedLine, 
-                bold: line.includes('Action/Decision') || line.includes('Responsible') || line.includes('Deadline'),
-                size: line.includes('Action/Decision') ? 24 : 22 
-              })],
-              spacing: { after: 100 }
-            }));
+            inTable = true;
+            const isHeaderRow = line.includes('Action/Decision') || line.includes('Responsible') || line.includes('Deadline');
+            
+            const tableRow = new TableRow({
+              children: cells.map((cellText, index) => 
+                new TableCell({
+                  children: [new Paragraph({
+                    children: [new TextRun({ 
+                      text: cellText, 
+                      bold: isHeaderRow,
+                      size: 22
+                    })]
+                  })],
+                  width: { 
+                    size: cells.length === 3 ? (index === 0 ? 50 : 25) : 100/cells.length, 
+                    type: WidthType.PERCENTAGE 
+                  }
+                })
+              )
+            });
+            
+            currentTableRows.push(tableRow);
           }
         } else {
+          // If we were in a table and now have a non-table line, create the table
+          if (inTable && currentTableRows.length > 0) {
+            const table = new Table({
+              rows: currentTableRows,
+              width: { size: 100, type: WidthType.PERCENTAGE }
+            });
+            documentChildren.push(table);
+            currentTableRows = [];
+            inTable = false;
+          }
+          
+          // Skip empty lines and separator lines
+          if (!line.trim() || line.includes('---')) {
+            if (line.trim()) {
+              documentChildren.push(new Paragraph({ text: "" }));
+      }
+      
+      // Add any remaining table at the end
+      if (inTable && currentTableRows.length > 0) {
+        const table = new Table({
+          rows: currentTableRows,
+          width: { size: 100, type: WidthType.PERCENTAGE }
+        });
+        documentChildren.push(table);
+      }
+            continue;
+          }
           // Handle different types of lines
           if (line.startsWith('NHS MEETING MINUTES') || line.includes('Meeting Title:')) {
             documentChildren.push(new Paragraph({
