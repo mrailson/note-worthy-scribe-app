@@ -100,12 +100,13 @@ serve(async (req) => {
         },
         body: JSON.stringify({
           config: {
-            encoding: 'LINEAR16',
-            sampleRateHertz: 16000,
+            encoding: 'WEBM_OPUS',
+            sampleRateHertz: 48000,
             languageCode: 'en-US',
             enableSpeakerDiarization: true,
             diarizationSpeakerCount: 5,
             enableAutomaticPunctuation: true,
+            model: 'latest_long',
             speechContexts: [{
               phrases: ['NHS', 'medical', 'patient', 'consultation', 'clinical', 'diagnosis', 'treatment', 'prescription']
             }]
