@@ -15,7 +15,6 @@ export const Header = ({ onNewMeeting, onHelp }: HeaderProps) => {
   
   const isHomePage = location.pathname === '/';
   const isMeetingHistoryPage = location.pathname === '/meetings';
-  const isTerminologyPage = location.pathname === '/nhs-terminology';
   const isSettingsPage = location.pathname === '/settings';
   return (
     <header className="bg-gradient-primary text-primary-foreground shadow-strong">
@@ -48,18 +47,6 @@ export const Header = ({ onNewMeeting, onHelp }: HeaderProps) => {
               >
                 <FileText className="h-4 w-4 mr-2" />
                 Meeting History
-              </Button>
-            )}
-            
-            {!isTerminologyPage && (
-              <Button 
-                onClick={() => navigate('/nhs-terminology')}
-                variant="secondary"
-                size="sm"
-                className="bg-white/20 hover:bg-white/30 text-white border-white/30"
-              >
-                <BookOpen className="h-4 w-4 mr-2" />
-                NHS Terms
               </Button>
             )}
             
