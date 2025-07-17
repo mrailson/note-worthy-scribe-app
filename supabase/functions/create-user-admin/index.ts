@@ -60,22 +60,8 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("User created successfully:", authData.user.id);
 
-    // Create the user profile
-    const { error: profileError } = await supabaseAdmin
-      .from('profiles')
-      .insert({
-        user_id: authData.user.id,
-        full_name: userData.name,
-        email: userData.email
-      });
-
-    if (profileError) {
-      console.error("Profile creation error:", profileError);
-      throw profileError;
-    }
-
-    console.log("Profile created successfully");
-
+    // Profile is automatically created by trigger, so we skip manual creation
+    
     // Create user role with admin privileges
     const { error: roleError } = await supabaseAdmin
       .from('user_roles')
