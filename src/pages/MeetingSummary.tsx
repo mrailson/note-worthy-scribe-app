@@ -968,7 +968,6 @@ Speakers detected: ${meetingData?.speakerCount || 0}`;
       // Parse the content to create properly formatted paragraphs
       const lines = content.split('\n');
       const documentChildren = [];
-      let currentTable = null;
       
       // Add logo if available
       if (practiceData?.logo_url) {
@@ -1002,38 +1001,22 @@ Speakers detected: ${meetingData?.speakerCount || 0}`;
           continue;
         }
         
-        // Check if this is a table
+        // Check if this is a table (simple approach - treat as formatted text)
         if (line.includes('|')) {
-          // Parse markdown table
+          // Format table lines as structured text instead of complex tables
           const cells = line.split('|').map(cell => cell.trim()).filter(cell => cell);
           if (cells.length > 0) {
-            const tableRow = new TableRow({
-              children: cells.map(cellText => 
-                new TableCell({
-                  children: [new Paragraph({
-                    children: [new TextRun({ text: cellText, bold: line.includes('Action/Decision') })]
-                  })],
-                  width: { size: cells.length === 3 ? (cellText === cells[0] ? 50 : 25) : 100/cells.length, type: WidthType.PERCENTAGE }
-                })
-              )
-            });
-            
-            if (!currentTable) {
-              currentTable = new Table({
-                rows: [tableRow],
-                width: { size: 100, type: WidthType.PERCENTAGE }
-              });
-            } else {
-              currentTable.root[0].children.push(tableRow);
-            }
+            const formattedLine = cells.join(' | ');
+            documentChildren.push(new Paragraph({
+              children: [new TextRun({ 
+                text: formattedLine, 
+                bold: line.includes('Action/Decision') || line.includes('Responsible') || line.includes('Deadline'),
+                size: line.includes('Action/Decision') ? 24 : 22 
+              })],
+              spacing: { after: 100 }
+            }));
           }
         } else {
-          // If we were building a table and now have a non-table line, add the table to document
-          if (currentTable) {
-            documentChildren.push(currentTable);
-            currentTable = null;
-          }
-          
           // Handle different types of lines
           if (line.startsWith('NHS MEETING MINUTES') || line.includes('Meeting Title:')) {
             documentChildren.push(new Paragraph({
@@ -1055,10 +1038,6 @@ Speakers detected: ${meetingData?.speakerCount || 0}`;
         }
       }
       
-      // Add any remaining table
-      if (currentTable) {
-        documentChildren.push(currentTable);
-      }
       
       const doc = new Document({
         sections: [{
