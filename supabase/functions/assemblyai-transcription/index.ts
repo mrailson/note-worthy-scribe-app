@@ -37,8 +37,8 @@ serve(async (req) => {
       console.log("Received message:", message.type);
 
       if (message.type === 'start_transcription') {
-        // Connect directly to AssemblyAI real-time WebSocket
-        const ws_url = `wss://api.assemblyai.com/v2/realtime/ws?sample_rate=16000&token=${ASSEMBLYAI_API_KEY}`;
+        // Connect directly to AssemblyAI real-time WebSocket with proper authentication
+        const ws_url = `wss://api.assemblyai.com/v2/realtime/ws?sample_rate=16000&token=${ASSEMBLYAI_API_KEY}&word_boost=NHS,medical,patient,consultation,clinical,diagnosis,treatment,prescription&speaker_labels=true&punctuate=true&format_text=true`;
         console.log("Connecting to AssemblyAI WebSocket");
 
         // Connect to AssemblyAI WebSocket
