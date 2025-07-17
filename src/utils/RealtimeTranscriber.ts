@@ -1,0 +1,157 @@
+export class RealtimeTranscriber {
+  private socket: WebSocket | null = null;
+  private mediaRecorder: MediaRecorder | null = null;
+  private stream: MediaStream | null = null;
+  private isRecording = false;
+
+  constructor(
+    private onTranscript: (transcript: TranscriptData) => void,
+    private onError: (error: string) => void,
+    private onStatusChange: (status: string) => void
+  ) {}
+
+  async startTranscription() {
+    try {
+      this.onStatusChange('Connecting...');
+      
+      // Connect to our Supabase Edge Function WebSocket
+      const wsUrl = `wss://dphcnbricafkbtizkoal.functions.supabase.co/assemblyai-transcription`;
+      this.socket = new WebSocket(wsUrl);
+
+      this.socket.onopen = () => {
+        console.log('Connected to transcription service');
+        this.onStatusChange('Connected');
+        this.startAudioCapture();
+      };
+
+      this.socket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        console.log('Received:', data);
+
+        switch (data.type) {
+          case 'session_started':
+            this.onStatusChange('Transcription active');
+            break;
+          case 'transcript':
+          case 'partial_transcript':
+            this.onTranscript({
+              text: data.text,
+              speaker: data.speaker,
+              confidence: data.confidence,
+              timestamp: data.timestamp,
+              isFinal: data.is_final,
+              words: data.words
+            });
+            break;
+          case 'error':
+            this.onError(data.message);
+            break;
+          case 'session_ended':
+            this.onStatusChange('Session ended');
+            break;
+        }
+      };
+
+      this.socket.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        this.onError('Connection error');
+      };
+
+      this.socket.onclose = () => {
+        console.log('WebSocket closed');
+        this.onStatusChange('Disconnected');
+      };
+
+    } catch (error) {
+      console.error('Failed to start transcription:', error);
+      this.onError('Failed to start transcription');
+    }
+  }
+
+  private async startAudioCapture() {
+    try {
+      this.stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          sampleRate: 16000,
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
+      });
+
+      this.mediaRecorder = new MediaRecorder(this.stream, {
+        mimeType: 'audio/webm;codecs=opus',
+        audioBitsPerSecond: 16000
+      });
+
+      this.mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0 && this.socket?.readyState === WebSocket.OPEN) {
+          // Convert audio blob to base64
+          const reader = new FileReader();
+          reader.onload = () => {
+            const base64Data = (reader.result as string).split(',')[1];
+            this.socket?.send(JSON.stringify({
+              type: 'audio_data',
+              audio_data: base64Data
+            }));
+          };
+          reader.readAsDataURL(event.data);
+        }
+      };
+
+      // Start recording and request transcription session
+      this.mediaRecorder.start(250); // Send audio chunks every 250ms
+      this.isRecording = true;
+
+      if (this.socket?.readyState === WebSocket.OPEN) {
+        this.socket.send(JSON.stringify({ type: 'start_transcription' }));
+      }
+
+    } catch (error) {
+      console.error('Failed to start audio capture:', error);
+      this.onError('Microphone access denied');
+    }
+  }
+
+  stopTranscription() {
+    this.isRecording = false;
+    this.onStatusChange('Stopping...');
+
+    if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+      this.mediaRecorder.stop();
+    }
+
+    if (this.stream) {
+      this.stream.getTracks().forEach(track => track.stop());
+      this.stream = null;
+    }
+
+    if (this.socket?.readyState === WebSocket.OPEN) {
+      this.socket.send(JSON.stringify({ type: 'stop_transcription' }));
+      this.socket.close();
+    }
+
+    this.socket = null;
+    this.mediaRecorder = null;
+    this.onStatusChange('Stopped');
+  }
+
+  isActive() {
+    return this.isRecording && this.socket?.readyState === WebSocket.OPEN;
+  }
+}
+
+export interface TranscriptData {
+  text: string;
+  speaker: string;
+  confidence: number;
+  timestamp: string;
+  isFinal: boolean;
+  words?: Array<{
+    text: string;
+    start: number;
+    end: number;
+    confidence: number;
+  }>;
+}

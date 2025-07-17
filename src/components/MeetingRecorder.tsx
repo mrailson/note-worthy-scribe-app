@@ -1,8 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Mic, MicOff, Play, Square, Clock } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { RealtimeTranscriber, TranscriptData } from "@/utils/RealtimeTranscriber";
 
 interface MeetingRecorderProps {
   onTranscriptUpdate: (transcript: string) => void;
@@ -24,8 +26,14 @@ export const MeetingRecorder = ({
   const [isRecording, setIsRecording] = useState(false);
   const [duration, setDuration] = useState(0);
   const [transcript, setTranscript] = useState("");
+  const [realtimeTranscripts, setRealtimeTranscripts] = useState<TranscriptData[]>([]);
+  const [connectionStatus, setConnectionStatus] = useState<string>("Disconnected");
+  const [speakerCount, setSpeakerCount] = useState(0);
   const [wordCount, setWordCount] = useState(0);
   const { toast } = useToast();
+  
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const transciberRef = useRef<RealtimeTranscriber | null>(null);
 
   // Format duration as MM:SS
   const formatDuration = (seconds: number) => {
@@ -34,78 +42,161 @@ export const MeetingRecorder = ({
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Update duration every second when recording
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isRecording) {
-      interval = setInterval(() => {
+  const handleTranscript = (transcriptData: TranscriptData) => {
+    setRealtimeTranscripts(prev => {
+      const filtered = prev.filter(t => 
+        !(t.speaker === transcriptData.speaker && !t.isFinal)
+      );
+      return [...filtered, transcriptData];
+    });
+
+    // Update speaker count
+    setSpeakerCount(prev => {
+      const speakers = new Set(realtimeTranscripts.map(t => t.speaker));
+      speakers.add(transcriptData.speaker);
+      return speakers.size;
+    });
+
+    // Update main transcript with final transcripts only
+    if (transcriptData.isFinal) {
+      const fullTranscript = realtimeTranscripts
+        .filter(t => t.isFinal)
+        .map(t => `${t.speaker}: ${t.text}`)
+        .join('\n') + `\n${transcriptData.speaker}: ${transcriptData.text}`;
+      
+      setTranscript(fullTranscript);
+      onTranscriptUpdate(fullTranscript);
+      
+      // Update word count
+      const words = fullTranscript.split(' ').filter(word => word.length > 0);
+      setWordCount(words.length);
+      onWordCountUpdate(words.length);
+    }
+  };
+
+  const handleTranscriptionError = (error: string) => {
+    toast({
+      title: "Transcription Error",
+      description: error,
+      variant: "destructive",
+    });
+    setConnectionStatus("Error");
+  };
+
+  const handleStatusChange = (status: string) => {
+    setConnectionStatus(status);
+  };
+
+  const startRecording = async () => {
+    try {
+      // Initialize real-time transcriber
+      transciberRef.current = new RealtimeTranscriber(
+        handleTranscript,
+        handleTranscriptionError,
+        handleStatusChange
+      );
+      
+      await transciberRef.current.startTranscription();
+      
+      setIsRecording(true);
+      setRealtimeTranscripts([]);
+      setSpeakerCount(0);
+      
+      // Start duration timer
+      intervalRef.current = setInterval(() => {
         setDuration(prev => {
           const newDuration = prev + 1;
-          onDurationUpdate(formatDuration(newDuration));
+          const minutes = Math.floor(newDuration / 60);
+          const seconds = newDuration % 60;
+          const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+          onDurationUpdate(timeString);
           return newDuration;
         });
       }, 1000);
+
+      toast({
+        title: "Recording Started",
+        description: "Real-time transcription is now active",
+      });
+    } catch (error) {
+      toast({
+        title: "Recording Failed",
+        description: "Could not start recording",
+        variant: "destructive",
+      });
     }
-    return () => clearInterval(interval);
-  }, [isRecording, onDurationUpdate]);
-
-  // Simulate transcript updates
-  useEffect(() => {
-    if (isRecording) {
-      const mockTranscripts = [
-        "Welcome everyone to today's meeting.",
-        "Let's start with the agenda items for today.",
-        "First item is the review of previous actions.",
-        "Dr. Smith, could you provide an update on the patient care initiatives?",
-        "Thank you for that comprehensive overview.",
-        "Moving on to the financial update section.",
-        "The budget allocation for this quarter shows positive trends.",
-        "Are there any questions regarding the staffing matters?",
-        "We need to address the IT systems upgrade timeline.",
-        "Next meeting is scheduled for next month."
-      ];
-
-      const interval = setInterval(() => {
-        if (transcript.split('. ').length < mockTranscripts.length) {
-          const nextSentence = mockTranscripts[transcript.split('. ').length];
-          const newTranscript = transcript ? `${transcript} ${nextSentence}` : nextSentence;
-          setTranscript(newTranscript);
-          onTranscriptUpdate(newTranscript);
-          
-          const words = newTranscript.split(' ').length;
-          setWordCount(words);
-          onWordCountUpdate(words);
-        }
-      }, 3000);
-
-      return () => clearInterval(interval);
-    }
-  }, [isRecording, transcript, onTranscriptUpdate, onWordCountUpdate]);
-
-  const startRecording = () => {
-    setIsRecording(true);
-    toast({
-      title: "Recording Started",
-      description: "Meeting recording has begun",
-    });
   };
 
   const stopRecording = () => {
+    if (transciberRef.current) {
+      transciberRef.current.stopTranscription();
+      transciberRef.current = null;
+    }
+    
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    
     setIsRecording(false);
+    
     toast({
       title: "Recording Stopped",
-      description: `Meeting recorded for ${formatDuration(duration)}`,
+      description: "Meeting recording and transcription completed",
     });
   };
 
+  const getConnectionStatusIcon = () => {
+    switch (connectionStatus) {
+      case 'Connected':
+      case 'Transcription active':
+        return <Wifi className="h-4 w-4 text-green-500" />;
+      case 'Connecting...':
+        return <Wifi className="h-4 w-4 text-yellow-500 animate-pulse" />;
+      case 'Error':
+        return <WifiOff className="h-4 w-4 text-red-500" />;
+      default:
+        return <WifiOff className="h-4 w-4 text-gray-500" />;
+    }
+  };
+
+  const getConnectionStatusColor = () => {
+    switch (connectionStatus) {
+      case 'Connected':
+      case 'Transcription active':
+        return 'default';
+      case 'Connecting...':
+        return 'secondary';
+      case 'Error':
+        return 'destructive';
+      default:
+        return 'outline';
+    }
+  };
+
   return (
-    <Card className="shadow-medium">
+    <Card className="shadow-medium border-accent/20">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Clock className="h-5 w-5" />
-          Meeting Recording
+        <CardTitle className="flex items-center justify-between">
+          <span className="flex items-center gap-2">
+            <Mic className="h-5 w-5 text-primary" />
+            Meeting Recorder
+          </span>
+          <div className="flex items-center gap-2">
+            <Badge variant={getConnectionStatusColor() as any} className="flex items-center gap-1">
+              {getConnectionStatusIcon()}
+              {connectionStatus}
+            </Badge>
+            {speakerCount > 0 && (
+              <Badge variant="secondary" className="flex items-center gap-1">
+                <Users className="h-3 w-3" />
+                {speakerCount} speakers
+              </Badge>
+            )}
+          </div>
         </CardTitle>
       </CardHeader>
+      
       <CardContent className="space-y-4">
         <div className="grid grid-cols-3 gap-4 text-center">
           <div>
@@ -114,11 +205,11 @@ export const MeetingRecorder = ({
           </div>
           <div>
             <div className="text-2xl font-bold text-primary">{wordCount}</div>
-            <div className="text-sm text-muted-foreground">Words between 00:00 and 00:30</div>
+            <div className="text-sm text-muted-foreground">Words Transcribed</div>
           </div>
           <div>
-            <div className="text-2xl font-bold text-primary">{wordCount}</div>
-            <div className="text-sm text-muted-foreground">Total Meeting Words</div>
+            <div className="text-2xl font-bold text-primary">{speakerCount}</div>
+            <div className="text-sm text-muted-foreground">Speakers Detected</div>
           </div>
         </div>
 
@@ -146,7 +237,21 @@ export const MeetingRecorder = ({
         {isRecording && (
           <div className="flex items-center justify-center gap-2 text-primary animate-pulse">
             <div className="w-2 h-2 bg-primary rounded-full"></div>
-            <span className="text-sm font-medium">Recording in progress...</span>
+            <span className="text-sm font-medium">Recording with real-time transcription...</span>
+          </div>
+        )}
+
+        {/* Real-time transcript preview */}
+        {realtimeTranscripts.length > 0 && (
+          <div className="mt-4 p-3 bg-accent/30 rounded-lg">
+            <h4 className="text-sm font-medium mb-2">Live Transcript:</h4>
+            <div className="space-y-1 max-h-32 overflow-y-auto">
+              {realtimeTranscripts.slice(-3).map((t, index) => (
+                <div key={index} className={`text-xs ${t.isFinal ? 'text-foreground' : 'text-muted-foreground italic'}`}>
+                  <span className="font-medium text-primary">{t.speaker}:</span> {t.text}
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </CardContent>
