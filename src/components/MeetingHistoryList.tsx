@@ -81,7 +81,10 @@ export const MeetingHistoryList = ({
   const getMeetingTypeLabel = (type: string) => {
     const types: Record<string, string> = {
       'general': 'General Meeting',
-      'patient-consultation': 'Patient Consultation',
+      'patient-consultation': 'Patient Meeting (Complaint Handling or other Administration Reason)',
+      'pcn-meeting': 'PCN Meeting',
+      'icb-meeting': 'ICB Meeting',
+      'neighbourhood-meeting': 'Neighbourhood Meeting',
       'team-meeting': 'Team Meeting',
       'clinical-review': 'Clinical Review',
       'training': 'Training Session',
@@ -94,6 +97,47 @@ export const MeetingHistoryList = ({
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+  };
+
+  const generateOverview = (meeting: Meeting) => {
+    const words = [];
+    
+    // Add meeting type
+    words.push(getMeetingTypeLabel(meeting.meeting_type));
+    
+    // Add date
+    words.push('on', format(new Date(meeting.start_time), 'MMM d, yyyy'));
+    
+    // Add duration if available
+    if (meeting.duration_minutes) {
+      words.push('lasting', formatDuration(meeting.duration_minutes));
+    }
+    
+    // Add status context
+    const statusContext = {
+      'completed': 'successfully completed',
+      'in-progress': 'currently in progress',
+      'scheduled': 'scheduled for the future',
+      'cancelled': 'was cancelled'
+    };
+    words.push('and', statusContext[meeting.status as keyof typeof statusContext] || 'is scheduled');
+    
+    // Add description excerpt if available
+    if (meeting.description) {
+      const descWords = meeting.description.split(' ').slice(0, 15);
+      words.push('-', ...descWords);
+    }
+    
+    // Add transcript/summary info
+    if (meeting.transcript_count) {
+      words.push('with', meeting.transcript_count.toString(), 'transcript entries');
+    }
+    if (meeting.summary_exists) {
+      words.push('and summary available');
+    }
+    
+    // Limit to 40 words
+    return words.slice(0, 40).join(' ');
   };
 
   if (loading) {
@@ -209,11 +253,10 @@ export const MeetingHistoryList = ({
           
           <CardContent>
             <div className="space-y-3">
-              {meeting.description && (
-                <p className="text-sm text-muted-foreground line-clamp-2">
-                  {meeting.description}
-                </p>
-              )}
+              {/* 40-word overview */}
+              <p className="text-sm text-muted-foreground line-clamp-3">
+                {generateOverview(meeting)}
+              </p>
               
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">

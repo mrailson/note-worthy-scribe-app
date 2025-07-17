@@ -4,7 +4,19 @@ import { MeetingHistoryList } from "@/components/MeetingHistoryList";
 import { MeetingSearchBar } from "@/components/MeetingSearchBar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Clock, FileText } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Plus, Clock, FileText, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -32,6 +44,7 @@ const MeetingHistory = () => {
   const [filteredMeetings, setFilteredMeetings] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
 
   const handleNewMeeting = () => {
     navigate("/");
@@ -55,22 +68,44 @@ const MeetingHistory = () => {
     try {
       setLoading(true);
       
+      // First get meetings
       const { data: meetingsData, error: meetingsError } = await supabase
         .from('meetings')
-        .select(`
-          *,
-          meeting_transcripts(count),
-          meeting_summaries(id)
-        `)
+        .select('*')
         .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
 
       if (meetingsError) throw meetingsError;
 
+      // Then get transcript counts and summaries separately to avoid duplicates
+      const meetingIds = meetingsData?.map(m => m.id) || [];
+      
+      const [transcriptData, summaryData] = await Promise.all([
+        supabase
+          .from('meeting_transcripts')
+          .select('meeting_id')
+          .in('meeting_id', meetingIds),
+        supabase
+          .from('meeting_summaries')
+          .select('meeting_id')
+          .in('meeting_id', meetingIds)
+      ]);
+
+      // Count transcripts and check for summaries
+      const transcriptCounts = transcriptData.data?.reduce((acc, t) => {
+        acc[t.meeting_id] = (acc[t.meeting_id] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>) || {};
+
+      const summaryExists = summaryData.data?.reduce((acc, s) => {
+        acc[s.meeting_id] = true;
+        return acc;
+      }, {} as Record<string, boolean>) || {};
+
       const enrichedMeetings = meetingsData?.map(meeting => ({
         ...meeting,
-        transcript_count: meeting.meeting_transcripts?.[0]?.count || 0,
-        summary_exists: !!meeting.meeting_summaries?.[0]?.id
+        transcript_count: transcriptCounts[meeting.id] || 0,
+        summary_exists: !!summaryExists[meeting.id]
       })) || [];
 
       setMeetings(enrichedMeetings);
@@ -124,6 +159,31 @@ const MeetingHistory = () => {
     } catch (error: any) {
       toast({
         title: "Error Deleting Meeting",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    try {
+      const { error } = await supabase
+        .from('meetings')
+        .delete()
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "All Meetings Deleted",
+        description: "All meetings have been successfully deleted",
+      });
+
+      setDeleteConfirmation("");
+      fetchMeetings();
+    } catch (error: any) {
+      toast({
+        title: "Error Deleting Meetings",
         description: error.message,
         variant: "destructive",
       });
@@ -215,6 +275,45 @@ const MeetingHistory = () => {
           onSearchChange={setSearchQuery}
           resultsCount={filteredMeetings.length}
         />
+
+        {/* Delete All Button */}
+        {meetings.length > 0 && (
+          <div className="flex justify-end">
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm">
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete All Meetings
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete All Meetings</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action will permanently delete all {meetings.length} meetings, their transcripts, and summaries. This cannot be undone.
+                    <br /><br />
+                    To confirm, please type <strong>delete</strong> in the field below:
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <Input
+                  placeholder="Type 'delete' to confirm"
+                  value={deleteConfirmation}
+                  onChange={(e) => setDeleteConfirmation(e.target.value)}
+                />
+                <AlertDialogFooter>
+                  <AlertDialogCancel onClick={() => setDeleteConfirmation("")}>Cancel</AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={handleDeleteAll}
+                    disabled={deleteConfirmation.toLowerCase() !== 'delete'}
+                    className="bg-destructive hover:bg-destructive/90"
+                  >
+                    Delete All Meetings
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        )}
 
         {/* Meetings List */}
         <MeetingHistoryList 
