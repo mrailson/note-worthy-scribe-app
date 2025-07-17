@@ -1064,12 +1064,12 @@ Speakers detected: ${meetingData?.speakerCount || 0}`;
               children: [new TextRun({ text: line, bold: true, size: 26, color: "1f4e79" })],
               spacing: { before: 300, after: 150 }
             }));
-          } else if (line.startsWith('# ')) {
+          } else if (line.startsWith('# ') && !line.startsWith('###')) {
             // Main headers (like # 1. Ambient Voice Technology)
-            const headerText = line.replace(/^#\s*/, '');
+            const headerText = line.replace(/^#\s+/, '');
             documentChildren.push(new Paragraph({
-              children: [new TextRun({ text: headerText, bold: true, size: 28, color: "1f4e79" })],
-              spacing: { before: 400, after: 200 }
+              children: [new TextRun({ text: headerText, bold: true, size: 24, color: "1f4e79" })],
+              spacing: { before: 200, after: 150 }
             }));
           } else if (line.includes('**') && line.includes(':**')) {
             // Lines with inline bold text (like **Others referenced:**)
