@@ -592,25 +592,28 @@ This is an automated message. Please do not reply to this email.`;
         </div>
 
         {/* Main Content with Tabs */}
-        <Tabs defaultValue="dashboard" className="w-full">
-          <TabsList className="grid w-full grid-cols-5 mb-6 bg-muted p-1 rounded-md">
-            <TabsTrigger value="dashboard" className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground">
+        <div className="bg-red-100 p-4 mb-4">
+          <p>Debug: Tabs container should be visible</p>
+        </div>
+        <Tabs defaultValue="dashboard" className="w-full border-2 border-blue-500">
+          <TabsList className="grid w-full grid-cols-5 mb-6 bg-muted p-1 rounded-md h-12">
+            <TabsTrigger value="dashboard" className="flex items-center gap-2 px-4 py-2 text-sm data-[state=active]:bg-background data-[state=active]:text-foreground">
               <BarChart3 className="h-4 w-4" />
               Dashboard
             </TabsTrigger>
-            <TabsTrigger value="users" className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground">
+            <TabsTrigger value="users" className="flex items-center gap-2 px-4 py-2 text-sm data-[state=active]:bg-background data-[state=active]:text-foreground">
               <Users className="h-4 w-4" />
               User Management
             </TabsTrigger>
-            <TabsTrigger value="practices" className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground">
+            <TabsTrigger value="practices" className="flex items-center gap-2 px-4 py-2 text-sm data-[state=active]:bg-background data-[state=active]:text-foreground">
               <Building2 className="h-4 w-4" />
               Practices
             </TabsTrigger>
-            <TabsTrigger value="meetings" className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground">
+            <TabsTrigger value="meetings" className="flex items-center gap-2 px-4 py-2 text-sm data-[state=active]:bg-background data-[state=active]:text-foreground">
               <Calendar className="h-4 w-4" />
               Meetings
             </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground">
+            <TabsTrigger value="settings" className="flex items-center gap-2 px-4 py-2 text-sm data-[state=active]:bg-background data-[state=active]:text-foreground">
               <Shield className="h-4 w-4" />
               Settings
             </TabsTrigger>
