@@ -36,6 +36,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { Header } from "@/components/Header";
 
 interface User {
   id: string;
@@ -581,21 +582,23 @@ This is an automated message. Please do not reply to this email.`;
   }
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">System Administration</h1>
-            <p className="text-muted-foreground">Manage users, roles, and system analytics</p>
+    <>
+      <Header onNewMeeting={() => {}} />
+      <div className="min-h-screen bg-background p-6">
+        <div className="max-w-7xl mx-auto space-y-6">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">System Administration</h1>
+              <p className="text-muted-foreground">Manage users, roles, and system analytics</p>
+            </div>
           </div>
-        </div>
 
-        {/* Main Content with Tabs */}
-        <div className="bg-red-100 p-4 mb-4">
-          <p>Debug: Tabs container should be visible</p>
-        </div>
-        <Tabs defaultValue="dashboard" className="w-full border-2 border-blue-500">
+          {/* Main Content with Tabs */}
+          <div className="bg-red-100 p-4 mb-4">
+            <p>Debug: Tabs container should be visible</p>
+          </div>
+          <Tabs defaultValue="dashboard" className="w-full border-2 border-blue-500">
           <TabsList className="grid w-full grid-cols-5 mb-6 bg-slate-200 dark:bg-slate-800 p-2 rounded-md h-14 border-2 border-black">
             <TabsTrigger value="dashboard" className="flex items-center gap-2 px-4 py-2 text-sm bg-white dark:bg-slate-700 border border-gray-300 rounded data-[state=active]:bg-blue-500 data-[state=active]:text-white">
               <BarChart3 className="h-4 w-4" />
@@ -995,5 +998,6 @@ This is an automated message. Please do not reply to this email.`;
         </DialogContent>
       </Dialog>
     </div>
+    </>
   );
 }
