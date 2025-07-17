@@ -185,7 +185,7 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, initialSett
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="general">General Meeting</SelectItem>
-                  <SelectItem value="patient-consultation">Patient Consultation</SelectItem>
+                  <SelectItem value="patient-consultation">Patient Meeting (Complaint Handling or other Administration Reason)</SelectItem>
                   <SelectItem value="team-meeting">Team Meeting</SelectItem>
                   <SelectItem value="clinical-review">Clinical Review</SelectItem>
                   <SelectItem value="training">Training Session</SelectItem>
