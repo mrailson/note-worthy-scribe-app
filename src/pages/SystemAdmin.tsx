@@ -264,6 +264,16 @@ export default function SystemAdmin() {
     }
   };
 
+  const generateRandomPassword = () => {
+    const length = 12;
+    const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
+    let password = "";
+    for (let i = 0; i < length; i++) {
+      password += charset.charAt(Math.floor(Math.random() * charset.length));
+    }
+    return password;
+  };
+
   const handleCreateUser = async () => {
     if (!newUserEmail || !newUserName || !newUserRole) {
       toast.error("Please fill in all required fields");
@@ -271,12 +281,61 @@ export default function SystemAdmin() {
     }
 
     setIsCreatingUser(true);
+    
     try {
-      // Note: In a real implementation, you would use Supabase Admin API
-      // For now, we'll show a message about manual user creation
-      toast.success("User creation initiated. The user will need to sign up manually, then you can assign roles.");
+      // Generate a random temporary password
+      const tempPassword = generateRandomPassword();
       
-      // Reset form
+      // Create the user in Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        email: newUserEmail,
+        password: tempPassword,
+        email_confirm: true
+      });
+
+      if (authError) throw authError;
+
+      // Create user role
+      if (authData.user) {
+        const practiceId = newUserPractice === "none" ? null : newUserPractice;
+        
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .insert({
+            user_id: authData.user.id,
+            role: newUserRole as any,
+            practice_id: practiceId,
+            assigned_by: user?.id
+          });
+
+        if (roleError) throw roleError;
+
+        // Send welcome email
+        try {
+          const { error: emailError } = await supabase.functions.invoke('send-welcome-email', {
+            body: {
+              to_email: newUserEmail,
+              user_name: newUserName,
+              user_email: newUserEmail,
+              temporary_password: tempPassword,
+              user_role: newUserRole,
+              practice_name: practices.find(p => p.id === practiceId)?.practice_name || "No practice assigned"
+            }
+          });
+
+          if (emailError) {
+            console.error('Error sending welcome email:', emailError);
+            toast.error("User created successfully, but welcome email failed to send");
+          } else {
+            toast.success("User created successfully and welcome email sent");
+          }
+        } catch (emailError) {
+          console.error('Error sending welcome email:', emailError);
+          toast.error("User created successfully, but welcome email failed to send");
+        }
+      }
+      
+      await fetchUsers();
       setNewUserEmail("");
       setNewUserName("");
       setNewUserRole("");
@@ -284,9 +343,9 @@ export default function SystemAdmin() {
       setNewUserPCN("");
       setAddUserOpen(false);
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating user:', error);
-      toast.error("Failed to create user");
+      toast.error(error.message || "Failed to create user");
     } finally {
       setIsCreatingUser(false);
     }
