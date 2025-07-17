@@ -84,7 +84,8 @@ export const MeetingRecorder = ({
   };
 
   const handleStatusChange = (status: string) => {
-    setConnectionStatus(status);
+    // Use setTimeout to avoid state updates during render
+    setTimeout(() => setConnectionStatus(status), 0);
   };
 
   const startRecording = async () => {
