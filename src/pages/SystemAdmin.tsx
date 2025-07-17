@@ -37,6 +37,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { Header } from "@/components/Header";
+import emailjs from '@emailjs/browser';
 
 interface User {
   id: string;
@@ -376,25 +377,64 @@ This is an automated message. Please do not reply to this email.`;
 
       console.log("User created successfully:", createUserData);
 
-      // Send welcome email
+      // Send welcome email using EmailJS
       try {
-        const { error: emailError } = await supabase.functions.invoke('send-welcome-email', {
-          body: {
-            to_email: newUserEmail,
-            user_name: newUserName,
-            user_email: newUserEmail,
-            temporary_password: tempPassword,
-            user_role: newUserRole,
-            practice_name: practices.find(p => p.id === practiceId)?.practice_name || "No practice assigned"
-          }
-        });
+        const welcomeEmailContent = `
+Dear ${newUserName},
 
-        if (emailError) {
-          console.error('Error sending welcome email:', emailError);
-          toast.error("User created successfully, but welcome email failed to send");
-        } else {
-          toast.success("User created successfully and welcome email sent");
-        }
+Welcome to Notewell AI Meeting Notes Service!
+
+Your account has been successfully created with the following details:
+
+• Email: ${newUserEmail}
+• Role: ${newUserRole.replace('_', ' ').replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase())}
+• Practice: ${practices.find(p => p.id === practiceId)?.practice_name || "No practice assigned"}
+• Temporary Password: ${tempPassword}
+
+ABOUT NOTEWELL AI MEETING NOTES SERVICE:
+
+Notewell AI is a revolutionary healthcare meeting documentation service designed specifically for NHS practices and healthcare organizations. Our platform transforms how you capture, organize, and share meeting insights.
+
+KEY FEATURES:
+✓ Real-time AI transcription during meetings
+✓ Automatic generation of meeting summaries and action items
+✓ NHS-compliant data security and privacy protection
+✓ Integration with healthcare workflows
+✓ Searchable meeting archives
+✓ Customizable templates for different meeting types
+✓ Automated distribution of meeting notes to attendees
+
+GETTING STARTED:
+1. Visit: https://notewell.dialai.co.uk/
+2. Sign in using your email address: ${newUserEmail}
+3. Use your temporary password: ${tempPassword}
+4. You'll be prompted to change your password on first login
+
+SECURITY NOTE:
+Please change your temporary password immediately after logging in for security purposes.
+
+If you have any questions or need assistance, please don't hesitate to contact our support team.
+
+Best regards,
+The Notewell AI Team
+
+---
+This is an automated message. Please do not reply to this email.
+        `;
+
+        await emailjs.send(
+          'service_yfksj4p', // You'll need to replace with your EmailJS service ID
+          'template_welcome', // You'll need to replace with your EmailJS template ID
+          {
+            to_email: newUserEmail,
+            subject: "Welcome to Notewell AI Meeting Notes Service",
+            message: welcomeEmailContent,
+            to_name: newUserName
+          },
+          'your_public_key' // You'll need to replace with your EmailJS public key
+        );
+
+        toast.success("User created successfully and welcome email sent");
       } catch (emailError) {
         console.error('Error sending welcome email:', emailError);
         toast.error("User created successfully, but welcome email failed to send");
