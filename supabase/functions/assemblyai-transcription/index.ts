@@ -37,28 +37,9 @@ serve(async (req) => {
       console.log("Received message:", message.type);
 
       if (message.type === 'start_transcription') {
-        // Create AssemblyAI real-time session
-        const response = await fetch('https://api.assemblyai.com/v2/realtime/ws', {
-          method: 'POST',
-          headers: {
-            'Authorization': ASSEMBLYAI_API_KEY,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            sample_rate: 16000,
-            word_boost: ["NHS", "medical", "patient", "consultation", "clinical", "diagnosis", "treatment", "prescription"],
-            speaker_labels: true,
-            punctuate: true,
-            format_text: true,
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error(`Failed to create session: ${response.statusText}`);
-        }
-
-        const { ws_url } = await response.json();
-        console.log("AssemblyAI WebSocket URL:", ws_url);
+        // Connect directly to AssemblyAI real-time WebSocket
+        const ws_url = `wss://api.assemblyai.com/v2/realtime/ws?sample_rate=16000&token=${ASSEMBLYAI_API_KEY}`;
+        console.log("Connecting to AssemblyAI WebSocket");
 
         // Connect to AssemblyAI WebSocket
         assemblySocket = new WebSocket(ws_url);
