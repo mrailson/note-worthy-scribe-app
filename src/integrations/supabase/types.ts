@@ -325,6 +325,7 @@ export type Database = {
           email: string
           full_name: string
           id: string
+          last_login: string | null
           meeting_retention_policy: string | null
           nhs_trust: string | null
           role: string | null
@@ -337,6 +338,7 @@ export type Database = {
           email: string
           full_name: string
           id?: string
+          last_login?: string | null
           meeting_retention_policy?: string | null
           nhs_trust?: string | null
           role?: string | null
@@ -349,6 +351,7 @@ export type Database = {
           email?: string
           full_name?: string
           id?: string
+          last_login?: string | null
           meeting_retention_policy?: string | null
           nhs_trust?: string | null
           role?: string | null
@@ -356,6 +359,44 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_roles: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string | null
+          created_at: string | null
+          id: string
+          practice_id: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          created_at?: string | null
+          id?: string
+          practice_id?: string | null
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          created_at?: string | null
+          id?: string
+          practice_id?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_practice_id_fkey"
+            columns: ["practice_id"]
+            isOneToOne: false
+            referencedRelation: "practice_details"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -366,9 +407,35 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_user_roles: {
+        Args: { _user_id?: string }
+        Returns: {
+          role: Database["public"]["Enums"]["app_role"]
+          practice_id: string
+          practice_name: string
+        }[]
+      }
+      has_role: {
+        Args: {
+          _user_id: string
+          _role: Database["public"]["Enums"]["app_role"]
+        }
+        Returns: boolean
+      }
+      is_system_admin: {
+        Args: { _user_id?: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role:
+        | "system_admin"
+        | "practice_manager"
+        | "gp"
+        | "administrator"
+        | "nurse"
+        | "receptionist"
+        | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -495,6 +562,16 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: [
+        "system_admin",
+        "practice_manager",
+        "gp",
+        "administrator",
+        "nurse",
+        "receptionist",
+        "user",
+      ],
+    },
   },
 } as const

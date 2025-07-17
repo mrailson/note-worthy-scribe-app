@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { 
   DropdownMenu,
@@ -5,9 +6,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, LogOut, FileText, Home, Settings, ChevronDown } from "lucide-react";
+import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation, useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 interface HeaderProps {
   onNewMeeting: () => void;
@@ -17,10 +19,32 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
   const { user, signOut } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const [isAdmin, setIsAdmin] = useState(false);
   
   const isHomePage = location.pathname === '/';
   const isMeetingHistoryPage = location.pathname === '/meetings';
   const isSettingsPage = location.pathname === '/settings';
+  const isAdminPage = location.pathname === '/admin';
+
+  useEffect(() => {
+    const checkAdminAccess = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .rpc('is_system_admin', { _user_id: user.id });
+        
+        if (!error) {
+          setIsAdmin(data);
+        }
+      } catch (error) {
+        console.error('Error checking admin access:', error);
+      }
+    };
+
+    checkAdminAccess();
+  }, [user]);
+
   return (
     <header className="bg-gradient-primary text-primary-foreground shadow-strong sticky top-0 z-50">
       <div className="container mx-auto px-3 py-3 sm:px-4 sm:py-4">
@@ -99,6 +123,18 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
               >
                 <Settings className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
                 <span className="hidden sm:inline">Settings</span>
+              </Button>
+            )}
+            
+            {user && isAdmin && !isAdminPage && (
+              <Button 
+                onClick={() => navigate('/admin')}
+                variant="secondary"
+                size="sm"
+                className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs sm:text-sm px-2 sm:px-4"
+              >
+                <Shield className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Admin</span>
               </Button>
             )}
             
