@@ -28,13 +28,16 @@ interface MeetingSettingsProps {
 export const MeetingSettings = ({ onSettingsChange, initialSettings }: MeetingSettingsProps) => {
   const [isOpen, setIsOpen] = useState(true);
   const [settings, setSettings] = useState({
-    title: initialSettings?.title || "",
+    title: initialSettings?.title || "General Meeting",
     description: initialSettings?.description || "",
-    meetingType: initialSettings?.meetingType || "",
+    meetingType: initialSettings?.meetingType || "general",
     location: "",
     format: "",
     attendees: "",
-    agenda: ""
+    agenda: "",
+    date: new Date().toISOString().split('T')[0],
+    startTime: new Date().toLocaleTimeString('en-GB', { hour12: false, hour: '2-digit', minute: '2-digit' }),
+    summary: ""
   });
 
   const updateSetting = (key: string, value: string) => {
@@ -71,6 +74,28 @@ export const MeetingSettings = ({ onSettingsChange, initialSettings }: MeetingSe
                 value={settings.title}
                 onChange={(e) => updateSetting('title', e.target.value)}
               />
+            </div>
+
+            {/* Meeting Date and Time */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="meeting-date">Date</Label>
+                <Input
+                  id="meeting-date"
+                  type="date"
+                  value={settings.date}
+                  onChange={(e) => updateSetting('date', e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="start-time">Start Time</Label>
+                <Input
+                  id="start-time"
+                  type="time"
+                  value={settings.startTime}
+                  onChange={(e) => updateSetting('startTime', e.target.value)}
+                />
+              </div>
             </div>
 
             {/* Meeting Description */}
@@ -180,6 +205,18 @@ export const MeetingSettings = ({ onSettingsChange, initialSettings }: MeetingSe
                 value={settings.agenda}
                 onChange={(e) => updateSetting('agenda', e.target.value)}
                 rows={5}
+              />
+            </div>
+
+            {/* Meeting Summary */}
+            <div className="space-y-2">
+              <Label htmlFor="summary">Key Discussion Summary</Label>
+              <Textarea
+                id="summary"
+                placeholder="Brief summary of key discussions and outcomes..."
+                value={settings.summary}
+                onChange={(e) => updateSetting('summary', e.target.value)}
+                rows={3}
               />
             </div>
           </CardContent>

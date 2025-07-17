@@ -147,7 +147,7 @@ export const MeetingRecorder = ({
     
     // Navigate to meeting summary with data
     const meetingData = {
-      title: initialSettings?.title || 'Medical Consultation',
+      title: initialSettings?.title || 'General Meeting',
       duration: formatDuration(duration),
       wordCount: wordCount,
       transcript: transcript,
