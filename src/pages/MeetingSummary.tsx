@@ -208,6 +208,12 @@ export default function MeetingSummary() {
   };
 
   const generateNHSSummaryContent = () => {
+    // Use AI-generated content if available, otherwise fall back to form content
+    if (aiGeneratedMinutes) {
+      return aiGeneratedMinutes;
+    }
+
+    // Fallback to form-based content if no AI content exists
     const date = new Date(meetingData?.startTime || new Date()).toLocaleDateString('en-GB');
     const time = new Date(meetingData?.startTime || new Date()).toLocaleTimeString('en-GB', { 
       hour: '2-digit', 
@@ -252,17 +258,32 @@ Speakers detected: ${meetingData?.speakerCount || 0}`;
   const downloadDocx = async () => {
     try {
       const content = generateNHSSummaryContent();
+      
+      // If using AI content, we need to convert it properly for DOCX
+      let docContent;
+      if (aiGeneratedMinutes) {
+        // Clean the AI content for DOCX format (remove HTML tags if any)
+        docContent = content
+          .replace(/<[^>]*>/g, '') // Remove HTML tags
+          .replace(/&nbsp;/g, ' ')  // Replace HTML entities
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>');
+      } else {
+        docContent = content;
+      }
+
       const doc = new Document({
         sections: [{
           properties: {},
           children: [
             new Paragraph({
-              text: "NHS MEETING MINUTES",
+              text: aiGeneratedMinutes ? "AI Generated Meeting Minutes" : "NHS MEETING MINUTES",
               heading: HeadingLevel.HEADING_1,
               alignment: AlignmentType.CENTER,
             }),
             new Paragraph({ text: "" }),
-            ...content.split('\n').map(line => 
+            ...docContent.split('\n').map(line => 
               new Paragraph({
                 children: [new TextRun(line)],
               })
@@ -272,7 +293,7 @@ Speakers detected: ${meetingData?.speakerCount || 0}`;
       });
 
       const blob = await Packer.toBlob(doc);
-      saveAs(blob, `${meetingData?.title || 'meeting'}_summary.docx`);
+      saveAs(blob, `${meetingData?.title || 'meeting'}_minutes.docx`);
       toast.success("DOCX file downloaded successfully");
     } catch (error) {
       console.error('Error generating DOCX:', error);
@@ -283,12 +304,26 @@ Speakers detected: ${meetingData?.speakerCount || 0}`;
   const downloadPDF = () => {
     try {
       const content = generateNHSSummaryContent();
+      
+      // Clean content for PDF (remove HTML tags if any)
+      let pdfContent;
+      if (aiGeneratedMinutes) {
+        pdfContent = content
+          .replace(/<[^>]*>/g, '') // Remove HTML tags
+          .replace(/&nbsp;/g, ' ')  // Replace HTML entities
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>');
+      } else {
+        pdfContent = content;
+      }
+
       const pdf = new jsPDF();
-      const lines = content.split('\n');
+      const lines = pdfContent.split('\n');
       let y = 20;
       
       pdf.setFontSize(16);
-      pdf.text("NHS MEETING MINUTES", 105, y, { align: 'center' });
+      pdf.text(aiGeneratedMinutes ? "AI Generated Meeting Minutes" : "NHS MEETING MINUTES", 105, y, { align: 'center' });
       y += 20;
       
       pdf.setFontSize(10);
@@ -297,11 +332,19 @@ Speakers detected: ${meetingData?.speakerCount || 0}`;
           pdf.addPage();
           y = 20;
         }
-        pdf.text(line, 20, y);
-        y += 6;
+        // Handle long lines by splitting them
+        const splitLines = pdf.splitTextToSize(line, 170);
+        splitLines.forEach((splitLine: string) => {
+          if (y > 270) {
+            pdf.addPage();
+            y = 20;
+          }
+          pdf.text(splitLine, 20, y);
+          y += 6;
+        });
       });
       
-      pdf.save(`${meetingData?.title || 'meeting'}_summary.pdf`);
+      pdf.save(`${meetingData?.title || 'meeting'}_minutes.pdf`);
       toast.success("PDF file downloaded successfully");
     } catch (error) {
       console.error('Error generating PDF:', error);
