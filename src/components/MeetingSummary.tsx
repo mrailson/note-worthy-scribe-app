@@ -134,53 +134,87 @@ New patient pathway improvements have reduced waiting times by 15%. Patient sati
 
   return (
     <Card className="shadow-medium">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Meeting Summary
-          </CardTitle>
-          <Button variant="outline" onClick={onBackToRecording}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Recording
-          </Button>
+      <CardHeader className="pb-3 sm:pb-6">
+        {/* Mobile-First Header Layout */}
+        <div className="space-y-3 sm:space-y-0">
+          {/* Back Button - Full Width on Mobile */}
+          <div className="flex items-center justify-between sm:hidden">
+            <Button 
+              variant="outline" 
+              onClick={onBackToRecording}
+              className="touch-manipulation min-h-[44px] flex-1 max-w-[200px]"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Recording
+            </Button>
+          </div>
+          
+          {/* Desktop Header */}
+          <div className="hidden sm:flex sm:items-center sm:justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Meeting Summary
+            </CardTitle>
+            <Button variant="outline" onClick={onBackToRecording}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Recording
+            </Button>
+          </div>
+          
+          {/* Mobile Title */}
+          <div className="text-center sm:hidden">
+            <CardTitle className="flex items-center justify-center gap-2 text-lg">
+              <FileText className="h-5 w-5" />
+              Meeting Summary
+            </CardTitle>
+          </div>
         </div>
       </CardHeader>
       
-      <CardContent className="space-y-6">
-        {/* Meeting Stats */}
-        <div className="flex flex-wrap gap-4">
-          <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4 text-muted-foreground" />
-            <span className="font-medium">Total Duration:</span>
-            <Badge variant="secondary">{duration}</Badge>
+      <CardContent className="space-y-4 sm:space-y-6 px-3 sm:px-6">
+        {/* Meeting Stats - Mobile Optimized */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+          <div className="flex items-center justify-center sm:justify-start gap-2 p-3 bg-accent/50 rounded-lg">
+            <Clock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <span className="font-medium text-sm sm:text-base">Duration:</span>
+            <Badge variant="secondary" className="text-xs sm:text-sm">{duration}</Badge>
           </div>
-          <div className="flex items-center gap-2">
-            <Hash className="h-4 w-4 text-muted-foreground" />
-            <span className="font-medium">Total Words:</span>
-            <Badge variant="secondary">{wordCount}</Badge>
+          <div className="flex items-center justify-center sm:justify-start gap-2 p-3 bg-accent/50 rounded-lg">
+            <Hash className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <span className="font-medium text-sm sm:text-base">Words:</span>
+            <Badge variant="secondary" className="text-xs sm:text-sm">{wordCount}</Badge>
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex flex-wrap gap-2">
-          <Button onClick={onBackToRecording} variant="outline" size="sm">
+        {/* Action Buttons - Mobile Optimized */}
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+          <Button 
+            onClick={onBackToRecording} 
+            variant="outline" 
+            size="sm"
+            className="w-full sm:w-auto touch-manipulation min-h-[44px]"
+          >
             Continue Recording
           </Button>
-          <Button onClick={handleEmailNotes} variant="outline" size="sm">
+          <Button 
+            onClick={handleEmailNotes} 
+            variant="outline" 
+            size="sm"
+            className="w-full sm:w-auto touch-manipulation min-h-[44px]"
+          >
             <Mail className="h-4 w-4 mr-2" />
             Email Notes
           </Button>
         </div>
 
-        {/* Detail Level Selector */}
+        {/* Detail Level Selector - Mobile Friendly */}
         <div className="space-y-2">
           <label className="text-sm font-medium">Meeting Notes Detail Level</label>
           <Select value={detailLevel} onValueChange={handleDetailLevelChange}>
-            <SelectTrigger className="w-full">
+            <SelectTrigger className="w-full touch-manipulation min-h-[44px]">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-background border shadow-lg z-50">
               <SelectItem value="headlines">Headlines Only</SelectItem>
               <SelectItem value="balanced">Balanced</SelectItem>
               <SelectItem value="detailed">Super Detailed</SelectItem>
@@ -188,11 +222,11 @@ New patient pathway improvements have reduced waiting times by 15%. Patient sati
           </Select>
         </div>
 
-        {/* Meeting Notes */}
+        {/* Meeting Notes - Mobile Optimized */}
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <label className="text-sm font-medium">Review and customize your meeting notes</label>
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" className="touch-manipulation min-h-[44px] w-full sm:w-auto">
               <Edit3 className="h-4 w-4 mr-2" />
               Edit Notes
             </Button>
@@ -200,32 +234,57 @@ New patient pathway improvements have reduced waiting times by 15%. Patient sati
           <Textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            rows={15}
-            className="font-mono text-sm"
+            rows={12}
+            className="font-mono text-xs sm:text-sm touch-manipulation min-h-[300px] resize-y"
           />
         </div>
 
-        {/* Export Options */}
-        <div className="flex flex-wrap gap-2">
-          <Button onClick={handleCopyNotes} variant="outline" size="sm">
+        {/* Export Options - Mobile Grid Layout */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+          <Button 
+            onClick={handleCopyNotes} 
+            variant="outline" 
+            size="sm"
+            className="touch-manipulation min-h-[44px] justify-start"
+          >
             <Copy className="h-4 w-4 mr-2" />
-            Copy Meeting Notes
+            Copy Notes
           </Button>
-          <Button onClick={() => handleExport("Preview")} variant="outline" size="sm">
+          <Button 
+            onClick={() => handleExport("Preview")} 
+            variant="outline" 
+            size="sm"
+            className="touch-manipulation min-h-[44px] justify-start"
+          >
             <Eye className="h-4 w-4 mr-2" />
-            Preview All Exports
+            Preview
           </Button>
-          <Button onClick={() => handleExport("Word")} variant="outline" size="sm">
+          <Button 
+            onClick={() => handleExport("Word")} 
+            variant="outline" 
+            size="sm"
+            className="touch-manipulation min-h-[44px] justify-start"
+          >
             <FileDown className="h-4 w-4 mr-2" />
-            Generate Word Document
+            Word Doc
           </Button>
-          <Button onClick={() => handleExport("PDF")} variant="outline" size="sm">
+          <Button 
+            onClick={() => handleExport("PDF")} 
+            variant="outline" 
+            size="sm"
+            className="touch-manipulation min-h-[44px] justify-start"
+          >
             <Download className="h-4 w-4 mr-2" />
-            Generate PDF Document
+            PDF Doc
           </Button>
-          <Button onClick={() => handleExport("Transcript")} variant="outline" size="sm">
+          <Button 
+            onClick={() => handleExport("Transcript")} 
+            variant="outline" 
+            size="sm"
+            className="touch-manipulation min-h-[44px] justify-start sm:col-span-2 lg:col-span-1"
+          >
             <FileText className="h-4 w-4 mr-2" />
-            View Full Transcript
+            Transcript
           </Button>
         </div>
       </CardContent>
