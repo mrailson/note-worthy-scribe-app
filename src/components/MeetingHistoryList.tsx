@@ -84,9 +84,16 @@ export const MeetingHistoryList = ({
   const getMeetingTypeLabel = (type: string) => {
     const types: Record<string, string> = {
       'general': 'General Meeting',
+      'patient-consultation': 'Patient Meeting',
       'team-meeting': 'Team Meeting',
       'clinical-review': 'Clinical Review',
       'training': 'Training Session',
+      'pcn-meeting': 'PCN Meeting',
+      'icb-meeting': 'ICB Meeting',
+      'neighbourhood-meeting': 'Neighbourhood Meeting',
+      'federation': 'Federation',
+      'locality': 'Locality',
+      'lmc': 'LMC',
     };
     return types[type] || type.charAt(0).toUpperCase() + type.slice(1);
   };

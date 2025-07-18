@@ -51,6 +51,9 @@ export const MeetingSearchBar = ({
     { value: "pcn-meeting", label: "PCN Meeting" },
     { value: "icb-meeting", label: "ICB Meeting" },
     { value: "neighbourhood-meeting", label: "Neighbourhood Meeting" },
+    { value: "federation", label: "Federation" },
+    { value: "locality", label: "Locality" },
+    { value: "lmc", label: "LMC" },
   ];
 
   const currentFilter = filters.find(f => f.value === localFilterType);

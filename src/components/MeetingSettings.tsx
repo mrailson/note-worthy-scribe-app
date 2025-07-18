@@ -244,6 +244,9 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
                   <SelectItem value="pcn-meeting">PCN Meeting</SelectItem>
                   <SelectItem value="icb-meeting">ICB Meeting</SelectItem>
                   <SelectItem value="neighbourhood-meeting">Neighbourhood Meeting</SelectItem>
+                  <SelectItem value="federation">Federation</SelectItem>
+                  <SelectItem value="locality">Locality</SelectItem>
+                  <SelectItem value="lmc">LMC</SelectItem>
                 </SelectContent>
               </Select>
             </div>
