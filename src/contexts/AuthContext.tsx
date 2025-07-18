@@ -3,6 +3,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface AuthContextType {
   user: User | null;
@@ -29,6 +30,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -65,10 +67,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         variant: "destructive",
       });
     } else {
-      toast({
-        title: "Login Successful",
-        description: "Welcome to Notewell AI Meeting Notes Service",
-      });
+      // Only show welcome toast on desktop
+      if (!isMobile) {
+        toast({
+          title: "Login Successful",
+          description: "Welcome to Notewell AI Meeting Notes Service",
+        });
+      }
     }
     
     return { error };
