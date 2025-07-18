@@ -37,7 +37,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { saveAs } from "file-saver";
-import { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel, Table, TableRow, TableCell, WidthType } from "docx";
+import { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel, Table, TableRow, TableCell, WidthType, ImageRun, Header, Footer } from "docx";
 import jsPDF from "jspdf";
 import emailjs from '@emailjs/browser';
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -1041,6 +1041,7 @@ Speakers detected: ${meetingData?.speakerCount || 0}`;
       let inTable = false;
       
       // Add practice logo at the top if available
+      let logoImageRun = null;
       if (practiceData?.logo_url) {
         try {
           console.log('Adding logo to DOCX:', practiceData.logo_url);
@@ -1050,40 +1051,29 @@ Speakers detected: ${meetingData?.speakerCount || 0}`;
           const logoBlob = await response.blob();
           const logoArrayBuffer = await logoBlob.arrayBuffer();
           
-          // Add logo with proper image embedding
+          // Create image run for the logo
+          logoImageRun = new ImageRun({
+            data: new Uint8Array(logoArrayBuffer),
+            transformation: {
+              width: 120,
+              height: 80,
+            },
+            type: "png", // or "jpg" depending on the image
+          });
+          
+          // Add logo paragraph
           documentChildren.push(
             new Paragraph({
-              children: [
-                new TextRun({
-                  text: "",
-                  size: 24
-                })
-              ],
+              children: [logoImageRun],
               alignment: AlignmentType.RIGHT,
-              spacing: { after: 400 }
+              spacing: { after: 200 }
             })
           );
           
-          // Add practice name if available
-          if (practiceData.practice_name) {
-            documentChildren.push(
-              new Paragraph({
-                children: [
-                  new TextRun({
-                    text: practiceData.practice_name,
-                    bold: true,
-                    size: 24,
-                    color: "1f4e79"
-                  })
-                ],
-                alignment: AlignmentType.RIGHT,
-                spacing: { after: 200 }
-              })
-            );
-          }
+          console.log('Logo added successfully to DOCX');
         } catch (error) {
           console.warn('Failed to load logo for DOCX:', error);
-          // If logo fails, still add practice name if available
+          // Fallback to practice name if logo fails
           if (practiceData?.practice_name) {
             documentChildren.push(
               new Paragraph({
@@ -1096,11 +1086,27 @@ Speakers detected: ${meetingData?.speakerCount || 0}`;
                   })
                 ],
                 alignment: AlignmentType.RIGHT,
-                spacing: { after: 400 }
+                spacing: { after: 300 }
               })
             );
           }
         }
+      } else if (practiceData?.practice_name) {
+        // No logo URL, but have practice name
+        documentChildren.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: practiceData.practice_name,
+                bold: true,
+                size: 24,
+                color: "1f4e79"
+              })
+            ],
+            alignment: AlignmentType.RIGHT,
+            spacing: { after: 300 }
+          })
+        );
       }
       
       // Process each line with proper formatting
@@ -1251,49 +1257,46 @@ Speakers detected: ${meetingData?.speakerCount || 0}`;
         documentChildren.push(table);
       }
       
-      // Add footer if configured
+      // Create footer content if configured
+      let footerContent = [];
       if (practiceData?.footer_text) {
         console.log('Adding footer to DOCX:', practiceData.footer_text);
         
-        // Add space before footer
-        documentChildren.push(
-          new Paragraph({
-            children: [new TextRun({ text: "", size: 22 })],
-            spacing: { before: 600, after: 200 }
-          })
-        );
-        
-        // Add separator line
-        documentChildren.push(
-          new Paragraph({
-            children: [new TextRun({ text: "—————————————————————————————————————————", size: 16, color: "999999" })],
-            alignment: AlignmentType.CENTER,
-            spacing: { after: 200 }
-          })
-        );
-        
-        // Split footer text by lines and add each line
         const footerLines = practiceData.footer_text.split('\n');
         footerLines.forEach((line, index) => {
           if (line.trim()) {
-            documentChildren.push(
+            footerContent.push(
               new Paragraph({
-                children: [new TextRun({ text: line.trim(), size: 20, color: "666666" })],
+                children: [new TextRun({ text: line.trim(), size: 16 })],
                 alignment: AlignmentType.CENTER,
-                spacing: { after: index === footerLines.length - 1 ? 100 : 50 }
+                spacing: { after: index === footerLines.length - 1 ? 0 : 100 }
               })
             );
           }
         });
       }
       
+      // Create the document with footer
       const doc = new Document({
         sections: [{
           properties: {
             page: {
-              margin: { top: 720, right: 720, bottom: 720, left: 720 }
+              margin: { top: 720, right: 720, bottom: 1440, left: 720 } // Increased bottom margin for footer
             }
           },
+          headers: {},
+          footers: footerContent.length > 0 ? {
+            default: new Footer({
+              children: [
+                new Paragraph({
+                  children: [new TextRun({ text: "—————————————————————————————————————————", size: 12 })],
+                  alignment: AlignmentType.CENTER,
+                  spacing: { after: 200 }
+                }),
+                ...footerContent
+              ]
+            })
+          } : {},
           children: documentChildren
         }]
       });
