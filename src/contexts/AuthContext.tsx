@@ -82,10 +82,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signOut = async () => {
     await supabase.auth.signOut();
-    toast({
-      title: "Logged Out",
-      description: "You have been successfully logged out",
-    });
+    // Only show logout toast on desktop
+    if (!isMobile) {
+      toast({
+        title: "Logged Out",
+        description: "You have been successfully logged out",
+      });
+    }
     // Navigate to home page to show login form
     navigate('/', { replace: true });
   };
