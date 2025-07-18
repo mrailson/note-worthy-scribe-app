@@ -54,6 +54,7 @@ const MeetingHistory = () => {
   const [filteredMeetings, setFilteredMeetings] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [filterType, setFilterType] = useState("all");
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   
   // Edit dialog state
@@ -131,7 +132,7 @@ const MeetingHistory = () => {
 
   useEffect(() => {
     filterMeetings();
-  }, [meetings, searchQuery]);
+  }, [meetings, searchQuery, filterType]);
 
   const fetchMeetings = async () => {
     try {
@@ -190,17 +191,22 @@ const MeetingHistory = () => {
   };
 
   const filterMeetings = () => {
-    if (!searchQuery.trim()) {
-      setFilteredMeetings(meetings);
-      return;
+    let filtered = meetings;
+
+    // Apply search query filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(meeting =>
+        meeting.title.toLowerCase().includes(query) ||
+        meeting.description?.toLowerCase().includes(query) ||
+        meeting.meeting_type.toLowerCase().includes(query)
+      );
     }
 
-    const query = searchQuery.toLowerCase();
-    const filtered = meetings.filter(meeting =>
-      meeting.title.toLowerCase().includes(query) ||
-      meeting.description?.toLowerCase().includes(query) ||
-      meeting.meeting_type.toLowerCase().includes(query)
-    );
+    // Apply type filter
+    if (filterType !== "all") {
+      filtered = filtered.filter(meeting => meeting.meeting_type === filterType);
+    }
     
     setFilteredMeetings(filtered);
   };
@@ -394,6 +400,8 @@ const MeetingHistory = () => {
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           resultsCount={filteredMeetings.length}
+          filterType={filterType}
+          onFilterChange={setFilterType}
         />
 
         {/* Delete All Button */}

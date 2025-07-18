@@ -16,29 +16,44 @@ interface MeetingSearchBarProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
   resultsCount: number;
+  filterType?: string;
+  onFilterChange?: (filterType: string) => void;
 }
 
 export const MeetingSearchBar = ({ 
   searchQuery, 
   onSearchChange, 
-  resultsCount 
+  resultsCount,
+  filterType = "all",
+  onFilterChange
 }: MeetingSearchBarProps) => {
-  const [filterType, setFilterType] = useState<string>("all");
+  const [localFilterType, setLocalFilterType] = useState<string>(filterType);
 
   const handleClearSearch = () => {
     onSearchChange("");
-    setFilterType("all");
+    const newFilterType = "all";
+    setLocalFilterType(newFilterType);
+    onFilterChange?.(newFilterType);
+  };
+
+  const handleFilterChange = (value: string) => {
+    setLocalFilterType(value);
+    onFilterChange?.(value);
   };
 
   const filters = [
     { value: "all", label: "All Meetings" },
-    { value: "general", label: "General" },
+    { value: "general", label: "General Meeting" },
+    { value: "patient-consultation", label: "Patient Meeting" },
     { value: "team-meeting", label: "Team Meeting" },
     { value: "clinical-review", label: "Clinical Review" },
-    { value: "training", label: "Training" },
+    { value: "training", label: "Training Session" },
+    { value: "pcn-meeting", label: "PCN Meeting" },
+    { value: "icb-meeting", label: "ICB Meeting" },
+    { value: "neighbourhood-meeting", label: "Neighbourhood Meeting" },
   ];
 
-  const currentFilter = filters.find(f => f.value === filterType);
+  const currentFilter = filters.find(f => f.value === localFilterType);
 
   return (
     <div className="space-y-4">
@@ -72,14 +87,14 @@ export const MeetingSearchBar = ({
               {currentFilter?.label}
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuContent align="end" className="w-56 bg-background border shadow-lg z-50">
             <DropdownMenuLabel>Filter by Type</DropdownMenuLabel>
             <DropdownMenuSeparator />
             {filters.map((filter) => (
               <DropdownMenuItem
                 key={filter.value}
-                onClick={() => setFilterType(filter.value)}
-                className={filterType === filter.value ? "bg-accent" : ""}
+                onClick={() => handleFilterChange(filter.value)}
+                className={localFilterType === filter.value ? "bg-accent" : ""}
               >
                 {filter.label}
               </DropdownMenuItem>
@@ -101,14 +116,14 @@ export const MeetingSearchBar = ({
             </Badge>
           )}
           
-          {filterType !== "all" && (
+          {localFilterType !== "all" && (
             <Badge variant="outline">
               {currentFilter?.label}
             </Badge>
           )}
         </div>
 
-        {(searchQuery || filterType !== "all") && (
+        {(searchQuery || localFilterType !== "all") && (
           <Button 
             variant="ghost" 
             size="sm" 
