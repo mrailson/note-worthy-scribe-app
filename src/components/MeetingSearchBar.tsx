@@ -46,6 +46,7 @@ export const MeetingSearchBar = ({
     { value: "clinical-review", label: "Clinical Review" },
     { value: "federation", label: "Federation" },
     { value: "general", label: "General Meeting" },
+    { value: "gp-partners", label: "GP Partners Meeting" },
     { value: "icb-meeting", label: "ICB Meeting" },
     { value: "lmc", label: "LMC" },
     { value: "locality", label: "Locality" },

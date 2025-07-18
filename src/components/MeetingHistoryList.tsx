@@ -94,6 +94,7 @@ export const MeetingHistoryList = ({
       'federation': 'Federation',
       'locality': 'Locality',
       'lmc': 'LMC',
+      'gp-partners': 'GP Partners Meeting',
     };
     return types[type] || type.charAt(0).toUpperCase() + type.slice(1);
   };
