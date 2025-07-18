@@ -1040,14 +1040,17 @@ Speakers detected: ${meetingData?.speakerCount || 0}`;
       let currentTableRows = [];
       let inTable = false;
       
-      // Add logo if available
+      // Add practice logo at the top if available
       if (practiceData?.logo_url) {
         try {
+          console.log('Adding logo to DOCX:', practiceData.logo_url);
           const response = await fetch(practiceData.logo_url);
+          if (!response.ok) throw new Error('Failed to fetch logo');
+          
           const logoBlob = await response.blob();
           const logoArrayBuffer = await logoBlob.arrayBuffer();
-          const logoImage = new Uint8Array(logoArrayBuffer);
           
+          // Add logo with proper image embedding
           documentChildren.push(
             new Paragraph({
               children: [
@@ -1057,11 +1060,46 @@ Speakers detected: ${meetingData?.speakerCount || 0}`;
                 })
               ],
               alignment: AlignmentType.RIGHT,
-              spacing: { after: 200 }
+              spacing: { after: 400 }
             })
           );
+          
+          // Add practice name if available
+          if (practiceData.practice_name) {
+            documentChildren.push(
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: practiceData.practice_name,
+                    bold: true,
+                    size: 24,
+                    color: "1f4e79"
+                  })
+                ],
+                alignment: AlignmentType.RIGHT,
+                spacing: { after: 200 }
+              })
+            );
+          }
         } catch (error) {
           console.warn('Failed to load logo for DOCX:', error);
+          // If logo fails, still add practice name if available
+          if (practiceData?.practice_name) {
+            documentChildren.push(
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: practiceData.practice_name,
+                    bold: true,
+                    size: 24,
+                    color: "1f4e79"
+                  })
+                ],
+                alignment: AlignmentType.RIGHT,
+                spacing: { after: 400 }
+              })
+            );
+          }
         }
       }
       
@@ -1211,6 +1249,42 @@ Speakers detected: ${meetingData?.speakerCount || 0}`;
           width: { size: 100, type: WidthType.PERCENTAGE }
         });
         documentChildren.push(table);
+      }
+      
+      // Add footer if configured
+      if (practiceData?.footer_text) {
+        console.log('Adding footer to DOCX:', practiceData.footer_text);
+        
+        // Add space before footer
+        documentChildren.push(
+          new Paragraph({
+            children: [new TextRun({ text: "", size: 22 })],
+            spacing: { before: 600, after: 200 }
+          })
+        );
+        
+        // Add separator line
+        documentChildren.push(
+          new Paragraph({
+            children: [new TextRun({ text: "—————————————————————————————————————————", size: 16, color: "999999" })],
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 200 }
+          })
+        );
+        
+        // Split footer text by lines and add each line
+        const footerLines = practiceData.footer_text.split('\n');
+        footerLines.forEach((line, index) => {
+          if (line.trim()) {
+            documentChildren.push(
+              new Paragraph({
+                children: [new TextRun({ text: line.trim(), size: 20, color: "666666" })],
+                alignment: AlignmentType.CENTER,
+                spacing: { after: index === footerLines.length - 1 ? 100 : 50 }
+              })
+            );
+          }
+        });
       }
       
       const doc = new Document({
