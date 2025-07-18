@@ -456,7 +456,7 @@ const MeetingHistory = () => {
 
         {/* Edit Meeting Dialog */}
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="mx-4 max-w-md">
             <DialogHeader>
               <DialogTitle>Edit Meeting</DialogTitle>
               <DialogDescription>
@@ -472,14 +472,14 @@ const MeetingHistory = () => {
                   value={editTitle}
                   onChange={(e) => setEditTitle(e.target.value)}
                   placeholder="Enter meeting name"
-                  className="w-full"
+                  className="w-full touch-manipulation min-h-[44px]"
                 />
               </div>
               
               <div className="space-y-2">
                 <Label htmlFor="edit-type">Meeting Type</Label>
                 <Select value={editMeetingType} onValueChange={setEditMeetingType}>
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className="w-full touch-manipulation min-h-[44px]">
                     <SelectValue placeholder="Select meeting type" />
                   </SelectTrigger>
                   <SelectContent>
@@ -501,14 +501,14 @@ const MeetingHistory = () => {
                 variant="outline" 
                 onClick={handleCancelEdit}
                 disabled={isSaving}
-                className="w-full sm:w-auto"
+                className="w-full sm:w-auto touch-manipulation min-h-[44px]"
               >
                 Cancel
               </Button>
               <Button 
                 onClick={handleSaveEdit}
                 disabled={isSaving || !editTitle.trim()}
-                className="w-full sm:w-auto"
+                className="w-full sm:w-auto touch-manipulation min-h-[44px]"
               >
                 {isSaving ? (
                   <>

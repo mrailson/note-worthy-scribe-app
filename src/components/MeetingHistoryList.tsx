@@ -182,51 +182,59 @@ export const MeetingHistoryList = ({
       {meetings.map((meeting) => (
         <Card key={meeting.id} className="hover:shadow-medium transition-shadow">
           <CardHeader className="pb-3">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  {getStatusIcon(meeting.status)}
-                  <h3 className="font-semibold text-lg">{meeting.title}</h3>
-                  <Badge variant="secondary" className="text-xs">
-                    {getMeetingTypeLabel(meeting.meeting_type)}
-                  </Badge>
-                  {getStatusBadge(meeting.status)}
-                </div>
-                
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-1">
-                    <Calendar className="h-3 w-3" />
-                    {format(new Date(meeting.start_time), 'PPp')}
+            {/* Mobile-first layout */}
+            <div className="space-y-3">
+              {/* Title and Status Row */}
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-2">
+                    {getStatusIcon(meeting.status)}
+                    <h3 className="font-semibold text-base sm:text-lg truncate pr-2">{meeting.title}</h3>
                   </div>
-                  
-                  {meeting.duration_minutes && (
-                    <div className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      {formatDuration(meeting.duration_minutes)}
-                    </div>
-                  )}
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="secondary" className="text-xs">
+                      {getMeetingTypeLabel(meeting.meeting_type)}
+                    </Badge>
+                    {getStatusBadge(meeting.status)}
+                  </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              {/* Date and Duration Row */}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-muted-foreground">
+                <div className="flex items-center gap-1">
+                  <Calendar className="h-3 w-3 flex-shrink-0" />
+                  <span className="truncate">{format(new Date(meeting.start_time), 'MMM d, yyyy h:mm a')}</span>
+                </div>
+                
+                {meeting.duration_minutes && (
+                  <div className="flex items-center gap-1">
+                    <Clock className="h-3 w-3 flex-shrink-0" />
+                    <span>{formatDuration(meeting.duration_minutes)}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons - Mobile Optimized */}
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-2">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => onViewSummary(meeting.id)}
-                  className="flex items-center gap-1"
+                  className="flex items-center justify-center gap-2 flex-1 sm:flex-none touch-manipulation min-h-[44px]"
                 >
-                  <Eye className="h-3 w-3" />
-                  View Summary
+                  <Eye className="h-4 w-4" />
+                  <span>View Summary</span>
                 </Button>
                 
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => onEdit(meeting.id)}
-                  className="flex items-center gap-1"
+                  className="flex items-center justify-center gap-2 flex-1 sm:flex-none touch-manipulation min-h-[44px]"
                 >
-                  <Edit className="h-3 w-3" />
-                  Edit
+                  <Edit className="h-4 w-4" />
+                  <span>Edit</span>
                 </Button>
                 
                 <AlertDialog>
@@ -234,13 +242,13 @@ export const MeetingHistoryList = ({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="flex items-center gap-1 text-destructive hover:text-destructive"
+                      className="flex items-center justify-center gap-2 flex-1 sm:flex-none text-destructive hover:text-destructive touch-manipulation min-h-[44px]"
                     >
-                      <Trash2 className="h-3 w-3" />
-                      Delete
+                      <Trash2 className="h-4 w-4" />
+                      <span>Delete</span>
                     </Button>
                   </AlertDialogTrigger>
-                  <AlertDialogContent>
+                  <AlertDialogContent className="mx-4 max-w-md">
                     <AlertDialogHeader>
                       <AlertDialogTitle>Delete Meeting</AlertDialogTitle>
                       <AlertDialogDescription>
@@ -248,11 +256,11 @@ export const MeetingHistoryList = ({
                         This will permanently delete the meeting, transcript, and summary.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                      <AlertDialogCancel className="touch-manipulation min-h-[44px]">Cancel</AlertDialogCancel>
                       <AlertDialogAction 
                         onClick={() => onDelete(meeting.id)}
-                        className="bg-destructive hover:bg-destructive/90"
+                        className="bg-destructive hover:bg-destructive/90 touch-manipulation min-h-[44px]"
                       >
                         Delete
                       </AlertDialogAction>
@@ -263,33 +271,33 @@ export const MeetingHistoryList = ({
             </div>
           </CardHeader>
           
-          <CardContent>
+          <CardContent className="pt-0">
             <div className="space-y-3">
-              {/* 40-word overview */}
-              <p className="text-sm text-muted-foreground line-clamp-3">
+              {/* Meeting Overview */}
+              <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
                 {generateOverview(meeting)}
               </p>
               
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  
+              {/* Meeting Stats - Mobile Responsive */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div className="flex flex-wrap items-center gap-3">
                   {meeting.transcript_count ? (
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <MessageSquare className="h-3 w-3" />
-                      {meeting.transcript_count} transcript entries
+                      <MessageSquare className="h-3 w-3 flex-shrink-0" />
+                      <span>{meeting.transcript_count} transcript entries</span>
                     </div>
                   ) : null}
                   
                   {meeting.summary_exists && (
                     <div className="flex items-center gap-1 text-xs text-green-600">
-                      <CheckCircle className="h-3 w-3" />
-                      Summary available
+                      <CheckCircle className="h-3 w-3 flex-shrink-0" />
+                      <span>Summary available</span>
                     </div>
                   )}
                 </div>
                 
-                <div className="text-xs text-muted-foreground">
-                  Created {format(new Date(meeting.created_at), 'PP')}
+                <div className="text-xs text-muted-foreground whitespace-nowrap">
+                  Created {format(new Date(meeting.created_at), 'MMM d, yyyy')}
                 </div>
               </div>
             </div>
