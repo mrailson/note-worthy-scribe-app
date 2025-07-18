@@ -43,7 +43,8 @@ const handler = async (req: Request): Promise<Response> => {
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: userData.email,
       password: userData.password,
-      email_confirm: false,
+      email_confirm: true,
+      email_confirmed_at: new Date().toISOString(),
       user_metadata: {
         full_name: userData.name
       }
