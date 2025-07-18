@@ -350,8 +350,8 @@ const MeetingHistory = () => {
           </Button>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* Stats Cards - Hidden on mobile, collapsible on larger screens */}
+        <div className="hidden sm:grid sm:grid-cols-3 gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Meetings</CardTitle>
