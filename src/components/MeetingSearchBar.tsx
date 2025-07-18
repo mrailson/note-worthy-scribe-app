@@ -43,17 +43,17 @@ export const MeetingSearchBar = ({
 
   const filters = [
     { value: "all", label: "All Meetings" },
-    { value: "general", label: "General Meeting" },
-    { value: "patient-consultation", label: "Patient Meeting" },
-    { value: "team-meeting", label: "Team Meeting" },
     { value: "clinical-review", label: "Clinical Review" },
-    { value: "training", label: "Training Session" },
-    { value: "pcn-meeting", label: "PCN Meeting" },
-    { value: "icb-meeting", label: "ICB Meeting" },
-    { value: "neighbourhood-meeting", label: "Neighbourhood Meeting" },
     { value: "federation", label: "Federation" },
-    { value: "locality", label: "Locality" },
+    { value: "general", label: "General Meeting" },
+    { value: "icb-meeting", label: "ICB Meeting" },
     { value: "lmc", label: "LMC" },
+    { value: "locality", label: "Locality" },
+    { value: "neighbourhood-meeting", label: "Neighbourhood Meeting" },
+    { value: "patient-consultation", label: "Patient Meeting" },
+    { value: "pcn-meeting", label: "PCN Meeting" },
+    { value: "team-meeting", label: "Team Meeting" },
+    { value: "training", label: "Training Session" },
   ];
 
   const currentFilter = filters.find(f => f.value === localFilterType);
