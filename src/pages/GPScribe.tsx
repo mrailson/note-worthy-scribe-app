@@ -50,15 +50,15 @@ const Index = () => {
   const [selectedExample, setSelectedExample] = useState<string>("");
   const [showExamples, setShowExamples] = useState(false);
   
-  // Guidance states
+  // Guidance states - Removed guidance UI but keep for trainee feedback integration
   const [guidance, setGuidance] = useState<ConsultationGuidance | null>(null);
   const [isGuidanceLoading, setIsGuidanceLoading] = useState(false);
   const [autoGuidance, setAutoGuidance] = useState(true);
   
-  // Output configuration
-  const [outputLevel, setOutputLevel] = useState<number>(2);
-  const [showSnomedCodes, setShowSnomedCodes] = useState(false);
-  const [formatForEmis, setFormatForEmis] = useState(false);
+  // Output configuration - Updated defaults
+  const [outputLevel, setOutputLevel] = useState<number>(3); // Default to Standard
+  const [showSnomedCodes, setShowSnomedCodes] = useState(true); // Default to true
+  const [formatForEmis, setFormatForEmis] = useState(true); // Default to true
   const [formatForSystmOne, setFormatForSystmOne] = useState(false);
   
   // Generated outputs
