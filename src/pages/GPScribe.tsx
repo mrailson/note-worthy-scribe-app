@@ -1114,8 +1114,108 @@ const Index = () => {
                       </div>
                     </div>
                   ) : (
-                    <div className="bg-purple-50 dark:bg-purple-950/20 rounded-lg p-4 min-h-[200px] whitespace-pre-wrap">
-                      {formatTextForDisplay(traineeFeedback) || "No trainee feedback generated yet"}
+                    <div className="space-y-6">
+                      {/* AI Generated Feedback */}
+                      <div className="bg-purple-50 dark:bg-purple-950/20 rounded-lg p-4 min-h-[200px] whitespace-pre-wrap">
+                        {formatTextForDisplay(traineeFeedback) || "No trainee feedback generated yet"}
+                      </div>
+                      
+                      {/* Consultation Guidance Integration */}
+                      {guidance && (
+                        <div className="space-y-4 border-t pt-4">
+                          <h4 className="font-semibold flex items-center gap-2">
+                            <Brain className="h-5 w-5 text-blue-500" />
+                            Real-time Consultation Analysis
+                            {isGuidanceLoading && (
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                            )}
+                          </h4>
+                          
+                          {/* Consultation Quality Score */}
+                          <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg">
+                            <div className="flex items-center gap-2">
+                              <BarChart3 className="h-5 w-5 text-blue-500" />
+                              <span className="font-medium">Quality Score:</span>
+                            </div>
+                            <Badge variant="outline" className="text-lg font-semibold">
+                              {guidance.consultationQuality.score}/10
+                            </Badge>
+                            <div className="flex-1 text-sm text-muted-foreground">
+                              {guidance.consultationQuality.feedback}
+                            </div>
+                          </div>
+
+                          <div className="grid gap-4">
+                            {/* Suggested Questions */}
+                            {guidance.suggestedQuestions.length > 0 && (
+                              <div className="space-y-2">
+                                <h5 className="font-medium flex items-center gap-2">
+                                  <Brain className="h-4 w-4 text-blue-500" />
+                                  Suggested Questions
+                                </h5>
+                                <ul className="space-y-1 text-sm">
+                                  {guidance.suggestedQuestions.map((question, index) => (
+                                    <li key={index} className="p-2 bg-blue-50 dark:bg-blue-950/20 rounded">
+                                      • {question}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {/* Red Flags */}
+                            {guidance.potentialRedFlags.length > 0 && (
+                              <div className="space-y-2">
+                                <h5 className="font-medium flex items-center gap-2">
+                                  <AlertTriangle className="h-4 w-4 text-red-500" />
+                                  Potential Red Flags
+                                </h5>
+                                <ul className="space-y-1 text-sm">
+                                  {guidance.potentialRedFlags.map((flag, index) => (
+                                    <li key={index} className="p-2 bg-red-50 dark:bg-red-950/20 rounded">
+                                      ⚠️ {flag}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {/* Missed Opportunities */}
+                            {guidance.missedOpportunities.length > 0 && (
+                              <div className="space-y-2">
+                                <h5 className="font-medium flex items-center gap-2">
+                                  <BookOpen className="h-4 w-4 text-orange-500" />
+                                  Consider Exploring
+                                </h5>
+                                <ul className="space-y-1 text-sm">
+                                  {guidance.missedOpportunities.map((opportunity, index) => (
+                                    <li key={index} className="p-2 bg-orange-50 dark:bg-orange-950/20 rounded">
+                                      💡 {opportunity}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {/* Safety Netting */}
+                            {guidance.safetyNetting.length > 0 && (
+                              <div className="space-y-2">
+                                <h5 className="font-medium flex items-center gap-2">
+                                  <Shield className="h-4 w-4 text-green-500" />
+                                  Safety Netting
+                                </h5>
+                                <ul className="space-y-1 text-sm">
+                                  {guidance.safetyNetting.map((safety, index) => (
+                                    <li key={index} className="p-2 bg-green-50 dark:bg-green-950/20 rounded">
+                                      🛡️ {safety}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                   <div className="flex gap-2">
