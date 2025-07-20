@@ -44,6 +44,7 @@ const Index = () => {
   
   // UI states
   const [isTranscriptOpen, setIsTranscriptOpen] = useState(false);
+  const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [selectedExample, setSelectedExample] = useState<string>("");
   const [showExamples, setShowExamples] = useState(false);
   
@@ -673,70 +674,83 @@ const Index = () => {
           </Card>
         )}
 
-        {/* Output Configuration */}
+        {/* Output Configuration - Collapsible */}
         <Card className="shadow-medium border-accent/20">
-          <CardHeader>
-            <CardTitle>Output Configuration</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div>
-              <label className="text-sm font-medium mb-2 block">Output Style</label>
-              <Select value={outputStyle} onValueChange={setOutputStyle}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select output style" />
-                </SelectTrigger>
-                <SelectContent>
-                  {outputStyles.map((style) => (
-                    <SelectItem key={style.value} value={style.value}>
-                      <div>
-                        <div className="font-medium">{style.label}</div>
-                        <div className="text-xs text-muted-foreground">{style.description}</div>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <Collapsible open={isConfigOpen} onOpenChange={setIsConfigOpen}>
+            <CollapsibleTrigger asChild>
+              <CardHeader className="cursor-pointer hover:bg-accent/10 transition-colors">
+                <CardTitle className="flex items-center justify-between">
+                  <span>Output Configuration</span>
+                  {isConfigOpen ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </CardTitle>
+              </CardHeader>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent className="space-y-6">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Output Style</label>
+                  <Select value={outputStyle} onValueChange={setOutputStyle}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select output style" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {outputStyles.map((style) => (
+                        <SelectItem key={style.value} value={style.value}>
+                          <div>
+                            <div className="font-medium">{style.label}</div>
+                            <div className="text-xs text-muted-foreground">{style.description}</div>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-            <div className="space-y-3">
-              <label className="text-sm font-medium">Additional Options</label>
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="snomed" 
-                    checked={showSnomedCodes}
-                    onCheckedChange={(checked) => setShowSnomedCodes(checked === true)}
-                  />
-                  <label htmlFor="snomed" className="text-sm">Show SNOMED CT codes inline</label>
+                <div className="space-y-3">
+                  <label className="text-sm font-medium">Additional Options</label>
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="snomed" 
+                        checked={showSnomedCodes}
+                        onCheckedChange={(checked) => setShowSnomedCodes(checked === true)}
+                      />
+                      <label htmlFor="snomed" className="text-sm">Show SNOMED CT codes inline</label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="emis" 
+                        checked={formatForEmis}
+                        onCheckedChange={(checked) => setFormatForEmis(checked === true)}
+                      />
+                      <label htmlFor="emis" className="text-sm">Format output for EMIS (spacing, expanded acronyms)</label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="systmone" 
+                        checked={formatForSystmOne}
+                        onCheckedChange={(checked) => setFormatForSystmOne(checked === true)}
+                      />
+                      <label htmlFor="systmone" className="text-sm">Format output for SystmOne (abbreviated, pastable format)</label>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="emis" 
-                    checked={formatForEmis}
-                    onCheckedChange={(checked) => setFormatForEmis(checked === true)}
-                  />
-                  <label htmlFor="emis" className="text-sm">Format output for EMIS (spacing, expanded acronyms)</label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="systmone" 
-                    checked={formatForSystmOne}
-                    onCheckedChange={(checked) => setFormatForSystmOne(checked === true)}
-                  />
-                  <label htmlFor="systmone" className="text-sm">Format output for SystmOne (abbreviated, pastable format)</label>
-                </div>
-              </div>
-            </div>
 
-            <Button
-              onClick={generateSummary}
-              disabled={!transcript.trim() || isGenerating}
-              className="w-full bg-gradient-primary hover:bg-primary-hover shadow-subtle text-lg font-medium py-4"
-            >
-              <Brain className="h-5 w-5 mr-3" />
-              {isGenerating ? "Generating Clinical Summary..." : "🧠 Generate Clinical Summary"}
-            </Button>
-          </CardContent>
+                <Button
+                  onClick={generateSummary}
+                  disabled={!transcript.trim() || isGenerating}
+                  className="w-full bg-gradient-primary hover:bg-primary-hover shadow-subtle text-lg font-medium py-4"
+                >
+                  <Brain className="h-5 w-5 mr-3" />
+                  {isGenerating ? "Generating Clinical Summary..." : "🧠 Generate Clinical Summary"}
+                </Button>
+              </CardContent>
+            </CollapsibleContent>
+          </Collapsible>
         </Card>
 
         {/* Generated Output */}
