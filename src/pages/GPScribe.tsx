@@ -535,6 +535,35 @@ const Index = () => {
       
       <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 lg:py-8 space-y-4 sm:space-y-6 max-w-6xl">
         
+        {/* Tab Navigation */}
+        <Tabs defaultValue="examples" className="w-full">
+          <TabsList className="grid w-full grid-cols-4 bg-muted/50 p-1 rounded-xl border border-border/50">
+            <TabsTrigger 
+              value="examples" 
+              className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium"
+            >
+              Examples
+            </TabsTrigger>
+            <TabsTrigger 
+              value="config" 
+              className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium"
+            >
+              Configuration
+            </TabsTrigger>
+            <TabsTrigger 
+              value="settings" 
+              className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium"
+            >
+              Settings
+            </TabsTrigger>
+            <TabsTrigger 
+              value="history" 
+              className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium"
+            >
+              Previous
+            </TabsTrigger>
+          </TabsList>
+
         {/* Recording Controls */}
         <Card className="shadow-medium border-accent/20">
           <CardHeader className="pb-4">
@@ -604,19 +633,9 @@ const Index = () => {
           </CardContent>
         </Card>
 
-        {/* Main Content Tabs */}
-        <Card className="shadow-medium border-accent/20">
-          <CardHeader>
-            <CardTitle>Consultation Tools</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="examples" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="examples">Examples</TabsTrigger>
-                <TabsTrigger value="config">Configuration</TabsTrigger>
-                <TabsTrigger value="settings">Settings</TabsTrigger>
-                <TabsTrigger value="history">Previous</TabsTrigger>
-              </TabsList>
+          {/* Tab Content */}
+          <Card className="shadow-medium border-accent/20">
+            <CardContent className="p-6">
 
               {/* Consultation Examples Tab */}
               <TabsContent value="examples" className="space-y-4">
@@ -764,9 +783,8 @@ const Index = () => {
                   </p>
                 </div>
               </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
         {/* Live Transcript - Collapsible */}
         <Card className="shadow-medium border-accent/20">
@@ -1199,6 +1217,7 @@ const Index = () => {
             </CardContent>
           </Card>
         )}
+        </Tabs>
       </div>
     </div>
   );
