@@ -543,17 +543,15 @@ const Index = () => {
                 <FileText className="h-5 w-5 text-primary" />
                 GP Scribe - Consultation Notes
               </span>
-              <Button
-                variant="outline"
-                onClick={() => navigate('/gp-scribe/settings')}
-                className="flex items-center gap-2"
-              >
-                <Settings className="h-4 w-4" />
-                Settings
-              </Button>
-                <span className="text-lg sm:text-xl">GP Scribe - Consultation Notes</span>
-              </span>
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => navigate('/gp-scribe/settings')}
+                  className="flex items-center gap-2"
+                >
+                  <Settings className="h-4 w-4" />
+                  Settings
+                </Button>
                 <Badge variant={getConnectionStatusColor() as any} className="flex items-center gap-1 text-xs">
                   {getConnectionStatusIcon()}
                   <span className="hidden sm:inline">{connectionStatus}</span>
@@ -1300,7 +1298,6 @@ const Index = () => {
           </Card>
         )}
       </div>
-    </div>
     </div>
   );
 };
