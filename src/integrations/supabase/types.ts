@@ -86,6 +86,56 @@ export type Database = {
         }
         Relationships: []
       }
+      gp_signature_settings: {
+        Row: {
+          created_at: string
+          gmc_number: string | null
+          gp_name: string
+          id: string
+          is_default: boolean | null
+          job_title: string | null
+          practice_id: string | null
+          practice_name: string | null
+          qualifications: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          gmc_number?: string | null
+          gp_name: string
+          id?: string
+          is_default?: boolean | null
+          job_title?: string | null
+          practice_id?: string | null
+          practice_name?: string | null
+          qualifications?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          gmc_number?: string | null
+          gp_name?: string
+          id?: string
+          is_default?: boolean | null
+          job_title?: string | null
+          practice_id?: string | null
+          practice_name?: string | null
+          qualifications?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gp_signature_settings_practice_id_fkey"
+            columns: ["practice_id"]
+            isOneToOne: false
+            referencedRelation: "practice_details"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meeting_summaries: {
         Row: {
           action_items: string[] | null
@@ -355,6 +405,57 @@ export type Database = {
           meeting_retention_policy?: string | null
           nhs_trust?: string | null
           role?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      specialist_services: {
+        Row: {
+          address: string | null
+          contact_person: string | null
+          created_at: string
+          department: string | null
+          email: string | null
+          hospital_name: string | null
+          id: string
+          is_default: boolean | null
+          notes: string | null
+          phone: string | null
+          service_name: string
+          specialty_type: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          contact_person?: string | null
+          created_at?: string
+          department?: string | null
+          email?: string | null
+          hospital_name?: string | null
+          id?: string
+          is_default?: boolean | null
+          notes?: string | null
+          phone?: string | null
+          service_name: string
+          specialty_type?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          contact_person?: string | null
+          created_at?: string
+          department?: string | null
+          email?: string | null
+          hospital_name?: string | null
+          id?: string
+          is_default?: boolean | null
+          notes?: string | null
+          phone?: string | null
+          service_name?: string
+          specialty_type?: string | null
           updated_at?: string
           user_id?: string
         }

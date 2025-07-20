@@ -9,11 +9,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Mic, MicOff, Wifi, WifiOff, Brain, Copy, Download, Mail, Save, Play, Pause, FileText, ChevronDown, ChevronUp, Lightbulb, AlertTriangle, BookOpen, Shield, BarChart3, Edit, Check, X, Send } from "lucide-react";
+import { Mic, MicOff, Wifi, WifiOff, Brain, Copy, Download, Mail, Save, Play, Pause, FileText, ChevronDown, ChevronUp, Lightbulb, AlertTriangle, BookOpen, Shield, BarChart3, Edit, Check, X, Send, Settings } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { RealtimeTranscriber, TranscriptData } from "@/utils/RealtimeTranscriber";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import jsPDF from 'jspdf';
 import { consultationExamples, type ConsultationExample } from "@/data/consultationExamples";
@@ -32,6 +33,7 @@ interface ConsultationGuidance {
 const Index = () => {
   const { user, loading } = useAuth();
   const { toast: deprecatedToast } = useToast();
+  const navigate = useNavigate();
   
   // Recording states
   const [isRecording, setIsRecording] = useState(false);
@@ -539,6 +541,16 @@ const Index = () => {
             <CardTitle className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <span className="flex items-center gap-2">
                 <FileText className="h-5 w-5 text-primary" />
+                GP Scribe - Consultation Notes
+              </span>
+              <Button
+                variant="outline"
+                onClick={() => navigate('/gp-scribe/settings')}
+                className="flex items-center gap-2"
+              >
+                <Settings className="h-4 w-4" />
+                Settings
+              </Button>
                 <span className="text-lg sm:text-xl">GP Scribe - Consultation Notes</span>
               </span>
               <div className="flex flex-wrap items-center gap-2">
@@ -1288,6 +1300,7 @@ const Index = () => {
           </Card>
         )}
       </div>
+    </div>
     </div>
   );
 };
