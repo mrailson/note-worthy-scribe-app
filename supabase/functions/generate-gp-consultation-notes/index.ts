@@ -10,30 +10,30 @@ const corsHeaders = {
 
 interface RequestBody {
   transcript: string;
-  outputStyle: string;
+  outputLevel: number;
   showSnomedCodes: boolean;
   formatForEmis: boolean;
   formatForSystmOne: boolean;
 }
 
-const getStyleInstructions = (style: string, showSnomed: boolean, formatEmis: boolean, formatSystm: boolean) => {
+const getStyleInstructions = (level: number, showSnomed: boolean, formatEmis: boolean, formatSystm: boolean) => {
   let baseInstructions = "";
   
-  switch (style) {
-    case "gp-code-line":
-      baseInstructions = "Generate a concise one-line summary using GP shorthand (e.g., 'URTI, 2/7, safety-netted, paracetamol advised').";
+  switch (level) {
+    case 1: // Code
+      baseInstructions = "Generate a very concise one-line GP code summary only (e.g., 'URTI, 3/7, viral, paracetamol, safety-netted'). No formatting, just plain text.";
       break;
-    case "systmone-style":
-      baseInstructions = "Use SOAP format (Subjective, Objective, Assessment, Plan) with standard NHS short codes and abbreviations suitable for SystmOne.";
+    case 2: // Brief
+      baseInstructions = "Generate a brief clinical summary with key points only. Include presenting complaint, examination findings, diagnosis, and plan. Use clear headings and bullet points.";
       break;
-    case "emis-style":
-      baseInstructions = "Use expanded format with clear headings and full sentences, suitable for EMIS systems.";
+    case 3: // Standard
+      baseInstructions = "Generate a standard clinical consultation note with history, examination, assessment, and plan. Use professional medical terminology with clear structure.";
       break;
-    case "full-clinical":
-      baseInstructions = "Provide a comprehensive clinical summary including history, examination findings, medications, red flags, safety netting, and follow-up plans.";
+    case 4: // Detailed
+      baseInstructions = "Generate a comprehensive clinical note including detailed history, full examination findings, investigations, differential diagnosis, and complete management plan with safety netting.";
       break;
-    case "trainee-review":
-      baseInstructions = "Provide a comprehensive summary like full clinical, but include annotations on safety netting, potential omissions, and teaching points for trainees.";
+    case 5: // Full
+      baseInstructions = "Generate a complete consultation record including relevant patient quotes, detailed social history, comprehensive examination, full assessment with reasoning, and detailed management plan with patient education and follow-up.";
       break;
     default:
       baseInstructions = "Generate a standard clinical consultation summary.";
@@ -53,7 +53,7 @@ const getStyleInstructions = (style: string, showSnomed: boolean, formatEmis: bo
     additionalInstructions += " Use abbreviated format suitable for copy-paste into SystmOne.";
   }
 
-  return baseInstructions + additionalInstructions;
+  return baseInstructions + additionalInstructions + " Use **bold** formatting for headings and key terms, but keep it professional and readable.";
 };
 
 serve(async (req) => {
@@ -66,13 +66,13 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured');
     }
 
-    const { transcript, outputStyle, showSnomedCodes, formatForEmis, formatForSystmOne }: RequestBody = await req.json();
+    const { transcript, outputLevel, showSnomedCodes, formatForEmis, formatForSystmOne }: RequestBody = await req.json();
 
     if (!transcript || transcript.trim().length < 10) {
       throw new Error('Valid transcript is required');
     }
 
-    const styleInstructions = getStyleInstructions(outputStyle, showSnomedCodes, formatForEmis, formatForSystmOne);
+    const styleInstructions = getStyleInstructions(outputLevel, showSnomedCodes, formatForEmis, formatForSystmOne);
 
     // Generate GP Summary
     const gpSummaryResponse = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -175,9 +175,9 @@ Use clear, non-medical language that patients can easily understand.`
     const patientCopyData = await patientCopyResponse.json();
     const patientCopy = patientCopyData.choices[0].message.content;
 
-    // Generate Trainee Feedback (if requested)
+    // Generate Trainee Feedback (if requested at level 4 or 5)
     let traineeFeedback = "";
-    if (outputStyle === "trainee-review") {
+    if (outputLevel >= 4) {
       const traineeResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {

@@ -54,7 +54,7 @@ const Index = () => {
   const [autoGuidance, setAutoGuidance] = useState(true);
   
   // Output configuration
-  const [outputStyle, setOutputStyle] = useState<string>("gp-code-line");
+  const [outputLevel, setOutputLevel] = useState<number>(2);
   const [showSnomedCodes, setShowSnomedCodes] = useState(false);
   const [formatForEmis, setFormatForEmis] = useState(false);
   const [formatForSystmOne, setFormatForSystmOne] = useState(false);
@@ -69,12 +69,12 @@ const Index = () => {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const transciberRef = useRef<RealtimeTranscriber | null>(null);
 
-  const outputStyles = [
-    { value: "gp-code-line", label: "GP Code Line", description: "One-line summary using GP shorthand" },
-    { value: "systmone-style", label: "SystmOne Style", description: "SOAP format using standard NHS short codes" },
-    { value: "emis-style", label: "EMIS Style", description: "Expanded format with headings and full sentences" },
-    { value: "full-clinical", label: "Full Clinical Summary", description: "Long-form summary including history, meds, red flags" },
-    { value: "trainee-review", label: "Trainee Review Format", description: "Includes annotations on safety netting and omissions" }
+  const outputLevels = [
+    { value: 1, label: "Code", description: "GP shorthand only (e.g., 'URTI, 2/7, safety-netted')" },
+    { value: 2, label: "Brief", description: "Concise summary with key points" },
+    { value: 3, label: "Standard", description: "Complete clinical note" },
+    { value: 4, label: "Detailed", description: "Comprehensive with examination findings" },
+    { value: 5, label: "Full", description: "Complete with patient quotes and context" }
   ];
 
   // Format duration as MM:SS
@@ -181,6 +181,11 @@ const Index = () => {
     setIsRecording(false);
     setIsPaused(false);
     toast.success("Recording stopped");
+    
+    // Auto-generate summary if there's meaningful content
+    if (transcript && transcript.trim().length > 50) {
+      setTimeout(() => generateSummary(), 1000);
+    }
   };
 
   const loadExample = (exampleId: string) => {
@@ -191,8 +196,9 @@ const Index = () => {
       setDuration(300); // 5 minutes example duration
       toast.success(`Loaded example: ${example.title}`);
       
-      // Generate guidance for the example
+      // Generate guidance and summary for the example
       generateGuidance(example.transcript);
+      setTimeout(() => generateSummary(), 500);
     }
   };
 
@@ -241,7 +247,7 @@ const Index = () => {
       const { data, error } = await supabase.functions.invoke('generate-gp-consultation-notes', {
         body: {
           transcript,
-          outputStyle,
+          outputLevel,
           showSnomedCodes,
           formatForEmis,
           formatForSystmOne
@@ -316,16 +322,35 @@ const Index = () => {
 
   const copyToClipboard = async (text: string) => {
     try {
-      await navigator.clipboard.writeText(text);
+      // Remove markdown formatting for clipboard
+      const cleanText = text.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1');
+      await navigator.clipboard.writeText(cleanText);
       toast.success("Copied to clipboard");
     } catch (error) {
       toast.error("Failed to copy to clipboard");
     }
   };
 
+  // Function to format text for display (convert markdown to JSX)
+  const formatTextForDisplay = (text: string) => {
+    if (!text) return null;
+    
+    // Split by double asterisks for bold
+    const parts = text.split(/(\*\*.*?\*\*)/g);
+    
+    return parts.map((part, index) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={index}>{part.slice(2, -2)}</strong>;
+      }
+      return part;
+    });
+  };
+
   const downloadAsPDF = (content: string, filename: string) => {
+    // Remove markdown formatting for PDF
+    const cleanContent = content.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1');
     const doc = new jsPDF();
-    const splitText = doc.splitTextToSize(content, 180);
+    const splitText = doc.splitTextToSize(cleanContent, 180);
     doc.text(splitText, 10, 10);
     doc.save(`${filename}.pdf`);
     toast.success("PDF downloaded");
@@ -692,17 +717,17 @@ const Index = () => {
             <CollapsibleContent>
               <CardContent className="space-y-6">
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Output Style</label>
-                  <Select value={outputStyle} onValueChange={setOutputStyle}>
+                  <label className="text-sm font-medium mb-2 block">Output Level</label>
+                  <Select value={outputLevel.toString()} onValueChange={(value) => setOutputLevel(parseInt(value))}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select output style" />
+                      <SelectValue placeholder="Select output level" />
                     </SelectTrigger>
                     <SelectContent>
-                      {outputStyles.map((style) => (
-                        <SelectItem key={style.value} value={style.value}>
+                      {outputLevels.map((level) => (
+                        <SelectItem key={level.value} value={level.value.toString()}>
                           <div>
-                            <div className="font-medium">{style.label}</div>
-                            <div className="text-xs text-muted-foreground">{style.description}</div>
+                            <div className="font-medium">Level {level.value}: {level.label}</div>
+                            <div className="text-xs text-muted-foreground">{level.description}</div>
                           </div>
                         </SelectItem>
                       ))}
@@ -769,11 +794,9 @@ const Index = () => {
                 </TabsList>
                 
                 <TabsContent value="summary" className="space-y-4">
-                  <Textarea 
-                    value={gpSummary} 
-                    readOnly 
-                    className="min-h-[200px] bg-blue-50 dark:bg-blue-950/20"
-                  />
+                  <div className="bg-blue-50 dark:bg-blue-950/20 rounded-lg p-4 min-h-[200px] whitespace-pre-wrap">
+                    {formatTextForDisplay(gpSummary) || "No summary generated yet"}
+                  </div>
                   <div className="flex gap-2">
                     <Button size="sm" onClick={() => copyToClipboard(gpSummary)}>
                       <Copy className="h-4 w-4 mr-2" />
@@ -787,11 +810,9 @@ const Index = () => {
                 </TabsContent>
                 
                 <TabsContent value="full" className="space-y-4">
-                  <Textarea 
-                    value={fullNote} 
-                    readOnly 
-                    className="min-h-[200px] bg-yellow-50 dark:bg-yellow-950/20"
-                  />
+                  <div className="bg-yellow-50 dark:bg-yellow-950/20 rounded-lg p-4 min-h-[200px] whitespace-pre-wrap">
+                    {formatTextForDisplay(fullNote) || "No full note generated yet"}
+                  </div>
                   <div className="flex gap-2">
                     <Button size="sm" onClick={() => copyToClipboard(fullNote)}>
                       <Copy className="h-4 w-4 mr-2" />
@@ -805,11 +826,9 @@ const Index = () => {
                 </TabsContent>
                 
                 <TabsContent value="patient" className="space-y-4">
-                  <Textarea 
-                    value={patientCopy} 
-                    readOnly 
-                    className="min-h-[200px] bg-green-50 dark:bg-green-950/20"
-                  />
+                  <div className="bg-green-50 dark:bg-green-950/20 rounded-lg p-4 min-h-[200px] whitespace-pre-wrap">
+                    {formatTextForDisplay(patientCopy) || "No patient copy generated yet"}
+                  </div>
                   <div className="flex gap-2">
                     <Button size="sm" onClick={() => copyToClipboard(patientCopy)}>
                       <Copy className="h-4 w-4 mr-2" />
@@ -823,11 +842,9 @@ const Index = () => {
                 </TabsContent>
                 
                 <TabsContent value="trainee" className="space-y-4">
-                  <Textarea 
-                    value={traineeFeedback} 
-                    readOnly 
-                    className="min-h-[200px] bg-purple-50 dark:bg-purple-950/20"
-                  />
+                  <div className="bg-purple-50 dark:bg-purple-950/20 rounded-lg p-4 min-h-[200px] whitespace-pre-wrap">
+                    {formatTextForDisplay(traineeFeedback) || "No trainee feedback generated yet"}
+                  </div>
                   <div className="flex gap-2">
                     <Button size="sm" onClick={() => copyToClipboard(traineeFeedback)}>
                       <Copy className="h-4 w-4 mr-2" />
