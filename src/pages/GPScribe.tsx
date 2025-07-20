@@ -536,8 +536,14 @@ const Index = () => {
       <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 lg:py-8 space-y-4 sm:space-y-6 max-w-6xl">
         
         {/* Tab Navigation */}
-        <Tabs defaultValue="examples" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 bg-muted/50 p-1 rounded-xl border border-border/50">
+        <Tabs defaultValue="consultation" className="w-full">
+          <TabsList className="grid w-full grid-cols-5 bg-muted/50 p-1 rounded-xl border border-border/50">
+            <TabsTrigger 
+              value="consultation" 
+              className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium"
+            >
+              Consultation
+            </TabsTrigger>
             <TabsTrigger 
               value="examples" 
               className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium"
@@ -564,74 +570,76 @@ const Index = () => {
             </TabsTrigger>
           </TabsList>
 
-        {/* Recording Controls */}
-        <Card className="shadow-medium border-accent/20">
-          <CardHeader className="pb-4">
-            <CardTitle className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <span className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-primary" />
-                GP Scribe - Consultation Notes
-              </span>
-              <Badge variant={getConnectionStatusColor() as any} className="flex items-center gap-1 text-xs">
-                {getConnectionStatusIcon()}
-                <span className="hidden sm:inline">{connectionStatus}</span>
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-center">
-              <div className="bg-accent/20 rounded-lg p-4">
-                <div className="text-2xl sm:text-3xl font-bold text-primary">{formatDuration(duration)}</div>
-                <div className="text-sm text-muted-foreground">Duration</div>
-              </div>
-              <div className="bg-accent/20 rounded-lg p-4">
-                <div className="text-2xl sm:text-3xl font-bold text-primary">{wordCount}</div>
-                <div className="text-sm text-muted-foreground">Words</div>
-              </div>
-            </div>
-
-            <div className="flex justify-center gap-4">
-              {!isRecording ? (
-                <Button 
-                  onClick={startRecording}
-                  className="bg-gradient-primary hover:bg-primary-hover shadow-subtle px-8 py-4 text-lg font-medium min-h-[56px]"
-                >
-                  <Mic className="h-5 w-5 mr-3" />
-                  Start Recording
-                </Button>
-              ) : (
-                <>
-                  <Button 
-                    onClick={pauseRecording}
-                    variant="secondary"
-                    className="shadow-subtle px-8 py-4 text-lg font-medium min-h-[56px]"
-                  >
-                    {isPaused ? <Play className="h-5 w-5 mr-3" /> : <Pause className="h-5 w-5 mr-3" />}
-                    {isPaused ? 'Resume' : 'Pause'}
-                  </Button>
-                  <Button 
-                    onClick={stopRecording}
-                    variant="destructive"
-                    className="shadow-subtle px-8 py-4 text-lg font-medium min-h-[56px]"
-                  >
-                    <MicOff className="h-5 w-5 mr-3" />
-                    Stop Recording
-                  </Button>
-                </>
-              )}
-            </div>
-
-            {isRecording && (
-              <div className="flex items-center justify-center gap-3 text-primary animate-pulse bg-accent/20 rounded-lg p-4">
-                <div className="w-3 h-3 bg-primary rounded-full"></div>
-                <span className="text-base font-medium">
-                  {isPaused ? "Recording paused..." : "Recording consultation..."}
+        {/* Consultation Tab - Recording Interface */}
+        <TabsContent value="consultation" className="space-y-4">
+          <Card className="shadow-medium border-accent/20">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <span className="flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-primary" />
+                  GP Scribe - Consultation Notes
                 </span>
+                <Badge variant={getConnectionStatusColor() as any} className="flex items-center gap-1 text-xs">
+                  {getConnectionStatusIcon()}
+                  <span className="hidden sm:inline">{connectionStatus}</span>
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-center">
+                <div className="bg-accent/20 rounded-lg p-4">
+                  <div className="text-2xl sm:text-3xl font-bold text-primary">{formatDuration(duration)}</div>
+                  <div className="text-sm text-muted-foreground">Duration</div>
+                </div>
+                <div className="bg-accent/20 rounded-lg p-4">
+                  <div className="text-2xl sm:text-3xl font-bold text-primary">{wordCount}</div>
+                  <div className="text-sm text-muted-foreground">Words</div>
+                </div>
               </div>
-            )}
-          </CardContent>
-        </Card>
+
+              <div className="flex justify-center gap-4">
+                {!isRecording ? (
+                  <Button 
+                    onClick={startRecording}
+                    className="bg-gradient-primary hover:bg-primary-hover shadow-subtle px-8 py-4 text-lg font-medium min-h-[56px]"
+                  >
+                    <Mic className="h-5 w-5 mr-3" />
+                    Start Recording
+                  </Button>
+                ) : (
+                  <>
+                    <Button 
+                      onClick={pauseRecording}
+                      variant="secondary"
+                      className="shadow-subtle px-8 py-4 text-lg font-medium min-h-[56px]"
+                    >
+                      {isPaused ? <Play className="h-5 w-5 mr-3" /> : <Pause className="h-5 w-5 mr-3" />}
+                      {isPaused ? 'Resume' : 'Pause'}
+                    </Button>
+                    <Button 
+                      onClick={stopRecording}
+                      variant="destructive"
+                      className="shadow-subtle px-8 py-4 text-lg font-medium min-h-[56px]"
+                    >
+                      <MicOff className="h-5 w-5 mr-3" />
+                      Stop Recording
+                    </Button>
+                  </>
+                )}
+              </div>
+
+              {isRecording && (
+                <div className="flex items-center justify-center gap-3 text-primary animate-pulse bg-accent/20 rounded-lg p-4">
+                  <div className="w-3 h-3 bg-primary rounded-full"></div>
+                  <span className="text-base font-medium">
+                    {isPaused ? "Recording paused..." : "Recording consultation..."}
+                  </span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
           {/* Tab Content */}
           <Card className="shadow-medium border-accent/20">
