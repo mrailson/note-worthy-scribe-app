@@ -7,13 +7,27 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Mic, MicOff, Wifi, WifiOff, Brain, Copy, Download, Mail, Save, Play, Pause, FileText } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Mic, MicOff, Wifi, WifiOff, Brain, Copy, Download, Mail, Save, Play, Pause, FileText, ChevronDown, ChevronUp, Lightbulb, AlertTriangle, BookOpen, Shield, BarChart3 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { RealtimeTranscriber, TranscriptData } from "@/utils/RealtimeTranscriber";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import jsPDF from 'jspdf';
+import { consultationExamples, type ConsultationExample } from "@/data/consultationExamples";
+
+interface ConsultationGuidance {
+  suggestedQuestions: string[];
+  potentialRedFlags: string[];
+  missedOpportunities: string[];
+  safetyNetting: string[];
+  consultationQuality: {
+    score: number;
+    feedback: string;
+  };
+}
 
 const Index = () => {
   const { user, loading } = useAuth();
@@ -27,6 +41,16 @@ const Index = () => {
   const [realtimeTranscripts, setRealtimeTranscripts] = useState<TranscriptData[]>([]);
   const [connectionStatus, setConnectionStatus] = useState<string>("Disconnected");
   const [wordCount, setWordCount] = useState(0);
+  
+  // UI states
+  const [isTranscriptOpen, setIsTranscriptOpen] = useState(false);
+  const [selectedExample, setSelectedExample] = useState<string>("");
+  const [showExamples, setShowExamples] = useState(false);
+  
+  // Guidance states
+  const [guidance, setGuidance] = useState<ConsultationGuidance | null>(null);
+  const [isGuidanceLoading, setIsGuidanceLoading] = useState(false);
+  const [autoGuidance, setAutoGuidance] = useState(true);
   
   // Output configuration
   const [outputStyle, setOutputStyle] = useState<string>("gp-code-line");
@@ -78,10 +102,27 @@ const Index = () => {
         
         const words = fullTranscript.split(' ').filter(word => word.length > 0);
         setWordCount(words.length);
+        
+        // Auto-trigger guidance if enabled and transcript is meaningful
+        if (autoGuidance && fullTranscript.length > 200 && words.length > 30) {
+          debounceGuidance(fullTranscript);
+        }
       }
       
       return newTranscripts;
     });
+  };
+
+  // Debounced guidance function to avoid too many API calls
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const debounceGuidance = (text: string) => {
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+    
+    debounceTimeoutRef.current = setTimeout(() => {
+      generateGuidance(text);
+    }, 5000); // Wait 5 seconds after transcript stops changing
   };
 
   const handleTranscriptionError = (error: string) => {
@@ -139,6 +180,52 @@ const Index = () => {
     setIsRecording(false);
     setIsPaused(false);
     toast.success("Recording stopped");
+  };
+
+  const loadExample = (exampleId: string) => {
+    const example = consultationExamples.find(ex => ex.id === exampleId);
+    if (example) {
+      setTranscript(example.transcript);
+      setWordCount(example.transcript.split(' ').filter(word => word.length > 0).length);
+      setDuration(300); // 5 minutes example duration
+      toast.success(`Loaded example: ${example.title}`);
+      
+      // Generate guidance for the example
+      generateGuidance(example.transcript);
+    }
+  };
+
+  const generateGuidance = async (transcriptText?: string) => {
+    const textToAnalyze = transcriptText || transcript;
+    if (!textToAnalyze.trim()) {
+      toast.error("No transcript available for guidance");
+      return;
+    }
+
+    setIsGuidanceLoading(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('gp-consultation-guidance', {
+        body: {
+          transcript: textToAnalyze
+        }
+      });
+
+      if (error) throw error;
+
+      setGuidance(data);
+      
+      if (!transcriptText) { // Only show toast for manual requests
+        toast.success("Consultation guidance generated");
+      }
+    } catch (error: any) {
+      console.error('Error generating guidance:', error);
+      if (!transcriptText) { // Only show error for manual requests
+        toast.error(`Error generating guidance: ${error.message}`);
+      }
+    } finally {
+      setIsGuidanceLoading(false);
+    }
   };
 
   const generateSummary = async () => {
@@ -373,26 +460,218 @@ const Index = () => {
           </CardContent>
         </Card>
 
-        {/* Live Transcript */}
+        {/* Examples Section */}
         <Card className="shadow-medium border-accent/20">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Mic className="h-5 w-5 text-primary" />
-              Live Transcript
+            <CardTitle className="flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <BookOpen className="h-5 w-5 text-primary" />
+                Consultation Examples
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowExamples(!showExamples)}
+              >
+                {showExamples ? "Hide" : "Show"} Examples
+              </Button>
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="bg-secondary/50 rounded-lg p-4 min-h-[200px] max-h-[400px] overflow-y-auto">
-              {transcript ? (
-                <pre className="whitespace-pre-wrap text-sm">{transcript}</pre>
-              ) : (
-                <p className="text-muted-foreground text-center py-8">
-                  Start recording to see live transcription...
-                </p>
-              )}
-            </div>
-          </CardContent>
+          {showExamples && (
+            <CardContent className="space-y-4">
+              <div className="grid gap-4">
+                {consultationExamples.map((example) => (
+                  <Card key={example.id} className="border-muted/50">
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-start gap-4">
+                        <div className="flex-1">
+                          <h4 className="font-medium">{example.title}</h4>
+                          <p className="text-sm text-muted-foreground mb-2">{example.description}</p>
+                          <Badge variant="outline" className="text-xs">{example.type}</Badge>
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={() => loadExample(example.id)}
+                          className="shrink-0"
+                        >
+                          Load Example
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </CardContent>
+          )}
         </Card>
+
+        {/* Live Transcript - Collapsible */}
+        <Card className="shadow-medium border-accent/20">
+          <Collapsible open={isTranscriptOpen} onOpenChange={setIsTranscriptOpen}>
+            <CollapsibleTrigger asChild>
+              <CardHeader className="cursor-pointer hover:bg-accent/10 transition-colors">
+                <CardTitle className="flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <Mic className="h-5 w-5 text-primary" />
+                    Live Transcript
+                    {wordCount > 0 && (
+                      <Badge variant="secondary" className="ml-2">
+                        {wordCount} words
+                      </Badge>
+                    )}
+                  </span>
+                  {isTranscriptOpen ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </CardTitle>
+              </CardHeader>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent>
+                <div className="bg-secondary/50 rounded-lg p-4 min-h-[200px] max-h-[400px] overflow-y-auto">
+                  {transcript ? (
+                    <pre className="whitespace-pre-wrap text-sm">{transcript}</pre>
+                  ) : (
+                    <p className="text-muted-foreground text-center py-8">
+                      Start recording or load an example to see transcription...
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </CollapsibleContent>
+          </Collapsible>
+        </Card>
+
+        {/* Consultation Guidance */}
+        {(guidance || isGuidanceLoading) && (
+          <Card className="shadow-medium border-accent/20">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <Lightbulb className="h-5 w-5 text-primary" />
+                  Consultation Guidance
+                  {guidance?.consultationQuality && (
+                    <Badge 
+                      variant={guidance.consultationQuality.score >= 80 ? "default" : guidance.consultationQuality.score >= 60 ? "secondary" : "destructive"}
+                      className="ml-2"
+                    >
+                      Quality: {guidance.consultationQuality.score}/100
+                    </Badge>
+                  )}
+                </span>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox 
+                      id="auto-guidance" 
+                      checked={autoGuidance}
+                      onCheckedChange={(checked) => setAutoGuidance(checked === true)}
+                    />
+                    <label htmlFor="auto-guidance" className="text-sm">Auto-update</label>
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() => generateGuidance()}
+                    disabled={!transcript.trim() || isGuidanceLoading}
+                  >
+                    {isGuidanceLoading ? "Analyzing..." : "Refresh"}
+                  </Button>
+                </div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isGuidanceLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                  <p className="mt-2 text-muted-foreground">Analyzing consultation...</p>
+                </div>
+              ) : guidance ? (
+                <div className="space-y-4">
+                  {/* Quality Feedback */}
+                  {guidance.consultationQuality && (
+                    <Alert>
+                      <BarChart3 className="h-4 w-4" />
+                      <AlertDescription>
+                        <strong>Quality Assessment:</strong> {guidance.consultationQuality.feedback}
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {/* Suggested Questions */}
+                    {guidance.suggestedQuestions.length > 0 && (
+                      <div className="space-y-2">
+                        <h4 className="font-medium flex items-center gap-2">
+                          <Brain className="h-4 w-4 text-blue-500" />
+                          Suggested Questions
+                        </h4>
+                        <ul className="space-y-1 text-sm">
+                          {guidance.suggestedQuestions.map((question, index) => (
+                            <li key={index} className="p-2 bg-blue-50 dark:bg-blue-950/20 rounded">
+                              • {question}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Red Flags */}
+                    {guidance.potentialRedFlags.length > 0 && (
+                      <div className="space-y-2">
+                        <h4 className="font-medium flex items-center gap-2">
+                          <AlertTriangle className="h-4 w-4 text-red-500" />
+                          Potential Red Flags
+                        </h4>
+                        <ul className="space-y-1 text-sm">
+                          {guidance.potentialRedFlags.map((flag, index) => (
+                            <li key={index} className="p-2 bg-red-50 dark:bg-red-950/20 rounded">
+                              ⚠️ {flag}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Missed Opportunities */}
+                    {guidance.missedOpportunities.length > 0 && (
+                      <div className="space-y-2">
+                        <h4 className="font-medium flex items-center gap-2">
+                          <BookOpen className="h-4 w-4 text-orange-500" />
+                          Consider Exploring
+                        </h4>
+                        <ul className="space-y-1 text-sm">
+                          {guidance.missedOpportunities.map((opportunity, index) => (
+                            <li key={index} className="p-2 bg-orange-50 dark:bg-orange-950/20 rounded">
+                              💡 {opportunity}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Safety Netting */}
+                    {guidance.safetyNetting.length > 0 && (
+                      <div className="space-y-2">
+                        <h4 className="font-medium flex items-center gap-2">
+                          <Shield className="h-4 w-4 text-green-500" />
+                          Safety Netting
+                        </h4>
+                        <ul className="space-y-1 text-sm">
+                          {guidance.safetyNetting.map((safety, index) => (
+                            <li key={index} className="p-2 bg-green-50 dark:bg-green-950/20 rounded">
+                              🛡️ {safety}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : null}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Output Configuration */}
         <Card className="shadow-medium border-accent/20">
