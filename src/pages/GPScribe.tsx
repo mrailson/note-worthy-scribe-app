@@ -50,6 +50,10 @@ const Index = () => {
   const [selectedExample, setSelectedExample] = useState<string>("");
   const [showExamples, setShowExamples] = useState(false);
   
+  // New consultation setup states
+  const [consultationType, setConsultationType] = useState<"face-to-face" | "telephone">("face-to-face");
+  const [patientConsentObtained, setPatientConsentObtained] = useState(false);
+  
   // Guidance states - Removed guidance UI but keep for trainee feedback integration
   const [guidance, setGuidance] = useState<ConsultationGuidance | null>(null);
   const [isGuidanceLoading, setIsGuidanceLoading] = useState(false);
@@ -157,6 +161,12 @@ const Index = () => {
   };
 
   const startRecording = async () => {
+    // Check if patient consent is obtained
+    if (!patientConsentObtained) {
+      toast.error("Please confirm that patient consent has been obtained before starting recording");
+      return;
+    }
+
     try {
       transciberRef.current = new RealtimeTranscriber(
         handleTranscript,
@@ -173,6 +183,8 @@ const Index = () => {
       intervalRef.current = setInterval(() => {
         setDuration(prev => prev + 1);
       }, 1000);
+
+      toast.success(`Recording started for ${consultationType} consultation`);
 
     } catch (error) {
       toast.error("Failed to start recording");
@@ -587,6 +599,58 @@ const Index = () => {
             </CardHeader>
             
             <CardContent className="space-y-6">
+              {/* Consultation Setup */}
+              <div className="bg-blue-50 dark:bg-blue-950/20 rounded-lg p-4 space-y-4">
+                <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100">Consultation Setup</h3>
+                
+                {/* Consultation Type */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Consultation Type</label>
+                  <div className="flex gap-4">
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        id="face-to-face"
+                        name="consultationType"
+                        value="face-to-face"
+                        checked={consultationType === "face-to-face"}
+                        onChange={(e) => setConsultationType(e.target.value as "face-to-face" | "telephone")}
+                        className="text-primary focus:ring-primary"
+                      />
+                      <label htmlFor="face-to-face" className="text-sm font-medium">
+                        Face to Face
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        id="telephone"
+                        name="consultationType"
+                        value="telephone"
+                        checked={consultationType === "telephone"}
+                        onChange={(e) => setConsultationType(e.target.value as "face-to-face" | "telephone")}
+                        className="text-primary focus:ring-primary"
+                      />
+                      <label htmlFor="telephone" className="text-sm font-medium">
+                        Telephone
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Patient Consent */}
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="patient-consent" 
+                    checked={patientConsentObtained}
+                    onCheckedChange={(checked) => setPatientConsentObtained(checked === true)}
+                  />
+                  <label htmlFor="patient-consent" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    Patient consent obtained for recording this consultation
+                  </label>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-center">
                 <div className="bg-accent/20 rounded-lg p-4">
                   <div className="text-2xl sm:text-3xl font-bold text-primary">{formatDuration(duration)}</div>
@@ -602,7 +666,12 @@ const Index = () => {
                 {!isRecording ? (
                   <Button 
                     onClick={startRecording}
-                    className="bg-gradient-primary hover:bg-primary-hover shadow-subtle px-8 py-4 text-lg font-medium min-h-[56px]"
+                    disabled={!patientConsentObtained}
+                    className={`shadow-subtle px-8 py-4 text-lg font-medium min-h-[56px] ${
+                      patientConsentObtained 
+                        ? "bg-gradient-primary hover:bg-primary-hover" 
+                        : "bg-muted text-muted-foreground cursor-not-allowed"
+                    }`}
                   >
                     <Mic className="h-5 w-5 mr-3" />
                     Start Recording
@@ -794,7 +863,7 @@ const Index = () => {
             </CardContent>
           </Card>
 
-        {/* Live Transcript - Collapsible */}
+        {/* Transcript - Collapsible */}
         <Card className="shadow-medium border-accent/20">
           <Collapsible open={isTranscriptOpen} onOpenChange={setIsTranscriptOpen}>
             <CollapsibleTrigger asChild>
@@ -802,7 +871,7 @@ const Index = () => {
                 <CardTitle className="flex items-center justify-between">
                   <span className="flex items-center gap-2">
                     <Mic className="h-5 w-5 text-primary" />
-                    Live Transcript
+                    Transcript
                     {wordCount > 0 && (
                       <Badge variant="secondary" className="ml-2">
                         {wordCount} words
