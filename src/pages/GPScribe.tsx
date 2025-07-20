@@ -543,20 +543,10 @@ const Index = () => {
                 <FileText className="h-5 w-5 text-primary" />
                 GP Scribe - Consultation Notes
               </span>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => navigate('/gp-scribe/settings')}
-                  className="flex items-center gap-2"
-                >
-                  <Settings className="h-4 w-4" />
-                  Settings
-                </Button>
-                <Badge variant={getConnectionStatusColor() as any} className="flex items-center gap-1 text-xs">
-                  {getConnectionStatusIcon()}
-                  <span className="hidden sm:inline">{connectionStatus}</span>
-                </Badge>
-              </div>
+              <Badge variant={getConnectionStatusColor() as any} className="flex items-center gap-1 text-xs">
+                {getConnectionStatusIcon()}
+                <span className="hidden sm:inline">{connectionStatus}</span>
+              </Badge>
             </CardTitle>
           </CardHeader>
           
@@ -614,49 +604,168 @@ const Index = () => {
           </CardContent>
         </Card>
 
-        {/* Examples Section */}
+        {/* Main Content Tabs */}
         <Card className="shadow-medium border-accent/20">
           <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span className="flex items-center gap-2">
-                <BookOpen className="h-5 w-5 text-primary" />
-                Consultation Examples
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowExamples(!showExamples)}
-              >
-                {showExamples ? "Hide" : "Show"} Examples
-              </Button>
-            </CardTitle>
+            <CardTitle>Consultation Tools</CardTitle>
           </CardHeader>
-          {showExamples && (
-            <CardContent className="space-y-4">
-              <div className="grid gap-4">
-                {consultationExamples.map((example) => (
-                  <Card key={example.id} className="border-muted/50">
-                    <CardContent className="p-4">
-                      <div className="flex justify-between items-start gap-4">
-                        <div className="flex-1">
-                          <h4 className="font-medium">{example.title}</h4>
-                          <p className="text-sm text-muted-foreground mb-2">{example.description}</p>
-                          <Badge variant="outline" className="text-xs">{example.type}</Badge>
-                        </div>
-                        <Button
-                          size="sm"
-                          onClick={() => loadExample(example.id)}
-                          className="shrink-0"
-                        >
-                          Load Example
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </CardContent>
-          )}
+          <CardContent>
+            <Tabs defaultValue="examples" className="w-full">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="examples">Examples</TabsTrigger>
+                <TabsTrigger value="config">Configuration</TabsTrigger>
+                <TabsTrigger value="settings">Settings</TabsTrigger>
+                <TabsTrigger value="history">Previous</TabsTrigger>
+              </TabsList>
+
+              {/* Consultation Examples Tab */}
+              <TabsContent value="examples" className="space-y-4">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold">Test Consultation Examples</h3>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowExamples(!showExamples)}
+                    >
+                      {showExamples ? "Hide Examples" : "Show Examples"}
+                    </Button>
+                  </div>
+                  
+                  {showExamples && (
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {consultationExamples.map((example) => (
+                        <Card key={example.id} className="cursor-pointer hover:shadow-md transition-shadow border-accent/20">
+                          <CardContent className="p-4">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <h4 className="font-medium text-sm sm:text-base">{example.title}</h4>
+                                <p className="text-xs sm:text-sm text-muted-foreground mt-1 line-clamp-2">
+                                  {example.description}
+                                </p>
+                                <div className="flex flex-wrap gap-1 mt-2">
+                                  <Badge variant="secondary" className="text-xs">
+                                    {example.type}
+                                  </Badge>
+                                </div>
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => loadExample(example.id)}
+                                className="ml-2 shrink-0"
+                              >
+                                <Play className="h-3 w-3 mr-1" />
+                                Load
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+
+              {/* Output Configuration Tab */}
+              <TabsContent value="config" className="space-y-6">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Output Level</label>
+                  <Select value={outputLevel.toString()} onValueChange={(value) => handleOutputLevelChange(parseInt(value))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select output level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {outputLevels.map((level) => (
+                        <SelectItem key={level.value} value={level.value.toString()}>
+                          <div>
+                            <div className="font-medium">Level {level.value}: {level.label}</div>
+                            <div className="text-xs text-muted-foreground">{level.description}</div>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-3">
+                  <h3 className="text-lg font-semibold">Clinical Coding & Formatting</h3>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Checkbox 
+                      id="snomed-codes" 
+                      checked={showSnomedCodes}
+                      onCheckedChange={(checked) => setShowSnomedCodes(checked === true)}
+                    />
+                    <label htmlFor="snomed-codes" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                      Include SNOMED CT codes
+                    </label>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Checkbox 
+                      id="emis-format" 
+                      checked={formatForEmis}
+                      onCheckedChange={(checked) => setFormatForEmis(checked === true)}
+                    />
+                    <label htmlFor="emis-format" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                      Format for EMIS Web
+                    </label>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Checkbox 
+                      id="systmone-format" 
+                      checked={formatForSystmOne}
+                      onCheckedChange={(checked) => setFormatForSystmOne(checked === true)}
+                    />
+                    <label htmlFor="systmone-format" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                      Format for SystmOne
+                    </label>
+                  </div>
+                </div>
+
+                <Button
+                  onClick={generateSummary}
+                  disabled={!transcript.trim() || isGenerating}
+                  className="w-full bg-gradient-primary hover:bg-primary-hover shadow-subtle text-lg font-medium py-4"
+                >
+                  <Brain className="h-5 w-5 mr-3" />
+                  {isGenerating ? "Generating Clinical Summary..." : "🧠 Generate Clinical Summary"}
+                </Button>
+              </TabsContent>
+
+              {/* Settings Tab */}
+              <TabsContent value="settings" className="space-y-4">
+                <div className="text-center py-8">
+                  <h3 className="text-lg font-semibold mb-4">GP Scribe Settings</h3>
+                  <p className="text-muted-foreground mb-6">
+                    Configure your practice details, specialist services, and GP signature settings.
+                  </p>
+                  <Button
+                    onClick={() => navigate('/gp-scribe/settings')}
+                    className="flex items-center gap-2"
+                  >
+                    <Settings className="h-4 w-4" />
+                    Open Settings
+                  </Button>
+                </div>
+              </TabsContent>
+
+              {/* Previous Consultations Tab */}
+              <TabsContent value="history" className="space-y-4">
+                <div className="text-center py-8">
+                  <h3 className="text-lg font-semibold mb-4">Previous Consultations</h3>
+                  <p className="text-muted-foreground mb-6">
+                    View and manage your previous consultation notes and recordings.
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    This feature is coming soon...
+                  </p>
+                </div>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
         </Card>
 
         {/* Live Transcript - Collapsible */}
@@ -698,84 +807,6 @@ const Index = () => {
           </Collapsible>
         </Card>
 
-        {/* Output Configuration - Collapsible */}
-        <Card className="shadow-medium border-accent/20">
-          <Collapsible open={isConfigOpen} onOpenChange={setIsConfigOpen}>
-            <CollapsibleTrigger asChild>
-              <CardHeader className="cursor-pointer hover:bg-accent/10 transition-colors">
-                <CardTitle className="flex items-center justify-between">
-                  <span>Output Configuration</span>
-                  {isConfigOpen ? (
-                    <ChevronUp className="h-4 w-4" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4" />
-                  )}
-                </CardTitle>
-              </CardHeader>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <CardContent className="space-y-6">
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Output Level</label>
-                  <Select value={outputLevel.toString()} onValueChange={(value) => handleOutputLevelChange(parseInt(value))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select output level" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {outputLevels.map((level) => (
-                        <SelectItem key={level.value} value={level.value.toString()}>
-                          <div>
-                            <div className="font-medium">Level {level.value}: {level.label}</div>
-                            <div className="text-xs text-muted-foreground">{level.description}</div>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-3">
-                  <label className="text-sm font-medium">Additional Options</label>
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox 
-                        id="snomed" 
-                        checked={showSnomedCodes}
-                        onCheckedChange={(checked) => setShowSnomedCodes(checked === true)}
-                      />
-                      <label htmlFor="snomed" className="text-sm">Show SNOMED CT codes inline</label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox 
-                        id="emis" 
-                        checked={formatForEmis}
-                        onCheckedChange={(checked) => setFormatForEmis(checked === true)}
-                      />
-                      <label htmlFor="emis" className="text-sm">Format output for EMIS (spacing, expanded acronyms)</label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox 
-                        id="systmone" 
-                        checked={formatForSystmOne}
-                        onCheckedChange={(checked) => setFormatForSystmOne(checked === true)}
-                      />
-                      <label htmlFor="systmone" className="text-sm">Format output for SystmOne (abbreviated, pastable format)</label>
-                    </div>
-                  </div>
-                </div>
-
-                <Button
-                  onClick={generateSummary}
-                  disabled={!transcript.trim() || isGenerating}
-                  className="w-full bg-gradient-primary hover:bg-primary-hover shadow-subtle text-lg font-medium py-4"
-                >
-                  <Brain className="h-5 w-5 mr-3" />
-                  {isGenerating ? "Generating Clinical Summary..." : "🧠 Generate Clinical Summary"}
-                </Button>
-              </CardContent>
-            </CollapsibleContent>
-          </Collapsible>
-        </Card>
 
         {/* Generated Output */}
         {(gpSummary || fullNote || patientCopy || traineeFeedback || referralLetter) && (
