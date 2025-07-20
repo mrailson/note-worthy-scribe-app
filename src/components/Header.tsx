@@ -6,7 +6,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield } from "lucide-react";
+import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,6 +22,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
   const [isAdmin, setIsAdmin] = useState(false);
   
   const isHomePage = location.pathname === '/';
+  const isGPScribePage = location.pathname === '/gp-scribe';
   const isMeetingHistoryPage = location.pathname === '/meetings';
   const isSettingsPage = location.pathname === '/settings';
   const isAdminPage = location.pathname === '/admin';
@@ -66,6 +67,18 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
               >
                 <Home className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
                 <span className="hidden sm:inline">Home</span>
+              </Button>
+            )}
+            
+            {!isGPScribePage && (
+              <Button 
+                onClick={() => navigate('/gp-scribe')}
+                variant="secondary"
+                size="sm"
+                className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs sm:text-sm px-2 sm:px-4"
+              >
+                <Stethoscope className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+                <span className="hidden sm:inline">GP Scribe</span>
               </Button>
             )}
             
