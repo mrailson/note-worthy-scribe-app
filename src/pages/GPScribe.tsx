@@ -215,7 +215,7 @@ const Index = () => {
       setDuration(300); // 5 minutes example duration
       toast.success(`Loaded example: ${example.title}`);
       
-      // Generate guidance and summary for the example
+      // Auto-generate guidance and summary for the example
       generateGuidance(example.transcript);
       setTimeout(() => generateSummary(), 500);
     }
@@ -1163,7 +1163,13 @@ const Index = () => {
                     </div>
                   ) : (
                     <div className="bg-gray-50 dark:bg-gray-950/20 rounded-lg p-4 min-h-[200px] whitespace-pre-wrap">
-                      {formatTextForDisplay(referralLetter) || "No referral letter generated yet"}
+                      <div 
+                        dangerouslySetInnerHTML={{ 
+                          __html: (referralLetter || "No referral letter generated yet")
+                            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                            .replace(/\n/g, '<br/>') 
+                        }} 
+                      />
                     </div>
                   )}
                   <div className="flex gap-2">
