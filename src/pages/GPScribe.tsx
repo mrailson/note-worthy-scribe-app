@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Mic, MicOff, Wifi, WifiOff, Brain, Copy, Download, Mail, Save, Play, Pause, FileText, ChevronDown, ChevronUp, Lightbulb, AlertTriangle, BookOpen, Shield, BarChart3 } from "lucide-react";
+import { Mic, MicOff, Wifi, WifiOff, Brain, Copy, Download, Mail, Save, Play, Pause, FileText, ChevronDown, ChevronUp, Lightbulb, AlertTriangle, BookOpen, Shield, BarChart3, Edit, Check, X, Send } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { RealtimeTranscriber, TranscriptData } from "@/utils/RealtimeTranscriber";
@@ -65,6 +65,25 @@ const Index = () => {
   const [fullNote, setFullNote] = useState("");
   const [patientCopy, setPatientCopy] = useState("");
   const [traineeFeedback, setTraineeFeedback] = useState("");
+  const [referralLetter, setReferralLetter] = useState("");
+  
+  // Edit states
+  const [editStates, setEditStates] = useState({
+    gpSummary: false,
+    fullNote: false,
+    patientCopy: false,
+    traineeFeedback: false,
+    referralLetter: false
+  });
+  
+  // Temporary edit content
+  const [editContent, setEditContent] = useState({
+    gpSummary: "",
+    fullNote: "",
+    patientCopy: "",
+    traineeFeedback: "",
+    referralLetter: ""
+  });
   
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const transciberRef = useRef<RealtimeTranscriber | null>(null);
@@ -260,6 +279,16 @@ const Index = () => {
       setFullNote(data.fullNote || "");
       setPatientCopy(data.patientCopy || "");
       setTraineeFeedback(data.traineeFeedback || "");
+      setReferralLetter(data.referralLetter || "");
+      
+      // Update edit content as well
+      setEditContent({
+        gpSummary: data.gpSummary || "",
+        fullNote: data.fullNote || "",
+        patientCopy: data.patientCopy || "",
+        traineeFeedback: data.traineeFeedback || "",
+        referralLetter: data.referralLetter || ""
+      });
       
       // Save to history
       await saveToHistory(data);
@@ -344,6 +373,95 @@ const Index = () => {
       }
       return part;
     });
+  };
+
+  // Auto-regenerate GP Summary when output level changes
+  const handleOutputLevelChange = async (newLevel: number) => {
+    setOutputLevel(newLevel);
+    
+    // Auto-regenerate if there's content
+    if (transcript && transcript.trim().length > 50) {
+      setTimeout(() => generateSummary(), 500);
+    }
+  };
+
+  // Edit functions
+  const startEdit = (section: keyof typeof editStates) => {
+    const currentContent = {
+      gpSummary,
+      fullNote,
+      patientCopy,
+      traineeFeedback,
+      referralLetter
+    };
+    
+    setEditContent(prev => ({
+      ...prev,
+      [section]: currentContent[section]
+    }));
+    
+    setEditStates(prev => ({
+      ...prev,
+      [section]: true
+    }));
+  };
+
+  const saveEdit = (section: keyof typeof editStates) => {
+    const setters = {
+      gpSummary: setGpSummary,
+      fullNote: setFullNote,
+      patientCopy: setPatientCopy,
+      traineeFeedback: setTraineeFeedback,
+      referralLetter: setReferralLetter
+    };
+    
+    setters[section](editContent[section]);
+    setEditStates(prev => ({
+      ...prev,
+      [section]: false
+    }));
+    
+    toast.success("Changes saved");
+  };
+
+  const cancelEdit = (section: keyof typeof editStates) => {
+    setEditStates(prev => ({
+      ...prev,
+      [section]: false
+    }));
+  };
+
+  const generateReferralLetter = async () => {
+    if (!transcript.trim()) {
+      toast.error("No transcript available for referral letter");
+      return;
+    }
+
+    setIsGenerating(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-referral-letter', {
+        body: {
+          transcript,
+          gpSummary,
+          fullNote
+        }
+      });
+
+      if (error) throw error;
+
+      setReferralLetter(data.referralLetter || "");
+      setEditContent(prev => ({
+        ...prev,
+        referralLetter: data.referralLetter || ""
+      }));
+      
+      toast.success("Referral letter generated");
+    } catch (error: any) {
+      toast.error(`Error generating referral letter: ${error.message}`);
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const downloadAsPDF = (content: string, filename: string) => {
@@ -718,7 +836,7 @@ const Index = () => {
               <CardContent className="space-y-6">
                 <div>
                   <label className="text-sm font-medium mb-2 block">Output Level</label>
-                  <Select value={outputLevel.toString()} onValueChange={(value) => setOutputLevel(parseInt(value))}>
+                  <Select value={outputLevel.toString()} onValueChange={(value) => handleOutputLevelChange(parseInt(value))}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select output level" />
                     </SelectTrigger>
@@ -779,24 +897,83 @@ const Index = () => {
         </Card>
 
         {/* Generated Output */}
-        {(gpSummary || fullNote || patientCopy || traineeFeedback) && (
+        {(gpSummary || fullNote || patientCopy || traineeFeedback || referralLetter) && (
           <Card className="shadow-medium border-accent/20">
             <CardHeader>
-              <CardTitle>Generated Clinical Notes</CardTitle>
+              <CardTitle className="flex items-center justify-between">
+                <span>Generated Clinical Notes</span>
+                <Button
+                  onClick={generateReferralLetter}
+                  disabled={!transcript.trim() || isGenerating}
+                  variant="outline"
+                  size="sm"
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  {isGenerating ? "Generating..." : "Generate Referral"}
+                </Button>
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="summary" className="w-full">
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-5">
                   <TabsTrigger value="summary">🟦 GP Summary</TabsTrigger>
                   <TabsTrigger value="full">🟨 Full Note</TabsTrigger>
                   <TabsTrigger value="patient">🟩 Patient Copy</TabsTrigger>
                   <TabsTrigger value="trainee">🟣 Trainee Feedback</TabsTrigger>
+                  <TabsTrigger value="referral">📄 Referral Letter</TabsTrigger>
                 </TabsList>
                 
                 <TabsContent value="summary" className="space-y-4">
-                  <div className="bg-blue-50 dark:bg-blue-950/20 rounded-lg p-4 min-h-[200px] whitespace-pre-wrap">
-                    {formatTextForDisplay(gpSummary) || "No summary generated yet"}
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm font-medium">Quick Pick Level:</label>
+                      <Select value={outputLevel.toString()} onValueChange={(value) => handleOutputLevelChange(parseInt(value))}>
+                        <SelectTrigger className="w-40">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {outputLevels.map((level) => (
+                            <SelectItem key={level.value} value={level.value.toString()}>
+                              {level.value}: {level.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => startEdit('gpSummary')}
+                      disabled={editStates.gpSummary}
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit
+                    </Button>
                   </div>
+                  
+                  {editStates.gpSummary ? (
+                    <div className="space-y-2">
+                      <Textarea
+                        value={editContent.gpSummary}
+                        onChange={(e) => setEditContent(prev => ({ ...prev, gpSummary: e.target.value }))}
+                        className="min-h-[200px] bg-blue-50 dark:bg-blue-950/20"
+                      />
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={() => saveEdit('gpSummary')}>
+                          <Check className="h-4 w-4 mr-2" />
+                          Save
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => cancelEdit('gpSummary')}>
+                          <X className="h-4 w-4 mr-2" />
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-blue-50 dark:bg-blue-950/20 rounded-lg p-4 min-h-[200px] whitespace-pre-wrap">
+                      {formatTextForDisplay(gpSummary) || "No summary generated yet"}
+                    </div>
+                  )}
                   <div className="flex gap-2">
                     <Button size="sm" onClick={() => copyToClipboard(gpSummary)}>
                       <Copy className="h-4 w-4 mr-2" />
@@ -810,9 +987,41 @@ const Index = () => {
                 </TabsContent>
                 
                 <TabsContent value="full" className="space-y-4">
-                  <div className="bg-yellow-50 dark:bg-yellow-950/20 rounded-lg p-4 min-h-[200px] whitespace-pre-wrap">
-                    {formatTextForDisplay(fullNote) || "No full note generated yet"}
+                  <div className="flex items-center justify-end mb-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => startEdit('fullNote')}
+                      disabled={editStates.fullNote}
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit
+                    </Button>
                   </div>
+                  
+                  {editStates.fullNote ? (
+                    <div className="space-y-2">
+                      <Textarea
+                        value={editContent.fullNote}
+                        onChange={(e) => setEditContent(prev => ({ ...prev, fullNote: e.target.value }))}
+                        className="min-h-[200px] bg-yellow-50 dark:bg-yellow-950/20"
+                      />
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={() => saveEdit('fullNote')}>
+                          <Check className="h-4 w-4 mr-2" />
+                          Save
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => cancelEdit('fullNote')}>
+                          <X className="h-4 w-4 mr-2" />
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-yellow-50 dark:bg-yellow-950/20 rounded-lg p-4 min-h-[200px] whitespace-pre-wrap">
+                      {formatTextForDisplay(fullNote) || "No full note generated yet"}
+                    </div>
+                  )}
                   <div className="flex gap-2">
                     <Button size="sm" onClick={() => copyToClipboard(fullNote)}>
                       <Copy className="h-4 w-4 mr-2" />
@@ -826,9 +1035,41 @@ const Index = () => {
                 </TabsContent>
                 
                 <TabsContent value="patient" className="space-y-4">
-                  <div className="bg-green-50 dark:bg-green-950/20 rounded-lg p-4 min-h-[200px] whitespace-pre-wrap">
-                    {formatTextForDisplay(patientCopy) || "No patient copy generated yet"}
+                  <div className="flex items-center justify-end mb-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => startEdit('patientCopy')}
+                      disabled={editStates.patientCopy}
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit
+                    </Button>
                   </div>
+                  
+                  {editStates.patientCopy ? (
+                    <div className="space-y-2">
+                      <Textarea
+                        value={editContent.patientCopy}
+                        onChange={(e) => setEditContent(prev => ({ ...prev, patientCopy: e.target.value }))}
+                        className="min-h-[200px] bg-green-50 dark:bg-green-950/20"
+                      />
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={() => saveEdit('patientCopy')}>
+                          <Check className="h-4 w-4 mr-2" />
+                          Save
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => cancelEdit('patientCopy')}>
+                          <X className="h-4 w-4 mr-2" />
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-green-50 dark:bg-green-950/20 rounded-lg p-4 min-h-[200px] whitespace-pre-wrap">
+                      {formatTextForDisplay(patientCopy) || "No patient copy generated yet"}
+                    </div>
+                  )}
                   <div className="flex gap-2">
                     <Button size="sm" onClick={() => copyToClipboard(patientCopy)}>
                       <Copy className="h-4 w-4 mr-2" />
@@ -842,15 +1083,95 @@ const Index = () => {
                 </TabsContent>
                 
                 <TabsContent value="trainee" className="space-y-4">
-                  <div className="bg-purple-50 dark:bg-purple-950/20 rounded-lg p-4 min-h-[200px] whitespace-pre-wrap">
-                    {formatTextForDisplay(traineeFeedback) || "No trainee feedback generated yet"}
+                  <div className="flex items-center justify-end mb-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => startEdit('traineeFeedback')}
+                      disabled={editStates.traineeFeedback}
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit
+                    </Button>
                   </div>
+                  
+                  {editStates.traineeFeedback ? (
+                    <div className="space-y-2">
+                      <Textarea
+                        value={editContent.traineeFeedback}
+                        onChange={(e) => setEditContent(prev => ({ ...prev, traineeFeedback: e.target.value }))}
+                        className="min-h-[200px] bg-purple-50 dark:bg-purple-950/20"
+                      />
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={() => saveEdit('traineeFeedback')}>
+                          <Check className="h-4 w-4 mr-2" />
+                          Save
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => cancelEdit('traineeFeedback')}>
+                          <X className="h-4 w-4 mr-2" />
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-purple-50 dark:bg-purple-950/20 rounded-lg p-4 min-h-[200px] whitespace-pre-wrap">
+                      {formatTextForDisplay(traineeFeedback) || "No trainee feedback generated yet"}
+                    </div>
+                  )}
                   <div className="flex gap-2">
                     <Button size="sm" onClick={() => copyToClipboard(traineeFeedback)}>
                       <Copy className="h-4 w-4 mr-2" />
                       Copy
                     </Button>
                     <Button size="sm" onClick={() => downloadAsPDF(traineeFeedback, 'trainee-feedback')}>
+                      <Download className="h-4 w-4 mr-2" />
+                      PDF
+                    </Button>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="referral" className="space-y-4">
+                  <div className="flex items-center justify-end mb-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => startEdit('referralLetter')}
+                      disabled={editStates.referralLetter}
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit
+                    </Button>
+                  </div>
+                  
+                  {editStates.referralLetter ? (
+                    <div className="space-y-2">
+                      <Textarea
+                        value={editContent.referralLetter}
+                        onChange={(e) => setEditContent(prev => ({ ...prev, referralLetter: e.target.value }))}
+                        className="min-h-[200px] bg-gray-50 dark:bg-gray-950/20"
+                      />
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={() => saveEdit('referralLetter')}>
+                          <Check className="h-4 w-4 mr-2" />
+                          Save
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => cancelEdit('referralLetter')}>
+                          <X className="h-4 w-4 mr-2" />
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-gray-50 dark:bg-gray-950/20 rounded-lg p-4 min-h-[200px] whitespace-pre-wrap">
+                      {formatTextForDisplay(referralLetter) || "No referral letter generated yet"}
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={() => copyToClipboard(referralLetter)}>
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copy
+                    </Button>
+                    <Button size="sm" onClick={() => downloadAsPDF(referralLetter, 'referral-letter')}>
                       <Download className="h-4 w-4 mr-2" />
                       PDF
                     </Button>
