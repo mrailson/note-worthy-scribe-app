@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Mic, MicOff, Wifi, WifiOff, Brain, Copy, Download, Mail, Save, Play, Pause, FileText, ChevronDown, ChevronUp, Lightbulb, AlertTriangle, BookOpen, Shield, BarChart3, Edit, Check, X, Send, Settings, Languages } from "lucide-react";
+import { Mic, MicOff, Wifi, WifiOff, Brain, Copy, Download, Mail, Save, Play, Pause, FileText, ChevronDown, ChevronUp, Lightbulb, AlertTriangle, BookOpen, Shield, BarChart3, Edit, Check, X, Send, Settings, Languages, Volume2, VolumeX } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { RealtimeTranscriber, TranscriptData } from "@/utils/RealtimeTranscriber";
@@ -20,6 +20,31 @@ import jsPDF from 'jspdf';
 import { consultationExamples, type ConsultationExample } from "@/data/consultationExamples";
 import { TranslationInterface } from "@/components/TranslationInterface";
 import { ConsultationHistory } from "@/components/ConsultationHistory";
+
+const HEALTHCARE_LANGUAGES = [
+  { code: '', name: 'No Translation', flag: '🚫' },
+  { code: 'ar', name: 'Arabic', flag: '🇸🇦', voice: 'ar-XA-Wavenet-A' },
+  { code: 'bn', name: 'Bengali', flag: '🇧🇩', voice: 'bn-IN-Wavenet-A' },
+  { code: 'bg', name: 'Bulgarian', flag: '🇧🇬', voice: 'bg-BG-Standard-A' },
+  { code: 'zh', name: 'Chinese (Mandarin)', flag: '🇨🇳', voice: 'cmn-CN-Wavenet-A' },
+  { code: 'hr', name: 'Croatian', flag: '🇭🇷', voice: 'hr-HR-Wavenet-A' },
+  { code: 'cs', name: 'Czech', flag: '🇨🇿', voice: 'cs-CZ-Wavenet-A' },
+  { code: 'da', name: 'Danish', flag: '🇩🇰', voice: 'da-DK-Wavenet-A' },
+  { code: 'nl', name: 'Dutch', flag: '🇳🇱', voice: 'nl-NL-Wavenet-A' },
+  { code: 'fr', name: 'French', flag: '🇫🇷', voice: 'fr-FR-Wavenet-A' },
+  { code: 'de', name: 'German', flag: '🇩🇪', voice: 'de-DE-Wavenet-A' },
+  { code: 'el', name: 'Greek', flag: '🇬🇷', voice: 'el-GR-Wavenet-A' },
+  { code: 'hi', name: 'Hindi', flag: '🇮🇳', voice: 'hi-IN-Wavenet-A' },
+  { code: 'hu', name: 'Hungarian', flag: '🇭🇺', voice: 'hu-HU-Wavenet-A' },
+  { code: 'it', name: 'Italian', flag: '🇮🇹', voice: 'it-IT-Wavenet-A' },
+  { code: 'pl', name: 'Polish', flag: '🇵🇱', voice: 'pl-PL-Wavenet-A' },
+  { code: 'pt', name: 'Portuguese', flag: '🇵🇹', voice: 'pt-PT-Wavenet-A' },
+  { code: 'ro', name: 'Romanian', flag: '🇷🇴', voice: 'ro-RO-Wavenet-A' },
+  { code: 'ru', name: 'Russian', flag: '🇷🇺', voice: 'ru-RU-Wavenet-A' },
+  { code: 'es', name: 'Spanish', flag: '🇪🇸', voice: 'es-ES-Wavenet-A' },
+  { code: 'tr', name: 'Turkish', flag: '🇹🇷', voice: 'tr-TR-Wavenet-A' },
+  { code: 'ur', name: 'Urdu', flag: '🇵🇰', voice: 'ur-IN-Wavenet-A' }
+];
 
 interface ConsultationGuidance {
   suggestedQuestions: string[];
@@ -56,6 +81,11 @@ const Index = () => {
   const [consultationType, setConsultationType] = useState<"face-to-face" | "telephone">("face-to-face");
   const [patientConsentObtained, setPatientConsentObtained] = useState(false);
   const [translationLanguage, setTranslationLanguage] = useState<string>('');
+  const [isTranslationEnabled, setIsTranslationEnabled] = useState(false);
+  const [translations, setTranslations] = useState<any[]>([]);
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [autoSpeak, setAutoSpeak] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
   
   // Guidance states - Removed guidance UI but keep for trainee feedback integration
   const [guidance, setGuidance] = useState<ConsultationGuidance | null>(null);
@@ -167,6 +197,88 @@ const Index = () => {
     }
   };
 
+  // Translation functions
+  const handleLanguageSelect = (languageCode: string) => {
+    setTranslationLanguage(languageCode);
+    setIsTranslationEnabled(languageCode !== '');
+    if (languageCode) {
+      toast.success(`Translation enabled for ${HEALTHCARE_LANGUAGES.find(l => l.code === languageCode)?.name}`);
+    } else {
+      setTranslations([]);
+      toast.success("Translation disabled");
+    }
+  };
+
+  const translateText = async (text: string, targetLanguage: string): Promise<string> => {
+    try {
+      const { data, error } = await supabase.functions.invoke('translate-text', {
+        body: {
+          text,
+          targetLanguage,
+          sourceLanguage: 'en'
+        }
+      });
+
+      if (error) throw error;
+      return data.translatedText;
+    } catch (error: any) {
+      toast.error(`Translation failed: ${error.message}`);
+      return text;
+    }
+  };
+
+  const speakTranslation = async (text: string, languageCode: string) => {
+    if (isMuted) return;
+    
+    try {
+      const language = HEALTHCARE_LANGUAGES.find(l => l.code === languageCode);
+      if (!language?.voice) return;
+
+      const { data, error } = await supabase.functions.invoke('text-to-speech', {
+        body: {
+          text,
+          languageCode,
+          voiceName: language.voice
+        }
+      });
+
+      if (error) throw error;
+
+      const audioData = `data:audio/mp3;base64,${data.audioContent}`;
+      const audio = new Audio(audioData);
+      audio.play();
+    } catch (error: any) {
+      console.error('TTS Error:', error);
+    }
+  };
+
+  const processTranslation = async (transcriptText: string) => {
+    if (!isTranslationEnabled || !translationLanguage || !transcriptText.trim()) return;
+    
+    setIsTranslating(true);
+    try {
+      const translated = await translateText(transcriptText, translationLanguage);
+      const newTranslation = {
+        id: Date.now().toString(),
+        original: transcriptText,
+        translated,
+        speaker: 'Consultation',
+        timestamp: new Date(),
+        languageCode: translationLanguage
+      };
+      
+      setTranslations(prev => [...prev.slice(-9), newTranslation]); // Keep last 10
+      
+      if (autoSpeak && !isMuted) {
+        speakTranslation(translated, translationLanguage);
+      }
+    } catch (error) {
+      console.error('Translation error:', error);
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+
   const handleTranscript = (transcriptData: TranscriptData) => {
     if (isPaused) return;
     
@@ -190,6 +302,11 @@ const Index = () => {
         // Auto-trigger guidance if enabled and transcript is meaningful
         if (autoGuidance && fullTranscript.length > 200 && words.length > 30) {
           debounceGuidance(fullTranscript);
+        }
+        
+        // Process translation if enabled
+        if (isTranslationEnabled && translationLanguage) {
+          processTranslation(fullTranscript);
         }
       }
       
@@ -778,6 +895,54 @@ const Index = () => {
                       </label>
                     </div>
 
+                    {/* Translation Settings */}
+                    <div>
+                      <h4 className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">
+                        <Languages className="h-4 w-4" />
+                        Real-time Translation
+                      </h4>
+                      <div className="space-y-3">
+                        <Select value={translationLanguage} onValueChange={handleLanguageSelect}>
+                          <SelectTrigger className="bg-background">
+                            <SelectValue placeholder="Select translation language" />
+                          </SelectTrigger>
+                          <SelectContent className="max-h-60">
+                            {HEALTHCARE_LANGUAGES.map((language) => (
+                              <SelectItem key={language.code} value={language.code}>
+                                <div className="flex items-center gap-2">
+                                  <span>{language.flag}</span>
+                                  <span>{language.name}</span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        
+                        {isTranslationEnabled && (
+                          <div className="flex items-center justify-between text-xs">
+                            <label className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={autoSpeak}
+                                onChange={(e) => setAutoSpeak(e.target.checked)}
+                                className="rounded"
+                              />
+                              Auto-speak
+                            </label>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setIsMuted(!isMuted)}
+                              className="h-6 px-2"
+                            >
+                              {isMuted ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
+                              {isMuted ? 'Unmute' : 'Mute'}
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
                     {/* Recording Stats */}
                     <div className="grid grid-cols-2 gap-4">
                       <div className="bg-accent/20 rounded-lg p-4 text-center">
@@ -1046,7 +1211,50 @@ const Index = () => {
               <CardContent>
                 <div className="bg-secondary/50 rounded-lg p-4 min-h-[200px] max-h-[400px] overflow-y-auto">
                   {transcript ? (
-                    <pre className="whitespace-pre-wrap text-sm">{transcript}</pre>
+                    <div className="space-y-4">
+                      {/* Original Transcript */}
+                      <div>
+                        <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                          <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                          Original Transcript
+                        </h4>
+                        <pre className="whitespace-pre-wrap text-sm bg-blue-50 dark:bg-blue-950/20 rounded p-3">{transcript}</pre>
+                      </div>
+                      
+                      {/* Translations */}
+                      {isTranslationEnabled && translationLanguage && translations.length > 0 && (
+                        <div>
+                          <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                            <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                            Translation ({HEALTHCARE_LANGUAGES.find(l => l.code === translationLanguage)?.name})
+                            {isTranslating && <span className="text-xs text-muted-foreground">(translating...)</span>}
+                          </h4>
+                          <div className="space-y-2">
+                            {translations.slice(-3).map((translation) => (
+                              <div key={translation.id} className="bg-green-50 dark:bg-green-950/20 rounded p-3">
+                                <div className="flex items-start justify-between">
+                                  <div className="flex-1">
+                                    <p className="text-sm">{translation.translated}</p>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                      {translation.timestamp.toLocaleTimeString()}
+                                    </p>
+                                  </div>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => speakTranslation(translation.translated, translation.languageCode)}
+                                    disabled={isMuted}
+                                    className="h-6 w-6 p-0 ml-2"
+                                  >
+                                    <Volume2 className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   ) : (
                     <p className="text-muted-foreground text-center py-8">
                       Start recording or load an example to see transcription...
