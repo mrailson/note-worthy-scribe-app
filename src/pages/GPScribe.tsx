@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Mic, MicOff, Wifi, WifiOff, Brain, Copy, Download, Mail, Save, Play, Pause, FileText, ChevronDown, ChevronUp, Lightbulb, AlertTriangle, BookOpen, Shield, BarChart3, Edit, Check, X, Send, Settings } from "lucide-react";
+import { Mic, MicOff, Wifi, WifiOff, Brain, Copy, Download, Mail, Save, Play, Pause, FileText, ChevronDown, ChevronUp, Lightbulb, AlertTriangle, BookOpen, Shield, BarChart3, Edit, Check, X, Send, Settings, Languages } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { RealtimeTranscriber, TranscriptData } from "@/utils/RealtimeTranscriber";
@@ -18,6 +18,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import jsPDF from 'jspdf';
 import { consultationExamples, type ConsultationExample } from "@/data/consultationExamples";
+import { TranslationInterface } from "@/components/TranslationInterface";
 
 interface ConsultationGuidance {
   suggestedQuestions: string[];
@@ -53,6 +54,7 @@ const Index = () => {
   // New consultation setup states
   const [consultationType, setConsultationType] = useState<"face-to-face" | "telephone">("face-to-face");
   const [patientConsentObtained, setPatientConsentObtained] = useState(false);
+  const [translationLanguage, setTranslationLanguage] = useState<string>('');
   
   // Guidance states - Removed guidance UI but keep for trainee feedback integration
   const [guidance, setGuidance] = useState<ConsultationGuidance | null>(null);
@@ -549,7 +551,7 @@ const Index = () => {
         
         {/* Tab Navigation */}
         <Tabs defaultValue="consultation" className="w-full">
-          <TabsList className="grid w-full grid-cols-5 bg-muted/50 p-1 rounded-xl border border-border/50">
+          <TabsList className="grid w-full grid-cols-6 bg-muted/50 p-1 rounded-xl border border-border/50">
             <TabsTrigger 
               value="consultation" 
               className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium"
@@ -573,6 +575,13 @@ const Index = () => {
               className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium"
             >
               Settings
+            </TabsTrigger>
+            <TabsTrigger 
+              value="translation" 
+              className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium"
+            >
+              <Languages className="h-4 w-4 mr-1" />
+              Translation
             </TabsTrigger>
             <TabsTrigger 
               value="history" 
@@ -892,6 +901,15 @@ const Index = () => {
                     Open Settings
                   </Button>
                 </div>
+              </TabsContent>
+
+              {/* Translation Tab */}
+              <TabsContent value="translation" className="space-y-4">
+                <TranslationInterface 
+                  transcript={transcript}
+                  isRecording={isRecording}
+                  onLanguageChange={(languageCode) => setTranslationLanguage(languageCode)}
+                />
               </TabsContent>
 
               {/* Previous Consultations Tab */}
