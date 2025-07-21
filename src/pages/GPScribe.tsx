@@ -236,7 +236,7 @@ const Index = () => {
   };
 
   const speakTranslation = async (text: string, languageCode: string, id = Date.now().toString()) => {
-    if (isMuted) return;
+    if (isMuted || isMicMuted) return;
     
     // Add to queue
     audioQueueRef.current.push({ text, languageCode, id });
@@ -409,6 +409,9 @@ const Index = () => {
       }
       audioQueueRef.current = [];
       setIsCurrentlyPlaying(false);
+      toast.success("Translation audio muted");
+    } else {
+      toast.success("Translation audio unmuted");
     }
   };
 
