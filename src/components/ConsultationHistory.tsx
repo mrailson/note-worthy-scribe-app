@@ -4,13 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Eye, Edit, Trash2, Clock, Calendar, FileText, Copy, Download, Mail } from "lucide-react";
+import { Eye, Edit, Trash2, Clock, Calendar, FileText, Copy, Download, Mail, CheckSquare, Square } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface ConsultationRecord {
   id: string;
@@ -34,6 +35,7 @@ export const ConsultationHistory = () => {
   const [loading, setLoading] = useState(true);
   const [selectedConsultation, setSelectedConsultation] = useState<ConsultationRecord | null>(null);
   const [editingConsultation, setEditingConsultation] = useState<ConsultationRecord | null>(null);
+  const [selectedConsultationIds, setSelectedConsultationIds] = useState<Set<string>>(new Set());
   const [editForm, setEditForm] = useState({
     title: "",
     description: ""
@@ -177,6 +179,52 @@ export const ConsultationHistory = () => {
     }
   };
 
+  const handleMultiDelete = async () => {
+    if (selectedConsultationIds.size === 0) return;
+
+    try {
+      const { error } = await supabase
+        .from('meetings')
+        .delete()
+        .in('id', Array.from(selectedConsultationIds));
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `${selectedConsultationIds.size} consultation(s) deleted successfully`
+      });
+
+      setSelectedConsultationIds(new Set());
+      fetchConsultations();
+    } catch (error) {
+      console.error('Error deleting consultations:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete consultations",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const toggleConsultationSelection = (consultationId: string) => {
+    const newSelected = new Set(selectedConsultationIds);
+    if (newSelected.has(consultationId)) {
+      newSelected.delete(consultationId);
+    } else {
+      newSelected.add(consultationId);
+    }
+    setSelectedConsultationIds(newSelected);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedConsultationIds.size === consultations.length) {
+      setSelectedConsultationIds(new Set());
+    } else {
+      setSelectedConsultationIds(new Set(consultations.map(c => c.id)));
+    }
+  };
+
   const formatDuration = (minutes: number) => {
     if (minutes < 60) {
       return `${minutes}m`;
@@ -240,8 +288,54 @@ export const ConsultationHistory = () => {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Consultation History</h3>
-        <Badge variant="secondary">{consultations.length} consultations</Badge>
+        <div className="flex items-center gap-4">
+          <h3 className="text-lg font-semibold">Consultation History</h3>
+          <Badge variant="secondary">{consultations.length} consultations</Badge>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          {consultations.length > 0 && (
+            <>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  checked={selectedConsultationIds.size === consultations.length && consultations.length > 0}
+                  onCheckedChange={toggleSelectAll}
+                />
+                <span className="text-sm text-muted-foreground">
+                  Select all ({selectedConsultationIds.size} selected)
+                </span>
+              </div>
+              
+              {selectedConsultationIds.size > 0 && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" size="sm">
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete Selected ({selectedConsultationIds.size})
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Multiple Consultations</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete {selectedConsultationIds.size} consultation(s)? This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleMultiDelete}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Delete {selectedConsultationIds.size} Consultation(s)
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+            </>
+          )}
+        </div>
       </div>
 
       <div className="space-y-3">
@@ -251,7 +345,14 @@ export const ConsultationHistory = () => {
           return (
             <Card key={consultation.id} className="hover:shadow-md transition-shadow">
               <CardContent className="p-4">
-                <div className="flex items-start justify-between">
+                <div className="flex items-start gap-3">
+                  <div className="pt-1">
+                    <Checkbox
+                      checked={selectedConsultationIds.has(consultation.id)}
+                      onCheckedChange={() => toggleConsultationSelection(consultation.id)}
+                    />
+                  </div>
+                  
                   <div className="flex-1">
                     <h4 className="font-medium">{consultation.title}</h4>
                     <p className="text-sm text-muted-foreground mt-1">
