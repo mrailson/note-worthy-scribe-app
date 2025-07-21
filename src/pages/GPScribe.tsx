@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import jsPDF from 'jspdf';
 import { consultationExamples, type ConsultationExample } from "@/data/consultationExamples";
 import { TranslationInterface } from "@/components/TranslationInterface";
+import { ConsultationHistory } from "@/components/ConsultationHistory";
 
 interface ConsultationGuidance {
   suggestedQuestions: string[];
@@ -665,7 +666,7 @@ const Index = () => {
               value="history" 
               className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium"
             >
-              Previous
+              History
             </TabsTrigger>
           </TabsList>
 
@@ -1011,17 +1012,9 @@ const Index = () => {
                 />
               </TabsContent>
 
-              {/* Previous Consultations Tab */}
+              {/* Consultation History Tab */}
               <TabsContent value="history" className="space-y-4">
-                <div className="text-center py-8">
-                  <h3 className="text-lg font-semibold mb-4">Previous Consultations</h3>
-                  <p className="text-muted-foreground mb-6">
-                    View and manage your previous consultation notes and recordings.
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    This feature is coming soon...
-                  </p>
-                </div>
+                <ConsultationHistory />
               </TabsContent>
             </CardContent>
           </Card>
