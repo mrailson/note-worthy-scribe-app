@@ -22,7 +22,7 @@ import { TranslationInterface } from "@/components/TranslationInterface";
 import { ConsultationHistory } from "@/components/ConsultationHistory";
 
 const HEALTHCARE_LANGUAGES = [
-  { code: '', name: 'No Translation', flag: '🚫' },
+  { code: 'none', name: 'No Translation', flag: '🚫' },
   { code: 'ar', name: 'Arabic', flag: '🇸🇦', voice: 'ar-XA-Wavenet-A' },
   { code: 'bn', name: 'Bengali', flag: '🇧🇩', voice: 'bn-IN-Wavenet-A' },
   { code: 'bg', name: 'Bulgarian', flag: '🇧🇬', voice: 'bg-BG-Standard-A' },
@@ -80,7 +80,7 @@ const Index = () => {
   // New consultation setup states
   const [consultationType, setConsultationType] = useState<"face-to-face" | "telephone">("face-to-face");
   const [patientConsentObtained, setPatientConsentObtained] = useState(false);
-  const [translationLanguage, setTranslationLanguage] = useState<string>('');
+  const [translationLanguage, setTranslationLanguage] = useState<string>('none');
   const [isTranslationEnabled, setIsTranslationEnabled] = useState(false);
   const [translations, setTranslations] = useState<any[]>([]);
   const [isTranslating, setIsTranslating] = useState(false);
@@ -200,8 +200,8 @@ const Index = () => {
   // Translation functions
   const handleLanguageSelect = (languageCode: string) => {
     setTranslationLanguage(languageCode);
-    setIsTranslationEnabled(languageCode !== '');
-    if (languageCode) {
+    setIsTranslationEnabled(languageCode !== 'none');
+    if (languageCode !== 'none') {
       toast.success(`Translation enabled for ${HEALTHCARE_LANGUAGES.find(l => l.code === languageCode)?.name}`);
     } else {
       setTranslations([]);
