@@ -215,13 +215,13 @@ const Index = () => {
     }
   };
 
-  const translateText = async (text: string, targetLanguage: string): Promise<string> => {
+  const translateText = async (text: string, targetLanguage: string, sourceLanguage: string = 'en'): Promise<string> => {
     try {
       const { data, error } = await supabase.functions.invoke('translate-text', {
         body: {
           text,
           targetLanguage,
-          sourceLanguage: 'en'
+          sourceLanguage
         }
       });
 
@@ -333,6 +333,60 @@ const Index = () => {
     }
   };
 
+  // Quick translation for immediate feedback
+  const processQuickTranslation = async (transcriptData: TranscriptData) => {
+    if (!isTranslationEnabled || translationLanguage === 'none' || !transcriptData.text.trim()) return;
+    
+    // Detect speaker type from the transcript data
+    const speakerName = transcriptData.speaker.toLowerCase();
+    let detectedSpeaker: 'GP' | 'Patient';
+    let sourceLanguage: string;
+    let targetLanguage: string;
+    
+    // Better speaker detection
+    if (speakerName.includes('doctor') || speakerName.includes('gp') || speakerName.includes('physician') || speakerName === 'speaker 1') {
+      detectedSpeaker = 'GP';
+      sourceLanguage = 'en';
+      targetLanguage = translationLanguage;
+    } else {
+      detectedSpeaker = 'Patient';
+      sourceLanguage = translationLanguage;
+      targetLanguage = 'en';
+    }
+    
+    setIsTranslating(true);
+    
+    try {
+      const translated = await translateText(transcriptData.text, targetLanguage, sourceLanguage);
+      
+      const newTranslation = {
+        id: `${Date.now()}-${transcriptData.speaker}`,
+        speaker: detectedSpeaker,
+        originalText: transcriptData.text,
+        translatedText: translated,
+        timestamp: new Date(),
+        languageCode: targetLanguage,
+        sourceLanguageCode: sourceLanguage
+      };
+      
+      // Replace or add translation for this speaker
+      setTranslations(prev => {
+        const filtered = prev.filter(t => !t.id.includes(transcriptData.speaker) || transcriptData.isFinal);
+        return [...filtered.slice(-9), newTranslation];
+      });
+      
+      // Auto-play only for final transcripts to avoid too much audio
+      if (transcriptData.isFinal && autoSpeak && !isMuted) {
+        speakTranslation(translated, targetLanguage, newTranslation.id);
+      }
+      
+    } catch (error) {
+      console.error('Quick translation error:', error);
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+
   // Stop all audio and clear queue when muting
   const handleMuteToggle = () => {
     const newMutedState = !isMuted;
@@ -373,11 +427,11 @@ const Index = () => {
         if (autoGuidance && fullTranscript.length > 200 && words.length > 30) {
           debounceGuidance(fullTranscript);
         }
-        
-        // Process translation if enabled
-        if (isTranslationEnabled && translationLanguage) {
-          processTranslation(fullTranscript);
-        }
+      }
+      
+      // Process translation immediately for both partial and final transcripts
+      if (isTranslationEnabled && translationLanguage !== 'none' && transcriptData.text.trim().length > 10) {
+        processQuickTranslation(transcriptData);
       }
       
       return newTranscripts;
@@ -1033,34 +1087,57 @@ const Index = () => {
                           </Button>
                         </div>
                         
-                        <div className="space-y-3 max-h-32 overflow-y-auto">
-                          {translations.slice(-2).map((translation) => (
+                        <div className="space-y-3 max-h-40 overflow-y-auto">
+                          {translations.slice(-3).map((translation) => (
                             <div
                               key={translation.id}
-                              className={`p-3 rounded-lg border-l-4 animate-scale-in ${
+                              className={`p-3 rounded-lg border animate-scale-in ${
                                 translation.speaker === 'GP'
-                                  ? 'bg-blue-50 dark:bg-blue-950/20 border-l-blue-500'
-                                  : 'bg-green-50 dark:bg-green-950/20 border-l-green-500'
+                                  ? 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800'
+                                  : 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800'
                               }`}
                             >
-                              <div className="flex items-center justify-between mb-1">
-                                <span className={`text-xs font-medium ${
-                                  translation.speaker === 'GP' ? 'text-blue-600' : 'text-green-600'
-                                }`}>
-                                  {translation.speaker} → {translation.speaker === 'GP' ? HEALTHCARE_LANGUAGES.find(l => l.code === translationLanguage)?.name : 'English'}
-                                </span>
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2">
+                                  <span className={`px-2 py-1 rounded text-xs font-bold text-white ${
+                                    translation.speaker === 'GP' ? 'bg-blue-600' : 'bg-green-600'
+                                  }`}>
+                                    {translation.speaker}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {translation.timestamp.toLocaleTimeString()}
+                                  </span>
+                                </div>
                                 <Button
                                   size="sm"
                                   variant="ghost"
-                                  onClick={() => speakTranslation(translation.translatedText, translation.languageCode, translation.id)}
+                                  onClick={() => speakTranslation(
+                                    translation.translatedText, 
+                                    translation.languageCode, 
+                                    translation.id
+                                  )}
                                   disabled={isMuted}
-                                  className="h-4 w-4 p-0"
+                                  className="h-6 w-6 p-0"
                                 >
                                   <Volume2 className="h-3 w-3" />
                                 </Button>
                               </div>
-                              <p className="text-sm font-medium">{translation.translatedText}</p>
-                              <p className="text-xs text-muted-foreground mt-1">{translation.originalText}</p>
+                              
+                              {/* Original Text */}
+                              <div className="mb-2">
+                                <p className="text-xs font-medium text-muted-foreground">
+                                  {translation.speaker === 'GP' ? 'English:' : `${HEALTHCARE_LANGUAGES.find(l => l.code === translationLanguage)?.name}:`}
+                                </p>
+                                <p className="text-sm">{translation.originalText}</p>
+                              </div>
+                              
+                              {/* Translated Text */}
+                              <div>
+                                <p className="text-xs font-medium text-muted-foreground">
+                                  {translation.speaker === 'GP' ? `${HEALTHCARE_LANGUAGES.find(l => l.code === translationLanguage)?.name}:` : 'English:'}
+                                </p>
+                                <p className="text-sm font-semibold text-primary">{translation.translatedText}</p>
+                              </div>
                             </div>
                           ))}
                           
