@@ -20,6 +20,7 @@ import jsPDF from 'jspdf';
 import { consultationExamples, type ConsultationExample } from "@/data/consultationExamples";
 import { TranslationInterface } from "@/components/TranslationInterface";
 import { ConsultationHistory } from "@/components/ConsultationHistory";
+import { PatientTranslationView } from "@/components/PatientTranslationView";
 
 const HEALTHCARE_LANGUAGES = [
   { code: 'none', name: 'No Translation', flag: '🚫' },
@@ -817,6 +818,21 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-background">
       <Header onNewMeeting={() => {}} />
+      
+      {/* Patient Translation View - Show prominently when translation is enabled */}
+      {isTranslationEnabled && translationLanguage !== 'none' && (
+        <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 max-w-6xl">
+          <PatientTranslationView
+            selectedLanguage={translationLanguage}
+            languageName={HEALTHCARE_LANGUAGES.find(l => l.code === translationLanguage)?.name || ''}
+            languageFlag={HEALTHCARE_LANGUAGES.find(l => l.code === translationLanguage)?.flag || ''}
+            isRecording={isRecording}
+            isMuted={isMuted}
+            onMuteToggle={handleMuteToggle}
+            realtimeTranscripts={realtimeTranscripts}
+          />
+        </div>
+      )}
       
       <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 lg:py-8 space-y-4 sm:space-y-6 max-w-6xl">
         
