@@ -2,9 +2,9 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Eye, Edit, Trash2, Clock, Calendar, FileText, Copy, Download, Mail, CheckSquare, Square } from "lucide-react";
+import { Eye, Edit, Trash2, Clock, Calendar, FileText, Copy } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -388,6 +388,9 @@ export const ConsultationHistory = () => {
                       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
                         <DialogHeader>
                           <DialogTitle>{consultation.title}</DialogTitle>
+                          <DialogDescription>
+                            View all consultation details, notes, and transcript.
+                          </DialogDescription>
                         </DialogHeader>
                         
                         {selectedConsultation && (
@@ -411,7 +414,7 @@ export const ConsultationHistory = () => {
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => copyToClipboard(selectedConsultation.summary)}
+                                    onClick={() => copyToClipboard(selectedConsultation.summary || "")}
                                   >
                                     <Copy className="h-4 w-4" />
                                   </Button>
@@ -429,7 +432,7 @@ export const ConsultationHistory = () => {
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => copyToClipboard(selectedConsultation.full_note)}
+                                    onClick={() => copyToClipboard(selectedConsultation.full_note || "")}
                                   >
                                     <Copy className="h-4 w-4" />
                                   </Button>
@@ -447,7 +450,7 @@ export const ConsultationHistory = () => {
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => copyToClipboard(selectedConsultation.patient_copy)}
+                                    onClick={() => copyToClipboard(selectedConsultation.patient_copy || "")}
                                   >
                                     <Copy className="h-4 w-4" />
                                   </Button>
@@ -465,7 +468,7 @@ export const ConsultationHistory = () => {
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => copyToClipboard(selectedConsultation.trainee_feedback)}
+                                    onClick={() => copyToClipboard(selectedConsultation.trainee_feedback || "")}
                                   >
                                     <Copy className="h-4 w-4" />
                                   </Button>
@@ -483,7 +486,7 @@ export const ConsultationHistory = () => {
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => copyToClipboard(selectedConsultation.transcript)}
+                                    onClick={() => copyToClipboard(selectedConsultation.transcript || "")}
                                   >
                                     <Copy className="h-4 w-4" />
                                   </Button>
@@ -511,6 +514,9 @@ export const ConsultationHistory = () => {
                       <DialogContent>
                         <DialogHeader>
                           <DialogTitle>Edit Consultation</DialogTitle>
+                          <DialogDescription>
+                            Update the consultation title and description.
+                          </DialogDescription>
                         </DialogHeader>
                         
                         <div className="space-y-4">
