@@ -940,85 +940,71 @@ const Index = () => {
                   <div className="flex-1 space-y-6">
                     {/* Consultation Type */}
                     <div>
-                      <h4 className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">
-                        <FileText className="h-4 w-4" />
-                        Consultation Type
-                      </h4>
-                      <div className="flex gap-3">
-                        <label className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
-                          consultationType === "face-to-face" 
-                            ? "border-primary bg-primary/10 shadow-sm" 
-                            : "border-border hover:border-primary/50 bg-background"
-                        }`}>
-                          <input
-                            type="radio"
-                            name="consultationType"
-                            value="face-to-face"
-                            checked={consultationType === "face-to-face"}
-                            onChange={(e) => setConsultationType(e.target.value as "face-to-face" | "telephone")}
-                            className="sr-only"
-                          />
-                          <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                            consultationType === "face-to-face" ? "border-primary" : "border-muted-foreground"
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+                        <h4 className="text-sm font-semibold text-primary flex items-center gap-2">
+                          <FileText className="h-4 w-4" />
+                          Consultation Type
+                        </h4>
+                        <div className="flex gap-3">
+                          <label className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                            consultationType === "face-to-face" 
+                              ? "border-primary bg-primary/10 shadow-sm" 
+                              : "border-border hover:border-primary/50 bg-background"
                           }`}>
-                            {consultationType === "face-to-face" && (
-                              <div className="w-2 h-2 rounded-full bg-primary"></div>
-                            )}
-                          </div>
-                          <span className="text-sm font-medium">Face to Face</span>
-                        </label>
-                        
-                        <label className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
-                          consultationType === "telephone" 
-                            ? "border-primary bg-primary/10 shadow-sm" 
-                            : "border-border hover:border-primary/50 bg-background"
-                        }`}>
-                          <input
-                            type="radio"
-                            name="consultationType"
-                            value="telephone"
-                            checked={consultationType === "telephone"}
-                            onChange={(e) => setConsultationType(e.target.value as "face-to-face" | "telephone")}
-                            className="sr-only"
-                          />
-                          <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                            consultationType === "telephone" ? "border-primary" : "border-muted-foreground"
+                            <input
+                              type="radio"
+                              name="consultationType"
+                              value="face-to-face"
+                              checked={consultationType === "face-to-face"}
+                              onChange={(e) => setConsultationType(e.target.value as "face-to-face" | "telephone")}
+                              className="sr-only"
+                            />
+                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                              consultationType === "face-to-face" ? "border-primary" : "border-muted-foreground"
+                            }`}>
+                              {consultationType === "face-to-face" && (
+                                <div className="w-2 h-2 rounded-full bg-primary"></div>
+                              )}
+                            </div>
+                            <span className="text-sm font-medium">Face to Face</span>
+                          </label>
+                          
+                          <label className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                            consultationType === "telephone" 
+                              ? "border-primary bg-primary/10 shadow-sm" 
+                              : "border-border hover:border-primary/50 bg-background"
                           }`}>
-                            {consultationType === "telephone" && (
-                              <div className="w-2 h-2 rounded-full bg-primary"></div>
-                            )}
-                          </div>
-                          <span className="text-sm font-medium">Telephone</span>
-                        </label>
+                            <input
+                              type="radio"
+                              name="consultationType"
+                              value="telephone"
+                              checked={consultationType === "telephone"}
+                              onChange={(e) => setConsultationType(e.target.value as "face-to-face" | "telephone")}
+                              className="sr-only"
+                            />
+                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                              consultationType === "telephone" ? "border-primary" : "border-muted-foreground"
+                            }`}>
+                              {consultationType === "telephone" && (
+                                <div className="w-2 h-2 rounded-full bg-primary"></div>
+                              )}
+                            </div>
+                            <span className="text-sm font-medium">Telephone</span>
+                          </label>
+                        </div>
                       </div>
                     </div>
 
 
                     {/* Translation Settings */}
                     <div>
-                      <h4 className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">
-                        <Languages className="h-4 w-4" />
-                        Real-time Translation
-                      </h4>
-                      <div className="space-y-3">
-                        <Select value={translationLanguage} onValueChange={handleLanguageSelect}>
-                          <SelectTrigger className="bg-background">
-                            <SelectValue placeholder="Select translation language" />
-                          </SelectTrigger>
-                          <SelectContent className="max-h-60">
-                            {HEALTHCARE_LANGUAGES.map((language) => (
-                              <SelectItem key={language.code} value={language.code}>
-                                <div className="flex items-center gap-2">
-                                  <span>{language.flag}</span>
-                                  <span>{language.name}</span>
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+                        <h4 className="text-sm font-semibold text-primary flex items-center gap-2">
+                          <Languages className="h-4 w-4" />
+                          Real-time Translation
+                        </h4>
                         {isTranslationEnabled && (
-                          <div className="flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-4 text-xs">
                             <label className="flex items-center gap-2">
                               <input
                                 type="checkbox"
@@ -1039,6 +1025,23 @@ const Index = () => {
                             </Button>
                           </div>
                         )}
+                      </div>
+                      <div className="space-y-3">
+                        <Select value={translationLanguage} onValueChange={handleLanguageSelect}>
+                          <SelectTrigger className="bg-background">
+                            <SelectValue placeholder="Select translation language" />
+                          </SelectTrigger>
+                          <SelectContent className="max-h-60">
+                            {HEALTHCARE_LANGUAGES.map((language) => (
+                              <SelectItem key={language.code} value={language.code}>
+                                <div className="flex items-center gap-2">
+                                  <span>{language.flag}</span>
+                                  <span>{language.name}</span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
 
