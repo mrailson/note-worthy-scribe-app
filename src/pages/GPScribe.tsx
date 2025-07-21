@@ -471,12 +471,6 @@ const Index = () => {
   };
 
   const startRecording = async () => {
-    // Check if patient consent is obtained
-    if (!patientConsentObtained) {
-      toast.error("Please confirm that patient consent has been obtained before starting recording");
-      return;
-    }
-
     try {
       transciberRef.current = new RealtimeTranscriber(
         handleTranscript,
@@ -999,36 +993,6 @@ const Index = () => {
                       </div>
                     </div>
 
-                    {/* Patient Consent */}
-                    <div>
-                      <h4 className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">
-                        <Shield className="h-4 w-4" />
-                        Patient Consent
-                      </h4>
-                      <label className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                        patientConsentObtained 
-                          ? "border-green-500 bg-green-50 dark:bg-green-900/20" 
-                          : "border-orange-400 bg-orange-50 dark:bg-orange-900/20 hover:border-orange-500"
-                      }`}>
-                        <Checkbox 
-                          id="patient-consent" 
-                          checked={patientConsentObtained}
-                          onCheckedChange={(checked) => setPatientConsentObtained(checked === true)}
-                          className="data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
-                        />
-                        <div className="flex-1">
-                          <span className="text-sm font-medium block">
-                            Patient consent obtained for recording this consultation
-                          </span>
-                          <span className="text-xs text-muted-foreground mt-1 block">
-                            Required before starting any recording session
-                          </span>
-                        </div>
-                        {patientConsentObtained && (
-                          <Check className="h-5 w-5 text-green-600" />
-                        )}
-                      </label>
-                    </div>
 
                     {/* Translation Settings */}
                     <div>
@@ -1192,12 +1156,7 @@ const Index = () => {
                       {!isRecording ? (
                         <Button 
                           onClick={startRecording}
-                          disabled={!patientConsentObtained}
-                          className={`shadow-elegant px-8 py-6 text-lg font-semibold min-h-[64px] rounded-xl transition-all duration-300 ${
-                            patientConsentObtained 
-                              ? "bg-gradient-primary hover:bg-primary-hover hover:shadow-glow hover:scale-105" 
-                              : "bg-muted text-muted-foreground cursor-not-allowed opacity-50"
-                          }`}
+                          className="shadow-elegant px-8 py-6 text-lg font-semibold min-h-[64px] rounded-xl transition-all duration-300 bg-gradient-primary hover:bg-primary-hover hover:shadow-glow hover:scale-105"
                         >
                           <Mic className="h-6 w-6 mr-3" />
                           Start Recording
