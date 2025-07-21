@@ -1017,11 +1017,11 @@ const Index = () => {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={handleMuteToggle}
+                              onClick={toggleMicMute}
                               className="h-6 px-2"
                             >
-                              {isMuted ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
-                              {isMuted ? 'Unmute' : 'Mute'}
+                              {isMicMuted ? <MicOff className="h-3 w-3" /> : <Mic className="h-3 w-3" />}
+                              {isMicMuted ? 'Unmute Mic' : 'Mute Mic'}
                             </Button>
                           </div>
                         )}
@@ -1068,11 +1068,11 @@ const Index = () => {
                             <Button
                               size="sm"
                               variant="ghost"
-                              onClick={handleMuteToggle}
+                              onClick={toggleMicMute}
                               className="h-6 w-6 p-0"
-                              title={isMuted ? 'Unmute audio' : 'Mute audio'}
+                              title={isMicMuted ? 'Unmute microphone' : 'Mute microphone'}
                             >
-                              {isMuted ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
+                              {isMicMuted ? <MicOff className="h-3 w-3" /> : <Mic className="h-3 w-3" />}
                             </Button>
                           </div>
                         </div>
