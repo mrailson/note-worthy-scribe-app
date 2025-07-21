@@ -252,42 +252,29 @@ export class RealtimeTranscriber {
             console.log('Transcription API response:', result);
             
             if (result.text && result.text.trim()) {
-              // Enhanced filtering for false positives
+              // More conservative filtering for false positives
               const text = result.text.trim();
               const lowercaseText = text.toLowerCase();
               
-              // Comprehensive list of common false positives from Whisper
+              // Only filter out obvious non-speech patterns
               const falsePositives = [
-                'thank you',
-                'thanks for watching',
-                'bye bye',
-                'chair please consider',
-                'thank you for watching',
-                'thanks for',
-                'please consider',
-                'goodbye',
-                'see you',
-                'until next time',
-                'have a good',
-                'take care',
                 'music',
                 'applause',
                 'laughter',
                 '♪',
-                'you'
+                'silence'
               ];
+              
+              // Check for repetitive patterns (like "bye bye bye bye")
+              const words = text.split(' ');
+              const isRepetitive = words.length > 3 && words.every(word => word.toLowerCase() === words[0].toLowerCase());
               
               // Check if the text is likely a false positive
               const isFalsePositive = falsePositives.some(phrase => 
-                lowercaseText.includes(phrase) || 
-                lowercaseText === phrase ||
-                text.length < 4 // Very short texts are usually false positives
-              );
-              
-              // Additional check: if text is repetitive or very generic
-              const isRepetitive = /^(.{1,10})\1+$/.test(text.toLowerCase());
-              
-              if (!isFalsePositive && !isRepetitive && text.length > 4) {
+                lowercaseText.includes(phrase)
+              ) || text.length < 3;
+               
+               if (!isFalsePositive && !isRepetitive && text.length > 2) {
                 console.log('Valid transcription received:', text);
                 this.onStatusChange('Transcription active');
                 this.onTranscript({
