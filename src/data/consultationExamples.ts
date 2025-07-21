@@ -10,6 +10,7 @@ export interface ConsultationExample {
     patientCopy: string;
     snomedCodes: string[];
   };
+  traineeFeedback: string;
 }
 
 export const consultationExamples: ConsultationExample[] = [
@@ -115,7 +116,39 @@ Most people feel better within 7-10 days.`,
         "422400008 - Vomiting",
         "386661006 - Fever"
       ]
-    }
+    },
+    traineeFeedback: `**GP Trainee Supervisor Feedback - Upper Respiratory Tract Infection**
+
+**Excellent Practice Demonstrated:**
+- Clear, systematic history-taking covering all key areas (onset, characteristics, associated symptoms)
+- Appropriate red flag screening (breathing difficulties, chest pain)
+- Good rapport building with empathetic opening
+- Excellent explanation of viral vs bacterial infection to patient
+- Appropriate antibiotic stewardship - well explained why not indicated
+- Comprehensive safety netting advice provided
+
+**Clinical Management:**
+- Correct diagnosis of viral URTI with appropriate examination findings documented
+- Evidence-based symptomatic treatment recommendations (paracetamol/ibuprofen)
+- Appropriate advice regarding work and infection control
+
+**Areas for Development:**
+- Consider quantifying fever (asked about it but could have been more specific about duration and pattern)
+- Could have briefly explored patient's understanding of their symptoms before examination
+- Consider asking about immunization status (especially if elderly or at-risk patient)
+
+**Patient Communication:**
+- Excellent - patient clearly understood diagnosis, treatment plan, and when to return
+- Good balance of reassurance while maintaining appropriate vigilance
+
+**Learning Points:**
+- This demonstrates good management of a common presentation
+- Shows appropriate use of clinical time for straightforward conditions
+- Excellent example of patient-centered care with clear communication
+
+**Overall Assessment:** Very good consultation demonstrating safe, effective primary care practice. Ready for independent practice in managing similar presentations.
+
+**Grade: Good** (would be suitable for CSA/OSCE pass)`
   },
   {
     id: "hypertension",
@@ -208,7 +241,38 @@ Your blood pressure is now much better controlled thanks to the medication and t
         "386536003 - Arterial pressure taking",
         "428119001 - Procedure involving blood pressure monitoring"
       ]
-    }
+    },
+    traineeFeedback: `**GP Trainee Supervisor Feedback - Hypertension Follow-up**
+
+**Excellent Practice Demonstrated:**
+- Well-structured chronic disease review with systematic approach
+- Good medication compliance assessment and side effect monitoring
+- Excellent lifestyle counseling reinforcement (diet, exercise)
+- Appropriate use of home monitoring data to guide management
+- Clear documentation of improvement and continued plan
+
+**Clinical Management:**
+- Correct decision to continue current therapy given excellent response
+- Good safety netting with specific BP thresholds for patient contact
+- Appropriate review interval (3 months) for stable hypertension
+
+**Areas for Development:**
+- Could have been more specific about ankle swelling assessment (examination findings not documented)
+- Consider discussing cardiovascular risk reduction benefits in more detail
+- Brief mention of blood test results but could expand on significance of normal kidney function
+
+**Patient Communication:**
+- Good reassurance about improvement while emphasizing importance of continued treatment
+- Patient clearly understood ongoing management plan
+
+**Learning Points:**
+- Demonstrates good chronic disease management principles
+- Shows appropriate shared decision making
+- Good example of holistic care including lifestyle factors
+
+**Overall Assessment:** Good systematic approach to chronic disease follow-up. Shows competency in ongoing management of stable hypertension.
+
+**Grade: Good** (demonstrates safe independent practice)`
   },
   {
     id: "depression",
@@ -320,7 +384,46 @@ Remember: Depression is treatable and you can get better with the right support.
         "44054006 - Type 2 diabetes mellitus",
         "182832007 - Sertraline therapy"
       ]
-    }
+    },
+    traineeFeedback: `**GP Trainee Supervisor Feedback - Depression Screening & Management**
+
+**Outstanding Practice Demonstrated:**
+- Excellent rapport building and empathetic approach to sensitive topic
+- Systematic depression screening covering all key domains (mood, sleep, appetite, anhedonia, cognition)
+- Thorough risk assessment including suicidal ideation and protective factors
+- Comprehensive history including triggers, previous episodes, substance use
+- Clear explanation of diagnosis and treatment options
+
+**Clinical Management:**
+- Appropriate diagnosis of moderate-severe depression
+- Evidence-based treatment plan: SSRI + counseling + holistic approach
+- Good safety netting with clear crisis plan
+- Appropriate investigation plan to exclude organic causes
+
+**Areas for Development:**
+- Could have used formal screening tool (PHQ-9) to quantify severity
+- Consider exploring patient's understanding of depression and treatment preferences more
+- Alcohol consumption could have been quantified more specifically
+- Consider discussing side effects of sertraline in more detail
+
+**Risk Management:**
+- Excellent assessment of suicidal risk with protective factors identified
+- Clear safety plan provided
+- Appropriate follow-up interval (2 weeks)
+
+**Patient Communication:**
+- Outstanding - patient felt heard and understood
+- Clear explanation that depression is a medical condition, not patient's fault
+- Realistic expectations about treatment timeline
+
+**Learning Points:**
+- Demonstrates excellent skills in mental health consultation
+- Shows appropriate balance of empathy and clinical assessment
+- Good example of holistic bio-psycho-social approach
+
+**Overall Assessment:** Excellent consultation demonstrating advanced communication skills and comprehensive mental health assessment. Ready for independent practice with complex mental health presentations.
+
+**Grade: Excellent** (demonstrates skills above expected level for stage of training)`
   },
   {
     id: "chest-pain",
@@ -447,7 +550,51 @@ The symptoms you described (crushing chest pain going to your arm and jaw, along
         "29857009 - Chest pain",
         "267038008 - Aspirin therapy"
       ]
-    }
+    },
+    traineeFeedback: `**GP Trainee Supervisor Feedback - Acute Chest Pain Emergency**
+
+**Excellent Emergency Management:**
+- Immediate recognition of high-risk presentation 
+- Systematic pain assessment with all key characteristics documented
+- Comprehensive cardiovascular risk factor assessment
+- Rapid clinical decision-making under pressure
+- Appropriate immediate interventions (aspirin, 999 call)
+
+**Clinical Excellence:**
+- Perfect identification of classical ACS symptoms (crushing chest pain, radiation, associated symptoms)
+- Thorough past medical history and risk factor evaluation
+- Correct interpretation of high-risk combination: symptoms + risk factors + family history
+- Appropriate vital signs assessment and documentation
+
+**Emergency Protocols:**
+- Immediate aspirin administration - evidence-based acute care
+- Urgent ambulance activation with appropriate justification
+- Clear communication of suspicion and urgency to patient
+- Appropriate monitoring while waiting for transfer
+
+**Patient Communication:**
+- Honest but reassuring explanation of concerns
+- Clear rationale for urgent action without causing panic
+- Appropriate emphasis on hospital expertise and treatment availability
+
+**Time-Critical Decision Making:**
+- Excellent prioritization of urgent assessment and management
+- No unnecessary delays in recognition and action
+- Appropriate limitation of examination given clinical urgency
+
+**Areas for Development:**
+- Could have mentioned ECG timing more specifically
+- Consider noting any medication allergies before aspirin
+
+**Learning Points:**
+- Exemplary emergency medicine practice in primary care
+- Demonstrates excellent clinical reasoning under pressure
+- Shows appropriate balance of thoroughness with urgency
+- Perfect example of when immediate action saves lives
+
+**Overall Assessment:** Outstanding emergency consultation. Textbook recognition and management of suspected STEMI. Demonstrates advanced clinical skills and decision-making appropriate for senior level practice.
+
+**Grade: Excellent** (demonstrates advanced emergency medicine skills)`
   },
   {
     id: "diabetes-review",
@@ -585,6 +732,51 @@ You're doing extremely well managing your diabetes - keep up the great work!`,
         "302497006 - Hemoglobin A1c level",
         "9436005 - Diabetic education"
       ]
-    }
+    },
+    traineeFeedback: `**GP Trainee Supervisor Feedback - Type 2 Diabetes Annual Review**
+
+**Excellent Chronic Disease Management:**
+- Systematic annual review covering all essential diabetes domains
+- Comprehensive symptom review (polyuria, polydipsia, visual changes, neuropathy)
+- Thorough lifestyle assessment including diet, exercise, and weight management
+- Good medication compliance review and safety assessment
+- Appropriate investigation interpretation and explanation
+
+**Clinical Excellence:**
+- Perfect understanding of HbA1c targets and significance of improvement
+- Comprehensive diabetic complication screening (feet, eyes, kidneys)
+- Appropriate cardiovascular risk assessment and management
+- Good integration of lifestyle factors with medical management
+
+**Patient Communication:**
+- Excellent positive reinforcement for patient's self-management efforts
+- Clear explanation of test results and their significance
+- Appropriate encouragement while maintaining ongoing vigilance
+- Good shared decision making regarding treatment continuation
+
+**Preventive Care:**
+- Appropriate addition of aspirin for cardiovascular protection
+- Good coordination of care with diabetes nurse and optometrist
+- Excellent patient education reinforcement
+
+**Areas for Development:**
+- Could have briefly addressed flu vaccination status
+- Consider asking about erectile dysfunction/sexual health (common diabetes complication)
+- Might have mentioned importance of maintaining good dental care
+
+**Long-term Management:**
+- Appropriate follow-up schedule with nurse at 6 months
+- Good continuity planning for ongoing care
+- Excellent documentation of patient's progress and plan
+
+**Learning Points:**
+- Demonstrates excellent chronic disease management skills
+- Shows good understanding of diabetes complications and prevention
+- Perfect example of patient-centered annual review
+- Good balance of celebrating success while maintaining vigilance
+
+**Overall Assessment:** Outstanding diabetes review consultation. Demonstrates comprehensive understanding of diabetes management and excellent patient engagement. Shows advanced competency in chronic disease care.
+
+**Grade: Excellent** (demonstrates advanced chronic disease management skills suitable for independent practice)`
   }
 ];

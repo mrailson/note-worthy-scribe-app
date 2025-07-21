@@ -229,11 +229,26 @@ const Index = () => {
       setTranscript(example.transcript);
       setWordCount(example.transcript.split(' ').filter(word => word.length > 0).length);
       setDuration(300); // 5 minutes example duration
-      toast.success(`Loaded example: ${example.title}`);
       
-      // Auto-generate guidance and summary for the example
+      // Load the pre-defined clinical notes and trainee feedback
+      setGpSummary(example.expectedNotes.gpSummary);
+      setFullNote(example.expectedNotes.fullNote);
+      setPatientCopy(example.expectedNotes.patientCopy);
+      setTraineeFeedback(example.traineeFeedback);
+      
+      // Update edit content as well
+      setEditContent({
+        gpSummary: example.expectedNotes.gpSummary,
+        fullNote: example.expectedNotes.fullNote,
+        patientCopy: example.expectedNotes.patientCopy,
+        traineeFeedback: example.traineeFeedback,
+        referralLetter: ""
+      });
+      
+      toast.success(`Loaded example: ${example.title} with supervisor feedback`);
+      
+      // Auto-generate guidance for the example
       generateGuidance(example.transcript);
-      setTimeout(() => generateSummary(), 500);
     }
   };
 
