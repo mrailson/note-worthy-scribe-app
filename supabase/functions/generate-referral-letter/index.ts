@@ -55,13 +55,32 @@ serve(async (req) => {
           gpSignature = `\n\n**Referring GP:**\n${signatureData.gp_name}${signatureData.qualifications ? `, ${signatureData.qualifications}` : ''}${signatureData.gmc_number ? `\nGMC Number: ${signatureData.gmc_number}` : ''}${signatureData.job_title ? `\n${signatureData.job_title}` : ''}`;
         }
 
-        // Fetch practice details
-        const { data: practiceData } = await supabase
-          .from('practice_details')
-          .select('*')
+        // Get user's practice assignment first
+        const { data: userRole } = await supabase
+          .from('user_roles')
+          .select('practice_id')
           .eq('user_id', userId)
-          .eq('is_default', true)
           .single();
+
+        let practiceData = null;
+        if (userRole?.practice_id) {
+          // Fetch practice details by practice_id from user role
+          const { data } = await supabase
+            .from('practice_details')
+            .select('*')
+            .eq('id', userRole.practice_id)
+            .single();
+          practiceData = data;
+        } else {
+          // Fallback: fetch practice details by user_id
+          const { data } = await supabase
+            .from('practice_details')
+            .select('*')
+            .eq('user_id', userId)
+            .eq('is_default', true)
+            .single();
+          practiceData = data;
+        }
 
         if (practiceData) {
           practiceDetails = `\n\n**Referring Practice:**\n${practiceData.practice_name}${practiceData.address ? `\n${practiceData.address}` : ''}${practiceData.phone ? `\nTel: ${practiceData.phone}` : ''}${practiceData.email ? `\nEmail: ${practiceData.email}` : ''}${practiceData.website ? `\nWebsite: ${practiceData.website}` : ''}`;
