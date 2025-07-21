@@ -1217,9 +1217,9 @@ const Index = () => {
                   ) : (
                     <div className="space-y-6">
                       {/* AI Generated Feedback */}
-                      <div className="bg-purple-50 dark:bg-purple-950/20 rounded-lg p-4 min-h-[200px] whitespace-pre-wrap">
-                        {formatTextForDisplay(traineeFeedback) || "No trainee feedback generated yet"}
-                      </div>
+                       <div className="bg-purple-50 dark:bg-purple-950/20 rounded-lg p-4 min-h-[200px] whitespace-pre-wrap">
+                         {formatTextForDisplay(traineeFeedback)}
+                       </div>
                       
                       {/* Consultation Guidance Integration */}
                       {guidance && (
