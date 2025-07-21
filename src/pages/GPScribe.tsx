@@ -599,113 +599,159 @@ const Index = () => {
             </CardHeader>
             
             <CardContent className="space-y-6">
-              {/* Consultation Setup */}
-              <div className="bg-blue-50 dark:bg-blue-950/20 rounded-lg p-4 space-y-4">
-                <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100">Consultation Setup</h3>
-                
-                {/* Consultation Type */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Consultation Type</label>
-                  <div className="flex gap-4">
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="radio"
-                        id="face-to-face"
-                        name="consultationType"
-                        value="face-to-face"
-                        checked={consultationType === "face-to-face"}
-                        onChange={(e) => setConsultationType(e.target.value as "face-to-face" | "telephone")}
-                        className="text-primary focus:ring-primary"
-                      />
-                      <label htmlFor="face-to-face" className="text-sm font-medium">
-                        Face to Face
+              {/* Consultation Setup - Enhanced Design */}
+              <div className="bg-gradient-to-br from-primary/5 to-accent/10 rounded-xl p-6 border border-primary/20 shadow-subtle">
+                <div className="flex flex-col lg:flex-row lg:items-start gap-6">
+                  {/* Left Side - Setup Options */}
+                  <div className="flex-1 space-y-6">
+                    {/* Consultation Type */}
+                    <div>
+                      <h4 className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">
+                        <FileText className="h-4 w-4" />
+                        Consultation Type
+                      </h4>
+                      <div className="flex gap-3">
+                        <label className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                          consultationType === "face-to-face" 
+                            ? "border-primary bg-primary/10 shadow-sm" 
+                            : "border-border hover:border-primary/50 bg-background"
+                        }`}>
+                          <input
+                            type="radio"
+                            name="consultationType"
+                            value="face-to-face"
+                            checked={consultationType === "face-to-face"}
+                            onChange={(e) => setConsultationType(e.target.value as "face-to-face" | "telephone")}
+                            className="sr-only"
+                          />
+                          <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                            consultationType === "face-to-face" ? "border-primary" : "border-muted-foreground"
+                          }`}>
+                            {consultationType === "face-to-face" && (
+                              <div className="w-2 h-2 rounded-full bg-primary"></div>
+                            )}
+                          </div>
+                          <span className="text-sm font-medium">Face to Face</span>
+                        </label>
+                        
+                        <label className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                          consultationType === "telephone" 
+                            ? "border-primary bg-primary/10 shadow-sm" 
+                            : "border-border hover:border-primary/50 bg-background"
+                        }`}>
+                          <input
+                            type="radio"
+                            name="consultationType"
+                            value="telephone"
+                            checked={consultationType === "telephone"}
+                            onChange={(e) => setConsultationType(e.target.value as "face-to-face" | "telephone")}
+                            className="sr-only"
+                          />
+                          <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                            consultationType === "telephone" ? "border-primary" : "border-muted-foreground"
+                          }`}>
+                            {consultationType === "telephone" && (
+                              <div className="w-2 h-2 rounded-full bg-primary"></div>
+                            )}
+                          </div>
+                          <span className="text-sm font-medium">Telephone</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* Patient Consent */}
+                    <div>
+                      <h4 className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">
+                        <Shield className="h-4 w-4" />
+                        Patient Consent
+                      </h4>
+                      <label className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                        patientConsentObtained 
+                          ? "border-green-500 bg-green-50 dark:bg-green-900/20" 
+                          : "border-orange-400 bg-orange-50 dark:bg-orange-900/20 hover:border-orange-500"
+                      }`}>
+                        <Checkbox 
+                          id="patient-consent" 
+                          checked={patientConsentObtained}
+                          onCheckedChange={(checked) => setPatientConsentObtained(checked === true)}
+                          className="data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
+                        />
+                        <div className="flex-1">
+                          <span className="text-sm font-medium block">
+                            Patient consent obtained for recording this consultation
+                          </span>
+                          <span className="text-xs text-muted-foreground mt-1 block">
+                            Required before starting any recording session
+                          </span>
+                        </div>
+                        {patientConsentObtained && (
+                          <Check className="h-5 w-5 text-green-600" />
+                        )}
                       </label>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="radio"
-                        id="telephone"
-                        name="consultationType"
-                        value="telephone"
-                        checked={consultationType === "telephone"}
-                        onChange={(e) => setConsultationType(e.target.value as "face-to-face" | "telephone")}
-                        className="text-primary focus:ring-primary"
-                      />
-                      <label htmlFor="telephone" className="text-sm font-medium">
-                        Telephone
-                      </label>
+
+                    {/* Recording Stats */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-accent/20 rounded-lg p-4 text-center">
+                        <div className="text-2xl font-bold text-primary">{formatDuration(duration)}</div>
+                        <div className="text-sm text-muted-foreground">Duration</div>
+                      </div>
+                      <div className="bg-accent/20 rounded-lg p-4 text-center">
+                        <div className="text-2xl font-bold text-primary">{wordCount}</div>
+                        <div className="text-sm text-muted-foreground">Words</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Side - Recording Button */}
+                  <div className="lg:border-l lg:border-primary/20 lg:pl-6 flex flex-col items-center">
+                    <div className="flex flex-col items-center gap-4">
+                      {!isRecording ? (
+                        <Button 
+                          onClick={startRecording}
+                          disabled={!patientConsentObtained}
+                          className={`shadow-elegant px-8 py-6 text-lg font-semibold min-h-[64px] rounded-xl transition-all duration-300 ${
+                            patientConsentObtained 
+                              ? "bg-gradient-primary hover:bg-primary-hover hover:shadow-glow hover:scale-105" 
+                              : "bg-muted text-muted-foreground cursor-not-allowed opacity-50"
+                          }`}
+                        >
+                          <Mic className="h-6 w-6 mr-3" />
+                          Start Recording
+                        </Button>
+                      ) : (
+                        <div className="flex flex-col gap-3">
+                          <Button 
+                            onClick={pauseRecording}
+                            variant="secondary"
+                            className="shadow-subtle px-8 py-4 text-lg font-medium min-h-[56px] rounded-xl"
+                          >
+                            {isPaused ? <Play className="h-5 w-5 mr-3" /> : <Pause className="h-5 w-5 mr-3" />}
+                            {isPaused ? 'Resume' : 'Pause'}
+                          </Button>
+                          <Button 
+                            onClick={stopRecording}
+                            variant="destructive"
+                            className="shadow-subtle px-8 py-4 text-lg font-medium min-h-[56px] rounded-xl"
+                          >
+                            <MicOff className="h-5 w-5 mr-3" />
+                            Stop Recording
+                          </Button>
+                        </div>
+                      )}
+                      
+                      {isRecording && (
+                        <div className="flex items-center justify-center gap-3 text-primary animate-pulse bg-accent/20 rounded-lg p-4 mt-4">
+                          <div className="w-3 h-3 bg-primary rounded-full"></div>
+                          <span className="text-base font-medium">
+                            {isPaused ? "Recording paused..." : "Recording consultation..."}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
-
-                {/* Patient Consent */}
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="patient-consent" 
-                    checked={patientConsentObtained}
-                    onCheckedChange={(checked) => setPatientConsentObtained(checked === true)}
-                  />
-                  <label htmlFor="patient-consent" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                    Patient consent obtained for recording this consultation
-                  </label>
-                </div>
               </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-center">
-                <div className="bg-accent/20 rounded-lg p-4">
-                  <div className="text-2xl sm:text-3xl font-bold text-primary">{formatDuration(duration)}</div>
-                  <div className="text-sm text-muted-foreground">Duration</div>
-                </div>
-                <div className="bg-accent/20 rounded-lg p-4">
-                  <div className="text-2xl sm:text-3xl font-bold text-primary">{wordCount}</div>
-                  <div className="text-sm text-muted-foreground">Words</div>
-                </div>
-              </div>
-
-              <div className="flex justify-center gap-4">
-                {!isRecording ? (
-                  <Button 
-                    onClick={startRecording}
-                    disabled={!patientConsentObtained}
-                    className={`shadow-subtle px-8 py-4 text-lg font-medium min-h-[56px] ${
-                      patientConsentObtained 
-                        ? "bg-gradient-primary hover:bg-primary-hover" 
-                        : "bg-muted text-muted-foreground cursor-not-allowed"
-                    }`}
-                  >
-                    <Mic className="h-5 w-5 mr-3" />
-                    Start Recording
-                  </Button>
-                ) : (
-                  <>
-                    <Button 
-                      onClick={pauseRecording}
-                      variant="secondary"
-                      className="shadow-subtle px-8 py-4 text-lg font-medium min-h-[56px]"
-                    >
-                      {isPaused ? <Play className="h-5 w-5 mr-3" /> : <Pause className="h-5 w-5 mr-3" />}
-                      {isPaused ? 'Resume' : 'Pause'}
-                    </Button>
-                    <Button 
-                      onClick={stopRecording}
-                      variant="destructive"
-                      className="shadow-subtle px-8 py-4 text-lg font-medium min-h-[56px]"
-                    >
-                      <MicOff className="h-5 w-5 mr-3" />
-                      Stop Recording
-                    </Button>
-                  </>
-                )}
-              </div>
-
-              {isRecording && (
-                <div className="flex items-center justify-center gap-3 text-primary animate-pulse bg-accent/20 rounded-lg p-4">
-                  <div className="w-3 h-3 bg-primary rounded-full"></div>
-                  <span className="text-base font-medium">
-                    {isPaused ? "Recording paused..." : "Recording consultation..."}
-                  </span>
-                </div>
-              )}
             </CardContent>
           </Card>
         </TabsContent>
