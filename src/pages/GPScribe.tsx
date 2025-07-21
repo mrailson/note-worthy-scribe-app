@@ -819,21 +819,6 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-background">
       <Header onNewMeeting={() => {}} />
       
-      {/* Patient Translation View - Show prominently when translation is enabled */}
-      {isTranslationEnabled && translationLanguage !== 'none' && (
-        <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 max-w-6xl">
-          <PatientTranslationView
-            selectedLanguage={translationLanguage}
-            languageName={HEALTHCARE_LANGUAGES.find(l => l.code === translationLanguage)?.name || ''}
-            languageFlag={HEALTHCARE_LANGUAGES.find(l => l.code === translationLanguage)?.flag || ''}
-            isRecording={isRecording}
-            isMuted={isMuted}
-            onMuteToggle={handleMuteToggle}
-            realtimeTranscripts={realtimeTranscripts}
-          />
-        </div>
-      )}
-      
       <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 lg:py-8 space-y-4 sm:space-y-6 max-w-6xl">
         
         {/* Tab Navigation */}
@@ -1027,6 +1012,76 @@ const Index = () => {
                         )}
                       </div>
                     </div>
+
+                    {/* Live Translation Display */}
+                    {isTranslationEnabled && translationLanguage !== 'none' && (
+                      <div className="bg-gradient-to-br from-primary/5 to-accent/10 rounded-xl p-4 border-2 border-primary/20 shadow-subtle animate-fade-in">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <Languages className="h-4 w-4 text-primary" />
+                            <span className="text-sm font-semibold text-primary">
+                              Live Translation: {HEALTHCARE_LANGUAGES.find(l => l.code === translationLanguage)?.flag} {HEALTHCARE_LANGUAGES.find(l => l.code === translationLanguage)?.name}
+                            </span>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={handleMuteToggle}
+                            className="h-6 w-6 p-0"
+                          >
+                            {isMuted ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
+                          </Button>
+                        </div>
+                        
+                        <div className="space-y-3 max-h-32 overflow-y-auto">
+                          {translations.slice(-2).map((translation) => (
+                            <div
+                              key={translation.id}
+                              className={`p-3 rounded-lg border-l-4 animate-scale-in ${
+                                translation.speaker === 'GP'
+                                  ? 'bg-blue-50 dark:bg-blue-950/20 border-l-blue-500'
+                                  : 'bg-green-50 dark:bg-green-950/20 border-l-green-500'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between mb-1">
+                                <span className={`text-xs font-medium ${
+                                  translation.speaker === 'GP' ? 'text-blue-600' : 'text-green-600'
+                                }`}>
+                                  {translation.speaker} → {translation.speaker === 'GP' ? HEALTHCARE_LANGUAGES.find(l => l.code === translationLanguage)?.name : 'English'}
+                                </span>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => speakTranslation(translation.translatedText, translation.languageCode, translation.id)}
+                                  disabled={isMuted}
+                                  className="h-4 w-4 p-0"
+                                >
+                                  <Volume2 className="h-3 w-3" />
+                                </Button>
+                              </div>
+                              <p className="text-sm font-medium">{translation.translatedText}</p>
+                              <p className="text-xs text-muted-foreground mt-1">{translation.originalText}</p>
+                            </div>
+                          ))}
+                          
+                          {translations.length === 0 && (
+                            <div className="text-center py-4">
+                              <Languages className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                              <p className="text-sm text-muted-foreground">Start speaking to see translations</p>
+                            </div>
+                          )}
+                          
+                          {isTranslating && (
+                            <div className="flex items-center justify-center py-2">
+                              <div className="flex items-center gap-2 text-primary">
+                                <div className="animate-spin h-3 w-3 border-2 border-current border-t-transparent rounded-full"></div>
+                                <span className="text-xs">Translating...</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Recording Stats */}
                     <div className="grid grid-cols-2 gap-4">
