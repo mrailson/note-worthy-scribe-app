@@ -88,6 +88,8 @@ const Index = () => {
   const [autoSpeak, setAutoSpeak] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
   const [isCurrentlyPlaying, setIsCurrentlyPlaying] = useState(false);
+  const [isMicMuted, setIsMicMuted] = useState(false);
+  const [playedTranslations, setPlayedTranslations] = useState<Set<string>>(new Set());
   
   // Audio queue management
   const audioQueueRef = useRef<Array<{text: string, languageCode: string, id: string}>>([]);
@@ -375,8 +377,9 @@ const Index = () => {
         return [...filtered.slice(-9), newTranslation];
       });
       
-      // Auto-play only for final transcripts to avoid too much audio
-      if (transcriptData.isFinal && autoSpeak && !isMuted) {
+      // Auto-play only for final transcripts and only if not already played
+      if (transcriptData.isFinal && autoSpeak && !isMuted && !playedTranslations.has(newTranslation.id)) {
+        setPlayedTranslations(prev => new Set([...prev, newTranslation.id]));
         speakTranslation(translated, targetLanguage, newTranslation.id);
       }
       
@@ -385,6 +388,12 @@ const Index = () => {
     } finally {
       setIsTranslating(false);
     }
+  };
+
+  // Microphone mute toggle
+  const toggleMicMute = () => {
+    setIsMicMuted(!isMicMuted);
+    toast.success(isMicMuted ? "Microphone unmuted" : "Microphone muted");
   };
 
   // Stop all audio and clear queue when muting
@@ -404,7 +413,7 @@ const Index = () => {
   };
 
   const handleTranscript = (transcriptData: TranscriptData) => {
-    if (isPaused) return;
+    if (isPaused || isMicMuted) return;
     
     setRealtimeTranscripts(prev => {
       const filtered = prev.filter(t => 
@@ -1077,14 +1086,26 @@ const Index = () => {
                               Live Translation: {HEALTHCARE_LANGUAGES.find(l => l.code === translationLanguage)?.flag} {HEALTHCARE_LANGUAGES.find(l => l.code === translationLanguage)?.name}
                             </span>
                           </div>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={handleMuteToggle}
-                            className="h-6 w-6 p-0"
-                          >
-                            {isMuted ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
-                          </Button>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={toggleMicMute}
+                              className={`h-6 w-6 p-0 ${isMicMuted ? 'text-red-500' : 'text-muted-foreground'}`}
+                              title={isMicMuted ? 'Unmute microphone' : 'Mute microphone'}
+                            >
+                              {isMicMuted ? <MicOff className="h-3 w-3" /> : <Mic className="h-3 w-3" />}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={handleMuteToggle}
+                              className="h-6 w-6 p-0"
+                              title={isMuted ? 'Unmute audio' : 'Mute audio'}
+                            >
+                              {isMuted ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
+                            </Button>
+                          </div>
                         </div>
                         
                         <div className="space-y-3 max-h-40 overflow-y-auto">
@@ -1107,20 +1128,10 @@ const Index = () => {
                                   <span className="text-xs text-muted-foreground">
                                     {translation.timestamp.toLocaleTimeString()}
                                   </span>
-                                </div>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => speakTranslation(
-                                    translation.translatedText, 
-                                    translation.languageCode, 
-                                    translation.id
+                                  {playedTranslations.has(translation.id) && (
+                                    <span className="text-xs text-green-600 font-medium">✓ Played</span>
                                   )}
-                                  disabled={isMuted}
-                                  className="h-6 w-6 p-0"
-                                >
-                                  <Volume2 className="h-3 w-3" />
-                                </Button>
+                                </div>
                               </div>
                               
                               {/* Original Text */}
@@ -1211,10 +1222,14 @@ const Index = () => {
                       )}
                       
                       {isRecording && (
-                        <div className="flex items-center justify-center gap-3 text-primary animate-pulse bg-accent/20 rounded-lg p-4 mt-4">
-                          <div className="w-3 h-3 bg-primary rounded-full"></div>
+                        <div className={`flex items-center justify-center gap-3 rounded-lg p-4 mt-4 ${
+                          isMicMuted 
+                            ? "text-red-500 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800" 
+                            : "text-primary bg-accent/20 animate-pulse"
+                        }`}>
+                          <div className={`w-3 h-3 rounded-full ${isMicMuted ? 'bg-red-500' : 'bg-primary'}`}></div>
                           <span className="text-base font-medium">
-                            {isPaused ? "Recording paused..." : "Recording consultation..."}
+                            {isMicMuted ? "Microphone muted..." : (isPaused ? "Recording paused..." : "Recording consultation...")}
                           </span>
                         </div>
                       )}
