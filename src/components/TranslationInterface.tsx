@@ -242,7 +242,7 @@ export const TranslationInterface = ({ transcript, isRecording, onLanguageChange
             languageCode: selectedLanguage
           };
           
-          setTranslations(prev => [...prev, entry]);
+          setTranslations(prev => [entry, ...prev]);
           
           // Auto-speak if enabled
           if (autoSpeak && translated.trim().length > 0) {
