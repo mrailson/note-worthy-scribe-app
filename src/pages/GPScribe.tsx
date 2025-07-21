@@ -1216,12 +1216,8 @@ const Index = () => {
                     </div>
                   ) : (
                     <div className="space-y-6">
-                      {/* AI Generated Feedback */}
-                       <div className="bg-purple-50 dark:bg-purple-950/20 rounded-lg p-4 min-h-[200px] whitespace-pre-wrap">
-                         {formatTextForDisplay(traineeFeedback)}
-                       </div>
-                      
-                      {/* Consultation Guidance Integration */}
+                       
+                       {/* Consultation Guidance Integration */}
                       {guidance && (
                         <div className="space-y-4 border-t pt-4">
                           <h4 className="font-semibold flex items-center gap-2">
