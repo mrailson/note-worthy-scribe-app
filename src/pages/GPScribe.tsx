@@ -551,7 +551,7 @@ const Index = () => {
         
         {/* Tab Navigation */}
         <Tabs defaultValue="consultation" className="w-full">
-          <TabsList className="grid w-full grid-cols-6 bg-muted/50 p-1 rounded-xl border border-border/50">
+          <TabsList className="grid w-full grid-cols-5 bg-muted/50 p-1 rounded-xl border border-border/50">
             <TabsTrigger 
               value="consultation" 
               className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium"
@@ -563,12 +563,6 @@ const Index = () => {
               className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium"
             >
               Examples
-            </TabsTrigger>
-            <TabsTrigger 
-              value="config" 
-              className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium"
-            >
-              Configuration
             </TabsTrigger>
             <TabsTrigger 
               value="settings" 
@@ -818,88 +812,109 @@ const Index = () => {
                 </div>
               </TabsContent>
 
-              {/* Output Configuration Tab */}
-              <TabsContent value="config" className="space-y-6">
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Output Level</label>
-                  <Select value={outputLevel.toString()} onValueChange={(value) => handleOutputLevelChange(parseInt(value))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select output level" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {outputLevels.map((level) => (
-                        <SelectItem key={level.value} value={level.value.toString()}>
-                          <div>
-                            <div className="font-medium">Level {level.value}: {level.label}</div>
-                            <div className="text-xs text-muted-foreground">{level.description}</div>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+              {/* Settings Tab - Combined Configuration and Settings */}
+              <TabsContent value="settings" className="space-y-6">
+                <div className="grid gap-6 md:grid-cols-2">
+                  {/* Output Configuration Section */}
+                  <Card className="border-accent/20">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <BarChart3 className="h-5 w-5" />
+                        Output Configuration
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div>
+                        <label className="text-sm font-medium mb-2 block">Output Level</label>
+                        <Select value={outputLevel.toString()} onValueChange={(value) => handleOutputLevelChange(parseInt(value))}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select output level" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {outputLevels.map((level) => (
+                              <SelectItem key={level.value} value={level.value.toString()}>
+                                <div>
+                                  <div className="font-medium">Level {level.value}: {level.label}</div>
+                                  <div className="text-xs text-muted-foreground">{level.description}</div>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
 
-                <div className="space-y-3">
-                  <h3 className="text-lg font-semibold">Clinical Coding & Formatting</h3>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="snomed-codes" 
-                      checked={showSnomedCodes}
-                      onCheckedChange={(checked) => setShowSnomedCodes(checked === true)}
-                    />
-                    <label htmlFor="snomed-codes" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                      Include SNOMED CT codes
-                    </label>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="emis-format" 
-                      checked={formatForEmis}
-                      onCheckedChange={(checked) => setFormatForEmis(checked === true)}
-                    />
-                    <label htmlFor="emis-format" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                      Format for EMIS Web
-                    </label>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="systmone-format" 
-                      checked={formatForSystmOne}
-                      onCheckedChange={(checked) => setFormatForSystmOne(checked === true)}
-                    />
-                    <label htmlFor="systmone-format" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                      Format for SystmOne
-                    </label>
-                  </div>
-                </div>
+                      <div className="space-y-3">
+                        <h4 className="text-sm font-semibold">Clinical Coding & Formatting</h4>
+                        
+                        <div className="flex items-center space-x-2">
+                          <Checkbox 
+                            id="snomed-codes" 
+                            checked={showSnomedCodes}
+                            onCheckedChange={(checked) => setShowSnomedCodes(checked === true)}
+                          />
+                          <label htmlFor="snomed-codes" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                            Include SNOMED CT codes
+                          </label>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2">
+                          <Checkbox 
+                            id="emis-format" 
+                            checked={formatForEmis}
+                            onCheckedChange={(checked) => setFormatForEmis(checked === true)}
+                          />
+                          <label htmlFor="emis-format" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                            Format for EMIS Web
+                          </label>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2">
+                          <Checkbox 
+                            id="systmone-format" 
+                            checked={formatForSystmOne}
+                            onCheckedChange={(checked) => setFormatForSystmOne(checked === true)}
+                          />
+                          <label htmlFor="systmone-format" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                            Format for SystmOne
+                          </label>
+                        </div>
+                      </div>
 
-                <Button
-                  onClick={generateSummary}
-                  disabled={!transcript.trim() || isGenerating}
-                  className="w-full bg-gradient-primary hover:bg-primary-hover shadow-subtle text-lg font-medium py-4"
-                >
-                  <Brain className="h-5 w-5 mr-3" />
-                  {isGenerating ? "Generating Clinical Summary..." : "🧠 Generate Clinical Summary"}
-                </Button>
-              </TabsContent>
+                      <Button
+                        onClick={generateSummary}
+                        disabled={!transcript.trim() || isGenerating}
+                        className="w-full bg-gradient-primary hover:bg-primary-hover shadow-subtle text-lg font-medium py-4"
+                      >
+                        <Brain className="h-5 w-5 mr-3" />
+                        {isGenerating ? "Generating Clinical Summary..." : "🧠 Generate Clinical Summary"}
+                      </Button>
+                    </CardContent>
+                  </Card>
 
-              {/* Settings Tab */}
-              <TabsContent value="settings" className="space-y-4">
-                <div className="text-center py-8">
-                  <h3 className="text-lg font-semibold mb-4">GP Scribe Settings</h3>
-                  <p className="text-muted-foreground mb-6">
-                    Configure your practice details, specialist services, and GP signature settings.
-                  </p>
-                  <Button
-                    onClick={() => navigate('/gp-scribe/settings')}
-                    className="flex items-center gap-2"
-                  >
-                    <Settings className="h-4 w-4" />
-                    Open Settings
-                  </Button>
+                  {/* Practice Settings Section */}
+                  <Card className="border-accent/20">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Settings className="h-5 w-5" />
+                        Practice Settings
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-center py-6">
+                        <h4 className="text-base font-semibold mb-3">GP Scribe Settings</h4>
+                        <p className="text-muted-foreground mb-6 text-sm">
+                          Configure your practice details, specialist services, and GP signature settings.
+                        </p>
+                        <Button
+                          onClick={() => navigate('/gp-scribe/settings')}
+                          className="flex items-center gap-2"
+                        >
+                          <Settings className="h-4 w-4" />
+                          Open Settings
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
               </TabsContent>
 
