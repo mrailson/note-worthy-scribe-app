@@ -80,7 +80,6 @@ const Index = () => {
   
   // New consultation setup states
   const [consultationType, setConsultationType] = useState<"face-to-face" | "telephone">("face-to-face");
-  const [patientConsentObtained, setPatientConsentObtained] = useState(false);
   const [translationLanguage, setTranslationLanguage] = useState<string>('none');
   const [isTranslationEnabled, setIsTranslationEnabled] = useState(false);
   const [translations, setTranslations] = useState<any[]>([]);
