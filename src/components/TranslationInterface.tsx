@@ -70,6 +70,7 @@ export const TranslationInterface = ({ transcript, isRecording, onLanguageChange
   const [isPlaying, setIsPlaying] = useState<string | null>(null);
   const [autoTranslate, setAutoTranslate] = useState(true);
   const [autoSpeak, setAutoSpeak] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
   const audioQueue = useRef<Array<{text: string, id: string}>>([]);
@@ -102,6 +103,8 @@ export const TranslationInterface = ({ transcript, isRecording, onLanguageChange
   };
 
   const speakTranslation = async (text: string, languageCode: string, id: string) => {
+    if (isMuted) return; // Skip speaking if muted
+    
     try {
       setIsSpeaking(true);
       const language = HEALTHCARE_LANGUAGES.find(l => l.code === languageCode);
@@ -326,6 +329,14 @@ export const TranslationInterface = ({ transcript, isRecording, onLanguageChange
                 onCheckedChange={setAutoSpeak}
               />
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsMuted(!isMuted)}
+              className="h-8 w-8 p-0"
+            >
+              {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+            </Button>
             <Button
               variant="outline"
               size="sm"
