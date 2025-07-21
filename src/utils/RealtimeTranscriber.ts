@@ -342,6 +342,20 @@ export class RealtimeTranscriber {
     this.onStatusChange('Stopped');
   }
 
+  pauseTranscription() {
+    if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
+      this.mediaRecorder.pause();
+      this.onStatusChange('Paused');
+    }
+  }
+
+  resumeTranscription() {
+    if (this.mediaRecorder && this.mediaRecorder.state === 'paused') {
+      this.mediaRecorder.resume();
+      this.onStatusChange('Recording speech...');
+    }
+  }
+
   isActive() {
     return this.isRecording;
   }

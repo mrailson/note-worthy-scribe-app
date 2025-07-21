@@ -389,14 +389,26 @@ const Index = () => {
     }
   };
 
-  // Microphone mute toggle
+  // Microphone mute toggle - actually pause/resume recording
   const toggleMicMute = () => {
-    setIsMicMuted(!isMicMuted);
-    toast.success(isMicMuted ? "Microphone unmuted" : "Microphone muted");
+    const newMutedState = !isMicMuted;
+    setIsMicMuted(newMutedState);
+    
+    if (transciberRef.current && isRecording) {
+      if (newMutedState) {
+        transciberRef.current.pauseTranscription();
+        toast.success("Microphone muted - stopped listening");
+      } else {
+        transciberRef.current.resumeTranscription();
+        toast.success("Microphone unmuted - resumed listening");
+      }
+    } else {
+      toast.success(newMutedState ? "Microphone muted" : "Microphone unmuted");
+    }
   };
 
-  // Stop all audio and clear queue when muting
-  const handleMuteToggle = () => {
+  // Stop all audio and clear queue when muting - this is for SPEAKER mute
+  const handleSpeakerMuteToggle = () => {
     const newMutedState = !isMuted;
     setIsMuted(newMutedState);
     
@@ -1014,15 +1026,26 @@ const Index = () => {
                               />
                               Auto-speak
                             </label>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={toggleMicMute}
-                              className="h-6 px-2"
-                            >
-                              {isMicMuted ? <MicOff className="h-3 w-3" /> : <Mic className="h-3 w-3" />}
-                              {isMicMuted ? 'Unmute Mic' : 'Mute Mic'}
-                            </Button>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={toggleMicMute}
+                                className="h-6 px-2"
+                              >
+                                {isMicMuted ? <MicOff className="h-3 w-3" /> : <Mic className="h-3 w-3" />}
+                                {isMicMuted ? 'Unmute Mic' : 'Mute Mic'}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={handleSpeakerMuteToggle}
+                                className="h-6 px-2"
+                              >
+                                {isMuted ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
+                                {isMuted ? 'Unmute Speaker' : 'Mute Speaker'}
+                              </Button>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -1073,6 +1096,15 @@ const Index = () => {
                               title={isMicMuted ? 'Unmute microphone' : 'Mute microphone'}
                             >
                               {isMicMuted ? <MicOff className="h-3 w-3" /> : <Mic className="h-3 w-3" />}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={handleSpeakerMuteToggle}
+                              className="h-6 w-6 p-0"
+                              title={isMuted ? 'Unmute speaker' : 'Mute speaker'}
+                            >
+                              {isMuted ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
                             </Button>
                           </div>
                         </div>
