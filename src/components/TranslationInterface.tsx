@@ -69,7 +69,11 @@ export const TranslationInterface = ({ transcript, isRecording, onLanguageChange
   const [isTranslating, setIsTranslating] = useState(false);
   const [isPlaying, setIsPlaying] = useState<string | null>(null);
   const [autoTranslate, setAutoTranslate] = useState(true);
+  const [autoSpeak, setAutoSpeak] = useState(true);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const audioQueue = useRef<Array<{text: string, id: string}>>([]);
+  const isProcessingAudio = useRef(false);
   const lastTranscriptLength = useRef(0);
 
   const handleLanguageSelect = (languageCode: string) => {
@@ -95,6 +99,62 @@ export const TranslationInterface = ({ transcript, isRecording, onLanguageChange
       toast.error(`Translation failed: ${error.message}`);
       return text;
     }
+  };
+
+  const speakTranslation = async (text: string, languageCode: string, id: string) => {
+    try {
+      setIsSpeaking(true);
+      const language = HEALTHCARE_LANGUAGES.find(l => l.code === languageCode);
+      
+      const { data, error } = await supabase.functions.invoke('text-to-speech', {
+        body: {
+          text,
+          languageCode,
+          voiceName: language?.voice
+        }
+      });
+
+      if (error) throw error;
+
+      // Create audio from base64
+      const audioBlob = new Blob(
+        [Uint8Array.from(atob(data.audioContent), c => c.charCodeAt(0))],
+        { type: 'audio/mpeg' }
+      );
+      
+      const audioUrl = URL.createObjectURL(audioBlob);
+      
+      return new Promise<void>((resolve) => {
+        const audio = new Audio(audioUrl);
+        audio.onended = () => {
+          URL.revokeObjectURL(audioUrl);
+          resolve();
+        };
+        audio.onerror = () => {
+          URL.revokeObjectURL(audioUrl);
+          resolve();
+        };
+        audio.play().catch(() => resolve());
+      });
+    } catch (error: any) {
+      console.error('Speech failed:', error);
+    }
+  };
+
+  const processAudioQueue = async () => {
+    if (isProcessingAudio.current || audioQueue.current.length === 0) return;
+    
+    isProcessingAudio.current = true;
+    
+    while (audioQueue.current.length > 0) {
+      const item = audioQueue.current.shift();
+      if (item) {
+        await speakTranslation(item.text, selectedLanguage, item.id);
+      }
+    }
+    
+    isProcessingAudio.current = false;
+    setIsSpeaking(false);
   };
 
   const playTranslation = async (text: string, languageCode: string, id: string) => {
@@ -183,6 +243,11 @@ export const TranslationInterface = ({ transcript, isRecording, onLanguageChange
           };
           
           setTranslations(prev => [...prev, entry]);
+          
+          // Auto-speak if enabled
+          if (autoSpeak && translated.trim().length > 0) {
+            audioQueue.current.push({ text: translated, id: entry.id });
+          }
         } catch (error) {
           console.error('Translation failed:', error);
         }
@@ -193,6 +258,13 @@ export const TranslationInterface = ({ transcript, isRecording, onLanguageChange
 
     translateNewContent();
   }, [transcript, isTranslationEnabled, selectedLanguage, autoTranslate]);
+
+  // Process audio queue when new items are added
+  useEffect(() => {
+    if (autoSpeak && audioQueue.current.length > 0 && !isProcessingAudio.current) {
+      processAudioQueue();
+    }
+  }, [translations, autoSpeak]);
 
   const selectedLang = HEALTHCARE_LANGUAGES.find(l => l.code === selectedLanguage);
 
@@ -247,6 +319,13 @@ export const TranslationInterface = ({ transcript, isRecording, onLanguageChange
                 onCheckedChange={setAutoTranslate}
               />
             </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium">Auto-speak</label>
+              <Switch 
+                checked={autoSpeak}
+                onCheckedChange={setAutoSpeak}
+              />
+            </div>
             <Button
               variant="outline"
               size="sm"
@@ -263,12 +342,20 @@ export const TranslationInterface = ({ transcript, isRecording, onLanguageChange
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {isTranslating && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Translating...
-            </div>
-          )}
+          <div className="flex items-center gap-4">
+            {isTranslating && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Translating...
+              </div>
+            )}
+            {isSpeaking && (
+              <div className="flex items-center gap-2 text-sm text-emerald-600">
+                <Volume2 className="h-4 w-4 animate-pulse" />
+                Speaking translation...
+              </div>
+            )}
+          </div>
           
           <ScrollArea className="h-[400px] w-full border rounded-lg p-4">
             {translations.length === 0 ? (
