@@ -86,6 +86,39 @@ export type Database = {
         }
         Relationships: []
       }
+      gp_scribe_settings: {
+        Row: {
+          created_at: string
+          default_format_for_emis: boolean
+          default_format_for_systmone: boolean
+          default_output_level: number
+          default_show_snomed_codes: boolean
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          default_format_for_emis?: boolean
+          default_format_for_systmone?: boolean
+          default_output_level?: number
+          default_show_snomed_codes?: boolean
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          default_format_for_emis?: boolean
+          default_format_for_systmone?: boolean
+          default_output_level?: number
+          default_show_snomed_codes?: boolean
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       gp_signature_settings: {
         Row: {
           created_at: string

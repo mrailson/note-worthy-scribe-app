@@ -1,7 +1,10 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,6 +17,7 @@ interface RequestBody {
   showSnomedCodes: boolean;
   formatForEmis: boolean;
   formatForSystmOne: boolean;
+  userId?: string;
 }
 
 const getStyleInstructions = (level: number, showSnomed: boolean, formatEmis: boolean, formatSystm: boolean) => {
@@ -66,10 +70,48 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured');
     }
 
-    const { transcript, outputLevel, showSnomedCodes, formatForEmis, formatForSystmOne }: RequestBody = await req.json();
+    const { transcript, outputLevel, showSnomedCodes, formatForEmis, formatForSystmOne, userId }: RequestBody = await req.json();
 
     if (!transcript || transcript.trim().length < 10) {
       throw new Error('Valid transcript is required');
+    }
+
+    // Initialize Supabase client for fetching user settings
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
+    // Fetch GP signature settings and practice details if userId is provided
+    let gpSignature = '';
+    let practiceDetails = '';
+    
+    if (userId) {
+      try {
+        // Fetch GP signature settings
+        const { data: signatureData } = await supabase
+          .from('gp_signature_settings')
+          .select('*')
+          .eq('user_id', userId)
+          .eq('is_default', true)
+          .single();
+
+        if (signatureData) {
+          gpSignature = `\n\n**GP Details:**\n${signatureData.gp_name}${signatureData.qualifications ? `, ${signatureData.qualifications}` : ''}${signatureData.gmc_number ? `\nGMC Number: ${signatureData.gmc_number}` : ''}${signatureData.job_title ? `\n${signatureData.job_title}` : ''}`;
+        }
+
+        // Fetch practice details
+        const { data: practiceData } = await supabase
+          .from('practice_details')
+          .select('*')
+          .eq('user_id', userId)
+          .eq('is_default', true)
+          .single();
+
+        if (practiceData) {
+          practiceDetails = `\n\n**Practice Details:**\n${practiceData.practice_name}${practiceData.address ? `\n${practiceData.address}` : ''}${practiceData.phone ? `\nTel: ${practiceData.phone}` : ''}${practiceData.email ? `\nEmail: ${practiceData.email}` : ''}${practiceData.website ? `\nWebsite: ${practiceData.website}` : ''}`;
+        }
+      } catch (error) {
+        console.warn('Could not fetch user settings:', error);
+        // Continue without settings
+      }
     }
 
     const styleInstructions = getStyleInstructions(outputLevel, showSnomedCodes, formatForEmis, formatForSystmOne);
@@ -132,7 +174,7 @@ ${formatForSystmOne ? 'Use SystmOne compatible abbreviations.' : ''}`
           },
           {
             role: 'user',
-            content: `Generate a comprehensive clinical note from this transcript:\n\n${transcript}`
+            content: `Generate a comprehensive clinical note from this transcript:\n\n${transcript}${gpSignature}${practiceDetails}`
           }
         ],
         temperature: 0.3,

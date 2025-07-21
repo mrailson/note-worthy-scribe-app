@@ -61,11 +61,14 @@ const Index = () => {
   const [isGuidanceLoading, setIsGuidanceLoading] = useState(false);
   const [autoGuidance, setAutoGuidance] = useState(true);
   
-  // Output configuration - Updated defaults
+  // Output configuration - Will be loaded from user settings
   const [outputLevel, setOutputLevel] = useState<number>(3); // Default to Standard
   const [showSnomedCodes, setShowSnomedCodes] = useState(true); // Default to true
   const [formatForEmis, setFormatForEmis] = useState(true); // Default to true
   const [formatForSystmOne, setFormatForSystmOne] = useState(false);
+  
+  // User settings loading state
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
   
   // Generated outputs
   const [isGenerating, setIsGenerating] = useState(false);
@@ -109,6 +112,58 @@ const Index = () => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Load user settings on component mount
+  const loadUserSettings = async () => {
+    if (!user || settingsLoaded) return;
+
+    try {
+      const { data: settings, error } = await supabase
+        .from('gp_scribe_settings')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 = not found
+        console.error('Error loading user settings:', error);
+        return;
+      }
+
+      if (settings) {
+        setOutputLevel(settings.default_output_level);
+        setShowSnomedCodes(settings.default_show_snomed_codes);
+        setFormatForEmis(settings.default_format_for_emis);
+        setFormatForSystmOne(settings.default_format_for_systmone);
+      }
+    } catch (error) {
+      console.error('Error loading user settings:', error);
+    } finally {
+      setSettingsLoaded(true);
+    }
+  };
+
+  // Save user settings when they change
+  const saveUserSettings = async () => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('gp_scribe_settings')
+        .upsert({
+          user_id: user.id,
+          default_output_level: outputLevel,
+          default_show_snomed_codes: showSnomedCodes,
+          default_format_for_emis: formatForEmis,
+          default_format_for_systmone: formatForSystmOne,
+        });
+
+      if (error) {
+        console.error('Error saving user settings:', error);
+      }
+    } catch (error) {
+      console.error('Error saving user settings:', error);
+    }
   };
 
   const handleTranscript = (transcriptData: TranscriptData) => {
@@ -300,7 +355,8 @@ const Index = () => {
           outputLevel,
           showSnomedCodes,
           formatForEmis,
-          formatForSystmOne
+          formatForSystmOne,
+          userId: user?.id
         }
       });
 
@@ -475,7 +531,8 @@ const Index = () => {
         body: {
           transcript,
           gpSummary,
-          fullNote
+          fullNote,
+          userId: user?.id
         }
       });
 
@@ -532,6 +589,18 @@ const Index = () => {
         return 'outline';
     }
   };
+
+  // Load user settings on component mount
+  useEffect(() => {
+    loadUserSettings();
+  }, [user]);
+
+  // Save user settings when they change
+  useEffect(() => {
+    if (settingsLoaded) {
+      saveUserSettings();
+    }
+  }, [outputLevel, showSnomedCodes, formatForEmis, formatForSystmOne]);
 
   if (loading) {
     return (

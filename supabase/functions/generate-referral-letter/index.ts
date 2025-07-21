@@ -1,7 +1,10 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,6 +15,7 @@ interface RequestBody {
   transcript: string;
   gpSummary: string;
   fullNote: string;
+  userId?: string;
 }
 
 serve(async (req) => {
@@ -24,10 +28,48 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured');
     }
 
-    const { transcript, gpSummary, fullNote }: RequestBody = await req.json();
+    const { transcript, gpSummary, fullNote, userId }: RequestBody = await req.json();
 
     if (!transcript || transcript.trim().length < 10) {
       throw new Error('Valid transcript is required');
+    }
+
+    // Initialize Supabase client for fetching user settings
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
+    // Fetch GP signature settings and practice details if userId is provided
+    let gpSignature = '';
+    let practiceDetails = '';
+    
+    if (userId) {
+      try {
+        // Fetch GP signature settings
+        const { data: signatureData } = await supabase
+          .from('gp_signature_settings')
+          .select('*')
+          .eq('user_id', userId)
+          .eq('is_default', true)
+          .single();
+
+        if (signatureData) {
+          gpSignature = `\n\n**Referring GP:**\n${signatureData.gp_name}${signatureData.qualifications ? `, ${signatureData.qualifications}` : ''}${signatureData.gmc_number ? `\nGMC Number: ${signatureData.gmc_number}` : ''}${signatureData.job_title ? `\n${signatureData.job_title}` : ''}`;
+        }
+
+        // Fetch practice details
+        const { data: practiceData } = await supabase
+          .from('practice_details')
+          .select('*')
+          .eq('user_id', userId)
+          .eq('is_default', true)
+          .single();
+
+        if (practiceData) {
+          practiceDetails = `\n\n**Referring Practice:**\n${practiceData.practice_name}${practiceData.address ? `\n${practiceData.address}` : ''}${practiceData.phone ? `\nTel: ${practiceData.phone}` : ''}${practiceData.email ? `\nEmail: ${practiceData.email}` : ''}${practiceData.website ? `\nWebsite: ${practiceData.website}` : ''}`;
+        }
+      } catch (error) {
+        console.warn('Could not fetch user settings:', error);
+        // Continue without settings
+      }
     }
 
     console.log('Generating referral letter for transcript length:', transcript.length);
@@ -80,7 +122,7 @@ ${transcript}
 ${gpSummary}
 
 **Full Clinical Note:**
-${fullNote}
+${fullNote}${gpSignature}${practiceDetails}
 
 Please determine the most appropriate specialist service from the consultation content and generate a comprehensive referral letter.`
           }
