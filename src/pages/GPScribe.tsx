@@ -914,13 +914,6 @@ const Index = () => {
               Settings
             </TabsTrigger>
             <TabsTrigger 
-              value="translation" 
-              className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium"
-            >
-              <Languages className="h-4 w-4 mr-1" />
-              Translation
-            </TabsTrigger>
-            <TabsTrigger 
               value="history" 
               className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium"
             >
@@ -1396,14 +1389,6 @@ const Index = () => {
                 </div>
               </TabsContent>
 
-              {/* Translation Tab */}
-              <TabsContent value="translation" className="space-y-4">
-                <TranslationInterface 
-                  transcript={transcript}
-                  isRecording={isRecording}
-                  onLanguageChange={(languageCode) => setTranslationLanguage(languageCode)}
-                />
-              </TabsContent>
 
               {/* Consultation History Tab */}
               <TabsContent value="history" className="space-y-4">
