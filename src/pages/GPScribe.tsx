@@ -86,6 +86,11 @@ const Index = () => {
   const [isTranslating, setIsTranslating] = useState(false);
   const [autoSpeak, setAutoSpeak] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
+  const [isCurrentlyPlaying, setIsCurrentlyPlaying] = useState(false);
+  
+  // Audio queue management
+  const audioQueueRef = useRef<Array<{text: string, languageCode: string, id: string}>>([]);
+  const currentAudioRef = useRef<HTMLAudioElement | null>(null);
   
   // Guidance states - Removed guidance UI but keep for trainee feedback integration
   const [guidance, setGuidance] = useState<ConsultationGuidance | null>(null);
@@ -227,33 +232,81 @@ const Index = () => {
     }
   };
 
-  const speakTranslation = async (text: string, languageCode: string) => {
+  const speakTranslation = async (text: string, languageCode: string, id = Date.now().toString()) => {
     if (isMuted) return;
     
+    // Add to queue
+    audioQueueRef.current.push({ text, languageCode, id });
+    
+    // Process queue if not already playing
+    if (!isCurrentlyPlaying) {
+      processAudioQueue();
+    }
+  };
+
+  const processAudioQueue = async () => {
+    if (audioQueueRef.current.length === 0 || isCurrentlyPlaying) return;
+    
+    setIsCurrentlyPlaying(true);
+    const audioItem = audioQueueRef.current.shift()!;
+    
     try {
-      const language = HEALTHCARE_LANGUAGES.find(l => l.code === languageCode);
-      if (!language?.voice) return;
+      const language = HEALTHCARE_LANGUAGES.find(l => l.code === audioItem.languageCode);
+      if (!language?.voice) {
+        processNextInQueue();
+        return;
+      }
 
       const { data, error } = await supabase.functions.invoke('text-to-speech', {
         body: {
-          text,
-          languageCode,
+          text: audioItem.text,
+          languageCode: audioItem.languageCode,
           voiceName: language.voice
         }
       });
 
       if (error) throw error;
 
+      // Stop any currently playing audio
+      if (currentAudioRef.current) {
+        currentAudioRef.current.pause();
+        currentAudioRef.current = null;
+      }
+
       const audioData = `data:audio/mp3;base64,${data.audioContent}`;
       const audio = new Audio(audioData);
-      audio.play();
+      currentAudioRef.current = audio;
+      
+      audio.onended = () => {
+        processNextInQueue();
+      };
+      
+      audio.onerror = () => {
+        console.error('Audio playback error');
+        processNextInQueue();
+      };
+
+      await audio.play();
     } catch (error: any) {
       console.error('TTS Error:', error);
+      processNextInQueue();
     }
   };
 
+  const processNextInQueue = () => {
+    setIsCurrentlyPlaying(false);
+    currentAudioRef.current = null;
+    
+    // Process next item in queue after a short delay
+    setTimeout(() => {
+      if (audioQueueRef.current.length > 0) {
+        processAudioQueue();
+      }
+    }, 100);
+  };
+
   const processTranslation = async (transcriptText: string) => {
-    if (!isTranslationEnabled || !translationLanguage || !transcriptText.trim()) return;
+    if (!isTranslationEnabled || translationLanguage === 'none' || !transcriptText.trim()) return;
     
     setIsTranslating(true);
     try {
@@ -270,12 +323,28 @@ const Index = () => {
       setTranslations(prev => [...prev.slice(-9), newTranslation]); // Keep last 10
       
       if (autoSpeak && !isMuted) {
-        speakTranslation(translated, translationLanguage);
+        speakTranslation(translated, translationLanguage, newTranslation.id);
       }
     } catch (error) {
       console.error('Translation error:', error);
     } finally {
       setIsTranslating(false);
+    }
+  };
+
+  // Stop all audio and clear queue when muting
+  const handleMuteToggle = () => {
+    const newMutedState = !isMuted;
+    setIsMuted(newMutedState);
+    
+    if (newMutedState) {
+      // Stop current audio and clear queue
+      if (currentAudioRef.current) {
+        currentAudioRef.current.pause();
+        currentAudioRef.current = null;
+      }
+      audioQueueRef.current = [];
+      setIsCurrentlyPlaying(false);
     }
   };
 
@@ -932,7 +1001,7 @@ const Index = () => {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => setIsMuted(!isMuted)}
+                              onClick={handleMuteToggle}
                               className="h-6 px-2"
                             >
                               {isMuted ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
