@@ -16,7 +16,7 @@ import {
   Clock,
   Hash
 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+
 
 interface MeetingSummaryProps {
   duration: string;
@@ -43,7 +43,7 @@ export const MeetingSummary = ({
 }: MeetingSummaryProps) => {
   const [detailLevel, setDetailLevel] = useState("balanced");
   const [notes, setNotes] = useState(generateMeetingNotes(transcript, "balanced"));
-  const { toast } = useToast();
+  
 
   function generateMeetingNotes(transcript: string, level: string) {
     if (!transcript) return "No meeting content to summarize.";
@@ -113,10 +113,7 @@ New patient pathway improvements have reduced waiting times by 15%. Patient sati
 
   const handleCopyNotes = () => {
     navigator.clipboard.writeText(notes);
-    toast({
-      title: "Notes Copied",
-      description: "Meeting notes copied to clipboard",
-    });
+    console.log("Notes Copied - Meeting notes copied to clipboard");
   };
 
   const handleEmailNotes = () => {
@@ -126,10 +123,7 @@ New patient pathway improvements have reduced waiting times by 15%. Patient sati
   };
 
   const handleExport = (format: string) => {
-    toast({
-      title: `${format} Export`,
-      description: `Meeting notes exported as ${format}`,
-    });
+    console.log(`${format} Export - Meeting notes exported as ${format}`);
   };
 
   return (

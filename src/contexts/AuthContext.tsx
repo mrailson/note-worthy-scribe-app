@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -27,7 +27,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
+  
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useIsMobile();
@@ -61,18 +61,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     });
     
     if (error) {
-      toast({
-        title: "Login Failed",
-        description: error.message,
-        variant: "destructive",
-      });
+      console.error("Login Failed:", error.message);
     } else {
       // Only show welcome toast on desktop
       if (!isMobile) {
-        toast({
-          title: "Login Successful",
-          description: "Welcome to Notewell AI Meeting Notes Service",
-        });
+        console.log("Login Successful - Welcome to Notewell AI Meeting Notes Service");
       }
     }
     
@@ -84,10 +77,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     await supabase.auth.signOut();
     // Only show logout toast on desktop
     if (!isMobile) {
-      toast({
-        title: "Logged Out",
-        description: "You have been successfully logged out",
-      });
+      console.log("Logged Out - You have been successfully logged out");
     }
     // Navigate to home page to show login form
     navigate('/', { replace: true });

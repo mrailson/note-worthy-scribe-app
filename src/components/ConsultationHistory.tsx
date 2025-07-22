@@ -7,7 +7,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Eye, Edit, Trash2, Clock, Calendar, FileText, Copy } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,7 +30,7 @@ interface ConsultationRecord {
 
 export const ConsultationHistory = () => {
   const { user } = useAuth();
-  const { toast } = useToast();
+  
   const [consultations, setConsultations] = useState<ConsultationRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedConsultation, setSelectedConsultation] = useState<ConsultationRecord | null>(null);
@@ -105,11 +105,7 @@ export const ConsultationHistory = () => {
       setConsultations(consultationsWithDetails);
     } catch (error) {
       console.error('Error fetching consultations:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load consultation history",
-        variant: "destructive"
-      });
+      console.error("Failed to load consultation history");
     } finally {
       setLoading(false);
     }
@@ -137,20 +133,13 @@ export const ConsultationHistory = () => {
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: "Consultation updated successfully"
-      });
+      console.log("Consultation updated successfully");
 
       setEditingConsultation(null);
       fetchConsultations();
     } catch (error) {
       console.error('Error updating consultation:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update consultation",
-        variant: "destructive"
-      });
+      console.error("Failed to update consultation");
     }
   };
 
@@ -163,19 +152,12 @@ export const ConsultationHistory = () => {
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: "Consultation deleted successfully"
-      });
+      console.log("Consultation deleted successfully");
 
       fetchConsultations();
     } catch (error) {
       console.error('Error deleting consultation:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete consultation",
-        variant: "destructive"
-      });
+      console.error("Failed to delete consultation");
     }
   };
 
@@ -190,20 +172,13 @@ export const ConsultationHistory = () => {
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: `${selectedConsultationIds.size} consultation(s) deleted successfully`
-      });
+      console.log(`${selectedConsultationIds.size} consultation(s) deleted successfully`);
 
       setSelectedConsultationIds(new Set());
       fetchConsultations();
     } catch (error) {
       console.error('Error deleting consultations:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete consultations",
-        variant: "destructive"
-      });
+      console.error("Failed to delete consultations");
     }
   };
 
@@ -245,16 +220,9 @@ export const ConsultationHistory = () => {
   const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      toast({
-        title: "Success",
-        description: "Copied to clipboard"
-      });
+      console.log("Copied to clipboard");
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to copy to clipboard",
-        variant: "destructive"
-      });
+      console.error("Failed to copy to clipboard");
     }
   };
 

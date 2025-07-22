@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Users, Plus, Edit, Trash2, Check, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+
 
 interface Attendee {
   id: string;
@@ -35,7 +35,7 @@ export const AttendeeManager = ({ onAttendeesChange }: AttendeeManagerProps) => 
     role: "",
     is_default: false
   });
-  const { toast } = useToast();
+  
 
   useEffect(() => {
     fetchAttendees();
@@ -55,11 +55,7 @@ export const AttendeeManager = ({ onAttendeesChange }: AttendeeManagerProps) => 
       }
     } catch (error) {
       console.error('Error fetching attendees:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch attendees",
-        variant: "destructive",
-      });
+      console.error("Failed to fetch attendees");
     }
   };
 
@@ -100,17 +96,10 @@ export const AttendeeManager = ({ onAttendeesChange }: AttendeeManagerProps) => 
 
       fetchAttendees();
       resetForm();
-      toast({
-        title: "Success",
-        description: `Attendee ${isEditing ? 'updated' : 'added'} successfully`,
-      });
+      console.log(`Attendee ${isEditing ? 'updated' : 'added'} successfully`);
     } catch (error) {
       console.error('Error saving attendee:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save attendee",
-        variant: "destructive",
-      });
+      console.error("Failed to save attendee");
     }
   };
 
@@ -123,17 +112,10 @@ export const AttendeeManager = ({ onAttendeesChange }: AttendeeManagerProps) => 
 
       if (error) throw error;
       fetchAttendees();
-      toast({
-        title: "Success",
-        description: "Attendee deleted successfully",
-      });
+      console.log("Attendee deleted successfully");
     } catch (error) {
       console.error('Error deleting attendee:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete attendee",
-        variant: "destructive",
-      });
+      console.error("Failed to delete attendee");
     }
   };
 

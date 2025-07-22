@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Building, Plus, Edit, Trash2, Check, X, Globe, Search, Database, Upload, Image } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+
 
 interface PracticeDetail {
   id: string;
@@ -51,7 +51,7 @@ export const PracticeManager = ({ onPracticeChange }: PracticeManagerProps) => {
   });
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string>("");
-  const { toast } = useToast();
+  
 
   useEffect(() => {
     fetchPractices();
@@ -75,11 +75,7 @@ export const PracticeManager = ({ onPracticeChange }: PracticeManagerProps) => {
       }
     } catch (error) {
       console.error('Error fetching practices:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch practice details",
-        variant: "destructive",
-      });
+      console.error("Failed to fetch practice details");
     }
   };
 
@@ -94,11 +90,7 @@ export const PracticeManager = ({ onPracticeChange }: PracticeManagerProps) => {
       setGpPractices(data || []);
     } catch (error) {
       console.error('Error fetching GP practices:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch GP practices",
-        variant: "destructive",
-      });
+      console.error("Failed to fetch GP practices");
     }
   };
 
@@ -168,17 +160,10 @@ export const PracticeManager = ({ onPracticeChange }: PracticeManagerProps) => {
 
       fetchPractices();
       resetForm();
-      toast({
-        title: "Success",
-        description: `Practice ${isEditing ? 'updated' : 'added'} successfully`,
-      });
+      console.log(`Practice ${isEditing ? 'updated' : 'added'} successfully`);
     } catch (error) {
       console.error('Error saving practice:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save practice details",
-        variant: "destructive",
-      });
+      console.error("Failed to save practice details");
     }
   };
 
@@ -191,17 +176,10 @@ export const PracticeManager = ({ onPracticeChange }: PracticeManagerProps) => {
 
       if (error) throw error;
       fetchPractices();
-      toast({
-        title: "Success",
-        description: "Practice deleted successfully",
-      });
+      console.log("Practice deleted successfully");
     } catch (error) {
       console.error('Error deleting practice:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete practice",
-        variant: "destructive",
-      });
+      console.error("Failed to delete practice");
     }
   };
 

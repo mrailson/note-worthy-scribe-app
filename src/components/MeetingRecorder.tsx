@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+
 import { RealtimeTranscriber, TranscriptData } from "@/utils/RealtimeTranscriber";
 
 interface MeetingRecorderProps {
@@ -32,7 +32,7 @@ export const MeetingRecorder = ({
   const [speakerCount, setSpeakerCount] = useState(0);
   const [wordCount, setWordCount] = useState(0);
   const [startTime, setStartTime] = useState<string>("");
-  const { toast } = useToast();
+  
   const navigate = useNavigate();
   
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -78,11 +78,7 @@ export const MeetingRecorder = ({
   };
 
   const handleTranscriptionError = (error: string) => {
-    toast({
-      title: "Transcription Error",
-      description: error,
-      variant: "destructive",
-    });
+    console.error("Transcription Error:", error);
     setConnectionStatus("Error");
   };
 

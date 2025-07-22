@@ -8,14 +8,14 @@ import { LiveTranscript } from "@/components/LiveTranscript";
 import { MeetingSummary } from "@/components/MeetingSummary";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+
 import { toast } from "sonner";
 import { ImportedTranscript } from "@/utils/FileImporter";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const Index = () => {
   const { user, loading } = useAuth();
-  const { toast: deprecatedToast } = useToast();
+  
   const [searchParams] = useSearchParams();
   const location = useLocation();
   const navigate = useNavigate();

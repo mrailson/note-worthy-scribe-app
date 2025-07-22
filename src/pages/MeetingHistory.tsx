@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+
 import { useNavigate } from "react-router-dom";
 
 interface Meeting {
@@ -48,7 +48,7 @@ interface Meeting {
 
 const MeetingHistory = () => {
   const { user } = useAuth();
-  const { toast } = useToast();
+  
   const navigate = useNavigate();
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [filteredMeetings, setFilteredMeetings] = useState<Meeting[]>([]);
@@ -115,11 +115,7 @@ const MeetingHistory = () => {
         }
       });
     } catch (error: any) {
-      toast({
-        title: "Error Loading Meeting",
-        description: error.message,
-        variant: "destructive",
-      });
+      console.error("Error Loading Meeting:", error.message);
     }
   };
 
@@ -180,11 +176,7 @@ const MeetingHistory = () => {
 
       setMeetings(enrichedMeetings);
     } catch (error: any) {
-      toast({
-        title: "Error Loading Meetings",
-        description: error.message,
-        variant: "destructive",
-      });
+      console.error("Error Loading Meetings:", error.message);
     } finally {
       setLoading(false);
     }
@@ -238,10 +230,7 @@ const MeetingHistory = () => {
 
       if (error) throw error;
 
-      toast({
-        title: "Meeting Updated",
-        description: "Meeting has been successfully updated",
-      });
+      console.log("Meeting Updated - Meeting has been successfully updated");
 
       setEditDialogOpen(false);
       setEditingMeeting(null);
@@ -249,11 +238,7 @@ const MeetingHistory = () => {
       setEditMeetingType("");
       fetchMeetings(); // Refresh the list
     } catch (error: any) {
-      toast({
-        title: "Error Updating Meeting",
-        description: error.message,
-        variant: "destructive",
-      });
+      console.error("Error Updating Meeting:", error.message);
     } finally {
       setIsSaving(false);
     }
@@ -276,18 +261,11 @@ const MeetingHistory = () => {
 
       if (error) throw error;
 
-      toast({
-        title: "Meeting Deleted",
-        description: "Meeting has been successfully deleted",
-      });
+      console.log("Meeting Deleted - Meeting has been successfully deleted");
 
       fetchMeetings();
     } catch (error: any) {
-      toast({
-        title: "Error Deleting Meeting",
-        description: error.message,
-        variant: "destructive",
-      });
+      console.error("Error Deleting Meeting:", error.message);
     }
   };
 
@@ -300,19 +278,12 @@ const MeetingHistory = () => {
 
       if (error) throw error;
 
-      toast({
-        title: "All Meetings Deleted",
-        description: "All meetings have been successfully deleted",
-      });
+      console.log("All Meetings Deleted - All meetings have been successfully deleted");
 
       setDeleteConfirmation("");
       fetchMeetings();
     } catch (error: any) {
-      toast({
-        title: "Error Deleting Meetings",
-        description: error.message,
-        variant: "destructive",
-      });
+      console.error("Error Deleting Meetings:", error.message);
     }
   };
 

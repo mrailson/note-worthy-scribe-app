@@ -11,7 +11,7 @@ import { Header } from "@/components/Header";
 import { useAuth } from "@/contexts/AuthContext";
 import { LoginForm } from "@/components/LoginForm";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+
 import { 
   AlertCircle, 
   Clock, 
@@ -86,7 +86,7 @@ interface ComplaintFormData {
 
 const ComplaintsSystem = () => {
   const { user } = useAuth();
-  const { toast } = useToast();
+  
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -160,11 +160,7 @@ const ComplaintsSystem = () => {
       setComplaints(data || []);
     } catch (error) {
       console.error('Error fetching complaints:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch complaints",
-        variant: "destructive",
-      });
+      console.error("Failed to fetch complaints");
     } finally {
       setLoading(false);
     }
@@ -208,10 +204,7 @@ const ComplaintsSystem = () => {
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: `Complaint submitted successfully. Reference: ${data.reference_number}`,
-      });
+      console.log(`Complaint submitted successfully. Reference: ${data.reference_number}`);
 
       // Reset form
       setFormData({
@@ -236,11 +229,7 @@ const ComplaintsSystem = () => {
       fetchComplaints();
     } catch (error) {
       console.error('Error submitting complaint:', error);
-      toast({
-        title: "Error",
-        description: "Failed to submit complaint",
-        variant: "destructive",
-      });
+      console.error("Failed to submit complaint");
     } finally {
       setSubmitting(false);
     }
