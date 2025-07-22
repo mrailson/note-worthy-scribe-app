@@ -12,6 +12,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { SpeechToText } from '@/components/SpeechToText';
+import { FileUpload } from '@/components/FileUpload';
 import { 
   FileText, 
   Upload, 
@@ -61,7 +63,8 @@ export default function ReplyWellAI() {
   const [generatedReply, setGeneratedReply] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [wordCount, setWordCount] = useState(0);
-  const [isListening, setIsListening] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
+  const [currentCommunicationId, setCurrentCommunicationId] = useState<string | null>(null);
 
   // Update word count when generated reply changes
   React.useEffect(() => {
@@ -78,6 +81,8 @@ export default function ReplyWellAI() {
     setDraftMode(false);
     setDraftText('');
     setGeneratedReply('');
+    setUploadedFiles([]);
+    setCurrentCommunicationId(null);
     toast.success('Form reset');
   }, []);
 
@@ -120,17 +125,28 @@ export default function ReplyWellAI() {
       
       // Save to database
       if (user) {
-        await supabase.from('communications').insert({
-          user_id: user.id,
-          email_text: emailText,
-          context_notes: contextNotes,
-          response_guidance: responseGuidance,
-          tone: tone as any,
-          reply_length: replyLength[0],
-          mode: draftMode ? 'improve' as const : 'create' as const,
-          draft_text: draftMode ? draftText : null,
-          generated_reply: data.generatedReply
-        });
+        const { data: communication, error: dbError } = await supabase
+          .from('communications')
+          .insert({
+            user_id: user.id,
+            email_text: emailText,
+            context_notes: contextNotes,
+            response_guidance: responseGuidance,
+            tone: tone as any,
+            reply_length: replyLength[0],
+            mode: draftMode ? 'improve' as const : 'create' as const,
+            draft_text: draftMode ? draftText : null,
+            generated_reply: data.generatedReply,
+            uploaded_files: uploadedFiles
+          })
+          .select()
+          .single();
+
+        if (dbError) {
+          console.error('Database error:', dbError);
+        } else {
+          setCurrentCommunicationId(communication.id);
+        }
       }
 
       toast.success('Reply generated successfully!');
@@ -165,6 +181,23 @@ export default function ReplyWellAI() {
       `);
       printWindow.document.close();
       printWindow.print();
+    }
+  };
+
+  const handleSpeechTranscription = (text: string, field: 'context' | 'guidance' | 'email' | 'draft') => {
+    switch (field) {
+      case 'email':
+        setEmailText(prev => prev + (prev ? ' ' : '') + text);
+        break;
+      case 'context':
+        setContextNotes(prev => prev + (prev ? ' ' : '') + text);
+        break;
+      case 'guidance':
+        setResponseGuidance(prev => prev + (prev ? ' ' : '') + text);
+        break;
+      case 'draft':
+        setDraftText(prev => prev + (prev ? ' ' : '') + text);
+        break;
     }
   };
 
@@ -246,27 +279,35 @@ export default function ReplyWellAI() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Textarea
-                placeholder="Paste the incoming email or correspondence here..."
-                value={emailText}
-                onChange={(e) => setEmailText(e.target.value)}
-                className="min-h-[120px]"
-              />
-              <div className="flex gap-2 mt-3">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => loadDemo('ARRS Funding')}
-                >
-                  ARRS Funding Demo
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => loadDemo('CQC Request')}
-                >
-                  CQC Request Demo
-                </Button>
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <Textarea
+                    placeholder="Paste the incoming email or correspondence here..."
+                    value={emailText}
+                    onChange={(e) => setEmailText(e.target.value)}
+                    className="min-h-[120px] flex-1"
+                  />
+                  <SpeechToText 
+                    onTranscription={(text) => handleSpeechTranscription(text, 'email')}
+                    size="sm"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => loadDemo('ARRS Funding')}
+                  >
+                    ARRS Funding Demo
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => loadDemo('CQC Request')}
+                  >
+                    CQC Request Demo
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -282,12 +323,10 @@ export default function ReplyWellAI() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center">
-                <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">
-                  Drag & drop files here or click to browse
-                </p>
-              </div>
+              <FileUpload 
+                onFilesChange={setUploadedFiles}
+                communicationId={currentCommunicationId}
+              />
             </CardContent>
           </Card>
 
@@ -302,12 +341,18 @@ export default function ReplyWellAI() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Textarea
-                placeholder="Additional context notes..."
-                value={contextNotes}
-                onChange={(e) => setContextNotes(e.target.value)}
-                className="min-h-[80px]"
-              />
+              <div className="flex gap-2">
+                <Textarea
+                  placeholder="Additional context notes..."
+                  value={contextNotes}
+                  onChange={(e) => setContextNotes(e.target.value)}
+                  className="min-h-[80px] flex-1"
+                />
+                <SpeechToText 
+                  onTranscription={(text) => handleSpeechTranscription(text, 'context')}
+                  size="sm"
+                />
+              </div>
             </CardContent>
           </Card>
 
@@ -322,12 +367,18 @@ export default function ReplyWellAI() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Textarea
-                placeholder="How should the response be structured or what should it address?"
-                value={responseGuidance}
-                onChange={(e) => setResponseGuidance(e.target.value)}
-                className="min-h-[80px]"
-              />
+              <div className="flex gap-2">
+                <Textarea
+                  placeholder="How should the response be structured or what should it address?"
+                  value={responseGuidance}
+                  onChange={(e) => setResponseGuidance(e.target.value)}
+                  className="min-h-[80px] flex-1"
+                />
+                <SpeechToText 
+                  onTranscription={(text) => handleSpeechTranscription(text, 'guidance')}
+                  size="sm"
+                />
+              </div>
             </CardContent>
           </Card>
 
@@ -347,12 +398,18 @@ export default function ReplyWellAI() {
                 <Label>Enable Draft Improvement Mode</Label>
               </div>
               {draftMode && (
-                <Textarea
-                  placeholder="Paste your draft text here for improvement..."
-                  value={draftText}
-                  onChange={(e) => setDraftText(e.target.value)}
-                  className="min-h-[100px]"
-                />
+                <div className="flex gap-2">
+                  <Textarea
+                    placeholder="Paste your draft text here for improvement..."
+                    value={draftText}
+                    onChange={(e) => setDraftText(e.target.value)}
+                    className="min-h-[100px] flex-1"
+                  />
+                  <SpeechToText 
+                    onTranscription={(text) => handleSpeechTranscription(text, 'draft')}
+                    size="sm"
+                  />
+                </div>
               )}
             </CardContent>
           </Card>
