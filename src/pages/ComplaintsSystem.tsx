@@ -15,8 +15,8 @@ import { AlertCircle, Clock, CheckCircle, XCircle, Search } from "lucide-react";
 const ComplaintsSystem = () => {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedStatus, setSelectedStatus] = useState("all");
 
   // Mock complaints data
   const complaints = [
@@ -132,7 +132,7 @@ const ComplaintsSystem = () => {
                         <SelectValue placeholder="All categories" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">All categories</SelectItem>
+                        <SelectItem value="all">All categories</SelectItem>
                         <SelectItem value="Service">Service</SelectItem>
                         <SelectItem value="Staff">Staff</SelectItem>
                         <SelectItem value="Billing">Billing</SelectItem>
@@ -147,7 +147,7 @@ const ComplaintsSystem = () => {
                         <SelectValue placeholder="All statuses" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">All statuses</SelectItem>
+                        <SelectItem value="all">All statuses</SelectItem>
                         <SelectItem value="Open">Open</SelectItem>
                         <SelectItem value="In Progress">In Progress</SelectItem>
                         <SelectItem value="Resolved">Resolved</SelectItem>
@@ -160,8 +160,8 @@ const ComplaintsSystem = () => {
                       variant="outline" 
                       onClick={() => {
                         setSearchTerm("");
-                        setSelectedCategory("");
-                        setSelectedStatus("");
+                        setSelectedCategory("all");
+                        setSelectedStatus("all");
                       }}
                     >
                       Clear Filters
