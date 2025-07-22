@@ -896,6 +896,54 @@ export type Database = {
         }
         Relationships: []
       }
+      system_audit_log: {
+        Row: {
+          id: string
+          ip_address: unknown | null
+          new_values: Json | null
+          old_values: Json | null
+          operation: string
+          practice_id: string | null
+          record_id: string | null
+          session_id: string | null
+          table_name: string
+          timestamp: string
+          user_agent: string | null
+          user_email: string | null
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          ip_address?: unknown | null
+          new_values?: Json | null
+          old_values?: Json | null
+          operation: string
+          practice_id?: string | null
+          record_id?: string | null
+          session_id?: string | null
+          table_name: string
+          timestamp?: string
+          user_agent?: string | null
+          user_email?: string | null
+          user_id: string
+        }
+        Update: {
+          id?: string
+          ip_address?: unknown | null
+          new_values?: Json | null
+          old_values?: Json | null
+          operation?: string
+          practice_id?: string | null
+          record_id?: string | null
+          session_id?: string | null
+          table_name?: string
+          timestamp?: string
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           assigned_at: string | null
@@ -995,6 +1043,16 @@ export type Database = {
       }
       log_complaint_action: {
         Args: { p_complaint_id: string; p_action: string; p_details?: Json }
+        Returns: string
+      }
+      log_system_activity: {
+        Args: {
+          p_table_name: string
+          p_operation: string
+          p_record_id?: string
+          p_old_values?: Json
+          p_new_values?: Json
+        }
         Returns: string
       }
     }
