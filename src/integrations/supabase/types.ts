@@ -884,6 +884,36 @@ export type Database = {
         }
         Relationships: []
       }
+      security_settings: {
+        Row: {
+          description: string | null
+          id: string
+          is_active: boolean | null
+          setting_name: string
+          setting_value: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          setting_name: string
+          setting_value: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          setting_name?: string
+          setting_value?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       specialist_services: {
         Row: {
           address: string | null
@@ -1036,6 +1066,48 @@ export type Database = {
           },
         ]
       }
+      user_sessions: {
+        Row: {
+          id: string
+          ip_address: unknown | null
+          is_active: boolean | null
+          last_activity: string
+          login_time: string
+          logout_reason: string | null
+          logout_time: string | null
+          practice_id: string | null
+          session_id: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          ip_address?: unknown | null
+          is_active?: boolean | null
+          last_activity?: string
+          login_time?: string
+          logout_reason?: string | null
+          logout_time?: string | null
+          practice_id?: string | null
+          session_id: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          id?: string
+          ip_address?: unknown | null
+          is_active?: boolean | null
+          last_activity?: string
+          login_time?: string
+          logout_reason?: string | null
+          logout_time?: string | null
+          practice_id?: string | null
+          session_id?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -1051,6 +1123,10 @@ export type Database = {
       }
       get_practice_manager_practice_id: {
         Args: { _user_id?: string }
+        Returns: string
+      }
+      get_security_setting: {
+        Args: { setting_name: string }
         Returns: string
       }
       get_user_role_for_policy: {
@@ -1076,12 +1152,20 @@ export type Database = {
         Args: { _user_id: string; _practice_id: string }
         Returns: boolean
       }
+      is_session_valid: {
+        Args: { p_session_id: string }
+        Returns: boolean
+      }
       is_system_admin: {
         Args: { _user_id?: string }
         Returns: boolean
       }
       log_complaint_action: {
         Args: { p_complaint_id: string; p_action: string; p_details?: Json }
+        Returns: string
+      }
+      log_security_event: {
+        Args: { p_event_type: string; p_user_id: string; p_details?: Json }
         Returns: string
       }
       log_system_activity: {
