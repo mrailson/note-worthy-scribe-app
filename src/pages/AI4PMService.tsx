@@ -30,6 +30,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { LoginForm } from '@/components/LoginForm';
 import { SpeechToText } from '@/components/SpeechToText';
+import MessageRenderer from '@/components/MessageRenderer';
 import { SimpleFileUpload } from '@/components/SimpleFileUpload';
 
 interface Message {
@@ -213,11 +214,6 @@ Always provide practical, actionable advice that follows NHS guidelines and best
 
   const removeFile = (index: number) => {
     setUploadedFiles(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const copyMessage = (content: string) => {
-    navigator.clipboard.writeText(content);
-    toast.success('Message copied to clipboard');
   };
 
   const clearConversation = () => {
@@ -412,57 +408,9 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                       <p className="text-xs mt-2">Ask me about NHS policies, compliance, workflows, or upload documents for analysis.</p>
                     </div>
                   ) : (
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                       {messages.map((message) => (
-                        <div
-                          key={message.id}
-                          className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                        >
-                          <div className={`flex gap-3 max-w-[80%] ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                              message.role === 'user' ? 'bg-primary' : 'bg-muted'
-                            }`}>
-                              {message.role === 'user' ? (
-                                <User className="h-4 w-4 text-primary-foreground" />
-                              ) : (
-                                <Bot className="h-4 w-4 text-muted-foreground" />
-                              )}
-                            </div>
-                            
-                            <div className={`rounded-lg p-3 ${
-                              message.role === 'user' 
-                                ? 'bg-primary text-primary-foreground' 
-                                : 'bg-muted'
-                            }`}>
-                              <div className="whitespace-pre-wrap text-sm">{message.content}</div>
-                              
-                              {message.files && message.files.length > 0 && (
-                                <div className="mt-2 pt-2 border-t border-border/20">
-                                  <div className="text-xs opacity-70 mb-1">Attached files:</div>
-                                  {message.files.map((file, index) => (
-                                    <Badge key={index} variant="secondary" className="mr-1 text-xs">
-                                      {file.name}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              )}
-                              
-                              <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/20">
-                                <span className="text-xs opacity-70">
-                                  {message.timestamp.toLocaleTimeString()}
-                                </span>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => copyMessage(message.content)}
-                                  className="h-6 w-6 p-0 opacity-70 hover:opacity-100"
-                                >
-                                  <Copy className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
+                        <MessageRenderer key={message.id} message={message} />
                       ))}
                       
                       {isLoading && (
@@ -470,11 +418,14 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                           <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
                             <Bot className="h-4 w-4 text-muted-foreground" />
                           </div>
-                          <div className="bg-muted rounded-lg p-3">
-                            <div className="flex gap-1">
-                              <div className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce"></div>
-                              <div className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                              <div className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                          <div className="bg-muted rounded-lg p-4 border border-border">
+                            <div className="flex items-center gap-2">
+                              <div className="flex gap-1">
+                                <div className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce"></div>
+                                <div className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                                <div className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                              </div>
+                              <span className="text-sm text-muted-foreground">AI is thinking...</span>
                             </div>
                           </div>
                         </div>
