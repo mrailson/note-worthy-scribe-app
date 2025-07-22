@@ -135,28 +135,41 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
               </DropdownMenu>
             )}
             
-            {user && !isSettingsPage && (
-              <Button 
-                onClick={() => navigate('/settings')}
-                variant="secondary"
-                size="sm"
-                className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs sm:text-sm px-2 sm:px-4"
-              >
-                <Settings className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Settings</span>
-              </Button>
-            )}
-            
-            {user && isAdmin && !isAdminPage && (
-              <Button 
-                onClick={() => navigate('/admin')}
-                variant="secondary"
-                size="sm"
-                className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs sm:text-sm px-2 sm:px-4"
-              >
-                <Shield className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Admin</span>
-              </Button>
+            {user && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    variant="secondary"
+                    size="sm"
+                    className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs sm:text-sm px-2 sm:px-4"
+                  >
+                    <Settings className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Settings</span>
+                    <ChevronDown className="h-3 w-3 ml-1" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent 
+                  align="end" 
+                  className="bg-background border border-border shadow-lg z-50 w-48"
+                >
+                  <DropdownMenuItem 
+                    onClick={() => navigate('/settings')}
+                    className="cursor-pointer py-3"
+                  >
+                    <Settings className="h-4 w-4 mr-2" />
+                    User Settings
+                  </DropdownMenuItem>
+                  {isAdmin && (
+                    <DropdownMenuItem 
+                      onClick={() => navigate('/admin')}
+                      className="cursor-pointer py-3"
+                    >
+                      <Shield className="h-4 w-4 mr-2" />
+                      System Admin
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
             
             {user && (
