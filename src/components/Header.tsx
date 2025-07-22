@@ -9,6 +9,17 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
+import {
+  Menubar,
+  MenubarContent,
+  MenubarItem,
+  MenubarMenu,
+  MenubarSeparator,
+  MenubarTrigger,
+  MenubarSub,
+  MenubarSubContent,
+  MenubarSubTrigger,
+} from "@/components/ui/menubar";
 import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning, Sparkles, Mail } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -59,146 +70,109 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
             <span className="sm:hidden">Notewell AI</span>
           </h1>
           
-          {/* Mobile navigation */}
-          <div className="flex gap-1 sm:gap-2">
-            <Button 
-              onClick={() => isHomePage ? onNewMeeting() : navigate('/')}
-              variant="secondary"
-              size="sm"
-              className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs sm:text-sm px-2 sm:px-4"
-            >
-              <Home className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
-              <span className="hidden sm:inline">Home</span>
-            </Button>
-            
-            {user && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button 
-                    variant="secondary"
-                    size="sm"
-                    className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs sm:text-sm px-2 sm:px-4"
-                  >
-                    <Grid3X3 className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
-                    <span className="hidden sm:inline">Select Module</span>
-                    <ChevronDown className="h-3 w-3 ml-1" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent 
-                  align="end" 
-                  className="bg-background border border-border shadow-lg z-50 w-48"
-                >
-                  <DropdownMenuSub>
-                    <DropdownMenuSubTrigger className="cursor-pointer py-3">
-                      <FileText className="h-4 w-4 mr-2" />
-                      Meeting Notes Service
-                    </DropdownMenuSubTrigger>
-                    <DropdownMenuSubContent className="bg-background border border-border shadow-lg">
-                      <DropdownMenuItem 
-                        onClick={() => navigate('/')}
-                        className="cursor-pointer py-3"
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Start New Meeting
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => navigate('/meetings')}
-                        className="cursor-pointer py-3"
-                      >
-                        <FileText className="h-4 w-4 mr-2" />
-                        View Meeting History
-                      </DropdownMenuItem>
-                    </DropdownMenuSubContent>
-                  </DropdownMenuSub>
-                  <DropdownMenuItem 
-                    onClick={() => navigate('/gp-scribe')}
-                    className="cursor-pointer py-3"
-                  >
+          {/* Top-level menubar navigation */}
+          {user ? (
+            <Menubar className="bg-transparent border-none">
+              <MenubarMenu>
+                <MenubarTrigger className="text-white hover:bg-white/20 focus:bg-white/20 data-[state=open]:bg-white/20">
+                  <Home className="h-4 w-4 mr-2" />
+                  Home
+                </MenubarTrigger>
+                <MenubarContent className="bg-background border-border">
+                  <MenubarItem onClick={() => navigate('/')}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Start New Meeting
+                  </MenubarItem>
+                  <MenubarItem onClick={() => navigate('/meetings')}>
+                    <FileText className="h-4 w-4 mr-2" />
+                    Meeting History
+                  </MenubarItem>
+                </MenubarContent>
+              </MenubarMenu>
+
+              <MenubarMenu>
+                <MenubarTrigger className="text-white hover:bg-white/20 focus:bg-white/20 data-[state=open]:bg-white/20">
+                  <Stethoscope className="h-4 w-4 mr-2" />
+                  Clinical
+                </MenubarTrigger>
+                <MenubarContent className="bg-background border-border">
+                  <MenubarItem onClick={() => navigate('/gp-scribe')}>
                     <Stethoscope className="h-4 w-4 mr-2" />
                     GP Scribe
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={() => navigate('/complaints')}
-                    className="cursor-pointer py-3"
-                  >
-                    <MessageSquareWarning className="h-4 w-4 mr-2" />
-                    Complaints System
-                  </DropdownMenuItem>
-                  <DropdownMenuSub>
-                    <DropdownMenuSubTrigger className="cursor-pointer py-3">
+                  </MenubarItem>
+                  <MenubarSeparator />
+                  <MenubarSub>
+                    <MenubarSubTrigger>
                       <Sparkles className="h-4 w-4 mr-2" />
-                      AI 4 PM Service
-                    </DropdownMenuSubTrigger>
-                    <DropdownMenuSubContent className="bg-background border border-border shadow-lg">
-                      <DropdownMenuItem 
-                        onClick={() => navigate('/ai-4-pm')}
-                        className="cursor-pointer py-3"
-                      >
+                      AI Services
+                    </MenubarSubTrigger>
+                    <MenubarSubContent className="bg-background border-border">
+                      <MenubarItem onClick={() => navigate('/ai-4-pm')}>
                         <Sparkles className="h-4 w-4 mr-2" />
-                        AI Assistant
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => navigate('/replywell-ai')}
-                        className="cursor-pointer py-3"
-                      >
+                        AI 4 PM
+                      </MenubarItem>
+                      <MenubarItem onClick={() => navigate('/replywell-ai')}>
                         <Mail className="h-4 w-4 mr-2" />
                         ReplyWell AI
-                      </DropdownMenuItem>
-                    </DropdownMenuSubContent>
-                  </DropdownMenuSub>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-            
-            {user && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button 
-                    variant="secondary"
-                    size="sm"
-                    className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs sm:text-sm px-2 sm:px-4"
-                  >
-                    <Settings className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
-                    <span className="hidden sm:inline">Settings</span>
-                    <ChevronDown className="h-3 w-3 ml-1" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent 
-                  align="end" 
-                  className="bg-background border border-border shadow-lg z-50 w-48"
-                >
-                  <DropdownMenuItem 
-                    onClick={() => navigate('/settings')}
-                    className="cursor-pointer py-3"
-                  >
+                      </MenubarItem>
+                    </MenubarSubContent>
+                  </MenubarSub>
+                </MenubarContent>
+              </MenubarMenu>
+
+              <MenubarMenu>
+                <MenubarTrigger className="text-white hover:bg-white/20 focus:bg-white/20 data-[state=open]:bg-white/20">
+                  <MessageSquareWarning className="h-4 w-4 mr-2" />
+                  Quality
+                </MenubarTrigger>
+                <MenubarContent className="bg-background border-border">
+                  <MenubarItem onClick={() => navigate('/complaints')}>
+                    <MessageSquareWarning className="h-4 w-4 mr-2" />
+                    Complaints System
+                  </MenubarItem>
+                </MenubarContent>
+              </MenubarMenu>
+
+              <MenubarMenu>
+                <MenubarTrigger className="text-white hover:bg-white/20 focus:bg-white/20 data-[state=open]:bg-white/20">
+                  <Settings className="h-4 w-4 mr-2" />
+                  Settings
+                </MenubarTrigger>
+                <MenubarContent className="bg-background border-border">
+                  <MenubarItem onClick={() => navigate('/settings')}>
                     <Settings className="h-4 w-4 mr-2" />
                     User Settings
-                  </DropdownMenuItem>
+                  </MenubarItem>
                   {isAdmin && (
-                    <DropdownMenuItem 
-                      onClick={() => navigate('/admin')}
-                      className="cursor-pointer py-3"
-                    >
-                      <Shield className="h-4 w-4 mr-2" />
-                      System Admin
-                    </DropdownMenuItem>
+                    <>
+                      <MenubarSeparator />
+                      <MenubarItem onClick={() => navigate('/admin')}>
+                        <Shield className="h-4 w-4 mr-2" />
+                        System Admin
+                      </MenubarItem>
+                    </>
                   )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-            
-            {user && (
-              <Button
-                onClick={signOut}
+                  <MenubarSeparator />
+                  <MenubarItem onClick={signOut}>
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Sign Out
+                  </MenubarItem>
+                </MenubarContent>
+              </MenubarMenu>
+            </Menubar>
+          ) : (
+            <div className="flex gap-2">
+              <Button 
+                onClick={() => navigate('/')}
                 variant="secondary"
                 size="sm"
-                className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs sm:text-sm px-2 sm:px-4"
+                className="bg-white/20 hover:bg-white/30 text-white border-white/30"
               >
-                <LogOut className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Logout</span>
+                <Home className="h-4 w-4 mr-2" />
+                Home
               </Button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </header>
