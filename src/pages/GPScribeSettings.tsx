@@ -304,7 +304,7 @@ const GPScribeSettings = () => {
             </TabsTrigger>
             <TabsTrigger value="specialists" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
-              Specialist Services
+               Specialist Services
             </TabsTrigger>
           </TabsList>
 
@@ -558,7 +558,7 @@ const GPScribeSettings = () => {
                   <h3 className="font-semibold">Existing Services</h3>
                   {specialistServices.length === 0 ? (
                     <p className="text-muted-foreground text-center py-4">
-                      No specialist services added yet.
+                       No specialist services added yet.
                     </p>
                   ) : (
                     <div className="grid gap-4">

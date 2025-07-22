@@ -301,7 +301,7 @@ Your account has been successfully created with the following details:
 
 ABOUT NOTEWELL AI MEETING NOTES SERVICE:
 
-Notewell AI is a revolutionary healthcare meeting documentation service designed specifically for NHS practices and healthcare organizations. Our platform transforms how you capture, organize, and share meeting insights.
+Notewell AI is a revolutionary healthcare meeting documentation service designed specifically for NHS practices and healthcare organisations. Our platform transforms how you capture, organise, and share meeting insights.
 
 KEY FEATURES:
 ✓ Real-time AI transcription during meetings
@@ -309,7 +309,7 @@ KEY FEATURES:
 ✓ NHS-compliant data security and privacy protection
 ✓ Integration with healthcare workflows
 ✓ Searchable meeting archives
-✓ Customizable templates for different meeting types
+✓ Customisable templates for different meeting types
 ✓ Automated distribution of meeting notes to attendees
 
 GETTING STARTED:
@@ -395,7 +395,7 @@ This is an automated message. Please do not reply to this email.`;
 
 <h3>ABOUT NOTEWELL AI MEETING NOTES SERVICE:</h3>
 
-<p>Notewell AI is a revolutionary healthcare meeting documentation service designed specifically for NHS practices and healthcare organizations. Our platform transforms how you capture, organize, and share meeting insights.</p>
+<p>Notewell AI is a revolutionary healthcare meeting documentation service designed specifically for NHS practices and healthcare organisations. Our platform transforms how you capture, organise, and share meeting insights.</p>
 
 <h3>KEY FEATURES:</h3>
 <ul>
@@ -404,7 +404,7 @@ This is an automated message. Please do not reply to this email.`;
 <li>✓ NHS-compliant data security and privacy protection</li>
 <li>✓ Integration with healthcare workflows</li>
 <li>✓ Searchable meeting archives</li>
-<li>✓ Customizable templates for different meeting types</li>
+<li>✓ Customisable templates for different meeting types</li>
 <li>✓ Automated distribution of meeting notes to attendees</li>
 </ul>
 

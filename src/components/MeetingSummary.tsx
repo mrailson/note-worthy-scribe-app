@@ -225,7 +225,7 @@ New patient pathway improvements have reduced waiting times by 15%. Patient sati
         {/* Meeting Notes - Mobile Optimized */}
         <div className="space-y-2">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <label className="text-sm font-medium">Review and customize your meeting notes</label>
+            <label className="text-sm font-medium">Review and customise your meeting notes</label>
             <Button variant="ghost" size="sm" className="touch-manipulation min-h-[44px] w-full sm:w-auto">
               <Edit3 className="h-4 w-4 mr-2" />
               Edit Notes
