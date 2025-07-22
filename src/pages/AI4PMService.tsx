@@ -74,6 +74,14 @@ interface SearchHistory {
   updated_at: string;
 }
 
+interface PracticeContext {
+  practiceName?: string;
+  practiceManagerName?: string;
+  pcnName?: string;
+  neighbourhoodName?: string;
+  otherPracticesInPCN?: string[];
+}
+
 const AI4PMService = () => {
   const { user, loading } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -85,6 +93,7 @@ const AI4PMService = () => {
   const [apiKeyMissing, setApiKeyMissing] = useState<{claude: boolean, gpt: boolean}>({claude: false, gpt: false});
   const [searchHistory, setSearchHistory] = useState<SearchHistory[]>([]);
   const [activeTab, setActiveTab] = useState('ai-service');
+  const [practiceContext, setPracticeContext] = useState<PracticeContext>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const scrollToBottom = () => {
@@ -95,12 +104,86 @@ const AI4PMService = () => {
     scrollToBottom();
   }, [messages]);
 
-  // Load search history on component mount
+  // Load search history and practice context on component mount
   useEffect(() => {
     if (user) {
       loadSearchHistoryList();
+      loadPracticeContext();
     }
   }, [user]);
+
+  const loadPracticeContext = async () => {
+    if (!user) return;
+
+    try {
+      // Get user's practice assignment
+      const { data: userRole, error: roleError } = await supabase
+        .from('user_roles')
+        .select('practice_id, role')
+        .eq('user_id', user.id)
+        .single();
+
+      if (roleError || !userRole?.practice_id) {
+        console.log('No practice assignment found for user');
+        return;
+      }
+
+      // Get practice details
+      const { data: practiceDetails } = await supabase
+        .from('practice_details')
+        .select('practice_name, pcn_code, user_id')
+        .eq('id', userRole.practice_id)
+        .single();
+
+      if (!practiceDetails) {
+        console.log('Practice details not found');
+        return;
+      }
+
+      // Get practice manager name from profiles
+      const { data: practiceManagerProfile } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('user_id', practiceDetails.user_id)
+        .single();
+
+      // Get PCN information
+      const { data: pcnData } = await supabase
+        .from('primary_care_networks')
+        .select('pcn_name')
+        .eq('pcn_code', practiceDetails.pcn_code)
+        .single();
+
+      // Get other practices in the same PCN
+      const { data: otherPractices } = await supabase
+        .from('practice_details')
+        .select('practice_name')
+        .eq('pcn_code', practiceDetails.pcn_code)
+        .neq('id', userRole.practice_id);
+
+      // Get neighbourhood information (if exists)
+      const { data: neighbourhoodData } = await supabase
+        .from('neighbourhoods')
+        .select('name')
+        .limit(1);
+
+      setPracticeContext({
+        practiceName: practiceDetails.practice_name,
+        practiceManagerName: practiceManagerProfile?.full_name,
+        pcnName: pcnData?.pcn_name,
+        neighbourhoodName: neighbourhoodData?.[0]?.name,
+        otherPracticesInPCN: otherPractices?.map(p => p.practice_name) || []
+      });
+
+      console.log('Practice context loaded:', {
+        practiceName: practiceDetails.practice_name,
+        pcnName: pcnData?.pcn_name
+      });
+
+    } catch (error) {
+      console.error('Error loading practice context:', error);
+    }
+  };
 
   const loadSearchHistoryList = async () => {
     try {
@@ -297,7 +380,8 @@ const AI4PMService = () => {
     },
   ];
 
-  const systemPrompt = `You are "AI 4 PM Service", an AI Assistant built specifically to help GP Practice Managers in the UK NHS.
+  const buildSystemPrompt = () => {
+    let prompt = `You are "AI 4 PM Service", an AI Assistant built specifically to help GP Practice Managers in the UK NHS.
 
 You understand and can explain:
 - NHS policies (Digital Service Manual, GP contract, CQC KLOEs)
@@ -305,9 +389,33 @@ You understand and can explain:
 - EMIS, SystmOne, SNOMED, QOF indicators
 - Local policies uploaded by the user
 - You summarise, draft documents, create checklists, answer SOP queries
-- Always stay professional, accurate, and NHS-compliant
+- Always stay professional, accurate, and NHS-compliant`;
 
-Knowledge domains you should reference:
+    // Add practice context if available
+    if (practiceContext.practiceName) {
+      prompt += `\n\nCONTEXT ABOUT THE USER'S PRACTICE:
+- Practice Name: ${practiceContext.practiceName}`;
+      
+      if (practiceContext.practiceManagerName) {
+        prompt += `\n- Practice Manager: ${practiceContext.practiceManagerName}`;
+      }
+      
+      if (practiceContext.pcnName) {
+        prompt += `\n- Primary Care Network (PCN): ${practiceContext.pcnName}`;
+      }
+      
+      if (practiceContext.neighbourhoodName) {
+        prompt += `\n- Neighbourhood: ${practiceContext.neighbourhoodName}`;
+      }
+      
+      if (practiceContext.otherPracticesInPCN?.length > 0) {
+        prompt += `\n- Other practices in the same PCN: ${practiceContext.otherPracticesInPCN.join(', ')}`;
+      }
+      
+      prompt += `\n\nWhen relevant to queries, you can reference this practice information to provide more personalized and contextual responses. For example, you can mention collaboration opportunities with other practices in the PCN, or tailor advice specific to the practice's context.`;
+    }
+
+    prompt += `\n\nKnowledge domains you should reference:
 1. NHS Digital & Admin Resources (NHS England GP Contract 2024/25, PCN DES, NHS Long Term Plan)
 2. CQC and Compliance (KLOEs for GP practices, CQC Evidence Categories, compliance documents)
 3. Practice Operations (Reception SOPs, HR policies, patient access strategies)
@@ -317,9 +425,11 @@ Knowledge domains you should reference:
 
 SPECIAL CAPABILITIES:
 - Document Generation: When asked to create a Word document, format your response with clear headings, sections, and structured content that can be easily converted to a professional document.
-- Image Generation: When asked to create images, diagrams, or visual content, provide a detailed description that can be used to generate the visual content.
 
 Always provide practical, actionable advice that follows NHS guidelines and best practices.`;
+
+    return prompt;
+  };
 
   const handleSend = async () => {
     if (!input.trim() && uploadedFiles.length === 0) return;
@@ -341,7 +451,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
         body: {
           messages: sessionMemory ? [...messages, userMessage] : [userMessage],
           model,
-          systemPrompt,
+          systemPrompt: buildSystemPrompt(),
           files: uploadedFiles
         }
       });
@@ -1258,6 +1368,38 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                   </div>
                   
                   <Separator />
+                  
+                  {practiceContext.practiceName && (
+                    <>
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-2">
+                          <Shield className="h-4 w-4" />
+                          Practice Context
+                        </Label>
+                        <div className="space-y-1 text-xs text-muted-foreground bg-muted/50 p-3 rounded-md">
+                          <div><strong>Practice:</strong> {practiceContext.practiceName}</div>
+                          {practiceContext.practiceManagerName && (
+                            <div><strong>Manager:</strong> {practiceContext.practiceManagerName}</div>
+                          )}
+                          {practiceContext.pcnName && (
+                            <div><strong>PCN:</strong> {practiceContext.pcnName}</div>
+                          )}
+                          {practiceContext.neighbourhoodName && (
+                            <div><strong>Neighbourhood:</strong> {practiceContext.neighbourhoodName}</div>
+                          )}
+                          {practiceContext.otherPracticesInPCN && practiceContext.otherPracticesInPCN.length > 0 && (
+                            <div><strong>Other PCN Practices:</strong> {practiceContext.otherPracticesInPCN.join(', ')}</div>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          AI will use this context to provide personalized responses
+                        </p>
+                      </div>
+                      
+                      <Separator />
+                    </>
+                  )}
+                  
                   
                   <div className="space-y-2">
                     <Label>Conversation Management</Label>
