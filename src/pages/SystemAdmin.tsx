@@ -39,7 +39,8 @@ import {
   Calendar,
   BarChart3,
   Eye,
-  Send
+  Send,
+  Search
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -90,6 +91,7 @@ interface RecentMeeting {
 export default function SystemAdmin() {
   const { user } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [practices, setPractices] = useState<Practice[]>([]);
   const [pcns, setPcns] = useState<PCN[]>([]);
   const [loading, setLoading] = useState(true);
@@ -100,6 +102,11 @@ export default function SystemAdmin() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalMeetings, setTotalMeetings] = useState(0);
   const meetingsPerPage = 10;
+  
+  // User management pagination and search
+  const [userCurrentPage, setUserCurrentPage] = useState(1);
+  const [userSearchQuery, setUserSearchQuery] = useState("");
+  const usersPerPage = 10;
   
   // Add User Dialog State
   const [addUserOpen, setAddUserOpen] = useState(false);
@@ -272,6 +279,7 @@ export default function SystemAdmin() {
       }
 
       setUsers(filteredUsers);
+      setFilteredUsers(filteredUsers);
     } catch (error) {
       console.error('Error fetching users:', error);
       toast.error("Failed to fetch users");
@@ -279,6 +287,43 @@ export default function SystemAdmin() {
       setLoading(false);
     }
   };
+
+  // Filter users based on search query
+  const filterUsers = (query: string) => {
+    if (!query.trim()) {
+      setFilteredUsers(users);
+      return;
+    }
+
+    const filtered = users.filter(user => {
+      const searchTerm = query.toLowerCase();
+      const matchesName = user.full_name.toLowerCase().includes(searchTerm);
+      const matchesEmail = user.email.toLowerCase().includes(searchTerm);
+      const matchesPractice = user.roles.some(role => 
+        role.practice_name?.toLowerCase().includes(searchTerm)
+      );
+      
+      return matchesName || matchesEmail || matchesPractice;
+    });
+
+    setFilteredUsers(filtered);
+    setUserCurrentPage(1); // Reset to first page when searching
+  };
+
+  // Handle search input change
+  const handleUserSearch = (value: string) => {
+    setUserSearchQuery(value);
+    filterUsers(value);
+  };
+
+  // Get paginated users
+  const getPaginatedUsers = () => {
+    const startIndex = (userCurrentPage - 1) * usersPerPage;
+    const endIndex = startIndex + usersPerPage;
+    return filteredUsers.slice(startIndex, endIndex);
+  };
+
+  const totalUserPages = Math.ceil(filteredUsers.length / usersPerPage);
 
   const fetchPractices = async () => {
     try {
@@ -524,16 +569,16 @@ This is an automated message. Please do not reply to this email.`;
       const tempPassword = getDefaultPassword();
       // For practice managers, always use their practice ID
       const practiceId = isPracticeManager ? userPracticeId : (newUserPractice === "none" ? null : newUserPractice);
-      
-      // Create user via edge function with admin privileges
-      const { data: createUserData, error: createUserError } = await supabase.functions.invoke('create-user-admin', {
+
+      // Call the create-user-admin edge function
+      const { data, error } = await supabase.functions.invoke('create-user-admin', {
         body: {
           email: newUserEmail,
-          name: newUserName,
           password: tempPassword,
+          full_name: newUserName,
           role: newUserRole,
           practice_id: practiceId,
-          assigned_by: user?.id,
+          pcn_id: newUserPCN === "none" ? null : newUserPCN,
           module_access: {
             meeting_notes_access: newUserMeetingNotesAccess,
             gp_scribe_access: newUserGpScribeAccess,
@@ -544,87 +589,31 @@ This is an automated message. Please do not reply to this email.`;
         }
       });
 
-      if (createUserError) {
-        console.error("Error creating user:", createUserError);
-        throw createUserError;
-      }
-
-      if (!createUserData?.success) {
-        throw new Error(createUserData?.error || "Failed to create user");
-      }
-
-      console.log("User created successfully:", createUserData);
+      if (error) throw error;
 
       // Send welcome email using EmailJS
       try {
-        const welcomeEmailContent = `
-<p>Dear ${newUserName},</p>
-
-<p>Welcome to Notewell AI Meeting Notes Service!</p>
-
-<p>Your account has been successfully created with the following details:</p>
-
-<ul>
-<li>Email: ${newUserEmail}</li>
-<li>Role: ${newUserRole.replace('_', ' ').replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase())}</li>
-<li>Practice: ${practices.find(p => p.id === practiceId)?.practice_name || "No practice assigned"}</li>
-<li>Temporary Password: ${tempPassword}</li>
-</ul>
-
-<h3>ABOUT NOTEWELL AI MEETING NOTES SERVICE:</h3>
-
-<p>Notewell AI is a revolutionary healthcare meeting documentation service designed specifically for NHS practices and healthcare organisations. Our platform transforms how you capture, organise, and share meeting insights.</p>
-
-<h3>KEY FEATURES:</h3>
-<ul>
-<li>✓ Real-time AI transcription during meetings</li>
-<li>✓ Automatic generation of meeting summaries and action items</li>
-<li>✓ NHS-compliant data security and privacy protection</li>
-<li>✓ Integration with healthcare workflows</li>
-<li>✓ Searchable meeting archives</li>
-<li>✓ Customisable templates for different meeting types</li>
-<li>✓ Automated distribution of meeting notes to attendees</li>
-</ul>
-
-<h3>GETTING STARTED:</h3>
-<ol>
-<li>Visit: <a href="https://notewell.dialai.co.uk/" target="_blank">https://notewell.dialai.co.uk/</a></li>
-<li>Sign in using your email address: ${newUserEmail}</li>
-<li>Use your temporary password: ${tempPassword}</li>
-<li>You'll be prompted to change your password on first login</li>
-</ol>
-
-<h3>SECURITY NOTE:</h3>
-<p>Please change your temporary password immediately after logging in for security purposes.</p>
-
-<p>If you have any questions or need assistance, please don't hesitate to contact our support team.</p>
-
-<p>Best regards,<br>
-The Notewell AI Team</p>
-
-<hr>
-<p><em>This is an automated message. Please do not reply to this email.</em></p>
-        `;
-
+        const emailContent = generateEmailPreview();
+        
         await emailjs.send(
-          'notewell', // Your correct EmailJS service ID
-          'template_n236grs', // Your correct EmailJS template ID
+          process.env.EMAILJS_SERVICE_ID || 'service_lgnfywp',
+          process.env.EMAILJS_TEMPLATE_ID || 'template_3ikk5ah',
           {
             to_email: newUserEmail,
-            subject: "Welcome to Notewell AI Meeting Notes Service",
-            message: welcomeEmailContent,
-            to_name: newUserName
+            to_name: newUserName,
+            subject: 'Welcome to Notewell AI Meeting Notes Service',
+            message: emailContent
           },
-          'OknbPskm8GVoUZFiD' // Your actual EmailJS public key
+          process.env.EMAILJS_PUBLIC_KEY || '9N4R-I2-LkQdO8VKk'
         );
 
-        toast.success("User created successfully and welcome email sent");
+        toast.success(`User ${newUserName} created successfully and welcome email sent!`);
       } catch (emailError) {
-        console.error('Error sending welcome email:', emailError);
-        toast.error("User created successfully, but welcome email failed to send");
+        console.error('Error sending email:', emailError);
+        toast.success(`User ${newUserName} created successfully, but email failed to send.`);
       }
-      
-      await fetchUsers();
+
+      // Reset form
       setNewUserEmail("");
       setNewUserName("");
       setNewUserRole("");
@@ -637,149 +626,49 @@ The Notewell AI Team</p>
       setNewUserReplyWellAccess(false);
       setAddUserOpen(false);
       
-    } catch (error: any) {
+      // Refresh users list
+      fetchUsers();
+    } catch (error) {
       console.error('Error creating user:', error);
-      toast.error(error.message || "Failed to create user");
+      toast.error("Failed to create user");
     } finally {
       setIsCreatingUser(false);
     }
   };
 
-  const assignRole = async (userId: string, role: string, practiceId?: string) => {
-    try {
-      const { error } = await supabase
-        .from('user_roles')
-        .insert({
-          user_id: userId,
-          role: role as any, // Cast to any to handle the enum type
-          practice_id: practiceId || null,
-          assigned_by: user?.id
-        });
-
-      if (error) throw error;
-      
-      toast.success("Role assigned successfully");
-      fetchUsers(); // Refresh the list
-    } catch (error) {
-      console.error('Error assigning role:', error);
-      toast.error("Failed to assign role");
-    }
-  };
-
-  const removeRole = async (userId: string, role: string, practiceId?: string) => {
-    try {
-      let query = supabase
-        .from('user_roles')
-        .delete()
-        .eq('user_id', userId)
-        .eq('role', role as any); // Cast to any to handle the enum type
-
-      if (practiceId) {
-        query = query.eq('practice_id', practiceId);
-      } else {
-        query = query.is('practice_id', null);
-      }
-
-      const { error } = await query;
-
-      if (error) throw error;
-      
-      toast.success("Role removed successfully");
-      fetchUsers(); // Refresh the list
-    } catch (error) {
-      console.error('Error removing role:', error);
-      toast.error("Failed to remove role");
-    }
-  };
-
-  const handleEditUser = async (userData: User) => {
-    setEditingUser(userData);
-    // Set current role and practice if user has any
-    if (userData.roles.length > 0) {
-      setEditUserRole(userData.roles[0].role);
-      setEditUserPractice(userData.roles[0].practice_id || "none");
-    } else {
-      setEditUserRole("");
-      setEditUserPractice("none");
-    }
-    
-    // Fetch current module access settings from user_roles table
-    try {
-      const { data: roleData, error } = await supabase
-        .from('user_roles')
-        .select('meeting_notes_access, gp_scribe_access, complaints_manager_access, complaints_admin_access, replywell_access')
-        .eq('user_id', userData.id)
-        .single();
-      
-      if (error) {
-        console.error('Error fetching user module access:', error);
-        // Set defaults if no data found
-        setEditUserMeetingNotesAccess(true);
-        setEditUserGpScribeAccess(false);
-        setEditUserComplaintsManagerAccess(false);
-        setEditUserComplaintsAdminAccess(false);
-        setEditUserReplyWellAccess(false);
-      } else {
-        setEditUserMeetingNotesAccess(roleData?.meeting_notes_access ?? true);
-        setEditUserGpScribeAccess(roleData?.gp_scribe_access ?? false);
-        setEditUserComplaintsManagerAccess(roleData?.complaints_manager_access ?? false);
-        setEditUserComplaintsAdminAccess(roleData?.complaints_admin_access ?? false);
-        setEditUserReplyWellAccess(roleData?.replywell_access ?? false);
-      }
-    } catch (error) {
-      console.error('Error loading module access:', error);
-      // Set defaults on error
-      setEditUserMeetingNotesAccess(true);
-      setEditUserGpScribeAccess(false);
-      setEditUserComplaintsManagerAccess(false);
-      setEditUserComplaintsAdminAccess(false);
-      setEditUserReplyWellAccess(false);
-    }
-    
+  const handleEditUser = (user: User) => {
+    setEditingUser(user);
+    setEditUserRole(user.roles[0]?.role || "");
+    setEditUserPractice(user.roles[0]?.practice_id || "none");
     setEditUserOpen(true);
   };
 
   const handleUpdateUser = async () => {
-    if (!editingUser || !editUserRole) {
-      toast.error("Please select a role");
-      return;
-    }
-
+    if (!editingUser) return;
+    
     setIsUpdatingUser(true);
     
     try {
-      // Remove existing roles for this user
-      await supabase
-        .from('user_roles')
-        .delete()
-        .eq('user_id', editingUser.id);
-
-      // Add new role with module access settings
-      // For practice managers, always use their practice ID
-      const practiceId = isPracticeManager ? userPracticeId : (editUserPractice === "none" ? null : editUserPractice);
-      
+      // Update user role
       const { error } = await supabase
         .from('user_roles')
-        .insert({
-          user_id: editingUser.id,
+        .update({
           role: editUserRole as any,
-          practice_id: practiceId,
-          assigned_by: user?.id,
+          practice_id: editUserPractice === "none" ? null : editUserPractice,
           meeting_notes_access: editUserMeetingNotesAccess,
           gp_scribe_access: editUserGpScribeAccess,
           complaints_manager_access: editUserComplaintsManagerAccess,
           complaints_admin_access: editUserComplaintsAdminAccess,
           replywell_access: editUserReplyWellAccess
-        });
+        })
+        .eq('user_id', editingUser.id);
 
       if (error) throw error;
       
       toast.success("User updated successfully");
       setEditUserOpen(false);
-      setEditingUser(null);
-      await fetchUsers();
-      
-    } catch (error: any) {
+      fetchUsers();
+    } catch (error) {
       console.error('Error updating user:', error);
       toast.error("Failed to update user");
     } finally {
@@ -787,89 +676,74 @@ The Notewell AI Team</p>
     }
   };
 
-  const handleDeleteUser = async (userData: User) => {
-    if (!confirm(`Are you sure you want to delete user ${userData.full_name}? This action cannot be undone.`)) {
-      return;
-    }
-
+  const handleDeleteUser = async (user: User) => {
+    if (!confirm(`Are you sure you want to delete ${user.full_name}?`)) return;
+    
     try {
-      // First remove all roles
-      await supabase
-        .from('user_roles')
-        .delete()
-        .eq('user_id', userData.id);
-
-      // Then delete the profile
-      await supabase
-        .from('profiles')
-        .delete()
-        .eq('user_id', userData.id);
-
-      // Finally delete from auth (this requires admin privileges)
-      const { error: authError } = await supabase.functions.invoke('delete-user-admin', {
-        body: { user_id: userData.id }
+      const { error } = await supabase.functions.invoke('delete-user-admin', {
+        body: { user_id: user.id }
       });
 
-      if (authError) {
-        console.error('Error deleting user from auth:', authError);
-        toast.error("User profile deleted but auth account may still exist");
-      } else {
-        toast.success("User deleted successfully");
-      }
+      if (error) throw error;
       
-      await fetchUsers();
-      
-    } catch (error: any) {
+      toast.success(`User ${user.full_name} deleted successfully`);
+      fetchUsers();
+    } catch (error) {
       console.error('Error deleting user:', error);
       toast.error("Failed to delete user");
     }
   };
 
-  const getRoleBadgeColor = (role: string) => {
-    const colors = {
-      'system_admin': 'bg-red-100 text-red-800',
-      'practice_manager': 'bg-blue-100 text-blue-800',
-      'gp': 'bg-green-100 text-green-800',
-      'administrator': 'bg-purple-100 text-purple-800',
-      'nurse': 'bg-pink-100 text-pink-800',
-      'receptionist': 'bg-yellow-100 text-yellow-800',
-      'user': 'bg-gray-100 text-gray-800'
-    };
-    return colors[role as keyof typeof colors] || 'bg-gray-100 text-gray-800';
+  const formatRole = (role: string) => {
+    return role.replace('_', ' ').replace(/\w\S*/g, (txt) => 
+      txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()
+    );
   };
 
-  const formatRole = (role: string) => {
-    return role.split('_').map(word => 
-      word.charAt(0).toUpperCase() + word.slice(1)
-    ).join(' ');
+  const getRoleBadgeColor = (role: string) => {
+    switch (role) {
+      case 'system_admin': return 'bg-red-100 text-red-800';
+      case 'practice_manager': return 'bg-blue-100 text-blue-800';
+      case 'gp': return 'bg-green-100 text-green-800';
+      case 'nurse': return 'bg-purple-100 text-purple-800';
+      case 'administrator': return 'bg-orange-100 text-orange-800';
+      case 'receptionist': return 'bg-yellow-100 text-yellow-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
   };
 
   if (!isAdmin && !isPracticeManager) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Card className="w-96">
-          <CardContent className="pt-6 text-center">
-            <Shield className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Access Denied</h2>
-            <p className="text-muted-foreground">
-              You need system administrator or practice manager privileges to access this page.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <>
+        <Header onNewMeeting={() => {}} />
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+          <Card className="w-full max-w-md">
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <Shield className="mx-auto h-12 w-12 text-muted-foreground" />
+                <h3 className="mt-2 text-sm font-semibold text-gray-900">Access Denied</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  You need system admin or practice manager privileges to access this page.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </>
     );
   }
 
   return (
     <>
       <Header onNewMeeting={() => {}} />
-      <div className="min-h-screen bg-background p-6">
-        <div className="max-w-7xl mx-auto space-y-6">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="container mx-auto px-4 py-8">
           {/* Header */}
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">
-                {isPracticeManager ? "Practice Management" : "System Administration"}
+          <div className="mb-8">
+            <div className="flex items-center justify-between">
+              <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+                <Shield className="h-8 w-8 text-primary" />
+                {isPracticeManager ? "Practice Administration" : "System Administration"}
               </h1>
               <p className="text-muted-foreground">
                 {isPracticeManager ? "Manage users and settings for your practice" : "Manage users, roles, and system analytics"}
@@ -1013,41 +887,41 @@ The Notewell AI Team</p>
                         ))}
                       </TableBody>
                     </Table>
-                   </div>
-                 )}
-                 {totalMeetings > meetingsPerPage && (
-                   <div className="mt-4 flex justify-center">
-                     <Pagination>
-                       <PaginationContent>
-                         <PaginationItem>
-                           <PaginationPrevious 
-                             onClick={() => currentPage > 1 && handlePageChange(currentPage - 1)}
-                             className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                           />
-                         </PaginationItem>
-                         {Array.from({ length: Math.ceil(totalMeetings / meetingsPerPage) }, (_, i) => i + 1).map((page) => (
-                           <PaginationItem key={page}>
-                             <PaginationLink
-                               onClick={() => handlePageChange(page)}
-                               isActive={currentPage === page}
-                               className="cursor-pointer"
-                             >
-                               {page}
-                             </PaginationLink>
-                           </PaginationItem>
-                         ))}
-                         <PaginationItem>
-                           <PaginationNext 
-                             onClick={() => currentPage < Math.ceil(totalMeetings / meetingsPerPage) && handlePageChange(currentPage + 1)}
-                             className={currentPage >= Math.ceil(totalMeetings / meetingsPerPage) ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                           />
-                         </PaginationItem>
-                       </PaginationContent>
-                     </Pagination>
-                   </div>
-                 )}
-               </CardContent>
-             </Card>
+                  </div>
+                )}
+                {totalMeetings > meetingsPerPage && (
+                  <div className="mt-4 flex justify-center">
+                    <Pagination>
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious 
+                            onClick={() => currentPage > 1 && handlePageChange(currentPage - 1)}
+                            className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                          />
+                        </PaginationItem>
+                        {Array.from({ length: Math.ceil(totalMeetings / meetingsPerPage) }, (_, i) => i + 1).map((page) => (
+                          <PaginationItem key={page}>
+                            <PaginationLink
+                              onClick={() => handlePageChange(page)}
+                              isActive={currentPage === page}
+                              className="cursor-pointer"
+                            >
+                              {page}
+                            </PaginationLink>
+                          </PaginationItem>
+                        ))}
+                        <PaginationItem>
+                          <PaginationNext 
+                            onClick={() => currentPage < Math.ceil(totalMeetings / meetingsPerPage) && handlePageChange(currentPage + 1)}
+                            className={currentPage >= Math.ceil(totalMeetings / meetingsPerPage) ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                          />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Users Tab */}
@@ -1233,9 +1107,20 @@ The Notewell AI Team</p>
               </Dialog>
             </div>
 
+            {/* Search Bar */}
+            <div className="relative max-w-sm">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Search users by name, email, or practice..."
+                value={userSearchQuery}
+                onChange={(e) => handleUserSearch(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
             <Card>
               <CardHeader>
-                <CardTitle>Users</CardTitle>
+                <CardTitle>Users ({filteredUsers.length} {filteredUsers.length === 1 ? 'user' : 'users'})</CardTitle>
               </CardHeader>
               <CardContent>
                 {loading ? (
@@ -1243,89 +1128,128 @@ The Notewell AI Team</p>
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
                     <p className="mt-2 text-muted-foreground">Loading users...</p>
                   </div>
+                ) : filteredUsers.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    {userSearchQuery ? 'No users found matching your search.' : 'No users found'}
+                  </div>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>User</TableHead>
-                        <TableHead>Roles</TableHead>
-                        <TableHead>Practice/PCN</TableHead>
-                        <TableHead>Last Login</TableHead>
-                        <TableHead>Meetings (30d)</TableHead>
-                        <TableHead>Total Meetings</TableHead>
-                        <TableHead>Meeting Hours</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {users.map(user => (
-                        <TableRow key={user.id}>
-                          <TableCell>
-                            <div>
-                              <div className="font-medium">{user.full_name}</div>
-                              <div className="text-sm text-muted-foreground">{user.email}</div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="space-y-1">
-                              {user.roles.map((role, index) => (
-                                <Badge 
-                                  key={index} 
-                                  variant="secondary" 
-                                  className={getRoleBadgeColor(role.role)}
-                                >
-                                  {formatRole(role.role)}
-                                </Badge>
-                              ))}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-sm">
-                              {user.roles.length > 0 ? (
-                                user.roles.map((role, index) => (
-                                  <div key={index} className="mb-1">
-                                    {role.practice_name || (
-                                      <span className="text-muted-foreground">No practice assigned</span>
-                                    )}
-                                  </div>
-                                ))
-                              ) : (
-                                <span className="text-muted-foreground">No practice assigned</span>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {user.last_login ? 
-                              format(new Date(user.last_login), 'MMM d, yyyy') : 
-                              'Never'
-                            }
-                          </TableCell>
-                          <TableCell>{user.meeting_stats.meetings_last_30_days}</TableCell>
-                          <TableCell>{user.meeting_stats.total_meetings}</TableCell>
-                          <TableCell>{Math.round(user.meeting_stats.total_duration_minutes / 60 * 10) / 10}h</TableCell>
-                           <TableCell>
-                             <div className="flex gap-2">
-                               <Button 
-                                 variant="outline" 
-                                 size="sm"
-                                 onClick={() => handleEditUser(user)}
-                               >
-                                 <Edit className="h-3 w-3" />
-                               </Button>
-                               <Button 
-                                 variant="outline" 
-                                 size="sm" 
-                                 className="text-destructive"
-                                 onClick={() => handleDeleteUser(user)}
-                               >
-                                 <Trash2 className="h-3 w-3" />
-                               </Button>
-                             </div>
-                           </TableCell>
+                  <>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>User</TableHead>
+                          <TableHead>Roles</TableHead>
+                          <TableHead>Practice/PCN</TableHead>
+                          <TableHead>Last Login</TableHead>
+                          <TableHead>Meetings (30d)</TableHead>
+                          <TableHead>Total Meetings</TableHead>
+                          <TableHead>Meeting Hours</TableHead>
+                          <TableHead>Actions</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {getPaginatedUsers().map(user => (
+                          <TableRow key={user.id}>
+                            <TableCell>
+                              <div>
+                                <div className="font-medium">{user.full_name}</div>
+                                <div className="text-sm text-muted-foreground">{user.email}</div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="space-y-1">
+                                {user.roles.map((role, index) => (
+                                  <Badge 
+                                    key={index} 
+                                    variant="secondary" 
+                                    className={getRoleBadgeColor(role.role)}
+                                  >
+                                    {formatRole(role.role)}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="text-sm">
+                                {user.roles.length > 0 ? (
+                                  user.roles.map((role, index) => (
+                                    <div key={index} className="mb-1">
+                                      {role.practice_name || (
+                                        <span className="text-muted-foreground">No practice assigned</span>
+                                      )}
+                                    </div>
+                                  ))
+                                ) : (
+                                  <span className="text-muted-foreground">No practice assigned</span>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {user.last_login ? 
+                                format(new Date(user.last_login), 'MMM d, yyyy') : 
+                                'Never'
+                              }
+                            </TableCell>
+                            <TableCell>{user.meeting_stats.meetings_last_30_days}</TableCell>
+                            <TableCell>{user.meeting_stats.total_meetings}</TableCell>
+                            <TableCell>{Math.round(user.meeting_stats.total_duration_minutes / 60 * 10) / 10}h</TableCell>
+                            <TableCell>
+                              <div className="flex gap-2">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handleEditUser(user)}
+                                >
+                                  <Edit className="h-3 w-3" />
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="text-destructive"
+                                  onClick={() => handleDeleteUser(user)}
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                    
+                    {/* Pagination */}
+                    {totalUserPages > 1 && (
+                      <div className="mt-4 flex justify-center">
+                        <Pagination>
+                          <PaginationContent>
+                            <PaginationItem>
+                              <PaginationPrevious 
+                                onClick={() => userCurrentPage > 1 && setUserCurrentPage(userCurrentPage - 1)}
+                                className={userCurrentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                              />
+                            </PaginationItem>
+                            {Array.from({ length: totalUserPages }, (_, i) => i + 1).map((page) => (
+                              <PaginationItem key={page}>
+                                <PaginationLink
+                                  onClick={() => setUserCurrentPage(page)}
+                                  isActive={userCurrentPage === page}
+                                  className="cursor-pointer"
+                                >
+                                  {page}
+                                </PaginationLink>
+                              </PaginationItem>
+                            ))}
+                            <PaginationItem>
+                              <PaginationNext 
+                                onClick={() => userCurrentPage < totalUserPages && setUserCurrentPage(userCurrentPage + 1)}
+                                className={userCurrentPage >= totalUserPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                              />
+                            </PaginationItem>
+                          </PaginationContent>
+                        </Pagination>
+                      </div>
+                    )}
+                  </>
                 )}
               </CardContent>
             </Card>
@@ -1338,186 +1262,164 @@ The Notewell AI Team</p>
             {/* Add practice management content here */}
           </TabsContent>
 
-
           {/* Settings Tab */}
           <TabsContent value="settings" className="space-y-6">
             <h2 className="text-2xl font-bold">System Settings</h2>
             <p className="text-muted-foreground">Configure system-wide settings and preferences</p>
-            {/* Add system settings content here */}
+            {/* Add settings content here */}
           </TabsContent>
         </Tabs>
-      </div>
-      
-      {/* Email Preview Dialog */}
-      <Dialog open={emailPreviewOpen} onOpenChange={setEmailPreviewOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Email Preview</DialogTitle>
-            <DialogDescription>
-              Preview of the welcome email that will be sent to the new user.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <pre className="whitespace-pre-wrap text-sm font-mono">
-              {emailPreviewContent}
-            </pre>
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEmailPreviewOpen(false)}>
-              Close Preview
-            </Button>
-            <Button onClick={() => {
-              setEmailPreviewOpen(false);
-              handleCreateUser();
-            }} disabled={isCreatingUser}>
-              <Send className="h-4 w-4 mr-2" />
-              {isCreatingUser ? "Creating..." : "Create User & Send Email"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Edit User Dialog */}
-      <Dialog open={editUserOpen} onOpenChange={setEditUserOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit User</DialogTitle>
-            <DialogDescription>
-              Update the user's role and practice assignment.
-            </DialogDescription>
-          </DialogHeader>
-          
-          {editingUser && (
-            <div className="space-y-4">
-              <div>
-                <Label>User</Label>
-                <div className="p-2 bg-muted rounded">
-                  <div className="font-medium">{editingUser.full_name}</div>
-                  <div className="text-sm text-muted-foreground">{editingUser.email}</div>
-                </div>
-              </div>
-              
-              <div>
-                <Label htmlFor="edit-role">Role</Label>
-                <Select value={editUserRole} onValueChange={setEditUserRole}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="user">User</SelectItem>
-                    <SelectItem value="receptionist">Receptionist</SelectItem>
-                    <SelectItem value="nurse">Nurse</SelectItem>
-                    <SelectItem value="administrator">Administrator</SelectItem>
-                    <SelectItem value="gp">GP</SelectItem>
-                    {isAdmin && <SelectItem value="practice_manager">Practice Manager</SelectItem>}
-                    {isAdmin && <SelectItem value="system_admin">System Admin</SelectItem>}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Label htmlFor="edit-practice">Practice {isPracticeManager ? "(Assigned Practice)" : ""}</Label>
-                <Select 
-                  value={isPracticeManager ? userPracticeId || "none" : editUserPractice} 
-                  onValueChange={isPracticeManager ? () => {} : setEditUserPractice}
-                  disabled={isPracticeManager}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a practice" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {!isPracticeManager && <SelectItem value="none">No Practice</SelectItem>}
-                    {isPracticeManager ? (
-                      practices.filter(p => p.id === userPracticeId).map(practice => (
-                        <SelectItem key={practice.id} value={practice.id}>
-                          {practice.practice_name}
-                        </SelectItem>
-                      ))
-                    ) : (
-                      practices.map(practice => (
-                        <SelectItem key={practice.id} value={practice.id}>
-                          {practice.practice_name}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-3">
-                <Label className="text-base font-medium">Module Access</Label>
-                <div className="grid grid-cols-1 gap-3">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="edit-meeting-notes-access"
-                      checked={editUserMeetingNotesAccess}
-                      onCheckedChange={(checked) => setEditUserMeetingNotesAccess(checked === true)}
-                    />
-                    <Label htmlFor="edit-meeting-notes-access" className="text-sm font-normal">
-                      Meeting Notes
-                    </Label>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="edit-gp-scribe-access"
-                      checked={editUserGpScribeAccess}
-                      onCheckedChange={(checked) => setEditUserGpScribeAccess(checked === true)}
-                    />
-                    <Label htmlFor="edit-gp-scribe-access" className="text-sm font-normal">
-                      GP Scribe
-                    </Label>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="edit-complaints-manager-access"
-                      checked={editUserComplaintsManagerAccess}
-                      onCheckedChange={(checked) => setEditUserComplaintsManagerAccess(checked === true)}
-                    />
-                    <Label htmlFor="edit-complaints-manager-access" className="text-sm font-normal">
-                      Complaints Manager
-                    </Label>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="edit-complaints-admin-access"
-                      checked={editUserComplaintsAdminAccess}
-                      onCheckedChange={(checked) => setEditUserComplaintsAdminAccess(checked === true)}
-                    />
-                    <Label htmlFor="edit-complaints-admin-access" className="text-sm font-normal">
-                      Complaints Manager Admin
-                    </Label>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="edit-replywell-access"
-                      checked={editUserReplyWellAccess}
-                      onCheckedChange={(checked) => setEditUserReplyWellAccess(checked === true)}
-                    />
-                    <Label htmlFor="edit-replywell-access" className="text-sm font-normal">
-                      ReplyWell
-                    </Label>
-                  </div>
-                </div>
-              </div>
+
+        {/* Email Preview Dialog */}
+        <Dialog open={emailPreviewOpen} onOpenChange={setEmailPreviewOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Email Preview</DialogTitle>
+              <DialogDescription>
+                Preview of the welcome email that will be sent to the new user.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="max-h-96 overflow-y-auto">
+              <pre className="whitespace-pre-wrap text-sm bg-muted p-4 rounded-md">
+                {emailPreviewContent}
+              </pre>
             </div>
-          )}
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditUserOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleUpdateUser} disabled={isUpdatingUser}>
-              {isUpdatingUser ? "Updating..." : "Update User"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEmailPreviewOpen(false)}>
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit User Dialog */}
+        <Dialog open={editUserOpen} onOpenChange={setEditUserOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit User</DialogTitle>
+              <DialogDescription>
+                Update user role and practice assignment.
+              </DialogDescription>
+            </DialogHeader>
+            
+            {editingUser && (
+              <div className="space-y-4">
+                <div>
+                  <Label>User Details</Label>
+                  <div className="text-sm text-muted-foreground">
+                    <div>{editingUser.full_name}</div>
+                    <div>{editingUser.email}</div>
+                  </div>
+                </div>
+                
+                <div>
+                  <Label htmlFor="edit-role">Role</Label>
+                  <Select value={editUserRole} onValueChange={setEditUserRole}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="user">User</SelectItem>
+                      <SelectItem value="receptionist">Receptionist</SelectItem>
+                      <SelectItem value="nurse">Nurse</SelectItem>
+                      <SelectItem value="administrator">Administrator</SelectItem>
+                      <SelectItem value="gp">GP</SelectItem>
+                      {isAdmin && <SelectItem value="practice_manager">Practice Manager</SelectItem>}
+                      {isAdmin && <SelectItem value="system_admin">System Admin</SelectItem>}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <Label htmlFor="edit-practice">Practice</Label>
+                  <Select value={editUserPractice} onValueChange={setEditUserPractice}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a practice" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No Practice</SelectItem>
+                      {practices.map(practice => (
+                        <SelectItem key={practice.id} value={practice.id}>
+                          {practice.practice_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-3">
+                  <Label className="text-base font-medium">Module Access</Label>
+                  <div className="grid grid-cols-1 gap-3">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-meeting-notes-access"
+                        checked={editUserMeetingNotesAccess}
+                        onCheckedChange={(checked) => setEditUserMeetingNotesAccess(checked === true)}
+                      />
+                      <Label htmlFor="edit-meeting-notes-access" className="text-sm font-normal">
+                        Meeting Notes
+                      </Label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-gp-scribe-access"
+                        checked={editUserGpScribeAccess}
+                        onCheckedChange={(checked) => setEditUserGpScribeAccess(checked === true)}
+                      />
+                      <Label htmlFor="edit-gp-scribe-access" className="text-sm font-normal">
+                        GP Scribe
+                      </Label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-complaints-manager-access"
+                        checked={editUserComplaintsManagerAccess}
+                        onCheckedChange={(checked) => setEditUserComplaintsManagerAccess(checked === true)}
+                      />
+                      <Label htmlFor="edit-complaints-manager-access" className="text-sm font-normal">
+                        Complaints Manager
+                      </Label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-complaints-admin-access"
+                        checked={editUserComplaintsAdminAccess}
+                        onCheckedChange={(checked) => setEditUserComplaintsAdminAccess(checked === true)}
+                      />
+                      <Label htmlFor="edit-complaints-admin-access" className="text-sm font-normal">
+                        Complaints Manager Admin
+                      </Label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-replywell-access"
+                        checked={editUserReplyWellAccess}
+                        onCheckedChange={(checked) => setEditUserReplyWellAccess(checked === true)}
+                      />
+                      <Label htmlFor="edit-replywell-access" className="text-sm font-normal">
+                        ReplyWell
+                      </Label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditUserOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleUpdateUser} disabled={isUpdatingUser}>
+                {isUpdatingUser ? "Updating..." : "Update User"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
     </>
   );
