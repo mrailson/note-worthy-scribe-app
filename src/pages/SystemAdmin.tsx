@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { Header } from '@/components/Header';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -374,11 +375,13 @@ const SystemAdmin = () => {
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold">System Administration</h1>
-        <p className="text-muted-foreground">Manage users, practices, PCNs, and neighbourhoods</p>
-      </div>
+    <>
+      <Header onNewMeeting={() => {}} />
+      <div className="container mx-auto p-6">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold">System Administration</h1>
+          <p className="text-muted-foreground">Manage users, practices, PCNs, and neighbourhoods</p>
+        </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-8 mb-6">
@@ -1173,7 +1176,8 @@ const SystemAdmin = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </>
   );
 };
 
