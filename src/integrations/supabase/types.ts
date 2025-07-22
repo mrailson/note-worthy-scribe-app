@@ -865,27 +865,42 @@ export type Database = {
         Row: {
           assigned_at: string | null
           assigned_by: string | null
+          complaints_admin_access: boolean | null
+          complaints_manager_access: boolean | null
           created_at: string | null
+          gp_scribe_access: boolean | null
           id: string
+          meeting_notes_access: boolean | null
           practice_id: string | null
+          replywell_access: boolean | null
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Insert: {
           assigned_at?: string | null
           assigned_by?: string | null
+          complaints_admin_access?: boolean | null
+          complaints_manager_access?: boolean | null
           created_at?: string | null
+          gp_scribe_access?: boolean | null
           id?: string
+          meeting_notes_access?: boolean | null
           practice_id?: string | null
+          replywell_access?: boolean | null
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Update: {
           assigned_at?: string | null
           assigned_by?: string | null
+          complaints_admin_access?: boolean | null
+          complaints_manager_access?: boolean | null
           created_at?: string | null
+          gp_scribe_access?: boolean | null
           id?: string
+          meeting_notes_access?: boolean | null
           practice_id?: string | null
+          replywell_access?: boolean | null
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }

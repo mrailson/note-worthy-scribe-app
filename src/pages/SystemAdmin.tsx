@@ -16,6 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Users, 
   UserPlus, 
@@ -83,6 +84,13 @@ export default function SystemAdmin() {
   const [newUserPCN, setNewUserPCN] = useState("");
   const [isCreatingUser, setIsCreatingUser] = useState(false);
   
+  // Module Access State for New User
+  const [newUserMeetingNotesAccess, setNewUserMeetingNotesAccess] = useState(true);
+  const [newUserGpScribeAccess, setNewUserGpScribeAccess] = useState(false);
+  const [newUserComplaintsManagerAccess, setNewUserComplaintsManagerAccess] = useState(false);
+  const [newUserComplaintsAdminAccess, setNewUserComplaintsAdminAccess] = useState(false);
+  const [newUserReplyWellAccess, setNewUserReplyWellAccess] = useState(false);
+  
   // Email Preview Dialog State
   const [emailPreviewOpen, setEmailPreviewOpen] = useState(false);
   const [emailPreviewContent, setEmailPreviewContent] = useState("");
@@ -93,6 +101,13 @@ export default function SystemAdmin() {
   const [editUserRole, setEditUserRole] = useState("");
   const [editUserPractice, setEditUserPractice] = useState("");
   const [isUpdatingUser, setIsUpdatingUser] = useState(false);
+  
+  // Module Access State for Edit User
+  const [editUserMeetingNotesAccess, setEditUserMeetingNotesAccess] = useState(true);
+  const [editUserGpScribeAccess, setEditUserGpScribeAccess] = useState(false);
+  const [editUserComplaintsManagerAccess, setEditUserComplaintsManagerAccess] = useState(false);
+  const [editUserComplaintsAdminAccess, setEditUserComplaintsAdminAccess] = useState(false);
+  const [editUserReplyWellAccess, setEditUserReplyWellAccess] = useState(false);
 
   // Dashboard Stats
   const [dashboardStats, setDashboardStats] = useState({
@@ -362,7 +377,14 @@ This is an automated message. Please do not reply to this email.`;
           password: tempPassword,
           role: newUserRole,
           practice_id: practiceId,
-          assigned_by: user?.id
+          assigned_by: user?.id,
+          module_access: {
+            meeting_notes_access: newUserMeetingNotesAccess,
+            gp_scribe_access: newUserGpScribeAccess,
+            complaints_manager_access: newUserComplaintsManagerAccess,
+            complaints_admin_access: newUserComplaintsAdminAccess,
+            replywell_access: newUserReplyWellAccess
+          }
         }
       });
 
@@ -452,6 +474,11 @@ The Notewell AI Team</p>
       setNewUserRole("");
       setNewUserPractice("");
       setNewUserPCN("");
+      setNewUserMeetingNotesAccess(true);
+      setNewUserGpScribeAccess(false);
+      setNewUserComplaintsManagerAccess(false);
+      setNewUserComplaintsAdminAccess(false);
+      setNewUserReplyWellAccess(false);
       setAddUserOpen(false);
       
     } catch (error: any) {
@@ -509,7 +536,7 @@ The Notewell AI Team</p>
     }
   };
 
-  const handleEditUser = (userData: User) => {
+  const handleEditUser = async (userData: User) => {
     setEditingUser(userData);
     // Set current role and practice if user has any
     if (userData.roles.length > 0) {
@@ -519,6 +546,40 @@ The Notewell AI Team</p>
       setEditUserRole("");
       setEditUserPractice("none");
     }
+    
+    // Fetch current module access settings from user_roles table
+    try {
+      const { data: roleData, error } = await supabase
+        .from('user_roles')
+        .select('meeting_notes_access, gp_scribe_access, complaints_manager_access, complaints_admin_access, replywell_access')
+        .eq('user_id', userData.id)
+        .single();
+      
+      if (error) {
+        console.error('Error fetching user module access:', error);
+        // Set defaults if no data found
+        setEditUserMeetingNotesAccess(true);
+        setEditUserGpScribeAccess(false);
+        setEditUserComplaintsManagerAccess(false);
+        setEditUserComplaintsAdminAccess(false);
+        setEditUserReplyWellAccess(false);
+      } else {
+        setEditUserMeetingNotesAccess(roleData?.meeting_notes_access ?? true);
+        setEditUserGpScribeAccess(roleData?.gp_scribe_access ?? false);
+        setEditUserComplaintsManagerAccess(roleData?.complaints_manager_access ?? false);
+        setEditUserComplaintsAdminAccess(roleData?.complaints_admin_access ?? false);
+        setEditUserReplyWellAccess(roleData?.replywell_access ?? false);
+      }
+    } catch (error) {
+      console.error('Error loading module access:', error);
+      // Set defaults on error
+      setEditUserMeetingNotesAccess(true);
+      setEditUserGpScribeAccess(false);
+      setEditUserComplaintsManagerAccess(false);
+      setEditUserComplaintsAdminAccess(false);
+      setEditUserReplyWellAccess(false);
+    }
+    
     setEditUserOpen(true);
   };
 
@@ -537,9 +598,24 @@ The Notewell AI Team</p>
         .delete()
         .eq('user_id', editingUser.id);
 
-      // Add new role
+      // Add new role with module access settings
       const practiceId = editUserPractice === "none" ? null : editUserPractice;
-      await assignRole(editingUser.id, editUserRole, practiceId);
+      
+      const { error } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: editingUser.id,
+          role: editUserRole as any,
+          practice_id: practiceId,
+          assigned_by: user?.id,
+          meeting_notes_access: editUserMeetingNotesAccess,
+          gp_scribe_access: editUserGpScribeAccess,
+          complaints_manager_access: editUserComplaintsManagerAccess,
+          complaints_admin_access: editUserComplaintsAdminAccess,
+          replywell_access: editUserReplyWellAccess
+        });
+
+      if (error) throw error;
       
       toast.success("User updated successfully");
       setEditUserOpen(false);
@@ -802,6 +878,66 @@ The Notewell AI Team</p>
                         </SelectContent>
                       </Select>
                     </div>
+                    
+                    <div className="space-y-3">
+                      <Label className="text-base font-medium">Module Access</Label>
+                      <div className="grid grid-cols-1 gap-3">
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="meeting-notes-access"
+                            checked={newUserMeetingNotesAccess}
+                            onCheckedChange={(checked) => setNewUserMeetingNotesAccess(checked === true)}
+                          />
+                          <Label htmlFor="meeting-notes-access" className="text-sm font-normal">
+                            Meeting Notes
+                          </Label>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="gp-scribe-access"
+                            checked={newUserGpScribeAccess}
+                            onCheckedChange={(checked) => setNewUserGpScribeAccess(checked === true)}
+                          />
+                          <Label htmlFor="gp-scribe-access" className="text-sm font-normal">
+                            GP Scribe
+                          </Label>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="complaints-manager-access"
+                            checked={newUserComplaintsManagerAccess}
+                            onCheckedChange={(checked) => setNewUserComplaintsManagerAccess(checked === true)}
+                          />
+                          <Label htmlFor="complaints-manager-access" className="text-sm font-normal">
+                            Complaints Manager
+                          </Label>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="complaints-admin-access"
+                            checked={newUserComplaintsAdminAccess}
+                            onCheckedChange={(checked) => setNewUserComplaintsAdminAccess(checked === true)}
+                          />
+                          <Label htmlFor="complaints-admin-access" className="text-sm font-normal">
+                            Complaints Manager Admin
+                          </Label>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="replywell-access"
+                            checked={newUserReplyWellAccess}
+                            onCheckedChange={(checked) => setNewUserReplyWellAccess(checked === true)}
+                          />
+                          <Label htmlFor="replywell-access" className="text-sm font-normal">
+                            ReplyWell
+                          </Label>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                   
                   <DialogFooter>
@@ -1026,6 +1162,66 @@ The Notewell AI Team</p>
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              
+              <div className="space-y-3">
+                <Label className="text-base font-medium">Module Access</Label>
+                <div className="grid grid-cols-1 gap-3">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="edit-meeting-notes-access"
+                      checked={editUserMeetingNotesAccess}
+                      onCheckedChange={(checked) => setEditUserMeetingNotesAccess(checked === true)}
+                    />
+                    <Label htmlFor="edit-meeting-notes-access" className="text-sm font-normal">
+                      Meeting Notes
+                    </Label>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="edit-gp-scribe-access"
+                      checked={editUserGpScribeAccess}
+                      onCheckedChange={(checked) => setEditUserGpScribeAccess(checked === true)}
+                    />
+                    <Label htmlFor="edit-gp-scribe-access" className="text-sm font-normal">
+                      GP Scribe
+                    </Label>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="edit-complaints-manager-access"
+                      checked={editUserComplaintsManagerAccess}
+                      onCheckedChange={(checked) => setEditUserComplaintsManagerAccess(checked === true)}
+                    />
+                    <Label htmlFor="edit-complaints-manager-access" className="text-sm font-normal">
+                      Complaints Manager
+                    </Label>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="edit-complaints-admin-access"
+                      checked={editUserComplaintsAdminAccess}
+                      onCheckedChange={(checked) => setEditUserComplaintsAdminAccess(checked === true)}
+                    />
+                    <Label htmlFor="edit-complaints-admin-access" className="text-sm font-normal">
+                      Complaints Manager Admin
+                    </Label>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="edit-replywell-access"
+                      checked={editUserReplyWellAccess}
+                      onCheckedChange={(checked) => setEditUserReplyWellAccess(checked === true)}
+                    />
+                    <Label htmlFor="edit-replywell-access" className="text-sm font-normal">
+                      ReplyWell
+                    </Label>
+                  </div>
+                </div>
               </div>
             </div>
           )}

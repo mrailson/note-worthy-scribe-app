@@ -14,6 +14,13 @@ interface CreateUserRequest {
   role: string;
   practice_id?: string;
   assigned_by: string;
+  module_access?: {
+    meeting_notes_access: boolean;
+    gp_scribe_access: boolean;
+    complaints_manager_access: boolean;
+    complaints_admin_access: boolean;
+    replywell_access: boolean;
+  };
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -63,14 +70,19 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Profile is automatically created by trigger, so we skip manual creation
     
-    // Create user role with admin privileges
+    // Create user role with admin privileges and module access settings
     const { error: roleError } = await supabaseAdmin
       .from('user_roles')
       .insert({
         user_id: authData.user.id,
         role: userData.role,
         practice_id: userData.practice_id || null,
-        assigned_by: userData.assigned_by
+        assigned_by: userData.assigned_by,
+        meeting_notes_access: userData.module_access?.meeting_notes_access ?? true,
+        gp_scribe_access: userData.module_access?.gp_scribe_access ?? false,
+        complaints_manager_access: userData.module_access?.complaints_manager_access ?? false,
+        complaints_admin_access: userData.module_access?.complaints_admin_access ?? false,
+        replywell_access: userData.module_access?.replywell_access ?? false
       });
 
     if (roleError) {
