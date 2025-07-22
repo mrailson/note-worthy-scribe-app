@@ -1,56 +1,17 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
-import { Checkbox } from "@/components/ui/checkbox";
-import { 
-  Users, 
-  UserPlus, 
-  Shield, 
-  Activity, 
-  Clock, 
-  FileText, 
-  TrendingUp,
-  Edit,
-  Trash2,
-  Building2,
-  Calendar,
-  BarChart3,
-  Eye,
-  Send,
-  Search,
-  Plus,
-  MapPin,
-  Network
-} from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { format } from "date-fns";
-import { Header } from "@/components/Header";
-import emailjs from '@emailjs/browser';
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { toast } from 'sonner';
+import { Plus, Search, Edit, Trash2, Users, Calendar, Building, Network } from 'lucide-react';
 
 interface User {
   id: string;
@@ -59,20 +20,17 @@ interface User {
   last_login: string | null;
   created_at: string;
   roles: { role: string; practice_name: string | null; practice_id: string | null }[];
-  meeting_stats: {
-    total_meetings: number;
-    total_duration_minutes: number;
-    meetings_last_30_days: number;
-  };
 }
 
 interface Practice {
   id: string;
-  practice_name: string;
+  name: string;
   practice_code?: string;
   pcn_code?: string;
   neighbourhood_id?: string;
-  neighbourhood_name?: string;
+  ics_code: string;
+  ics_name: string;
+  organisation_type: string;
 }
 
 interface PCN {
@@ -87,106 +45,58 @@ interface Neighbourhood {
   description?: string;
 }
 
-interface RecentMeeting {
-  id: string;
-  title: string;
-  start_time: string;
-  duration_minutes: number;
-  user_id: string;
-  user_name: string;
-  user_email: string;
-  practice_name: string | null;
-  created_at: string;
-}
-
-export default function SystemAdmin() {
+const SystemAdmin = () => {
   const { user } = useAuth();
-  const [users, setUsers] = useState<User[]>([]);
-  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
-  const [practices, setPractices] = useState<Practice[]>([]);
-  const [filteredPractices, setFilteredPractices] = useState<Practice[]>([]);
-  const [pcns, setPcns] = useState<PCN[]>([]);
-  const [neighbourhoods, setNeighbourhoods] = useState<Neighbourhood[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [loading, setLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [isPracticeManager, setIsPracticeManager] = useState(false);
-  const [userPracticeId, setUserPracticeId] = useState<string | null>(null);
-  const [recentMeetings, setRecentMeetings] = useState<RecentMeeting[]>([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalMeetings, setTotalMeetings] = useState(0);
-  const meetingsPerPage = 10;
   
-  // User management pagination and search
-  const [userCurrentPage, setUserCurrentPage] = useState(1);
-  const [userSearchQuery, setUserSearchQuery] = useState("");
-  const usersPerPage = 10;
-
-  // Practice management state
-  const [practiceSearchQuery, setPracticeSearchQuery] = useState("");
-  const [practiceCurrentPage, setPracticeCurrentPage] = useState(1);
-  const practicesPerPage = 10;
-  const [addPracticeOpen, setAddPracticeOpen] = useState(false);
-  const [editPracticeOpen, setEditPracticeOpen] = useState(false);
-  const [editingPractice, setEditingPractice] = useState<Practice | null>(null);
-  const [newPracticeName, setNewPracticeName] = useState("");
-  const [newPracticeCode, setNewPracticeCode] = useState("");
-  const [newPracticePCN, setNewPracticePCN] = useState("");
-  const [newPracticeNeighbourhood, setNewPracticeNeighbourhood] = useState("");
-
-  // PCN management state
-  const [addPCNOpen, setAddPCNOpen] = useState(false);
-  const [editPCNOpen, setEditPCNOpen] = useState(false);
-  const [editingPCN, setEditingPCN] = useState<PCN | null>(null);
-  const [newPCNName, setNewPCNName] = useState("");
-  const [newPCNCode, setNewPCNCode] = useState("");
-
-  // Neighbourhood management state
-  const [addNeighbourhoodOpen, setAddNeighbourhoodOpen] = useState(false);
-  const [editNeighbourhoodOpen, setEditNeighbourhoodOpen] = useState(false);
-  const [editingNeighbourhood, setEditingNeighbourhood] = useState<Neighbourhood | null>(null);
-  const [newNeighbourhoodName, setNewNeighbourhoodName] = useState("");
-  const [newNeighbourhoodDescription, setNewNeighbourhoodDescription] = useState("");
-  
-  // Add User Dialog State
-  const [addUserOpen, setAddUserOpen] = useState(false);
-  const [newUserEmail, setNewUserEmail] = useState("");
-  const [newUserName, setNewUserName] = useState("");
-  const [newUserRole, setNewUserRole] = useState("");
-  const [newUserPractice, setNewUserPractice] = useState("");
-  const [newUserPCN, setNewUserPCN] = useState("");
-  const [isCreatingUser, setIsCreatingUser] = useState(false);
-  
-  // Module Access State for New User
-  const [newUserMeetingNotesAccess, setNewUserMeetingNotesAccess] = useState(true);
-  const [newUserGpScribeAccess, setNewUserGpScribeAccess] = useState(false);
-  const [newUserComplaintsManagerAccess, setNewUserComplaintsManagerAccess] = useState(false);
-  const [newUserComplaintsAdminAccess, setNewUserComplaintsAdminAccess] = useState(false);
-  const [newUserReplyWellAccess, setNewUserReplyWellAccess] = useState(false);
-  
-  // Email Preview Dialog State
-  const [emailPreviewOpen, setEmailPreviewOpen] = useState(false);
-  const [emailPreviewContent, setEmailPreviewContent] = useState("");
-  
-  // Edit User Dialog State
-  const [editUserOpen, setEditUserOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [editUserRole, setEditUserRole] = useState("");
-  const [editUserPractice, setEditUserPractice] = useState("");
-  const [isUpdatingUser, setIsUpdatingUser] = useState(false);
-  
-  // Module Access State for Edit User
-  const [editUserMeetingNotesAccess, setEditUserMeetingNotesAccess] = useState(true);
-  const [editUserGpScribeAccess, setEditUserGpScribeAccess] = useState(false);
-  const [editUserComplaintsManagerAccess, setEditUserComplaintsManagerAccess] = useState(false);
-  const [editUserComplaintsAdminAccess, setEditUserComplaintsAdminAccess] = useState(false);
-  const [editUserReplyWellAccess, setEditUserReplyWellAccess] = useState(false);
-
-  // Dashboard Stats
+  // Dashboard state
   const [dashboardStats, setDashboardStats] = useState({
     totalUsers: 0,
     totalMeetings: 0,
-    totalMeetingHours: 0,
-    activeUsers: 0
+    totalPractices: 0,
+    totalPCNs: 0
+  });
+  
+  // User management state
+  const [users, setUsers] = useState<User[]>([]);
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  
+  // Practice management state
+  const [practices, setPractices] = useState<Practice[]>([]);
+  const [practiceSearchQuery, setPracticeSearchQuery] = useState('');
+  const [isPracticeDialogOpen, setIsPracticeDialogOpen] = useState(false);
+  const [practiceDialogMode, setPracticeDialogMode] = useState<'add' | 'edit'>('add');
+  const [selectedPractice, setSelectedPractice] = useState<Practice | null>(null);
+  const [practiceForm, setPracticeForm] = useState({
+    name: '',
+    practice_code: '',
+    ics_code: '',
+    ics_name: '',
+    organisation_type: '',
+    pcn_code: '',
+    neighbourhood_id: ''
+  });
+  
+  // PCN management state
+  const [pcns, setPcns] = useState<PCN[]>([]);
+  const [isPCNDialogOpen, setIsPCNDialogOpen] = useState(false);
+  const [pcnDialogMode, setPCNDialogMode] = useState<'add' | 'edit'>('add');
+  const [selectedPCN, setSelectedPCN] = useState<PCN | null>(null);
+  const [pcnForm, setPCNForm] = useState({
+    pcn_code: '',
+    pcn_name: ''
+  });
+  
+  // Neighbourhood management state
+  const [neighbourhoods, setNeighbourhoods] = useState<Neighbourhood[]>([]);
+  const [isNeighbourhoodDialogOpen, setIsNeighbourhoodDialogOpen] = useState(false);
+  const [neighbourhoodDialogMode, setNeighbourhoodDialogMode] = useState<'add' | 'edit'>('add');
+  const [selectedNeighbourhood, setSelectedNeighbourhood] = useState<Neighbourhood | null>(null);
+  const [neighbourhoodForm, setNeighbourhoodForm] = useState({
+    name: '',
+    description: ''
   });
 
   useEffect(() => {
@@ -194,48 +104,27 @@ export default function SystemAdmin() {
   }, [user]);
 
   useEffect(() => {
-    if (isAdmin || isPracticeManager) {
+    if (isAdmin) {
       fetchUsers();
       fetchPractices();
       fetchPCNs();
       fetchNeighbourhoods();
       fetchDashboardStats();
-      fetchRecentMeetings();
     }
-  }, [isAdmin, isPracticeManager]);
+  }, [isAdmin]);
 
   const checkAccessPermissions = async () => {
     if (!user) return;
     
     try {
-      // Check if user is system admin
-      const { data: adminData, error: adminError } = await supabase
+      const { data: adminData, error } = await supabase
         .rpc('is_system_admin', { _user_id: user.id });
       
-      if (adminError) throw adminError;
+      if (error) throw error;
       setIsAdmin(adminData);
       
-      if (adminData) {
-        // User is system admin, no need to check practice manager
-        return;
-      }
-      
-      // Check if user is practice manager
-      const { data: roleData, error: roleError } = await supabase
-        .from('user_roles')
-        .select('role, practice_id')
-        .eq('user_id', user.id)
-        .eq('role', 'practice_manager')
-        .maybeSingle();
-      
-      if (roleError) throw roleError;
-      
-      if (roleData) {
-        setIsPracticeManager(true);
-        setUserPracticeId(roleData.practice_id);
-      } else {
-        // User has no access
-        toast.error("Access denied. System admin or practice manager privileges required.");
+      if (!adminData) {
+        toast.error("Access denied. System admin privileges required.");
       }
     } catch (error) {
       console.error('Error checking access permissions:', error);
@@ -246,80 +135,23 @@ export default function SystemAdmin() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      
-      // Fetch users with their profiles
-      const { data: profilesData, error: profilesError } = await supabase
+      const { data: profilesData, error } = await supabase
         .from('profiles')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (profilesError) throw profilesError;
+      if (error) throw error;
+      
+      const usersWithData = profilesData?.map(profile => ({
+        id: profile.user_id,
+        email: profile.email,
+        full_name: profile.full_name,
+        last_login: profile.last_login,
+        created_at: profile.created_at,
+        roles: []
+      })) || [];
 
-      // Fetch user roles
-      const { data: rolesData, error: rolesError } = await supabase
-        .from('user_roles')
-        .select(`
-          user_id,
-          role,
-          practice_id,
-          gp_practices(practice_name:name)
-        `);
-
-      if (rolesError) throw rolesError;
-
-      // Fetch meeting stats for each user
-      const { data: meetingStats, error: meetingError } = await supabase
-        .from('meetings')
-        .select('user_id, duration_minutes, created_at');
-
-      if (meetingError) throw meetingError;
-
-      // Process the data
-      const usersWithData = profilesData?.map(profile => {
-        const userRoles = rolesData?.filter(role => role.user_id === profile.user_id) || [];
-        const userMeetings = meetingStats?.filter(meeting => meeting.user_id === profile.user_id) || [];
-        
-        const now = new Date();
-        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        
-        const meetingsLast30Days = userMeetings.filter(
-          meeting => new Date(meeting.created_at) >= thirtyDaysAgo
-        ).length;
-
-        const totalDuration = userMeetings.reduce(
-          (sum, meeting) => sum + (meeting.duration_minutes || 0), 0
-        );
-
-        return {
-          id: profile.user_id,
-          email: profile.email,
-          full_name: profile.full_name,
-          last_login: profile.last_login,
-          created_at: profile.created_at,
-          roles: userRoles.map(role => ({
-            role: role.role,
-            practice_name: role.gp_practices?.practice_name || null,
-            practice_id: role.practice_id
-          })),
-          meeting_stats: {
-            total_meetings: userMeetings.length,
-            total_duration_minutes: totalDuration,
-            meetings_last_30_days: meetingsLast30Days
-          }
-        };
-      }) || [];
-
-      // Filter users based on role
-      let filteredUsers = usersWithData;
-      if (isPracticeManager && userPracticeId) {
-        // Practice managers can only see users in their practice
-        filteredUsers = usersWithData.filter(user => 
-          user.roles.some(role => role.practice_id === userPracticeId)
-        );
-      }
-
-      setUsers(filteredUsers);
-      setFilteredUsers(filteredUsers);
+      setUsers(usersWithData);
     } catch (error) {
       console.error('Error fetching users:', error);
       toast.error("Failed to fetch users");
@@ -328,46 +160,8 @@ export default function SystemAdmin() {
     }
   };
 
-  // Filter users based on search query
-  const filterUsers = (query: string) => {
-    if (!query.trim()) {
-      setFilteredUsers(users);
-      return;
-    }
-
-    const filtered = users.filter(user => {
-      const searchTerm = query.toLowerCase();
-      const matchesName = user.full_name.toLowerCase().includes(searchTerm);
-      const matchesEmail = user.email.toLowerCase().includes(searchTerm);
-      const matchesPractice = user.roles.some(role => 
-        role.practice_name?.toLowerCase().includes(searchTerm)
-      );
-      
-      return matchesName || matchesEmail || matchesPractice;
-    });
-
-    setFilteredUsers(filtered);
-    setUserCurrentPage(1); // Reset to first page when searching
-  };
-
-  // Handle search input change
-  const handleUserSearch = (value: string) => {
-    setUserSearchQuery(value);
-    filterUsers(value);
-  };
-
-  // Get paginated users
-  const getPaginatedUsers = () => {
-    const startIndex = (userCurrentPage - 1) * usersPerPage;
-    const endIndex = startIndex + usersPerPage;
-    return filteredUsers.slice(startIndex, endIndex);
-  };
-
-  const totalUserPages = Math.ceil(filteredUsers.length / usersPerPage);
-
   const fetchPractices = async () => {
     try {
-      // Get all practices from gp_practices table
       const { data, error } = await supabase
         .from('gp_practices')
         .select(`
@@ -375,71 +169,21 @@ export default function SystemAdmin() {
           name, 
           practice_code, 
           pcn_code,
+          ics_code,
+          ics_name,
+          organisation_type,
           neighbourhood_id,
           neighbourhoods(name)
         `)
         .order('name');
 
       if (error) throw error;
-      
-      // Map the data to match our interface
-      const practicesData = data?.map(practice => ({
-        id: practice.id,
-        practice_name: practice.name,
-        practice_code: practice.practice_code,
-        pcn_code: practice.pcn_code,
-        neighbourhood_id: practice.neighbourhood_id,
-        neighbourhood_name: practice.neighbourhoods?.name || null
-      })) || [];
-      
-      setPractices(practicesData);
-      setFilteredPractices(practicesData);
+      setPractices(data || []);
     } catch (error) {
       console.error('Error fetching practices:', error);
-    }
-  
-  const fetchNeighbourhoods = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('neighbourhoods')
-        .select('id, name, description')
-        .order('name');
-
-      if (error) throw error;
-      setNeighbourhoods(data || []);
-    } catch (error) {
-      console.error('Error fetching neighbourhoods:', error);
+      toast.error("Failed to fetch practices");
     }
   };
-
-  // Filter practices based on search query
-  const filterPractices = (query: string) => {
-    if (!query.trim()) {
-      setFilteredPractices(practices);
-      return;
-    }
-
-    const filtered = practices.filter(practice => {
-      const searchTerm = query.toLowerCase();
-      return (
-        practice.practice_name.toLowerCase().includes(searchTerm) ||
-        practice.practice_code?.toLowerCase().includes(searchTerm) ||
-        practice.pcn_code?.toLowerCase().includes(searchTerm)
-      );
-    });
-
-    setFilteredPractices(filtered);
-    setPracticeCurrentPage(1);
-  };
-
-  // Get paginated practices
-  const getPaginatedPractices = () => {
-    const startIndex = (practiceCurrentPage - 1) * practicesPerPage;
-    const endIndex = startIndex + practicesPerPage;
-    return filteredPractices.slice(startIndex, endIndex);
-  };
-
-  const totalPracticePages = Math.ceil(filteredPractices.length / practicesPerPage);
 
   const fetchPCNs = async () => {
     try {
@@ -452,6 +196,22 @@ export default function SystemAdmin() {
       setPcns(data || []);
     } catch (error) {
       console.error('Error fetching PCNs:', error);
+      toast.error("Failed to fetch PCNs");
+    }
+  };
+
+  const fetchNeighbourhoods = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('neighbourhoods')
+        .select('id, name, description')
+        .order('name');
+
+      if (error) throw error;
+      setNeighbourhoods(data || []);
+    } catch (error) {
+      console.error('Error fetching neighbourhoods:', error);
+      toast.error("Failed to fetch neighbourhoods");
     }
   };
 
@@ -459,376 +219,58 @@ export default function SystemAdmin() {
     try {
       const { data: usersData } = await supabase
         .from('profiles')
-        .select('last_login');
+        .select('id');
 
       const { data: meetingsData } = await supabase
         .from('meetings')
-        .select('duration_minutes');
+        .select('id');
 
-      const activeUsers = usersData?.filter(user => {
-        if (!user.last_login) return false;
-        const lastLogin = new Date(user.last_login);
-        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-        return lastLogin >= thirtyDaysAgo;
-      }).length || 0;
+      const { data: practicesData } = await supabase
+        .from('gp_practices')
+        .select('id');
 
-      const totalHours = meetingsData?.reduce(
-        (sum, meeting) => sum + (meeting.duration_minutes || 0), 0
-      ) / 60 || 0;
+      const { data: pcnsData } = await supabase
+        .from('primary_care_networks')
+        .select('id');
 
       setDashboardStats({
         totalUsers: usersData?.length || 0,
         totalMeetings: meetingsData?.length || 0,
-        totalMeetingHours: Math.round(totalHours * 10) / 10,
-        activeUsers
+        totalPractices: practicesData?.length || 0,
+        totalPCNs: pcnsData?.length || 0
       });
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);
     }
   };
 
-  const fetchRecentMeetings = async (page = 1) => {
-    try {
-      const offset = (page - 1) * meetingsPerPage;
-      
-      // Get total count
-      const { count, error: countError } = await supabase
-        .from('meetings')
-        .select('*', { count: 'exact', head: true });
-      
-      if (countError) throw countError;
-      setTotalMeetings(count || 0);
-      
-      // First fetch meetings with pagination
-      const { data: meetingsData, error: meetingsError } = await supabase
-        .from('meetings')
-        .select(`
-          id,
-          title,
-          start_time,
-          duration_minutes,
-          created_at,
-          user_id
-        `)
-        .order('created_at', { ascending: false })
-        .range(offset, offset + meetingsPerPage - 1);
-
-      if (meetingsError) throw meetingsError;
-
-      if (!meetingsData || meetingsData.length === 0) {
-        setRecentMeetings([]);
-        return;
-      }
-
-      // Get unique user IDs
-      const userIds = [...new Set(meetingsData.map(m => m.user_id))];
-
-      // Fetch user profiles with practice information
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select(`
-          user_id,
-          full_name,
-          email
-        `)
-        .in('user_id', userIds);
-
-      if (profilesError) throw profilesError;
-
-      // Fetch user roles with practice information
-      const { data: rolesData, error: rolesError } = await supabase
-        .from('user_roles')
-        .select(`
-          user_id,
-          practice_id,
-          gp_practices(name)
-        `)
-        .in('user_id', userIds);
-
-      if (rolesError) throw rolesError;
-
-      // Create lookup maps
-      const profilesMap = new Map(profilesData?.map(p => [p.user_id, p]) || []);
-      const practicesMap = new Map();
-      
-      rolesData?.forEach(role => {
-        if (!practicesMap.has(role.user_id)) {
-          practicesMap.set(role.user_id, role.gp_practices?.name || null);
-        }
-      });
-
-      const formattedMeetings: RecentMeeting[] = meetingsData.map(meeting => {
-        const profile = profilesMap.get(meeting.user_id);
-        const practiceName = practicesMap.get(meeting.user_id);
-        
-        return {
-          id: meeting.id,
-          title: meeting.title,
-          start_time: meeting.start_time,
-          duration_minutes: meeting.duration_minutes || 0,
-          user_id: meeting.user_id,
-          user_name: profile?.full_name || 'Unknown User',
-          user_email: profile?.email || '',
-          practice_name: practiceName || null,
-          created_at: meeting.created_at
-        };
-      });
-
-      setRecentMeetings(formattedMeetings);
-    } catch (error) {
-      console.error('Error fetching recent meetings:', error);
-      toast.error('Failed to fetch recent meetings');
-    }
-  };
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    fetchRecentMeetings(page);
-  };
-
-  const getDefaultPassword = () => {
-    return "letmein1st";
-  };
-
-  const generateEmailPreview = () => {
-    const tempPassword = getDefaultPassword();
-    const practiceId = newUserPractice === "none" ? null : newUserPractice;
-    const practiceName = practices.find(p => p.id === practiceId)?.practice_name || "No practice assigned";
-    
-    return `Dear ${newUserName},
-
-Welcome to Notewell AI Meeting Notes Service!
-
-Your account has been successfully created with the following details:
-
-• Email: ${newUserEmail}
-• Role: ${newUserRole.replace('_', ' ').replace(/\w\S*/g, (txt) => txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase())}
-• Practice: ${practiceName}
-• Temporary Password: ${tempPassword}
-
-ABOUT NOTEWELL AI MEETING NOTES SERVICE:
-
-Notewell AI is a revolutionary healthcare meeting documentation service designed specifically for NHS practices and healthcare organisations. Our platform transforms how you capture, organise, and share meeting insights.
-
-KEY FEATURES:
-✓ Real-time AI transcription during meetings
-✓ Automatic generation of meeting summaries and action items
-✓ NHS-compliant data security and privacy protection
-✓ Integration with healthcare workflows
-✓ Searchable meeting archives
-✓ Customisable templates for different meeting types
-✓ Automated distribution of meeting notes to attendees
-
-GETTING STARTED:
-1. Visit: https://notewell.dialai.co.uk/
-2. Sign in using your email address: ${newUserEmail}
-3. Use your temporary password: ${tempPassword}
-4. You'll be prompted to change your password on first login
-
-SECURITY NOTE:
-Please change your temporary password immediately after logging in for security purposes.
-
-If you have any questions or need assistance, please don't hesitate to contact our support team.
-
-Best regards,
-The Notewell AI Team
-
----
-This is an automated message. Please do not reply to this email.`;
-  };
-
-  const handlePreviewEmail = () => {
-    if (!newUserEmail || !newUserName || !newUserRole) {
-      toast.error("Please fill in all required fields first");
-      return;
-    }
-    
-    const preview = generateEmailPreview();
-    setEmailPreviewContent(preview);
-    setEmailPreviewOpen(true);
-  };
-
-  const handleCreateUser = async () => {
-    if (!newUserEmail || !newUserName || !newUserRole) {
-      toast.error("Please fill in all required fields");
-      return;
-    }
-
-    setIsCreatingUser(true);
-    
-    try {
-      // Use default password "letmein1st"
-      const tempPassword = getDefaultPassword();
-      // For practice managers, always use their practice ID
-      const practiceId = isPracticeManager ? userPracticeId : (newUserPractice === "none" ? null : newUserPractice);
-
-      // Call the create-user-admin edge function
-      const { data, error } = await supabase.functions.invoke('create-user-admin', {
-        body: {
-          email: newUserEmail,
-          password: tempPassword,
-          full_name: newUserName,
-          role: newUserRole,
-          practice_id: practiceId,
-          pcn_id: newUserPCN === "none" ? null : newUserPCN,
-          module_access: {
-            meeting_notes_access: newUserMeetingNotesAccess,
-            gp_scribe_access: newUserGpScribeAccess,
-            complaints_manager_access: newUserComplaintsManagerAccess,
-            complaints_admin_access: newUserComplaintsAdminAccess,
-            replywell_access: newUserReplyWellAccess
-          }
-        }
-      });
-
-      if (error) throw error;
-
-      // Send welcome email using EmailJS
-      try {
-        const emailContent = generateEmailPreview();
-        
-        await emailjs.send(
-          process.env.EMAILJS_SERVICE_ID || 'service_lgnfywp',
-          process.env.EMAILJS_TEMPLATE_ID || 'template_3ikk5ah',
-          {
-            to_email: newUserEmail,
-            to_name: newUserName,
-            subject: 'Welcome to Notewell AI Meeting Notes Service',
-            message: emailContent
-          },
-          process.env.EMAILJS_PUBLIC_KEY || '9N4R-I2-LkQdO8VKk'
-        );
-
-        toast.success(`User ${newUserName} created successfully and welcome email sent!`);
-      } catch (emailError) {
-        console.error('Error sending email:', emailError);
-        toast.success(`User ${newUserName} created successfully, but email failed to send.`);
-      }
-
-      // Reset form
-      setNewUserEmail("");
-      setNewUserName("");
-      setNewUserRole("");
-      setNewUserPractice("");
-      setNewUserPCN("");
-      setNewUserMeetingNotesAccess(true);
-      setNewUserGpScribeAccess(false);
-      setNewUserComplaintsManagerAccess(false);
-      setNewUserComplaintsAdminAccess(false);
-      setNewUserReplyWellAccess(false);
-      setAddUserOpen(false);
-      
-      // Refresh users list
-      fetchUsers();
-    } catch (error) {
-      console.error('Error creating user:', error);
-      toast.error("Failed to create user");
-    } finally {
-      setIsCreatingUser(false);
-    }
-  };
-
-  const handleEditUser = (user: User) => {
-    setEditingUser(user);
-    setEditUserRole(user.roles[0]?.role || "");
-    setEditUserPractice(user.roles[0]?.practice_id || "none");
-    setEditUserOpen(true);
-  };
-
-  const handleUpdateUser = async () => {
-    if (!editingUser) return;
-    
-    setIsUpdatingUser(true);
-    
-    try {
-      // Update user role
-      const { error } = await supabase
-        .from('user_roles')
-        .update({
-          role: editUserRole as any,
-          practice_id: editUserPractice === "none" ? null : editUserPractice,
-          meeting_notes_access: editUserMeetingNotesAccess,
-          gp_scribe_access: editUserGpScribeAccess,
-          complaints_manager_access: editUserComplaintsManagerAccess,
-          complaints_admin_access: editUserComplaintsAdminAccess,
-          replywell_access: editUserReplyWellAccess
-        })
-        .eq('user_id', editingUser.id);
-
-      if (error) throw error;
-      
-      toast.success("User updated successfully");
-      setEditUserOpen(false);
-      fetchUsers();
-    } catch (error) {
-      console.error('Error updating user:', error);
-      toast.error("Failed to update user");
-    } finally {
-      setIsUpdatingUser(false);
-    }
-  };
-
-  const handleDeleteUser = async (user: User) => {
-    if (!confirm(`Are you sure you want to delete ${user.full_name}?`)) return;
-    
-    try {
-      const { error } = await supabase.functions.invoke('delete-user-admin', {
-        body: { user_id: user.id }
-      });
-
-      if (error) throw error;
-      
-      toast.success(`User ${user.full_name} deleted successfully`);
-      fetchUsers();
-    } catch (error) {
-      console.error('Error deleting user:', error);
-      toast.error("Failed to delete user");
-    }
-  };
-
-  const formatRole = (role: string) => {
-    return role.replace('_', ' ').replace(/\w\S*/g, (txt) => 
-      txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()
-    );
-  };
-
-  const getRoleBadgeColor = (role: string) => {
-    switch (role) {
-      case 'system_admin': return 'bg-red-100 text-red-800';
-      case 'practice_manager': return 'bg-blue-100 text-blue-800';
-      case 'gp': return 'bg-green-100 text-green-800';
-      case 'nurse': return 'bg-purple-100 text-purple-800';
-      case 'administrator': return 'bg-orange-100 text-orange-800';
-      case 'receptionist': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  // Practice Management Functions
   const handleAddPractice = async () => {
-    if (!newPracticeName || !newPracticeCode) {
-      toast.error("Please fill in practice name and code");
-      return;
-    }
-
     try {
       const { error } = await supabase
         .from('gp_practices')
         .insert({
-          name: newPracticeName,
-          practice_code: newPracticeCode,
-          pcn_code: newPracticePCN || null,
-          neighbourhood_id: newPracticeNeighbourhood || null
+          name: practiceForm.name,
+          practice_code: practiceForm.practice_code,
+          ics_code: practiceForm.ics_code,
+          ics_name: practiceForm.ics_name,
+          organisation_type: practiceForm.organisation_type,
+          pcn_code: practiceForm.pcn_code || null,
+          neighbourhood_id: practiceForm.neighbourhood_id || null
         });
 
       if (error) throw error;
       
       toast.success("Practice added successfully");
-      setNewPracticeName("");
-      setNewPracticeCode("");
-      setNewPracticePCN("");
-      setNewPracticeNeighbourhood("");
-      setAddPracticeOpen(false);
+      setIsPracticeDialogOpen(false);
+      setPracticeForm({
+        name: '',
+        practice_code: '',
+        ics_code: '',
+        ics_name: '',
+        organisation_type: '',
+        pcn_code: '',
+        neighbourhood_id: ''
+      });
       fetchPractices();
     } catch (error) {
       console.error('Error adding practice:', error);
@@ -836,80 +278,20 @@ This is an automated message. Please do not reply to this email.`;
     }
   };
 
-  const handleEditPractice = (practice: Practice) => {
-    setEditingPractice(practice);
-    setNewPracticeName(practice.practice_name);
-    setNewPracticeCode(practice.practice_code || "");
-    setNewPracticePCN(practice.pcn_code || "");
-    setNewPracticeNeighbourhood(practice.neighbourhood_id || "");
-    setEditPracticeOpen(true);
-  };
-
-  const handleUpdatePractice = async () => {
-    if (!editingPractice || !newPracticeName || !newPracticeCode) return;
-
-    try {
-      const { error } = await supabase
-        .from('gp_practices')
-        .update({
-          name: newPracticeName,
-          practice_code: newPracticeCode,
-          pcn_code: newPracticePCN || null,
-          neighbourhood_id: newPracticeNeighbourhood || null
-        })
-        .eq('id', editingPractice.id);
-
-      if (error) throw error;
-      
-      toast.success("Practice updated successfully");
-      setEditPracticeOpen(false);
-      fetchPractices();
-    } catch (error) {
-      console.error('Error updating practice:', error);
-      toast.error("Failed to update practice");
-    }
-  };
-
-  const handleDeletePractice = async (practice: Practice) => {
-    if (!confirm(`Are you sure you want to delete ${practice.practice_name}?`)) return;
-    
-    try {
-      const { error } = await supabase
-        .from('gp_practices')
-        .delete()
-        .eq('id', practice.id);
-
-      if (error) throw error;
-      
-      toast.success(`Practice ${practice.practice_name} deleted successfully`);
-      fetchPractices();
-    } catch (error) {
-      console.error('Error deleting practice:', error);
-      toast.error("Failed to delete practice");
-    }
-  };
-
-  // PCN Management Functions
   const handleAddPCN = async () => {
-    if (!newPCNName || !newPCNCode) {
-      toast.error("Please fill in PCN name and code");
-      return;
-    }
-
     try {
       const { error } = await supabase
         .from('primary_care_networks')
         .insert({
-          pcn_name: newPCNName,
-          pcn_code: newPCNCode
+          pcn_code: pcnForm.pcn_code,
+          pcn_name: pcnForm.pcn_name
         });
 
       if (error) throw error;
       
       toast.success("PCN added successfully");
-      setNewPCNName("");
-      setNewPCNCode("");
-      setAddPCNOpen(false);
+      setIsPCNDialogOpen(false);
+      setPCNForm({ pcn_code: '', pcn_name: '' });
       fetchPCNs();
     } catch (error) {
       console.error('Error adding PCN:', error);
@@ -917,76 +299,20 @@ This is an automated message. Please do not reply to this email.`;
     }
   };
 
-  const handleEditPCN = (pcn: PCN) => {
-    setEditingPCN(pcn);
-    setNewPCNName(pcn.pcn_name);
-    setNewPCNCode(pcn.pcn_code);
-    setEditPCNOpen(true);
-  };
-
-  const handleUpdatePCN = async () => {
-    if (!editingPCN || !newPCNName || !newPCNCode) return;
-
-    try {
-      const { error } = await supabase
-        .from('primary_care_networks')
-        .update({
-          pcn_name: newPCNName,
-          pcn_code: newPCNCode
-        })
-        .eq('id', editingPCN.id);
-
-      if (error) throw error;
-      
-      toast.success("PCN updated successfully");
-      setEditPCNOpen(false);
-      fetchPCNs();
-    } catch (error) {
-      console.error('Error updating PCN:', error);
-      toast.error("Failed to update PCN");
-    }
-  };
-
-  const handleDeletePCN = async (pcn: PCN) => {
-    if (!confirm(`Are you sure you want to delete ${pcn.pcn_name}?`)) return;
-    
-    try {
-      const { error } = await supabase
-        .from('primary_care_networks')
-        .delete()
-        .eq('id', pcn.id);
-
-      if (error) throw error;
-      
-      toast.success(`PCN ${pcn.pcn_name} deleted successfully`);
-      fetchPCNs();
-    } catch (error) {
-      console.error('Error deleting PCN:', error);
-      toast.error("Failed to delete PCN");
-    }
-  };
-
-  // Neighbourhood Management Functions
   const handleAddNeighbourhood = async () => {
-    if (!newNeighbourhoodName) {
-      toast.error("Please enter neighbourhood name");
-      return;
-    }
-
     try {
       const { error } = await supabase
         .from('neighbourhoods')
         .insert({
-          name: newNeighbourhoodName,
-          description: newNeighbourhoodDescription || null
+          name: neighbourhoodForm.name,
+          description: neighbourhoodForm.description || null
         });
 
       if (error) throw error;
       
       toast.success("Neighbourhood added successfully");
-      setNewNeighbourhoodName("");
-      setNewNeighbourhoodDescription("");
-      setAddNeighbourhoodOpen(false);
+      setIsNeighbourhoodDialogOpen(false);
+      setNeighbourhoodForm({ name: '', description: '' });
       fetchNeighbourhoods();
     } catch (error) {
       console.error('Error adding neighbourhood:', error);
@@ -994,1319 +320,443 @@ This is an automated message. Please do not reply to this email.`;
     }
   };
 
-  const handleEditNeighbourhood = (neighbourhood: Neighbourhood) => {
-    setEditingNeighbourhood(neighbourhood);
-    setNewNeighbourhoodName(neighbourhood.name);
-    setNewNeighbourhoodDescription(neighbourhood.description || "");
-    setEditNeighbourhoodOpen(true);
-  };
-
-  const handleUpdateNeighbourhood = async () => {
-    if (!editingNeighbourhood || !newNeighbourhoodName) return;
-
-    try {
-      const { error } = await supabase
-        .from('neighbourhoods')
-        .update({
-          name: newNeighbourhoodName,
-          description: newNeighbourhoodDescription || null
-        })
-        .eq('id', editingNeighbourhood.id);
-
-      if (error) throw error;
-      
-      toast.success("Neighbourhood updated successfully");
-      setEditNeighbourhoodOpen(false);
-      fetchNeighbourhoods();
-    } catch (error) {
-      console.error('Error updating neighbourhood:', error);
-      toast.error("Failed to update neighbourhood");
-    }
-  };
-
-  const handleDeleteNeighbourhood = async (neighbourhood: Neighbourhood) => {
-    if (!confirm(`Are you sure you want to delete ${neighbourhood.name}?`)) return;
-    
-    try {
-      const { error } = await supabase
-        .from('neighbourhoods')
-        .delete()
-        .eq('id', neighbourhood.id);
-
-      if (error) throw error;
-      
-      toast.success(`Neighbourhood ${neighbourhood.name} deleted successfully`);
-      fetchNeighbourhoods();
-    } catch (error) {
-      console.error('Error deleting neighbourhood:', error);
-      toast.error("Failed to delete neighbourhood");
-    }
-  };
-
-  if (!isAdmin && !isPracticeManager) {
+  if (!isAdmin) {
     return (
-      <>
-        <Header onNewMeeting={() => {}} />
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-          <Card className="w-full max-w-md">
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <Shield className="mx-auto h-12 w-12 text-muted-foreground" />
-                <h3 className="mt-2 text-sm font-semibold text-gray-900">Access Denied</h3>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  You need system admin or practice manager privileges to access this page.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </>
+      <div className="container mx-auto p-6">
+        <Card>
+          <CardContent className="p-6">
+            <h1 className="text-2xl font-bold text-center">Access Denied</h1>
+            <p className="text-center mt-4">You need system administrator privileges to access this page.</p>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
   return (
-    <>
-      <Header onNewMeeting={() => {}} />
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="container mx-auto px-4 py-8">
-          {/* Header */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between">
-              <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-                <Shield className="h-8 w-8 text-primary" />
-                {isPracticeManager ? "Practice Administration" : "System Administration"}
-              </h1>
-              <p className="text-muted-foreground">
-                {isPracticeManager ? "Manage users and settings for your practice" : "Manage users, roles, and system analytics"}
-              </p>
-            </div>
-          </div>
+    <div className="container mx-auto p-6">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold">System Administration</h1>
+        <p className="text-muted-foreground">Manage users, practices, PCNs, and neighbourhoods</p>
+      </div>
 
-          {/* Main Content with Tabs */}
-          <Tabs defaultValue="dashboard" className="w-full">
-            <TabsList className="grid w-full grid-cols-4 mb-6 bg-muted p-1 rounded-md h-12">
-              <TabsTrigger value="dashboard" className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground">
-                <BarChart3 className="h-4 w-4" />
-                Dashboard
-              </TabsTrigger>
-              <TabsTrigger value="users" className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground">
-                <Users className="h-4 w-4" />
-                User Management
-              </TabsTrigger>
-              <TabsTrigger value="practices" className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground">
-                <Building2 className="h-4 w-4" />
-                Practices
-              </TabsTrigger>
-              <TabsTrigger value="settings" className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground">
-                <Shield className="h-4 w-4" />
-                Settings
-              </TabsTrigger>
-            </TabsList>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+          <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsTrigger value="practices">Practices</TabsTrigger>
+          <TabsTrigger value="pcns">PCNs</TabsTrigger>
+          <TabsTrigger value="neighbourhoods">Neighbourhoods</TabsTrigger>
+        </TabsList>
 
-          {/* Dashboard Tab */}
-          <TabsContent value="dashboard" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{dashboardStats.totalUsers}</div>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Active Users (30d)</CardTitle>
-                  <Activity className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{dashboardStats.activeUsers}</div>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Meetings</CardTitle>
-                  <FileText className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{dashboardStats.totalMeetings}</div>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Meeting Hours</CardTitle>
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{dashboardStats.totalMeetingHours}h</div>
-                </CardContent>
-              </Card>
-            </div>
-            
-            {/* Recent Meetings Section */}
+        <TabsContent value="dashboard" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Clock className="h-5 w-5" />
-                  Recent Meetings
-                </CardTitle>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                {recentMeetings.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    No recent meetings found
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Meeting Title</TableHead>
-                          <TableHead>User</TableHead>
-                          <TableHead>Practice</TableHead>
-                          <TableHead>Start Date & Time</TableHead>
-                          <TableHead>Duration</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {recentMeetings.map((meeting) => (
-                          <TableRow key={meeting.id}>
-                            <TableCell className="font-medium">
-                              {meeting.title || 'Untitled Meeting'}
-                            </TableCell>
-                            <TableCell>
-                              <div>
-                                <div className="font-medium">{meeting.user_name}</div>
-                                <div className="text-sm text-muted-foreground">{meeting.user_email}</div>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              {meeting.practice_name ? (
-                                <Badge variant="outline" className="text-xs">
-                                  {meeting.practice_name}
-                                </Badge>
-                              ) : (
-                                <span className="text-muted-foreground text-sm">No Practice</span>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              <div>
-                                <div className="font-medium">
-                                  {format(new Date(meeting.start_time), 'MMM dd, yyyy')}
-                                </div>
-                                <div className="text-sm text-muted-foreground">
-                                  {format(new Date(meeting.start_time), 'HH:mm')}
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-1">
-                                <Clock className="h-3 w-3 text-muted-foreground" />
-                                <span className="text-sm">
-                                  {meeting.duration_minutes > 0 
-                                    ? `${Math.floor(meeting.duration_minutes / 60)}h ${meeting.duration_minutes % 60}m`
-                                    : '0m'
-                                  }
-                                </span>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-                {totalMeetings > meetingsPerPage && (
-                  <div className="mt-4 flex justify-center">
-                    <Pagination>
-                      <PaginationContent>
-                        <PaginationItem>
-                          <PaginationPrevious 
-                            onClick={() => currentPage > 1 && handlePageChange(currentPage - 1)}
-                            className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                          />
-                        </PaginationItem>
-                        {Array.from({ length: Math.ceil(totalMeetings / meetingsPerPage) }, (_, i) => i + 1).map((page) => (
-                          <PaginationItem key={page}>
-                            <PaginationLink
-                              onClick={() => handlePageChange(page)}
-                              isActive={currentPage === page}
-                              className="cursor-pointer"
-                            >
-                              {page}
-                            </PaginationLink>
-                          </PaginationItem>
-                        ))}
-                        <PaginationItem>
-                          <PaginationNext 
-                            onClick={() => currentPage < Math.ceil(totalMeetings / meetingsPerPage) && handlePageChange(currentPage + 1)}
-                            className={currentPage >= Math.ceil(totalMeetings / meetingsPerPage) ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                          />
-                        </PaginationItem>
-                      </PaginationContent>
-                    </Pagination>
-                  </div>
-                )}
+                <div className="text-2xl font-bold">{dashboardStats.totalUsers}</div>
               </CardContent>
             </Card>
-          </TabsContent>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Meetings</CardTitle>
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{dashboardStats.totalMeetings}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Practices</CardTitle>
+                <Building className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{dashboardStats.totalPractices}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total PCNs</CardTitle>
+                <Network className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{dashboardStats.totalPCNs}</div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
 
-          {/* Users Tab */}
-          <TabsContent value="users" className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold">User Management</h2>
-              <Dialog open={addUserOpen} onOpenChange={setAddUserOpen}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    Add User
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Add New User</DialogTitle>
-                    <DialogDescription>
-                      Create a new user account and assign initial roles.
-                    </DialogDescription>
-                  </DialogHeader>
-                  
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="email">Email Address</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={newUserEmail}
-                        onChange={(e) => setNewUserEmail(e.target.value)}
-                        placeholder="user@example.com"
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="name">Full Name</Label>
-                      <Input
-                        id="name"
-                        value={newUserName}
-                        onChange={(e) => setNewUserName(e.target.value)}
-                        placeholder="John Doe"
-                      />
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="role">Initial Role</Label>
-                      <Select value={newUserRole} onValueChange={setNewUserRole}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a role" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="user">User</SelectItem>
-                          <SelectItem value="receptionist">Receptionist</SelectItem>
-                          <SelectItem value="nurse">Nurse</SelectItem>
-                          <SelectItem value="administrator">Administrator</SelectItem>
-                          <SelectItem value="gp">GP</SelectItem>
-                          {isAdmin && <SelectItem value="practice_manager">Practice Manager</SelectItem>}
-                          {isAdmin && <SelectItem value="system_admin">System Admin</SelectItem>}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="practice">Practice {isPracticeManager ? "(Assigned Practice)" : "(Optional)"}</Label>
-                      <Select 
-                        value={isPracticeManager ? userPracticeId || "none" : newUserPractice} 
-                        onValueChange={isPracticeManager ? () => {} : setNewUserPractice}
-                        disabled={isPracticeManager}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a practice" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {!isPracticeManager && <SelectItem value="none">No Practice</SelectItem>}
-                          {isPracticeManager ? (
-                            practices.filter(p => p.id === userPracticeId).map(practice => (
-                              <SelectItem key={practice.id} value={practice.id}>
-                                {practice.practice_name}
-                              </SelectItem>
-                            ))
-                          ) : (
-                            practices.map(practice => (
-                              <SelectItem key={practice.id} value={practice.id}>
-                                {practice.practice_name}
-                              </SelectItem>
-                            ))
-                          )}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="pcn">Primary Care Network (Optional)</Label>
-                      <Select value={newUserPCN} onValueChange={setNewUserPCN}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a PCN" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">No PCN</SelectItem>
-                          {pcns.map(pcn => (
-                            <SelectItem key={pcn.id} value={pcn.id}>
-                              {pcn.pcn_name} ({pcn.pcn_code})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      <Label className="text-base font-medium">Module Access</Label>
-                      <div className="grid grid-cols-1 gap-3">
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id="meeting-notes-access"
-                            checked={newUserMeetingNotesAccess}
-                            onCheckedChange={(checked) => setNewUserMeetingNotesAccess(checked === true)}
-                          />
-                          <Label htmlFor="meeting-notes-access" className="text-sm font-normal">
-                            Meeting Notes
-                          </Label>
-                        </div>
-                        
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id="gp-scribe-access"
-                            checked={newUserGpScribeAccess}
-                            onCheckedChange={(checked) => setNewUserGpScribeAccess(checked === true)}
-                          />
-                          <Label htmlFor="gp-scribe-access" className="text-sm font-normal">
-                            GP Scribe
-                          </Label>
-                        </div>
-                        
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id="complaints-manager-access"
-                            checked={newUserComplaintsManagerAccess}
-                            onCheckedChange={(checked) => setNewUserComplaintsManagerAccess(checked === true)}
-                          />
-                          <Label htmlFor="complaints-manager-access" className="text-sm font-normal">
-                            Complaints Manager
-                          </Label>
-                        </div>
-                        
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id="complaints-admin-access"
-                            checked={newUserComplaintsAdminAccess}
-                            onCheckedChange={(checked) => setNewUserComplaintsAdminAccess(checked === true)}
-                          />
-                          <Label htmlFor="complaints-admin-access" className="text-sm font-normal">
-                            Complaints Manager Admin
-                          </Label>
-                        </div>
-                        
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            id="replywell-access"
-                            checked={newUserReplyWellAccess}
-                            onCheckedChange={(checked) => setNewUserReplyWellAccess(checked === true)}
-                          />
-                          <Label htmlFor="replywell-access" className="text-sm font-normal">
-                            ReplyWell
-                          </Label>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => setAddUserOpen(false)}>
-                      Cancel
-                    </Button>
-                    <Button variant="outline" onClick={handlePreviewEmail}>
-                      <Eye className="h-4 w-4 mr-2" />
-                      Preview Email
-                    </Button>
-                    <Button onClick={handleCreateUser} disabled={isCreatingUser}>
-                      <Send className="h-4 w-4 mr-2" />
-                      {isCreatingUser ? "Creating..." : "Create & Send"}
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </div>
-
-            {/* Search Bar */}
-            <div className="relative max-w-sm">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+        <TabsContent value="users" className="space-y-6">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center space-x-2">
+              <Search className="h-4 w-4" />
               <Input
-                placeholder="Search users by name, email, or practice..."
+                placeholder="Search users..."
                 value={userSearchQuery}
-                onChange={(e) => handleUserSearch(e.target.value)}
-                className="pl-10"
+                onChange={(e) => setUserSearchQuery(e.target.value)}
+                className="w-64"
               />
             </div>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              Add User
+            </Button>
+          </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Users ({filteredUsers.length} {filteredUsers.length === 1 ? 'user' : 'users'})</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <div className="text-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                    <p className="mt-2 text-muted-foreground">Loading users...</p>
-                  </div>
-                ) : filteredUsers.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    {userSearchQuery ? 'No users found matching your search.' : 'No users found'}
-                  </div>
-                ) : (
-                  <>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>User</TableHead>
-                          <TableHead>Roles</TableHead>
-                          <TableHead>Practice/PCN</TableHead>
-                          <TableHead>Last Login</TableHead>
-                          <TableHead>Meetings (30d)</TableHead>
-                          <TableHead>Total Meetings</TableHead>
-                          <TableHead>Meeting Hours</TableHead>
-                          <TableHead>Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {getPaginatedUsers().map(user => (
-                          <TableRow key={user.id}>
-                            <TableCell>
-                              <div>
-                                <div className="font-medium">{user.full_name}</div>
-                                <div className="text-sm text-muted-foreground">{user.email}</div>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="space-y-1">
-                                {user.roles.map((role, index) => (
-                                  <Badge 
-                                    key={index} 
-                                    variant="secondary" 
-                                    className={getRoleBadgeColor(role.role)}
-                                  >
-                                    {formatRole(role.role)}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="text-sm">
-                                {user.roles.length > 0 ? (
-                                  user.roles.map((role, index) => (
-                                    <div key={index} className="mb-1">
-                                      {role.practice_name || (
-                                        <span className="text-muted-foreground">No practice assigned</span>
-                                      )}
-                                    </div>
-                                  ))
-                                ) : (
-                                  <span className="text-muted-foreground">No practice assigned</span>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              {user.last_login ? 
-                                format(new Date(user.last_login), 'MMM d, yyyy') : 
-                                'Never'
-                              }
-                            </TableCell>
-                            <TableCell>{user.meeting_stats.meetings_last_30_days}</TableCell>
-                            <TableCell>{user.meeting_stats.total_meetings}</TableCell>
-                            <TableCell>{Math.round(user.meeting_stats.total_duration_minutes / 60 * 10) / 10}h</TableCell>
-                            <TableCell>
-                              <div className="flex gap-2">
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  onClick={() => handleEditUser(user)}
-                                >
-                                  <Edit className="h-3 w-3" />
-                                </Button>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  className="text-destructive"
-                                  onClick={() => handleDeleteUser(user)}
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
+          <Card>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Last Login</TableHead>
+                  <TableHead>Roles</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {users
+                  .filter(user => 
+                    user.full_name.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
+                    user.email.toLowerCase().includes(userSearchQuery.toLowerCase())
+                  )
+                  .map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell>{user.full_name}</TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>
+                        {user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never'}
+                      </TableCell>
+                      <TableCell>
+                        {user.roles.map((role, index) => (
+                          <Badge key={index} variant="secondary" className="mr-1">
+                            {role.role}
+                          </Badge>
                         ))}
-                      </TableBody>
-                    </Table>
-                    
-                    {/* Pagination */}
-                    {totalUserPages > 1 && (
-                      <div className="mt-4 flex justify-center">
-                        <Pagination>
-                          <PaginationContent>
-                            <PaginationItem>
-                              <PaginationPrevious 
-                                onClick={() => userCurrentPage > 1 && setUserCurrentPage(userCurrentPage - 1)}
-                                className={userCurrentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                              />
-                            </PaginationItem>
-                            {Array.from({ length: totalUserPages }, (_, i) => i + 1).map((page) => (
-                              <PaginationItem key={page}>
-                                <PaginationLink
-                                  onClick={() => setUserCurrentPage(page)}
-                                  isActive={userCurrentPage === page}
-                                  className="cursor-pointer"
-                                >
-                                  {page}
-                                </PaginationLink>
-                              </PaginationItem>
-                            ))}
-                            <PaginationItem>
-                              <PaginationNext 
-                                onClick={() => userCurrentPage < totalUserPages && setUserCurrentPage(userCurrentPage + 1)}
-                                className={userCurrentPage >= totalUserPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                              />
-                            </PaginationItem>
-                          </PaginationContent>
-                        </Pagination>
-                      </div>
-                    )}
-                  </>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Practices Tab */}
-          <TabsContent value="practices" className="space-y-6">
-            <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold">Practice Management</h2>
-                <div className="flex gap-2">
-                  <Dialog open={addNeighbourhoodOpen} onOpenChange={setAddNeighbourhoodOpen}>
-                    <DialogTrigger asChild>
-                      <Button variant="outline">
-                        <MapPin className="h-4 w-4 mr-2" />
-                        Add Neighbourhood
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Add New Neighbourhood</DialogTitle>
-                        <DialogDescription>
-                          Create a new neighbourhood to organize GP practices
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <div>
-                          <Label htmlFor="neighbourhood-name">Neighbourhood Name</Label>
-                          <Input
-                            id="neighbourhood-name"
-                            value={newNeighbourhoodName}
-                            onChange={(e) => setNewNeighbourhoodName(e.target.value)}
-                            placeholder="Enter neighbourhood name"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="neighbourhood-description">Description (Optional)</Label>
-                          <Textarea
-                            id="neighbourhood-description"
-                            value={newNeighbourhoodDescription}
-                            onChange={(e) => setNewNeighbourhoodDescription(e.target.value)}
-                            placeholder="Enter neighbourhood description"
-                          />
-                        </div>
-                      </div>
-                      <DialogFooter>
-                        <Button variant="outline" onClick={() => setAddNeighbourhoodOpen(false)}>
-                          Cancel
+                      </TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="sm">
+                          <Edit className="h-4 w-4" />
                         </Button>
-                        <Button onClick={handleAddNeighbourhood}>
-                          Add Neighbourhood
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+              </TableBody>
+            </Table>
+          </Card>
+        </TabsContent>
 
-                  <Dialog open={addPCNOpen} onOpenChange={setAddPCNOpen}>
-                    <DialogTrigger asChild>
-                      <Button variant="outline">
-                        <Network className="h-4 w-4 mr-2" />
-                        Add PCN
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Add New PCN</DialogTitle>
-                        <DialogDescription>
-                          Create a new Primary Care Network
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <div>
-                          <Label htmlFor="pcn-name">PCN Name</Label>
-                          <Input
-                            id="pcn-name"
-                            value={newPCNName}
-                            onChange={(e) => setNewPCNName(e.target.value)}
-                            placeholder="Enter PCN name"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="pcn-code">PCN Code</Label>
-                          <Input
-                            id="pcn-code"
-                            value={newPCNCode}
-                            onChange={(e) => setNewPCNCode(e.target.value)}
-                            placeholder="Enter PCN code"
-                          />
-                        </div>
-                      </div>
-                      <DialogFooter>
-                        <Button variant="outline" onClick={() => setAddPCNOpen(false)}>
-                          Cancel
-                        </Button>
-                        <Button onClick={handleAddPCN}>
-                          Add PCN
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-
-                  <Dialog open={addPracticeOpen} onOpenChange={setAddPracticeOpen}>
-                    <DialogTrigger asChild>
-                      <Button>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Practice
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Add New Practice</DialogTitle>
-                        <DialogDescription>
-                          Create a new GP practice
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <div>
-                          <Label htmlFor="practice-name">Practice Name</Label>
-                          <Input
-                            id="practice-name"
-                            value={newPracticeName}
-                            onChange={(e) => setNewPracticeName(e.target.value)}
-                            placeholder="Enter practice name"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="practice-code">Practice Code</Label>
-                          <Input
-                            id="practice-code"
-                            value={newPracticeCode}
-                            onChange={(e) => setNewPracticeCode(e.target.value)}
-                            placeholder="Enter practice code"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="practice-pcn">PCN (Optional)</Label>
-                          <Select value={newPracticePCN} onValueChange={setNewPracticePCN}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a PCN" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="">No PCN</SelectItem>
-                              {pcns.map(pcn => (
-                                <SelectItem key={pcn.id} value={pcn.pcn_code}>
-                                  {pcn.pcn_name} ({pcn.pcn_code})
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <Label htmlFor="practice-neighbourhood">Neighbourhood (Optional)</Label>
-                          <Select value={newPracticeNeighbourhood} onValueChange={setNewPracticeNeighbourhood}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a neighbourhood" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="">No Neighbourhood</SelectItem>
-                              {neighbourhoods.map(neighbourhood => (
-                                <SelectItem key={neighbourhood.id} value={neighbourhood.id}>
-                                  {neighbourhood.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                      <DialogFooter>
-                        <Button variant="outline" onClick={() => setAddPracticeOpen(false)}>
-                          Cancel
-                        </Button>
-                        <Button onClick={handleAddPractice}>
-                          Add Practice
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-              </div>
-
-              {/* Search Bar */}
-              <div className="relative max-w-sm">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input
-                  placeholder="Search practices by name, code, or PCN..."
-                  value={practiceSearchQuery}
-                  onChange={(e) => {
-                    setPracticeSearchQuery(e.target.value);
-                    filterPractices(e.target.value);
-                  }}
-                  className="pl-10"
-                />
-              </div>
-
-              {/* Practices Table */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>GP Practices ({filteredPractices.length} {filteredPractices.length === 1 ? 'practice' : 'practices'})</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {loading ? (
-                    <div className="text-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                      <p className="mt-2 text-muted-foreground">Loading practices...</p>
-                    </div>
-                  ) : filteredPractices.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      {practiceSearchQuery ? 'No practices found matching your search.' : 'No practices found'}
-                    </div>
-                  ) : (
-                    <>
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Practice Name</TableHead>
-                            <TableHead>Practice Code</TableHead>
-                            <TableHead>PCN</TableHead>
-                            <TableHead>Neighbourhood</TableHead>
-                            <TableHead>Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {getPaginatedPractices().map(practice => (
-                            <TableRow key={practice.id}>
-                              <TableCell className="font-medium">
-                                {practice.practice_name}
-                              </TableCell>
-                              <TableCell>{practice.practice_code}</TableCell>
-                              <TableCell>
-                                {practice.pcn_code ? (
-                                  <Badge variant="outline">{practice.pcn_code}</Badge>
-                                ) : (
-                                  <span className="text-muted-foreground">No PCN</span>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                {practice.neighbourhood_name ? (
-                                  <Badge variant="secondary">{practice.neighbourhood_name}</Badge>
-                                ) : (
-                                  <span className="text-muted-foreground">No Neighbourhood</span>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex gap-2">
-                                  <Button 
-                                    variant="outline" 
-                                    size="sm"
-                                    onClick={() => handleEditPractice(practice)}
-                                  >
-                                    <Edit className="h-3 w-3" />
-                                  </Button>
-                                  <Button 
-                                    variant="outline" 
-                                    size="sm" 
-                                    className="text-destructive"
-                                    onClick={() => handleDeletePractice(practice)}
-                                  >
-                                    <Trash2 className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                      
-                      {/* Pagination */}
-                      {totalPracticePages > 1 && (
-                        <div className="mt-4 flex justify-center">
-                          <Pagination>
-                            <PaginationContent>
-                              <PaginationItem>
-                                <PaginationPrevious 
-                                  onClick={() => practiceCurrentPage > 1 && setPracticeCurrentPage(practiceCurrentPage - 1)}
-                                  className={practiceCurrentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                                />
-                              </PaginationItem>
-                              {Array.from({ length: totalPracticePages }, (_, i) => i + 1).map((page) => (
-                                <PaginationItem key={page}>
-                                  <PaginationLink
-                                    onClick={() => setPracticeCurrentPage(page)}
-                                    isActive={practiceCurrentPage === page}
-                                    className="cursor-pointer"
-                                  >
-                                    {page}
-                                  </PaginationLink>
-                                </PaginationItem>
-                              ))}
-                              <PaginationItem>
-                                <PaginationNext 
-                                  onClick={() => practiceCurrentPage < totalPracticePages && setPracticeCurrentPage(practiceCurrentPage + 1)}
-                                  className={practiceCurrentPage >= totalPracticePages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                                />
-                              </PaginationItem>
-                            </PaginationContent>
-                          </Pagination>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* PCN Management Section */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Network className="h-5 w-5" />
-                    Primary Care Networks ({pcns.length})
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>PCN Name</TableHead>
-                        <TableHead>PCN Code</TableHead>
-                        <TableHead>Assigned Practices</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {pcns.map(pcn => (
-                        <TableRow key={pcn.id}>
-                          <TableCell className="font-medium">{pcn.pcn_name}</TableCell>
-                          <TableCell>{pcn.pcn_code}</TableCell>
-                          <TableCell>
-                            {practices.filter(p => p.pcn_code === pcn.pcn_code).length} practices
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex gap-2">
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => handleEditPCN(pcn)}
-                              >
-                                <Edit className="h-3 w-3" />
-                              </Button>
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                className="text-destructive"
-                                onClick={() => handleDeletePCN(pcn)}
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-
-              {/* Neighbourhood Management Section */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <MapPin className="h-5 w-5" />
-                    Neighbourhoods ({neighbourhoods.length})
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Neighbourhood Name</TableHead>
-                        <TableHead>Description</TableHead>
-                        <TableHead>Assigned Practices</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {neighbourhoods.map(neighbourhood => (
-                        <TableRow key={neighbourhood.id}>
-                          <TableCell className="font-medium">{neighbourhood.name}</TableCell>
-                          <TableCell>{neighbourhood.description || 'No description'}</TableCell>
-                          <TableCell>
-                            {practices.filter(p => p.neighbourhood_id === neighbourhood.id).length} practices
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex gap-2">
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => handleEditNeighbourhood(neighbourhood)}
-                              >
-                                <Edit className="h-3 w-3" />
-                              </Button>
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                className="text-destructive"
-                                onClick={() => handleDeleteNeighbourhood(neighbourhood)}
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
+        <TabsContent value="practices" className="space-y-6">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center space-x-2">
+              <Search className="h-4 w-4" />
+              <Input
+                placeholder="Search practices..."
+                value={practiceSearchQuery}
+                onChange={(e) => setPracticeSearchQuery(e.target.value)}
+                className="w-64"
+              />
             </div>
-          </TabsContent>
+            <Button onClick={() => {
+              setPracticeDialogMode('add');
+              setIsPracticeDialogOpen(true);
+            }}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Practice
+            </Button>
+          </div>
 
-          {/* Settings Tab */}
-          <TabsContent value="settings" className="space-y-6">
-            <h2 className="text-2xl font-bold">System Settings</h2>
-            <p className="text-muted-foreground">Configure system-wide settings and preferences</p>
-            {/* Add settings content here */}
-          </TabsContent>
-        </Tabs>
+          <Card>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Practice Name</TableHead>
+                  <TableHead>Practice Code</TableHead>
+                  <TableHead>PCN Code</TableHead>
+                  <TableHead>Neighbourhood</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {practices
+                  .filter(practice => 
+                    practice.name.toLowerCase().includes(practiceSearchQuery.toLowerCase()) ||
+                    practice.practice_code?.toLowerCase().includes(practiceSearchQuery.toLowerCase())
+                  )
+                  .map((practice) => (
+                    <TableRow key={practice.id}>
+                      <TableCell>{practice.name}</TableCell>
+                      <TableCell>{practice.practice_code}</TableCell>
+                      <TableCell>{practice.pcn_code}</TableCell>
+                      <TableCell>{practice.neighbourhood_id}</TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="sm" className="mr-2">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+              </TableBody>
+            </Table>
+          </Card>
+        </TabsContent>
 
-        {/* Email Preview Dialog */}
-        <Dialog open={emailPreviewOpen} onOpenChange={setEmailPreviewOpen}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Email Preview</DialogTitle>
-              <DialogDescription>
-                Preview of the welcome email that will be sent to the new user.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="max-h-96 overflow-y-auto">
-              <pre className="whitespace-pre-wrap text-sm bg-muted p-4 rounded-md">
-                {emailPreviewContent}
-              </pre>
+        <TabsContent value="pcns" className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-semibold">Primary Care Networks</h2>
+            <Button onClick={() => {
+              setPCNDialogMode('add');
+              setIsPCNDialogOpen(true);
+            }}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add PCN
+            </Button>
+          </div>
+
+          <Card>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>PCN Name</TableHead>
+                  <TableHead>PCN Code</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pcns.map((pcn) => (
+                  <TableRow key={pcn.id}>
+                    <TableCell>{pcn.pcn_name}</TableCell>
+                    <TableCell>{pcn.pcn_code}</TableCell>
+                    <TableCell>
+                      <Button variant="ghost" size="sm" className="mr-2">
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="neighbourhoods" className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-semibold">Neighbourhoods</h2>
+            <Button onClick={() => {
+              setNeighbourhoodDialogMode('add');
+              setIsNeighbourhoodDialogOpen(true);
+            }}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Neighbourhood
+            </Button>
+          </div>
+
+          <Card>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {neighbourhoods.map((neighbourhood) => (
+                  <TableRow key={neighbourhood.id}>
+                    <TableCell>{neighbourhood.name}</TableCell>
+                    <TableCell>{neighbourhood.description}</TableCell>
+                    <TableCell>
+                      <Button variant="ghost" size="sm" className="mr-2">
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Practice Dialog */}
+      <Dialog open={isPracticeDialogOpen} onOpenChange={setIsPracticeDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {practiceDialogMode === 'add' ? 'Add Practice' : 'Edit Practice'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="practice-name">Practice Name</Label>
+              <Input
+                id="practice-name"
+                value={practiceForm.name}
+                onChange={(e) => setPracticeForm(prev => ({ ...prev, name: e.target.value }))}
+              />
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setEmailPreviewOpen(false)}>
-                Close
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            <div>
+              <Label htmlFor="practice-code">Practice Code</Label>
+              <Input
+                id="practice-code"
+                value={practiceForm.practice_code}
+                onChange={(e) => setPracticeForm(prev => ({ ...prev, practice_code: e.target.value }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="ics-code">ICS Code</Label>
+              <Input
+                id="ics-code"
+                value={practiceForm.ics_code}
+                onChange={(e) => setPracticeForm(prev => ({ ...prev, ics_code: e.target.value }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="ics-name">ICS Name</Label>
+              <Input
+                id="ics-name"
+                value={practiceForm.ics_name}
+                onChange={(e) => setPracticeForm(prev => ({ ...prev, ics_name: e.target.value }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="organisation-type">Organisation Type</Label>
+              <Input
+                id="organisation-type"
+                value={practiceForm.organisation_type}
+                onChange={(e) => setPracticeForm(prev => ({ ...prev, organisation_type: e.target.value }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="pcn-select">PCN</Label>
+              <Select value={practiceForm.pcn_code} onValueChange={(value) => setPracticeForm(prev => ({ ...prev, pcn_code: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select PCN" />
+                </SelectTrigger>
+                <SelectContent>
+                  {pcns.map((pcn) => (
+                    <SelectItem key={pcn.id} value={pcn.pcn_code}>
+                      {pcn.pcn_name} ({pcn.pcn_code})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="neighbourhood-select">Neighbourhood</Label>
+              <Select value={practiceForm.neighbourhood_id} onValueChange={(value) => setPracticeForm(prev => ({ ...prev, neighbourhood_id: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Neighbourhood" />
+                </SelectTrigger>
+                <SelectContent>
+                  {neighbourhoods.map((neighbourhood) => (
+                    <SelectItem key={neighbourhood.id} value={neighbourhood.id}>
+                      {neighbourhood.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsPracticeDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddPractice}>
+              {practiceDialogMode === 'add' ? 'Add Practice' : 'Update Practice'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-        {/* Edit User Dialog */}
-        <Dialog open={editUserOpen} onOpenChange={setEditUserOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Edit User</DialogTitle>
-              <DialogDescription>
-                Update user role and practice assignment.
-              </DialogDescription>
-            </DialogHeader>
-            
-            {editingUser && (
-              <div className="space-y-4">
-                <div>
-                  <Label>User Details</Label>
-                  <div className="text-sm text-muted-foreground">
-                    <div>{editingUser.full_name}</div>
-                    <div>{editingUser.email}</div>
-                  </div>
-                </div>
-                
-                <div>
-                  <Label htmlFor="edit-role">Role</Label>
-                  <Select value={editUserRole} onValueChange={setEditUserRole}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="user">User</SelectItem>
-                      <SelectItem value="receptionist">Receptionist</SelectItem>
-                      <SelectItem value="nurse">Nurse</SelectItem>
-                      <SelectItem value="administrator">Administrator</SelectItem>
-                      <SelectItem value="gp">GP</SelectItem>
-                      {isAdmin && <SelectItem value="practice_manager">Practice Manager</SelectItem>}
-                      {isAdmin && <SelectItem value="system_admin">System Admin</SelectItem>}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div>
-                  <Label htmlFor="edit-practice">Practice</Label>
-                  <Select value={editUserPractice} onValueChange={setEditUserPractice}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a practice" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No Practice</SelectItem>
-                      {practices.map(practice => (
-                        <SelectItem key={practice.id} value={practice.id}>
-                          {practice.practice_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-3">
-                  <Label className="text-base font-medium">Module Access</Label>
-                  <div className="grid grid-cols-1 gap-3">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="edit-meeting-notes-access"
-                        checked={editUserMeetingNotesAccess}
-                        onCheckedChange={(checked) => setEditUserMeetingNotesAccess(checked === true)}
-                      />
-                      <Label htmlFor="edit-meeting-notes-access" className="text-sm font-normal">
-                        Meeting Notes
-                      </Label>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="edit-gp-scribe-access"
-                        checked={editUserGpScribeAccess}
-                        onCheckedChange={(checked) => setEditUserGpScribeAccess(checked === true)}
-                      />
-                      <Label htmlFor="edit-gp-scribe-access" className="text-sm font-normal">
-                        GP Scribe
-                      </Label>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="edit-complaints-manager-access"
-                        checked={editUserComplaintsManagerAccess}
-                        onCheckedChange={(checked) => setEditUserComplaintsManagerAccess(checked === true)}
-                      />
-                      <Label htmlFor="edit-complaints-manager-access" className="text-sm font-normal">
-                        Complaints Manager
-                      </Label>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="edit-complaints-admin-access"
-                        checked={editUserComplaintsAdminAccess}
-                        onCheckedChange={(checked) => setEditUserComplaintsAdminAccess(checked === true)}
-                      />
-                      <Label htmlFor="edit-complaints-admin-access" className="text-sm font-normal">
-                        Complaints Manager Admin
-                      </Label>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="edit-replywell-access"
-                        checked={editUserReplyWellAccess}
-                        onCheckedChange={(checked) => setEditUserReplyWellAccess(checked === true)}
-                      />
-                      <Label htmlFor="edit-replywell-access" className="text-sm font-normal">
-                        ReplyWell
-                      </Label>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setEditUserOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleUpdateUser} disabled={isUpdatingUser}>
-                {isUpdatingUser ? "Updating..." : "Update User"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-        {/* Edit Practice Dialog */}
-        <Dialog open={editPracticeOpen} onOpenChange={setEditPracticeOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Edit Practice</DialogTitle>
-              <DialogDescription>
-                Update practice information
-              </DialogDescription>
-            </DialogHeader>
-            {editingPractice && (
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="edit-practice-name">Practice Name</Label>
-                  <Input
-                    id="edit-practice-name"
-                    value={newPracticeName}
-                    onChange={(e) => setNewPracticeName(e.target.value)}
-                    placeholder="Enter practice name"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="edit-practice-code">Practice Code</Label>
-                  <Input
-                    id="edit-practice-code"
-                    value={newPracticeCode}
-                    onChange={(e) => setNewPracticeCode(e.target.value)}
-                    placeholder="Enter practice code"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="edit-practice-pcn">PCN</Label>
-                  <Select value={newPracticePCN} onValueChange={setNewPracticePCN}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a PCN" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">No PCN</SelectItem>
-                      {pcns.map(pcn => (
-                        <SelectItem key={pcn.id} value={pcn.pcn_code}>
-                          {pcn.pcn_name} ({pcn.pcn_code})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="edit-practice-neighbourhood">Neighbourhood</Label>
-                  <Select value={newPracticeNeighbourhood} onValueChange={setNewPracticeNeighbourhood}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a neighbourhood" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">No Neighbourhood</SelectItem>
-                      {neighbourhoods.map(neighbourhood => (
-                        <SelectItem key={neighbourhood.id} value={neighbourhood.id}>
-                          {neighbourhood.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            )}
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setEditPracticeOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleUpdatePractice}>
-                Update Practice
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+      {/* PCN Dialog */}
+      <Dialog open={isPCNDialogOpen} onOpenChange={setIsPCNDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {pcnDialogMode === 'add' ? 'Add PCN' : 'Edit PCN'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="pcn-code">PCN Code</Label>
+              <Input
+                id="pcn-code"
+                value={pcnForm.pcn_code}
+                onChange={(e) => setPCNForm(prev => ({ ...prev, pcn_code: e.target.value }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="pcn-name">PCN Name</Label>
+              <Input
+                id="pcn-name"
+                value={pcnForm.pcn_name}
+                onChange={(e) => setPCNForm(prev => ({ ...prev, pcn_name: e.target.value }))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsPCNDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddPCN}>
+              {pcnDialogMode === 'add' ? 'Add PCN' : 'Update PCN'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-        {/* Edit PCN Dialog */}
-        <Dialog open={editPCNOpen} onOpenChange={setEditPCNOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Edit PCN</DialogTitle>
-              <DialogDescription>
-                Update PCN information
-              </DialogDescription>
-            </DialogHeader>
-            {editingPCN && (
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="edit-pcn-name">PCN Name</Label>
-                  <Input
-                    id="edit-pcn-name"
-                    value={newPCNName}
-                    onChange={(e) => setNewPCNName(e.target.value)}
-                    placeholder="Enter PCN name"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="edit-pcn-code">PCN Code</Label>
-                  <Input
-                    id="edit-pcn-code"
-                    value={newPCNCode}
-                    onChange={(e) => setNewPCNCode(e.target.value)}
-                    placeholder="Enter PCN code"
-                  />
-                </div>
-              </div>
-            )}
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setEditPCNOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleUpdatePCN}>
-                Update PCN
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Edit Neighbourhood Dialog */}
-        <Dialog open={editNeighbourhoodOpen} onOpenChange={setEditNeighbourhoodOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Edit Neighbourhood</DialogTitle>
-              <DialogDescription>
-                Update neighbourhood information
-              </DialogDescription>
-            </DialogHeader>
-            {editingNeighbourhood && (
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="edit-neighbourhood-name">Neighbourhood Name</Label>
-                  <Input
-                    id="edit-neighbourhood-name"
-                    value={newNeighbourhoodName}
-                    onChange={(e) => setNewNeighbourhoodName(e.target.value)}
-                    placeholder="Enter neighbourhood name"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="edit-neighbourhood-description">Description</Label>
-                  <Textarea
-                    id="edit-neighbourhood-description"
-                    value={newNeighbourhoodDescription}
-                    onChange={(e) => setNewNeighbourhoodDescription(e.target.value)}
-                    placeholder="Enter neighbourhood description"
-                  />
-                </div>
-              </div>
-            )}
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setEditNeighbourhoodOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleUpdateNeighbourhood}>
-                Update Neighbourhood
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
+      {/* Neighbourhood Dialog */}
+      <Dialog open={isNeighbourhoodDialogOpen} onOpenChange={setIsNeighbourhoodDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {neighbourhoodDialogMode === 'add' ? 'Add Neighbourhood' : 'Edit Neighbourhood'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="neighbourhood-name">Name</Label>
+              <Input
+                id="neighbourhood-name"
+                value={neighbourhoodForm.name}
+                onChange={(e) => setNeighbourhoodForm(prev => ({ ...prev, name: e.target.value }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="neighbourhood-description">Description</Label>
+              <Input
+                id="neighbourhood-description"
+                value={neighbourhoodForm.description}
+                onChange={(e) => setNeighbourhoodForm(prev => ({ ...prev, description: e.target.value }))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsNeighbourhoodDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddNeighbourhood}>
+              {neighbourhoodDialogMode === 'add' ? 'Add Neighbourhood' : 'Update Neighbourhood'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
-    </>
   );
-}
-}
+};
+
+export default SystemAdmin;
