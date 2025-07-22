@@ -295,12 +295,6 @@ const AI4PMService = () => {
       prompt: 'Generate a Word document based on our conversation. Please specify what type of document you need (policy, procedure, letter, etc.).',
       requiresFile: false 
     },
-    { 
-      label: 'Generate Image', 
-      icon: Image, 
-      prompt: 'Create an image or diagram. Please describe what you want me to generate (flowchart, poster, infographic, etc.).',
-      requiresFile: false 
-    }
   ];
 
   const systemPrompt = `You are "AI 4 PM Service", an AI Assistant built specifically to help GP Practice Managers in the UK NHS.
