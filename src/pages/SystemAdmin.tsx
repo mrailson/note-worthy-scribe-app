@@ -67,6 +67,18 @@ interface PCN {
   pcn_code: string;
 }
 
+interface RecentMeeting {
+  id: string;
+  title: string;
+  start_time: string;
+  duration_minutes: number;
+  user_id: string;
+  user_name: string;
+  user_email: string;
+  practice_name: string | null;
+  created_at: string;
+}
+
 export default function SystemAdmin() {
   const { user } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
@@ -76,6 +88,7 @@ export default function SystemAdmin() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isPracticeManager, setIsPracticeManager] = useState(false);
   const [userPracticeId, setUserPracticeId] = useState<string | null>(null);
+  const [recentMeetings, setRecentMeetings] = useState<RecentMeeting[]>([]);
   
   // Add User Dialog State
   const [addUserOpen, setAddUserOpen] = useState(false);
@@ -129,6 +142,7 @@ export default function SystemAdmin() {
       fetchPractices();
       fetchPCNs();
       fetchDashboardStats();
+      fetchRecentMeetings();
     }
   }, [isAdmin, isPracticeManager]);
 
@@ -322,6 +336,90 @@ export default function SystemAdmin() {
       });
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);
+    }
+  };
+
+  const fetchRecentMeetings = async () => {
+    try {
+      // First fetch meetings
+      const { data: meetingsData, error: meetingsError } = await supabase
+        .from('meetings')
+        .select(`
+          id,
+          title,
+          start_time,
+          duration_minutes,
+          created_at,
+          user_id
+        `)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (meetingsError) throw meetingsError;
+
+      if (!meetingsData || meetingsData.length === 0) {
+        setRecentMeetings([]);
+        return;
+      }
+
+      // Get unique user IDs
+      const userIds = [...new Set(meetingsData.map(m => m.user_id))];
+
+      // Fetch user profiles with practice information
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select(`
+          user_id,
+          full_name,
+          email
+        `)
+        .in('user_id', userIds);
+
+      if (profilesError) throw profilesError;
+
+      // Fetch user roles with practice information
+      const { data: rolesData, error: rolesError } = await supabase
+        .from('user_roles')
+        .select(`
+          user_id,
+          practice_id,
+          gp_practices(name)
+        `)
+        .in('user_id', userIds);
+
+      if (rolesError) throw rolesError;
+
+      // Create lookup maps
+      const profilesMap = new Map(profilesData?.map(p => [p.user_id, p]) || []);
+      const practicesMap = new Map();
+      
+      rolesData?.forEach(role => {
+        if (!practicesMap.has(role.user_id)) {
+          practicesMap.set(role.user_id, role.gp_practices?.name || null);
+        }
+      });
+
+      const formattedMeetings: RecentMeeting[] = meetingsData.map(meeting => {
+        const profile = profilesMap.get(meeting.user_id);
+        const practiceName = practicesMap.get(meeting.user_id);
+        
+        return {
+          id: meeting.id,
+          title: meeting.title,
+          start_time: meeting.start_time,
+          duration_minutes: meeting.duration_minutes || 0,
+          user_id: meeting.user_id,
+          user_name: profile?.full_name || 'Unknown User',
+          user_email: profile?.email || '',
+          practice_name: practiceName || null,
+          created_at: meeting.created_at
+        };
+      });
+
+      setRecentMeetings(formattedMeetings);
+    } catch (error) {
+      console.error('Error fetching recent meetings:', error);
+      toast.error('Failed to fetch recent meetings');
     }
   };
 
@@ -821,6 +919,82 @@ The Notewell AI Team</p>
                 </CardContent>
               </Card>
             </div>
+            
+            {/* Recent Meetings Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="h-5 w-5" />
+                  Recent Meetings
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {recentMeetings.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No recent meetings found
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Meeting Title</TableHead>
+                          <TableHead>User</TableHead>
+                          <TableHead>Practice</TableHead>
+                          <TableHead>Start Date & Time</TableHead>
+                          <TableHead>Duration</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {recentMeetings.map((meeting) => (
+                          <TableRow key={meeting.id}>
+                            <TableCell className="font-medium">
+                              {meeting.title || 'Untitled Meeting'}
+                            </TableCell>
+                            <TableCell>
+                              <div>
+                                <div className="font-medium">{meeting.user_name}</div>
+                                <div className="text-sm text-muted-foreground">{meeting.user_email}</div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {meeting.practice_name ? (
+                                <Badge variant="outline" className="text-xs">
+                                  {meeting.practice_name}
+                                </Badge>
+                              ) : (
+                                <span className="text-muted-foreground text-sm">No Practice</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <div>
+                                <div className="font-medium">
+                                  {format(new Date(meeting.start_time), 'MMM dd, yyyy')}
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                  {format(new Date(meeting.start_time), 'HH:mm')}
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1">
+                                <Clock className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-sm">
+                                  {meeting.duration_minutes > 0 
+                                    ? `${Math.floor(meeting.duration_minutes / 60)}h ${meeting.duration_minutes % 60}m`
+                                    : '0m'
+                                  }
+                                </span>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Users Tab */}
