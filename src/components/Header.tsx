@@ -68,7 +68,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
               className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs sm:text-sm px-2 sm:px-4"
             >
               <Home className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
-              <span className="hidden sm:inline">{isHomePage ? 'New Meeting' : 'Home'}</span>
+              <span className="hidden sm:inline">Home</span>
             </Button>
             
             {user && (
