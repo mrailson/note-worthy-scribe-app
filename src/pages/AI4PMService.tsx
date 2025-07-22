@@ -278,7 +278,6 @@ Always provide practical, actionable advice that follows NHS guidelines and best
 
   const generateWordDocument = async (content: string, title: string = 'AI Generated Document') => {
     try {
-      // Parse the content and create document structure
       const paragraphs: any[] = [];
       
       // Add title
@@ -289,36 +288,72 @@ Always provide practical, actionable advice that follows NHS guidelines and best
         })
       );
 
-      // Split content into paragraphs and format
-      const contentLines = content.split('\n').filter(line => line.trim());
+      // Clean and parse the content
+      const cleanContent = content
+        .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold markdown
+        .replace(/\*(.*?)\*/g, '$1') // Remove italic markdown
+        .replace(/`(.*?)`/g, '$1') // Remove code markdown
+        .replace(/#{1,6}\s*/g, '') // Remove heading markdown
+        .replace(/^\s*[-•*]\s*/gm, '• '); // Normalize bullet points
+
+      const contentLines = cleanContent.split('\n').filter(line => line.trim());
       
       contentLines.forEach(line => {
         const trimmedLine = line.trim();
         
-        // Check if it's a heading (starts with # or is all caps)
-        if (trimmedLine.startsWith('#') || (trimmedLine === trimmedLine.toUpperCase() && trimmedLine.length > 5)) {
-          const headingText = trimmedLine.replace(/^#+\s*/, '');
+        if (!trimmedLine) return;
+        
+        // Check if it's a heading (all caps or ends with colon)
+        if (trimmedLine === trimmedLine.toUpperCase() && trimmedLine.length > 5 && trimmedLine.length < 80) {
           paragraphs.push(
             new Paragraph({
-              text: headingText,
+              text: trimmedLine,
               heading: HeadingLevel.HEADING_1,
+              spacing: { before: 400, after: 200 }
             })
           );
-        } else if (trimmedLine.startsWith('-') || trimmedLine.startsWith('•')) {
-          // Bullet points
+        } else if (trimmedLine.endsWith(':') && trimmedLine.length < 80) {
           paragraphs.push(
             new Paragraph({
-              text: trimmedLine.replace(/^[-•]\s*/, ''),
+              text: trimmedLine,
+              heading: HeadingLevel.HEADING_2,
+              spacing: { before: 300, after: 150 }
+            })
+          );
+        } else if (trimmedLine.startsWith('•') || trimmedLine.startsWith('-')) {
+          // Bullet points
+          const bulletText = trimmedLine.replace(/^[•-]\s*/, '');
+          paragraphs.push(
+            new Paragraph({
+              text: bulletText,
               bullet: {
                 level: 0,
               },
+              spacing: { after: 100 }
             })
           );
-        } else if (trimmedLine) {
+        } else if (trimmedLine.match(/^\d+\./)) {
+          // Numbered lists
+          const numberedText = trimmedLine.replace(/^\d+\.\s*/, '');
+          paragraphs.push(
+            new Paragraph({
+              text: numberedText,
+              numbering: {
+                reference: "default-numbering",
+                level: 0,
+              },
+              spacing: { after: 100 }
+            })
+          );
+        } else {
           // Regular paragraph
           paragraphs.push(
             new Paragraph({
-              children: [new TextRun(trimmedLine)],
+              children: [new TextRun({
+                text: trimmedLine,
+                size: 24 // 12pt font
+              })],
+              spacing: { after: 200 }
             })
           );
         }
@@ -329,6 +364,17 @@ Always provide practical, actionable advice that follows NHS guidelines and best
           properties: {},
           children: paragraphs,
         }],
+        numbering: {
+          config: [{
+            reference: "default-numbering",
+            levels: [{
+              level: 0,
+              format: "decimal",
+              text: "%1.",
+              alignment: "start",
+            }]
+          }]
+        }
       });
 
       const blob = await Packer.toBlob(doc);
@@ -348,69 +394,153 @@ Always provide practical, actionable advice that follows NHS guidelines and best
       pptx.company = 'NHS GP Practice';
       pptx.title = title;
 
+      // Clean the content from markdown
+      const cleanContent = content
+        .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold markdown
+        .replace(/\*(.*?)\*/g, '$1') // Remove italic markdown
+        .replace(/`(.*?)`/g, '$1') // Remove code markdown
+        .replace(/#{1,6}\s*/g, '') // Remove heading markdown
+        .replace(/^\s*[-•*]\s*/gm, '• '); // Normalize bullet points
+
       // Create title slide
       const titleSlide = pptx.addSlide();
       titleSlide.addText(title, {
-        x: 1,
-        y: 2,
-        w: 8,
+        x: 0.5,
+        y: 2.5,
+        w: 9,
         h: 1.5,
         fontSize: 36,
         bold: true,
         align: 'center',
-        color: '363636'
+        color: '2F4F4F',
+        fontFace: 'Calibri'
       });
       
       titleSlide.addText('Generated by AI 4 PM Service', {
-        x: 1,
-        y: 4,
-        w: 8,
+        x: 0.5,
+        y: 4.5,
+        w: 9,
         h: 0.5,
-        fontSize: 16,
+        fontSize: 18,
         align: 'center',
-        color: '666666'
+        color: '666666',
+        fontFace: 'Calibri'
       });
 
-      // Parse content and create slides
-      const sections = content.split(/\n(?=#+\s|[A-Z][^a-z]*:|\d+\.\s)/);
-      
-      sections.forEach((section, index) => {
-        if (section.trim()) {
-          const slide = pptx.addSlide();
-          const lines = section.trim().split('\n').filter(line => line.trim());
-          
-          if (lines.length > 0) {
-            // First line as title
-            const slideTitle = lines[0].replace(/^#+\s*/, '').replace(/^\d+\.\s*/, '');
-            slide.addText(slideTitle, {
-              x: 0.5,
-              y: 0.5,
-              w: 9,
-              h: 1,
-              fontSize: 28,
-              bold: true,
-              color: '2F4F4F'
-            });
+      // Parse content into logical sections
+      const lines = cleanContent.split('\n').filter(line => line.trim());
+      let currentSlideContent: string[] = [];
+      let currentTitle = '';
+      let slideCount = 0;
 
-            // Remaining lines as bullet points
-            if (lines.length > 1) {
-              const bulletPoints = lines.slice(1).map(line => ({
-                text: line.replace(/^[-•]\s*/, ''),
-                options: { bullet: true }
-              }));
+      const createSlide = (slideTitle: string, bulletPoints: string[]) => {
+        if (bulletPoints.length === 0) return;
+        
+        const slide = pptx.addSlide();
+        
+        // Add title
+        slide.addText(slideTitle || `Slide ${++slideCount}`, {
+          x: 0.5,
+          y: 0.5,
+          w: 9,
+          h: 1,
+          fontSize: 28,
+          bold: true,
+          color: '2F4F4F',
+          fontFace: 'Calibri'
+        });
 
-              slide.addText(bulletPoints, {
-                x: 0.5,
-                y: 1.8,
-                w: 9,
-                h: 5,
-                fontSize: 18,
-                lineSpacing: 28
-              });
-            }
-          }
+        // Process bullet points - limit to 6 per slide for readability
+        const pointsToShow = bulletPoints.slice(0, 6);
+        
+        if (pointsToShow.length > 0) {
+          // Create bullet point text
+          const bulletText = pointsToShow.map(point => 
+            '• ' + point.replace(/^[•-]\s*/, '').trim()
+          ).join('\n');
+
+          slide.addText(bulletText, {
+            x: 0.75,
+            y: 1.75,
+            w: 8.5,
+            h: 5,
+            fontSize: 20,
+            lineSpacing: 32,
+            fontFace: 'Calibri',
+            valign: 'top'
+          });
         }
-      });
+
+        // If there are more than 6 points, create additional slides
+        if (bulletPoints.length > 6) {
+          const remainingPoints = bulletPoints.slice(6);
+          createSlide(`${slideTitle} (continued)`, remainingPoints);
+        }
+      };
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        
+        if (!line) continue;
+
+        // Check if this is a new section/heading
+        const isHeading = line === line.toUpperCase() && line.length > 5 && line.length < 80 ||
+                         line.endsWith(':') && line.length < 80 ||
+                         /^\d+\.\s*[A-Z]/.test(line);
+
+        if (isHeading) {
+          // Save previous slide if it has content
+          if (currentTitle && currentSlideContent.length > 0) {
+            createSlide(currentTitle, currentSlideContent);
+          }
+          
+          // Start new slide
+          currentTitle = line.replace(/^\d+\.\s*/, '').replace(/:$/, '');
+          currentSlideContent = [];
+        } else if (line.startsWith('•') || line.startsWith('-') || /^\d+\./.test(line)) {
+          // This is a bullet point
+          currentSlideContent.push(line);
+        } else if (line.length > 10) {
+          // This is regular content, treat as bullet point
+          currentSlideContent.push('• ' + line);
+        }
+      }
+
+      // Add the last slide
+      if (currentTitle && currentSlideContent.length > 0) {
+        createSlide(currentTitle, currentSlideContent);
+      } else if (currentSlideContent.length > 0) {
+        createSlide('Summary', currentSlideContent);
+      }
+
+      // If no structured content was found, create a simple content slide
+      if (slideCount === 0) {
+        const slide = pptx.addSlide();
+        slide.addText('Content', {
+          x: 0.5,
+          y: 0.5,
+          w: 9,
+          h: 1,
+          fontSize: 28,
+          bold: true,
+          color: '2F4F4F',
+          fontFace: 'Calibri'
+        });
+
+        const bulletText = lines.slice(0, 8).map(line => 
+          '• ' + line.replace(/^[•-]\s*/, '')
+        ).join('\n');
+
+        slide.addText(bulletText, {
+          x: 0.75,
+          y: 1.75,
+          w: 8.5,
+          h: 5,
+          fontSize: 18,
+          lineSpacing: 28,
+          fontFace: 'Calibri'
+        });
+      }
 
       // Save the presentation
       await pptx.writeFile({ fileName: `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pptx` });
