@@ -55,7 +55,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
         <div className="flex items-center justify-between">
           {/* Mobile-friendly title */}
           <h1 className="text-sm sm:text-xl font-bold leading-tight max-w-[200px] sm:max-w-none">
-            <span className="hidden sm:inline">Notewell AI Meeting Notes Service</span>
+            <span className="hidden sm:inline">Notewell AI</span>
             <span className="sm:hidden">Notewell AI</span>
           </h1>
           
