@@ -53,6 +53,92 @@ export type Database = {
         }
         Relationships: []
       }
+      communication_files: {
+        Row: {
+          communication_id: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          file_type: string | null
+          id: string
+          uploaded_at: string | null
+        }
+        Insert: {
+          communication_id: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          uploaded_at?: string | null
+        }
+        Update: {
+          communication_id?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          uploaded_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communication_files_communication_id_fkey"
+            columns: ["communication_id"]
+            isOneToOne: false
+            referencedRelation: "communications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      communications: {
+        Row: {
+          context_notes: string | null
+          created_at: string
+          draft_text: string | null
+          email_text: string | null
+          generated_reply: string | null
+          id: string
+          mode: Database["public"]["Enums"]["communication_mode"] | null
+          reply_length: number | null
+          response_guidance: string | null
+          tone: Database["public"]["Enums"]["communication_tone"] | null
+          updated_at: string
+          uploaded_files: Json | null
+          user_id: string
+        }
+        Insert: {
+          context_notes?: string | null
+          created_at?: string
+          draft_text?: string | null
+          email_text?: string | null
+          generated_reply?: string | null
+          id?: string
+          mode?: Database["public"]["Enums"]["communication_mode"] | null
+          reply_length?: number | null
+          response_guidance?: string | null
+          tone?: Database["public"]["Enums"]["communication_tone"] | null
+          updated_at?: string
+          uploaded_files?: Json | null
+          user_id: string
+        }
+        Update: {
+          context_notes?: string | null
+          created_at?: string
+          draft_text?: string | null
+          email_text?: string | null
+          generated_reply?: string | null
+          id?: string
+          mode?: Database["public"]["Enums"]["communication_mode"] | null
+          reply_length?: number | null
+          response_guidance?: string | null
+          tone?: Database["public"]["Enums"]["communication_tone"] | null
+          updated_at?: string
+          uploaded_files?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       complaint_audit_log: {
         Row: {
           action: string
@@ -864,6 +950,18 @@ export type Database = {
         | "receptionist"
         | "user"
         | "complaints_manager"
+      communication_mode: "create" | "improve"
+      communication_tone:
+        | "friendly"
+        | "professional"
+        | "empathetic"
+        | "clinical"
+        | "informative"
+        | "reassuring"
+        | "apologetic"
+        | "urgent"
+        | "firm"
+        | "diplomatic"
       complaint_category:
         | "clinical_care"
         | "staff_attitude"
@@ -1019,6 +1117,19 @@ export const Constants = {
         "receptionist",
         "user",
         "complaints_manager",
+      ],
+      communication_mode: ["create", "improve"],
+      communication_tone: [
+        "friendly",
+        "professional",
+        "empathetic",
+        "clinical",
+        "informative",
+        "reassuring",
+        "apologetic",
+        "urgent",
+        "firm",
+        "diplomatic",
       ],
       complaint_category: [
         "clinical_care",

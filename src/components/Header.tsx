@@ -9,7 +9,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
-import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning } from "lucide-react";
+import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning, Sparkles } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -125,6 +125,13 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                   >
                     <MessageSquareWarning className="h-4 w-4 mr-2" />
                     Complaints System
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => navigate('/replywell-ai')}
+                    className="cursor-pointer py-3"
+                  >
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    ReplyWell AI
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
