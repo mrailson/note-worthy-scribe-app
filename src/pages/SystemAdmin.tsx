@@ -485,10 +485,13 @@ const SystemAdmin = () => {
               </TableHeader>
               <TableBody>
                 {practices
-                  .filter(practice => 
-                    practice.name.toLowerCase().includes(practiceSearchQuery.toLowerCase()) ||
-                    practice.practice_code?.toLowerCase().includes(practiceSearchQuery.toLowerCase())
-                  )
+                  .filter(practice => {
+                    const searchLower = practiceSearchQuery.toLowerCase();
+                    const nameMatch = practice.name.toLowerCase().includes(searchLower);
+                    const codeMatch = practice.practice_code && practice.practice_code.toLowerCase().includes(searchLower);
+                    const pcnMatch = practice.pcn_code && practice.pcn_code.toLowerCase().includes(searchLower);
+                    return nameMatch || codeMatch || pcnMatch;
+                  })
                   .map((practice) => (
                     <TableRow key={practice.id}>
                       <TableCell>{practice.name}</TableCell>
