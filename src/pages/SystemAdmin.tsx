@@ -81,6 +81,7 @@ const SystemAdmin = () => {
   
   // PCN management state
   const [pcns, setPcns] = useState<PCN[]>([]);
+  const [pcnSearchQuery, setPcnSearchQuery] = useState('');
   const [isPCNDialogOpen, setIsPCNDialogOpen] = useState(false);
   const [pcnDialogMode, setPCNDialogMode] = useState<'add' | 'edit'>('add');
   const [selectedPCN, setSelectedPCN] = useState<PCN | null>(null);
@@ -91,6 +92,7 @@ const SystemAdmin = () => {
   
   // Neighbourhood management state
   const [neighbourhoods, setNeighbourhoods] = useState<Neighbourhood[]>([]);
+  const [neighbourhoodSearchQuery, setNeighbourhoodSearchQuery] = useState('');
   const [isNeighbourhoodDialogOpen, setIsNeighbourhoodDialogOpen] = useState(false);
   const [neighbourhoodDialogMode, setNeighbourhoodDialogMode] = useState<'add' | 'edit'>('add');
   const [selectedNeighbourhood, setSelectedNeighbourhood] = useState<Neighbourhood | null>(null);
@@ -510,7 +512,15 @@ const SystemAdmin = () => {
 
         <TabsContent value="pcns" className="space-y-6">
           <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-semibold">Primary Care Networks</h2>
+            <div className="flex items-center space-x-2">
+              <Search className="h-4 w-4" />
+              <Input
+                placeholder="Search PCNs..."
+                value={pcnSearchQuery}
+                onChange={(e) => setPcnSearchQuery(e.target.value)}
+                className="w-64"
+              />
+            </div>
             <Button onClick={() => {
               setPCNDialogMode('add');
               setIsPCNDialogOpen(true);
@@ -530,20 +540,25 @@ const SystemAdmin = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {pcns.map((pcn) => (
-                  <TableRow key={pcn.id}>
-                    <TableCell>{pcn.pcn_name}</TableCell>
-                    <TableCell>{pcn.pcn_code}</TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="sm" className="mr-2">
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {pcns
+                  .filter(pcn => 
+                    pcn.pcn_name.toLowerCase().includes(pcnSearchQuery.toLowerCase()) ||
+                    pcn.pcn_code.toLowerCase().includes(pcnSearchQuery.toLowerCase())
+                  )
+                  .map((pcn) => (
+                    <TableRow key={pcn.id}>
+                      <TableCell>{pcn.pcn_name}</TableCell>
+                      <TableCell>{pcn.pcn_code}</TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="sm" className="mr-2">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
               </TableBody>
             </Table>
           </Card>
@@ -551,7 +566,15 @@ const SystemAdmin = () => {
 
         <TabsContent value="neighbourhoods" className="space-y-6">
           <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-semibold">Neighbourhoods</h2>
+            <div className="flex items-center space-x-2">
+              <Search className="h-4 w-4" />
+              <Input
+                placeholder="Search neighbourhoods..."
+                value={neighbourhoodSearchQuery}
+                onChange={(e) => setNeighbourhoodSearchQuery(e.target.value)}
+                className="w-64"
+              />
+            </div>
             <Button onClick={() => {
               setNeighbourhoodDialogMode('add');
               setIsNeighbourhoodDialogOpen(true);
@@ -571,20 +594,25 @@ const SystemAdmin = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {neighbourhoods.map((neighbourhood) => (
-                  <TableRow key={neighbourhood.id}>
-                    <TableCell>{neighbourhood.name}</TableCell>
-                    <TableCell>{neighbourhood.description}</TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="sm" className="mr-2">
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {neighbourhoods
+                  .filter(neighbourhood => 
+                    neighbourhood.name.toLowerCase().includes(neighbourhoodSearchQuery.toLowerCase()) ||
+                    neighbourhood.description?.toLowerCase().includes(neighbourhoodSearchQuery.toLowerCase())
+                  )
+                  .map((neighbourhood) => (
+                    <TableRow key={neighbourhood.id}>
+                      <TableCell>{neighbourhood.name}</TableCell>
+                      <TableCell>{neighbourhood.description}</TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="sm" className="mr-2">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
               </TableBody>
             </Table>
           </Card>
