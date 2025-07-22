@@ -543,7 +543,7 @@ const SystemAdmin = () => {
                 {pcns
                   .filter(pcn => 
                     pcn.pcn_name.toLowerCase().includes(pcnSearchQuery.toLowerCase()) ||
-                    pcn.pcn_code.toLowerCase().includes(pcnSearchQuery.toLowerCase())
+                    (pcn.pcn_code && pcn.pcn_code.toLowerCase().includes(pcnSearchQuery.toLowerCase()))
                   )
                   .map((pcn) => (
                     <TableRow key={pcn.id}>
