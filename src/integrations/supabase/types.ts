@@ -818,6 +818,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_complaint_reference: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_current_user_id: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -844,6 +848,10 @@ export type Database = {
       is_system_admin: {
         Args: { _user_id?: string }
         Returns: boolean
+      }
+      log_complaint_action: {
+        Args: { p_complaint_id: string; p_action: string; p_details?: Json }
+        Returns: string
       }
     }
     Enums: {
