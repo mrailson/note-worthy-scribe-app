@@ -40,7 +40,10 @@ import {
   BarChart3,
   Eye,
   Send,
-  Search
+  Search,
+  Plus,
+  MapPin,
+  Network
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -68,12 +71,20 @@ interface Practice {
   practice_name: string;
   practice_code?: string;
   pcn_code?: string;
+  neighbourhood_id?: string;
+  neighbourhood_name?: string;
 }
 
 interface PCN {
   id: string;
   pcn_name: string;
   pcn_code: string;
+}
+
+interface Neighbourhood {
+  id: string;
+  name: string;
+  description?: string;
 }
 
 interface RecentMeeting {
@@ -93,7 +104,9 @@ export default function SystemAdmin() {
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [practices, setPractices] = useState<Practice[]>([]);
+  const [filteredPractices, setFilteredPractices] = useState<Practice[]>([]);
   const [pcns, setPcns] = useState<PCN[]>([]);
+  const [neighbourhoods, setNeighbourhoods] = useState<Neighbourhood[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isPracticeManager, setIsPracticeManager] = useState(false);
@@ -107,6 +120,32 @@ export default function SystemAdmin() {
   const [userCurrentPage, setUserCurrentPage] = useState(1);
   const [userSearchQuery, setUserSearchQuery] = useState("");
   const usersPerPage = 10;
+
+  // Practice management state
+  const [practiceSearchQuery, setPracticeSearchQuery] = useState("");
+  const [practiceCurrentPage, setPracticeCurrentPage] = useState(1);
+  const practicesPerPage = 10;
+  const [addPracticeOpen, setAddPracticeOpen] = useState(false);
+  const [editPracticeOpen, setEditPracticeOpen] = useState(false);
+  const [editingPractice, setEditingPractice] = useState<Practice | null>(null);
+  const [newPracticeName, setNewPracticeName] = useState("");
+  const [newPracticeCode, setNewPracticeCode] = useState("");
+  const [newPracticePCN, setNewPracticePCN] = useState("");
+  const [newPracticeNeighbourhood, setNewPracticeNeighbourhood] = useState("");
+
+  // PCN management state
+  const [addPCNOpen, setAddPCNOpen] = useState(false);
+  const [editPCNOpen, setEditPCNOpen] = useState(false);
+  const [editingPCN, setEditingPCN] = useState<PCN | null>(null);
+  const [newPCNName, setNewPCNName] = useState("");
+  const [newPCNCode, setNewPCNCode] = useState("");
+
+  // Neighbourhood management state
+  const [addNeighbourhoodOpen, setAddNeighbourhoodOpen] = useState(false);
+  const [editNeighbourhoodOpen, setEditNeighbourhoodOpen] = useState(false);
+  const [editingNeighbourhood, setEditingNeighbourhood] = useState<Neighbourhood | null>(null);
+  const [newNeighbourhoodName, setNewNeighbourhoodName] = useState("");
+  const [newNeighbourhoodDescription, setNewNeighbourhoodDescription] = useState("");
   
   // Add User Dialog State
   const [addUserOpen, setAddUserOpen] = useState(false);
@@ -159,6 +198,7 @@ export default function SystemAdmin() {
       fetchUsers();
       fetchPractices();
       fetchPCNs();
+      fetchNeighbourhoods();
       fetchDashboardStats();
       fetchRecentMeetings();
     }
@@ -327,10 +367,17 @@ export default function SystemAdmin() {
 
   const fetchPractices = async () => {
     try {
-      // Get all practices from gp_practices table instead of just practice_details
+      // Get all practices from gp_practices table
       const { data, error } = await supabase
         .from('gp_practices')
-        .select('id, name, practice_code, pcn_code')
+        .select(`
+          id, 
+          name, 
+          practice_code, 
+          pcn_code,
+          neighbourhood_id,
+          neighbourhoods(name)
+        `)
         .order('name');
 
       if (error) throw error;
@@ -340,14 +387,59 @@ export default function SystemAdmin() {
         id: practice.id,
         practice_name: practice.name,
         practice_code: practice.practice_code,
-        pcn_code: practice.pcn_code
+        pcn_code: practice.pcn_code,
+        neighbourhood_id: practice.neighbourhood_id,
+        neighbourhood_name: practice.neighbourhoods?.name || null
       })) || [];
       
       setPractices(practicesData);
+      setFilteredPractices(practicesData);
     } catch (error) {
       console.error('Error fetching practices:', error);
     }
+  
+  const fetchNeighbourhoods = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('neighbourhoods')
+        .select('id, name, description')
+        .order('name');
+
+      if (error) throw error;
+      setNeighbourhoods(data || []);
+    } catch (error) {
+      console.error('Error fetching neighbourhoods:', error);
+    }
   };
+
+  // Filter practices based on search query
+  const filterPractices = (query: string) => {
+    if (!query.trim()) {
+      setFilteredPractices(practices);
+      return;
+    }
+
+    const filtered = practices.filter(practice => {
+      const searchTerm = query.toLowerCase();
+      return (
+        practice.practice_name.toLowerCase().includes(searchTerm) ||
+        practice.practice_code?.toLowerCase().includes(searchTerm) ||
+        practice.pcn_code?.toLowerCase().includes(searchTerm)
+      );
+    });
+
+    setFilteredPractices(filtered);
+    setPracticeCurrentPage(1);
+  };
+
+  // Get paginated practices
+  const getPaginatedPractices = () => {
+    const startIndex = (practiceCurrentPage - 1) * practicesPerPage;
+    const endIndex = startIndex + practicesPerPage;
+    return filteredPractices.slice(startIndex, endIndex);
+  };
+
+  const totalPracticePages = Math.ceil(filteredPractices.length / practicesPerPage);
 
   const fetchPCNs = async () => {
     try {
@@ -709,6 +801,245 @@ This is an automated message. Please do not reply to this email.`;
       case 'administrator': return 'bg-orange-100 text-orange-800';
       case 'receptionist': return 'bg-yellow-100 text-yellow-800';
       default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  // Practice Management Functions
+  const handleAddPractice = async () => {
+    if (!newPracticeName || !newPracticeCode) {
+      toast.error("Please fill in practice name and code");
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('gp_practices')
+        .insert({
+          name: newPracticeName,
+          practice_code: newPracticeCode,
+          pcn_code: newPracticePCN || null,
+          neighbourhood_id: newPracticeNeighbourhood || null
+        });
+
+      if (error) throw error;
+      
+      toast.success("Practice added successfully");
+      setNewPracticeName("");
+      setNewPracticeCode("");
+      setNewPracticePCN("");
+      setNewPracticeNeighbourhood("");
+      setAddPracticeOpen(false);
+      fetchPractices();
+    } catch (error) {
+      console.error('Error adding practice:', error);
+      toast.error("Failed to add practice");
+    }
+  };
+
+  const handleEditPractice = (practice: Practice) => {
+    setEditingPractice(practice);
+    setNewPracticeName(practice.practice_name);
+    setNewPracticeCode(practice.practice_code || "");
+    setNewPracticePCN(practice.pcn_code || "");
+    setNewPracticeNeighbourhood(practice.neighbourhood_id || "");
+    setEditPracticeOpen(true);
+  };
+
+  const handleUpdatePractice = async () => {
+    if (!editingPractice || !newPracticeName || !newPracticeCode) return;
+
+    try {
+      const { error } = await supabase
+        .from('gp_practices')
+        .update({
+          name: newPracticeName,
+          practice_code: newPracticeCode,
+          pcn_code: newPracticePCN || null,
+          neighbourhood_id: newPracticeNeighbourhood || null
+        })
+        .eq('id', editingPractice.id);
+
+      if (error) throw error;
+      
+      toast.success("Practice updated successfully");
+      setEditPracticeOpen(false);
+      fetchPractices();
+    } catch (error) {
+      console.error('Error updating practice:', error);
+      toast.error("Failed to update practice");
+    }
+  };
+
+  const handleDeletePractice = async (practice: Practice) => {
+    if (!confirm(`Are you sure you want to delete ${practice.practice_name}?`)) return;
+    
+    try {
+      const { error } = await supabase
+        .from('gp_practices')
+        .delete()
+        .eq('id', practice.id);
+
+      if (error) throw error;
+      
+      toast.success(`Practice ${practice.practice_name} deleted successfully`);
+      fetchPractices();
+    } catch (error) {
+      console.error('Error deleting practice:', error);
+      toast.error("Failed to delete practice");
+    }
+  };
+
+  // PCN Management Functions
+  const handleAddPCN = async () => {
+    if (!newPCNName || !newPCNCode) {
+      toast.error("Please fill in PCN name and code");
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('primary_care_networks')
+        .insert({
+          pcn_name: newPCNName,
+          pcn_code: newPCNCode
+        });
+
+      if (error) throw error;
+      
+      toast.success("PCN added successfully");
+      setNewPCNName("");
+      setNewPCNCode("");
+      setAddPCNOpen(false);
+      fetchPCNs();
+    } catch (error) {
+      console.error('Error adding PCN:', error);
+      toast.error("Failed to add PCN");
+    }
+  };
+
+  const handleEditPCN = (pcn: PCN) => {
+    setEditingPCN(pcn);
+    setNewPCNName(pcn.pcn_name);
+    setNewPCNCode(pcn.pcn_code);
+    setEditPCNOpen(true);
+  };
+
+  const handleUpdatePCN = async () => {
+    if (!editingPCN || !newPCNName || !newPCNCode) return;
+
+    try {
+      const { error } = await supabase
+        .from('primary_care_networks')
+        .update({
+          pcn_name: newPCNName,
+          pcn_code: newPCNCode
+        })
+        .eq('id', editingPCN.id);
+
+      if (error) throw error;
+      
+      toast.success("PCN updated successfully");
+      setEditPCNOpen(false);
+      fetchPCNs();
+    } catch (error) {
+      console.error('Error updating PCN:', error);
+      toast.error("Failed to update PCN");
+    }
+  };
+
+  const handleDeletePCN = async (pcn: PCN) => {
+    if (!confirm(`Are you sure you want to delete ${pcn.pcn_name}?`)) return;
+    
+    try {
+      const { error } = await supabase
+        .from('primary_care_networks')
+        .delete()
+        .eq('id', pcn.id);
+
+      if (error) throw error;
+      
+      toast.success(`PCN ${pcn.pcn_name} deleted successfully`);
+      fetchPCNs();
+    } catch (error) {
+      console.error('Error deleting PCN:', error);
+      toast.error("Failed to delete PCN");
+    }
+  };
+
+  // Neighbourhood Management Functions
+  const handleAddNeighbourhood = async () => {
+    if (!newNeighbourhoodName) {
+      toast.error("Please enter neighbourhood name");
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('neighbourhoods')
+        .insert({
+          name: newNeighbourhoodName,
+          description: newNeighbourhoodDescription || null
+        });
+
+      if (error) throw error;
+      
+      toast.success("Neighbourhood added successfully");
+      setNewNeighbourhoodName("");
+      setNewNeighbourhoodDescription("");
+      setAddNeighbourhoodOpen(false);
+      fetchNeighbourhoods();
+    } catch (error) {
+      console.error('Error adding neighbourhood:', error);
+      toast.error("Failed to add neighbourhood");
+    }
+  };
+
+  const handleEditNeighbourhood = (neighbourhood: Neighbourhood) => {
+    setEditingNeighbourhood(neighbourhood);
+    setNewNeighbourhoodName(neighbourhood.name);
+    setNewNeighbourhoodDescription(neighbourhood.description || "");
+    setEditNeighbourhoodOpen(true);
+  };
+
+  const handleUpdateNeighbourhood = async () => {
+    if (!editingNeighbourhood || !newNeighbourhoodName) return;
+
+    try {
+      const { error } = await supabase
+        .from('neighbourhoods')
+        .update({
+          name: newNeighbourhoodName,
+          description: newNeighbourhoodDescription || null
+        })
+        .eq('id', editingNeighbourhood.id);
+
+      if (error) throw error;
+      
+      toast.success("Neighbourhood updated successfully");
+      setEditNeighbourhoodOpen(false);
+      fetchNeighbourhoods();
+    } catch (error) {
+      console.error('Error updating neighbourhood:', error);
+      toast.error("Failed to update neighbourhood");
+    }
+  };
+
+  const handleDeleteNeighbourhood = async (neighbourhood: Neighbourhood) => {
+    if (!confirm(`Are you sure you want to delete ${neighbourhood.name}?`)) return;
+    
+    try {
+      const { error } = await supabase
+        .from('neighbourhoods')
+        .delete()
+        .eq('id', neighbourhood.id);
+
+      if (error) throw error;
+      
+      toast.success(`Neighbourhood ${neighbourhood.name} deleted successfully`);
+      fetchNeighbourhoods();
+    } catch (error) {
+      console.error('Error deleting neighbourhood:', error);
+      toast.error("Failed to delete neighbourhood");
     }
   };
 
@@ -1257,9 +1588,406 @@ This is an automated message. Please do not reply to this email.`;
 
           {/* Practices Tab */}
           <TabsContent value="practices" className="space-y-6">
-            <h2 className="text-2xl font-bold">Practice Management</h2>
-            <p className="text-muted-foreground">Manage GP practices and Primary Care Networks</p>
-            {/* Add practice management content here */}
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold">Practice Management</h2>
+                <div className="flex gap-2">
+                  <Dialog open={addNeighbourhoodOpen} onOpenChange={setAddNeighbourhoodOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline">
+                        <MapPin className="h-4 w-4 mr-2" />
+                        Add Neighbourhood
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Add New Neighbourhood</DialogTitle>
+                        <DialogDescription>
+                          Create a new neighbourhood to organize GP practices
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="neighbourhood-name">Neighbourhood Name</Label>
+                          <Input
+                            id="neighbourhood-name"
+                            value={newNeighbourhoodName}
+                            onChange={(e) => setNewNeighbourhoodName(e.target.value)}
+                            placeholder="Enter neighbourhood name"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="neighbourhood-description">Description (Optional)</Label>
+                          <Textarea
+                            id="neighbourhood-description"
+                            value={newNeighbourhoodDescription}
+                            onChange={(e) => setNewNeighbourhoodDescription(e.target.value)}
+                            placeholder="Enter neighbourhood description"
+                          />
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setAddNeighbourhoodOpen(false)}>
+                          Cancel
+                        </Button>
+                        <Button onClick={handleAddNeighbourhood}>
+                          Add Neighbourhood
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+
+                  <Dialog open={addPCNOpen} onOpenChange={setAddPCNOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline">
+                        <Network className="h-4 w-4 mr-2" />
+                        Add PCN
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Add New PCN</DialogTitle>
+                        <DialogDescription>
+                          Create a new Primary Care Network
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="pcn-name">PCN Name</Label>
+                          <Input
+                            id="pcn-name"
+                            value={newPCNName}
+                            onChange={(e) => setNewPCNName(e.target.value)}
+                            placeholder="Enter PCN name"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="pcn-code">PCN Code</Label>
+                          <Input
+                            id="pcn-code"
+                            value={newPCNCode}
+                            onChange={(e) => setNewPCNCode(e.target.value)}
+                            placeholder="Enter PCN code"
+                          />
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setAddPCNOpen(false)}>
+                          Cancel
+                        </Button>
+                        <Button onClick={handleAddPCN}>
+                          Add PCN
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+
+                  <Dialog open={addPracticeOpen} onOpenChange={setAddPracticeOpen}>
+                    <DialogTrigger asChild>
+                      <Button>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Practice
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Add New Practice</DialogTitle>
+                        <DialogDescription>
+                          Create a new GP practice
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="practice-name">Practice Name</Label>
+                          <Input
+                            id="practice-name"
+                            value={newPracticeName}
+                            onChange={(e) => setNewPracticeName(e.target.value)}
+                            placeholder="Enter practice name"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="practice-code">Practice Code</Label>
+                          <Input
+                            id="practice-code"
+                            value={newPracticeCode}
+                            onChange={(e) => setNewPracticeCode(e.target.value)}
+                            placeholder="Enter practice code"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="practice-pcn">PCN (Optional)</Label>
+                          <Select value={newPracticePCN} onValueChange={setNewPracticePCN}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a PCN" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="">No PCN</SelectItem>
+                              {pcns.map(pcn => (
+                                <SelectItem key={pcn.id} value={pcn.pcn_code}>
+                                  {pcn.pcn_name} ({pcn.pcn_code})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="practice-neighbourhood">Neighbourhood (Optional)</Label>
+                          <Select value={newPracticeNeighbourhood} onValueChange={setNewPracticeNeighbourhood}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a neighbourhood" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="">No Neighbourhood</SelectItem>
+                              {neighbourhoods.map(neighbourhood => (
+                                <SelectItem key={neighbourhood.id} value={neighbourhood.id}>
+                                  {neighbourhood.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setAddPracticeOpen(false)}>
+                          Cancel
+                        </Button>
+                        <Button onClick={handleAddPractice}>
+                          Add Practice
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </div>
+
+              {/* Search Bar */}
+              <div className="relative max-w-sm">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input
+                  placeholder="Search practices by name, code, or PCN..."
+                  value={practiceSearchQuery}
+                  onChange={(e) => {
+                    setPracticeSearchQuery(e.target.value);
+                    filterPractices(e.target.value);
+                  }}
+                  className="pl-10"
+                />
+              </div>
+
+              {/* Practices Table */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>GP Practices ({filteredPractices.length} {filteredPractices.length === 1 ? 'practice' : 'practices'})</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {loading ? (
+                    <div className="text-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                      <p className="mt-2 text-muted-foreground">Loading practices...</p>
+                    </div>
+                  ) : filteredPractices.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      {practiceSearchQuery ? 'No practices found matching your search.' : 'No practices found'}
+                    </div>
+                  ) : (
+                    <>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Practice Name</TableHead>
+                            <TableHead>Practice Code</TableHead>
+                            <TableHead>PCN</TableHead>
+                            <TableHead>Neighbourhood</TableHead>
+                            <TableHead>Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {getPaginatedPractices().map(practice => (
+                            <TableRow key={practice.id}>
+                              <TableCell className="font-medium">
+                                {practice.practice_name}
+                              </TableCell>
+                              <TableCell>{practice.practice_code}</TableCell>
+                              <TableCell>
+                                {practice.pcn_code ? (
+                                  <Badge variant="outline">{practice.pcn_code}</Badge>
+                                ) : (
+                                  <span className="text-muted-foreground">No PCN</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {practice.neighbourhood_name ? (
+                                  <Badge variant="secondary">{practice.neighbourhood_name}</Badge>
+                                ) : (
+                                  <span className="text-muted-foreground">No Neighbourhood</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex gap-2">
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => handleEditPractice(practice)}
+                                  >
+                                    <Edit className="h-3 w-3" />
+                                  </Button>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="text-destructive"
+                                    onClick={() => handleDeletePractice(practice)}
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                      
+                      {/* Pagination */}
+                      {totalPracticePages > 1 && (
+                        <div className="mt-4 flex justify-center">
+                          <Pagination>
+                            <PaginationContent>
+                              <PaginationItem>
+                                <PaginationPrevious 
+                                  onClick={() => practiceCurrentPage > 1 && setPracticeCurrentPage(practiceCurrentPage - 1)}
+                                  className={practiceCurrentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                />
+                              </PaginationItem>
+                              {Array.from({ length: totalPracticePages }, (_, i) => i + 1).map((page) => (
+                                <PaginationItem key={page}>
+                                  <PaginationLink
+                                    onClick={() => setPracticeCurrentPage(page)}
+                                    isActive={practiceCurrentPage === page}
+                                    className="cursor-pointer"
+                                  >
+                                    {page}
+                                  </PaginationLink>
+                                </PaginationItem>
+                              ))}
+                              <PaginationItem>
+                                <PaginationNext 
+                                  onClick={() => practiceCurrentPage < totalPracticePages && setPracticeCurrentPage(practiceCurrentPage + 1)}
+                                  className={practiceCurrentPage >= totalPracticePages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                />
+                              </PaginationItem>
+                            </PaginationContent>
+                          </Pagination>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* PCN Management Section */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Network className="h-5 w-5" />
+                    Primary Care Networks ({pcns.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>PCN Name</TableHead>
+                        <TableHead>PCN Code</TableHead>
+                        <TableHead>Assigned Practices</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {pcns.map(pcn => (
+                        <TableRow key={pcn.id}>
+                          <TableCell className="font-medium">{pcn.pcn_name}</TableCell>
+                          <TableCell>{pcn.pcn_code}</TableCell>
+                          <TableCell>
+                            {practices.filter(p => p.pcn_code === pcn.pcn_code).length} practices
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleEditPCN(pcn)}
+                              >
+                                <Edit className="h-3 w-3" />
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="text-destructive"
+                                onClick={() => handleDeletePCN(pcn)}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+
+              {/* Neighbourhood Management Section */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MapPin className="h-5 w-5" />
+                    Neighbourhoods ({neighbourhoods.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Neighbourhood Name</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Assigned Practices</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {neighbourhoods.map(neighbourhood => (
+                        <TableRow key={neighbourhood.id}>
+                          <TableCell className="font-medium">{neighbourhood.name}</TableCell>
+                          <TableCell>{neighbourhood.description || 'No description'}</TableCell>
+                          <TableCell>
+                            {practices.filter(p => p.neighbourhood_id === neighbourhood.id).length} practices
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleEditNeighbourhood(neighbourhood)}
+                              >
+                                <Edit className="h-3 w-3" />
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="text-destructive"
+                                onClick={() => handleDeleteNeighbourhood(neighbourhood)}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           {/* Settings Tab */}
@@ -1419,8 +2147,166 @@ This is an automated message. Please do not reply to this email.`;
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        {/* Edit Practice Dialog */}
+        <Dialog open={editPracticeOpen} onOpenChange={setEditPracticeOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Practice</DialogTitle>
+              <DialogDescription>
+                Update practice information
+              </DialogDescription>
+            </DialogHeader>
+            {editingPractice && (
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="edit-practice-name">Practice Name</Label>
+                  <Input
+                    id="edit-practice-name"
+                    value={newPracticeName}
+                    onChange={(e) => setNewPracticeName(e.target.value)}
+                    placeholder="Enter practice name"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-practice-code">Practice Code</Label>
+                  <Input
+                    id="edit-practice-code"
+                    value={newPracticeCode}
+                    onChange={(e) => setNewPracticeCode(e.target.value)}
+                    placeholder="Enter practice code"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-practice-pcn">PCN</Label>
+                  <Select value={newPracticePCN} onValueChange={setNewPracticePCN}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a PCN" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">No PCN</SelectItem>
+                      {pcns.map(pcn => (
+                        <SelectItem key={pcn.id} value={pcn.pcn_code}>
+                          {pcn.pcn_name} ({pcn.pcn_code})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="edit-practice-neighbourhood">Neighbourhood</Label>
+                  <Select value={newPracticeNeighbourhood} onValueChange={setNewPracticeNeighbourhood}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a neighbourhood" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">No Neighbourhood</SelectItem>
+                      {neighbourhoods.map(neighbourhood => (
+                        <SelectItem key={neighbourhood.id} value={neighbourhood.id}>
+                          {neighbourhood.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditPracticeOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleUpdatePractice}>
+                Update Practice
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit PCN Dialog */}
+        <Dialog open={editPCNOpen} onOpenChange={setEditPCNOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit PCN</DialogTitle>
+              <DialogDescription>
+                Update PCN information
+              </DialogDescription>
+            </DialogHeader>
+            {editingPCN && (
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="edit-pcn-name">PCN Name</Label>
+                  <Input
+                    id="edit-pcn-name"
+                    value={newPCNName}
+                    onChange={(e) => setNewPCNName(e.target.value)}
+                    placeholder="Enter PCN name"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-pcn-code">PCN Code</Label>
+                  <Input
+                    id="edit-pcn-code"
+                    value={newPCNCode}
+                    onChange={(e) => setNewPCNCode(e.target.value)}
+                    placeholder="Enter PCN code"
+                  />
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditPCNOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleUpdatePCN}>
+                Update PCN
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Neighbourhood Dialog */}
+        <Dialog open={editNeighbourhoodOpen} onOpenChange={setEditNeighbourhoodOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Neighbourhood</DialogTitle>
+              <DialogDescription>
+                Update neighbourhood information
+              </DialogDescription>
+            </DialogHeader>
+            {editingNeighbourhood && (
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="edit-neighbourhood-name">Neighbourhood Name</Label>
+                  <Input
+                    id="edit-neighbourhood-name"
+                    value={newNeighbourhoodName}
+                    onChange={(e) => setNewNeighbourhoodName(e.target.value)}
+                    placeholder="Enter neighbourhood name"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-neighbourhood-description">Description</Label>
+                  <Textarea
+                    id="edit-neighbourhood-description"
+                    value={newNeighbourhoodDescription}
+                    onChange={(e) => setNewNeighbourhoodDescription(e.target.value)}
+                    placeholder="Enter neighbourhood description"
+                  />
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditNeighbourhoodOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleUpdateNeighbourhood}>
+                Update Neighbourhood
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
     </>
   );
+}
 }

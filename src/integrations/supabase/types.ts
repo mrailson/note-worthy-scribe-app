@@ -427,6 +427,7 @@ export type Database = {
           ics_name: string
           id: string
           name: string
+          neighbourhood_id: string | null
           organisation_type: string
           pcn_code: string | null
           practice_code: string
@@ -437,6 +438,7 @@ export type Database = {
           ics_name: string
           id?: string
           name: string
+          neighbourhood_id?: string | null
           organisation_type: string
           pcn_code?: string | null
           practice_code: string
@@ -447,11 +449,20 @@ export type Database = {
           ics_name?: string
           id?: string
           name?: string
+          neighbourhood_id?: string | null
           organisation_type?: string
           pcn_code?: string | null
           practice_code?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "gp_practices_neighbourhood_id_fkey"
+            columns: ["neighbourhood_id"]
+            isOneToOne: false
+            referencedRelation: "neighbourhoods"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       gp_scribe_settings: {
         Row: {
@@ -660,6 +671,30 @@ export type Database = {
           title?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      neighbourhoods: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
         }
         Relationships: []
       }
