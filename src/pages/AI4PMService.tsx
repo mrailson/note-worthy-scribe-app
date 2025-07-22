@@ -27,7 +27,6 @@ import {
   Trash2,
   Settings,
   MessageSquare,
-  Zap,
   HelpCircle,
   Clock,
   Shield,
@@ -283,7 +282,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
       
       <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 max-w-7xl">
         <Tabs defaultValue="ai-service" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="ai-service" className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4" />
               AI Service
@@ -291,10 +290,6 @@ Always provide practical, actionable advice that follows NHS guidelines and best
             <TabsTrigger value="ai-settings" className="flex items-center gap-2">
               <Settings className="h-4 w-4" />
               AI Settings
-            </TabsTrigger>
-            <TabsTrigger value="quick-actions" className="flex items-center gap-2">
-              <Zap className="h-4 w-4" />
-              Quick Actions
             </TabsTrigger>
             <TabsTrigger value="what-can-ai-do" className="flex items-center gap-2">
               <HelpCircle className="h-4 w-4" />
@@ -530,32 +525,6 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
-
-          {/* Quick Actions Tab */}
-          <TabsContent value="quick-actions" className="mt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {quickActions.map((action, index) => (
-                <Card key={index} className="p-4 hover:shadow-md transition-shadow cursor-pointer border-2 hover:border-primary/20" onClick={() => handleQuickAction(action)}>
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 bg-primary/10 rounded-lg">
-                      <action.icon className="h-5 w-5 text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-sm mb-1">{action.label}</h3>
-                      <p className="text-xs text-muted-foreground line-clamp-2">
-                        {action.prompt.substring(0, 80)}...
-                      </p>
-                      {action.requiresFile && (
-                        <Badge variant="outline" className="text-xs mt-2">
-                          Requires File
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
           </TabsContent>
 
           {/* What Can AI Do Tab */}
