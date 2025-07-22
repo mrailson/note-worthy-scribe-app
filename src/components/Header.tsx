@@ -131,6 +131,13 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                     <Sparkles className="h-4 w-4 mr-2" />
                     ReplyWell AI
                   </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => navigate('/ai-4-pm')}
+                    className="cursor-pointer py-3"
+                  >
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    AI 4 PM Service
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             )}

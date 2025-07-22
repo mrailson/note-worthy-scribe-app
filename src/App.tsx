@@ -11,6 +11,7 @@ import Settings from "./pages/Settings";
 import SystemAdmin from "./pages/SystemAdmin";
 import ComplaintsSystem from "./pages/ComplaintsSystem";
 import ReplyWellAI from "./pages/ReplyWellAI";
+import AI4PMService from "./pages/AI4PMService";
 import NotFound from "./pages/NotFound";
 
 const App = () => (
@@ -27,6 +28,7 @@ const App = () => (
       <Route path="/admin" element={<SystemAdmin />} />
       <Route path="/complaints" element={<ComplaintsSystem />} />
       <Route path="/replywell-ai" element={<ReplyWellAI />} />
+      <Route path="/ai-4-pm" element={<AI4PMService />} />
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
       <Route path="*" element={<NotFound />} />
     </Routes>
