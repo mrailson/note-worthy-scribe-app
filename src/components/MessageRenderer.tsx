@@ -51,6 +51,42 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({ message }) => {
   };
 
   const formatContent = (content: string) => {
+    // Convert markdown-style formatting to JSX
+    const parseMarkdown = (text: string) => {
+      // Split by various markdown patterns while preserving the delimiters
+      const parts = text.split(/(\*\*\*.*?\*\*\*|\*\*.*?\*\*|\*.*?\*|`.*?`|##.*?\n)/g);
+      
+      return parts.map((part, index) => {
+        // Bold and italic (***text***)
+        if (part.startsWith('***') && part.endsWith('***')) {
+          const content = part.slice(3, -3);
+          return <strong key={index} className="font-bold italic">{content}</strong>;
+        }
+        // Bold (**text**)
+        if (part.startsWith('**') && part.endsWith('**')) {
+          const content = part.slice(2, -2);
+          return <strong key={index} className="font-bold">{content}</strong>;
+        }
+        // Italic (*text*)
+        if (part.startsWith('*') && part.endsWith('*') && !part.startsWith('**')) {
+          const content = part.slice(1, -1);
+          return <em key={index} className="italic">{content}</em>;
+        }
+        // Code (`text`)
+        if (part.startsWith('`') && part.endsWith('`')) {
+          const content = part.slice(1, -1);
+          return <code key={index} className="bg-muted px-1 py-0.5 rounded text-xs font-mono">{content}</code>;
+        }
+        // Heading (## text)
+        if (part.startsWith('##')) {
+          const content = part.replace(/^#+\s*/, '').replace(/\n$/, '');
+          return <strong key={index} className="font-semibold text-base block mt-2 mb-1">{content}</strong>;
+        }
+        
+        return part;
+      });
+    };
+
     // Split content into sections based on common patterns
     const sections = content.split(/\n\n+/);
     
@@ -64,12 +100,12 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({ message }) => {
         if (listItems.length > 0) {
           return (
             <div key={index} className="mb-4">
-              {title && <p className="font-medium mb-2">{title}</p>}
+              {title && <div className="font-medium mb-2">{parseMarkdown(title)}</div>}
               <ul className="space-y-1 ml-4">
                 {listItems.map((item, itemIndex) => (
                   <li key={itemIndex} className="flex items-start gap-2">
                     <CheckSquare className="h-3 w-3 mt-1 flex-shrink-0 text-muted-foreground" />
-                    <span className="text-sm">{item.replace(/^[-•*]\s*/, '')}</span>
+                    <span className="text-sm">{parseMarkdown(item.replace(/^[-•*]\s*/, ''))}</span>
                   </li>
                 ))}
               </ul>
@@ -92,11 +128,11 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({ message }) => {
                       <Badge variant="outline" className="text-xs px-1 py-0 min-w-[20px] h-5 flex items-center justify-center">
                         {match[1]}
                       </Badge>
-                      <span className="text-sm">{match[2]}</span>
+                      <span className="text-sm">{parseMarkdown(match[2])}</span>
                     </li>
                   );
                 }
-                return <p key={itemIndex} className="text-sm ml-6">{line}</p>;
+                return <div key={itemIndex} className="text-sm ml-6">{parseMarkdown(line)}</div>;
               })}
             </ol>
           </div>
@@ -107,7 +143,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({ message }) => {
       if (section.length < 100 && (section === section.toUpperCase() || section.startsWith('##'))) {
         return (
           <h3 key={index} className="font-semibold text-base mb-2 text-foreground">
-            {section.replace(/^#+\s*/, '')}
+            {parseMarkdown(section.replace(/^#+\s*/, ''))}
           </h3>
         );
       }
@@ -115,7 +151,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({ message }) => {
       // Regular paragraph
       return (
         <p key={index} className="text-sm mb-3 leading-relaxed">
-          {section}
+          {parseMarkdown(section)}
         </p>
       );
     });
