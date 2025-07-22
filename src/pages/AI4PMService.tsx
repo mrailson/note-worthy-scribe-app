@@ -31,7 +31,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { LoginForm } from '@/components/LoginForm';
 import { SpeechToText } from '@/components/SpeechToText';
 import MessageRenderer from '@/components/MessageRenderer';
-import { SimpleFileUpload } from '@/components/SimpleFileUpload';
 
 interface Message {
   id: string;
@@ -348,40 +347,6 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                 ))}
               </CardContent>
             </Card>
-
-            {/* File Upload */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Upload Documents</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <SimpleFileUpload
-                  onFileUpload={handleFileUpload}
-                  accept=".pdf,.doc,.docx,.xlsx,.csv,.txt"
-                  maxSize={10}
-                  className="h-24"
-                />
-                
-                {uploadedFiles.length > 0 && (
-                  <div className="mt-4 space-y-2">
-                    <Label className="text-sm font-medium">Uploaded Files:</Label>
-                    {uploadedFiles.map((file, index) => (
-                      <div key={index} className="flex items-center justify-between p-2 bg-muted rounded text-xs">
-                        <span className="truncate flex-1">{file.name}</span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeFile(index)}
-                          className="h-6 w-6 p-0"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
           </div>
 
           {/* Chat Interface */}
@@ -437,13 +402,54 @@ Always provide practical, actionable advice that follows NHS guidelines and best
 
                 {/* Input Area */}
                 <div className="border-t border-border p-4">
+                  {/* Uploaded Files Display */}
+                  {uploadedFiles.length > 0 && (
+                    <div className="mb-3 p-3 bg-muted/50 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <Label className="text-sm font-medium flex items-center gap-1">
+                          <Paperclip className="h-3 w-3" />
+                          Attached Files ({uploadedFiles.length})
+                        </Label>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setUploadedFiles([])}
+                          className="h-6 text-xs px-2"
+                        >
+                          Clear All
+                        </Button>
+                      </div>
+                      <div className="space-y-1">
+                        {uploadedFiles.map((file, index) => (
+                          <div key={index} className="flex items-center justify-between p-2 bg-background rounded text-xs border">
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <FileText className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
+                              <span className="truncate">{file.name}</span>
+                              <Badge variant="outline" className="text-xs px-1 py-0">
+                                {(file.size / 1024).toFixed(1)}KB
+                              </Badge>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeFile(index)}
+                              className="h-6 w-6 p-0 flex-shrink-0"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
                   <div className="flex gap-2">
                     <div className="flex-1 relative">
                       <Textarea
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
-                        placeholder="Ask me about NHS policies, compliance, or upload a document for analysis..."
-                        className="min-h-[80px] pr-20 resize-none"
+                        placeholder="Ask me about NHS policies, compliance, or attach documents for analysis..."
+                        className="min-h-[80px] pr-32 resize-none"
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' && !e.shiftKey) {
                             e.preventDefault();
@@ -452,6 +458,32 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                         }}
                       />
                       <div className="absolute bottom-2 right-2 flex gap-1">
+                        {/* File Upload Button */}
+                        <div className="relative">
+                          <input
+                            type="file"
+                            multiple
+                            accept=".pdf,.doc,.docx,.xlsx,.csv,.txt"
+                            onChange={(e) => {
+                              const files = Array.from(e.target.files || []);
+                              if (files.length > 0) {
+                                handleFileUpload(files);
+                                e.target.value = ''; // Reset input
+                              }
+                            }}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 hover:bg-muted"
+                            title="Attach files"
+                          >
+                            <Paperclip className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        
                         <SpeechToText
                           onTranscription={handleSpeechTranscription}
                           size="sm"
