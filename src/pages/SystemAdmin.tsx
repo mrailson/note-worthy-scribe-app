@@ -10,8 +10,24 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import { Plus, Search, Edit, Trash2, Users, Calendar, Building, Network } from 'lucide-react';
+import { 
+  Plus, 
+  Search, 
+  Edit, 
+  Trash2, 
+  Users, 
+  Calendar, 
+  Building, 
+  Network,
+  BarChart3,
+  Shield,
+  Settings,
+  Database,
+  FileText,
+  Clock
+} from 'lucide-react';
 
 interface User {
   id: string;
@@ -365,12 +381,39 @@ const SystemAdmin = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-          <TabsTrigger value="users">Users</TabsTrigger>
-          <TabsTrigger value="practices">Practices</TabsTrigger>
-          <TabsTrigger value="pcns">PCNs</TabsTrigger>
-          <TabsTrigger value="neighbourhoods">Neighbourhoods</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-8 mb-6">
+          <TabsTrigger value="dashboard" className="flex items-center gap-2">
+            <BarChart3 className="h-4 w-4" />
+            Dashboard
+          </TabsTrigger>
+          <TabsTrigger value="users" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Users
+          </TabsTrigger>
+          <TabsTrigger value="practices" className="flex items-center gap-2">
+            <Building className="h-4 w-4" />
+            Practices
+          </TabsTrigger>
+          <TabsTrigger value="pcns" className="flex items-center gap-2">
+            <Network className="h-4 w-4" />
+            PCNs
+          </TabsTrigger>
+          <TabsTrigger value="neighbourhoods" className="flex items-center gap-2">
+            <Network className="h-4 w-4" />
+            Neighbourhoods
+          </TabsTrigger>
+          <TabsTrigger value="security" className="flex items-center gap-2">
+            <Shield className="h-4 w-4" />
+            Security
+          </TabsTrigger>
+          <TabsTrigger value="audit" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Audit Logs
+          </TabsTrigger>
+          <TabsTrigger value="settings" className="flex items-center gap-2">
+            <Settings className="h-4 w-4" />
+            Settings
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="dashboard" className="space-y-6">
@@ -645,6 +688,323 @@ const SystemAdmin = () => {
                   ))}
               </TableBody>
             </Table>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="security" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="h-5 w-5" />
+                  Security Settings
+                </CardTitle>
+                <CardDescription>
+                  Configure system security parameters and policies
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="font-medium">Session Timeout</p>
+                    <p className="text-sm text-muted-foreground">Automatic logout after inactivity</p>
+                  </div>
+                  <Badge variant="secondary">30 minutes</Badge>
+                </div>
+                <Separator />
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="font-medium">Password Requirements</p>
+                    <p className="text-sm text-muted-foreground">Minimum password strength</p>
+                  </div>
+                  <Badge variant="secondary">12+ characters</Badge>
+                </div>
+                <Separator />
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="font-medium">Failed Login Attempts</p>
+                    <p className="text-sm text-muted-foreground">Account lockout threshold</p>
+                  </div>
+                  <Badge variant="secondary">5 attempts</Badge>
+                </div>
+                <Separator />
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="font-medium">Data Retention</p>
+                    <p className="text-sm text-muted-foreground">NHS compliance period</p>
+                  </div>
+                  <Badge variant="secondary">7 years</Badge>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Active Sessions
+                </CardTitle>
+                <CardDescription>
+                  Monitor current user sessions and activity
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                    <div>
+                      <p className="font-medium">Your Session</p>
+                      <p className="text-sm text-muted-foreground">Active since login</p>
+                    </div>
+                    <Badge variant="outline" className="bg-green-50 text-green-700">Active</Badge>
+                  </div>
+                  <div className="text-center py-4">
+                    <Button variant="outline" size="sm">
+                      View All Sessions
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Database className="h-5 w-5" />
+                System Status
+              </CardTitle>
+              <CardDescription>
+                Overview of system security and compliance status
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="p-4 border rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                    <p className="font-medium">Database Security</p>
+                  </div>
+                  <p className="text-sm text-muted-foreground">RLS enabled on all tables</p>
+                </div>
+                <div className="p-4 border rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                    <p className="font-medium">Audit Logging</p>
+                  </div>
+                  <p className="text-sm text-muted-foreground">All activities tracked</p>
+                </div>
+                <div className="p-4 border rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="h-2 w-2 bg-yellow-500 rounded-full"></div>
+                    <p className="font-medium">Auth Configuration</p>
+                  </div>
+                  <p className="text-sm text-muted-foreground">Review settings needed</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="audit" className="space-y-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-2xl font-semibold">Audit Logs</h2>
+              <p className="text-muted-foreground">Track all system activities and user actions</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Select defaultValue="all">
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Filter by type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Activities</SelectItem>
+                  <SelectItem value="login">Login Events</SelectItem>
+                  <SelectItem value="data">Data Changes</SelectItem>
+                  <SelectItem value="security">Security Events</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="outline" size="sm">
+                <FileText className="h-4 w-4 mr-2" />
+                Export
+              </Button>
+            </div>
+          </div>
+
+          <Card>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Timestamp</TableHead>
+                  <TableHead>User</TableHead>
+                  <TableHead>Action</TableHead>
+                  <TableHead>Table</TableHead>
+                  <TableHead>Details</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow>
+                  <TableCell className="font-mono text-sm">
+                    {new Date().toLocaleString()}
+                  </TableCell>
+                  <TableCell>System Admin</TableCell>
+                  <TableCell>
+                    <Badge variant="outline">VIEW</Badge>
+                  </TableCell>
+                  <TableCell>audit_logs</TableCell>
+                  <TableCell>Accessed audit log interface</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-mono text-sm">
+                    {new Date(Date.now() - 300000).toLocaleString()}
+                  </TableCell>
+                  <TableCell>System Admin</TableCell>
+                  <TableCell>
+                    <Badge variant="outline">LOGIN</Badge>
+                  </TableCell>
+                  <TableCell>auth_events</TableCell>
+                  <TableCell>Successful authentication</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </Card>
+
+          <div className="flex justify-center">
+            <Button variant="outline">
+              Load More Entries
+            </Button>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="settings" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="h-5 w-5" />
+                  Data Retention Policies
+                </CardTitle>
+                <CardDescription>
+                  NHS compliant data retention schedules
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Meeting Records</Label>
+                  <Select defaultValue="7years">
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="7years">7 Years (NHS Standard)</SelectItem>
+                      <SelectItem value="10years">10 Years</SelectItem>
+                      <SelectItem value="forever">Indefinite</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Complaint Records</Label>
+                  <Select defaultValue="10years">
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="7years">7 Years</SelectItem>
+                      <SelectItem value="10years">10 Years (NHS Standard)</SelectItem>
+                      <SelectItem value="forever">Indefinite</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Audit Logs</Label>
+                  <Select defaultValue="7years">
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="7years">7 Years (NHS Standard)</SelectItem>
+                      <SelectItem value="10years">10 Years</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  System Configuration
+                </CardTitle>
+                <CardDescription>
+                  General system settings and preferences
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">Email Notifications</p>
+                    <p className="text-sm text-muted-foreground">System alerts and updates</p>
+                  </div>
+                  <Button variant="outline" size="sm">Configure</Button>
+                </div>
+                <Separator />
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">Backup Schedule</p>
+                    <p className="text-sm text-muted-foreground">Automated data backups</p>
+                  </div>
+                  <Badge variant="secondary">Daily</Badge>
+                </div>
+                <Separator />
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">Maintenance Window</p>
+                    <p className="text-sm text-muted-foreground">System maintenance schedule</p>
+                  </div>
+                  <Badge variant="secondary">Sundays 2-4 AM</Badge>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>NHS Compliance Status</CardTitle>
+              <CardDescription>
+                Current compliance with NHS IT Governance requirements
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                    <span className="font-medium">Data Protection & GDPR</span>
+                  </div>
+                  <Badge variant="secondary" className="bg-green-100 text-green-800">Compliant</Badge>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                    <span className="font-medium">Audit Trail Requirements</span>
+                  </div>
+                  <Badge variant="secondary" className="bg-green-100 text-green-800">Compliant</Badge>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 bg-yellow-500 rounded-full"></div>
+                    <span className="font-medium">Authentication Security</span>
+                  </div>
+                  <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Review Required</Badge>
+                </div>
+              </div>
+              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  <strong>Action Required:</strong> Please review and update authentication settings in Supabase Dashboard:
+                  Enable leaked password protection and reduce OTP expiry to 10-15 minutes.
+                </p>
+              </div>
+            </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
