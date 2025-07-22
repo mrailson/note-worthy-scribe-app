@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { SpeechToText } from '@/components/SpeechToText';
+import { RealtimeSpeechToText } from '@/components/RealtimeSpeechToText';
 import { FileUpload } from '@/components/FileUpload';
 import { 
   FileText, 
@@ -201,6 +202,14 @@ export default function ReplyWellAI() {
     }
   };
 
+  const handleRealtimeTranscription = (text: string, field: 'context' | 'guidance' | 'email' | 'draft', isPartial = false) => {
+    // For real-time, we want to see the text as it's being spoken
+    // Only add to the actual field content when it's final
+    if (!isPartial) {
+      handleSpeechTranscription(text, field);
+    }
+  };
+
   return (
     <div className="container mx-auto p-6 max-w-7xl">
       <div className="flex items-center justify-between mb-8">
@@ -287,10 +296,16 @@ export default function ReplyWellAI() {
                     onChange={(e) => setEmailText(e.target.value)}
                     className="min-h-[120px] flex-1"
                   />
-                  <SpeechToText 
-                    onTranscription={(text) => handleSpeechTranscription(text, 'email')}
-                    size="sm"
-                  />
+                  <div className="flex flex-col gap-2">
+                    <RealtimeSpeechToText 
+                      onTranscription={(text, isPartial) => handleRealtimeTranscription(text, 'email', isPartial)}
+                      size="sm"
+                    />
+                    <SpeechToText 
+                      onTranscription={(text) => handleSpeechTranscription(text, 'email')}
+                      size="sm"
+                    />
+                  </div>
                 </div>
                 <div className="flex gap-2">
                   <Button 
@@ -348,10 +363,16 @@ export default function ReplyWellAI() {
                   onChange={(e) => setContextNotes(e.target.value)}
                   className="min-h-[80px] flex-1"
                 />
-                <SpeechToText 
-                  onTranscription={(text) => handleSpeechTranscription(text, 'context')}
-                  size="sm"
-                />
+                <div className="flex flex-col gap-2">
+                  <RealtimeSpeechToText 
+                    onTranscription={(text, isPartial) => handleRealtimeTranscription(text, 'context', isPartial)}
+                    size="sm"
+                  />
+                  <SpeechToText 
+                    onTranscription={(text) => handleSpeechTranscription(text, 'context')}
+                    size="sm"
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -374,10 +395,16 @@ export default function ReplyWellAI() {
                   onChange={(e) => setResponseGuidance(e.target.value)}
                   className="min-h-[80px] flex-1"
                 />
-                <SpeechToText 
-                  onTranscription={(text) => handleSpeechTranscription(text, 'guidance')}
-                  size="sm"
-                />
+                <div className="flex flex-col gap-2">
+                  <RealtimeSpeechToText 
+                    onTranscription={(text, isPartial) => handleRealtimeTranscription(text, 'guidance', isPartial)}
+                    size="sm"
+                  />
+                  <SpeechToText 
+                    onTranscription={(text) => handleSpeechTranscription(text, 'guidance')}
+                    size="sm"
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -405,10 +432,16 @@ export default function ReplyWellAI() {
                     onChange={(e) => setDraftText(e.target.value)}
                     className="min-h-[100px] flex-1"
                   />
-                  <SpeechToText 
-                    onTranscription={(text) => handleSpeechTranscription(text, 'draft')}
-                    size="sm"
-                  />
+                  <div className="flex flex-col gap-2">
+                    <RealtimeSpeechToText 
+                      onTranscription={(text, isPartial) => handleRealtimeTranscription(text, 'draft', isPartial)}
+                      size="sm"
+                    />
+                    <SpeechToText 
+                      onTranscription={(text) => handleSpeechTranscription(text, 'draft')}
+                      size="sm"
+                    />
+                  </div>
                 </div>
               )}
             </CardContent>
