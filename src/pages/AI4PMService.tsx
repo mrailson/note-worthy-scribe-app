@@ -79,7 +79,7 @@ const AI4PMService = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [model, setModel] = useState<'claude' | 'gpt'>('claude');
+  const [model, setModel] = useState<'claude' | 'gpt'>('gpt');
   const [sessionMemory, setSessionMemory] = useState(true);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [apiKeyMissing, setApiKeyMissing] = useState<{claude: boolean, gpt: boolean}>({claude: false, gpt: false});
