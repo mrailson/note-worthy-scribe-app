@@ -33,13 +33,16 @@ import {
   Users,
   TrendingUp,
   AlertTriangle,
-  BookOpen
+  BookOpen,
+  Image,
+  FileDown
 } from 'lucide-react';
-import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { LoginForm } from '@/components/LoginForm';
 import { SpeechToText } from '@/components/SpeechToText';
 import MessageRenderer from '@/components/MessageRenderer';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
+import { saveAs } from 'file-saver';
 
 interface Message {
   id: string;
@@ -112,6 +115,18 @@ const AI4PMService = () => {
       icon: Calendar, 
       prompt: 'Help me create a meeting agenda or meeting minutes template.',
       requiresFile: false 
+    },
+    { 
+      label: 'Create Word Document', 
+      icon: FileDown, 
+      prompt: 'Generate a Word document based on our conversation. Please specify what type of document you need (policy, procedure, letter, etc.).',
+      requiresFile: false 
+    },
+    { 
+      label: 'Generate Image', 
+      icon: Image, 
+      prompt: 'Create an image or diagram. Please describe what you want me to generate (flowchart, poster, infographic, etc.).',
+      requiresFile: false 
     }
   ];
 
@@ -132,6 +147,10 @@ Knowledge domains you should reference:
 4. Finance & Contracts (GP Practice finance, PCN funding, ARRS roles, IIF indicators)
 5. Information Governance & GDPR (DSPT compliance, NHSmail policies, SARs)
 6. Clinical System Knowledge (SNOMED basics, EMIS/SystmOne templates, QOF indicators)
+
+SPECIAL CAPABILITIES:
+- Document Generation: When asked to create a Word document, format your response with clear headings, sections, and structured content that can be easily converted to a professional document.
+- Image Generation: When asked to create images, diagrams, or visual content, provide a detailed description that can be used to generate the visual content.
 
 Always provide practical, actionable advice that follows NHS guidelines and best practices.`;
 
@@ -171,18 +190,43 @@ Always provide practical, actionable advice that follows NHS guidelines and best
 
       setMessages(prev => [...prev, assistantMessage]);
       setUploadedFiles([]); // Clear files after sending
+
+      // Check if the response suggests document or image generation
+      const responseText = data.response.toLowerCase();
+      if (responseText.includes('word document') || responseText.includes('generate document')) {
+        // Add document generation option
+        setTimeout(() => {
+          const docMessage: Message = {
+            id: (Date.now() + 2).toString(),
+            role: 'assistant',
+            content: "Would you like me to generate a Word document from this content? I can create a professionally formatted document for you.",
+            timestamp: new Date()
+          };
+          setMessages(prev => [...prev, docMessage]);
+        }, 1000);
+      }
+      
+      if (responseText.includes('generate image') || responseText.includes('create image') || responseText.includes('diagram')) {
+        // Extract image prompt and generate automatically
+        const imagePromptMatch = data.response.match(/(?:image|diagram|visual).*?(?:\.|$)/i);
+        if (imagePromptMatch) {
+          setTimeout(() => {
+            generateImage(imagePromptMatch[0]);
+          }, 1000);
+        }
+      }
     } catch (error: any) {
       console.error('Error:', error);
       if (error.message?.includes('API key not configured')) {
         if (model === 'claude') {
           setApiKeyMissing(prev => ({...prev, claude: true}));
-          toast.error('Anthropic API key not configured. Please check your settings.');
+          console.error('Anthropic API key not configured. Please check your settings.');
         } else {
           setApiKeyMissing(prev => ({...prev, gpt: true}));
-          toast.error('OpenAI API key not configured. Please check your settings.');
+          console.error('OpenAI API key not configured. Please check your settings.');
         }
       } else {
-        toast.error('Failed to get response. Please try again.');
+        console.error('Failed to get response. Please try again.');
       }
     } finally {
       setIsLoading(false);
@@ -191,7 +235,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
 
   const handleQuickAction = (action: typeof quickActions[0]) => {
     if (action.requiresFile && uploadedFiles.length === 0) {
-      toast.error('This action requires a file to be uploaded first.');
+      console.error('This action requires a file to be uploaded first.');
       return;
     }
     
@@ -214,7 +258,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
           size: file.size
         };
         setUploadedFiles(prev => [...prev, uploadedFile]);
-        toast.success(`File uploaded: ${file.name}`);
+        console.log(`File uploaded: ${file.name}`);
       };
       reader.readAsText(file);
     });
@@ -227,7 +271,104 @@ Always provide practical, actionable advice that follows NHS guidelines and best
   const clearConversation = () => {
     setMessages([]);
     setUploadedFiles([]);
-    toast.success('Conversation cleared');
+    console.log('Conversation cleared');
+  };
+
+  const generateWordDocument = async (content: string, title: string = 'AI Generated Document') => {
+    try {
+      // Parse the content and create document structure
+      const paragraphs: any[] = [];
+      
+      // Add title
+      paragraphs.push(
+        new Paragraph({
+          text: title,
+          heading: HeadingLevel.TITLE,
+        })
+      );
+
+      // Split content into paragraphs and format
+      const contentLines = content.split('\n').filter(line => line.trim());
+      
+      contentLines.forEach(line => {
+        const trimmedLine = line.trim();
+        
+        // Check if it's a heading (starts with # or is all caps)
+        if (trimmedLine.startsWith('#') || (trimmedLine === trimmedLine.toUpperCase() && trimmedLine.length > 5)) {
+          const headingText = trimmedLine.replace(/^#+\s*/, '');
+          paragraphs.push(
+            new Paragraph({
+              text: headingText,
+              heading: HeadingLevel.HEADING_1,
+            })
+          );
+        } else if (trimmedLine.startsWith('-') || trimmedLine.startsWith('•')) {
+          // Bullet points
+          paragraphs.push(
+            new Paragraph({
+              text: trimmedLine.replace(/^[-•]\s*/, ''),
+              bullet: {
+                level: 0,
+              },
+            })
+          );
+        } else if (trimmedLine) {
+          // Regular paragraph
+          paragraphs.push(
+            new Paragraph({
+              children: [new TextRun(trimmedLine)],
+            })
+          );
+        }
+      });
+
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children: paragraphs,
+        }],
+      });
+
+      const blob = await Packer.toBlob(doc);
+      saveAs(blob, `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.docx`);
+      console.log('Word document generated successfully');
+    } catch (error) {
+      console.error('Error generating Word document:', error);
+    }
+  };
+
+  const generateImage = async (prompt: string) => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase.functions.invoke('generate-image', {
+        body: { prompt }
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        // Add the generated image as a message
+        const imageMessage: Message = {
+          id: Date.now().toString(),
+          role: 'assistant',
+          content: `I've generated an image based on your request: "${data.revisedPrompt}"\n\n![Generated Image](${data.imageData})`,
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, imageMessage]);
+        console.log('Image generated successfully');
+      }
+    } catch (error: any) {
+      console.error('Error generating image:', error);
+      const errorMessage: Message = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: `Sorry, I couldn't generate the image. Error: ${error.message}`,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (loading) {
@@ -323,7 +464,35 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                   ) : (
                     <div className="space-y-6">
                       {messages.map((message) => (
-                        <MessageRenderer key={message.id} message={message} />
+                        <div key={message.id}>
+                          <MessageRenderer message={message} />
+                          {/* Add action buttons for AI responses */}
+                          {message.role === 'assistant' && message.content.length > 100 && (
+                            <div className="flex gap-2 mt-2 ml-11">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => generateWordDocument(message.content, 'AI Generated Document')}
+                                className="h-8 text-xs"
+                              >
+                                <FileDown className="h-3 w-3 mr-1" />
+                                Export as Word
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const prompt = `Create a professional diagram or infographic based on this content: ${message.content.substring(0, 200)}...`;
+                                  generateImage(prompt);
+                                }}
+                                className="h-8 text-xs"
+                              >
+                                <Image className="h-3 w-3 mr-1" />
+                                Generate Visual
+                              </Button>
+                            </div>
+                          )}
+                        </div>
                       ))}
                       
                       {isLoading && (
