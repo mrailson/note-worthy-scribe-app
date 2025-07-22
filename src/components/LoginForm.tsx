@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Mail, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { ForgotPassword } from "./ForgotPassword";
 
 export const LoginForm = () => {
   const [email, setEmail] = useState("");
@@ -13,7 +14,12 @@ export const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isValid, setIsValid] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const { signIn } = useAuth();
+
+  if (showForgotPassword) {
+    return <ForgotPassword onBackToLogin={() => setShowForgotPassword(false)} />;
+  }
 
   const validateEmail = (email: string) => {
     const validDomains = ['@nhs.net', '@nhs.uk', '@nhft.nhs.uk'];
@@ -103,6 +109,17 @@ export const LoginForm = () => {
             >
               {loading ? "Signing In..." : "Sign In"}
             </Button>
+
+            <div className="text-center">
+              <Button
+                variant="link"
+                size="sm"
+                onClick={() => setShowForgotPassword(true)}
+                className="text-primary hover:text-primary-hover text-sm"
+              >
+                Forgot your password?
+              </Button>
+            </div>
           </div>
 
 

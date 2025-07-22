@@ -11,6 +11,7 @@ import ComplaintsSystem from "./pages/ComplaintsSystem";
 import ReplyWellAI from "./pages/ReplyWellAI";
 import AI4PMService from "./pages/AI4PMService";
 import NotFound from "./pages/NotFound";
+import { ResetPassword } from "./components/ResetPassword";
 
 const App = () => (
   <TooltipProvider>
@@ -25,6 +26,7 @@ const App = () => (
       <Route path="/complaints" element={<ComplaintsSystem />} />
       <Route path="/replywell-ai" element={<ReplyWellAI />} />
       <Route path="/ai-4-pm" element={<AI4PMService />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
       <Route path="*" element={<NotFound />} />
     </Routes>
