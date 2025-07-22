@@ -27,6 +27,7 @@ interface Practice {
   name: string;
   practice_code?: string;
   pcn_code?: string;
+  pcn_name?: string;
   neighbourhood_id?: string;
   ics_code: string;
   ics_name: string;
@@ -164,7 +165,8 @@ const SystemAdmin = () => {
 
   const fetchPractices = async () => {
     try {
-      const { data, error } = await supabase
+      // Fetch practices data
+      const { data: practicesData, error: practicesError } = await supabase
         .from('gp_practices')
         .select(`
           id, 
@@ -179,8 +181,28 @@ const SystemAdmin = () => {
         `)
         .order('name');
 
-      if (error) throw error;
-      setPractices(data || []);
+      if (practicesError) throw practicesError;
+
+      // Fetch PCN data to match with practices
+      const { data: pcnData, error: pcnError } = await supabase
+        .from('primary_care_networks')
+        .select('pcn_code, pcn_name');
+
+      if (pcnError) throw pcnError;
+
+      // Create a map of PCN codes to names
+      const pcnMap = new Map();
+      pcnData?.forEach(pcn => {
+        pcnMap.set(pcn.pcn_code, pcn.pcn_name);
+      });
+
+      // Map the practices data to include PCN names
+      const practicesWithPCNNames = practicesData?.map(practice => ({
+        ...practice,
+        pcn_name: practice.pcn_code ? pcnMap.get(practice.pcn_code) : null
+      })) || [];
+      
+      setPractices(practicesWithPCNNames);
     } catch (error) {
       console.error('Error fetching practices:', error);
       toast.error("Failed to fetch practices");
@@ -474,30 +496,33 @@ const SystemAdmin = () => {
 
           <Card>
             <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Practice Name</TableHead>
-                  <TableHead>Practice Code</TableHead>
-                  <TableHead>PCN Code</TableHead>
-                  <TableHead>Neighbourhood</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
+               <TableHeader>
+                 <TableRow>
+                   <TableHead>Practice Name</TableHead>
+                   <TableHead>Practice Code</TableHead>
+                   <TableHead>PCN Name</TableHead>
+                   <TableHead>PCN Code</TableHead>
+                   <TableHead>Neighbourhood</TableHead>
+                   <TableHead>Actions</TableHead>
+                 </TableRow>
+               </TableHeader>
               <TableBody>
-                {practices
-                  .filter(practice => {
-                    const searchLower = practiceSearchQuery.toLowerCase();
-                    const nameMatch = practice.name.toLowerCase().includes(searchLower);
-                    const codeMatch = practice.practice_code && practice.practice_code.toLowerCase().includes(searchLower);
-                    const pcnMatch = practice.pcn_code && practice.pcn_code.toLowerCase().includes(searchLower);
-                    return nameMatch || codeMatch || pcnMatch;
-                  })
+                 {practices
+                   .filter(practice => {
+                     const searchLower = practiceSearchQuery.toLowerCase();
+                     const nameMatch = practice.name.toLowerCase().includes(searchLower);
+                     const codeMatch = practice.practice_code && practice.practice_code.toLowerCase().includes(searchLower);
+                     const pcnCodeMatch = practice.pcn_code && practice.pcn_code.toLowerCase().includes(searchLower);
+                     const pcnNameMatch = practice.pcn_name && practice.pcn_name.toLowerCase().includes(searchLower);
+                     return nameMatch || codeMatch || pcnCodeMatch || pcnNameMatch;
+                   })
                   .map((practice) => (
-                    <TableRow key={practice.id}>
-                      <TableCell>{practice.name}</TableCell>
-                      <TableCell>{practice.practice_code}</TableCell>
-                      <TableCell>{practice.pcn_code}</TableCell>
-                      <TableCell>{practice.neighbourhood_id}</TableCell>
+                     <TableRow key={practice.id}>
+                       <TableCell>{practice.name}</TableCell>
+                       <TableCell>{practice.practice_code}</TableCell>
+                       <TableCell>{practice.pcn_name || 'Unassigned'}</TableCell>
+                       <TableCell>{practice.pcn_code}</TableCell>
+                       <TableCell>{practice.neighbourhood_id}</TableCell>
                       <TableCell>
                         <Button variant="ghost" size="sm" className="mr-2">
                           <Edit className="h-4 w-4" />
