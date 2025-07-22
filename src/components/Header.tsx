@@ -5,6 +5,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
 import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -87,20 +90,28 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                   align="end" 
                   className="bg-background border border-border shadow-lg z-50 w-48"
                 >
-                  <DropdownMenuItem 
-                    onClick={() => navigate('/')}
-                    className="cursor-pointer py-3"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Start New Meeting
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={() => navigate('/meetings')}
-                    className="cursor-pointer py-3"
-                  >
-                    <FileText className="h-4 w-4 mr-2" />
-                    View Meeting History
-                  </DropdownMenuItem>
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger className="cursor-pointer py-3">
+                      <FileText className="h-4 w-4 mr-2" />
+                      Meeting Notes Service
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent className="bg-background border border-border shadow-lg">
+                      <DropdownMenuItem 
+                        onClick={() => navigate('/')}
+                        className="cursor-pointer py-3"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Start New Meeting
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => navigate('/meetings')}
+                        className="cursor-pointer py-3"
+                      >
+                        <FileText className="h-4 w-4 mr-2" />
+                        View Meeting History
+                      </DropdownMenuItem>
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
                   <DropdownMenuItem 
                     onClick={() => navigate('/gp-scribe')}
                     className="cursor-pointer py-3"
