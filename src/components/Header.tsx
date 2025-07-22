@@ -6,7 +6,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope } from "lucide-react";
+import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -70,19 +70,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
               </Button>
             )}
             
-            {!isGPScribePage && (
-              <Button 
-                onClick={() => navigate('/gp-scribe')}
-                variant="secondary"
-                size="sm"
-                className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs sm:text-sm px-2 sm:px-4"
-              >
-                <Stethoscope className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
-                <span className="hidden sm:inline">GP Scribe</span>
-              </Button>
-            )}
-            
-            {user && !isMeetingHistoryPage ? (
+            {user && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button 
@@ -90,8 +78,8 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                     size="sm"
                     className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs sm:text-sm px-2 sm:px-4"
                   >
-                    <FileText className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
-                    <span className="hidden sm:inline">Meeting History</span>
+                    <Grid3X3 className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Select Module</span>
                     <ChevronDown className="h-3 w-3 ml-1" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -100,6 +88,13 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                   className="bg-background border border-border shadow-lg z-50 w-48"
                 >
                   <DropdownMenuItem 
+                    onClick={() => navigate('/')}
+                    className="cursor-pointer py-3"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Start New Meeting
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
                     onClick={() => navigate('/meetings')}
                     className="cursor-pointer py-3"
                   >
@@ -107,25 +102,15 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                     View Meeting History
                   </DropdownMenuItem>
                   <DropdownMenuItem 
-                    onClick={() => navigate('/')}
+                    onClick={() => navigate('/gp-scribe')}
                     className="cursor-pointer py-3"
                   >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Start New Meeting
+                    <Stethoscope className="h-4 w-4 mr-2" />
+                    GP Scribe
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            ) : user && isMeetingHistoryPage ? (
-              <Button 
-                onClick={() => navigate('/')}
-                variant="secondary"
-                size="sm"
-                className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs sm:text-sm px-2 sm:px-4"
-              >
-                <Plus className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
-                <span className="hidden sm:inline">New Meeting</span>
-              </Button>
-            ) : null}
+            )}
             
             {user && !isSettingsPage && (
               <Button 
