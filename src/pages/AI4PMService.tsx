@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { toast } from '@/hooks/use-toast';
 import { 
   Send, 
   Mic, 
@@ -36,7 +37,9 @@ import {
   BookOpen,
   Image,
   FileDown,
-  Presentation
+  Presentation,
+  History,
+  Eye
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { LoginForm } from '@/components/LoginForm';
@@ -61,6 +64,15 @@ interface UploadedFile {
   size: number;
 }
 
+interface SearchHistory {
+  id: string;
+  title: string;
+  brief_overview?: string;
+  messages: Message[];
+  created_at: string;
+  updated_at: string;
+}
+
 const AI4PMService = () => {
   const { user, loading } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -70,6 +82,8 @@ const AI4PMService = () => {
   const [sessionMemory, setSessionMemory] = useState(true);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [apiKeyMissing, setApiKeyMissing] = useState<{claude: boolean, gpt: boolean}>({claude: false, gpt: false});
+  const [searchHistory, setSearchHistory] = useState<SearchHistory[]>([]);
+  const [activeTab, setActiveTab] = useState('ai-service');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const scrollToBottom = () => {
@@ -80,7 +94,163 @@ const AI4PMService = () => {
     scrollToBottom();
   }, [messages]);
 
+  // Load search history on component mount
+  useEffect(() => {
+    if (user) {
+      loadSearchHistoryList();
+    }
+  }, [user]);
+
+  const loadSearchHistoryList = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('ai_4_pm_searches')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+      setSearchHistory((data || []).map(item => ({
+        id: item.id,
+        title: item.title,
+        brief_overview: item.brief_overview || undefined,
+        messages: (item.messages as any) || [],
+        created_at: item.created_at,
+        updated_at: item.updated_at
+      })));
+    } catch (error) {
+      console.error('Error loading search history:', error);
+    }
+  };
+
+  const saveCurrentSearch = async () => {
+    if (!user || messages.length === 0) return;
+
+    try {
+      // Generate title from first user message
+      const firstUserMessage = messages.find(m => m.role === 'user');
+      const title = firstUserMessage?.content.substring(0, 50) + (firstUserMessage?.content.length > 50 ? '...' : '') || 'Untitled Search';
+      
+      // Generate brief overview from AI responses
+      const aiMessages = messages.filter(m => m.role === 'assistant');
+      const overview = aiMessages.length > 0 
+        ? aiMessages[0].content.substring(0, 100) + (aiMessages[0].content.length > 100 ? '...' : '')
+        : 'No AI response';
+
+      const { error } = await supabase
+        .from('ai_4_pm_searches')
+        .insert({
+          user_id: user.id,
+          title,
+          brief_overview: overview,
+          messages: messages as any
+        });
+
+      if (error) throw error;
+      
+      toast({
+        title: "Search saved",
+        description: "Search saved to history",
+      });
+      loadSearchHistoryList(); // Refresh the list
+    } catch (error) {
+      console.error('Error saving search:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save search",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const loadPreviousSearch = async (searchId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('ai_4_pm_searches')
+        .select('*')
+        .eq('id', searchId)
+        .single();
+
+      if (error) throw error;
+      
+      const messagesData = Array.isArray(data.messages) ? (data.messages as unknown as Message[]) : [];
+      setMessages(messagesData);
+      setActiveTab('ai-service');
+      toast({
+        title: "Search loaded",
+        description: "Previous search loaded successfully",
+      });
+    } catch (error) {
+      console.error('Error loading search:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load search",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const saveSearchAutomatically = async (messagesData: Message[]) => {
+    if (!user || messagesData.length === 0) return;
+
+    try {
+      // Generate title from first user message
+      const firstUserMessage = messagesData.find(m => m.role === 'user');
+      const title = firstUserMessage?.content.substring(0, 50) + (firstUserMessage?.content.length > 50 ? '...' : '') || 'Untitled Search';
+      
+      // Generate brief overview from AI responses
+      const aiMessages = messagesData.filter(m => m.role === 'assistant');
+      const overview = aiMessages.length > 0 
+        ? aiMessages[0].content.substring(0, 100) + (aiMessages[0].content.length > 100 ? '...' : '')
+        : 'No AI response';
+
+      const { error } = await supabase
+        .from('ai_4_pm_searches')
+        .insert({
+          user_id: user.id,
+          title,
+          brief_overview: overview,
+          messages: messagesData as any
+        });
+
+      if (!error) {
+        loadSearchHistoryList(); // Refresh the list silently
+      }
+    } catch (error) {
+      // Silent failure for auto-save
+      console.error('Error auto-saving search:', error);
+    }
+  };
+
+  const deleteSearch = async (searchId: string) => {
+    try {
+      const { error } = await supabase
+        .from('ai_4_pm_searches')
+        .delete()
+        .eq('id', searchId);
+
+      if (error) throw error;
+      
+      toast({
+        title: "Search deleted",
+        description: "Search deleted successfully",
+      });
+      loadSearchHistoryList(); // Refresh the list
+    } catch (error) {
+      console.error('Error deleting search:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete search",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleNewMeeting = () => {
+    // Save current search before clearing if it has messages
+    if (messages.length > 0) {
+      saveCurrentSearch();
+    }
     // Clear current conversation
     setMessages([]);
     setUploadedFiles([]);
@@ -192,6 +362,15 @@ Always provide practical, actionable advice that follows NHS guidelines and best
 
       setMessages(prev => [...prev, assistantMessage]);
       setUploadedFiles([]); // Clear files after sending
+
+      // Auto-save search after AI responds (only if this is a new conversation)
+      const isNewConversation = messages.length === 0;
+      if (isNewConversation) {
+        setTimeout(() => {
+          const updatedMessages = [...messages, userMessage, assistantMessage];
+          saveSearchAutomatically(updatedMessages);
+        }, 1000);
+      }
 
       // Check if the response suggests document or image generation
       const responseText = data.response.toLowerCase();
@@ -723,11 +902,15 @@ Always provide practical, actionable advice that follows NHS guidelines and best
       )}
       
       <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 max-w-7xl">
-        <Tabs defaultValue="ai-service" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="ai-service" className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4" />
               AI Service
+            </TabsTrigger>
+            <TabsTrigger value="previous-searches" className="flex items-center gap-2">
+              <History className="h-4 w-4" />
+              Previous Searches
             </TabsTrigger>
             <TabsTrigger value="ai-settings" className="flex items-center gap-2">
               <Settings className="h-4 w-4" />
@@ -927,6 +1110,91 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                     </Button>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Previous Searches Tab */}
+          <TabsContent value="previous-searches" className="mt-6">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <History className="h-5 w-5" />
+                  Previous Searches
+                </CardTitle>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={saveCurrentSearch}
+                    variant="outline"
+                    size="sm"
+                    disabled={messages.length === 0}
+                    className="flex items-center gap-2"
+                  >
+                    <Download className="h-4 w-4" />
+                    Save Current Search
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {searchHistory.length === 0 ? (
+                  <div className="text-center py-8">
+                    <History className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p className="text-lg font-medium mb-2">No Previous Searches</p>
+                    <p className="text-sm text-muted-foreground">
+                      Start a conversation in the AI Service tab to create your first saved search.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {searchHistory.map((search) => (
+                      <div key={search.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-medium text-sm mb-1 truncate">{search.title}</h3>
+                            <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
+                              {search.brief_overview || 'No overview available'}
+                            </p>
+                            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                              <span className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                {new Date(search.created_at).toLocaleDateString('en-GB', {
+                                  day: '2-digit',
+                                  month: 'short',
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <MessageSquare className="h-3 w-3" />
+                                {search.messages.length} messages
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex gap-2 ml-4">
+                            <Button
+                              onClick={() => loadPreviousSearch(search.id)}
+                              variant="outline"
+                              size="sm"
+                              className="h-8 px-3"
+                            >
+                              <Eye className="h-3 w-3 mr-1" />
+                              View
+                            </Button>
+                            <Button
+                              onClick={() => deleteSearch(search.id)}
+                              variant="outline"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

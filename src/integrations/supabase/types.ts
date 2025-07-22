@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_4_pm_searches: {
+        Row: {
+          brief_overview: string | null
+          created_at: string
+          id: string
+          messages: Json
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          brief_overview?: string | null
+          created_at?: string
+          id?: string
+          messages?: Json
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          brief_overview?: string | null
+          created_at?: string
+          id?: string
+          messages?: Json
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       attendees: {
         Row: {
           created_at: string
