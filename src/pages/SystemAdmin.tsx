@@ -879,7 +879,7 @@ The Notewell AI Team</p>
 
           {/* Main Content with Tabs */}
           <Tabs defaultValue="dashboard" className="w-full">
-            <TabsList className="grid w-full grid-cols-5 mb-6 bg-muted p-1 rounded-md h-12">
+            <TabsList className="grid w-full grid-cols-4 mb-6 bg-muted p-1 rounded-md h-12">
               <TabsTrigger value="dashboard" className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground">
                 <BarChart3 className="h-4 w-4" />
                 Dashboard
@@ -891,10 +891,6 @@ The Notewell AI Team</p>
               <TabsTrigger value="practices" className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground">
                 <Building2 className="h-4 w-4" />
                 Practices
-              </TabsTrigger>
-              <TabsTrigger value="meetings" className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground">
-                <Calendar className="h-4 w-4" />
-                Meetings
               </TabsTrigger>
               <TabsTrigger value="settings" className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground">
                 <Shield className="h-4 w-4" />
@@ -1342,12 +1338,6 @@ The Notewell AI Team</p>
             {/* Add practice management content here */}
           </TabsContent>
 
-          {/* Meetings Tab */}
-          <TabsContent value="meetings" className="space-y-6">
-            <h2 className="text-2xl font-bold">Meeting Analytics</h2>
-            <p className="text-muted-foreground">View meeting statistics and analytics</p>
-            {/* Add meeting analytics content here */}
-          </TabsContent>
 
           {/* Settings Tab */}
           <TabsContent value="settings" className="space-y-6">
