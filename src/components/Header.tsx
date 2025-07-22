@@ -6,7 +6,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3 } from "lucide-react";
+import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -107,6 +107,13 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                   >
                     <Stethoscope className="h-4 w-4 mr-2" />
                     GP Scribe
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => navigate('/complaints')}
+                    className="cursor-pointer py-3"
+                  >
+                    <MessageSquareWarning className="h-4 w-4 mr-2" />
+                    Complaints System
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
