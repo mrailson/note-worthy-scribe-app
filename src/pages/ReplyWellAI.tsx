@@ -15,6 +15,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { SpeechToText } from '@/components/SpeechToText';
 import { RealtimeSpeechToText } from '@/components/RealtimeSpeechToText';
 import { FileUpload } from '@/components/FileUpload';
+import { Header } from '@/components/Header';
 import { 
   FileText, 
   Upload, 
@@ -211,7 +212,9 @@ export default function ReplyWellAI() {
   };
 
   return (
-    <div className="container mx-auto p-6 max-w-7xl">
+    <div className="min-h-screen bg-background">
+      <Header onNewMeeting={resetForm} />
+      <div className="container mx-auto p-6 max-w-7xl">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-foreground">ReplyWell AI</h1>
@@ -556,6 +559,7 @@ export default function ReplyWellAI() {
               </CardContent>
             </Card>
           )}
+        </div>
         </div>
       </div>
     </div>
