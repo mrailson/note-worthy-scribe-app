@@ -28,11 +28,6 @@ export const LoginForm = () => {
     const newEmail = e.target.value;
     setEmail(newEmail);
     validateEmail(newEmail);
-    
-    // Auto-fill password for NHS emails
-    if (newEmail.toLowerCase().includes('@nhs.') && !password) {
-      getDefaultPassword(newEmail);
-    }
   };
 
   const handleLogin = async () => {
@@ -44,11 +39,6 @@ export const LoginForm = () => {
   };
 
 
-  const getDefaultPassword = (email: string) => {
-    if (email.toLowerCase().includes('@nhs.')) {
-      setPassword('password');
-    }
-  };
 
   return (
     <div className="min-h-[500px] flex items-center justify-center">

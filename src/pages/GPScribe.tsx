@@ -21,6 +21,7 @@ import { consultationExamples, type ConsultationExample } from "@/data/consultat
 import { TranslationInterface } from "@/components/TranslationInterface";
 import { ConsultationHistory } from "@/components/ConsultationHistory";
 import { PatientTranslationView } from "@/components/PatientTranslationView";
+import { SafeMessageRenderer } from "@/components/SafeMessageRenderer";
 
 const HEALTHCARE_LANGUAGES = [
   { code: 'none', name: 'No Translation', flag: '🚫' },
@@ -1843,12 +1844,12 @@ const Index = () => {
                     </div>
                   ) : (
                     <div className="bg-gray-50 dark:bg-gray-950/20 rounded-lg p-4 min-h-[200px] whitespace-pre-wrap">
-                      <div 
-                        dangerouslySetInnerHTML={{ 
-                          __html: (referralLetter || "No referral letter generated yet")
-                            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                            .replace(/\n/g, '<br/>') 
-                        }} 
+                      <SafeMessageRenderer 
+                        content={(referralLetter || "No referral letter generated yet")
+                          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                          .replace(/\n/g, '<br/>') 
+                        }
+                        className="min-h-[200px]"
                       />
                     </div>
                   )}
