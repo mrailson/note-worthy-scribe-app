@@ -61,17 +61,15 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
           
           {/* Mobile navigation */}
           <div className="flex gap-1 sm:gap-2">
-            {!isHomePage && (
-              <Button 
-                onClick={() => navigate('/')}
-                variant="secondary"
-                size="sm"
-                className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs sm:text-sm px-2 sm:px-4"
-              >
-                <Home className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Home</span>
-              </Button>
-            )}
+            <Button 
+              onClick={() => isHomePage ? onNewMeeting() : navigate('/')}
+              variant="secondary"
+              size="sm"
+              className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs sm:text-sm px-2 sm:px-4"
+            >
+              <Home className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+              <span className="hidden sm:inline">{isHomePage ? 'New Meeting' : 'Home'}</span>
+            </Button>
             
             {user && (
               <DropdownMenu>
