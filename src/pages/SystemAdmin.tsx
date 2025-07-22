@@ -541,10 +541,12 @@ const SystemAdmin = () => {
               </TableHeader>
               <TableBody>
                 {pcns
-                  .filter(pcn => 
-                    pcn.pcn_name.toLowerCase().includes(pcnSearchQuery.toLowerCase()) ||
-                    (pcn.pcn_code && pcn.pcn_code.toLowerCase().includes(pcnSearchQuery.toLowerCase()))
-                  )
+                  .filter(pcn => {
+                    const searchLower = pcnSearchQuery.toLowerCase();
+                    const nameMatch = pcn.pcn_name.toLowerCase().includes(searchLower);
+                    const codeMatch = pcn.pcn_code && pcn.pcn_code.toLowerCase().includes(searchLower);
+                    return nameMatch || codeMatch;
+                  })
                   .map((pcn) => (
                     <TableRow key={pcn.id}>
                       <TableCell>{pcn.pcn_name}</TableCell>
