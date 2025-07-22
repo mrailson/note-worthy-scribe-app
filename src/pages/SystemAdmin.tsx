@@ -16,6 +16,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Users, 
@@ -89,6 +97,9 @@ export default function SystemAdmin() {
   const [isPracticeManager, setIsPracticeManager] = useState(false);
   const [userPracticeId, setUserPracticeId] = useState<string | null>(null);
   const [recentMeetings, setRecentMeetings] = useState<RecentMeeting[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalMeetings, setTotalMeetings] = useState(0);
+  const meetingsPerPage = 10;
   
   // Add User Dialog State
   const [addUserOpen, setAddUserOpen] = useState(false);
@@ -339,9 +350,19 @@ export default function SystemAdmin() {
     }
   };
 
-  const fetchRecentMeetings = async () => {
+  const fetchRecentMeetings = async (page = 1) => {
     try {
-      // First fetch meetings
+      const offset = (page - 1) * meetingsPerPage;
+      
+      // Get total count
+      const { count, error: countError } = await supabase
+        .from('meetings')
+        .select('*', { count: 'exact', head: true });
+      
+      if (countError) throw countError;
+      setTotalMeetings(count || 0);
+      
+      // First fetch meetings with pagination
       const { data: meetingsData, error: meetingsError } = await supabase
         .from('meetings')
         .select(`
@@ -353,7 +374,7 @@ export default function SystemAdmin() {
           user_id
         `)
         .order('created_at', { ascending: false })
-        .limit(10);
+        .range(offset, offset + meetingsPerPage - 1);
 
       if (meetingsError) throw meetingsError;
 
@@ -421,6 +442,11 @@ export default function SystemAdmin() {
       console.error('Error fetching recent meetings:', error);
       toast.error('Failed to fetch recent meetings');
     }
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    fetchRecentMeetings(page);
   };
 
   const getDefaultPassword = () => {
@@ -991,10 +1017,41 @@ The Notewell AI Team</p>
                         ))}
                       </TableBody>
                     </Table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                   </div>
+                 )}
+                 {totalMeetings > meetingsPerPage && (
+                   <div className="mt-4 flex justify-center">
+                     <Pagination>
+                       <PaginationContent>
+                         <PaginationItem>
+                           <PaginationPrevious 
+                             onClick={() => currentPage > 1 && handlePageChange(currentPage - 1)}
+                             className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                           />
+                         </PaginationItem>
+                         {Array.from({ length: Math.ceil(totalMeetings / meetingsPerPage) }, (_, i) => i + 1).map((page) => (
+                           <PaginationItem key={page}>
+                             <PaginationLink
+                               onClick={() => handlePageChange(page)}
+                               isActive={currentPage === page}
+                               className="cursor-pointer"
+                             >
+                               {page}
+                             </PaginationLink>
+                           </PaginationItem>
+                         ))}
+                         <PaginationItem>
+                           <PaginationNext 
+                             onClick={() => currentPage < Math.ceil(totalMeetings / meetingsPerPage) && handlePageChange(currentPage + 1)}
+                             className={currentPage >= Math.ceil(totalMeetings / meetingsPerPage) ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                           />
+                         </PaginationItem>
+                       </PaginationContent>
+                     </Pagination>
+                   </div>
+                 )}
+               </CardContent>
+             </Card>
           </TabsContent>
 
           {/* Users Tab */}
