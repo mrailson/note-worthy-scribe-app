@@ -39,7 +39,8 @@ import {
   FileDown,
   Presentation,
   History,
-  Eye
+  Eye,
+  Plus
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { LoginForm } from '@/components/LoginForm';
@@ -1230,6 +1231,16 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                       >
                         <Sparkles className="h-4 w-4 mr-2" />
                         GPT-4 (OpenAI)
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={handleNewMeeting}
+                        className="px-3"
+                        title="Start a new conversation"
+                      >
+                        <Plus className="h-4 w-4 mr-1" />
+                        New Chat
                       </Button>
                     </div>
                     <p className="text-xs text-muted-foreground">
