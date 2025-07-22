@@ -74,6 +74,8 @@ export default function SystemAdmin() {
   const [pcns, setPcns] = useState<PCN[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isPracticeManager, setIsPracticeManager] = useState(false);
+  const [userPracticeId, setUserPracticeId] = useState<string | null>(null);
   
   // Add User Dialog State
   const [addUserOpen, setAddUserOpen] = useState(false);
@@ -118,33 +120,53 @@ export default function SystemAdmin() {
   });
 
   useEffect(() => {
-    checkAdminAccess();
+    checkAccessPermissions();
   }, [user]);
 
   useEffect(() => {
-    if (isAdmin) {
+    if (isAdmin || isPracticeManager) {
       fetchUsers();
       fetchPractices();
       fetchPCNs();
       fetchDashboardStats();
     }
-  }, [isAdmin]);
+  }, [isAdmin, isPracticeManager]);
 
-  const checkAdminAccess = async () => {
+  const checkAccessPermissions = async () => {
     if (!user) return;
     
     try {
-      const { data, error } = await supabase
+      // Check if user is system admin
+      const { data: adminData, error: adminError } = await supabase
         .rpc('is_system_admin', { _user_id: user.id });
       
-      if (error) throw error;
-      setIsAdmin(data);
+      if (adminError) throw adminError;
+      setIsAdmin(adminData);
       
-      if (!data) {
-        toast.error("Access denied. System admin privileges required.");
+      if (adminData) {
+        // User is system admin, no need to check practice manager
+        return;
+      }
+      
+      // Check if user is practice manager
+      const { data: roleData, error: roleError } = await supabase
+        .from('user_roles')
+        .select('role, practice_id')
+        .eq('user_id', user.id)
+        .eq('role', 'practice_manager')
+        .maybeSingle();
+      
+      if (roleError) throw roleError;
+      
+      if (roleData) {
+        setIsPracticeManager(true);
+        setUserPracticeId(roleData.practice_id);
+      } else {
+        // User has no access
+        toast.error("Access denied. System admin or practice manager privileges required.");
       }
     } catch (error) {
-      console.error('Error checking admin access:', error);
+      console.error('Error checking access permissions:', error);
       toast.error("Error checking permissions");
     }
   };
@@ -215,7 +237,16 @@ export default function SystemAdmin() {
         };
       }) || [];
 
-      setUsers(usersWithData);
+      // Filter users based on role
+      let filteredUsers = usersWithData;
+      if (isPracticeManager && userPracticeId) {
+        // Practice managers can only see users in their practice
+        filteredUsers = usersWithData.filter(user => 
+          user.roles.some(role => role.practice_id === userPracticeId)
+        );
+      }
+
+      setUsers(filteredUsers);
     } catch (error) {
       console.error('Error fetching users:', error);
       toast.error("Failed to fetch users");
@@ -367,7 +398,8 @@ This is an automated message. Please do not reply to this email.`;
     try {
       // Use default password "letmein1st"
       const tempPassword = getDefaultPassword();
-      const practiceId = newUserPractice === "none" ? null : newUserPractice;
+      // For practice managers, always use their practice ID
+      const practiceId = isPracticeManager ? userPracticeId : (newUserPractice === "none" ? null : newUserPractice);
       
       // Create user via edge function with admin privileges
       const { data: createUserData, error: createUserError } = await supabase.functions.invoke('create-user-admin', {
@@ -599,7 +631,8 @@ The Notewell AI Team</p>
         .eq('user_id', editingUser.id);
 
       // Add new role with module access settings
-      const practiceId = editUserPractice === "none" ? null : editUserPractice;
+      // For practice managers, always use their practice ID
+      const practiceId = isPracticeManager ? userPracticeId : (editUserPractice === "none" ? null : editUserPractice);
       
       const { error } = await supabase
         .from('user_roles')
@@ -687,7 +720,7 @@ The Notewell AI Team</p>
     ).join(' ');
   };
 
-  if (!isAdmin) {
+  if (!isAdmin && !isPracticeManager) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="w-96">
@@ -695,7 +728,7 @@ The Notewell AI Team</p>
             <Shield className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
             <h2 className="text-xl font-semibold mb-2">Access Denied</h2>
             <p className="text-muted-foreground">
-              You need system administrator privileges to access this page.
+              You need system administrator or practice manager privileges to access this page.
             </p>
           </CardContent>
         </Card>
@@ -711,8 +744,12 @@ The Notewell AI Team</p>
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-foreground">System Administration</h1>
-              <p className="text-muted-foreground">Manage users, roles, and system analytics</p>
+              <h1 className="text-3xl font-bold text-foreground">
+                {isPracticeManager ? "Practice Management" : "System Administration"}
+              </h1>
+              <p className="text-muted-foreground">
+                {isPracticeManager ? "Manage users and settings for your practice" : "Manage users, roles, and system analytics"}
+              </p>
             </div>
           </div>
 
@@ -839,25 +876,37 @@ The Notewell AI Team</p>
                           <SelectItem value="nurse">Nurse</SelectItem>
                           <SelectItem value="administrator">Administrator</SelectItem>
                           <SelectItem value="gp">GP</SelectItem>
-                          <SelectItem value="practice_manager">Practice Manager</SelectItem>
-                          <SelectItem value="system_admin">System Admin</SelectItem>
+                          {isAdmin && <SelectItem value="practice_manager">Practice Manager</SelectItem>}
+                          {isAdmin && <SelectItem value="system_admin">System Admin</SelectItem>}
                         </SelectContent>
                       </Select>
                     </div>
                     
                     <div>
-                      <Label htmlFor="practice">Practice (Optional)</Label>
-                      <Select value={newUserPractice} onValueChange={setNewUserPractice}>
+                      <Label htmlFor="practice">Practice {isPracticeManager ? "(Assigned Practice)" : "(Optional)"}</Label>
+                      <Select 
+                        value={isPracticeManager ? userPracticeId || "none" : newUserPractice} 
+                        onValueChange={isPracticeManager ? () => {} : setNewUserPractice}
+                        disabled={isPracticeManager}
+                      >
                         <SelectTrigger>
                           <SelectValue placeholder="Select a practice" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="none">No Practice</SelectItem>
-                          {practices.map(practice => (
-                            <SelectItem key={practice.id} value={practice.id}>
-                              {practice.practice_name}
-                            </SelectItem>
-                          ))}
+                          {!isPracticeManager && <SelectItem value="none">No Practice</SelectItem>}
+                          {isPracticeManager ? (
+                            practices.filter(p => p.id === userPracticeId).map(practice => (
+                              <SelectItem key={practice.id} value={practice.id}>
+                                {practice.practice_name}
+                              </SelectItem>
+                            ))
+                          ) : (
+                            practices.map(practice => (
+                              <SelectItem key={practice.id} value={practice.id}>
+                                {practice.practice_name}
+                              </SelectItem>
+                            ))
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
@@ -1141,25 +1190,37 @@ The Notewell AI Team</p>
                     <SelectItem value="nurse">Nurse</SelectItem>
                     <SelectItem value="administrator">Administrator</SelectItem>
                     <SelectItem value="gp">GP</SelectItem>
-                    <SelectItem value="practice_manager">Practice Manager</SelectItem>
-                    <SelectItem value="system_admin">System Admin</SelectItem>
+                    {isAdmin && <SelectItem value="practice_manager">Practice Manager</SelectItem>}
+                    {isAdmin && <SelectItem value="system_admin">System Admin</SelectItem>}
                   </SelectContent>
                 </Select>
               </div>
               
               <div>
-                <Label htmlFor="edit-practice">Practice</Label>
-                <Select value={editUserPractice} onValueChange={setEditUserPractice}>
+                <Label htmlFor="edit-practice">Practice {isPracticeManager ? "(Assigned Practice)" : ""}</Label>
+                <Select 
+                  value={isPracticeManager ? userPracticeId || "none" : editUserPractice} 
+                  onValueChange={isPracticeManager ? () => {} : setEditUserPractice}
+                  disabled={isPracticeManager}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select a practice" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">No Practice</SelectItem>
-                    {practices.map(practice => (
-                      <SelectItem key={practice.id} value={practice.id}>
-                        {practice.practice_name}
-                      </SelectItem>
-                    ))}
+                    {!isPracticeManager && <SelectItem value="none">No Practice</SelectItem>}
+                    {isPracticeManager ? (
+                      practices.filter(p => p.id === userPracticeId).map(practice => (
+                        <SelectItem key={practice.id} value={practice.id}>
+                          {practice.practice_name}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      practices.map(practice => (
+                        <SelectItem key={practice.id} value={practice.id}>
+                          {practice.practice_name}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>

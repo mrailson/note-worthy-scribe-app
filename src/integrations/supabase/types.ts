@@ -927,6 +927,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_practice_manager_practice_id: {
+        Args: { _user_id?: string }
+        Returns: string
+      }
       get_user_role_for_policy: {
         Args: { check_user_id?: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -944,6 +948,10 @@ export type Database = {
           _user_id: string
           _role: Database["public"]["Enums"]["app_role"]
         }
+        Returns: boolean
+      }
+      is_practice_manager_for_practice: {
+        Args: { _user_id: string; _practice_id: string }
         Returns: boolean
       }
       is_system_admin: {
