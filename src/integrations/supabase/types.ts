@@ -53,6 +53,287 @@ export type Database = {
         }
         Relationships: []
       }
+      complaint_audit_log: {
+        Row: {
+          action: string
+          complaint_id: string | null
+          details: Json | null
+          id: string
+          performed_at: string | null
+          performed_by: string
+        }
+        Insert: {
+          action: string
+          complaint_id?: string | null
+          details?: Json | null
+          id?: string
+          performed_at?: string | null
+          performed_by: string
+        }
+        Update: {
+          action?: string
+          complaint_id?: string | null
+          details?: Json | null
+          id?: string
+          performed_at?: string | null
+          performed_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_audit_log_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      complaint_documents: {
+        Row: {
+          complaint_id: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          file_type: string | null
+          id: string
+          uploaded_at: string | null
+          uploaded_by: string
+        }
+        Insert: {
+          complaint_id: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          uploaded_at?: string | null
+          uploaded_by: string
+        }
+        Update: {
+          complaint_id?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          uploaded_at?: string | null
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_documents_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      complaint_notes: {
+        Row: {
+          complaint_id: string
+          created_at: string | null
+          created_by: string
+          id: string
+          is_internal: boolean | null
+          note: string
+        }
+        Insert: {
+          complaint_id: string
+          created_at?: string | null
+          created_by: string
+          id?: string
+          is_internal?: boolean | null
+          note: string
+        }
+        Update: {
+          complaint_id?: string
+          created_at?: string | null
+          created_by?: string
+          id?: string
+          is_internal?: boolean | null
+          note?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_notes_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      complaint_responses: {
+        Row: {
+          complaint_id: string
+          content: string
+          created_at: string | null
+          id: string
+          is_template: boolean | null
+          response_type: string
+          sent_at: string | null
+          sent_by: string | null
+          subject: string | null
+        }
+        Insert: {
+          complaint_id: string
+          content: string
+          created_at?: string | null
+          id?: string
+          is_template?: boolean | null
+          response_type: string
+          sent_at?: string | null
+          sent_by?: string | null
+          subject?: string | null
+        }
+        Update: {
+          complaint_id?: string
+          content?: string
+          created_at?: string | null
+          id?: string
+          is_template?: boolean | null
+          response_type?: string
+          sent_at?: string | null
+          sent_by?: string | null
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_responses_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      complaint_templates: {
+        Row: {
+          content: string
+          created_at: string | null
+          created_by: string
+          id: string
+          is_active: boolean | null
+          name: string
+          subject: string | null
+          template_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          created_by: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+          subject?: string | null
+          template_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          created_by?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          subject?: string | null
+          template_type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      complaints: {
+        Row: {
+          acknowledged_at: string | null
+          assigned_to: string | null
+          category: Database["public"]["Enums"]["complaint_category"]
+          closed_at: string | null
+          complaint_description: string
+          complaint_on_behalf: boolean | null
+          complaint_title: string
+          consent_details: string | null
+          consent_given: boolean | null
+          created_at: string | null
+          created_by: string
+          id: string
+          incident_date: string
+          location_service: string | null
+          patient_address: string | null
+          patient_contact_email: string | null
+          patient_contact_phone: string | null
+          patient_dob: string | null
+          patient_name: string
+          practice_id: string | null
+          priority: Database["public"]["Enums"]["complaint_priority"]
+          reference_number: string
+          response_due_date: string | null
+          staff_mentioned: string[] | null
+          status: Database["public"]["Enums"]["complaint_status"]
+          submitted_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          assigned_to?: string | null
+          category: Database["public"]["Enums"]["complaint_category"]
+          closed_at?: string | null
+          complaint_description: string
+          complaint_on_behalf?: boolean | null
+          complaint_title: string
+          consent_details?: string | null
+          consent_given?: boolean | null
+          created_at?: string | null
+          created_by: string
+          id?: string
+          incident_date: string
+          location_service?: string | null
+          patient_address?: string | null
+          patient_contact_email?: string | null
+          patient_contact_phone?: string | null
+          patient_dob?: string | null
+          patient_name: string
+          practice_id?: string | null
+          priority?: Database["public"]["Enums"]["complaint_priority"]
+          reference_number: string
+          response_due_date?: string | null
+          staff_mentioned?: string[] | null
+          status?: Database["public"]["Enums"]["complaint_status"]
+          submitted_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          acknowledged_at?: string | null
+          assigned_to?: string | null
+          category?: Database["public"]["Enums"]["complaint_category"]
+          closed_at?: string | null
+          complaint_description?: string
+          complaint_on_behalf?: boolean | null
+          complaint_title?: string
+          consent_details?: string | null
+          consent_given?: boolean | null
+          created_at?: string | null
+          created_by?: string
+          id?: string
+          incident_date?: string
+          location_service?: string | null
+          patient_address?: string | null
+          patient_contact_email?: string | null
+          patient_contact_phone?: string | null
+          patient_dob?: string | null
+          patient_name?: string
+          practice_id?: string | null
+          priority?: Database["public"]["Enums"]["complaint_priority"]
+          reference_number?: string
+          response_due_date?: string | null
+          staff_mentioned?: string[] | null
+          status?: Database["public"]["Enums"]["complaint_status"]
+          submitted_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       gp_practices: {
         Row: {
           created_at: string
@@ -575,6 +856,25 @@ export type Database = {
         | "receptionist"
         | "user"
         | "complaints_manager"
+      complaint_category:
+        | "clinical_care"
+        | "staff_attitude"
+        | "appointment_system"
+        | "communication"
+        | "facilities"
+        | "billing"
+        | "waiting_times"
+        | "medication"
+        | "referrals"
+        | "other"
+      complaint_priority: "low" | "medium" | "high" | "urgent"
+      complaint_status:
+        | "draft"
+        | "submitted"
+        | "under_review"
+        | "response_sent"
+        | "closed"
+        | "escalated"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -711,6 +1011,27 @@ export const Constants = {
         "receptionist",
         "user",
         "complaints_manager",
+      ],
+      complaint_category: [
+        "clinical_care",
+        "staff_attitude",
+        "appointment_system",
+        "communication",
+        "facilities",
+        "billing",
+        "waiting_times",
+        "medication",
+        "referrals",
+        "other",
+      ],
+      complaint_priority: ["low", "medium", "high", "urgent"],
+      complaint_status: [
+        "draft",
+        "submitted",
+        "under_review",
+        "response_sent",
+        "closed",
+        "escalated",
       ],
     },
   },
