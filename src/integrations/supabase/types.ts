@@ -95,6 +95,7 @@ export type Database = {
         Row: {
           context_notes: string | null
           created_at: string
+          data_retention_date: string | null
           draft_text: string | null
           email_text: string | null
           generated_reply: string | null
@@ -110,6 +111,7 @@ export type Database = {
         Insert: {
           context_notes?: string | null
           created_at?: string
+          data_retention_date?: string | null
           draft_text?: string | null
           email_text?: string | null
           generated_reply?: string | null
@@ -125,6 +127,7 @@ export type Database = {
         Update: {
           context_notes?: string | null
           created_at?: string
+          data_retention_date?: string | null
           draft_text?: string | null
           email_text?: string | null
           generated_reply?: string | null
@@ -343,6 +346,7 @@ export type Database = {
           consent_given: boolean | null
           created_at: string | null
           created_by: string
+          data_retention_date: string | null
           id: string
           incident_date: string
           location_service: string | null
@@ -372,6 +376,7 @@ export type Database = {
           consent_given?: boolean | null
           created_at?: string | null
           created_by: string
+          data_retention_date?: string | null
           id?: string
           incident_date: string
           location_service?: string | null
@@ -401,6 +406,7 @@ export type Database = {
           consent_given?: boolean | null
           created_at?: string | null
           created_by?: string
+          data_retention_date?: string | null
           id?: string
           incident_date?: string
           location_service?: string | null
@@ -417,6 +423,36 @@ export type Database = {
           status?: Database["public"]["Enums"]["complaint_status"]
           submitted_at?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      data_retention_policies: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          legal_basis: string | null
+          retention_period_days: number
+          table_name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          legal_basis?: string | null
+          retention_period_days: number
+          table_name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          legal_basis?: string | null
+          retention_period_days?: number
+          table_name?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -635,6 +671,7 @@ export type Database = {
       meetings: {
         Row: {
           created_at: string
+          data_retention_date: string | null
           description: string | null
           duration_minutes: number | null
           end_time: string | null
@@ -648,6 +685,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          data_retention_date?: string | null
           description?: string | null
           duration_minutes?: number | null
           end_time?: string | null
@@ -661,6 +699,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          data_retention_date?: string | null
           description?: string | null
           duration_minutes?: number | null
           end_time?: string | null
@@ -1053,6 +1092,10 @@ export type Database = {
           p_old_values?: Json
           p_new_values?: Json
         }
+        Returns: string
+      }
+      purge_expired_data: {
+        Args: Record<PropertyKey, never>
         Returns: string
       }
     }
