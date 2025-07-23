@@ -17,6 +17,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History, Search, Trash2, CheckSquare, SquareIcon, Monitor, Volume2 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { MeetingSettings } from "@/components/MeetingSettings";
 import { MeetingHistoryList } from "@/components/MeetingHistoryList";
 import { supabase } from "@/integrations/supabase/client";
@@ -597,20 +598,27 @@ export const MeetingRecorder = ({
                         </div>
                       </Button>
                       
-                      <Button
-                        variant={recordingMode === 'mic-browser' ? 'default' : 'outline'}
-                        onClick={() => setRecordingMode('mic-browser')}
-                        className="flex flex-col items-center gap-2 h-auto py-4 px-4"
-                      >
-                        <div className="flex items-center gap-1">
-                          <Mic className="h-4 w-4" />
-                          <Volume2 className="h-4 w-4" />
-                        </div>
-                        <div>
-                          <div className="font-medium">Mic + Browser Audio</div>
-                          <div className="text-xs text-muted-foreground">Teams, Zoom meetings</div>
-                        </div>
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant={recordingMode === 'mic-browser' ? 'default' : 'outline'}
+                            onClick={() => setRecordingMode('mic-browser')}
+                            className="flex flex-col items-center gap-2 h-auto py-4 px-4"
+                          >
+                            <div className="flex items-center gap-1">
+                              <Mic className="h-4 w-4" />
+                              <Volume2 className="h-4 w-4" />
+                            </div>
+                            <div>
+                              <div className="font-medium">Mic + Browser Audio</div>
+                              <div className="text-xs text-muted-foreground">Teams, Zoom meetings</div>
+                            </div>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>You'll be asked to share your browser tab to capture system audio</p>
+                        </TooltipContent>
+                      </Tooltip>
                     </div>
                   </div>
                 </div>
