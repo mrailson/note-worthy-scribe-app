@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { toast } from '@/hooks/use-toast';
+
 import { 
   Send, 
   Mic, 
@@ -240,18 +240,9 @@ const AI4PMService = () => {
 
       if (error) throw error;
       
-      toast({
-        title: "Search saved",
-        description: "Search saved to history",
-      });
       loadSearchHistoryList(); // Refresh the list
     } catch (error) {
       console.error('Error saving search:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save search",
-        variant: "destructive",
-      });
     }
   };
 
@@ -277,17 +268,8 @@ const AI4PMService = () => {
       
       setMessages(messagesData);
       setActiveTab('ai-service');
-      toast({
-        title: "Search loaded",
-        description: "Previous search loaded successfully",
-      });
     } catch (error) {
       console.error('Error loading search:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load search",
-        variant: "destructive",
-      });
     }
   };
 
@@ -332,18 +314,9 @@ const AI4PMService = () => {
 
       if (error) throw error;
       
-      toast({
-        title: "Search deleted",
-        description: "Search deleted successfully",
-      });
       loadSearchHistoryList(); // Refresh the list
     } catch (error) {
       console.error('Error deleting search:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete search",
-        variant: "destructive",
-      });
     }
   };
 
@@ -600,10 +573,6 @@ Always provide practical, actionable advice that follows NHS guidelines and best
     setMessages([]);
     setUploadedFiles([]);
     setInput('');
-    toast({
-      title: "Conversation cleared",
-      description: "Started a new conversation",
-    });
     console.log('Conversation cleared');
   };
 
