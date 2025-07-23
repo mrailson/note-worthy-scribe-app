@@ -194,6 +194,30 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
               />
             </div>
 
+            {/* Meeting Type - Moved to top */}
+            <div className="space-y-2">
+              <Label htmlFor="meeting-type">Meeting Type</Label>
+              <Select value={settings.meetingType} onValueChange={(value) => updateSetting('meetingType', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select meeting type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="general">General Meeting</SelectItem>
+                  <SelectItem value="patient-consultation">Patient Meeting (Complaint Handling or other Administration Reason)</SelectItem>
+                  <SelectItem value="team-meeting">Team Meeting</SelectItem>
+                  <SelectItem value="clinical-review">Clinical Review</SelectItem>
+                  <SelectItem value="training">Training Session</SelectItem>
+                  <SelectItem value="pcn-meeting">PCN Meeting</SelectItem>
+                  <SelectItem value="icb-meeting">ICB Meeting</SelectItem>
+                  <SelectItem value="neighbourhood-meeting">Neighbourhood Meeting</SelectItem>
+                  <SelectItem value="federation">Federation</SelectItem>
+                  <SelectItem value="locality">Locality</SelectItem>
+                  <SelectItem value="lmc">LMC</SelectItem>
+                  <SelectItem value="gp-partners">GP Partners Meeting</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Meeting Date and Time */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -226,30 +250,6 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
                 onChange={(e) => updateSetting('description', e.target.value)}
                 rows={2}
               />
-            </div>
-
-            {/* Meeting Type */}
-            <div className="space-y-2">
-              <Label htmlFor="meeting-type">Meeting Type</Label>
-              <Select value={settings.meetingType} onValueChange={(value) => updateSetting('meetingType', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select meeting type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="general">General Meeting</SelectItem>
-                  <SelectItem value="patient-consultation">Patient Meeting (Complaint Handling or other Administration Reason)</SelectItem>
-                  <SelectItem value="team-meeting">Team Meeting</SelectItem>
-                  <SelectItem value="clinical-review">Clinical Review</SelectItem>
-                  <SelectItem value="training">Training Session</SelectItem>
-                  <SelectItem value="pcn-meeting">PCN Meeting</SelectItem>
-                  <SelectItem value="icb-meeting">ICB Meeting</SelectItem>
-                  <SelectItem value="neighbourhood-meeting">Neighbourhood Meeting</SelectItem>
-                  <SelectItem value="federation">Federation</SelectItem>
-                  <SelectItem value="locality">Locality</SelectItem>
-                  <SelectItem value="lmc">LMC</SelectItem>
-                  <SelectItem value="gp-partners">GP Partners Meeting</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
 
             {/* Site/Location - Removed K-Codes section */}
