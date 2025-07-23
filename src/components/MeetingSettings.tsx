@@ -252,17 +252,6 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
               />
             </div>
 
-            {/* Site/Location - Removed K-Codes section */}
-            <div className="space-y-2">
-              <Label htmlFor="location">Site/Location</Label>
-              <Input
-                id="location"
-                placeholder="Search by Practice Name or Area"
-                value={settings.location}
-                onChange={(e) => updateSetting('location', e.target.value)}
-              />
-            </div>
-
             {/* Meeting Format */}
             <div className="space-y-2">
               <Label>Meeting Format</Label>
@@ -285,6 +274,24 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
                 </Button>
               </div>
             </div>
+
+            {/* Site/Location - Only show for Face to Face meetings */}
+            {settings.format === 'face-to-face' && (
+              <div className="space-y-2">
+                <Label htmlFor="location">Site/Location</Label>
+                <Input
+                  id="location"
+                  placeholder={settings.location ? settings.location : "Search by Practice Name or Area"}
+                  value={settings.location}
+                  onChange={(e) => updateSetting('location', e.target.value)}
+                />
+                {!settings.location && (
+                  <p className="text-xs text-muted-foreground">
+                    Enter your GP practice name or search for a practice location
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Meeting Attendees */}
             <div className="space-y-2">
