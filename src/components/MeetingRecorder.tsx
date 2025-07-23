@@ -331,12 +331,17 @@ export const MeetingRecorder = ({
       </CardHeader>
       
       <CardContent className="space-y-6">
-        {/* Tabbed Interface - Moved to Top */}
-        <Tabs defaultValue="transcript" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+        {/* Tabbed Interface - 4 tabs */}
+        <Tabs defaultValue="recorder" className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="recorder" className="flex items-center gap-2">
+              <Mic className="h-4 w-4" />
+              <span className="hidden sm:inline">Meeting Recorder</span>
+              <span className="sm:hidden">Record</span>
+            </TabsTrigger>
             <TabsTrigger value="transcript" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
-              <span className="hidden sm:inline">Meeting Transcript</span>
+              <span className="hidden sm:inline">Live Transcript</span>
               <span className="sm:hidden">Transcript</span>
             </TabsTrigger>
             <TabsTrigger value="settings" className="flex items-center gap-2">
@@ -351,8 +356,8 @@ export const MeetingRecorder = ({
             </TabsTrigger>
           </TabsList>
 
-          {/* Meeting Transcript Tab */}
-          <TabsContent value="transcript" className="space-y-6 mt-6">
+          {/* Meeting Recorder Tab - Just recording controls */}
+          <TabsContent value="recorder" className="space-y-6 mt-6">
             {/* Recording Controls and Stats */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-center">
               <div className="bg-accent/20 rounded-lg p-4">
@@ -393,7 +398,18 @@ export const MeetingRecorder = ({
               </div>
             )}
 
-            {/* Live Transcript Display */}
+            {/* Basic info when not recording */}
+            {!isRecording && (
+              <div className="text-center py-8 text-muted-foreground">
+                <Mic className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                <h3 className="text-lg font-medium mb-2">Ready to Record</h3>
+                <p className="text-sm">Click "Start Recording" to begin capturing your meeting with real-time transcription.</p>
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Live Transcript Tab */}
+          <TabsContent value="transcript" className="space-y-4 mt-6">
             <Card className="border-accent/30">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
