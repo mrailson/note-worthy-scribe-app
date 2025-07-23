@@ -239,12 +239,12 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
               </Select>
             </div>
 
-            {/* Meeting Title */}
+            {/* Meeting Description */}
             <div className="space-y-2">
-              <Label htmlFor="meeting-title">Meeting Title</Label>
+              <Label htmlFor="meeting-description">Meeting Description</Label>
               <Input
-                id="meeting-title"
-                placeholder="Enter meeting title"
+                id="meeting-description"
+                placeholder="Enter meeting description"
                 value={settings.title}
                 onChange={(e) => updateSetting('title', e.target.value)}
               />
@@ -270,18 +270,6 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
                   onChange={(e) => updateSetting('startTime', e.target.value)}
                 />
               </div>
-            </div>
-
-            {/* Meeting Description */}
-            <div className="space-y-2">
-              <Label htmlFor="meeting-description">Meeting Description</Label>
-              <Textarea
-                id="meeting-description"
-                placeholder="Brief description of the meeting"
-                value={settings.description}
-                onChange={(e) => updateSetting('description', e.target.value)}
-                rows={2}
-              />
             </div>
 
             {/* Meeting Format */}
