@@ -202,28 +202,12 @@ const Index = () => {
       
       <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 lg:py-8 space-y-4 sm:space-y-6 max-w-4xl">
         <>
-          {/* Meeting Recorder */}
+          {/* Meeting Recorder with integrated tabs */}
           <MeetingRecorder
             onTranscriptUpdate={setTranscript}
             onDurationUpdate={setDuration}
             onWordCountUpdate={setWordCount}
             initialSettings={meetingSettings}
-          />
-
-          {/* Live Transcript */}
-          <LiveTranscript
-            transcript={transcript}
-            showTimestamps={showTimestamps}
-            onTimestampsToggle={setShowTimestamps}
-            attendees={meetingSettings.attendees}
-          />
-
-          {/* Meeting Settings */}
-          <MeetingSettings 
-            onSettingsChange={setMeetingSettings} 
-            onAudioImported={handleAudioImported}
-            onTranscriptImported={handleTranscriptImported}
-            initialSettings={meetingSettings} 
           />
 
           {/* Show Summary Button when there's content */}
