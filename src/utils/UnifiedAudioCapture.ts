@@ -106,28 +106,46 @@ export class UnifiedAudioCapture {
     this.audioContext = new AudioContext({ sampleRate: 24000 });
     const destination = this.audioContext.createMediaStreamDestination();
 
-    // Connect microphone
+    // Always connect microphone first
+    console.log('Connecting microphone to combined stream...');
     const micSource = this.audioContext.createMediaStreamSource(this.micStream);
     const micGain = this.audioContext.createGain();
-    micGain.gain.value = 1.0;
+    micGain.gain.value = 1.2; // Boost mic audio
     micSource.connect(micGain);
     micGain.connect(destination);
+    console.log('Microphone connected with gain:', micGain.gain.value);
 
     // Connect system audio if available
-    if (this.systemStream) {
+    if (this.systemStream && this.systemStream.getAudioTracks().length > 0) {
       try {
+        console.log('Connecting browser/system audio to combined stream...');
         const systemSource = this.audioContext.createMediaStreamSource(this.systemStream);
         const systemGain = this.audioContext.createGain();
-        systemGain.gain.value = 1.2; // Boost system audio slightly
+        systemGain.gain.value = 0.8; // Slightly lower browser audio to avoid overwhelming mic
         systemSource.connect(systemGain);
         systemGain.connect(destination);
-        console.log('Combined mic + system audio streams');
+        console.log('Browser audio connected with gain:', systemGain.gain.value);
+        console.log('Combined mic + browser audio streams successfully');
       } catch (error) {
         console.error('Failed to connect system audio:', error);
+        console.log('Continuing with microphone only');
       }
+    } else {
+      console.log('No browser audio available, using microphone only');
     }
 
     this.combinedStream = destination.stream;
+    
+    // Log the final stream details
+    const audioTracks = this.combinedStream.getAudioTracks();
+    console.log('Final combined stream has', audioTracks.length, 'audio tracks');
+    audioTracks.forEach((track, index) => {
+      console.log(`Track ${index}:`, {
+        label: track.label,
+        enabled: track.enabled,
+        readyState: track.readyState
+      });
+    });
   }
 
   private startRecording() {
