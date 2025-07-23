@@ -79,6 +79,7 @@ interface PracticeContext {
   pcnName?: string;
   neighbourhoodName?: string;
   otherPracticesInPCN?: string[];
+  logoUrl?: string;
 }
 
 const AI4PMService = () => {
@@ -94,6 +95,7 @@ const AI4PMService = () => {
   const [activeTab, setActiveTab] = useState('ai-service');
   const [practiceContext, setPracticeContext] = useState<PracticeContext>({});
   const [chatBoxSize, setChatBoxSize] = useState('default'); // 'small', 'default', 'large', 'extra-large'
+  const [includePracticeBranding, setIncludePracticeBranding] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const scrollToBottom = () => {
@@ -128,10 +130,10 @@ const AI4PMService = () => {
         return;
       }
 
-      // Get practice details
+      // Get practice details including logo
       const { data: practiceDetails } = await supabase
         .from('practice_details')
-        .select('practice_name, pcn_code, user_id')
+        .select('practice_name, pcn_code, user_id, logo_url')
         .eq('id', userRole.practice_id)
         .single();
 
@@ -172,7 +174,8 @@ const AI4PMService = () => {
         practiceManagerName: practiceManagerProfile?.full_name,
         pcnName: pcnData?.pcn_name,
         neighbourhoodName: neighbourhoodData?.[0]?.name,
-        otherPracticesInPCN: otherPractices?.map(p => p.practice_name) || []
+        otherPracticesInPCN: otherPractices?.map(p => p.practice_name) || [],
+        logoUrl: practiceDetails.logo_url
       });
 
       console.log('Practice context loaded:', {
@@ -582,6 +585,37 @@ Always provide practical, actionable advice that follows NHS guidelines and best
     try {
       const paragraphs: any[] = [];
       
+      // Add practice branding if enabled and available
+      if (includePracticeBranding && practiceContext.practiceName) {
+        // Add practice name as header
+        paragraphs.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: practiceContext.practiceName,
+                bold: true,
+                size: 28,
+                color: "003087" // NHS Blue
+              })
+            ],
+            spacing: { after: 200 }
+          })
+        );
+        
+        // Add separator line
+        paragraphs.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "____________________________________________",
+                color: "005EB8" // NHS Light Blue
+              })
+            ],
+            spacing: { after: 400 }
+          })
+        );
+      }
+      
       // Add title
       paragraphs.push(
         new Paragraph({
@@ -693,7 +727,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
       
       // Set presentation properties with NHS branding
       pptx.author = 'AI 4 PM Service';
-      pptx.company = 'NHS GP Practice';
+      pptx.company = includePracticeBranding && practiceContext.practiceName ? practiceContext.practiceName : 'NHS GP Practice';
       pptx.title = title;
 
       // Define NHS slide master with professional styling
@@ -715,19 +749,32 @@ Always provide practical, actionable advice that follows NHS guidelines and best
               fill: { color: '005EB8' }
             }
           },
-          // NHS text in header
-          {
-            text: {
-              text: 'NHS',
-              options: {
-                x: 0.2, y: 0.15, w: 1.6, h: 0.5,
-                fontSize: 24,
-                bold: true,
-                color: 'FFFFFF',
-                fontFace: 'Arial'
-              }
-            }
-          },
+           // NHS text in header
+           {
+             text: {
+               text: 'NHS',
+               options: {
+                 x: 0.2, y: 0.15, w: 1.6, h: 0.5,
+                 fontSize: 24,
+                 bold: true,
+                 color: 'FFFFFF',
+                 fontFace: 'Arial'
+               }
+             }
+           },
+           // Practice name in header (if branding enabled)
+           ...(includePracticeBranding && practiceContext.practiceName ? [{
+             text: {
+               text: practiceContext.practiceName,
+               options: {
+                 x: 2.2, y: 0.15, w: 6, h: 0.5,
+                 fontSize: 16,
+                 bold: true,
+                 color: 'FFFFFF',
+                 fontFace: 'Arial'
+               }
+             }
+           }] : []),
           // Accent line
           {
             line: {
@@ -1097,25 +1144,45 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                           <MessageRenderer message={message} />
                           {/* Add action buttons for AI responses */}
                           {message.role === 'assistant' && message.content.length > 100 && (
-                            <div className="flex gap-2 mt-2 ml-11">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => generateWordDocument(message.content, 'AI Generated Document')}
-                                className="h-8 text-xs"
-                              >
-                                <FileDown className="h-3 w-3 mr-1" />
-                                Export as Word
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => generatePowerPoint(message.content, 'AI Generated Presentation')}
-                                className="h-8 text-xs"
-                              >
-                                <Presentation className="h-3 w-3 mr-1" />
-                                Create PowerPoint
-                              </Button>
+                            <div className="space-y-3 mt-3 ml-11">
+                              {/* Practice branding toggle */}
+                              {practiceContext.practiceName && (
+                                <div className="flex items-center gap-2 p-2 bg-muted/30 rounded-md">
+                                  <input
+                                    type="checkbox"
+                                    id="practice-branding"
+                                    checked={includePracticeBranding}
+                                    onChange={(e) => setIncludePracticeBranding(e.target.checked)}
+                                    className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-ring focus:ring-2"
+                                  />
+                                  <label htmlFor="practice-branding" className="text-sm text-muted-foreground cursor-pointer">
+                                    Include practice branding ({practiceContext.practiceName}
+                                    {practiceContext.logoUrl ? ' + logo' : ''})
+                                  </label>
+                                </div>
+                              )}
+                              
+                              {/* Export buttons */}
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => generateWordDocument(message.content, 'AI Generated Document')}
+                                  className="h-8 text-xs"
+                                >
+                                  <FileDown className="h-3 w-3 mr-1" />
+                                  Export as Word
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => generatePowerPoint(message.content, 'AI Generated Presentation')}
+                                  className="h-8 text-xs"
+                                >
+                                  <Presentation className="h-3 w-3 mr-1" />
+                                  Create PowerPoint
+                                </Button>
+                              </div>
                             </div>
                           )}
                         </div>
