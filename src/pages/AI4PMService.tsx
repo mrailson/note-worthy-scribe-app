@@ -624,56 +624,119 @@ Always provide practical, actionable advice that follows NHS guidelines and best
         })
       );
 
-      // Clean and parse the content
-      const cleanContent = content
-        .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold markdown
-        .replace(/\*(.*?)\*/g, '$1') // Remove italic markdown
-        .replace(/`(.*?)`/g, '$1') // Remove code markdown
-        .replace(/#{1,6}\s*/g, '') // Remove heading markdown
-        .replace(/^\s*[-•*]\s*/gm, '• '); // Normalize bullet points
+      // Enhanced content parsing with better formatting
+      const parseContent = (content: string) => {
+        // Preserve important formatting markers
+        const processedContent = content
+          .replace(/\*\*(.*?)\*\*/g, '|||BOLD|||$1|||/BOLD|||') // Preserve bold
+          .replace(/\*(.*?)\*/g, '|||ITALIC|||$1|||/ITALIC|||') // Preserve italic
+          .replace(/`(.*?)`/g, '|||CODE|||$1|||/CODE|||') // Preserve code
+          .replace(/#{1,6}\s*(.*?)$/gm, '|||HEADING|||$1|||/HEADING|||') // Preserve headings
+          .replace(/^\s*[-•*]\s*/gm, '• ') // Normalize bullet points
+          .replace(/^\s*☑\s*/gm, '☑ ') // Preserve checkboxes
+          .replace(/^\s*☐\s*/gm, '☐ ') // Preserve empty checkboxes
+          .replace(/^\s*✓\s*/gm, '✓ ') // Preserve check marks
+          .replace(/^\s*✗\s*/gm, '✗ ') // Preserve X marks
+          .replace(/^\s*\[\s*x\s*\]\s*/gmi, '☑ ') // Convert [x] to checkbox
+          .replace(/^\s*\[\s*\]\s*/gm, '☐ '); // Convert [ ] to empty checkbox
 
-      const contentLines = cleanContent.split('\n').filter(line => line.trim());
+        return processedContent.split('\n').filter(line => line.trim());
+      };
+
+      const contentLines = parseContent(content);
       
       contentLines.forEach(line => {
         const trimmedLine = line.trim();
         
         if (!trimmedLine) return;
         
-        // Check if it's a heading (all caps or ends with colon)
-        if (trimmedLine === trimmedLine.toUpperCase() && trimmedLine.length > 5 && trimmedLine.length < 80) {
+        // Check for headings (markdown or formatted)
+        if (trimmedLine.includes('|||HEADING|||')) {
+          const headingText = trimmedLine.replace(/\|\|\|HEADING\|\|\|(.*?)\|\|\|\/HEADING\|\|\|/, '$1');
           paragraphs.push(
             new Paragraph({
-              text: trimmedLine,
-              heading: HeadingLevel.HEADING_1,
+              children: [
+                new TextRun({
+                  text: headingText,
+                  bold: true,
+                  size: 32, // 16pt
+                  color: "003087" // NHS Blue
+                })
+              ],
               spacing: { before: 400, after: 200 }
             })
           );
-        } else if (trimmedLine.endsWith(':') && trimmedLine.length < 80) {
+        }
+        // Check if it's a section heading (all caps or ends with colon)
+        else if ((trimmedLine === trimmedLine.toUpperCase() && trimmedLine.length > 5 && trimmedLine.length < 80) || 
+                 (trimmedLine.endsWith(':') && trimmedLine.length < 80 && !trimmedLine.startsWith('•') && !trimmedLine.startsWith('☑') && !trimmedLine.startsWith('☐'))) {
           paragraphs.push(
             new Paragraph({
-              text: trimmedLine,
-              heading: HeadingLevel.HEADING_2,
+              children: [
+                new TextRun({
+                  text: trimmedLine,
+                  bold: true,
+                  size: 28, // 14pt
+                  color: "005EB8" // NHS Light Blue
+                })
+              ],
               spacing: { before: 300, after: 150 }
             })
           );
-        } else if (trimmedLine.startsWith('•') || trimmedLine.startsWith('-')) {
-          // Bullet points
+        }
+        // Handle checkboxes and tick items
+        else if (trimmedLine.startsWith('☑') || trimmedLine.startsWith('☐') || trimmedLine.startsWith('✓') || trimmedLine.startsWith('✗')) {
+          const checkboxText = trimmedLine.substring(2).trim();
+          const isChecked = trimmedLine.startsWith('☑') || trimmedLine.startsWith('✓');
+          
+          paragraphs.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: isChecked ? '☑ ' : '☐ ',
+                  size: 24,
+                  color: isChecked ? "008000" : "666666" // Green for checked, gray for unchecked
+                }),
+                new TextRun({
+                  text: checkboxText,
+                  size: 24,
+                  strike: isChecked ? true : false
+                })
+              ],
+              spacing: { after: 100 },
+              indent: { left: 200 }
+            })
+          );
+        }
+        // Handle bullet points
+        else if (trimmedLine.startsWith('•') || trimmedLine.startsWith('-')) {
           const bulletText = trimmedLine.replace(/^[•-]\s*/, '');
           paragraphs.push(
             new Paragraph({
-              text: bulletText,
+              children: [
+                new TextRun({
+                  text: bulletText,
+                  size: 24
+                })
+              ],
               bullet: {
                 level: 0,
               },
               spacing: { after: 100 }
             })
           );
-        } else if (trimmedLine.match(/^\d+\./)) {
-          // Numbered lists
+        }
+        // Handle numbered lists
+        else if (trimmedLine.match(/^\d+\./)) {
           const numberedText = trimmedLine.replace(/^\d+\.\s*/, '');
           paragraphs.push(
             new Paragraph({
-              text: numberedText,
+              children: [
+                new TextRun({
+                  text: numberedText,
+                  size: 24
+                })
+              ],
               numbering: {
                 reference: "default-numbering",
                 level: 0,
@@ -681,14 +744,66 @@ Always provide practical, actionable advice that follows NHS guidelines and best
               spacing: { after: 100 }
             })
           );
-        } else {
-          // Regular paragraph
+        }
+        // Handle regular text with inline formatting
+        else {
+          const processFormattedText = (text: string) => {
+            const children: any[] = [];
+            let remainingText = text;
+            
+            // Process bold, italic, and code formatting
+            const formatRegex = /\|\|\|(BOLD|ITALIC|CODE)\|\|\|(.*?)\|\|\|\/\1\|\|\|/g;
+            let lastIndex = 0;
+            let match;
+            
+            while ((match = formatRegex.exec(remainingText)) !== null) {
+              // Add text before the formatted part
+              if (match.index > lastIndex) {
+                const beforeText = remainingText.substring(lastIndex, match.index);
+                if (beforeText) {
+                  children.push(new TextRun({
+                    text: beforeText,
+                    size: 24
+                  }));
+                }
+              }
+              
+              // Add the formatted text
+              const formatType = match[1];
+              const formattedText = match[2];
+              
+              children.push(new TextRun({
+                text: formattedText,
+                size: 24,
+                bold: formatType === 'BOLD',
+                italics: formatType === 'ITALIC',
+                font: formatType === 'CODE' ? 'Courier New' : undefined,
+                color: formatType === 'CODE' ? '666666' : undefined
+              }));
+              
+              lastIndex = match.index + match[0].length;
+            }
+            
+            // Add remaining text
+            if (lastIndex < remainingText.length) {
+              const remainingTextPart = remainingText.substring(lastIndex);
+              if (remainingTextPart) {
+                children.push(new TextRun({
+                  text: remainingTextPart,
+                  size: 24
+                }));
+              }
+            }
+            
+            return children.length > 0 ? children : [new TextRun({
+              text: trimmedLine,
+              size: 24
+            })];
+          };
+          
           paragraphs.push(
             new Paragraph({
-              children: [new TextRun({
-                text: trimmedLine,
-                size: 24 // 12pt font
-              })],
+              children: processFormattedText(trimmedLine),
               spacing: { after: 200 }
             })
           );
