@@ -190,12 +190,8 @@ export default function MeetingSummary() {
 
   // Auto-update when meeting style changes
   useEffect(() => {
-    console.log('Meeting style changed to:', meetingSettings.meetingStyle);
-    console.log('Current state - aiGeneratedMinutes:', !!aiGeneratedMinutes, 'isGeneratingMinutes:', isGeneratingMinutes, 'transcript:', !!meetingData?.transcript);
-    
     // Only regenerate if we already have generated minutes and we're not currently generating
     if (aiGeneratedMinutes && !isGeneratingMinutes && meetingData?.transcript) {
-      console.log('Auto-regenerating minutes with new style:', meetingSettings.meetingStyle);
       const timer = setTimeout(() => {
         generateAIMeetingMinutes();
       }, 500); // Small delay to debounce rapid changes

@@ -113,7 +113,7 @@ const MeetingHistory = () => {
         .from('meeting_summaries')
         .select('*')
         .eq('meeting_id', meetingId)
-        .single();
+        .maybeSingle();
 
       const fullTranscript = transcripts?.map(t => t.content).join(' ') || '';
       

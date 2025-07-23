@@ -242,7 +242,7 @@ export const MeetingRecorder = ({
             .from('meeting_summaries')
             .select('id')
             .eq('meeting_id', meeting.id)
-            .single();
+            .maybeSingle();
 
           return {
             ...meeting,
