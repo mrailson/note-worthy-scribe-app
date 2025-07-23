@@ -261,24 +261,28 @@ export const MeetingRecorder = ({
 
           const { data: summaryData } = await supabase
             .from('meeting_summaries')
-            .select('id')
+            .select('summary')
             .eq('meeting_id', meeting.id)
             .maybeSingle();
 
-          // Get transcript content for overview generation
-          const { data: transcriptData } = await supabase
-            .from('meeting_transcripts')
-            .select('content')
-            .eq('meeting_id', meeting.id)
-            .order('timestamp_seconds', { ascending: true })
-            .limit(3); // Get first few transcript entries for overview
+          // Get transcript content for overview generation (only if no summary exists)
+          let transcriptContent = '';
+          if (!summaryData?.summary) {
+            const { data: transcriptData } = await supabase
+              .from('meeting_transcripts')
+              .select('content')
+              .eq('meeting_id', meeting.id)
+              .order('timestamp_seconds', { ascending: true })
+              .limit(2); // Get first few transcript entries for overview
 
-          const transcriptContent = transcriptData?.map(t => t.content).join(' ') || '';
+            transcriptContent = transcriptData?.map(t => t.content).join(' ') || '';
+          }
 
           return {
             ...meeting,
             transcript_count: count || 0,
-            summary_exists: !!summaryData,
+            summary_exists: !!summaryData?.summary,
+            meeting_summary: summaryData?.summary || null,
             transcript_preview: transcriptContent
           };
         })

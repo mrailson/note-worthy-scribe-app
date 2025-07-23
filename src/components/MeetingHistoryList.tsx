@@ -40,6 +40,7 @@ interface Meeting {
   transcript_count?: number;
   summary_exists?: boolean;
   transcript_preview?: string;
+  meeting_summary?: string;
 }
 
 interface MeetingHistoryListProps {
@@ -116,65 +117,76 @@ export const MeetingHistoryList = ({
   };
 
   const generateOverview = (meeting: Meeting) => {
-    const parts = [];
+    // Priority 1: Use existing meeting summary if available
+    if (meeting.meeting_summary && meeting.meeting_summary.trim()) {
+      // Extract key information from the meeting summary
+      const summary = meeting.meeting_summary;
+      
+      // Look for key sections in the summary
+      const sections = ['agenda', 'key points', 'decisions', 'action items', 'overview'];
+      let extractedContent = '';
+      
+      // Try to extract the most relevant summary content
+      const lines = summary.split('\n').filter(line => line.trim());
+      const relevantLines = lines.slice(0, 3); // First few lines usually contain the overview
+      
+      extractedContent = relevantLines.join(' ').replace(/\*\*/g, '').replace(/##/g, '').trim();
+      
+      if (extractedContent.length > 0) {
+        const words = extractedContent.split(' ').slice(0, 30);
+        return words.join(' ') + (words.length === 30 ? '...' : '');
+      }
+    }
     
-    // Prioritize agenda from description
+    // Priority 2: Use agenda from description
     if (meeting.description && meeting.description.trim()) {
-      // Extract agenda-like content (look for agenda, topics, or meeting purpose)
       const agendaKeywords = ['agenda', 'discuss', 'review', 'topics', 'items', 'objectives', 'purpose'];
       const desc = meeting.description.toLowerCase();
       
       if (agendaKeywords.some(keyword => desc.includes(keyword))) {
-        // This looks like agenda content
-        const agendaText = meeting.description.split(' ').slice(0, 20).join(' ');
-        parts.push(`Agenda: ${agendaText}`);
+        const agendaText = meeting.description.split(' ').slice(0, 25).join(' ');
+        return `Meeting agenda: ${agendaText}${agendaText.split(' ').length === 25 ? '...' : ''}`;
       } else {
-        // General description
-        const descText = meeting.description.split(' ').slice(0, 15).join(' ');
-        parts.push(`Purpose: ${descText}`);
+        const descText = meeting.description.split(' ').slice(0, 20).join(' ');
+        return `Meeting purpose: ${descText}${descText.split(' ').length === 20 ? '...' : ''}`;
       }
     }
     
-    // Add discussion preview from transcript if available
+    // Priority 3: Extract key topics from transcript (avoid raw transcript dump)
     if (meeting.transcript_preview && meeting.transcript_preview.trim()) {
-      let discussionText = meeting.transcript_preview;
+      let content = meeting.transcript_preview;
       
-      // Clean up transcript preview (remove speaker labels if present)
-      discussionText = discussionText
-        .replace(/^[^:]+:\s*/gm, '') // Remove "Speaker: " patterns
+      // Clean up transcript
+      content = content
+        .replace(/Speaker \d+:\s*/g, '') // Remove speaker labels
         .replace(/\s+/g, ' ') // Normalize whitespace
         .trim();
       
-      if (discussionText.length > 0) {
-        // Extract meaningful discussion content
-        const discussionWords = discussionText.split(' ').slice(0, 25);
-        if (parts.length > 0) {
-          parts.push(`Discussion highlights: ${discussionWords.join(' ')}`);
-        } else {
-          parts.push(`Discussion: ${discussionWords.join(' ')}`);
-        }
+      // Try to extract meaningful topics/themes instead of just raw content
+      const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 10);
+      if (sentences.length > 0) {
+        // Take the first meaningful sentence
+        const firstSentence = sentences[0].trim();
+        const words = firstSentence.split(' ').slice(0, 20);
+        return `Meeting discussed: ${words.join(' ')}${words.length === 20 ? '...' : ''}`;
       }
     }
     
-    // If no agenda or discussion content, fall back to basic info
-    if (parts.length === 0) {
-      parts.push(`${getMeetingTypeLabel(meeting.meeting_type)} held on ${format(new Date(meeting.start_time), 'MMM d, yyyy')}`);
-      
-      if (meeting.duration_minutes) {
-        parts.push(`Duration: ${formatDuration(meeting.duration_minutes)}`);
-      }
-      
-      if (meeting.transcript_count && meeting.transcript_count > 0) {
-        parts.push(`${meeting.transcript_count} transcript entries recorded`);
-      }
+    // Priority 4: Basic meeting info fallback
+    const parts = [];
+    parts.push(`${getMeetingTypeLabel(meeting.meeting_type)} meeting`);
+    
+    if (meeting.duration_minutes && meeting.duration_minutes > 0) {
+      parts.push(`lasting ${formatDuration(meeting.duration_minutes)}`);
     }
     
-    // Join parts and limit total length
-    const overview = parts.join('. ');
-    const words = overview.split(' ');
+    parts.push(`held on ${format(new Date(meeting.start_time), 'MMM d, yyyy')}`);
     
-    // Limit to 50 words for content-focused overview
-    return words.length > 50 ? words.slice(0, 50).join(' ') + '...' : overview;
+    if (meeting.transcript_count && meeting.transcript_count > 0) {
+      parts.push(`with recorded discussion`);
+    }
+    
+    return parts.join(' ');
   };
 
   if (loading) {
