@@ -243,7 +243,10 @@ export const MeetingRecorder = ({
           status,
           created_at,
           location,
-          format
+          format,
+          meeting_overviews (
+            overview
+          )
         `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
@@ -251,7 +254,7 @@ export const MeetingRecorder = ({
 
       if (error) throw error;
 
-      // Get transcript counts and content for each meeting
+      // Get transcript counts and summaries for each meeting
       const meetingsWithCounts = await Promise.all(
         (meetingsData || []).map(async (meeting) => {
           const { count } = await supabase
@@ -265,25 +268,12 @@ export const MeetingRecorder = ({
             .eq('meeting_id', meeting.id)
             .maybeSingle();
 
-          // Get transcript content for overview generation (only if no summary exists)
-          let transcriptContent = '';
-          if (!summaryData?.summary) {
-            const { data: transcriptData } = await supabase
-              .from('meeting_transcripts')
-              .select('content')
-              .eq('meeting_id', meeting.id)
-              .order('timestamp_seconds', { ascending: true })
-              .limit(2); // Get first few transcript entries for overview
-
-            transcriptContent = transcriptData?.map(t => t.content).join(' ') || '';
-          }
-
           return {
             ...meeting,
             transcript_count: count || 0,
             summary_exists: !!summaryData?.summary,
             meeting_summary: summaryData?.summary || null,
-            transcript_preview: transcriptContent
+            overview: meeting.meeting_overviews?.[0]?.overview || null
           };
         })
       );

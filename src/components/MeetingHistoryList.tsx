@@ -39,8 +39,8 @@ interface Meeting {
   created_at: string;
   transcript_count?: number;
   summary_exists?: boolean;
-  transcript_preview?: string;
   meeting_summary?: string;
+  overview?: string | null;
 }
 
 interface MeetingHistoryListProps {
@@ -117,7 +117,12 @@ export const MeetingHistoryList = ({
   };
 
   const generateOverview = (meeting: Meeting) => {
-    // Priority 1: Use existing meeting summary if available
+    // Priority 1: Use stored overview if available
+    if (meeting.overview && meeting.overview.trim()) {
+      return meeting.overview;
+    }
+    
+    // Priority 2: Use existing meeting summary if available
     if (meeting.meeting_summary && meeting.meeting_summary.trim()) {
       const summary = meeting.meeting_summary;
       const lines = summary.split('\n').filter(line => line.trim());
@@ -130,24 +135,13 @@ export const MeetingHistoryList = ({
       }
     }
     
-    // Priority 2: Use description as agenda/purpose
+    // Priority 3: Use description as agenda/purpose
     if (meeting.description && meeting.description.trim()) {
       const words = meeting.description.split(' ').slice(0, 20);
       return words.join(' ') + (words.length === 20 ? '...' : '');
     }
     
-    // Priority 3: Extract meaningful content from transcript
-    if (meeting.transcript_preview && meeting.transcript_preview.trim()) {
-      let content = meeting.transcript_preview
-        .replace(/Speaker \d+:\s*/g, '') // Remove speaker labels
-        .replace(/\s+/g, ' ') // Normalize whitespace
-        .trim();
-      
-      const words = content.split(' ').slice(0, 15);
-      return `Discussion: ${words.join(' ')}${words.length === 15 ? '...' : ''}`;
-    }
-    
-    // Priority 4: Basic meeting info
+    // Priority 4: Basic meeting info fallback
     return `${getMeetingTypeLabel(meeting.meeting_type)} scheduled for ${format(new Date(meeting.start_time), 'MMM d, yyyy')}${meeting.duration_minutes ? ` (${formatDuration(meeting.duration_minutes)})` : ''}`;
   };
 
