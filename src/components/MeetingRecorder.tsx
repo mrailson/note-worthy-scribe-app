@@ -273,7 +273,7 @@ export const MeetingRecorder = ({
             transcript_count: count || 0,
             summary_exists: !!summaryData?.summary,
             meeting_summary: summaryData?.summary || null,
-            overview: meeting.meeting_overviews?.[0]?.overview || null
+            overview: meeting.meeting_overviews?.overview || null
           };
           
           // Debug log to check overview data
