@@ -94,6 +94,7 @@ const AI4PMService = () => {
   const [searchHistory, setSearchHistory] = useState<SearchHistory[]>([]);
   const [activeTab, setActiveTab] = useState('ai-service');
   const [practiceContext, setPracticeContext] = useState<PracticeContext>({});
+  const [chatBoxSize, setChatBoxSize] = useState('default'); // 'small', 'default', 'large', 'extra-large'
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const scrollToBottom = () => {
@@ -257,7 +258,16 @@ const AI4PMService = () => {
 
       if (error) throw error;
       
-      const messagesData = Array.isArray(data.messages) ? (data.messages as unknown as Message[]) : [];
+      // Ensure messages are properly formatted with required properties
+      const messagesData = Array.isArray(data.messages) ? 
+        (data.messages as any[]).map((msg: any, index: number) => ({
+          id: msg.id || `loaded-${index}-${Date.now()}`,
+          role: msg.role || 'user',
+          content: msg.content || '',
+          timestamp: msg.timestamp ? new Date(msg.timestamp) : new Date(),
+          files: msg.files || undefined
+        })) : [];
+      
       setMessages(messagesData);
       setActiveTab('ai-service');
       toast({
@@ -557,7 +567,22 @@ Always provide practical, actionable advice that follows NHS guidelines and best
   const clearConversation = () => {
     setMessages([]);
     setUploadedFiles([]);
+    setInput('');
+    toast({
+      title: "Conversation cleared",
+      description: "Started a new conversation",
+    });
     console.log('Conversation cleared');
+  };
+
+  const getChatBoxHeight = () => {
+    switch (chatBoxSize) {
+      case 'small': return 'h-[400px]';
+      case 'default': return 'h-[calc(100vh-280px)]';
+      case 'large': return 'h-[calc(100vh-200px)]';
+      case 'extra-large': return 'h-[calc(100vh-120px)]';
+      default: return 'h-[calc(100vh-280px)]';
+    }
   };
 
   const generateWordDocument = async (content: string, title: string = 'AI Generated Document') => {
@@ -1029,15 +1054,70 @@ Always provide practical, actionable advice that follows NHS guidelines and best
 
           {/* AI Service Tab */}
           <TabsContent value="ai-service" className="mt-6">
-            <Card className="h-[calc(100vh-280px)]">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Sparkles className="h-5 w-5" />
-                  AI 4 PM Service
-                  <Badge variant="secondary" className="ml-auto">
-                    {model === 'claude' ? 'Claude' : 'GPT-4'}
-                  </Badge>
-                </CardTitle>
+            <Card className={getChatBoxHeight()}>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Sparkles className="h-5 w-5" />
+                    AI 4 PM Service
+                    <Badge variant="secondary">
+                      {model === 'claude' ? 'Claude' : 'GPT-4'}
+                    </Badge>
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    {/* Chat size controls */}
+                    <div className="flex items-center gap-1 border rounded-lg p-1">
+                      <Button
+                        variant={chatBoxSize === 'small' ? 'secondary' : 'ghost'}
+                        size="sm"
+                        onClick={() => setChatBoxSize('small')}
+                        className="h-7 w-7 p-0"
+                        title="Small window"
+                      >
+                        <div className="w-2 h-2 bg-current rounded-sm"></div>
+                      </Button>
+                      <Button
+                        variant={chatBoxSize === 'default' ? 'secondary' : 'ghost'}
+                        size="sm"
+                        onClick={() => setChatBoxSize('default')}
+                        className="h-7 w-7 p-0"
+                        title="Default window"
+                      >
+                        <div className="w-3 h-3 bg-current rounded-sm"></div>
+                      </Button>
+                      <Button
+                        variant={chatBoxSize === 'large' ? 'secondary' : 'ghost'}
+                        size="sm"
+                        onClick={() => setChatBoxSize('large')}
+                        className="h-7 w-7 p-0"
+                        title="Large window"
+                      >
+                        <div className="w-4 h-4 bg-current rounded-sm"></div>
+                      </Button>
+                      <Button
+                        variant={chatBoxSize === 'extra-large' ? 'secondary' : 'ghost'}
+                        size="sm"
+                        onClick={() => setChatBoxSize('extra-large')}
+                        className="h-7 w-7 p-0"
+                        title="Extra large window"
+                      >
+                        <div className="w-5 h-5 bg-current rounded-sm"></div>
+                      </Button>
+                    </div>
+                    
+                    {/* Clear chat button */}
+                    <Button
+                      onClick={clearConversation}
+                      variant="outline"
+                      size="sm"
+                      className="h-8 px-3"
+                      title="Clear conversation and start new chat"
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      New Chat
+                    </Button>
+                  </div>
+                </div>
               </CardHeader>
               
               <CardContent className="flex flex-col h-full p-0">
