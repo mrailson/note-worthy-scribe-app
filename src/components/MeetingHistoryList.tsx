@@ -39,6 +39,7 @@ interface Meeting {
   created_at: string;
   transcript_count?: number;
   summary_exists?: boolean;
+  transcript_preview?: string;
 }
 
 interface MeetingHistoryListProps {
@@ -115,44 +116,65 @@ export const MeetingHistoryList = ({
   };
 
   const generateOverview = (meeting: Meeting) => {
-    const words = [];
+    const parts = [];
     
-    // Add meeting type
-    words.push(getMeetingTypeLabel(meeting.meeting_type));
-    
-    // Add date
-    words.push('on', format(new Date(meeting.start_time), 'MMM d, yyyy'));
-    
-    // Add duration if available
-    if (meeting.duration_minutes) {
-      words.push('lasting', formatDuration(meeting.duration_minutes));
+    // Prioritize agenda from description
+    if (meeting.description && meeting.description.trim()) {
+      // Extract agenda-like content (look for agenda, topics, or meeting purpose)
+      const agendaKeywords = ['agenda', 'discuss', 'review', 'topics', 'items', 'objectives', 'purpose'];
+      const desc = meeting.description.toLowerCase();
+      
+      if (agendaKeywords.some(keyword => desc.includes(keyword))) {
+        // This looks like agenda content
+        const agendaText = meeting.description.split(' ').slice(0, 20).join(' ');
+        parts.push(`Agenda: ${agendaText}`);
+      } else {
+        // General description
+        const descText = meeting.description.split(' ').slice(0, 15).join(' ');
+        parts.push(`Purpose: ${descText}`);
+      }
     }
     
-    // Add status context
-    const statusContext = {
-      'completed': 'successfully completed',
-      'in-progress': 'currently in progress',
-      'scheduled': 'scheduled for the future',
-      'cancelled': 'was cancelled'
-    };
-    words.push('and', statusContext[meeting.status as keyof typeof statusContext] || 'is scheduled');
-    
-    // Add description excerpt if available
-    if (meeting.description) {
-      const descWords = meeting.description.split(' ').slice(0, 15);
-      words.push('-', ...descWords);
+    // Add discussion preview from transcript if available
+    if (meeting.transcript_preview && meeting.transcript_preview.trim()) {
+      let discussionText = meeting.transcript_preview;
+      
+      // Clean up transcript preview (remove speaker labels if present)
+      discussionText = discussionText
+        .replace(/^[^:]+:\s*/gm, '') // Remove "Speaker: " patterns
+        .replace(/\s+/g, ' ') // Normalize whitespace
+        .trim();
+      
+      if (discussionText.length > 0) {
+        // Extract meaningful discussion content
+        const discussionWords = discussionText.split(' ').slice(0, 25);
+        if (parts.length > 0) {
+          parts.push(`Discussion highlights: ${discussionWords.join(' ')}`);
+        } else {
+          parts.push(`Discussion: ${discussionWords.join(' ')}`);
+        }
+      }
     }
     
-    // Add transcript/summary info
-    if (meeting.transcript_count) {
-      words.push('with', meeting.transcript_count.toString(), 'transcript entries');
-    }
-    if (meeting.summary_exists) {
-      words.push('and summary available');
+    // If no agenda or discussion content, fall back to basic info
+    if (parts.length === 0) {
+      parts.push(`${getMeetingTypeLabel(meeting.meeting_type)} held on ${format(new Date(meeting.start_time), 'MMM d, yyyy')}`);
+      
+      if (meeting.duration_minutes) {
+        parts.push(`Duration: ${formatDuration(meeting.duration_minutes)}`);
+      }
+      
+      if (meeting.transcript_count && meeting.transcript_count > 0) {
+        parts.push(`${meeting.transcript_count} transcript entries recorded`);
+      }
     }
     
-    // Limit to 40 words
-    return words.slice(0, 40).join(' ');
+    // Join parts and limit total length
+    const overview = parts.join('. ');
+    const words = overview.split(' ');
+    
+    // Limit to 50 words for content-focused overview
+    return words.length > 50 ? words.slice(0, 50).join(' ') + '...' : overview;
   };
 
   if (loading) {

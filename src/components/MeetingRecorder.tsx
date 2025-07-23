@@ -251,7 +251,7 @@ export const MeetingRecorder = ({
 
       if (error) throw error;
 
-      // Get transcript counts for each meeting
+      // Get transcript counts and content for each meeting
       const meetingsWithCounts = await Promise.all(
         (meetingsData || []).map(async (meeting) => {
           const { count } = await supabase
@@ -265,10 +265,21 @@ export const MeetingRecorder = ({
             .eq('meeting_id', meeting.id)
             .maybeSingle();
 
+          // Get transcript content for overview generation
+          const { data: transcriptData } = await supabase
+            .from('meeting_transcripts')
+            .select('content')
+            .eq('meeting_id', meeting.id)
+            .order('timestamp_seconds', { ascending: true })
+            .limit(3); // Get first few transcript entries for overview
+
+          const transcriptContent = transcriptData?.map(t => t.content).join(' ') || '';
+
           return {
             ...meeting,
             transcript_count: count || 0,
-            summary_exists: !!summaryData
+            summary_exists: !!summaryData,
+            transcript_preview: transcriptContent
           };
         })
       );
