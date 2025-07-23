@@ -215,18 +215,7 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
         
         <CollapsibleContent>
           <CardContent className="space-y-6">
-            {/* Meeting Title */}
-            <div className="space-y-2">
-              <Label htmlFor="meeting-title">Meeting Title</Label>
-              <Input
-                id="meeting-title"
-                placeholder="Enter meeting title"
-                value={settings.title}
-                onChange={(e) => updateSetting('title', e.target.value)}
-              />
-            </div>
-
-            {/* Meeting Type - Moved to top */}
+            {/* Meeting Type */}
             <div className="space-y-2">
               <Label htmlFor="meeting-type">Meeting Type</Label>
               <Select value={settings.meetingType} onValueChange={(value) => updateSetting('meetingType', value)}>
@@ -248,6 +237,17 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
                   <SelectItem value="gp-partners">GP Partners Meeting</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Meeting Title */}
+            <div className="space-y-2">
+              <Label htmlFor="meeting-title">Meeting Title</Label>
+              <Input
+                id="meeting-title"
+                placeholder="Enter meeting title"
+                value={settings.title}
+                onChange={(e) => updateSetting('title', e.target.value)}
+              />
             </div>
 
             {/* Meeting Date and Time */}
