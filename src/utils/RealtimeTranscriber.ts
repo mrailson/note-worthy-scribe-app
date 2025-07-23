@@ -31,30 +31,67 @@ export class RealtimeTranscriber {
     try {
       console.log('Setting up audio capture...');
       
-      // Get microphone access only
-      this.stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          sampleRate: 44100,
-          channelCount: 1,
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
-        }
-      });
+      // Try to capture both microphone and system audio
+      let micStream: MediaStream | null = null;
+      let systemStream: MediaStream | null = null;
+      
+      try {
+        // Get microphone access
+        micStream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            sampleRate: 44100,
+            channelCount: 1,
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          }
+        });
+        console.log('Microphone access granted');
+      } catch (micError) {
+        console.warn('Microphone access failed:', micError);
+      }
 
-      console.log('Microphone access granted');
-      this.onStatusChange('Recording microphone audio');
+      try {
+        // Try to capture system audio (for web meetings, etc.)
+        systemStream = await navigator.mediaDevices.getDisplayMedia({
+          video: false,
+          audio: {
+            sampleRate: 44100,
+            channelCount: 1,
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false
+          }
+        });
+        console.log('System audio access granted');
+      } catch (systemError) {
+        console.warn('System audio access failed or not supported:', systemError);
+      }
+
+      // Create mixed audio stream
+      if (micStream && systemStream) {
+        this.onStatusChange('Recording microphone + system audio');
+        this.stream = this.mixAudioStreams(micStream, systemStream);
+      } else if (micStream) {
+        this.onStatusChange('Recording microphone audio');
+        this.stream = micStream;
+      } else if (systemStream) {
+        this.onStatusChange('Recording system audio');
+        this.stream = systemStream;
+      } else {
+        throw new Error('No audio sources available');
+      }
 
       // Set up audio context for voice activity detection
       this.audioContext = new AudioContext({ sampleRate: 44100 });
       
-      // Create audio source from microphone
-      const micSource = this.audioContext.createMediaStreamSource(this.stream);
+      // Create audio source from the mixed stream
+      const audioSource = this.audioContext.createMediaStreamSource(this.stream);
       
       // Set up analyser for voice activity detection
       this.analyser = this.audioContext.createAnalyser();
       this.analyser.fftSize = 256;
-      micSource.connect(this.analyser);
+      audioSource.connect(this.analyser);
       
       const bufferLength = this.analyser.frequencyBinCount;
       this.dataArray = new Uint8Array(bufferLength);
@@ -114,9 +151,31 @@ export class RealtimeTranscriber {
 
     } catch (error) {
       console.error('Failed to start audio capture:', error);
-      this.onError('Microphone access denied: ' + error.message);
+      this.onError('Audio access denied: ' + error.message);
       throw error;
     }
+  }
+
+  private mixAudioStreams(micStream: MediaStream, systemStream: MediaStream): MediaStream {
+    const audioContext = new AudioContext({ sampleRate: 44100 });
+    
+    // Create sources for both streams
+    const micSource = audioContext.createMediaStreamSource(micStream);
+    const systemSource = audioContext.createMediaStreamSource(systemStream);
+    
+    // Create a mixer node
+    const mixer = audioContext.createGain();
+    mixer.gain.value = 1.0;
+    
+    // Connect both sources to the mixer
+    micSource.connect(mixer);
+    systemSource.connect(mixer);
+    
+    // Create a destination for the mixed audio
+    const dest = audioContext.createMediaStreamDestination();
+    mixer.connect(dest);
+    
+    return dest.stream;
   }
 
   private startVoiceActivityDetection() {
