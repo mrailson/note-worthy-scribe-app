@@ -139,7 +139,7 @@ New patient pathway improvements have reduced waiting times by 15%. Patient sati
               className="touch-manipulation min-h-[44px] flex-1 max-w-[200px]"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Meeting
+              Back
             </Button>
           </div>
           
@@ -151,7 +151,7 @@ New patient pathway improvements have reduced waiting times by 15%. Patient sati
             </CardTitle>
             <Button variant="outline" onClick={onBackToRecording}>
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Meeting
+              Back
             </Button>
           </div>
           
