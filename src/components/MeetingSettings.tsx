@@ -222,7 +222,7 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
                 <SelectTrigger>
                   <SelectValue placeholder="Select meeting type" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-[300px] overflow-y-auto">
                   <SelectItem value="general">General Meeting</SelectItem>
                   <SelectItem value="clinical-review">Clinical Review</SelectItem>
                   <SelectItem value="federation">Federation</SelectItem>
