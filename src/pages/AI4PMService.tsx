@@ -96,6 +96,7 @@ const AI4PMService = () => {
   const [practiceContext, setPracticeContext] = useState<PracticeContext>({});
   const [chatBoxSize, setChatBoxSize] = useState('default'); // 'small', 'default', 'large', 'extra-large'
   const [includePracticeBranding, setIncludePracticeBranding] = useState(true);
+  const [practiceDetails, setPracticeDetails] = useState<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const scrollToBottom = () => {
@@ -130,12 +131,16 @@ const AI4PMService = () => {
         return;
       }
 
-      // Get practice details including logo
+      // Get practice details including all information
       const { data: practiceDetails } = await supabase
         .from('practice_details')
-        .select('practice_name, pcn_code, user_id, logo_url')
+        .select('practice_name, pcn_code, user_id, logo_url, address, phone, email, website')
         .eq('id', userRole.practice_id)
         .single();
+
+      if (practiceDetails) {
+        setPracticeDetails(practiceDetails);
+      }
 
       if (!practiceDetails) {
         console.log('Practice details not found');
@@ -391,6 +396,37 @@ const AI4PMService = () => {
       requiresFile: false 
     },
   ];
+
+  const insertPracticeDetails = () => {
+    if (!practiceDetails) return;
+    
+    let practiceText = `\n\n**Practice Details:**\n`;
+    practiceText += `**Practice Name:** ${practiceDetails.practice_name}\n`;
+    
+    if (practiceDetails.address) {
+      practiceText += `**Address:** ${practiceDetails.address}\n`;
+    }
+    
+    if (practiceDetails.phone) {
+      practiceText += `**Phone:** ${practiceDetails.phone}\n`;
+    }
+    
+    if (practiceDetails.email) {
+      practiceText += `**Email:** ${practiceDetails.email}\n`;
+    }
+    
+    if (practiceDetails.website) {
+      practiceText += `**Website:** ${practiceDetails.website}\n`;
+    }
+    
+    if (practiceContext.pcnName) {
+      practiceText += `**Primary Care Network:** ${practiceContext.pcnName}\n`;
+    }
+    
+    practiceText += `\n`;
+    
+    setInput(prev => prev + practiceText);
+  };
 
   const buildSystemPrompt = () => {
     let prompt = `You are "AI 4 PM Service", an AI Assistant built specifically to help GP Practice Managers in the UK NHS.
@@ -1381,6 +1417,20 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                         }}
                       />
                       <div className="absolute bottom-2 right-2 flex gap-1">
+                        {/* Practice details insert button */}
+                        {practiceDetails && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={insertPracticeDetails}
+                            className="h-8 w-8 p-0 hover:bg-muted"
+                            title="Insert practice details"
+                          >
+                            <FileText className="h-4 w-4" />
+                          </Button>
+                        )}
+                        
                         {/* File Upload Button */}
                         <div className="relative">
                           <input
