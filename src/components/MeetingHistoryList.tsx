@@ -26,6 +26,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
+import { MeetingOverviewEditor } from "@/components/MeetingOverviewEditor";
 
 interface Meeting {
   id: string;
@@ -290,10 +291,12 @@ export const MeetingHistoryList = ({
           
           <CardContent className="pt-0">
             <div className="space-y-3">
-              {/* Meeting Overview */}
-              <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
-                {generateOverview(meeting)}
-              </p>
+              {/* Meeting Overview Editor */}
+              <MeetingOverviewEditor 
+                meetingId={meeting.id}
+                currentOverview={meeting.overview || generateOverview(meeting)}
+                className="mb-3"
+              />
               
               {/* Meeting Stats - Mobile Responsive */}
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
