@@ -74,6 +74,88 @@ export const MeetingRecorder = ({
   
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const transciberRef = useRef<RealtimeTranscriber | null>(null);
+  const autoSaveRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Auto-save meeting data to localStorage
+  const autoSaveMeeting = () => {
+    if (isRecording && transcript && duration > 5) {
+      const meetingData = {
+        title: meetingSettings.title || 'General Meeting',
+        duration: formatDuration(duration),
+        wordCount: wordCount,
+        transcript: transcript,
+        speakerCount: speakerCount,
+        startTime: startTime,
+        timestamp: Date.now()
+      };
+      localStorage.setItem('unsaved_meeting', JSON.stringify(meetingData));
+      console.log('Auto-saved meeting data to localStorage');
+    }
+  };
+
+  // Check for unsaved meeting on component mount
+  useEffect(() => {
+    const checkUnsavedMeeting = () => {
+      const unsavedMeeting = localStorage.getItem('unsaved_meeting');
+      if (unsavedMeeting) {
+        const meetingData = JSON.parse(unsavedMeeting);
+        const age = Date.now() - meetingData.timestamp;
+        
+        // If unsaved meeting is less than 1 hour old, offer recovery
+        if (age < 3600000) {
+          const shouldRecover = window.confirm(
+            `Found an unsaved meeting recording from ${new Date(meetingData.timestamp).toLocaleString()}. Would you like to recover it?`
+          );
+          
+          if (shouldRecover) {
+            navigate('/meeting-summary', { state: meetingData });
+            localStorage.removeItem('unsaved_meeting');
+          } else {
+            localStorage.removeItem('unsaved_meeting');
+          }
+        } else {
+          // Remove old unsaved meetings
+          localStorage.removeItem('unsaved_meeting');
+        }
+      }
+    };
+
+    checkUnsavedMeeting();
+  }, [navigate]);
+
+  // Auto-save every 30 seconds while recording
+  useEffect(() => {
+    if (isRecording) {
+      autoSaveRef.current = setInterval(autoSaveMeeting, 30000);
+      
+      // Set up beforeunload event to handle browser close/refresh
+      const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+        if (isRecording && duration > 5) {
+          autoSaveMeeting();
+          e.preventDefault();
+          e.returnValue = 'You have an active recording. Are you sure you want to leave?';
+          return 'You have an active recording. Are you sure you want to leave?';
+        }
+      };
+
+      const handleUnload = () => {
+        if (isRecording && duration > 5) {
+          autoSaveMeeting();
+        }
+      };
+
+      window.addEventListener('beforeunload', handleBeforeUnload);
+      window.addEventListener('unload', handleUnload);
+      
+      return () => {
+        if (autoSaveRef.current) {
+          clearInterval(autoSaveRef.current);
+        }
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+        window.removeEventListener('unload', handleUnload);
+      };
+    }
+  }, [isRecording, duration, transcript, wordCount, speakerCount, startTime, meetingSettings.title]);
 
   // Format duration as MM:SS
   const formatDuration = (seconds: number) => {
@@ -167,6 +249,12 @@ export const MeetingRecorder = ({
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
+    
+    // Clear auto-save interval and localStorage
+    if (autoSaveRef.current) {
+      clearInterval(autoSaveRef.current);
+    }
+    localStorage.removeItem('unsaved_meeting');
     
     setIsRecording(false);
     
