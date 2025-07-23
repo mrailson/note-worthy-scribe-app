@@ -93,7 +93,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                     className="cursor-pointer py-3"
                   >
                     <Plus className="h-4 w-4 mr-2" />
-                    Start New Meeting
+                    Meeting Service
                   </DropdownMenuItem>
                   <DropdownMenuItem 
                     onClick={() => navigate('/meetings')}
