@@ -34,7 +34,7 @@ interface MeetingSettingsProps {
 
 export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscriptImported, initialSettings }: MeetingSettingsProps) => {
   const { user } = useAuth();
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
   const [isImporting, setIsImporting] = useState(false);
   const [isImportingTranscript, setIsImportingTranscript] = useState(false);
   const [settings, setSettings] = useState({
