@@ -117,6 +117,16 @@ export const MeetingHistoryList = ({
   };
 
   const generateOverview = (meeting: Meeting) => {
+    // Debug: log meeting data to see what's available
+    console.log('Meeting data for overview:', {
+      id: meeting.id,
+      title: meeting.title,
+      description: meeting.description,
+      meeting_summary: meeting.meeting_summary,
+      transcript_preview: meeting.transcript_preview,
+      transcript_count: meeting.transcript_count
+    });
+    
     // Priority 1: Use existing meeting summary if available
     if (meeting.meeting_summary && meeting.meeting_summary.trim()) {
       // Extract key information from the meeting summary
