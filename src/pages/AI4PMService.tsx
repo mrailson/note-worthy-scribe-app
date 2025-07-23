@@ -626,19 +626,19 @@ Always provide practical, actionable advice that follows NHS guidelines and best
 
       // Enhanced content parsing with better formatting
       const parseContent = (content: string) => {
-        // Preserve important formatting markers
+        // Process and clean up content, converting checkboxes to bullet points
         const processedContent = content
           .replace(/\*\*(.*?)\*\*/g, '|||BOLD|||$1|||/BOLD|||') // Preserve bold
           .replace(/\*(.*?)\*/g, '|||ITALIC|||$1|||/ITALIC|||') // Preserve italic
           .replace(/`(.*?)`/g, '|||CODE|||$1|||/CODE|||') // Preserve code
           .replace(/#{1,6}\s*(.*?)$/gm, '|||HEADING|||$1|||/HEADING|||') // Preserve headings
           .replace(/^\s*[-•*]\s*/gm, '• ') // Normalize bullet points
-          .replace(/^\s*☑\s*/gm, '☑ ') // Preserve checkboxes
-          .replace(/^\s*☐\s*/gm, '☐ ') // Preserve empty checkboxes
-          .replace(/^\s*✓\s*/gm, '✓ ') // Preserve check marks
-          .replace(/^\s*✗\s*/gm, '✗ ') // Preserve X marks
-          .replace(/^\s*\[\s*x\s*\]\s*/gmi, '☑ ') // Convert [x] to checkbox
-          .replace(/^\s*\[\s*\]\s*/gm, '☐ '); // Convert [ ] to empty checkbox
+          .replace(/^\s*☑\s*/gm, '• ') // Convert checked boxes to bullets
+          .replace(/^\s*☐\s*/gm, '• ') // Convert empty checkboxes to bullets
+          .replace(/^\s*✓\s*/gm, '• ') // Convert check marks to bullets
+          .replace(/^\s*✗\s*/gm, '• ') // Convert X marks to bullets
+          .replace(/^\s*\[\s*x\s*\]\s*/gmi, '• ') // Convert [x] to bullets
+          .replace(/^\s*\[\s*\]\s*/gm, '• '); // Convert [ ] to bullets
 
         return processedContent.split('\n').filter(line => line.trim());
       };
@@ -684,31 +684,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
             })
           );
         }
-        // Handle checkboxes and tick items
-        else if (trimmedLine.startsWith('☑') || trimmedLine.startsWith('☐') || trimmedLine.startsWith('✓') || trimmedLine.startsWith('✗')) {
-          const checkboxText = trimmedLine.substring(2).trim();
-          const isChecked = trimmedLine.startsWith('☑') || trimmedLine.startsWith('✓');
-          
-          paragraphs.push(
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: isChecked ? '☑ ' : '☐ ',
-                  size: 24,
-                  color: isChecked ? "008000" : "666666" // Green for checked, gray for unchecked
-                }),
-                new TextRun({
-                  text: checkboxText,
-                  size: 24,
-                  strike: isChecked ? true : false
-                })
-              ],
-              spacing: { after: 100 },
-              indent: { left: 200 }
-            })
-          );
-        }
-        // Handle bullet points
+        // Handle bullet points (including converted checkboxes)
         else if (trimmedLine.startsWith('•') || trimmedLine.startsWith('-')) {
           const bulletText = trimmedLine.replace(/^[•-]\s*/, '');
           paragraphs.push(
