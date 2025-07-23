@@ -241,7 +241,9 @@ export const MeetingRecorder = ({
           end_time,
           duration_minutes,
           status,
-          created_at
+          created_at,
+          location,
+          format
         `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
