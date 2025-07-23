@@ -242,7 +242,7 @@ export const MeetingHistoryList = ({
                   className="flex items-center justify-center gap-2 flex-1 sm:flex-none touch-manipulation min-h-[44px]"
                 >
                   <Eye className="h-4 w-4" />
-                  <span>View Summary</span>
+                  <span>View Meeting Notes</span>
                 </Button>
                 
                 <Button
