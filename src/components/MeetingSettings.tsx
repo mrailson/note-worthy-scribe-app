@@ -48,6 +48,7 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
     title: initialSettings?.title || "General Meeting",
     description: initialSettings?.description || "",
     meetingType: initialSettings?.meetingType || "general",
+    meetingStyle: "standard",
     location: "",
     format: "",
     attendees: "",
@@ -237,6 +238,26 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
                   <SelectItem value="training">Training Session</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Meeting Style */}
+            <div className="space-y-2">
+              <Label htmlFor="meeting-style">Meeting Style</Label>
+              <Select value={settings.meetingStyle || 'standard'} onValueChange={(value) => updateSetting('meetingStyle', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select meeting style" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="standard">Standard NHS Format</SelectItem>
+                  <SelectItem value="clinical">Clinical Professional</SelectItem>
+                  <SelectItem value="executive">Executive Summary</SelectItem>
+                  <SelectItem value="governance">Governance & Compliance</SelectItem>
+                  <SelectItem value="collaborative">Collaborative Partnership</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Choose the formatting style for your meeting minutes
+              </p>
             </div>
 
             {/* Meeting Description */}
