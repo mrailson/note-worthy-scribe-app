@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -46,6 +47,10 @@ interface MeetingHistoryListProps {
   onViewSummary: (meetingId: string) => void;
   onDelete: (meetingId: string) => void;
   loading: boolean;
+  // Multi-select props
+  isSelectMode?: boolean;
+  selectedMeetings?: string[];
+  onSelectMeeting?: (meetingId: string, checked: boolean) => void;
 }
 
 export const MeetingHistoryList = ({ 
@@ -53,7 +58,10 @@ export const MeetingHistoryList = ({
   onEdit, 
   onViewSummary,
   onDelete, 
-  loading 
+  loading,
+  isSelectMode = false,
+  selectedMeetings = [],
+  onSelectMeeting
 }: MeetingHistoryListProps) => {
   
   const getStatusIcon = (status: string) => {
@@ -194,16 +202,27 @@ export const MeetingHistoryList = ({
             <div className="space-y-3">
               {/* Title and Status Row */}
               <div className="flex items-start justify-between gap-2">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-2">
-                    {getStatusIcon(meeting.status)}
-                    <h3 className="font-semibold text-base sm:text-lg truncate pr-2">{meeting.title}</h3>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant="secondary" className="text-xs">
-                      {getMeetingTypeLabel(meeting.meeting_type)}
-                    </Badge>
-                    {getStatusBadge(meeting.status)}
+                {/* Checkbox and content */}
+                <div className="flex items-start gap-3 flex-1 min-w-0">
+                  {isSelectMode && onSelectMeeting && (
+                    <Checkbox
+                      checked={selectedMeetings.includes(meeting.id)}
+                      onCheckedChange={(checked) => onSelectMeeting(meeting.id, checked as boolean)}
+                      className="mt-1"
+                    />
+                  )}
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-2">
+                      {getStatusIcon(meeting.status)}
+                      <h3 className="font-semibold text-base sm:text-lg truncate pr-2">{meeting.title}</h3>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant="secondary" className="text-xs">
+                        {getMeetingTypeLabel(meeting.meeting_type)}
+                      </Badge>
+                      {getStatusBadge(meeting.status)}
+                    </div>
                   </div>
                 </div>
               </div>

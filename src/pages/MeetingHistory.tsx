@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Clock, FileText, Trash2, Edit, Mail, RefreshCw } from "lucide-react";
+import { Plus, Clock, FileText, Trash2, Edit, Mail, RefreshCw, Square, CheckSquare } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -59,6 +59,10 @@ const MeetingHistory = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState("all");
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
+  
+  // Multi-select functionality
+  const [selectedMeetings, setSelectedMeetings] = useState<string[]>([]);
+  const [isSelectMode, setIsSelectMode] = useState(false);
   
   // Advanced search filters
   const [advancedFilters, setAdvancedFilters] = useState<Partial<SearchFilters>>({
@@ -387,6 +391,43 @@ const MeetingHistory = () => {
     }
   };
 
+  // Multi-select handlers
+  const handleSelectMeeting = (meetingId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedMeetings(prev => [...prev, meetingId]);
+    } else {
+      setSelectedMeetings(prev => prev.filter(id => id !== meetingId));
+    }
+  };
+
+  const handleSelectAll = () => {
+    if (selectedMeetings.length === filteredMeetings.length) {
+      setSelectedMeetings([]);
+    } else {
+      setSelectedMeetings(filteredMeetings.map(m => m.id));
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    try {
+      const { error } = await supabase
+        .from('meetings')
+        .delete()
+        .in('id', selectedMeetings)
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+
+      console.log(`${selectedMeetings.length} meetings deleted successfully`);
+      
+      setSelectedMeetings([]);
+      setIsSelectMode(false);
+      fetchMeetings();
+    } catch (error: any) {
+      console.error("Error deleting selected meetings:", error.message);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-background">
@@ -477,52 +518,133 @@ const MeetingHistory = () => {
           advancedFilters={advancedFilters}
         />
 
-        {/* Delete All Button */}
+        {/* Multi-select and Delete Controls */}
         {meetings.length > 0 && (
-          <div className="flex justify-end">
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button 
-                  variant="destructive" 
-                  size="sm"
-                  className="touch-manipulation min-h-[44px] text-xs sm:text-sm"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete All Meetings
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent className="mx-4 max-w-md">
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Delete All Meetings</AlertDialogTitle>
-                  <AlertDialogDescription className="text-sm">
-                    This action will permanently delete all {meetings.length} meetings, their transcripts, and summaries. This cannot be undone.
-                    <br /><br />
-                    To confirm, please type <strong>delete</strong> in the field below:
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <Input
-                  placeholder="Type 'delete' to confirm"
-                  value={deleteConfirmation}
-                  onChange={(e) => setDeleteConfirmation(e.target.value)}
-                  className="touch-manipulation min-h-[44px]"
-                />
-                <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-                  <AlertDialogCancel 
-                    onClick={() => setDeleteConfirmation("")}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            {/* Multi-select controls */}
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setIsSelectMode(!isSelectMode);
+                  setSelectedMeetings([]);
+                }}
+                className="touch-manipulation min-h-[44px]"
+              >
+                {isSelectMode ? (
+                  <>
+                    <Square className="h-4 w-4 mr-2" />
+                    Cancel Selection
+                  </>
+                ) : (
+                  <>
+                    <CheckSquare className="h-4 w-4 mr-2" />
+                    Select Multiple
+                  </>
+                )}
+              </Button>
+              
+              {isSelectMode && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleSelectAll}
+                    className="touch-manipulation min-h-[44px] text-xs sm:text-sm"
+                  >
+                    {selectedMeetings.length === filteredMeetings.length ? 'Deselect All' : 'Select All'}
+                  </Button>
+                  
+                  {selectedMeetings.length > 0 && (
+                    <span className="text-sm text-muted-foreground">
+                      {selectedMeetings.length} selected
+                    </span>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* Delete actions */}
+            <div className="flex gap-2">
+              {isSelectMode && selectedMeetings.length > 0 && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button 
+                      variant="destructive" 
+                      size="sm"
+                      className="touch-manipulation min-h-[44px] text-xs sm:text-sm"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete Selected ({selectedMeetings.length})
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent className="mx-4 max-w-md">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Selected Meetings</AlertDialogTitle>
+                      <AlertDialogDescription className="text-sm">
+                        This action will permanently delete {selectedMeetings.length} meeting{selectedMeetings.length > 1 ? 's' : ''}, their transcripts, and summaries. This cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                      <AlertDialogCancel className="touch-manipulation min-h-[44px]">
+                        Cancel
+                      </AlertDialogCancel>
+                      <AlertDialogAction 
+                        onClick={handleDeleteSelected}
+                        className="bg-destructive hover:bg-destructive/90 touch-manipulation min-h-[44px]"
+                      >
+                        Delete Selected
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button 
+                    variant="destructive" 
+                    size="sm"
+                    className="touch-manipulation min-h-[44px] text-xs sm:text-sm"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete All
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="mx-4 max-w-md">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete All Meetings</AlertDialogTitle>
+                    <AlertDialogDescription className="text-sm">
+                      This action will permanently delete all {meetings.length} meetings, their transcripts, and summaries. This cannot be undone.
+                      <br /><br />
+                      To confirm, please type <strong>delete</strong> in the field below:
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <Input
+                    placeholder="Type 'delete' to confirm"
+                    value={deleteConfirmation}
+                    onChange={(e) => setDeleteConfirmation(e.target.value)}
                     className="touch-manipulation min-h-[44px]"
-                  >
-                    Cancel
-                  </AlertDialogCancel>
-                  <AlertDialogAction 
-                    onClick={handleDeleteAll}
-                    disabled={deleteConfirmation.toLowerCase() !== 'delete'}
-                    className="bg-destructive hover:bg-destructive/90 touch-manipulation min-h-[44px]"
-                  >
-                    Delete All Meetings
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+                  />
+                  <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                    <AlertDialogCancel 
+                      onClick={() => setDeleteConfirmation("")}
+                      className="touch-manipulation min-h-[44px]"
+                    >
+                      Cancel
+                    </AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={handleDeleteAll}
+                      disabled={deleteConfirmation.toLowerCase() !== 'delete'}
+                      className="bg-destructive hover:bg-destructive/90 touch-manipulation min-h-[44px]"
+                    >
+                      Delete All Meetings
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           </div>
         )}
 
@@ -675,6 +797,9 @@ const MeetingHistory = () => {
             onViewSummary={handleViewMeetingSummary}
             onDelete={handleMeetingDelete}
             loading={loading}
+            isSelectMode={isSelectMode}
+            selectedMeetings={selectedMeetings}
+            onSelectMeeting={handleSelectMeeting}
           />
         )}
 
