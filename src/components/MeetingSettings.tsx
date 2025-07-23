@@ -224,17 +224,17 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="general">General Meeting</SelectItem>
-                  <SelectItem value="patient-consultation">Patient Meeting (Complaint Handling or other Administration Reason)</SelectItem>
-                  <SelectItem value="team-meeting">Team Meeting</SelectItem>
                   <SelectItem value="clinical-review">Clinical Review</SelectItem>
-                  <SelectItem value="training">Training Session</SelectItem>
-                  <SelectItem value="pcn-meeting">PCN Meeting</SelectItem>
-                  <SelectItem value="icb-meeting">ICB Meeting</SelectItem>
-                  <SelectItem value="neighbourhood-meeting">Neighbourhood Meeting</SelectItem>
                   <SelectItem value="federation">Federation</SelectItem>
-                  <SelectItem value="locality">Locality</SelectItem>
-                  <SelectItem value="lmc">LMC</SelectItem>
                   <SelectItem value="gp-partners">GP Partners Meeting</SelectItem>
+                  <SelectItem value="icb-meeting">ICB Meeting</SelectItem>
+                  <SelectItem value="lmc">LMC</SelectItem>
+                  <SelectItem value="locality">Locality</SelectItem>
+                  <SelectItem value="neighbourhood-meeting">Neighbourhood Meeting</SelectItem>
+                  <SelectItem value="patient-consultation">Patient Meeting (Complaint Handling or other Administration Reason)</SelectItem>
+                  <SelectItem value="pcn-meeting">PCN Meeting</SelectItem>
+                  <SelectItem value="team-meeting">Team Meeting</SelectItem>
+                  <SelectItem value="training">Training Session</SelectItem>
                 </SelectContent>
               </Select>
             </div>
