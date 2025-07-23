@@ -379,13 +379,26 @@ export class RealtimeTranscriber {
             const result = await response.json();
             console.log('Transcription API response:', result);
             
+            // Reject transcriptions with high no_speech_prob (likely hallucinations)
+            const noSpeechProb = result.segments?.[0]?.no_speech_prob || 0;
+            if (noSpeechProb > 0.5) {
+              console.log('Rejected transcription due to high no_speech_prob:', noSpeechProb);
+              this.onStatusChange('Listening for speech...');
+              return;
+            }
+            
             if (result.text && result.text.trim()) {
-              // More conservative filtering for false positives
               const text = result.text.trim();
               const lowercaseText = text.toLowerCase();
               
-              // Only filter out obvious non-speech patterns
-              const falsePositives = [
+              // Filter out common Whisper hallucinations
+              const hallucinations = [
+                'bye-bye',
+                'bye bye', 
+                'good night',
+                'goodnight',
+                'thank you',
+                'thanks',
                 'music',
                 'applause',
                 'laughter',
@@ -393,28 +406,28 @@ export class RealtimeTranscriber {
                 'silence'
               ];
               
-              // Check for repetitive patterns (like "bye bye bye bye")
-              const words = text.split(' ');
-              const isRepetitive = words.length > 3 && words.every(word => word.toLowerCase() === words[0].toLowerCase());
-              
-              // Check if the text is likely a false positive
-              const isFalsePositive = falsePositives.some(phrase => 
+              // Check if the text is likely a hallucination
+              const isHallucination = hallucinations.some(phrase => 
                 lowercaseText.includes(phrase)
               ) || text.length < 3;
+              
+              // Check for repetitive patterns
+              const words = text.split(' ');
+              const isRepetitive = words.length > 2 && words.every(word => word.toLowerCase() === words[0].toLowerCase());
                
-               if (!isFalsePositive && !isRepetitive && text.length > 2) {
+              if (!isHallucination && !isRepetitive && text.length > 2) {
                 console.log('Valid transcription received:', text);
                 this.onStatusChange('Transcription active');
                 this.onTranscript({
                   text: text,
-                  speaker: 'Speaker 1',
+                  speaker: 'Mixed Audio',
                   confidence: result.confidence || 0.85,
                   timestamp: new Date().toISOString(),
                   isFinal: true,
                   words: result.words || []
                 });
               } else {
-                console.log('Filtered out false positive/noise:', text);
+                console.log('Filtered out hallucination/noise:', text, 'no_speech_prob:', noSpeechProb);
                 this.onStatusChange('Listening for speech...');
               }
             } else {
