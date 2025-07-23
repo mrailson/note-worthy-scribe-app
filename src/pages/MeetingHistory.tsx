@@ -59,6 +59,8 @@ const MeetingHistory = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState("all");
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
   
   // Multi-select functionality
   const [selectedMeetings, setSelectedMeetings] = useState<string[]>([]);
@@ -200,45 +202,68 @@ const MeetingHistory = () => {
     try {
       setLoading(true);
       
-      // First get meetings
+      // Get everything in one optimized query using joins
       const { data: meetingsData, error: meetingsError } = await supabase
         .from('meetings')
-        .select('*')
+        .select(`
+          id,
+          title,
+          description,
+          meeting_type,
+          start_time,
+          end_time,
+          duration_minutes,
+          status,
+          created_at,
+          location,
+          format,
+          meeting_overviews(overview)
+        `)
         .eq('user_id', user?.id)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(10); // Limit initial load for performance
 
       if (meetingsError) throw meetingsError;
 
-      // Then get transcript counts and summaries separately to avoid duplicates
-      const meetingIds = meetingsData?.map(m => m.id) || [];
+      if (!meetingsData || meetingsData.length === 0) {
+        setMeetings([]);
+        return;
+      }
+
+      // Batch the remaining queries efficiently
+      const meetingIds = meetingsData.map(m => m.id);
       
-      const [transcriptData, summaryData] = await Promise.all([
+      const [transcriptCounts, summaryExists] = await Promise.all([
+        // Get transcript counts in one query
         supabase
           .from('meeting_transcripts')
           .select('meeting_id')
-          .in('meeting_id', meetingIds),
+          .in('meeting_id', meetingIds)
+          .then(({ data }) => {
+            return data?.reduce((acc, t) => {
+              acc[t.meeting_id] = (acc[t.meeting_id] || 0) + 1;
+              return acc;
+            }, {} as Record<string, number>) || {};
+          }),
+        
+        // Get summary existence in one query
         supabase
           .from('meeting_summaries')
           .select('meeting_id')
           .in('meeting_id', meetingIds)
+          .then(({ data }) => {
+            return data?.reduce((acc, s) => {
+              acc[s.meeting_id] = true;
+              return acc;
+            }, {} as Record<string, boolean>) || {};
+          })
       ]);
 
-      // Count transcripts and check for summaries
-      const transcriptCounts = transcriptData.data?.reduce((acc, t) => {
-        acc[t.meeting_id] = (acc[t.meeting_id] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>) || {};
-
-      const summaryExists = summaryData.data?.reduce((acc, s) => {
-        acc[s.meeting_id] = true;
-        return acc;
-      }, {} as Record<string, boolean>) || {};
-
-      const enrichedMeetings = meetingsData?.map(meeting => ({
+      const enrichedMeetings = meetingsData.map(meeting => ({
         ...meeting,
         transcript_count: transcriptCounts[meeting.id] || 0,
         summary_exists: !!summaryExists[meeting.id]
-      })) || [];
+      }));
 
       setMeetings(enrichedMeetings);
     } catch (error: any) {
