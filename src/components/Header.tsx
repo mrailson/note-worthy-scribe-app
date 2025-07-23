@@ -80,7 +80,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                     className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs sm:text-sm px-2 sm:px-4"
                   >
                     <Grid3X3 className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
-                    <span className="hidden sm:inline">Select Module</span>
+                    <span className="hidden sm:inline">Select Service</span>
                     <ChevronDown className="h-3 w-3 ml-1" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -88,28 +88,20 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                   align="end" 
                   className="bg-background border border-border shadow-lg z-50 w-48"
                 >
-                  <DropdownMenuSub>
-                    <DropdownMenuSubTrigger className="cursor-pointer py-3">
-                      <FileText className="h-4 w-4 mr-2" />
-                      Meeting Notes Service
-                    </DropdownMenuSubTrigger>
-                    <DropdownMenuSubContent className="bg-background border border-border shadow-lg">
-                      <DropdownMenuItem 
-                        onClick={() => navigate('/')}
-                        className="cursor-pointer py-3"
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Start New Meeting
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => navigate('/meetings')}
-                        className="cursor-pointer py-3"
-                      >
-                        <FileText className="h-4 w-4 mr-2" />
-                        View Meeting History
-                      </DropdownMenuItem>
-                    </DropdownMenuSubContent>
-                  </DropdownMenuSub>
+                  <DropdownMenuItem 
+                    onClick={() => navigate('/')}
+                    className="cursor-pointer py-3"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Start New Meeting
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => navigate('/meetings')}
+                    className="cursor-pointer py-3"
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    View Meeting History
+                  </DropdownMenuItem>
                   <DropdownMenuItem 
                     onClick={() => navigate('/gp-scribe')}
                     className="cursor-pointer py-3"
