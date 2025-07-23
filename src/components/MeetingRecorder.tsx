@@ -628,9 +628,12 @@ export const MeetingRecorder = ({
             <CardContent className="space-y-4">
               {realtimeTranscripts.length > 0 ? (
                 <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {realtimeTranscripts.map((transcript, index) => (
+                  {realtimeTranscripts
+                    .slice()
+                    .reverse()
+                    .map((transcript, index) => (
                     <div
-                      key={`${transcript.speaker}-${index}`}
+                      key={`${transcript.speaker}-${realtimeTranscripts.length - 1 - index}`}
                       className={`p-3 rounded-lg border ${
                         transcript.isFinal
                           ? 'bg-accent/20 border-accent/40'
