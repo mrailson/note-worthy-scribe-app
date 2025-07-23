@@ -51,32 +51,89 @@ export class RealtimeTranscriber {
         console.warn('Microphone access failed:', micError);
       }
 
+      // Try multiple methods to capture system audio
       try {
-        // Try to capture system audio (for web meetings, etc.)
-        systemStream = await navigator.mediaDevices.getDisplayMedia({
-          video: false,
-          audio: {
-            sampleRate: 44100,
-            channelCount: 1,
-            echoCancellation: false,
-            noiseSuppression: false,
-            autoGainControl: false
+        console.log('Attempting to capture system audio...');
+        
+        // Method 1: Try getDisplayMedia with audio-only
+        try {
+          systemStream = await navigator.mediaDevices.getDisplayMedia({
+            video: false,
+            audio: {
+              sampleRate: 44100,
+              channelCount: 1,
+              echoCancellation: false,
+              noiseSuppression: false,
+              autoGainControl: false
+            }
+          });
+          console.log('System audio captured via getDisplayMedia (audio-only)');
+        } catch (audioOnlyError) {
+          console.log('Audio-only getDisplayMedia failed, trying with video:', audioOnlyError);
+          
+          // Method 2: Try getDisplayMedia with video + audio, then extract audio
+          try {
+            const displayStream = await navigator.mediaDevices.getDisplayMedia({
+              video: true,
+              audio: {
+                sampleRate: 44100,
+                channelCount: 1,
+                echoCancellation: false,
+                noiseSuppression: false,
+                autoGainControl: false
+              }
+            });
+            
+            // Extract only audio tracks
+            const audioTracks = displayStream.getAudioTracks();
+            if (audioTracks.length > 0) {
+              systemStream = new MediaStream(audioTracks);
+              console.log('System audio extracted from display capture');
+              
+              // Stop video tracks to save resources
+              displayStream.getVideoTracks().forEach(track => track.stop());
+            } else {
+              console.log('No audio tracks found in display capture');
+            }
+          } catch (displayError) {
+            console.log('Display capture with audio failed:', displayError);
           }
-        });
-        console.log('System audio access granted');
+        }
+        
+        // Method 3: Try experimental Chrome API for system audio
+        if (!systemStream && (navigator as any).mediaDevices.getDisplayMedia) {
+          try {
+            console.log('Trying experimental system audio capture...');
+            systemStream = await (navigator.mediaDevices as any).getUserMedia({
+              audio: {
+                mandatory: {
+                  chromeMediaSource: 'desktop',
+                  chromeMediaSourceId: 'screen'
+                }
+              }
+            });
+            console.log('System audio captured via experimental API');
+          } catch (expError) {
+            console.log('Experimental system audio capture failed:', expError);
+          }
+        }
+
       } catch (systemError) {
-        console.warn('System audio access failed or not supported:', systemError);
+        console.warn('All system audio capture methods failed:', systemError);
       }
 
-      // Create mixed audio stream
+      // Create mixed audio stream or use what's available
       if (micStream && systemStream) {
+        console.log('Creating mixed audio stream (mic + system)');
         this.onStatusChange('Recording microphone + system audio');
         this.stream = this.mixAudioStreams(micStream, systemStream);
       } else if (micStream) {
-        this.onStatusChange('Recording microphone audio');
+        console.log('Using microphone only');
+        this.onStatusChange('Recording microphone audio only');
         this.stream = micStream;
       } else if (systemStream) {
-        this.onStatusChange('Recording system audio');
+        console.log('Using system audio only');
+        this.onStatusChange('Recording system audio only');
         this.stream = systemStream;
       } else {
         throw new Error('No audio sources available');
@@ -157,25 +214,43 @@ export class RealtimeTranscriber {
   }
 
   private mixAudioStreams(micStream: MediaStream, systemStream: MediaStream): MediaStream {
+    console.log('Mixing audio streams - mic and system');
     const audioContext = new AudioContext({ sampleRate: 44100 });
     
-    // Create sources for both streams
-    const micSource = audioContext.createMediaStreamSource(micStream);
-    const systemSource = audioContext.createMediaStreamSource(systemStream);
-    
-    // Create a mixer node
-    const mixer = audioContext.createGain();
-    mixer.gain.value = 1.0;
-    
-    // Connect both sources to the mixer
-    micSource.connect(mixer);
-    systemSource.connect(mixer);
-    
-    // Create a destination for the mixed audio
-    const dest = audioContext.createMediaStreamDestination();
-    mixer.connect(dest);
-    
-    return dest.stream;
+    try {
+      // Create sources for both streams
+      const micSource = audioContext.createMediaStreamSource(micStream);
+      const systemSource = audioContext.createMediaStreamSource(systemStream);
+      
+      // Create gain nodes for volume control
+      const micGain = audioContext.createGain();
+      const systemGain = audioContext.createGain();
+      
+      // Set gain levels (can adjust these for balance)
+      micGain.gain.value = 0.8; // Slightly lower mic to avoid feedback
+      systemGain.gain.value = 1.0; // Full system audio
+      
+      // Create a mixer node
+      const mixer = audioContext.createGain();
+      mixer.gain.value = 1.0;
+      
+      // Connect sources through gain controls to mixer
+      micSource.connect(micGain);
+      systemSource.connect(systemGain);
+      micGain.connect(mixer);
+      systemGain.connect(mixer);
+      
+      // Create a destination for the mixed audio
+      const dest = audioContext.createMediaStreamDestination();
+      mixer.connect(dest);
+      
+      console.log('Audio streams successfully mixed');
+      return dest.stream;
+    } catch (error) {
+      console.error('Error mixing audio streams:', error);
+      // Fallback to microphone only if mixing fails
+      return micStream;
+    }
   }
 
   private startVoiceActivityDetection() {
