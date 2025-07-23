@@ -314,25 +314,6 @@ export const MeetingRecorder = ({
 
   return (
     <div className="space-y-6">
-      {/* Header Card */}
-      <Card className="shadow-medium border-accent/20">
-        <CardHeader className="pb-4">
-          <CardTitle className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <span className="flex items-center gap-2">
-              <Mic className="h-5 w-5 text-primary" />
-              <span className="text-lg sm:text-xl">Meeting Recorder</span>
-            </span>
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant={getConnectionStatusColor() as any} className="flex items-center gap-1 text-xs">
-                {getConnectionStatusIcon()}
-                <span className="hidden sm:inline">{connectionStatus}</span>
-                <span className="sm:hidden">{connectionStatus.split(' ')[0]}</span>
-              </Badge>
-            </div>
-          </CardTitle>
-        </CardHeader>
-      </Card>
-
       {/* Tabbed Interface */}
       <Tabs defaultValue="recorder" className="w-full">
         <TabsList className="grid w-full grid-cols-4">
@@ -362,8 +343,8 @@ export const MeetingRecorder = ({
         <TabsContent value="recorder" className="space-y-6 mt-6">
           <Card className="shadow-medium border-accent/20">
             <CardContent className="space-y-6 pt-6">
-              {/* Recording Controls and Stats */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-center">
+              {/* Recording Controls and Stats with Connection Status */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
                 <div className="bg-accent/20 rounded-lg p-4">
                   <div className="text-2xl sm:text-3xl font-bold text-primary">{formatDuration(duration)}</div>
                   <div className="text-sm text-muted-foreground">Duration</div>
@@ -371,6 +352,15 @@ export const MeetingRecorder = ({
                 <div className="bg-accent/20 rounded-lg p-4">
                   <div className="text-2xl sm:text-3xl font-bold text-primary">{wordCount}</div>
                   <div className="text-sm text-muted-foreground">Words</div>
+                </div>
+                <div className="bg-accent/20 rounded-lg p-4">
+                  <div className="flex flex-col items-center justify-center gap-2">
+                    <Badge variant={getConnectionStatusColor() as any} className="flex items-center gap-1 text-xs">
+                      {getConnectionStatusIcon()}
+                      <span className="hidden sm:inline">{connectionStatus}</span>
+                    </Badge>
+                    <div className="text-sm text-muted-foreground">Connection</div>
+                  </div>
                 </div>
               </div>
 
