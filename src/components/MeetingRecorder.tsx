@@ -3,7 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History } from "lucide-react";
+import { MeetingSettings } from "@/components/MeetingSettings";
+import { MeetingHistoryList } from "@/components/MeetingHistoryList";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 import { RealtimeTranscriber, TranscriptData } from "@/utils/RealtimeTranscriber";
 
@@ -33,7 +39,19 @@ export const MeetingRecorder = ({
   const [wordCount, setWordCount] = useState(0);
   const [startTime, setStartTime] = useState<string>("");
   
+  // Meeting history state
+  const [meetings, setMeetings] = useState<any[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  
+  // Meeting settings
+  const [meetingSettings, setMeetingSettings] = useState(initialSettings || {
+    title: "General Meeting",
+    description: "",
+    meetingType: "general"
+  });
+  
   const navigate = useNavigate();
+  const { user } = useAuth();
   
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const transciberRef = useRef<RealtimeTranscriber | null>(null);
@@ -187,6 +205,113 @@ export const MeetingRecorder = ({
     }
   };
 
+  // Load meeting history
+  const loadMeetingHistory = async () => {
+    if (!user) return;
+    
+    setLoadingHistory(true);
+    try {
+      const { data: meetingsData, error } = await supabase
+        .from('meetings')
+        .select(`
+          id,
+          title,
+          description,
+          meeting_type,
+          start_time,
+          end_time,
+          duration_minutes,
+          status,
+          created_at
+        `)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+
+      // Get transcript counts for each meeting
+      const meetingsWithCounts = await Promise.all(
+        (meetingsData || []).map(async (meeting) => {
+          const { count } = await supabase
+            .from('meeting_transcripts')
+            .select('*', { count: 'exact', head: true })
+            .eq('meeting_id', meeting.id);
+
+          const { data: summaryData } = await supabase
+            .from('meeting_summaries')
+            .select('id')
+            .eq('meeting_id', meeting.id)
+            .single();
+
+          return {
+            ...meeting,
+            transcript_count: count || 0,
+            summary_exists: !!summaryData
+          };
+        })
+      );
+
+      setMeetings(meetingsWithCounts);
+    } catch (error) {
+      console.error('Error loading meeting history:', error);
+      toast.error('Failed to load meeting history');
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  // Load history when user changes or component mounts
+  useEffect(() => {
+    if (user) {
+      loadMeetingHistory();
+    }
+  }, [user]);
+
+  // Meeting history handlers
+  const handleEditMeeting = (meetingId: string) => {
+    navigate(`/meeting-summary`, { state: { id: meetingId } });
+  };
+
+  const handleViewSummary = (meetingId: string) => {
+    navigate(`/meeting-summary`, { state: { id: meetingId } });
+  };
+
+  const handleDeleteMeeting = async (meetingId: string) => {
+    try {
+      // Delete transcripts first
+      await supabase
+        .from('meeting_transcripts')
+        .delete()
+        .eq('meeting_id', meetingId);
+
+      // Delete summaries
+      await supabase
+        .from('meeting_summaries')
+        .delete()
+        .eq('meeting_id', meetingId);
+
+      // Delete meeting
+      const { error } = await supabase
+        .from('meetings')
+        .delete()
+        .eq('id', meetingId);
+
+      if (error) throw error;
+
+      toast.success('Meeting deleted successfully');
+      loadMeetingHistory(); // Reload the list
+    } catch (error) {
+      console.error('Error deleting meeting:', error);
+      toast.error('Failed to delete meeting');
+    }
+  };
+
+  // Settings handlers
+  const handleSettingsChange = (newSettings: any) => {
+    setMeetingSettings(newSettings);
+  };
+
   return (
     <Card className="shadow-medium border-accent/20">
       <CardHeader className="pb-4">
@@ -206,6 +331,7 @@ export const MeetingRecorder = ({
       </CardHeader>
       
       <CardContent className="space-y-6">
+        {/* Recording Controls and Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-center">
           <div className="bg-accent/20 rounded-lg p-4">
             <div className="text-2xl sm:text-3xl font-bold text-primary">{formatDuration(duration)}</div>
@@ -245,6 +371,102 @@ export const MeetingRecorder = ({
           </div>
         )}
 
+        {/* Tabbed Interface */}
+        <Tabs defaultValue="transcript" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="transcript" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              <span className="hidden sm:inline">Meeting Transcript</span>
+              <span className="sm:hidden">Transcript</span>
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              <span className="hidden sm:inline">Meeting Settings</span>
+              <span className="sm:hidden">Settings</span>
+            </TabsTrigger>
+            <TabsTrigger value="history" className="flex items-center gap-2">
+              <History className="h-4 w-4" />
+              <span className="hidden sm:inline">Meeting History</span>
+              <span className="sm:hidden">History</span>
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Meeting Transcript Tab */}
+          <TabsContent value="transcript" className="space-y-4 mt-6">
+            <Card className="border-accent/30">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <FileText className="h-5 w-5" />
+                  Live Meeting Transcript
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {realtimeTranscripts.length > 0 ? (
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {realtimeTranscripts.map((transcript, index) => (
+                      <div
+                        key={`${transcript.speaker}-${index}`}
+                        className={`p-3 rounded-lg border ${
+                          transcript.isFinal
+                            ? 'bg-accent/20 border-accent/40'
+                            : 'bg-muted/50 border-muted animate-pulse'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          <Badge variant="outline" className="text-xs">
+                            {transcript.speaker}
+                          </Badge>
+                          {!transcript.isFinal && (
+                            <Badge variant="secondary" className="text-xs">
+                              Live
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-sm leading-relaxed">
+                          {transcript.text}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>Start recording to see live transcript here</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Meeting Settings Tab */}
+          <TabsContent value="settings" className="space-y-4 mt-6">
+            <MeetingSettings
+              onSettingsChange={handleSettingsChange}
+              initialSettings={meetingSettings}
+            />
+          </TabsContent>
+
+          {/* Meeting History Tab */}
+          <TabsContent value="history" className="space-y-4 mt-6">
+            <Card className="border-accent/30">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <History className="h-5 w-5" />
+                  My Meeting History
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <MeetingHistoryList
+                  meetings={meetings}
+                  onEdit={handleEditMeeting}
+                  onViewSummary={handleViewSummary}
+                  onDelete={handleDeleteMeeting}
+                  loading={loadingHistory}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );
