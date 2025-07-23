@@ -23,7 +23,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
-import { RealtimeTranscriber, TranscriptData } from "@/utils/RealtimeTranscriber";
+import { UnifiedAudioCapture } from "@/utils/UnifiedAudioCapture";
+
+interface TranscriptData {
+  text: string;
+  speaker: string;
+  confidence: number;
+  timestamp: string;
+  isFinal: boolean;
+}
 
 interface MeetingRecorderProps {
   onTranscriptUpdate: (transcript: string) => void;
@@ -73,7 +81,7 @@ export const MeetingRecorder = ({
   const { user } = useAuth();
   
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const transciberRef = useRef<RealtimeTranscriber | null>(null);
+  const audioCaptureRef = useRef<UnifiedAudioCapture | null>(null);
   const autoSaveRef = useRef<NodeJS.Timeout | null>(null);
 
   // Auto-save meeting data to localStorage
@@ -208,14 +216,16 @@ export const MeetingRecorder = ({
 
   const startRecording = async () => {
     try {
-      // Initialize real-time transcriber
-      transciberRef.current = new RealtimeTranscriber(
+      console.log('Starting unified audio capture...');
+      
+      // Initialize unified audio capture
+      audioCaptureRef.current = new UnifiedAudioCapture(
         handleTranscript,
         handleTranscriptionError,
         handleStatusChange
       );
       
-      await transciberRef.current.startTranscription();
+      await audioCaptureRef.current.startCapture();
       
       setIsRecording(true);
       setRealtimeTranscripts([]);
@@ -234,15 +244,18 @@ export const MeetingRecorder = ({
         });
       }, 1000);
 
+      console.log('Recording started successfully');
     } catch (error) {
-      // Silent error handling - could add console.log if needed for debugging
+      console.error('Failed to start recording:', error);
+      toast.error('Failed to start recording: ' + error.message);
+      setIsRecording(false);
     }
   };
 
   const stopRecording = () => {
-    if (transciberRef.current) {
-      transciberRef.current.stopTranscription();
-      transciberRef.current = null;
+    if (audioCaptureRef.current) {
+      audioCaptureRef.current.stopCapture();
+      audioCaptureRef.current = null;
     }
     
     if (intervalRef.current) {
