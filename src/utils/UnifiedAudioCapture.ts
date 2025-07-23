@@ -140,6 +140,51 @@ export class UnifiedAudioCapture {
     this.scheduleProcessing();
   }
 
+  private isLikelyHallucination(text: string): boolean {
+    // Common Whisper hallucinations
+    const hallucinations = [
+      'bye', 'bye-bye', 'bye bye',
+      'thank you', 'thanks', 'thank you very much', 'thank you for listening',
+      'thank you for joining', 'thank you for watching',
+      'good night', 'goodnight', 'good morning', 'good afternoon',
+      'hello', 'hi there', 'welcome', 'cheers',
+      'music', 'applause', 'laughter', 'silence',
+      'okay', 'ok', 'um', 'uh', 'hmm',
+      'you', 'me', 'i', 'we', 'they'
+    ];
+
+    // Religious/Arabic phrases that Whisper sometimes hallucinates
+    const religiousPatterns = [
+      'bi hurmati', 'muhammad', 'al-mustafa', 'surat', 'al-fatiha', 'bismillah'
+    ];
+
+    // Check exact matches and short phrases
+    if (text.length < 4 || hallucinations.includes(text)) {
+      return true;
+    }
+
+    // Check for religious hallucinations
+    if (religiousPatterns.some(pattern => text.includes(pattern))) {
+      return true;
+    }
+
+    // Check for repetitive patterns
+    const words = text.split(' ');
+    if (words.length > 1) {
+      const uniqueWords = new Set(words.map(w => w.toLowerCase()));
+      if (uniqueWords.size === 1 && words.length > 2) {
+        return true; // Repetitive like "bye bye bye"
+      }
+    }
+
+    // Check for very short responses that are likely noise
+    if (text.length < 8 && words.length < 3) {
+      return true;
+    }
+
+    return false;
+  }
+
   private scheduleProcessing() {
     if (!this.isRecording) return;
 
@@ -191,7 +236,7 @@ export class UnifiedAudioCapture {
 
       console.log('Sending to transcription service...');
       
-      const response = await fetch('https://dphcnbricafkbtizkoal.functions.supabase.co/functions/v1/assemblyai-transcription', {
+      const response = await fetch('https://dphcnbricafkbtizkoal.functions.supabase.co/functions/v1/speech-to-text', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -205,16 +250,31 @@ export class UnifiedAudioCapture {
         console.log('Transcription result:', result);
         
         if (result.text && result.text.trim() && result.text.length > 2) {
+          // Use Whisper's quality metrics to detect hallucinations
+          const segments = result.segments || [];
+          
+          if (segments.length > 0) {
+            const avgNoSpeechProb = segments.reduce((sum: number, seg: any) => sum + (seg.no_speech_prob || 0), 0) / segments.length;
+            const avgLogProb = segments.reduce((sum: number, seg: any) => sum + (seg.avg_logprob || 0), 0) / segments.length;
+            
+            // Reject if high probability of no speech or very low confidence
+            if (avgNoSpeechProb > 0.6 || avgLogProb < -1.0) {
+              console.log('Rejected transcription - poor quality metrics:', {
+                no_speech_prob: avgNoSpeechProb,
+                avg_logprob: avgLogProb,
+                text: result.text
+              });
+              return;
+            }
+          }
+          
           const text = result.text.trim();
           
-          // Basic filtering for obvious hallucinations
+          // Enhanced filtering for common hallucinations
           const lowercaseText = text.toLowerCase();
-          const commonHallucinations = ['bye', 'thank you', 'music', 'applause'];
-          const isLikelyHallucination = commonHallucinations.some(phrase => 
-            lowercaseText === phrase || lowercaseText === phrase + '.'
-          );
+          const isHallucination = this.isLikelyHallucination(lowercaseText);
           
-          if (!isLikelyHallucination) {
+          if (!isHallucination) {
             console.log('Valid transcription:', text);
             this.onTranscript({
               text: text,
