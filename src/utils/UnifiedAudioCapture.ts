@@ -6,6 +6,11 @@ export class UnifiedAudioCapture {
   private mediaRecorder: MediaRecorder | null = null;
   private isRecording = false;
   private audioChunks: Blob[] = [];
+  
+  // Transcript assembly system
+  private transcriptBuffer: string[] = [];
+  private lastTranscriptTime = Date.now();
+  private transcriptAssemblyTimer: NodeJS.Timeout | null = null;
 
   constructor(
     private onTranscript: (transcript: any) => void,
@@ -314,14 +319,9 @@ export class UnifiedAudioCapture {
           const isHallucination = this.isLikelyHallucination(lowercaseText);
           
           if (!isHallucination) {
-            console.log('Valid transcription:', text);
-            this.onTranscript({
-              text: text,
-              speaker: this.systemStream ? 'Mic + Browser' : 'Microphone',
-              confidence: result.confidence || 0.85,
-              timestamp: new Date().toISOString(),
-              isFinal: true
-            });
+            console.log('Valid transcription fragment:', text);
+            // Add to transcript buffer instead of immediately outputting
+            this.addToTranscriptBuffer(text);
           } else {
             console.log('Filtered hallucination:', text);
           }
@@ -404,10 +404,96 @@ export class UnifiedAudioCapture {
     }
   }
 
+  
+  // Transcript assembly methods
+  private addToTranscriptBuffer(text: string) {
+    // Clean up the text fragment
+    const cleanText = text.trim();
+    if (!cleanText) return;
+
+    console.log('Adding to transcript buffer:', cleanText);
+    this.transcriptBuffer.push(cleanText);
+    this.lastTranscriptTime = Date.now();
+
+    // Reset the assembly timer
+    if (this.transcriptAssemblyTimer) {
+      clearTimeout(this.transcriptAssemblyTimer);
+    }
+
+    // Set a timer to assemble transcript after a pause in speech
+    this.transcriptAssemblyTimer = setTimeout(() => {
+      this.assembleAndOutputTranscript();
+    }, 3000); // Wait 3 seconds after last fragment
+  }
+
+  private assembleAndOutputTranscript() {
+    if (this.transcriptBuffer.length === 0) return;
+
+    console.log('Assembling transcript from', this.transcriptBuffer.length, 'fragments');
+    
+    // Join the fragments and clean up
+    let assembledText = this.transcriptBuffer.join(' ');
+    
+    // Clean up the assembled text
+    assembledText = this.cleanUpTranscript(assembledText);
+    
+    if (assembledText.length > 0) {
+      console.log('Outputting assembled transcript:', assembledText);
+      
+      this.onTranscript({
+        text: assembledText,
+        speaker: this.systemStream ? 'Mic + Browser' : 'Microphone',
+        confidence: 0.85,
+        timestamp: new Date().toISOString(),
+        isFinal: true
+      });
+    }
+
+    // Clear the buffer
+    this.transcriptBuffer = [];
+    this.transcriptAssemblyTimer = null;
+  }
+
+  private cleanUpTranscript(text: string): string {
+    // Remove extra spaces
+    text = text.replace(/\s+/g, ' ');
+    
+    // Fix common transcription issues
+    text = text.replace(/\s+([.!?])/g, '$1'); // Remove space before punctuation
+    text = text.replace(/([.!?])\s*([a-z])/g, '$1 $2'); // Ensure space after punctuation
+    
+    // Capitalize first letter
+    text = text.charAt(0).toUpperCase() + text.slice(1);
+    
+    // Ensure sentence ends with punctuation if it doesn't already
+    if (!/[.!?]$/.test(text.trim()) && text.length > 10) {
+      text += '.';
+    }
+    
+    return text.trim();
+  }
+
+  private flushTranscriptBuffer() {
+    // Force output any remaining fragments when stopping
+    if (this.transcriptBuffer.length > 0) {
+      console.log('Flushing remaining transcript buffer');
+      this.assembleAndOutputTranscript();
+    }
+  }
+
   stopCapture() {
     console.log('Stopping audio capture');
     this.isRecording = false;
     this.onStatusChange('Stopping...');
+
+    // Flush any remaining transcript fragments
+    this.flushTranscriptBuffer();
+    
+    // Clear any pending assembly timer
+    if (this.transcriptAssemblyTimer) {
+      clearTimeout(this.transcriptAssemblyTimer);
+      this.transcriptAssemblyTimer = null;
+    }
 
     if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
       this.mediaRecorder.stop();
