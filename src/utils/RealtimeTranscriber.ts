@@ -45,25 +45,44 @@ export class RealtimeTranscriber {
           }
         });
         console.log('Microphone access granted');
+        this.onStatusChange('Microphone connected');
       } catch (micError) {
         console.warn('Microphone access failed:', micError);
         throw new Error('Microphone access is required for recording');
       }
 
-      // Try to transparently capture system audio without popups
+      // Try to capture system audio intelligently
       let systemStream: MediaStream | null = null;
       
       try {
-        console.log('Attempting transparent system audio capture...');
-        systemStream = await this.captureSystemAudioTransparently();
+        console.log('Attempting to capture system audio for web meetings...');
+        this.onStatusChange('Detecting system audio...');
         
-        if (systemStream) {
-          console.log('System audio captured transparently');
+        // Check if we're likely in a web meeting context
+        const isWebMeeting = this.detectWebMeetingContext();
+        
+        if (isWebMeeting) {
+          console.log('Web meeting context detected, requesting system audio access');
+          this.onStatusChange('Click "Share" to include meeting audio');
+          
+          systemStream = await navigator.mediaDevices.getDisplayMedia({
+            video: false,
+            audio: {
+              sampleRate: 44100,
+              channelCount: 1,
+              echoCancellation: false,
+              noiseSuppression: false,
+              autoGainControl: false
+            }
+          });
+          console.log('System audio access granted');
         } else {
-          console.log('No system audio detected, using microphone only');
+          console.log('No web meeting detected, using microphone only');
         }
+        
       } catch (systemError) {
-        console.log('System audio capture failed transparently:', systemError);
+        console.log('System audio access declined or failed:', systemError);
+        this.onStatusChange('System audio not available - using microphone only');
       }
 
       // Create final stream
@@ -151,92 +170,41 @@ export class RealtimeTranscriber {
     }
   }
 
-  private async captureSystemAudioTransparently(): Promise<MediaStream | null> {
+  private detectWebMeetingContext(): boolean {
     try {
-      // Method 1: Capture audio from existing media elements on the page
-      const mediaElements = document.querySelectorAll('audio, video');
-      console.log(`Found ${mediaElements.length} media elements on page`);
+      // Check URL for common meeting platforms
+      const url = window.location.href.toLowerCase();
+      const meetingDomains = [
+        'zoom.us', 'meet.google.com', 'teams.microsoft.com', 
+        'webex.com', 'gotomeeting.com', 'skype.com',
+        'whereby.com', 'jitsi.org', 'bluejeans.com'
+      ];
       
-      for (const element of mediaElements) {
-        try {
-          const mediaElement = element as HTMLMediaElement;
-          if (!mediaElement.paused && !mediaElement.muted) {
-            console.log('Found active media element, attempting to capture audio');
-            
-            // Try to capture from media element
-            const audioContext = new AudioContext({ sampleRate: 44100 });
-            const source = audioContext.createMediaElementSource(mediaElement);
-            const dest = audioContext.createMediaStreamDestination();
-            source.connect(dest);
-            
-            if (dest.stream.getAudioTracks().length > 0) {
-              console.log('Successfully captured audio from media element');
-              return dest.stream;
-            }
-          }
-        } catch (elementError) {
-          console.log('Failed to capture from media element:', elementError);
-        }
-      }
-
-      // Method 2: Try to detect Web Audio API contexts on the page
-      const audioContexts = this.findActiveAudioContexts();
-      if (audioContexts.length > 0) {
-        console.log(`Found ${audioContexts.length} active audio contexts`);
-        // Could potentially tap into these, but complex and browser-dependent
-      }
-
-      // Method 3: Monitor window audio APIs for active streams
-      const activeStreams = this.detectActiveAudioStreams();
-      if (activeStreams.length > 0) {
-        console.log(`Found ${activeStreams.length} active audio streams`);
-        return activeStreams[0]; // Use the first active stream
-      }
-
-      console.log('No system audio sources detected transparently');
-      return null;
+      const isOnMeetingPlatform = meetingDomains.some(domain => url.includes(domain));
+      
+      // Check for video/audio elements that might indicate a meeting
+      const mediaElements = document.querySelectorAll('video, audio');
+      const hasActiveMedia = Array.from(mediaElements).some(el => {
+        const media = el as HTMLMediaElement;
+        return !media.paused && media.currentTime > 0;
+      });
+      
+      // Check for WebRTC connections
+      const hasWebRTC = !!(window as any).RTCPeerConnection || !!(window as any).webkitRTCPeerConnection;
+      
+      console.log('Meeting context detection:', {
+        isOnMeetingPlatform,
+        hasActiveMedia,
+        hasWebRTC,
+        mediaElementCount: mediaElements.length
+      });
+      
+      return isOnMeetingPlatform || (hasActiveMedia && hasWebRTC);
       
     } catch (error) {
-      console.log('Error in transparent system audio capture:', error);
-      return null;
+      console.log('Error detecting web meeting context:', error);
+      return false;
     }
-  }
-
-  private findActiveAudioContexts(): AudioContext[] {
-    const contexts: AudioContext[] = [];
-    
-    // Check for common audio context variables in window
-    const commonNames = ['audioContext', 'AudioContext', 'webkitAudioContext'];
-    for (const name of commonNames) {
-      const context = (window as any)[name];
-      if (context && typeof context.createGain === 'function') {
-        contexts.push(context);
-      }
-    }
-    
-    return contexts;
-  }
-
-  private detectActiveAudioStreams(): MediaStream[] {
-    const streams: MediaStream[] = [];
-    
-    // Look for active media streams in common places
-    try {
-      // Check for WebRTC connections that might have audio
-      const rtcConnections = (window as any).webkitRTCPeerConnection || (window as any).RTCPeerConnection;
-      if (rtcConnections) {
-        // This is complex and would require more sophisticated detection
-        console.log('WebRTC support detected');
-      }
-      
-      // Check for getUserMedia streams that might be shared
-      // This is a simplified check - real implementation would be more complex
-      
-    } catch (error) {
-      console.log('Error detecting active streams:', error);
-    }
-    
-    return streams;
   }
 
   private mixAudioStreams(micStream: MediaStream, systemStream: MediaStream): MediaStream {
