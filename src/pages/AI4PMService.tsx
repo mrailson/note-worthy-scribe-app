@@ -631,8 +631,14 @@ Always provide practical, actionable advice that follows NHS guidelines and best
 
       // Enhanced content parsing - preserve all formatting including checkboxes
       const parseContent = (content: string) => {
-        // Clean approach: process the content line by line to preserve formatting
-        return content.split('\n').filter(line => line.trim());
+        // Convert checkboxes first, then split lines
+        const processedContent = content
+          .replace(/☑/g, '✓ ') // Convert checkmark to simple tick
+          .replace(/☐/g, '□ ') // Convert empty checkbox to simple box
+          .replace(/\[\s*x\s*\]/gi, '✓ ') // Convert [x] to tick
+          .replace(/\[\s*\]/g, '□ '); // Convert [ ] to box
+        
+        return processedContent.split('\n').filter(line => line.trim());
       };
 
       const contentLines = parseContent(content);
@@ -742,19 +748,17 @@ Always provide practical, actionable advice that follows NHS guidelines and best
         else {
           const processFormattedText = (text: string) => {
             const children: any[] = [];
+            let processedText = text;
+            let currentIndex = 0;
             
-            // Simple approach: look for **bold** and *italic* directly in the text
-            let currentPos = 0;
-            
-            // Process bold text **text**
-            const boldRegex = /\*\*(.*?)\*\*/g;
+            // Process both bold and italic formatting
+            const formatRegex = /(\*\*(.+?)\*\*)|(\*(.+?)\*)/g;
             let match;
-            let lastPos = 0;
             
-            while ((match = boldRegex.exec(text)) !== null) {
-              // Add text before bold
-              if (match.index > lastPos) {
-                const beforeText = text.substring(lastPos, match.index);
+            while ((match = formatRegex.exec(text)) !== null) {
+              // Add text before the formatting
+              if (match.index > currentIndex) {
+                const beforeText = text.substring(currentIndex, match.index);
                 if (beforeText) {
                   children.push(new TextRun({
                     text: beforeText,
@@ -763,19 +767,29 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                 }
               }
               
-              // Add bold text
-              children.push(new TextRun({
-                text: match[1],
-                size: 24,
-                bold: true
-              }));
+              // Determine if it's bold or italic and add formatted text
+              if (match[1]) {
+                // Bold text (**text**)
+                children.push(new TextRun({
+                  text: match[2],
+                  size: 24,
+                  bold: true
+                }));
+              } else if (match[3]) {
+                // Italic text (*text*)
+                children.push(new TextRun({
+                  text: match[4],
+                  size: 24,
+                  italics: true
+                }));
+              }
               
-              lastPos = match.index + match[0].length;
+              currentIndex = match.index + match[0].length;
             }
             
-            // Add remaining text
-            if (lastPos < text.length) {
-              const remainingText = text.substring(lastPos);
+            // Add remaining text after last formatting
+            if (currentIndex < text.length) {
+              const remainingText = text.substring(currentIndex);
               if (remainingText) {
                 children.push(new TextRun({
                   text: remainingText,
