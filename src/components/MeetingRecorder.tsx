@@ -268,13 +268,23 @@ export const MeetingRecorder = ({
             .eq('meeting_id', meeting.id)
             .maybeSingle();
 
-          return {
+          const meetingWithOverview = {
             ...meeting,
             transcript_count: count || 0,
             summary_exists: !!summaryData?.summary,
             meeting_summary: summaryData?.summary || null,
             overview: meeting.meeting_overviews?.[0]?.overview || null
           };
+          
+          // Debug log to check overview data
+          console.log('Meeting with overview:', {
+            id: meeting.id,
+            title: meeting.title,
+            overview: meetingWithOverview.overview,
+            rawOverviews: meeting.meeting_overviews
+          });
+          
+          return meetingWithOverview;
         })
       );
 
