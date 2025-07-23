@@ -748,15 +748,14 @@ Always provide practical, actionable advice that follows NHS guidelines and best
         else {
           const processFormattedText = (text: string) => {
             const children: any[] = [];
-            let processedText = text;
             let currentIndex = 0;
             
-            // Process both bold and italic formatting
-            const formatRegex = /(\*\*(.+?)\*\*)|(\*(.+?)\*)/g;
+            // First, handle bold formatting **text**
+            const boldRegex = /\*\*([^*]+?)\*\*/g;
             let match;
             
-            while ((match = formatRegex.exec(text)) !== null) {
-              // Add text before the formatting
+            while ((match = boldRegex.exec(text)) !== null) {
+              // Add text before the bold formatting
               if (match.index > currentIndex) {
                 const beforeText = text.substring(currentIndex, match.index);
                 if (beforeText) {
@@ -767,27 +766,17 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                 }
               }
               
-              // Determine if it's bold or italic and add formatted text
-              if (match[1]) {
-                // Bold text (**text**)
-                children.push(new TextRun({
-                  text: match[2],
-                  size: 24,
-                  bold: true
-                }));
-              } else if (match[3]) {
-                // Italic text (*text*)
-                children.push(new TextRun({
-                  text: match[4],
-                  size: 24,
-                  italics: true
-                }));
-              }
+              // Add the bold text
+              children.push(new TextRun({
+                text: match[1],
+                size: 24,
+                bold: true
+              }));
               
               currentIndex = match.index + match[0].length;
             }
             
-            // Add remaining text after last formatting
+            // Add remaining text after processing
             if (currentIndex < text.length) {
               const remainingText = text.substring(currentIndex);
               if (remainingText) {
@@ -798,7 +787,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
               }
             }
             
-            // If no formatting found, return plain text
+            // If no bold formatting was found, add the entire text as plain
             if (children.length === 0) {
               children.push(new TextRun({
                 text: text,
