@@ -12,79 +12,6 @@ interface RealtimeSpeechToTextProps {
   placeholder?: string;
 }
 
-class VoiceActivityDetector {
-  private audioContext: AudioContext | null = null;
-  private analyser: AnalyserNode | null = null;
-  private stream: MediaStream | null = null;
-  private isRunning = false;
-  
-  constructor(
-    private onSpeechStart: () => void,
-    private onSpeechEnd: () => void,
-    private threshold = 0.01
-  ) {}
-
-  async start(stream: MediaStream) {
-    this.stream = stream;
-    this.audioContext = new AudioContext();
-    this.analyser = this.audioContext.createAnalyser();
-    this.analyser.fftSize = 256;
-    
-    const source = this.audioContext.createMediaStreamSource(stream);
-    source.connect(this.analyser);
-    
-    this.isRunning = true;
-    this.detectVoiceActivity();
-  }
-
-  stop() {
-    this.isRunning = false;
-    if (this.audioContext) {
-      this.audioContext.close();
-    }
-  }
-
-  private detectVoiceActivity() {
-    if (!this.analyser || !this.isRunning) return;
-
-    const bufferLength = this.analyser.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
-    let isSpeaking = false;
-    let speechStartTime = 0;
-    let silenceStartTime = 0;
-
-    const check = () => {
-      if (!this.analyser || !this.isRunning) return;
-
-      this.analyser.getByteFrequencyData(dataArray);
-      const average = dataArray.reduce((a, b) => a + b) / bufferLength;
-      const volume = average / 255;
-      
-      const currentlySpeaking = volume > this.threshold;
-      
-      if (currentlySpeaking && !isSpeaking) {
-        isSpeaking = true;
-        speechStartTime = Date.now();
-        this.onSpeechStart();
-      } else if (!currentlySpeaking && isSpeaking) {
-        if (silenceStartTime === 0) {
-          silenceStartTime = Date.now();
-        } else if (Date.now() - silenceStartTime > 1000) { // 1 second of silence
-          isSpeaking = false;
-          silenceStartTime = 0;
-          this.onSpeechEnd();
-        }
-      } else if (currentlySpeaking && isSpeaking) {
-        silenceStartTime = 0; // Reset silence timer if speech resumes
-      }
-      
-      requestAnimationFrame(check);
-    };
-
-    check();
-  }
-}
-
 export const RealtimeSpeechToText: React.FC<RealtimeSpeechToTextProps> = ({ 
   onTranscription, 
   onFinalTranscription,
@@ -93,19 +20,20 @@ export const RealtimeSpeechToText: React.FC<RealtimeSpeechToTextProps> = ({
   placeholder = ''
 }) => {
   const [isRecording, setIsRecording] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [currentTranscript, setCurrentTranscript] = useState('');
   const [accumulatedText, setAccumulatedText] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const vadRef = useRef<VoiceActivityDetector | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
-  const processingTimeoutRef = useRef<number | null>(null);
+  const recordingTimeoutRef = useRef<number | null>(null);
 
   const processAudio = useCallback(async (audioBlob: Blob) => {
-    if (isProcessing || audioBlob.size === 0) return;
+    if (audioBlob.size === 0) {
+      console.log('No audio data to process');
+      return;
+    }
     
     setIsProcessing(true);
     console.log('Processing audio chunk, size:', audioBlob.size);
@@ -115,22 +43,26 @@ export const RealtimeSpeechToText: React.FC<RealtimeSpeechToTextProps> = ({
       const arrayBuffer = await audioBlob.arrayBuffer();
       const uint8Array = new Uint8Array(arrayBuffer);
       
+      // Convert to base64 in chunks to prevent memory issues
       let binary = '';
-      const chunkSize = 0x8000;
+      const chunkSize = 0x8000; // 32KB chunks
       for (let i = 0; i < uint8Array.length; i += chunkSize) {
         const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
         binary += String.fromCharCode.apply(null, Array.from(chunk));
       }
       const base64Audio = btoa(binary);
 
-      console.log('Sending to speech-to-text...');
+      console.log('Sending to speech-to-text function...');
+      
+      // Send to speech-to-text edge function
       const { data, error } = await supabase.functions.invoke('speech-to-text', {
         body: { audio: base64Audio }
       });
 
       if (error) {
         console.error('Transcription error:', error);
-        throw error;
+        toast.error('Transcription failed');
+        return;
       }
 
       if (data?.text && data.text.trim()) {
@@ -140,13 +72,17 @@ export const RealtimeSpeechToText: React.FC<RealtimeSpeechToTextProps> = ({
         setCurrentTranscript(text);
         onTranscription(text, false);
         
+        // Add to accumulated text
         setAccumulatedText(prev => {
           const newText = prev ? prev + ' ' + text : text;
           onFinalTranscription?.(newText);
           return newText;
         });
+        
+        toast.success('Speech converted to text!');
       } else {
-        console.log('No speech detected in audio chunk');
+        console.log('No speech detected in audio');
+        toast.info('No speech detected');
       }
     } catch (error) {
       console.error('Error processing audio:', error);
@@ -154,38 +90,13 @@ export const RealtimeSpeechToText: React.FC<RealtimeSpeechToTextProps> = ({
     } finally {
       setIsProcessing(false);
     }
-  }, [isProcessing, onTranscription, onFinalTranscription]);
-
-  const handleSpeechStart = useCallback(() => {
-    console.log('Speech started - beginning recording');
-    setCurrentTranscript('');
-    
-    if (processingTimeoutRef.current) {
-      clearTimeout(processingTimeoutRef.current);
-      processingTimeoutRef.current = null;
-    }
-    
-    // Start fresh recording
-    audioChunksRef.current = [];
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'inactive') {
-      mediaRecorderRef.current.start(100); // Collect data every 100ms
-    }
-  }, []);
-
-  const handleSpeechEnd = useCallback(() => {
-    console.log('Speech ended - will process in 1 second');
-    
-    // Stop recording and process after a short delay
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-      mediaRecorderRef.current.stop();
-    }
-  }, []);
+  }, [onTranscription, onFinalTranscription]);
 
   const startRecording = useCallback(async () => {
     try {
-      setIsConnecting(true);
-      console.log('Starting voice activity detection...');
+      console.log('Starting recording...');
       
+      // Get audio stream
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           sampleRate: 16000,
@@ -197,55 +108,56 @@ export const RealtimeSpeechToText: React.FC<RealtimeSpeechToTextProps> = ({
       });
 
       streamRef.current = stream;
+      audioChunksRef.current = [];
 
-      // Setup MediaRecorder
+      // Create MediaRecorder
       const mediaRecorder = new MediaRecorder(stream, {
         mimeType: 'audio/webm;codecs=opus'
       });
 
       mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
 
+      // Handle data available
       mediaRecorder.ondataavailable = (event) => {
+        console.log('Audio data available, size:', event.data.size);
         if (event.data.size > 0) {
           audioChunksRef.current.push(event.data);
         }
       };
 
+      // Handle recording stop
       mediaRecorder.onstop = async () => {
+        console.log('Recording stopped, processing audio...');
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         await processAudio(audioBlob);
       };
 
-      // Setup Voice Activity Detector
-      vadRef.current = new VoiceActivityDetector(
-        handleSpeechStart,
-        handleSpeechEnd,
-        0.01 // threshold
-      );
-
-      await vadRef.current.start(stream);
-      
+      // Start recording
+      mediaRecorder.start();
       setIsRecording(true);
-      setIsConnecting(false);
       setCurrentTranscript('');
-      setAccumulatedText('');
       
-      console.log('Voice detection started');
-      toast.success('Recording started - speak naturally');
+      console.log('Recording started successfully');
+      toast.success('Recording started - speak now');
+      
+      // Auto-stop after 10 seconds to prevent infinite recording
+      recordingTimeoutRef.current = window.setTimeout(() => {
+        console.log('Auto-stopping recording after 10 seconds');
+        stopRecording();
+      }, 10000);
+      
     } catch (error) {
       console.error('Error starting recording:', error);
-      setIsConnecting(false);
       toast.error('Failed to start recording. Please check microphone permissions.');
     }
-  }, [handleSpeechStart, handleSpeechEnd, processAudio]);
+  }, [processAudio]);
 
   const stopRecording = useCallback(() => {
     console.log('Stopping recording...');
     
-    if (vadRef.current) {
-      vadRef.current.stop();
-      vadRef.current = null;
+    if (recordingTimeoutRef.current) {
+      clearTimeout(recordingTimeoutRef.current);
+      recordingTimeoutRef.current = null;
     }
     
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
@@ -253,18 +165,15 @@ export const RealtimeSpeechToText: React.FC<RealtimeSpeechToTextProps> = ({
     }
     
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current.getTracks().forEach(track => {
+        track.stop();
+        console.log('Audio track stopped');
+      });
       streamRef.current = null;
     }
     
-    if (processingTimeoutRef.current) {
-      clearTimeout(processingTimeoutRef.current);
-      processingTimeoutRef.current = null;
-    }
-    
     setIsRecording(false);
-    setCurrentTranscript('');
-    toast.info('Recording stopped');
+    toast.info('Processing audio...');
   }, []);
 
   const toggleRecording = () => {
@@ -278,8 +187,8 @@ export const RealtimeSpeechToText: React.FC<RealtimeSpeechToTextProps> = ({
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (vadRef.current) {
-        vadRef.current.stop();
+      if (recordingTimeoutRef.current) {
+        clearTimeout(recordingTimeoutRef.current);
       }
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
@@ -291,12 +200,12 @@ export const RealtimeSpeechToText: React.FC<RealtimeSpeechToTextProps> = ({
     <div className="flex flex-col gap-2">
       <Button
         onClick={toggleRecording}
-        disabled={isConnecting}
+        disabled={isProcessing}
         variant={isRecording ? "destructive" : "outline"}
         size={size}
         className={className}
       >
-        {isConnecting ? (
+        {isProcessing ? (
           <Loader2 className="h-4 w-4 animate-spin" />
         ) : isRecording ? (
           <MicOff className="h-4 w-4" />
@@ -305,8 +214,8 @@ export const RealtimeSpeechToText: React.FC<RealtimeSpeechToTextProps> = ({
         )}
         {size !== 'sm' && (
           <span className="ml-2">
-            {isConnecting 
-              ? 'Connecting...' 
+            {isProcessing 
+              ? 'Processing...' 
               : isRecording 
                 ? 'Stop Recording' 
                 : 'Record'
@@ -316,14 +225,14 @@ export const RealtimeSpeechToText: React.FC<RealtimeSpeechToTextProps> = ({
       </Button>
       
       {currentTranscript && (
-        <div className="text-xs text-muted-foreground italic">
-          Speaking: "{currentTranscript}"
+        <div className="text-sm text-foreground bg-muted p-2 rounded">
+          <strong>Latest:</strong> "{currentTranscript}"
         </div>
       )}
       
       {accumulatedText && (
-        <div className="text-xs text-foreground bg-muted p-2 rounded">
-          Final: "{accumulatedText}"
+        <div className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
+          <strong>All text:</strong> "{accumulatedText}"
         </div>
       )}
     </div>
