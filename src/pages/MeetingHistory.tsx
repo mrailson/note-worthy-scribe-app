@@ -548,8 +548,8 @@ const MeetingHistory = () => {
               <Tabs defaultValue="minutes" className="w-full">
                 <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="minutes">AI Generated Minutes</TabsTrigger>
+                  <TabsTrigger value="details">Meeting Details</TabsTrigger>
                   <TabsTrigger value="transcript">Transcript</TabsTrigger>
-                  <TabsTrigger value="settings">Meeting Settings</TabsTrigger>
                 </TabsList>
                 
                 <TabsContent value="minutes" className="mt-4">
@@ -574,6 +574,82 @@ const MeetingHistory = () => {
                   </div>
                 </TabsContent>
                 
+                <TabsContent value="details" className="mt-4">
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <Label className="text-sm font-medium text-muted-foreground">Title</Label>
+                        <p className="text-sm">{selectedMeeting.title}</p>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium text-muted-foreground">Type</Label>
+                        <p className="text-sm">{selectedMeeting.meeting_type}</p>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium text-muted-foreground">Date</Label>
+                        <p className="text-sm">{new Date(selectedMeeting.start_time).toLocaleDateString()}</p>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium text-muted-foreground">Time</Label>
+                        <p className="text-sm">{new Date(selectedMeeting.start_time).toLocaleTimeString()}</p>
+                      </div>
+                      {selectedMeeting.duration_minutes && (
+                        <div>
+                          <Label className="text-sm font-medium text-muted-foreground">Duration</Label>
+                          <p className="text-sm">{selectedMeeting.duration_minutes} minutes</p>
+                        </div>
+                      )}
+                      {selectedMeeting.location && (
+                        <div>
+                          <Label className="text-sm font-medium text-muted-foreground">Location</Label>
+                          <p className="text-sm">{selectedMeeting.location}</p>
+                        </div>
+                      )}
+                      {selectedMeeting.format && (
+                        <div>
+                          <Label className="text-sm font-medium text-muted-foreground">Format</Label>
+                          <p className="text-sm">{selectedMeeting.format === 'face-to-face' ? 'Face to Face' : 'Teams/Online'}</p>
+                        </div>
+                      )}
+                      {selectedMeeting.status && (
+                        <div>
+                          <Label className="text-sm font-medium text-muted-foreground">Status</Label>
+                          <p className="text-sm capitalize">{selectedMeeting.status}</p>
+                        </div>
+                      )}
+                    </div>
+                    {selectedMeeting.description && (
+                      <div>
+                        <Label className="text-sm font-medium text-muted-foreground">Description</Label>
+                        <p className="text-sm mt-1">{selectedMeeting.description}</p>
+                      </div>
+                    )}
+                    
+                    <div className="pt-4 border-t">
+                      <div className="flex flex-col sm:flex-row gap-4">
+                        <Button 
+                          onClick={handleGenerateNotes}
+                          disabled={isGeneratingNotes || !meetingTranscript}
+                          className="flex-1 touch-manipulation min-h-[44px]"
+                        >
+                          <RefreshCw className={`h-4 w-4 mr-2 ${isGeneratingNotes ? 'animate-spin' : ''}`} />
+                          {isGeneratingNotes ? 'Generating...' : 'Regenerate Notes'}
+                        </Button>
+                        
+                        <Button 
+                          onClick={handleEmailNotes}
+                          disabled={!meetingSummary}
+                          variant="outline"
+                          className="flex-1 touch-manipulation min-h-[44px]"
+                        >
+                          <Mail className="h-4 w-4 mr-2" />
+                          Email Notes
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+                
                 <TabsContent value="transcript" className="mt-4">
                   <div className="space-y-4">
                     {meetingTranscript ? (
@@ -587,52 +663,6 @@ const MeetingHistory = () => {
                         <p className="text-muted-foreground">No transcript available for this meeting.</p>
                       </div>
                     )}
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="settings" className="mt-4">
-                  <div className="space-y-4">
-                    <div className="flex flex-col sm:flex-row gap-4">
-                      <Button 
-                        onClick={handleGenerateNotes}
-                        disabled={isGeneratingNotes || !meetingTranscript}
-                        className="flex-1 touch-manipulation min-h-[44px]"
-                      >
-                        <RefreshCw className={`h-4 w-4 mr-2 ${isGeneratingNotes ? 'animate-spin' : ''}`} />
-                        {isGeneratingNotes ? 'Generating...' : 'Regenerate Notes'}
-                      </Button>
-                      
-                      <Button 
-                        onClick={handleEmailNotes}
-                        disabled={!meetingSummary}
-                        variant="outline"
-                        className="flex-1 touch-manipulation min-h-[44px]"
-                      >
-                        <Mail className="h-4 w-4 mr-2" />
-                        Email Notes
-                      </Button>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t">
-                      <div>
-                        <Label className="text-sm font-medium">Meeting Type</Label>
-                        <p className="text-sm text-muted-foreground">{selectedMeeting.meeting_type}</p>
-                      </div>
-                      <div>
-                        <Label className="text-sm font-medium">Duration</Label>
-                        <p className="text-sm text-muted-foreground">
-                          {selectedMeeting.duration_minutes ? `${selectedMeeting.duration_minutes} minutes` : 'N/A'}
-                        </p>
-                      </div>
-                      <div>
-                        <Label className="text-sm font-medium">Location</Label>
-                        <p className="text-sm text-muted-foreground">{selectedMeeting.location || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <Label className="text-sm font-medium">Format</Label>
-                        <p className="text-sm text-muted-foreground">{selectedMeeting.format || 'N/A'}</p>
-                      </div>
-                    </div>
                   </div>
                 </TabsContent>
               </Tabs>
