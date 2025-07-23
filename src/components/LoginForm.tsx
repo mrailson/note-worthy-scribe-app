@@ -15,6 +15,7 @@ export const LoginForm = () => {
   const [isValid, setIsValid] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { signIn } = useAuth();
 
   if (showForgotPassword) {
@@ -34,13 +35,21 @@ export const LoginForm = () => {
     const newEmail = e.target.value;
     setEmail(newEmail);
     validateEmail(newEmail);
+    // Clear error when user starts typing
+    if (error) setError(null);
   };
 
   const handleLogin = async () => {
     if (!validateEmail(email) || !password) return;
     
     setLoading(true);
-    await signIn(email, password);
+    setError(null);
+    const { error } = await signIn(email, password);
+    
+    if (error) {
+      setError("Invalid email or password. Please check your credentials and try again.");
+    }
+    
     setLoading(false);
   };
 
@@ -84,7 +93,11 @@ export const LoginForm = () => {
                   type={showPassword ? "text" : "password"}
                   placeholder="Enter password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    // Clear error when user starts typing
+                    if (error) setError(null);
+                  }}
                 />
                 <Button
                   type="button"
@@ -101,6 +114,13 @@ export const LoginForm = () => {
                 </Button>
               </div>
             </div>
+
+            {/* Error Message Display */}
+            {error && (
+              <div className="bg-destructive/10 border border-destructive/20 rounded-md p-3">
+                <p className="text-sm text-destructive">{error}</p>
+              </div>
+            )}
 
             <Button 
               onClick={handleLogin}
