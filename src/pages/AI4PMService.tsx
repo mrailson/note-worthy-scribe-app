@@ -631,18 +631,8 @@ Always provide practical, actionable advice that follows NHS guidelines and best
 
       // Enhanced content parsing - preserve all formatting including checkboxes
       const parseContent = (content: string) => {
-        // Preserve important formatting markers and keep checkboxes
-        const processedContent = content
-          .replace(/\*\*(.*?)\*\*/g, '|||BOLD|||$1|||/BOLD|||') // Preserve bold
-          .replace(/\*(.*?)\*/g, '|||ITALIC|||$1|||/ITALIC|||') // Preserve italic
-          .replace(/`(.*?)`/g, '|||CODE|||$1|||/CODE|||') // Preserve code
-          .replace(/#{1,6}\s*(.*?)$/gm, '|||HEADING|||$1|||/HEADING|||') // Preserve headings
-          .replace(/^\s*[-•*]\s*/gm, '• ') // Normalize bullet points
-          .replace(/^\s*\[\s*x\s*\]\s*/gmi, '☑ ') // Convert [x] to checkbox
-          .replace(/^\s*\[\s*\]\s*/gm, '☐ '); // Convert [ ] to empty checkbox
-        // Keep all other checkboxes and special characters as-is
-
-        return processedContent.split('\n').filter(line => line.trim());
+        // Clean approach: process the content line by line to preserve formatting
+        return content.split('\n').filter(line => line.trim());
       };
 
       const contentLines = parseContent(content);
@@ -653,8 +643,8 @@ Always provide practical, actionable advice that follows NHS guidelines and best
         if (!trimmedLine) return;
         
         // Check for headings (markdown or formatted)
-        if (trimmedLine.includes('|||HEADING|||')) {
-          const headingText = trimmedLine.replace(/\|\|\|HEADING\|\|\|(.*?)\|\|\|\/HEADING\|\|\|/, '$1');
+        if (trimmedLine.startsWith('#')) {
+          const headingText = trimmedLine.replace(/^#+\s*/, '');
           paragraphs.push(
             new Paragraph({
               children: [
@@ -752,17 +742,19 @@ Always provide practical, actionable advice that follows NHS guidelines and best
         else {
           const processFormattedText = (text: string) => {
             const children: any[] = [];
-            let remainingText = text;
             
-            // Process bold, italic, and code formatting
-            const formatRegex = /\|\|\|(BOLD|ITALIC|CODE)\|\|\|(.*?)\|\|\|\/\1\|\|\|/g;
-            let lastIndex = 0;
+            // Simple approach: look for **bold** and *italic* directly in the text
+            let currentPos = 0;
+            
+            // Process bold text **text**
+            const boldRegex = /\*\*(.*?)\*\*/g;
             let match;
+            let lastPos = 0;
             
-            while ((match = formatRegex.exec(remainingText)) !== null) {
-              // Add text before the formatted part
-              if (match.index > lastIndex) {
-                const beforeText = remainingText.substring(lastIndex, match.index);
+            while ((match = boldRegex.exec(text)) !== null) {
+              // Add text before bold
+              if (match.index > lastPos) {
+                const beforeText = text.substring(lastPos, match.index);
                 if (beforeText) {
                   children.push(new TextRun({
                     text: beforeText,
@@ -771,37 +763,36 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                 }
               }
               
-              // Add the formatted text
-              const formatType = match[1];
-              const formattedText = match[2];
-              
+              // Add bold text
               children.push(new TextRun({
-                text: formattedText,
+                text: match[1],
                 size: 24,
-                bold: formatType === 'BOLD',
-                italics: formatType === 'ITALIC',
-                font: formatType === 'CODE' ? 'Courier New' : undefined,
-                color: formatType === 'CODE' ? '666666' : undefined
+                bold: true
               }));
               
-              lastIndex = match.index + match[0].length;
+              lastPos = match.index + match[0].length;
             }
             
             // Add remaining text
-            if (lastIndex < remainingText.length) {
-              const remainingTextPart = remainingText.substring(lastIndex);
-              if (remainingTextPart) {
+            if (lastPos < text.length) {
+              const remainingText = text.substring(lastPos);
+              if (remainingText) {
                 children.push(new TextRun({
-                  text: remainingTextPart,
+                  text: remainingText,
                   size: 24
                 }));
               }
             }
             
-            return children.length > 0 ? children : [new TextRun({
-              text: trimmedLine,
-              size: 24
-            })];
+            // If no formatting found, return plain text
+            if (children.length === 0) {
+              children.push(new TextRun({
+                text: text,
+                size: 24
+              }));
+            }
+            
+            return children;
           };
           
           paragraphs.push(
