@@ -18,16 +18,21 @@ export class UnifiedAudioCapture {
     private onStatusChange: (status: string) => void
   ) {}
 
-  async startCapture() {
+  async startCapture(mode: 'mic-only' | 'mic-browser' = 'mic-only') {
     try {
       this.onStatusChange('Setting up audio capture...');
-      console.log('Starting unified audio capture');
+      console.log(`Starting unified audio capture in ${mode} mode`);
 
       // Step 1: Get microphone access (essential)
       await this.setupMicrophone();
       
-      // Step 2: Try to get system audio (optional)
-      await this.setupSystemAudio();
+      // Step 2: Try to get system audio only if requested
+      if (mode === 'mic-browser') {
+        await this.setupSystemAudio();
+      } else {
+        console.log('Skipping browser audio setup - mic-only mode selected');
+        this.systemStream = null;
+      }
       
       // Step 3: Create combined stream
       this.createCombinedStream();
@@ -40,7 +45,8 @@ export class UnifiedAudioCapture {
         this.sendTestAudio();
       }, 2000);
       
-      this.onStatusChange('Recording microphone + browser audio');
+      const statusMessage = mode === 'mic-browser' ? 'Recording microphone + browser audio' : 'Recording microphone only';
+      this.onStatusChange(statusMessage);
       console.log('Unified audio capture started successfully');
       
     } catch (error) {

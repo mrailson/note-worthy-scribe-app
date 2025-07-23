@@ -16,7 +16,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History, Search, Trash2, CheckSquare, SquareIcon } from "lucide-react";
+import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History, Search, Trash2, CheckSquare, SquareIcon, Monitor, Volume2 } from "lucide-react";
 import { MeetingSettings } from "@/components/MeetingSettings";
 import { MeetingHistoryList } from "@/components/MeetingHistoryList";
 import { supabase } from "@/integrations/supabase/client";
@@ -58,6 +58,9 @@ export const MeetingRecorder = ({
   const [speakerCount, setSpeakerCount] = useState(0);
   const [wordCount, setWordCount] = useState(0);
   const [startTime, setStartTime] = useState<string>("");
+  
+  // Recording mode selection
+  const [recordingMode, setRecordingMode] = useState<'mic-only' | 'mic-browser'>('mic-only');
   
   // Meeting history state
   const [meetings, setMeetings] = useState<any[]>([]);
@@ -216,7 +219,7 @@ export const MeetingRecorder = ({
 
   const startRecording = async () => {
     try {
-      console.log('Starting unified audio capture...');
+      console.log(`Starting unified audio capture in ${recordingMode} mode...`);
       
       // Initialize unified audio capture
       audioCaptureRef.current = new UnifiedAudioCapture(
@@ -225,7 +228,7 @@ export const MeetingRecorder = ({
         handleStatusChange
       );
       
-      await audioCaptureRef.current.startCapture();
+      await audioCaptureRef.current.startCapture(recordingMode);
       
       setIsRecording(true);
       setRealtimeTranscripts([]);
@@ -575,6 +578,43 @@ export const MeetingRecorder = ({
                   </div>
                 </div>
               </div>
+
+              {/* Recording Mode Selection */}
+              {!isRecording && (
+                <div className="space-y-3">
+                  <div className="text-center">
+                    <h4 className="text-sm font-medium text-muted-foreground mb-3">Recording Mode</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-md mx-auto">
+                      <Button
+                        variant={recordingMode === 'mic-only' ? 'default' : 'outline'}
+                        onClick={() => setRecordingMode('mic-only')}
+                        className="flex flex-col items-center gap-2 h-auto py-4 px-4"
+                      >
+                        <Mic className="h-5 w-5" />
+                        <div>
+                          <div className="font-medium">Microphone Only</div>
+                          <div className="text-xs text-muted-foreground">Face-to-face meetings</div>
+                        </div>
+                      </Button>
+                      
+                      <Button
+                        variant={recordingMode === 'mic-browser' ? 'default' : 'outline'}
+                        onClick={() => setRecordingMode('mic-browser')}
+                        className="flex flex-col items-center gap-2 h-auto py-4 px-4"
+                      >
+                        <div className="flex items-center gap-1">
+                          <Mic className="h-4 w-4" />
+                          <Volume2 className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <div className="font-medium">Mic + Browser Audio</div>
+                          <div className="text-xs text-muted-foreground">Teams, Zoom meetings</div>
+                        </div>
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="flex justify-center">
                 {!isRecording ? (
