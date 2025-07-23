@@ -188,6 +188,18 @@ export default function MeetingSummary() {
     };
   }, [isGeneratingMinutes, countdown]);
 
+  // Auto-update when meeting style changes
+  useEffect(() => {
+    // Only regenerate if we already have generated minutes and we're not currently generating
+    if (aiGeneratedMinutes && !isGeneratingMinutes && meetingData?.transcript) {
+      const timer = setTimeout(() => {
+        generateAIMeetingMinutes();
+      }, 500); // Small delay to debounce rapid changes
+      
+      return () => clearTimeout(timer);
+    }
+  }, [meetingSettings.meetingStyle]);
+
   // Calculate expected duration based on word count
   const calculateExpectedDuration = (wordCount: number): number => {
     if (wordCount >= 15000) return 60; // 60 seconds for 15,000+ words
