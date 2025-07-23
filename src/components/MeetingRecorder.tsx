@@ -1,10 +1,22 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History, Search, Trash2, CheckSquare, SquareIcon } from "lucide-react";
 import { MeetingSettings } from "@/components/MeetingSettings";
 import { MeetingHistoryList } from "@/components/MeetingHistoryList";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,7 +53,14 @@ export const MeetingRecorder = ({
   
   // Meeting history state
   const [meetings, setMeetings] = useState<any[]>([]);
+  const [filteredMeetings, setFilteredMeetings] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  
+  // Search and multi-select state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedMeetings, setSelectedMeetings] = useState<string[]>([]);
+  const [isSelectMode, setIsSelectMode] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
   
   // Meeting settings
   const [meetingSettings, setMeetingSettings] = useState(initialSettings || {
@@ -268,6 +287,22 @@ export const MeetingRecorder = ({
     }
   }, [user]);
 
+  // Filter meetings based on search query
+  useEffect(() => {
+    let filtered = meetings;
+    
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = meetings.filter(meeting =>
+        meeting.title.toLowerCase().includes(query) ||
+        meeting.description?.toLowerCase().includes(query) ||
+        meeting.meeting_type.toLowerCase().includes(query)
+      );
+    }
+    
+    setFilteredMeetings(filtered);
+  }, [meetings, searchQuery]);
+
   // Meeting history handlers
   const handleEditMeeting = (meetingId: string) => {
     navigate(`/meeting-summary`, { state: { id: meetingId } });
@@ -304,6 +339,65 @@ export const MeetingRecorder = ({
     } catch (error) {
       console.error('Error deleting meeting:', error);
       toast.error('Failed to delete meeting');
+    }
+  };
+
+  // Multi-select handlers
+  const handleSelectMeeting = (meetingId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedMeetings(prev => [...prev, meetingId]);
+    } else {
+      setSelectedMeetings(prev => prev.filter(id => id !== meetingId));
+    }
+  };
+
+  const handleSelectAll = () => {
+    if (selectedMeetings.length === filteredMeetings.length) {
+      setSelectedMeetings([]);
+    } else {
+      setSelectedMeetings(filteredMeetings.map(m => m.id));
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    try {
+      const { error } = await supabase
+        .from('meetings')
+        .delete()
+        .in('id', selectedMeetings)
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+
+      toast.success(`${selectedMeetings.length} meetings deleted successfully`);
+      
+      setSelectedMeetings([]);
+      setIsSelectMode(false);
+      loadMeetingHistory();
+    } catch (error: any) {
+      console.error("Error deleting selected meetings:", error.message);
+      toast.error("Failed to delete selected meetings");
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    try {
+      const { error } = await supabase
+        .from('meetings')
+        .delete()
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+
+      toast.success("All meetings deleted successfully");
+      
+      setDeleteConfirmation("");
+      setSelectedMeetings([]);
+      setIsSelectMode(false);
+      loadMeetingHistory();
+    } catch (error: any) {
+      console.error("Error deleting all meetings:", error.message);
+      toast.error("Failed to delete all meetings");
     }
   };
 
@@ -468,13 +562,167 @@ export const MeetingRecorder = ({
                 My Meeting History
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
+              {/* Search Bar */}
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search meetings..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                {filteredMeetings.length > 0 && (
+                  <span className="text-sm text-muted-foreground whitespace-nowrap">
+                    {filteredMeetings.length} meeting{filteredMeetings.length > 1 ? 's' : ''}
+                  </span>
+                )}
+              </div>
+
+              {/* Multi-select and Delete Controls */}
+              {meetings.length > 0 && (
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  {/* Multi-select controls */}
+                  <div className="flex items-center gap-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setIsSelectMode(!isSelectMode);
+                        setSelectedMeetings([]);
+                      }}
+                      className="touch-manipulation min-h-[44px]"
+                    >
+                      {isSelectMode ? (
+                        <>
+                          <SquareIcon className="h-4 w-4 mr-2" />
+                          Cancel Selection
+                        </>
+                      ) : (
+                        <>
+                          <CheckSquare className="h-4 w-4 mr-2" />
+                          Select Multiple
+                        </>
+                      )}
+                    </Button>
+                    
+                    {isSelectMode && (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleSelectAll}
+                          className="touch-manipulation min-h-[44px] text-xs sm:text-sm"
+                        >
+                          {selectedMeetings.length === filteredMeetings.length ? 'Deselect All' : 'Select All'}
+                        </Button>
+                        
+                        {selectedMeetings.length > 0 && (
+                          <span className="text-sm text-muted-foreground">
+                            {selectedMeetings.length} selected
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </div>
+
+                  {/* Delete actions */}
+                  <div className="flex gap-2">
+                    {isSelectMode && selectedMeetings.length > 0 && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button 
+                            variant="destructive" 
+                            size="sm"
+                            className="touch-manipulation min-h-[44px] text-xs sm:text-sm"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete Selected ({selectedMeetings.length})
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent className="mx-4 max-w-md">
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Selected Meetings</AlertDialogTitle>
+                            <AlertDialogDescription className="text-sm">
+                              This action will permanently delete {selectedMeetings.length} meeting{selectedMeetings.length > 1 ? 's' : ''}, their transcripts, and summaries. This cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                            <AlertDialogCancel className="touch-manipulation min-h-[44px]">
+                              Cancel
+                            </AlertDialogCancel>
+                            <AlertDialogAction 
+                              onClick={handleDeleteSelected}
+                              className="bg-destructive hover:bg-destructive/90 touch-manipulation min-h-[44px]"
+                            >
+                              Delete Selected
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
+
+                    {meetings.length > 0 && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button 
+                            variant="destructive" 
+                            size="sm"
+                            className="touch-manipulation min-h-[44px] text-xs sm:text-sm"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete All
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent className="mx-4 max-w-md">
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete All Meetings</AlertDialogTitle>
+                            <AlertDialogDescription className="text-sm">
+                              This action will permanently delete all {meetings.length} meetings, their transcripts, and summaries. This cannot be undone.
+                              <br /><br />
+                              To confirm, please type <strong>delete</strong> in the field below:
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <Input
+                            placeholder="Type 'delete' to confirm"
+                            value={deleteConfirmation}
+                            onChange={(e) => setDeleteConfirmation(e.target.value)}
+                            className="touch-manipulation min-h-[44px]"
+                          />
+                          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                            <AlertDialogCancel 
+                              onClick={() => setDeleteConfirmation("")}
+                              className="touch-manipulation min-h-[44px]"
+                            >
+                              Cancel
+                            </AlertDialogCancel>
+                            <AlertDialogAction 
+                              onClick={handleDeleteAll}
+                              disabled={deleteConfirmation.toLowerCase() !== 'delete'}
+                              className="bg-destructive hover:bg-destructive/90 touch-manipulation min-h-[44px]"
+                            >
+                              Delete All Meetings
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Meeting List */}
               <MeetingHistoryList
-                meetings={meetings}
+                meetings={filteredMeetings}
                 onEdit={handleEditMeeting}
                 onViewSummary={handleViewSummary}
                 onDelete={handleDeleteMeeting}
                 loading={loadingHistory}
+                isSelectMode={isSelectMode}
+                selectedMeetings={selectedMeetings}
+                onSelectMeeting={handleSelectMeeting}
               />
             </CardContent>
           </Card>
