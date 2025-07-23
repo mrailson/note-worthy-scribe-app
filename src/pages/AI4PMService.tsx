@@ -35,7 +35,6 @@ import {
   TrendingUp,
   AlertTriangle,
   BookOpen,
-  Image,
   FileDown,
   Presentation,
   History,
@@ -503,13 +502,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
       }
       
       if (responseText.includes('generate image') || responseText.includes('create image') || responseText.includes('diagram')) {
-        // Extract image prompt and generate automatically
-        const imagePromptMatch = data.response.match(/(?:image|diagram|visual).*?(?:\.|$)/i);
-        if (imagePromptMatch) {
-          setTimeout(() => {
-            generateImage(imagePromptMatch[0]);
-          }, 1000);
-        }
+        // Note: Image generation functionality has been removed
       }
     } catch (error: any) {
       console.error('Error:', error);
@@ -947,39 +940,6 @@ Always provide practical, actionable advice that follows NHS guidelines and best
     }
   };
 
-  const generateImage = async (prompt: string) => {
-    try {
-      setIsLoading(true);
-      const { data, error } = await supabase.functions.invoke('generate-image', {
-        body: { prompt }
-      });
-
-      if (error) throw error;
-
-      if (data.success) {
-        // Add the generated image as a message
-        const imageMessage: Message = {
-          id: Date.now().toString(),
-          role: 'assistant',
-          content: `I've generated an image based on your request: "${data.revisedPrompt}"\n\n![Generated Image](${data.imageData})`,
-          timestamp: new Date()
-        };
-        setMessages(prev => [...prev, imageMessage]);
-        console.log('Image generated successfully');
-      }
-    } catch (error: any) {
-      console.error('Error generating image:', error);
-      const errorMessage: Message = {
-        id: Date.now().toString(),
-        role: 'assistant',
-        content: `Sorry, I couldn't generate the image. Error: ${error.message}`,
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -1155,18 +1115,6 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                               >
                                 <Presentation className="h-3 w-3 mr-1" />
                                 Create PowerPoint
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  const prompt = `Create a professional diagram or infographic based on this content: ${message.content.substring(0, 200)}...`;
-                                  generateImage(prompt);
-                                }}
-                                className="h-8 text-xs"
-                              >
-                                <Image className="h-3 w-3 mr-1" />
-                                Generate Visual
                               </Button>
                             </div>
                           )}
