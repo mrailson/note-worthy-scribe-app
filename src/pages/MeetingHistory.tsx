@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Clock, FileText, Trash2, Edit } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Clock, FileText, Trash2, Edit, Mail, RefreshCw } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -75,6 +76,12 @@ const MeetingHistory = () => {
   const [editTitle, setEditTitle] = useState("");
   const [editMeetingType, setEditMeetingType] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  
+  // Meeting detail view state
+  const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
+  const [meetingTranscript, setMeetingTranscript] = useState("");
+  const [meetingSummary, setMeetingSummary] = useState("");
+  const [isGeneratingNotes, setIsGeneratingNotes] = useState(false);
 
   const handleNewMeeting = () => {
     navigate("/");
@@ -101,33 +108,76 @@ const MeetingHistory = () => {
 
       if (transcriptError) throw transcriptError;
 
-      // Combine all transcript content
+      // Fetch existing summary if available
+      const { data: summaryData, error: summaryError } = await supabase
+        .from('meeting_summaries')
+        .select('*')
+        .eq('meeting_id', meetingId)
+        .single();
+
       const fullTranscript = transcripts?.map(t => t.content).join(' ') || '';
-      const wordCount = fullTranscript.split(' ').length;
-
-      // Calculate duration
-      const startTime = new Date(meeting.start_time);
-      const endTime = meeting.end_time ? new Date(meeting.end_time) : new Date();
-      const durationMs = endTime.getTime() - startTime.getTime();
-      const durationMinutes = Math.floor(durationMs / (1000 * 60));
-      const durationSeconds = Math.floor((durationMs % (1000 * 60)) / 1000);
-      const duration = `${durationMinutes}:${durationSeconds.toString().padStart(2, '0')}`;
-
-      // Navigate to meeting summary with data
-      navigate('/meeting-summary', {
-        state: {
-          id: meeting.id,
-          title: meeting.title,
-          duration: duration,
-          wordCount: wordCount,
-          transcript: fullTranscript,
-          speakerCount: 1,
-          startTime: meeting.start_time,
-          practiceName: ""
-        }
-      });
+      
+      setSelectedMeeting(meeting);
+      setMeetingTranscript(fullTranscript);
+      setMeetingSummary(summaryData?.summary || '');
     } catch (error: any) {
       console.error("Error Loading Meeting:", error.message);
+    }
+  };
+
+  const handleGenerateNotes = async () => {
+    if (!selectedMeeting || !meetingTranscript) return;
+    
+    setIsGeneratingNotes(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-meeting-minutes', {
+        body: {
+          transcript: meetingTranscript,
+          meetingTitle: selectedMeeting.title,
+          meetingType: selectedMeeting.meeting_type
+        }
+      });
+
+      if (error) throw error;
+      
+      setMeetingSummary(data.summary);
+      
+      // Save to database
+      await supabase
+        .from('meeting_summaries')
+        .upsert({
+          meeting_id: selectedMeeting.id,
+          summary: data.summary,
+          key_points: data.key_points || [],
+          action_items: data.action_items || [],
+          decisions: data.decisions || [],
+          next_steps: data.next_steps || []
+        });
+        
+    } catch (error: any) {
+      console.error("Error generating notes:", error.message);
+    } finally {
+      setIsGeneratingNotes(false);
+    }
+  };
+
+  const handleEmailNotes = async () => {
+    if (!selectedMeeting || !meetingSummary) return;
+    
+    try {
+      const { error } = await supabase.functions.invoke('send-meeting-summary', {
+        body: {
+          to: user?.email,
+          meetingTitle: selectedMeeting.title,
+          summary: meetingSummary,
+          meetingDate: new Date(selectedMeeting.start_time).toLocaleDateString()
+        }
+      });
+
+      if (error) throw error;
+      console.log("Meeting notes emailed successfully");
+    } catch (error: any) {
+      console.error("Error emailing notes:", error.message);
     }
   };
 
@@ -476,14 +526,127 @@ const MeetingHistory = () => {
           </div>
         )}
 
-        {/* Meetings List */}
-        <MeetingHistoryList 
-          meetings={filteredMeetings}
-          onEdit={handleMeetingEdit}
-          onViewSummary={handleViewMeetingSummary}
-          onDelete={handleMeetingDelete}
-          loading={loading}
-        />
+        {/* Meeting Detail View or Meetings List */}
+        {selectedMeeting ? (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>{selectedMeeting.title}</CardTitle>
+                <p className="text-muted-foreground">
+                  {new Date(selectedMeeting.start_time).toLocaleDateString()}
+                </p>
+              </div>
+              <Button 
+                variant="outline" 
+                onClick={() => setSelectedMeeting(null)}
+                className="touch-manipulation min-h-[44px]"
+              >
+                Back to List
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <Tabs defaultValue="minutes" className="w-full">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="minutes">AI Generated Minutes</TabsTrigger>
+                  <TabsTrigger value="transcript">Transcript</TabsTrigger>
+                  <TabsTrigger value="settings">Meeting Settings</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="minutes" className="mt-4">
+                  <div className="space-y-4">
+                    {meetingSummary ? (
+                      <div className="prose max-w-none">
+                        <pre className="whitespace-pre-wrap text-sm">{meetingSummary}</pre>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <p className="text-muted-foreground mb-4">No AI-generated minutes available for this meeting.</p>
+                        <Button 
+                          onClick={handleGenerateNotes}
+                          disabled={isGeneratingNotes || !meetingTranscript}
+                          className="touch-manipulation min-h-[44px]"
+                        >
+                          <RefreshCw className={`h-4 w-4 mr-2 ${isGeneratingNotes ? 'animate-spin' : ''}`} />
+                          {isGeneratingNotes ? 'Generating...' : 'Generate Minutes'}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="transcript" className="mt-4">
+                  <div className="space-y-4">
+                    {meetingTranscript ? (
+                      <div className="prose max-w-none">
+                        <pre className="whitespace-pre-wrap text-sm bg-muted p-4 rounded-lg">
+                          {meetingTranscript}
+                        </pre>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <p className="text-muted-foreground">No transcript available for this meeting.</p>
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="settings" className="mt-4">
+                  <div className="space-y-4">
+                    <div className="flex flex-col sm:flex-row gap-4">
+                      <Button 
+                        onClick={handleGenerateNotes}
+                        disabled={isGeneratingNotes || !meetingTranscript}
+                        className="flex-1 touch-manipulation min-h-[44px]"
+                      >
+                        <RefreshCw className={`h-4 w-4 mr-2 ${isGeneratingNotes ? 'animate-spin' : ''}`} />
+                        {isGeneratingNotes ? 'Generating...' : 'Regenerate Notes'}
+                      </Button>
+                      
+                      <Button 
+                        onClick={handleEmailNotes}
+                        disabled={!meetingSummary}
+                        variant="outline"
+                        className="flex-1 touch-manipulation min-h-[44px]"
+                      >
+                        <Mail className="h-4 w-4 mr-2" />
+                        Email Notes
+                      </Button>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t">
+                      <div>
+                        <Label className="text-sm font-medium">Meeting Type</Label>
+                        <p className="text-sm text-muted-foreground">{selectedMeeting.meeting_type}</p>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium">Duration</Label>
+                        <p className="text-sm text-muted-foreground">
+                          {selectedMeeting.duration_minutes ? `${selectedMeeting.duration_minutes} minutes` : 'N/A'}
+                        </p>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium">Location</Label>
+                        <p className="text-sm text-muted-foreground">{selectedMeeting.location || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium">Format</Label>
+                        <p className="text-sm text-muted-foreground">{selectedMeeting.format || 'N/A'}</p>
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+        ) : (
+          <MeetingHistoryList 
+            meetings={filteredMeetings}
+            onEdit={handleMeetingEdit}
+            onViewSummary={handleViewMeetingSummary}
+            onDelete={handleMeetingDelete}
+            loading={loading}
+          />
+        )}
 
         {/* Edit Meeting Dialog */}
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
