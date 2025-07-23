@@ -624,21 +624,18 @@ Always provide practical, actionable advice that follows NHS guidelines and best
         })
       );
 
-      // Enhanced content parsing with better formatting
+      // Enhanced content parsing - preserve all formatting including checkboxes
       const parseContent = (content: string) => {
-        // Process and clean up content, converting checkboxes to bullet points
+        // Preserve important formatting markers and keep checkboxes
         const processedContent = content
           .replace(/\*\*(.*?)\*\*/g, '|||BOLD|||$1|||/BOLD|||') // Preserve bold
           .replace(/\*(.*?)\*/g, '|||ITALIC|||$1|||/ITALIC|||') // Preserve italic
           .replace(/`(.*?)`/g, '|||CODE|||$1|||/CODE|||') // Preserve code
           .replace(/#{1,6}\s*(.*?)$/gm, '|||HEADING|||$1|||/HEADING|||') // Preserve headings
           .replace(/^\s*[-•*]\s*/gm, '• ') // Normalize bullet points
-          .replace(/^\s*☑\s*/gm, '• ') // Convert checked boxes to bullets
-          .replace(/^\s*☐\s*/gm, '• ') // Convert empty checkboxes to bullets
-          .replace(/^\s*✓\s*/gm, '• ') // Convert check marks to bullets
-          .replace(/^\s*✗\s*/gm, '• ') // Convert X marks to bullets
-          .replace(/^\s*\[\s*x\s*\]\s*/gmi, '• ') // Convert [x] to bullets
-          .replace(/^\s*\[\s*\]\s*/gm, '• '); // Convert [ ] to bullets
+          .replace(/^\s*\[\s*x\s*\]\s*/gmi, '☑ ') // Convert [x] to checkbox
+          .replace(/^\s*\[\s*\]\s*/gm, '☐ '); // Convert [ ] to empty checkbox
+        // Keep all other checkboxes and special characters as-is
 
         return processedContent.split('\n').filter(line => line.trim());
       };
@@ -684,7 +681,32 @@ Always provide practical, actionable advice that follows NHS guidelines and best
             })
           );
         }
-        // Handle bullet points (including converted checkboxes)
+        // Handle checkboxes and special characters - preserve exactly as shown
+        else if (trimmedLine.startsWith('☑') || trimmedLine.startsWith('☐') || trimmedLine.startsWith('✓') || trimmedLine.startsWith('✗')) {
+          const checkboxSymbol = trimmedLine.substring(0, 1);
+          const checkboxText = trimmedLine.substring(1).trim();
+          const isChecked = trimmedLine.startsWith('☑') || trimmedLine.startsWith('✓');
+          
+          paragraphs.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: checkboxSymbol + ' ',
+                  size: 24,
+                  color: isChecked ? "008000" : "666666", // Green for checked, gray for unchecked
+                  font: "Segoe UI Symbol" // Ensure checkbox symbols display properly
+                }),
+                new TextRun({
+                  text: checkboxText,
+                  size: 24
+                })
+              ],
+              spacing: { after: 100 },
+              indent: { left: 100 }
+            })
+          );
+        }
+        // Handle bullet points
         else if (trimmedLine.startsWith('•') || trimmedLine.startsWith('-')) {
           const bulletText = trimmedLine.replace(/^[•-]\s*/, '');
           paragraphs.push(
