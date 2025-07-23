@@ -18,7 +18,7 @@ export class StreamingTranscriber {
   // Configuration
   private readonly CHUNK_DURATION = 2000; // 2 seconds
   private readonly SILENCE_THRESHOLD = 0.01; // Voice activity threshold
-  private readonly SILENCE_DURATION = 1500; // 1.5 seconds of silence before processing
+  private readonly SILENCE_DURATION = 1000; // 1 second of silence before processing
   private readonly SAMPLE_RATE = 16000;
   private readonly BUFFER_SIZE = 4096;
   
