@@ -313,178 +313,183 @@ export const MeetingRecorder = ({
   };
 
   return (
-    <Card className="shadow-medium border-accent/20">
-      <CardHeader className="pb-4">
-        <CardTitle className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <span className="flex items-center gap-2">
-            <Mic className="h-5 w-5 text-primary" />
-            <span className="text-lg sm:text-xl">Meeting Recorder</span>
-          </span>
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant={getConnectionStatusColor() as any} className="flex items-center gap-1 text-xs">
-              {getConnectionStatusIcon()}
-              <span className="hidden sm:inline">{connectionStatus}</span>
-              <span className="sm:hidden">{connectionStatus.split(' ')[0]}</span>
-            </Badge>
-          </div>
-        </CardTitle>
-      </CardHeader>
-      
-      <CardContent className="space-y-6">
-        {/* Tabbed Interface - 4 tabs */}
-        <Tabs defaultValue="recorder" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="recorder" className="flex items-center gap-2">
-              <Mic className="h-4 w-4" />
-              <span className="hidden sm:inline">Meeting Recorder</span>
-              <span className="sm:hidden">Record</span>
-            </TabsTrigger>
-            <TabsTrigger value="transcript" className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              <span className="hidden sm:inline">Live Transcript</span>
-              <span className="sm:hidden">Transcript</span>
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center gap-2">
-              <Settings className="h-4 w-4" />
-              <span className="hidden sm:inline">Meeting Settings</span>
-              <span className="sm:hidden">Settings</span>
-            </TabsTrigger>
-            <TabsTrigger value="history" className="flex items-center gap-2">
-              <History className="h-4 w-4" />
-              <span className="hidden sm:inline">Meeting History</span>
-              <span className="sm:hidden">History</span>
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Meeting Recorder Tab - Just recording controls */}
-          <TabsContent value="recorder" className="space-y-6 mt-6">
-            {/* Recording Controls and Stats */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-center">
-              <div className="bg-accent/20 rounded-lg p-4">
-                <div className="text-2xl sm:text-3xl font-bold text-primary">{formatDuration(duration)}</div>
-                <div className="text-sm text-muted-foreground">Duration</div>
-              </div>
-              <div className="bg-accent/20 rounded-lg p-4">
-                <div className="text-2xl sm:text-3xl font-bold text-primary">{wordCount}</div>
-                <div className="text-sm text-muted-foreground">Words</div>
-              </div>
+    <div className="space-y-6">
+      {/* Header Card */}
+      <Card className="shadow-medium border-accent/20">
+        <CardHeader className="pb-4">
+          <CardTitle className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <span className="flex items-center gap-2">
+              <Mic className="h-5 w-5 text-primary" />
+              <span className="text-lg sm:text-xl">Meeting Recorder</span>
+            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant={getConnectionStatusColor() as any} className="flex items-center gap-1 text-xs">
+                {getConnectionStatusIcon()}
+                <span className="hidden sm:inline">{connectionStatus}</span>
+                <span className="sm:hidden">{connectionStatus.split(' ')[0]}</span>
+              </Badge>
             </div>
+          </CardTitle>
+        </CardHeader>
+      </Card>
 
-            <div className="flex justify-center">
-              {!isRecording ? (
-                <Button 
-                  onClick={startRecording}
-                  className="bg-gradient-primary hover:bg-primary-hover shadow-subtle w-full sm:w-auto px-8 py-4 text-lg font-medium touch-manipulation min-h-[56px]"
-                >
-                  <Mic className="h-5 w-5 mr-3" />
-                  Start Recording
-                </Button>
-              ) : (
-                <Button 
-                  onClick={stopRecording}
-                  variant="destructive"
-                  className="shadow-subtle w-full sm:w-auto px-8 py-4 text-lg font-medium touch-manipulation min-h-[56px]"
-                >
-                  <Square className="h-5 w-5 mr-3" />
-                  Stop Recording
-                </Button>
-              )}
-            </div>
+      {/* Tabbed Interface */}
+      <Tabs defaultValue="recorder" className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="recorder" className="flex items-center gap-2">
+            <Mic className="h-4 w-4" />
+            <span className="hidden sm:inline">Meeting Recorder</span>
+            <span className="sm:hidden">Record</span>
+          </TabsTrigger>
+          <TabsTrigger value="transcript" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            <span className="hidden sm:inline">Live Transcript</span>
+            <span className="sm:hidden">Transcript</span>
+          </TabsTrigger>
+          <TabsTrigger value="settings" className="flex items-center gap-2">
+            <Settings className="h-4 w-4" />
+            <span className="hidden sm:inline">Meeting Settings</span>
+            <span className="sm:hidden">Settings</span>
+          </TabsTrigger>
+          <TabsTrigger value="history" className="flex items-center gap-2">
+            <History className="h-4 w-4" />
+            <span className="hidden sm:inline">Meeting History</span>
+            <span className="sm:hidden">History</span>
+          </TabsTrigger>
+        </TabsList>
 
-            {isRecording && (
-              <div className="flex items-center justify-center gap-3 text-primary animate-pulse bg-accent/20 rounded-lg p-4">
-                <div className="w-3 h-3 bg-primary rounded-full"></div>
-                <span className="text-base font-medium">Recording with real-time transcription...</span>
+        {/* Meeting Recorder Tab - ONLY recording controls */}
+        <TabsContent value="recorder" className="space-y-6 mt-6">
+          <Card className="shadow-medium border-accent/20">
+            <CardContent className="space-y-6 pt-6">
+              {/* Recording Controls and Stats */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-center">
+                <div className="bg-accent/20 rounded-lg p-4">
+                  <div className="text-2xl sm:text-3xl font-bold text-primary">{formatDuration(duration)}</div>
+                  <div className="text-sm text-muted-foreground">Duration</div>
+                </div>
+                <div className="bg-accent/20 rounded-lg p-4">
+                  <div className="text-2xl sm:text-3xl font-bold text-primary">{wordCount}</div>
+                  <div className="text-sm text-muted-foreground">Words</div>
+                </div>
               </div>
-            )}
 
-            {/* Basic info when not recording */}
-            {!isRecording && (
-              <div className="text-center py-8 text-muted-foreground">
-                <Mic className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                <h3 className="text-lg font-medium mb-2">Ready to Record</h3>
-                <p className="text-sm">Click "Start Recording" to begin capturing your meeting with real-time transcription.</p>
-              </div>
-            )}
-          </TabsContent>
-
-          {/* Live Transcript Tab */}
-          <TabsContent value="transcript" className="space-y-4 mt-6">
-            <Card className="border-accent/30">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <FileText className="h-5 w-5" />
-                  Live Meeting Transcript
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {realtimeTranscripts.length > 0 ? (
-                  <div className="space-y-3 max-h-96 overflow-y-auto">
-                    {realtimeTranscripts.map((transcript, index) => (
-                      <div
-                        key={`${transcript.speaker}-${index}`}
-                        className={`p-3 rounded-lg border ${
-                          transcript.isFinal
-                            ? 'bg-accent/20 border-accent/40'
-                            : 'bg-muted/50 border-muted animate-pulse'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2 mb-2">
-                          <Badge variant="outline" className="text-xs">
-                            {transcript.speaker}
-                          </Badge>
-                          {!transcript.isFinal && (
-                            <Badge variant="secondary" className="text-xs">
-                              Live
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-sm leading-relaxed">
-                          {transcript.text}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
+              <div className="flex justify-center">
+                {!isRecording ? (
+                  <Button 
+                    onClick={startRecording}
+                    className="bg-gradient-primary hover:bg-primary-hover shadow-subtle w-full sm:w-auto px-8 py-4 text-lg font-medium touch-manipulation min-h-[56px]"
+                  >
+                    <Mic className="h-5 w-5 mr-3" />
+                    Start Recording
+                  </Button>
                 ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>Start recording to see live transcript here</p>
-                  </div>
+                  <Button 
+                    onClick={stopRecording}
+                    variant="destructive"
+                    className="shadow-subtle w-full sm:w-auto px-8 py-4 text-lg font-medium touch-manipulation min-h-[56px]"
+                  >
+                    <Square className="h-5 w-5 mr-3" />
+                    Stop Recording
+                  </Button>
                 )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+              </div>
 
-          {/* Meeting Settings Tab */}
-          <TabsContent value="settings" className="space-y-4 mt-6">
-            <MeetingSettings
-              onSettingsChange={handleSettingsChange}
-              initialSettings={meetingSettings}
-            />
-          </TabsContent>
+              {isRecording && (
+                <div className="flex items-center justify-center gap-3 text-primary animate-pulse bg-accent/20 rounded-lg p-4">
+                  <div className="w-3 h-3 bg-primary rounded-full"></div>
+                  <span className="text-base font-medium">Recording with real-time transcription...</span>
+                </div>
+              )}
 
-          {/* Meeting History Tab */}
-          <TabsContent value="history" className="space-y-4 mt-6">
-            <Card className="border-accent/30">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <History className="h-5 w-5" />
-                  My Meeting History
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <MeetingHistoryList
-                  meetings={meetings}
-                  onEdit={handleEditMeeting}
-                  onViewSummary={handleViewSummary}
-                  onDelete={handleDeleteMeeting}
-                  loading={loadingHistory}
-                />
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </CardContent>
-    </Card>
+              {/* Basic info when not recording */}
+              {!isRecording && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Mic className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                  <h3 className="text-lg font-medium mb-2">Ready to Record</h3>
+                  <p className="text-sm">Click "Start Recording" to begin capturing your meeting with real-time transcription.</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Live Transcript Tab */}
+        <TabsContent value="transcript" className="space-y-4 mt-6">
+          <Card className="border-accent/30">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <FileText className="h-5 w-5" />
+                Live Meeting Transcript
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {realtimeTranscripts.length > 0 ? (
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {realtimeTranscripts.map((transcript, index) => (
+                    <div
+                      key={`${transcript.speaker}-${index}`}
+                      className={`p-3 rounded-lg border ${
+                        transcript.isFinal
+                          ? 'bg-accent/20 border-accent/40'
+                          : 'bg-muted/50 border-muted animate-pulse'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <Badge variant="outline" className="text-xs">
+                          {transcript.speaker}
+                        </Badge>
+                        {!transcript.isFinal && (
+                          <Badge variant="secondary" className="text-xs">
+                            Live
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm leading-relaxed">
+                        {transcript.text}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>Start recording to see live transcript here</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Meeting Settings Tab */}
+        <TabsContent value="settings" className="space-y-4 mt-6">
+          <MeetingSettings
+            onSettingsChange={handleSettingsChange}
+            initialSettings={meetingSettings}
+          />
+        </TabsContent>
+
+        {/* Meeting History Tab */}
+        <TabsContent value="history" className="space-y-4 mt-6">
+          <Card className="border-accent/30">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <History className="h-5 w-5" />
+                My Meeting History
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <MeetingHistoryList
+                meetings={meetings}
+                onEdit={handleEditMeeting}
+                onViewSummary={handleViewSummary}
+                onDelete={handleDeleteMeeting}
+                loading={loadingHistory}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 };
