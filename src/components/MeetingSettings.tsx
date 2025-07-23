@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { 
   Settings, 
   ChevronDown, 
@@ -14,7 +16,9 @@ import {
   ClipboardPaste,
   Upload,
   Mic,
-  FileText
+  FileText,
+  Check,
+  ChevronsUpDown
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -37,6 +41,9 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
   const [isOpen, setIsOpen] = useState(true);
   const [isImporting, setIsImporting] = useState(false);
   const [isImportingTranscript, setIsImportingTranscript] = useState(false);
+  const [practiceSearchOpen, setPracticeSearchOpen] = useState(false);
+  const [practices, setPractices] = useState<Array<{id: string, name: string, practice_code: string}>>([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [settings, setSettings] = useState({
     title: initialSettings?.title || "General Meeting",
     description: initialSettings?.description || "",
@@ -80,6 +87,31 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
 
     fetchDefaultPractice();
   }, [user]);
+
+  // Fetch practices for search
+  useEffect(() => {
+    const fetchPractices = async () => {
+      const { data, error } = await supabase
+        .from('gp_practices')
+        .select('id, name, practice_code')
+        .order('name');
+      
+      if (!error && data) {
+        setPractices(data);
+      }
+    };
+
+    fetchPractices();
+  }, []);
+
+  const handlePracticeSelect = (practiceName: string) => {
+    updateSetting('location', practiceName);
+    setPracticeSearchOpen(false);
+  };
+
+  const filteredPractices = practices.filter(practice =>
+    practice.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const handleAudioImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -279,15 +311,53 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
             {settings.format === 'face-to-face' && (
               <div className="space-y-2">
                 <Label htmlFor="location">Site/Location</Label>
-                <Input
-                  id="location"
-                  placeholder={settings.location ? settings.location : "Search by Practice Name or Area"}
-                  value={settings.location}
-                  onChange={(e) => updateSetting('location', e.target.value)}
-                />
+                <Popover open={practiceSearchOpen} onOpenChange={setPracticeSearchOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={practiceSearchOpen}
+                      className="w-full justify-between"
+                    >
+                      {settings.location || "Search by Practice Name or Area"}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput 
+                        placeholder="Search practices..." 
+                        value={searchTerm}
+                        onValueChange={setSearchTerm}
+                      />
+                      <CommandList>
+                        <CommandEmpty>No practice found.</CommandEmpty>
+                        <CommandGroup>
+                          {filteredPractices.map((practice) => (
+                            <CommandItem
+                              key={practice.id}
+                              value={practice.name}
+                              onSelect={() => handlePracticeSelect(practice.name)}
+                            >
+                              <Check
+                                className={`mr-2 h-4 w-4 ${
+                                  settings.location === practice.name ? "opacity-100" : "opacity-0"
+                                }`}
+                              />
+                              <div>
+                                <div className="font-medium">{practice.name}</div>
+                                <div className="text-xs text-muted-foreground">{practice.practice_code}</div>
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
                 {!settings.location && (
                   <p className="text-xs text-muted-foreground">
-                    Enter your GP practice name or search for a practice location
+                    Select your GP practice from the dropdown above
                   </p>
                 )}
               </div>
