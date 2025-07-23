@@ -331,47 +331,7 @@ export const MeetingRecorder = ({
       </CardHeader>
       
       <CardContent className="space-y-6">
-        {/* Recording Controls and Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-center">
-          <div className="bg-accent/20 rounded-lg p-4">
-            <div className="text-2xl sm:text-3xl font-bold text-primary">{formatDuration(duration)}</div>
-            <div className="text-sm text-muted-foreground">Duration</div>
-          </div>
-          <div className="bg-accent/20 rounded-lg p-4">
-            <div className="text-2xl sm:text-3xl font-bold text-primary">{wordCount}</div>
-            <div className="text-sm text-muted-foreground">Words</div>
-          </div>
-        </div>
-
-        <div className="flex justify-center">
-          {!isRecording ? (
-            <Button 
-              onClick={startRecording}
-              className="bg-gradient-primary hover:bg-primary-hover shadow-subtle w-full sm:w-auto px-8 py-4 text-lg font-medium touch-manipulation min-h-[56px]"
-            >
-              <Mic className="h-5 w-5 mr-3" />
-              Start Recording
-            </Button>
-          ) : (
-            <Button 
-              onClick={stopRecording}
-              variant="destructive"
-              className="shadow-subtle w-full sm:w-auto px-8 py-4 text-lg font-medium touch-manipulation min-h-[56px]"
-            >
-              <Square className="h-5 w-5 mr-3" />
-              Stop Recording
-            </Button>
-          )}
-        </div>
-
-        {isRecording && (
-          <div className="flex items-center justify-center gap-3 text-primary animate-pulse bg-accent/20 rounded-lg p-4">
-            <div className="w-3 h-3 bg-primary rounded-full"></div>
-            <span className="text-base font-medium">Recording with real-time transcription...</span>
-          </div>
-        )}
-
-        {/* Tabbed Interface */}
+        {/* Tabbed Interface - Moved to Top */}
         <Tabs defaultValue="transcript" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="transcript" className="flex items-center gap-2">
@@ -392,7 +352,48 @@ export const MeetingRecorder = ({
           </TabsList>
 
           {/* Meeting Transcript Tab */}
-          <TabsContent value="transcript" className="space-y-4 mt-6">
+          <TabsContent value="transcript" className="space-y-6 mt-6">
+            {/* Recording Controls and Stats */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-center">
+              <div className="bg-accent/20 rounded-lg p-4">
+                <div className="text-2xl sm:text-3xl font-bold text-primary">{formatDuration(duration)}</div>
+                <div className="text-sm text-muted-foreground">Duration</div>
+              </div>
+              <div className="bg-accent/20 rounded-lg p-4">
+                <div className="text-2xl sm:text-3xl font-bold text-primary">{wordCount}</div>
+                <div className="text-sm text-muted-foreground">Words</div>
+              </div>
+            </div>
+
+            <div className="flex justify-center">
+              {!isRecording ? (
+                <Button 
+                  onClick={startRecording}
+                  className="bg-gradient-primary hover:bg-primary-hover shadow-subtle w-full sm:w-auto px-8 py-4 text-lg font-medium touch-manipulation min-h-[56px]"
+                >
+                  <Mic className="h-5 w-5 mr-3" />
+                  Start Recording
+                </Button>
+              ) : (
+                <Button 
+                  onClick={stopRecording}
+                  variant="destructive"
+                  className="shadow-subtle w-full sm:w-auto px-8 py-4 text-lg font-medium touch-manipulation min-h-[56px]"
+                >
+                  <Square className="h-5 w-5 mr-3" />
+                  Stop Recording
+                </Button>
+              )}
+            </div>
+
+            {isRecording && (
+              <div className="flex items-center justify-center gap-3 text-primary animate-pulse bg-accent/20 rounded-lg p-4">
+                <div className="w-3 h-3 bg-primary rounded-full"></div>
+                <span className="text-base font-medium">Recording with real-time transcription...</span>
+              </div>
+            )}
+
+            {/* Live Transcript Display */}
             <Card className="border-accent/30">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
