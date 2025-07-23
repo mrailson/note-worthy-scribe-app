@@ -705,7 +705,9 @@ export type Database = {
           description: string | null
           duration_minutes: number | null
           end_time: string | null
+          format: string | null
           id: string
+          location: string | null
           meeting_type: string
           start_time: string
           status: string
@@ -719,7 +721,9 @@ export type Database = {
           description?: string | null
           duration_minutes?: number | null
           end_time?: string | null
+          format?: string | null
           id?: string
+          location?: string | null
           meeting_type?: string
           start_time?: string
           status?: string
@@ -733,7 +737,9 @@ export type Database = {
           description?: string | null
           duration_minutes?: number | null
           end_time?: string | null
+          format?: string | null
           id?: string
+          location?: string | null
           meeting_type?: string
           start_time?: string
           status?: string

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { MeetingHistoryList } from "@/components/MeetingHistoryList";
-import { MeetingSearchBar } from "@/components/MeetingSearchBar";
+import { MeetingSearchBar, SearchFilters } from "@/components/MeetingSearchBar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +42,8 @@ interface Meeting {
   duration_minutes: number | null;
   status: string;
   created_at: string;
+  location?: string | null;
+  format?: string | null;
   transcript_count?: number;
   summary_exists?: boolean;
 }
@@ -56,6 +58,16 @@ const MeetingHistory = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState("all");
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
+  
+  // Advanced search filters
+  const [advancedFilters, setAdvancedFilters] = useState<Partial<SearchFilters>>({
+    dateFrom: "",
+    dateTo: "",
+    durationMin: "",
+    durationMax: "",
+    location: "",
+    format: "all"
+  });
   
   // Edit dialog state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -128,7 +140,7 @@ const MeetingHistory = () => {
 
   useEffect(() => {
     filterMeetings();
-  }, [meetings, searchQuery, filterType]);
+  }, [meetings, searchQuery, filterType, advancedFilters]);
 
   const fetchMeetings = async () => {
     try {
@@ -191,13 +203,51 @@ const MeetingHistory = () => {
       filtered = filtered.filter(meeting =>
         meeting.title.toLowerCase().includes(query) ||
         meeting.description?.toLowerCase().includes(query) ||
-        meeting.meeting_type.toLowerCase().includes(query)
+        meeting.meeting_type.toLowerCase().includes(query) ||
+        meeting.location?.toLowerCase().includes(query)
       );
     }
 
     // Apply type filter
     if (filterType !== "all") {
       filtered = filtered.filter(meeting => meeting.meeting_type === filterType);
+    }
+
+    // Apply advanced filters
+    if (advancedFilters.dateFrom) {
+      const fromDate = new Date(advancedFilters.dateFrom);
+      filtered = filtered.filter(meeting => new Date(meeting.start_time) >= fromDate);
+    }
+
+    if (advancedFilters.dateTo) {
+      const toDate = new Date(advancedFilters.dateTo);
+      toDate.setHours(23, 59, 59, 999); // Include the entire end date
+      filtered = filtered.filter(meeting => new Date(meeting.start_time) <= toDate);
+    }
+
+    if (advancedFilters.durationMin) {
+      const minDuration = parseInt(advancedFilters.durationMin);
+      filtered = filtered.filter(meeting => 
+        meeting.duration_minutes !== null && meeting.duration_minutes >= minDuration
+      );
+    }
+
+    if (advancedFilters.durationMax) {
+      const maxDuration = parseInt(advancedFilters.durationMax);
+      filtered = filtered.filter(meeting => 
+        meeting.duration_minutes !== null && meeting.duration_minutes <= maxDuration
+      );
+    }
+
+    if (advancedFilters.location && advancedFilters.location.trim()) {
+      const locationQuery = advancedFilters.location.toLowerCase();
+      filtered = filtered.filter(meeting =>
+        meeting.location?.toLowerCase().includes(locationQuery)
+      );
+    }
+
+    if (advancedFilters.format && advancedFilters.format !== "all") {
+      filtered = filtered.filter(meeting => meeting.format === advancedFilters.format);
     }
     
     setFilteredMeetings(filtered);
@@ -373,6 +423,8 @@ const MeetingHistory = () => {
           resultsCount={filteredMeetings.length}
           filterType={filterType}
           onFilterChange={setFilterType}
+          onAdvancedFiltersChange={setAdvancedFilters}
+          advancedFilters={advancedFilters}
         />
 
         {/* Delete All Button */}
