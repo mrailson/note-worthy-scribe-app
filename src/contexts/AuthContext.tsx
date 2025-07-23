@@ -86,10 +86,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const resetPassword = async (email: string) => {
-    const redirectUrl = `${window.location.origin}/reset-password`;
+    const currentUrl = window.location.origin;
+    const redirectUrl = `${currentUrl}/reset-password`;
     
-    // First generate the reset link via Supabase
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    // Generate the actual reset link via Supabase
+    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: redirectUrl
     });
     
@@ -98,23 +99,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return { error };
     }
 
-    // Then send custom email via EmailJS
-    try {
-      const { error: emailError } = await supabase.functions.invoke('send-password-reset-email', {
-        body: {
-          email: email,
-          reset_link: redirectUrl,
-          user_name: email.split('@')[0]
-        }
-      });
-
-      if (emailError) {
-        console.error("Email sending failed:", emailError.message);
-        return { error: emailError };
-      }
-    } catch (emailError: any) {
-      console.error("Email sending failed:", emailError.message);
-    }
+    // Don't send the custom EmailJS email since Supabase already sends the reset email
+    // The Supabase email will contain the proper reset link with tokens
     
     return { error: null };
   };

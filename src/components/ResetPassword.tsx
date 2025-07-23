@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Eye, EyeOff, Lock, CheckCircle, AlertCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 export const ResetPassword = () => {
   const [newPassword, setNewPassword] = useState("");
@@ -16,16 +17,48 @@ export const ResetPassword = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [validatingSession, setValidatingSession] = useState(true);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { updatePassword, session } = useAuth();
 
-  // Check if user has a valid session (from email link)
+  // Handle password reset from email link
   useEffect(() => {
-    if (!session) {
-      // If no session, redirect to login with error message
-      navigate('/?error=invalid-reset-link');
-    }
+    const handlePasswordResetFromUrl = async () => {
+      // Check if we have hash parameters (for password reset)
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const accessToken = hashParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token');
+      const type = hashParams.get('type');
+
+      if (type === 'recovery' && accessToken && refreshToken) {
+        try {
+          // Set the session using the tokens from the email link
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          });
+
+          if (error) {
+            console.error('Error setting session:', error);
+            setError('Invalid or expired reset link. Please request a new one.');
+          } else {
+            // Clear the URL hash after successful session setup
+            window.history.replaceState(null, '', window.location.pathname);
+          }
+        } catch (err) {
+          console.error('Error processing reset link:', err);
+          setError('Error processing reset link. Please try again.');
+        }
+      } else if (!session && !accessToken) {
+        // If no recovery params and no session, redirect to login
+        navigate('/?error=invalid-reset-link');
+      }
+      
+      setValidatingSession(false);
+    };
+
+    handlePasswordResetFromUrl();
   }, [session, navigate]);
 
   const validatePassword = (password: string) => {
@@ -86,6 +119,18 @@ export const ResetPassword = () => {
             >
               Go to Login
             </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (validatingSession) {
+    return (
+      <div className="min-h-screen bg-gradient-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md shadow-strong">
+          <CardContent className="text-center py-8">
+            <div className="text-muted-foreground">Validating reset link...</div>
           </CardContent>
         </Card>
       </div>
