@@ -30,6 +30,11 @@ export class UnifiedAudioCapture {
       // Step 4: Start recording
       this.startRecording();
       
+      // Step 5: Send an immediate test to verify the system is working
+      setTimeout(() => {
+        this.sendTestAudio();
+      }, 2000);
+      
       this.onStatusChange('Recording microphone + browser audio');
       console.log('Unified audio capture started successfully');
       
@@ -188,6 +193,7 @@ export class UnifiedAudioCapture {
   private scheduleProcessing() {
     if (!this.isRecording) return;
 
+    // Record in shorter chunks for faster feedback
     setTimeout(() => {
       if (this.isRecording && this.mediaRecorder?.state === 'recording') {
         console.log('Stopping recording for processing...');
@@ -200,7 +206,7 @@ export class UnifiedAudioCapture {
           }
         }, 100);
       }
-    }, 3000); // Process every 3 seconds
+    }, 1500); // Process every 1.5 seconds for faster feedback
   }
 
   private async processAudioChunks() {
@@ -293,6 +299,75 @@ export class UnifiedAudioCapture {
       }
     } catch (error) {
       console.error('Error processing audio:', error);
+    }
+  }
+
+  private async sendTestAudio() {
+    // Send a small test audio to verify the system is working
+    // This creates a very brief silent audio to test the pipeline
+    try {
+      console.log('Sending test audio to verify system...');
+      
+      // Create a minimal test audio (1 second of silence)
+      const sampleRate = 24000;
+      const duration = 1; // 1 second
+      const numSamples = sampleRate * duration;
+      
+      // Create minimal audio data
+      const audioData = new ArrayBuffer(44 + numSamples * 2);
+      const view = new DataView(audioData);
+      
+      // WAV header
+      const writeString = (offset: number, string: string) => {
+        for (let i = 0; i < string.length; i++) {
+          view.setUint8(offset + i, string.charCodeAt(i));
+        }
+      };
+      
+      writeString(0, 'RIFF');
+      view.setUint32(4, 36 + numSamples * 2, true);
+      writeString(8, 'WAVE');
+      writeString(12, 'fmt ');
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true);
+      view.setUint16(22, 1, true);
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, sampleRate * 2, true);
+      view.setUint16(32, 2, true);
+      view.setUint16(34, 16, true);
+      writeString(36, 'data');
+      view.setUint32(40, numSamples * 2, true);
+      
+      const uint8Array = new Uint8Array(audioData);
+      let binary = '';
+      for (let i = 0; i < uint8Array.length; i += 0x8000) {
+        const chunk = uint8Array.subarray(i, Math.min(i + 0x8000, uint8Array.length));
+        binary += String.fromCharCode.apply(null, Array.from(chunk));
+      }
+      const base64Audio = btoa(binary);
+
+      const response = await fetch('https://dphcnbricafkbtizkoal.functions.supabase.co/functions/v1/speech-to-text', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwaGNuYnJpY2Fma2J0aXprb2FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MzIyMzIsImV4cCI6MjA2ODMwODIzMn0.U3bJI6P1yzgRBz_k2s0zlJGu1GWiVRTHjYgv9QQggPs'
+        },
+        body: JSON.stringify({ audio: base64Audio })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Audio transcription system verified and ready!');
+        this.onTranscript({
+          text: 'Audio transcription system ready ✓',
+          speaker: 'System',
+          confidence: 1.0,
+          timestamp: new Date().toISOString(),
+          isFinal: true
+        });
+      }
+    } catch (error) {
+      console.error('Test audio failed:', error);
     }
   }
 
