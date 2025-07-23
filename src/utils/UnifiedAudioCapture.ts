@@ -65,9 +65,15 @@ export class UnifiedAudioCapture {
 
   private async setupSystemAudio() {
     try {
-      console.log('Requesting system audio access...');
+      console.log('Requesting screen share with system audio...');
+      console.log('Please select "Share system audio" when prompted');
+      
       this.systemStream = await navigator.mediaDevices.getDisplayMedia({
-        video: false,
+        video: {
+          width: { ideal: 1 },
+          height: { ideal: 1 },
+          frameRate: { ideal: 1 }
+        },
         audio: {
           sampleRate: 24000,
           channelCount: 1,
@@ -76,9 +82,18 @@ export class UnifiedAudioCapture {
           autoGainControl: false
         }
       });
-      console.log('System audio access granted');
+      
+      // Check if audio track was actually included
+      const audioTracks = this.systemStream.getAudioTracks();
+      if (audioTracks.length > 0) {
+        console.log('System audio access granted - browser/speaker audio will be captured');
+      } else {
+        console.log('Screen sharing granted but no audio track - please make sure to check "Share system audio"');
+        this.systemStream = null;
+      }
     } catch (error) {
-      console.log('System audio access declined or failed, continuing with mic only');
+      console.log('Screen sharing declined or failed, continuing with mic only');
+      console.log('To capture browser audio, please allow screen sharing and check "Share system audio"');
       this.systemStream = null;
     }
   }
