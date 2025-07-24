@@ -115,30 +115,20 @@ serve(async (req) => {
       duration: result.duration
     });
 
-    // Much stricter quality thresholds to prevent fake transcripts
-    if (avgNoSpeechProb > 0.5) {
-      console.log('Rejected: High no_speech_prob:', avgNoSpeechProb);
+    // Only reject very obvious cases where OpenAI returns no speech
+    if (avgNoSpeechProb > 0.95) {
+      console.log('Rejected: Very high no_speech_prob:', avgNoSpeechProb);
       return new Response(
-        JSON.stringify({ text: '', confidence: 0, filtered: true, reason: 'high_no_speech_prob', metrics: { avgNoSpeechProb, avgLogProb } }),
+        JSON.stringify({ text: '', confidence: 0, filtered: true, reason: 'no_speech_detected', metrics: { avgNoSpeechProb, avgLogProb } }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    if (avgLogProb < -0.8) {
-      console.log('Rejected: Low confidence logprob:', avgLogProb);
+    // Only reject extremely low confidence transcripts
+    if (avgLogProb < -2.0) {
+      console.log('Rejected: Extremely low confidence:', avgLogProb);
       return new Response(
-        JSON.stringify({ text: '', confidence: 0, filtered: true, reason: 'low_confidence', metrics: { avgNoSpeechProb, avgLogProb } }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Enhanced hallucination detection
-    const isHallucination = isLikelyHallucination(text.toLowerCase());
-    
-    if (isHallucination) {
-      console.log('Rejected: Likely hallucination:', text);
-      return new Response(
-        JSON.stringify({ text: '', confidence: 0, filtered: true, reason: 'hallucination', original_text: text }),
+        JSON.stringify({ text: '', confidence: 0, filtered: true, reason: 'very_low_confidence', metrics: { avgNoSpeechProb, avgLogProb } }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
