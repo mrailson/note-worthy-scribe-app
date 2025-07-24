@@ -1211,7 +1211,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                         className="h-8 w-8 p-0"
                         title="Tall vertical window"
                       >
-                        <div className="w-4 h-6 bg-current rounded-sm"></div>
+                        <div className="w-5 h-8 bg-current rounded-sm"></div>
                       </Button>
                       <Button
                         variant={chatBoxSize === 'full-screen' ? 'secondary' : 'ghost'}
@@ -1220,7 +1220,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                         className="h-8 w-8 p-0"
                         title="Full screen window"
                       >
-                        <div className="w-6 h-6 bg-current rounded-sm"></div>
+                        <div className="w-5 h-12 bg-current rounded-sm"></div>
                       </Button>
                     </div>
                     
