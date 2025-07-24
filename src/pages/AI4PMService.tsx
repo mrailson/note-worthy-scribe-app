@@ -39,7 +39,10 @@ import {
   Presentation,
   History,
   Eye,
-  Plus
+  Plus,
+  Image,
+  Type,
+  X
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { LoginForm } from '@/components/LoginForm';
@@ -48,6 +51,20 @@ import MessageRenderer from '@/components/MessageRenderer';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
 import { saveAs } from 'file-saver';
 import PptxGenJS from 'pptxgenjs';
+
+// Helper function to get file type icon
+const getFileTypeIcon = (fileName: string, fileType?: string) => {
+  const extension = fileName.split('.').pop()?.toLowerCase();
+  const type = fileType?.toLowerCase();
+  
+  if (type?.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(extension || '')) {
+    return Image;
+  }
+  if (type?.startsWith('text/') || fileName.includes('Pasted text')) {
+    return Type;
+  }
+  return FileText;
+};
 
 interface Message {
   id: string;
@@ -1315,46 +1332,35 @@ Always provide practical, actionable advice that follows NHS guidelines and best
 
                 {/* Input Area */}
                 <div className="border-t border-border p-4">
-                  {/* Uploaded Files Display */}
-                  {uploadedFiles.length > 0 && (
-                    <div className="mb-3 p-3 bg-muted/50 rounded-lg">
-                      <div className="flex items-center justify-between mb-2">
-                        <Label className="text-sm font-medium flex items-center gap-1">
-                          <Paperclip className="h-3 w-3" />
-                          Attached Files ({uploadedFiles.length})
-                        </Label>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setUploadedFiles([])}
-                          className="h-6 text-xs px-2"
-                        >
-                          Clear All
-                        </Button>
-                      </div>
-                      <div className="space-y-1">
-                        {uploadedFiles.map((file, index) => (
-                          <div key={index} className="flex items-center justify-between p-2 bg-background rounded text-xs border">
-                            <div className="flex items-center gap-2 flex-1 min-w-0">
-                              <FileText className="h-3 w-3 flex-shrink-0 text-muted-foreground" />
-                              <span className="truncate">{file.name}</span>
-                              <Badge variant="outline" className="text-xs px-1 py-0">
-                                {(file.size / 1024).toFixed(1)}KB
-                              </Badge>
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => removeFile(index)}
-                              className="h-6 w-6 p-0 flex-shrink-0"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                   {/* Uploaded Files Display - Compact Claude-style */}
+                   {uploadedFiles.length > 0 && (
+                     <div className="mb-3">
+                       <div className="flex flex-wrap gap-2">
+                         {uploadedFiles.map((file, index) => {
+                           const IconComponent = getFileTypeIcon(file.name, file.type);
+                           return (
+                             <div key={index} className="flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-2 border max-w-xs">
+                               <IconComponent className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                               <div className="flex-1 min-w-0">
+                                 <div className="text-sm font-medium truncate">{file.name}</div>
+                                 <div className="text-xs text-muted-foreground">
+                                   {(file.size / 1024).toFixed(1)}KB
+                                 </div>
+                               </div>
+                               <Button
+                                 variant="ghost"
+                                 size="sm"
+                                 onClick={() => removeFile(index)}
+                                 className="h-6 w-6 p-0 flex-shrink-0 hover:bg-destructive/10 hover:text-destructive"
+                               >
+                                 <X className="h-3 w-3" />
+                               </Button>
+                             </div>
+                           );
+                         })}
+                       </div>
+                     </div>
+                   )}
                   
                   <div className="flex gap-2">
                     <div className="flex-1 relative">
@@ -1371,6 +1377,34 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                           if (e.key === 'Enter' && !e.shiftKey) {
                             e.preventDefault();
                             handleSend();
+                          }
+                        }}
+                        onPaste={(e) => {
+                          const items = Array.from(e.clipboardData?.items || []);
+                          
+                          // Handle image paste
+                          const imageItem = items.find(item => item.type.startsWith('image/'));
+                          if (imageItem) {
+                            e.preventDefault();
+                            const file = imageItem.getAsFile();
+                            if (file) {
+                              handleFileUpload([file]);
+                            }
+                            return;
+                          }
+                          
+                          // Handle large text paste
+                          const textItem = items.find(item => item.type === 'text/plain');
+                          if (textItem) {
+                            textItem.getAsString((text) => {
+                              if (text.length > 500) {
+                                e.preventDefault();
+                                // Create a text file from the pasted content
+                                const blob = new Blob([text], { type: 'text/plain' });
+                                const file = new File([blob], `Pasted text (${text.length} chars)`, { type: 'text/plain' });
+                                handleFileUpload([file]);
+                              }
+                            });
                           }
                         }}
                       />
