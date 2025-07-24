@@ -1404,10 +1404,18 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                             type="button"
                             variant="ghost"
                             size="sm"
-                            className="h-8 w-8 p-0 hover:bg-muted"
+                            className={`h-8 w-8 p-0 transition-all duration-300 ${
+                              uploadedFiles.length > 0 
+                                ? 'hover:bg-primary/10 bg-primary/5' 
+                                : 'hover:bg-muted'
+                            }`}
                             title="Attach files"
                           >
-                            <Paperclip className="h-4 w-4" />
+                            <Paperclip className={`h-4 w-4 transition-all duration-300 ${
+                              uploadedFiles.length > 0 
+                                ? 'text-primary scale-110 animate-pulse' 
+                                : 'text-muted-foreground'
+                            }`} />
                           </Button>
                         </div>
                         
