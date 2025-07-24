@@ -35,6 +35,17 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Deleting user with admin privileges:", user_id);
 
     // Delete related records first to avoid foreign key constraints
+    console.log("Deleting complaint templates...");
+    const { error: templatesError } = await supabaseAdmin
+      .from('complaint_templates')
+      .delete()
+      .eq('created_by', user_id);
+
+    if (templatesError) {
+      console.error("Error deleting complaint templates:", templatesError);
+      throw templatesError;
+    }
+
     console.log("Deleting user roles...");
     const { error: rolesError } = await supabaseAdmin
       .from('user_roles')
