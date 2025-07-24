@@ -64,6 +64,22 @@ export const TranscriptionTest = () => {
       isRecording: false,
       transcripts: [],
       status: 'Ready'
+    },
+    {
+      id: 'azure-speech',
+      name: 'Azure Speech Services',
+      description: 'Microsoft Azure Cognitive Speech Services',
+      isRecording: false,
+      transcripts: [],
+      status: 'Ready'
+    },
+    {
+      id: 'deepgram',
+      name: 'Deepgram API',
+      description: 'Deepgram real-time speech recognition',
+      isRecording: false,
+      transcripts: [],
+      status: 'Ready'
     }
   ]);
 
@@ -288,6 +304,98 @@ export const TranscriptionTest = () => {
     updateMethodStatus(methodId, { status: 'OpenAI Realtime API not implemented yet' });
   };
 
+  const startAzureSpeech = async (methodId: string) => {
+    try {
+      const stream = await setupAudioCapture();
+      audioStreamsRef.current[methodId] = stream;
+
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'audio/webm;codecs=opus'
+      });
+
+      mediaRecorder.ondataavailable = async (event) => {
+        if (event.data.size > 0) {
+          try {
+            const arrayBuffer = await event.data.arrayBuffer();
+            const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+
+            const { data, error } = await supabase.functions.invoke('azure-speech-transcription', {
+              body: { audio: base64 }
+            });
+
+            if (error) throw error;
+            if (data?.text && data.text.trim()) {
+              addTranscript(methodId, data.text.trim(), data.confidence);
+            }
+          } catch (error) {
+            console.error('Azure Speech transcription error:', error);
+            updateMethodStatus(methodId, { status: 'Error: ' + (error as Error).message });
+          }
+        }
+      };
+
+      mediaRecorder.start();
+      setInterval(() => {
+        if (mediaRecorder.state === 'recording') {
+          mediaRecorder.stop();
+          mediaRecorder.start();
+        }
+      }, 2500);
+
+      mediaRecordersRef.current[methodId] = mediaRecorder;
+      updateMethodStatus(methodId, { isRecording: true, status: 'Recording...' });
+
+    } catch (error) {
+      updateMethodStatus(methodId, { status: 'Failed to start' });
+    }
+  };
+
+  const startDeepgram = async (methodId: string) => {
+    try {
+      const stream = await setupAudioCapture();
+      audioStreamsRef.current[methodId] = stream;
+
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'audio/webm;codecs=opus'
+      });
+
+      mediaRecorder.ondataavailable = async (event) => {
+        if (event.data.size > 0) {
+          try {
+            const arrayBuffer = await event.data.arrayBuffer();
+            const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+
+            const { data, error } = await supabase.functions.invoke('deepgram-transcription', {
+              body: { audio: base64 }
+            });
+
+            if (error) throw error;
+            if (data?.text && data.text.trim()) {
+              addTranscript(methodId, data.text.trim(), data.confidence);
+            }
+          } catch (error) {
+            console.error('Deepgram transcription error:', error);
+            updateMethodStatus(methodId, { status: 'Error: ' + (error as Error).message });
+          }
+        }
+      };
+
+      mediaRecorder.start();
+      setInterval(() => {
+        if (mediaRecorder.state === 'recording') {
+          mediaRecorder.stop();
+          mediaRecorder.start();
+        }
+      }, 1500);
+
+      mediaRecordersRef.current[methodId] = mediaRecorder;
+      updateMethodStatus(methodId, { isRecording: true, status: 'Recording...' });
+
+    } catch (error) {
+      updateMethodStatus(methodId, { status: 'Failed to start' });
+    }
+  };
+
   const startRecording = async (methodId: string) => {
     switch (methodId) {
       case 'openai-whisper':
@@ -304,6 +412,12 @@ export const TranscriptionTest = () => {
         break;
       case 'openai-realtime':
         await startOpenAIRealtime(methodId);
+        break;
+      case 'azure-speech':
+        await startAzureSpeech(methodId);
+        break;
+      case 'deepgram':
+        await startDeepgram(methodId);
         break;
     }
   };
