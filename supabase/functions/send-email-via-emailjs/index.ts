@@ -7,17 +7,27 @@ const corsHeaders = {
 };
 
 interface EmailRequest {
-  to_email: string;
-  all_emails: string;
-  meeting_title: string;
-  meeting_date: string;
-  duration: string;
+  // Meeting summary email fields
+  to_email?: string;
+  all_emails?: string;
+  meeting_title?: string;
+  meeting_date?: string;
+  duration?: string;
   practice_name?: string;
-  meeting_notes: string;
-  include_transcript: string;
+  meeting_notes?: string;
+  include_transcript?: string;
   transcript?: string;
-  from_name: string;
-  reply_to: string;
+  from_name?: string;
+  reply_to?: string;
+  
+  // Welcome email fields
+  user_name?: string;
+  user_email?: string;
+  temporary_password?: string;
+  user_role?: string;
+  template_type?: string;
+  login_url?: string;
+  support_email?: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -39,6 +49,18 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("EmailJS credentials not configured");
     }
 
+    // Enhance the email data for welcome emails
+    let enhancedEmailData = { ...emailData };
+    
+    if (emailData.template_type === 'welcome') {
+      enhancedEmailData = {
+        ...emailData,
+        login_url: `https://dphcnbricafkbtizkoal.supabase.co/auth/v1/authorize?redirect_to=${encodeURIComponent('https://91f61816-7ac8-43e0-a21d-31572f57dcab.lovableproject.com/')}`,
+        support_email: "support@gp-tools.nhs.uk",
+        app_name: "GP Tools Suite"
+      };
+    }
+
     // Prepare the EmailJS API request
     const emailjsUrl = "https://api.emailjs.com/api/v1.0/email/send";
     
@@ -47,13 +69,15 @@ const handler = async (req: Request): Promise<Response> => {
       template_id: templateId,
       user_id: publicKey,
       accessToken: privateKey,
-      template_params: emailData
+      template_params: enhancedEmailData
     };
 
-    console.log("Sending email via EmailJS with payload:", { 
+    console.log("Sending email via EmailJS:", { 
       service_id: serviceId, 
       template_id: templateId,
       to_email: emailData.to_email,
+      template_type: emailData.template_type || 'meeting',
+      user_name: emailData.user_name,
       meeting_title: emailData.meeting_title 
     });
 

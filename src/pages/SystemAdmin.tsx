@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -68,6 +69,23 @@ const SystemAdmin = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [loading, setLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  
+  // User creation state
+  const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
+  const [userForm, setUserForm] = useState({
+    email: '',
+    name: '',
+    password: '',
+    role: 'gp',
+    practice_id: '',
+    module_access: {
+      meeting_notes_access: true,
+      gp_scribe_access: false,
+      complaints_manager_access: false,
+      complaints_admin_access: false,
+      replywell_access: false
+    }
+  });
   
   // Dashboard state
   const [dashboardStats, setDashboardStats] = useState({
@@ -361,6 +379,92 @@ const SystemAdmin = () => {
     }
   };
 
+  const generateRandomPassword = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+    let password = '';
+    for (let i = 0; i < 12; i++) {
+      password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return password;
+  };
+
+  const handleCreateUser = async () => {
+    try {
+      setLoading(true);
+      
+      if (!userForm.email || !userForm.name || !userForm.password) {
+        toast.error("Please fill in all required fields");
+        return;
+      }
+
+      // Create user via edge function
+      const { data, error } = await supabase.functions.invoke('create-user-admin', {
+        body: {
+          email: userForm.email,
+          name: userForm.name,
+          password: userForm.password,
+          role: userForm.role,
+          practice_id: userForm.practice_id || null,
+          assigned_by: user?.id,
+          module_access: userForm.module_access
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        toast.success("User created successfully!");
+        
+        // Send welcome email via EmailJS edge function
+        try {
+          const selectedPractice = practices.find(p => p.id === userForm.practice_id);
+          
+          await supabase.functions.invoke('send-email-via-emailjs', {
+            body: {
+              to_email: userForm.email,
+              user_name: userForm.name,
+              user_email: userForm.email,
+              temporary_password: userForm.password,
+              user_role: userForm.role,
+              practice_name: selectedPractice?.name || 'Not assigned',
+              template_type: 'welcome'
+            }
+          });
+          
+          toast.success("Welcome email sent successfully!");
+        } catch (emailError) {
+          console.error('Email sending error:', emailError);
+          toast.warning("User created but email sending failed");
+        }
+
+        // Reset form and close dialog
+        setUserForm({
+          email: '',
+          name: '',
+          password: '',
+          role: 'gp',
+          practice_id: '',
+          module_access: {
+            meeting_notes_access: true,
+            gp_scribe_access: false,
+            complaints_manager_access: false,
+            complaints_admin_access: false,
+            replywell_access: false
+          }
+        });
+        setIsUserDialogOpen(false);
+        fetchUsers();
+      } else {
+        throw new Error(data.error || 'Failed to create user');
+      }
+    } catch (error) {
+      console.error('Error creating user:', error);
+      toast.error(`Failed to create user: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!isAdmin) {
     return (
       <div className="container mx-auto p-6">
@@ -471,7 +575,7 @@ const SystemAdmin = () => {
                 className="w-64"
               />
             </div>
-            <Button>
+            <Button onClick={() => setIsUserDialogOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Add User
             </Button>
@@ -1172,6 +1276,193 @@ const SystemAdmin = () => {
             </Button>
             <Button onClick={handleAddNeighbourhood}>
               {neighbourhoodDialogMode === 'add' ? 'Add Neighbourhood' : 'Update Neighbourhood'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* User Creation Dialog */}
+      <Dialog open={isUserDialogOpen} onOpenChange={setIsUserDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Add New User</DialogTitle>
+            <DialogDescription>
+              Create a new user account and send them welcome email with login credentials
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="user-name">Full Name</Label>
+                <Input
+                  id="user-name"
+                  value={userForm.name}
+                  onChange={(e) => setUserForm(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="Enter full name"
+                />
+              </div>
+              <div>
+                <Label htmlFor="user-email">Email Address</Label>
+                <Input
+                  id="user-email"
+                  type="email"
+                  value={userForm.email}
+                  onChange={(e) => setUserForm(prev => ({ ...prev, email: e.target.value }))}
+                  placeholder="Enter email address"
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="user-role">Role</Label>
+                <Select value={userForm.role} onValueChange={(value) => setUserForm(prev => ({ ...prev, role: value }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="gp">GP / Clinician</SelectItem>
+                    <SelectItem value="practice_manager">Practice Manager</SelectItem>
+                    <SelectItem value="complaints_manager">Complaints Manager</SelectItem>
+                    <SelectItem value="system_admin">System Administrator</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label htmlFor="user-practice">Practice</Label>
+                <Select value={userForm.practice_id} onValueChange={(value) => setUserForm(prev => ({ ...prev, practice_id: value }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select practice" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">No Practice Assigned</SelectItem>
+                    {practices.map((practice) => (
+                      <SelectItem key={practice.id} value={practice.id}>
+                        {practice.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="user-password">Temporary Password</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="user-password"
+                  type="text"
+                  value={userForm.password}
+                  onChange={(e) => setUserForm(prev => ({ ...prev, password: e.target.value }))}
+                  placeholder="Enter temporary password"
+                />
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setUserForm(prev => ({ ...prev, password: generateRandomPassword() }))}
+                >
+                  Generate
+                </Button>
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-base font-medium">Module Access Permissions</Label>
+              <div className="space-y-3 mt-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="meeting-notes">Meeting Notes & Recording</Label>
+                    <p className="text-sm text-muted-foreground">Access to GP Scribe and meeting functionality</p>
+                  </div>
+                  <Switch
+                    id="meeting-notes"
+                    checked={userForm.module_access.meeting_notes_access}
+                    onCheckedChange={(checked) => 
+                      setUserForm(prev => ({
+                        ...prev, 
+                        module_access: { ...prev.module_access, meeting_notes_access: checked }
+                      }))
+                    }
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="gp-scribe">GP Scribe Advanced Features</Label>
+                    <p className="text-sm text-muted-foreground">Advanced consultation note generation</p>
+                  </div>
+                  <Switch
+                    id="gp-scribe"
+                    checked={userForm.module_access.gp_scribe_access}
+                    onCheckedChange={(checked) => 
+                      setUserForm(prev => ({
+                        ...prev, 
+                        module_access: { ...prev.module_access, gp_scribe_access: checked }
+                      }))
+                    }
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="complaints-manager">Complaints Management</Label>
+                    <p className="text-sm text-muted-foreground">Manage and respond to patient complaints</p>
+                  </div>
+                  <Switch
+                    id="complaints-manager"
+                    checked={userForm.module_access.complaints_manager_access}
+                    onCheckedChange={(checked) => 
+                      setUserForm(prev => ({
+                        ...prev, 
+                        module_access: { ...prev.module_access, complaints_manager_access: checked }
+                      }))
+                    }
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="complaints-admin">Complaints Administration</Label>
+                    <p className="text-sm text-muted-foreground">Full complaints system administration</p>
+                  </div>
+                  <Switch
+                    id="complaints-admin"
+                    checked={userForm.module_access.complaints_admin_access}
+                    onCheckedChange={(checked) => 
+                      setUserForm(prev => ({
+                        ...prev, 
+                        module_access: { ...prev.module_access, complaints_admin_access: checked }
+                      }))
+                    }
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="replywell">ReplyWell AI</Label>
+                    <p className="text-sm text-muted-foreground">AI-powered communication assistance</p>
+                  </div>
+                  <Switch
+                    id="replywell"
+                    checked={userForm.module_access.replywell_access}
+                    onCheckedChange={(checked) => 
+                      setUserForm(prev => ({
+                        ...prev, 
+                        module_access: { ...prev.module_access, replywell_access: checked }
+                      }))
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsUserDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreateUser} disabled={loading}>
+              {loading ? 'Creating User...' : 'Create User & Send Email'}
             </Button>
           </DialogFooter>
         </DialogContent>
