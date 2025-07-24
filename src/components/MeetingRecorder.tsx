@@ -301,34 +301,127 @@ export const MeetingRecorder = ({
           }
         }
       } else {
-        // Microphone only mode
-        console.log('Starting microphone-only speech recognition...');
+        // Microphone + Speaker mode (using browser transcription)
+        console.log('Starting microphone + speaker audio capture with browser transcription...');
         
-        // Check for microphone permissions first
         try {
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          stream.getTracks().forEach(track => track.stop()); // Stop the test stream
+          // First get microphone audio
+          const micStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true
+            }
+          });
+          
+          // Then get screen/browser audio with video required for compatibility
+          const displayStream = await navigator.mediaDevices.getDisplayMedia({
+            video: true, // Required for audio capture in most browsers
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true
+            }
+          });
+          
+          // Check if audio track is available
+          const audioTracks = displayStream.getAudioTracks();
+          if (audioTracks.length === 0) {
+            // If no browser audio, just use microphone
+            console.log('No browser audio available, using microphone only');
+            displayStream.getTracks().forEach(track => track.stop());
+            
+            // Store references for cleanup
+            micAudioStreamRef.current = micStream;
+            
+            // Start speech recognition with microphone only
+            speechRecognitionRef.current = new BrowserSpeechRecognition(
+              handleTranscript,
+              handleTranscriptionError,
+              handleStatusChange
+            );
+
+            if (!speechRecognitionRef.current.isSupported()) {
+              throw new Error('Speech recognition is not supported in this browser. Please use Chrome, Edge, or Chrome on Android.');
+            }
+            
+            await speechRecognitionRef.current.startRecognition();
+            toast.success('Recording started with microphone only');
+          } else {
+            // Mix both audio streams
+            const audioContext = new AudioContext();
+            const destination = audioContext.createMediaStreamDestination();
+            
+            // Create sources for both streams
+            const displaySource = audioContext.createMediaStreamSource(displayStream);
+            const micSource = audioContext.createMediaStreamSource(micStream);
+            
+            // Connect both sources to the destination
+            displaySource.connect(destination);
+            micSource.connect(destination);
+            
+            // Store references for cleanup
+            browserAudioStreamRef.current = displayStream;
+            micAudioStreamRef.current = micStream;
+            audioContextRef.current = audioContext;
+            
+            console.log('Both microphone and browser audio captured');
+            toast.success('Recording started with microphone + browser audio');
+            
+            // Start speech recognition with combined audio
+            speechRecognitionRef.current = new BrowserSpeechRecognition(
+              handleTranscript,
+              handleTranscriptionError,
+              handleStatusChange
+            );
+
+            if (!speechRecognitionRef.current.isSupported()) {
+              throw new Error('Speech recognition is not supported in this browser. Please use Chrome, Edge, or Chrome on Android.');
+            }
+            
+            await speechRecognitionRef.current.startRecognition();
+          }
+          
         } catch (error: any) {
           if (error.name === 'NotAllowedError') {
-            throw new Error('Microphone permission denied. Please allow microphone access to record.');
+            // Try microphone only as fallback
+            console.log('Screen sharing denied, falling back to microphone only');
+            try {
+              const micStream = await navigator.mediaDevices.getUserMedia({ 
+                audio: {
+                  echoCancellation: true,
+                  noiseSuppression: true,
+                  autoGainControl: true
+                }
+              });
+              
+              micAudioStreamRef.current = micStream;
+              
+              speechRecognitionRef.current = new BrowserSpeechRecognition(
+                handleTranscript,
+                handleTranscriptionError,
+                handleStatusChange
+              );
+
+              if (!speechRecognitionRef.current.isSupported()) {
+                throw new Error('Speech recognition is not supported in this browser. Please use Chrome, Edge, or Chrome on Android.');
+              }
+              
+              await speechRecognitionRef.current.startRecognition();
+              toast.success('Recording started with microphone only (screen sharing denied)');
+            } catch (micError: any) {
+              if (micError.name === 'NotAllowedError') {
+                throw new Error('Microphone permission denied. Please allow microphone access to record.');
+              } else {
+                throw new Error('Failed to access microphone: ' + micError.message);
+              }
+            }
+          } else if (error.name === 'NotSupportedError') {
+            throw new Error('Screen sharing is not supported in this browser. Using microphone only.');
           } else {
-            throw new Error('Failed to access microphone: ' + error.message);
+            throw new Error('Failed to access audio: ' + error.message);
           }
         }
-        
-        // Initialize browser speech recognition
-        speechRecognitionRef.current = new BrowserSpeechRecognition(
-          handleTranscript,
-          handleTranscriptionError,
-          handleStatusChange
-        );
-
-        // Check if supported before starting
-        if (!speechRecognitionRef.current.isSupported()) {
-          throw new Error('Speech recognition is not supported in this browser. Please use Chrome, Edge, or Chrome on Android.');
-        }
-        
-        await speechRecognitionRef.current.startRecognition();
       }
       
       setIsRecording(true);
@@ -759,21 +852,28 @@ export const MeetingRecorder = ({
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-w-lg mx-auto">
-                      <Button
-                        variant={recordingMode === 'mic-only' ? 'default' : 'outline'}
-                        onClick={() => setRecordingMode('mic-only')}
-                        className={`flex items-center gap-2 h-auto py-2 px-3 border transition-all duration-200 ${
-                          recordingMode === 'mic-only' 
-                            ? 'border-primary bg-primary text-primary-foreground' 
-                            : 'border-border hover:border-primary/50 hover:bg-muted/50'
-                        }`}
-                      >
-                        <Mic className="h-4 w-4" />
-                        <div className="text-left">
-                          <div className="font-medium text-xs">Microphone Only</div>
-                          <div className="text-xs opacity-75">Face to face</div>
-                        </div>
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant={recordingMode === 'mic-only' ? 'default' : 'outline'}
+                            onClick={() => setRecordingMode('mic-only')}
+                            className={`flex items-center gap-2 h-auto py-2 px-3 border transition-all duration-200 ${
+                              recordingMode === 'mic-only' 
+                                ? 'border-primary bg-primary text-primary-foreground' 
+                                : 'border-border hover:border-primary/50 hover:bg-muted/50'
+                            }`}
+                          >
+                            <Mic className="h-4 w-4" />
+                            <div className="text-left">
+                              <div className="font-medium text-xs">Auto Record All</div>
+                              <div className="text-xs opacity-75">Mic + Speaker audio</div>
+                            </div>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Automatically tries to capture both microphone and speaker audio. Falls back to microphone only if screen sharing is denied.</p>
+                        </TooltipContent>
+                      </Tooltip>
                       
                       <Tooltip>
                         <TooltipTrigger asChild>
