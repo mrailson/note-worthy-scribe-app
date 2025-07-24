@@ -1179,9 +1179,18 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                   <CardTitle className="flex items-center gap-2">
                     <Sparkles className="h-5 w-5" />
                     AI 4 PM Service
-                    <Badge variant="secondary">
-                      {model === 'claude' ? 'Claude' : 'GPT-4'}
-                    </Badge>
+                    <div className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-1">
+                      <span className={`text-sm font-medium ${model === 'gpt' ? 'text-primary' : 'text-muted-foreground'}`}>
+                        GPT-4
+                      </span>
+                      <Switch
+                        checked={model === 'claude'}
+                        onCheckedChange={(checked) => setModel(checked ? 'claude' : 'gpt')}
+                      />
+                      <span className={`text-sm font-medium ${model === 'claude' ? 'text-primary' : 'text-muted-foreground'}`}>
+                        Claude
+                      </span>
+                    </div>
                   </CardTitle>
                   <div className="flex items-center gap-2">
                     {/* Chat size controls */}
