@@ -88,11 +88,12 @@ export const MeetingRecorder = ({
   const { user } = useAuth();
   
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const speechRecognitionRef = useRef<BrowserSpeechRecognition | null>(null);
   const autoSaveRef = useRef<NodeJS.Timeout | null>(null);
   const browserAudioStreamRef = useRef<MediaStream | null>(null);
   const micAudioStreamRef = useRef<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Auto-save meeting data to localStorage
   const autoSaveMeeting = () => {
@@ -225,9 +226,54 @@ export const MeetingRecorder = ({
   };
 
 
+  const processAudioChunk = async (audioBlob: Blob) => {
+    if (audioBlob.size === 0) return;
+    
+    try {
+      // Convert blob to base64
+      const arrayBuffer = await audioBlob.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+      
+      // Convert to base64 in chunks to prevent memory issues
+      let binary = '';
+      const chunkSize = 0x8000; // 32KB chunks
+      for (let i = 0; i < uint8Array.length; i += chunkSize) {
+        const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
+        binary += String.fromCharCode.apply(null, Array.from(chunk));
+      }
+      const base64Audio = btoa(binary);
+
+      // Send to speech-to-text edge function with optimized settings
+      const { data, error } = await supabase.functions.invoke('speech-to-text', {
+        body: { audio: base64Audio }
+      });
+
+      if (error) {
+        console.error('Transcription error:', error);
+        return;
+      }
+
+      if (data?.text && data.text.trim() && !data.filtered) {
+        const transcriptData: TranscriptData = {
+          text: data.text.trim(),
+          speaker: `Speaker ${speakerCount + 1}`,
+          confidence: data.confidence || 0.8,
+          timestamp: new Date().toISOString(),
+          isFinal: true
+        };
+        
+        handleTranscript(transcriptData);
+      }
+    } catch (error) {
+      console.error('Error processing audio chunk:', error);
+    }
+  };
+
   const startRecording = async () => {
     try {
-      console.log('Starting recording with mode:', recordingMode);
+      console.log('Starting recording with OpenAI Whisper transcription...');
+      
+      let finalStream: MediaStream;
       
       if (recordingMode === 'mic-browser') {
         // Request screen/browser audio capture
@@ -273,22 +319,10 @@ export const MeetingRecorder = ({
           micAudioStreamRef.current = micStream;
           audioContextRef.current = audioContext;
           
+          finalStream = destination.stream;
+          
           console.log('Browser + Mic audio capture started');
-          toast.success('Browser audio sharing enabled. Speech recognition starting...');
-          
-          // Start speech recognition with the combined audio
-          speechRecognitionRef.current = new BrowserSpeechRecognition(
-            handleTranscript,
-            handleTranscriptionError,
-            handleStatusChange
-          );
-
-          if (!speechRecognitionRef.current.isSupported()) {
-            throw new Error('Speech recognition is not supported in this browser. Please use Chrome, Edge, or Chrome on Android.');
-          }
-          
-          // Use the mixed stream for speech recognition  
-          await speechRecognitionRef.current.startRecognition();
+          toast.success('Browser audio sharing enabled. Transcription starting...');
           
         } catch (error: any) {
           if (error.name === 'NotAllowedError') {
@@ -302,133 +336,65 @@ export const MeetingRecorder = ({
           }
         }
       } else {
-        // Microphone + Speaker mode (using browser transcription)
-        console.log('Starting microphone + speaker audio capture with browser transcription...');
+        // Microphone only mode
+        console.log('Starting microphone-only audio capture with OpenAI Whisper transcription...');
         
         try {
-          // First get microphone audio
           const micStream = await navigator.mediaDevices.getUserMedia({
             audio: {
               echoCancellation: true,
               noiseSuppression: true,
-              autoGainControl: true
+              autoGainControl: true,
+              sampleRate: 24000  // Optimized for Whisper
             }
           });
           
-          // Then get screen/browser audio with video required for compatibility
-          const displayStream = await navigator.mediaDevices.getDisplayMedia({
-            video: true, // Required for audio capture in most browsers
-            audio: {
-              echoCancellation: true,
-              noiseSuppression: true,
-              autoGainControl: true
-            }
-          });
+          micAudioStreamRef.current = micStream;
+          finalStream = micStream;
           
-          // Check if audio track is available
-          const audioTracks = displayStream.getAudioTracks();
-          if (audioTracks.length === 0) {
-            // If no browser audio, just use microphone
-            console.log('No browser audio available, using microphone only');
-            displayStream.getTracks().forEach(track => track.stop());
-            
-            // Store references for cleanup
-            micAudioStreamRef.current = micStream;
-            
-            // Start speech recognition with microphone only
-            speechRecognitionRef.current = new BrowserSpeechRecognition(
-              handleTranscript,
-              handleTranscriptionError,
-              handleStatusChange
-            );
-
-            if (!speechRecognitionRef.current.isSupported()) {
-              throw new Error('Speech recognition is not supported in this browser. Please use Chrome, Edge, or Chrome on Android.');
-            }
-            
-            await speechRecognitionRef.current.startRecognition();
-            toast.success('Recording started with microphone only');
-          } else {
-            // Mix both audio streams
-            const audioContext = new AudioContext();
-            const destination = audioContext.createMediaStreamDestination();
-            
-            // Create sources for both streams
-            const displaySource = audioContext.createMediaStreamSource(displayStream);
-            const micSource = audioContext.createMediaStreamSource(micStream);
-            
-            // Connect both sources to the destination
-            displaySource.connect(destination);
-            micSource.connect(destination);
-            
-            // Store references for cleanup
-            browserAudioStreamRef.current = displayStream;
-            micAudioStreamRef.current = micStream;
-            audioContextRef.current = audioContext;
-            
-            console.log('Both microphone and browser audio captured');
-            toast.success('Recording started with microphone + browser audio');
-            
-            // Start speech recognition with combined audio
-            speechRecognitionRef.current = new BrowserSpeechRecognition(
-              handleTranscript,
-              handleTranscriptionError,
-              handleStatusChange
-            );
-
-            if (!speechRecognitionRef.current.isSupported()) {
-              throw new Error('Speech recognition is not supported in this browser. Please use Chrome, Edge, or Chrome on Android.');
-            }
-            
-            await speechRecognitionRef.current.startRecognition();
-          }
+          toast.success('Recording started with microphone');
           
         } catch (error: any) {
           if (error.name === 'NotAllowedError') {
-            // Try microphone only as fallback
-            console.log('Screen sharing denied, falling back to microphone only');
-            try {
-              const micStream = await navigator.mediaDevices.getUserMedia({ 
-                audio: {
-                  echoCancellation: true,
-                  noiseSuppression: true,
-                  autoGainControl: true
-                }
-              });
-              
-              micAudioStreamRef.current = micStream;
-              
-              speechRecognitionRef.current = new BrowserSpeechRecognition(
-                handleTranscript,
-                handleTranscriptionError,
-                handleStatusChange
-              );
-
-              if (!speechRecognitionRef.current.isSupported()) {
-                throw new Error('Speech recognition is not supported in this browser. Please use Chrome, Edge, or Chrome on Android.');
-              }
-              
-              await speechRecognitionRef.current.startRecognition();
-              toast.success('Recording started with microphone only (screen sharing denied)');
-            } catch (micError: any) {
-              if (micError.name === 'NotAllowedError') {
-                throw new Error('Microphone permission denied. Please allow microphone access to record.');
-              } else {
-                throw new Error('Failed to access microphone: ' + micError.message);
-              }
-            }
-          } else if (error.name === 'NotSupportedError') {
-            throw new Error('Screen sharing is not supported in this browser. Using microphone only.');
+            throw new Error('Microphone permission denied. Please allow microphone access to record.');
           } else {
-            throw new Error('Failed to access audio: ' + error.message);
+            throw new Error('Failed to access microphone: ' + error.message);
           }
         }
       }
+      
+      // Set up MediaRecorder with optimized settings for Whisper
+      const mediaRecorder = new MediaRecorder(finalStream, {
+        mimeType: 'audio/webm;codecs=opus'
+      });
+      
+      mediaRecorderRef.current = mediaRecorder;
+      
+      // Process audio in chunks every 3 seconds for better real-time experience
+      const audioChunks: Blob[] = [];
+      
+      mediaRecorder.ondataavailable = async (event) => {
+        if (event.data.size > 0) {
+          audioChunks.push(event.data);
+          
+          // Process chunk immediately for real-time transcription
+          const audioBlob = new Blob([event.data], { type: 'audio/webm' });
+          await processAudioChunk(audioBlob);
+        }
+      };
+      
+      mediaRecorder.onstop = () => {
+        console.log('MediaRecorder stopped');
+      };
+      
+      // Start recording with timeslice for chunking
+      mediaRecorder.start(3000); // 3-second chunks for optimal balance
       
       setIsRecording(true);
       setRealtimeTranscripts([]);
       setSpeakerCount(0);
       setStartTime(new Date().toISOString());
+      setConnectionStatus("Connected");
       
       // Start duration timer
       intervalRef.current = setInterval(() => {
@@ -442,8 +408,8 @@ export const MeetingRecorder = ({
         });
       }, 1000);
 
-      console.log('Recording started successfully');
-      toast.success('Recording started successfully!');
+      console.log('Recording started successfully with OpenAI Whisper');
+      toast.success('Recording started with AI transcription!');
     } catch (error: any) {
       console.error('Failed to start recording:', error);
       toast.error(error.message || 'Failed to start recording');
@@ -452,12 +418,27 @@ export const MeetingRecorder = ({
   };
 
   const stopRecording = async () => {
-    if (speechRecognitionRef.current) {
-      speechRecognitionRef.current.stopRecognition();
-      speechRecognitionRef.current = null;
+    console.log('Stopping recording...');
+    
+    // Stop duration timer
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
     }
     
-    // Clean up browser audio streams
+    // Stop recording interval
+    if (recordingIntervalRef.current) {
+      clearInterval(recordingIntervalRef.current);
+      recordingIntervalRef.current = null;
+    }
+    
+    // Stop MediaRecorder
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current = null;
+    }
+    
+    // Clean up audio streams
     if (browserAudioStreamRef.current) {
       browserAudioStreamRef.current.getTracks().forEach(track => track.stop());
       browserAudioStreamRef.current = null;
@@ -473,18 +454,14 @@ export const MeetingRecorder = ({
       audioContextRef.current = null;
     }
     
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
+    setIsRecording(false);
+    setConnectionStatus("Disconnected");
     
-    // Clear auto-save interval and localStorage
-    if (autoSaveRef.current) {
-      clearInterval(autoSaveRef.current);
-    }
+    // Clear unsaved meeting data when stopping normally
     localStorage.removeItem('unsaved_meeting');
     
-    setIsRecording(false);
+    console.log('Recording stopped');
+    toast.success('Recording stopped');
     
     // Check if recording has at least 5 seconds of content
     if (duration < 5) {
