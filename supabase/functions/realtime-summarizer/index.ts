@@ -48,7 +48,13 @@ serve(async (req) => {
             messages: [
               { 
                 role: 'system', 
-                content: 'Summarize the ongoing meeting transcript into key points and action items. Be concise but comprehensive. Focus on decisions made, tasks assigned, and important discussion points.' 
+                content: `Summarize the ongoing meeting transcript into key points and action items. Be concise but comprehensive. Focus on:
+                - Key decisions made
+                - Action items and who is responsible
+                - Important discussion points
+                - Any deadlines or next steps mentioned
+                
+                Format as a brief, bulleted summary.` 
               },
               { role: 'user', content: updatedTranscript }
             ],
