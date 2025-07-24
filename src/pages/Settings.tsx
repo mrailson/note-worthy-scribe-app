@@ -1283,8 +1283,8 @@ export default function Settings() {
                   <div className="p-3 border rounded-lg bg-blue-50 dark:bg-blue-950/20">
                     <h5 className="font-medium text-sm mb-2 text-blue-700 dark:text-blue-400">Classification</h5>
                     <p className="text-xs text-muted-foreground">
-                      <Badge variant="outline" className="mr-2">Class IIa Medical Device Software</Badge>
-                      Clinical decision support tool with medium risk classification
+                      <Badge variant="outline" className="mr-2">Class 1</Badge>
+                      Clinical decision support tool with low risk classification
                     </p>
                   </div>
                 </CardContent>
