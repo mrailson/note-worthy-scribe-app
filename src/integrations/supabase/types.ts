@@ -1227,6 +1227,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_pcn_manager_practice_ids: {
+        Args: { _user_id?: string }
+        Returns: string[]
+      }
       get_practice_manager_practice_id: {
         Args: { _user_id?: string }
         Returns: string
@@ -1252,6 +1256,14 @@ export type Database = {
           _user_id: string
           _role: Database["public"]["Enums"]["app_role"]
         }
+        Returns: boolean
+      }
+      is_pcn_manager: {
+        Args: { _user_id?: string }
+        Returns: boolean
+      }
+      is_pcn_manager_for_practice: {
+        Args: { _user_id: string; _practice_id: string }
         Returns: boolean
       }
       is_practice_manager_for_practice: {
