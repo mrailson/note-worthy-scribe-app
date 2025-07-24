@@ -17,12 +17,16 @@ export class DeepgramRealtimeTranscriber {
   private mediaRecorder: MediaRecorder | null = null;
   private mediaStream: MediaStream | null = null;
   private isRecording = false;
+  private sessionId: string = '';
 
   constructor(
     private onTranscription: (data: TranscriptData) => void,
     private onError: (error: string) => void,
-    private onStatusChange: (status: string) => void
-  ) {}
+    private onStatusChange: (status: string) => void,
+    private onSummary?: (summary: string) => void
+  ) {
+    this.sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
 
   async startTranscription() {
     try {
@@ -101,6 +105,11 @@ export class DeepgramRealtimeTranscriber {
           // Filter out likely hallucinations
           if (!this.isLikelyHallucination(transcript.toLowerCase())) {
             this.onTranscription(transcriptData);
+            
+            // Send final transcripts to summarizer
+            if (message.is_final) {
+              this.sendToSummarizer(transcript);
+            }
           }
         }
       }
@@ -224,5 +233,46 @@ export class DeepgramRealtimeTranscriber {
     }
 
     return false;
+  }
+
+  private async sendToSummarizer(text: string) {
+    try {
+      const response = await fetch('https://dphcnbricafkbtizkoal.functions.supabase.co/realtime-summarizer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sessionId: this.sessionId,
+          text: text,
+          action: 'add'
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success && data.action === 'summary_generated' && this.onSummary) {
+        this.onSummary(data.summary);
+      }
+    } catch (error) {
+      console.error('Error sending to summarizer:', error);
+    }
+  }
+
+  async clearSummary() {
+    try {
+      await fetch('https://dphcnbricafkbtizkoal.functions.supabase.co/realtime-summarizer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sessionId: this.sessionId,
+          action: 'clear'
+        }),
+      });
+    } catch (error) {
+      console.error('Error clearing summary:', error);
+    }
   }
 }

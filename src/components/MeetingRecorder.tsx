@@ -61,6 +61,7 @@ export const MeetingRecorder = ({
   const [speakerCount, setSpeakerCount] = useState(0);
   const [wordCount, setWordCount] = useState(0);
   const [startTime, setStartTime] = useState<string>("");
+  const [liveSummary, setLiveSummary] = useState<string>("");
   
   // Recording mode selection
   const [recordingMode, setRecordingMode] = useState<'mic-only' | 'mic-browser'>('mic-only');
@@ -238,6 +239,11 @@ export const MeetingRecorder = ({
     queueMicrotask(() => setConnectionStatus(status));
   };
 
+  const handleLiveSummary = (summary: string) => {
+    setLiveSummary(summary);
+    toast.success("Live summary updated!");
+  };
+
 
   const processAudioChunk = async (audioBlob: Blob) => {
     if (audioBlob.size === 0) return;
@@ -290,7 +296,8 @@ export const MeetingRecorder = ({
       deepgramTranscriberRef.current = new DeepgramRealtimeTranscriber(
         handleDeepgramTranscript,
         handleTranscriptionError,
-        handleStatusChange
+        handleStatusChange,
+        handleLiveSummary
       );
 
       // Start Deepgram transcription
@@ -813,9 +820,26 @@ export const MeetingRecorder = ({
                         <Mic className="h-6 w-6 text-primary/60" />
                       </div>
                       <h4 className="text-base font-medium mb-1">Ready to Record</h4>
-                      <p className="text-xs text-muted-foreground">
-                        Real-time transcription with speaker identification
-                      </p>
+                       <p className="text-xs text-muted-foreground">
+                         Real-time transcription with live AI summaries
+                       </p>
+                       
+                       {/* Live Summary Display */}
+                       {liveSummary && (
+                         <Card className="mt-4 bg-gradient-to-br from-accent/20 to-accent/10 border-accent/30">
+                           <CardHeader className="pb-2">
+                             <CardTitle className="text-sm font-medium flex items-center gap-2">
+                               <Waves className="h-4 w-4" />
+                               Live Summary
+                             </CardTitle>
+                           </CardHeader>
+                           <CardContent className="pt-0">
+                             <p className="text-xs text-muted-foreground leading-relaxed">
+                               {liveSummary}
+                             </p>
+                           </CardContent>
+                         </Card>
+                       )}
                     </div>
                   </div>
                 )}
