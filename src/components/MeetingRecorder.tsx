@@ -16,11 +16,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History, Search, Trash2, CheckSquare, SquareIcon, Monitor, Volume2 } from "lucide-react";
+import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History, Search, Trash2, CheckSquare, SquareIcon, Monitor, Volume2, Waves } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { MeetingSettings } from "@/components/MeetingSettings";
 import { MeetingHistoryList } from "@/components/MeetingHistoryList";
 import { NotewellAIAnimation } from "@/components/NotewellAIAnimation";
+import { TranscriptionTest } from "@/components/TranscriptionTest";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -781,7 +782,7 @@ export const MeetingRecorder = ({
     <div className="space-y-6">
       {/* Tabbed Interface */}
       <Tabs defaultValue="recorder" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="recorder" className="flex items-center gap-2">
             <Mic className="h-4 w-4" />
             <span className="hidden sm:inline">Meeting Recorder</span>
@@ -791,6 +792,11 @@ export const MeetingRecorder = ({
             <FileText className="h-4 w-4" />
             <span className="hidden sm:inline">Live Transcript</span>
             <span className="sm:hidden">Transcript</span>
+          </TabsTrigger>
+          <TabsTrigger value="transcription-test" className="flex items-center gap-2">
+            <Waves className="h-4 w-4" />
+            <span className="hidden sm:inline">Transcription Test</span>
+            <span className="sm:hidden">Test</span>
           </TabsTrigger>
           <TabsTrigger value="settings" className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
@@ -1004,6 +1010,11 @@ export const MeetingRecorder = ({
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Transcription Test Tab */}
+        <TabsContent value="transcription-test" className="space-y-4 mt-6">
+          <TranscriptionTest />
         </TabsContent>
 
         {/* Meeting Settings Tab */}
