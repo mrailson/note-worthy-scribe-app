@@ -190,14 +190,27 @@ export class UnifiedAudioCapture {
   }
 
   private isLikelyHallucination(text: string): boolean {
-    // Only filter very obvious hallucinations
-    const obviousHallucinations = [
-      'bi hurmati', 'muhammad', 'al-mustafa', 'surat', 'al-fatiha', 'bismillah',
-      'thank you for listening', 'thank you for joining', 'thank you for watching'
+    // Common Whisper hallucinations - keep exact matches only
+    const exactHallucinations = [
+      'bye', 'bye-bye', 'bye bye', 'goodbye',
+      'thank you', 'thanks', 'thank you very much', 
+      'thank you for listening', 'thank you for joining',
+      'thank you for watching', 'thank you for your time',
+      'good night', 'goodnight', 'good morning', 'good afternoon'
     ];
 
-    // Check for obvious religious/formulaic hallucinations
-    if (obviousHallucinations.some(pattern => text.includes(pattern))) {
+    // Religious/Arabic phrases that Whisper hallucinates
+    const religiousPatterns = [
+      'bi hurmati', 'muhammad', 'al-mustafa', 'surat', 'al-fatiha', 'bismillah'
+    ];
+
+    // Check exact matches
+    if (exactHallucinations.includes(text.toLowerCase().trim())) {
+      return true;
+    }
+
+    // Check for religious hallucinations
+    if (religiousPatterns.some(pattern => text.toLowerCase().includes(pattern))) {
       return true;
     }
 
