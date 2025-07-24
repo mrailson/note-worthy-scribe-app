@@ -77,7 +77,7 @@ const SystemAdmin = () => {
     name: '',
     password: '',
     role: 'gp',
-    practice_id: '',
+    practice_id: 'none',
     module_access: {
       meeting_notes_access: true,
       gp_scribe_access: false,
@@ -408,7 +408,7 @@ const SystemAdmin = () => {
           name: userForm.name,
           password: userForm.password,
           role: userForm.role,
-          practice_id: userForm.practice_id || null,
+          practice_id: userForm.practice_id === 'none' ? null : userForm.practice_id,
           assigned_by: user?.id,
           module_access: userForm.module_access
         }
@@ -440,7 +440,7 @@ const SystemAdmin = () => {
         
         // Send welcome email via EmailJS edge function
         try {
-          const selectedPractice = practices.find(p => p.id === userForm.practice_id);
+          const selectedPractice = practices.find(p => p.id === userForm.practice_id && userForm.practice_id !== 'none');
           
           await supabase.functions.invoke('send-email-via-emailjs', {
             body: {
@@ -466,7 +466,7 @@ const SystemAdmin = () => {
           name: '',
           password: '',
           role: 'gp',
-          practice_id: '',
+          practice_id: 'none',
           module_access: {
             meeting_notes_access: true,
             gp_scribe_access: false,
@@ -1407,7 +1407,7 @@ const SystemAdmin = () => {
                     <SelectValue placeholder="Select practice" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No Practice Assigned</SelectItem>
+                    <SelectItem value="none">No Practice Assigned</SelectItem>
                     {practices.map((practice) => (
                       <SelectItem key={practice.id} value={practice.id}>
                         {practice.name}
