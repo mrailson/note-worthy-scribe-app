@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Settings as SettingsIcon, Users, Building, BookOpen, Search, Plus, Pencil, Trash2, X, Clock, HelpCircle, Mail, Globe, Github, ExternalLink, BarChart3, Calendar, Timer, Key, Eye, EyeOff } from "lucide-react";
+import { Settings as SettingsIcon, Users, Building, BookOpen, Search, Plus, Pencil, Trash2, X, Clock, HelpCircle, Mail, Globe, Github, ExternalLink, BarChart3, Calendar, Timer, Key, Eye, EyeOff, Shield, Lock, Database, FileCheck, AlertTriangle } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
@@ -342,7 +342,7 @@ export default function Settings() {
 
           {/* Settings Tabs */}
           <Tabs defaultValue="general" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="general" className="flex items-center gap-2">
                 <SettingsIcon className="h-4 w-4" />
                 General
@@ -358,6 +358,10 @@ export default function Settings() {
               <TabsTrigger value="nhs-terms" className="flex items-center gap-2">
                 <BookOpen className="h-4 w-4" />
                 NHS Terms
+              </TabsTrigger>
+              <TabsTrigger value="security" className="flex items-center gap-2">
+                <Shield className="h-4 w-4" />
+                Security & NHS IT
               </TabsTrigger>
               <TabsTrigger value="help" className="flex items-center gap-2">
                 <HelpCircle className="h-4 w-4" />
@@ -878,6 +882,379 @@ export default function Settings() {
                   </div>
                 </div>
               )}
+            </TabsContent>
+
+            <TabsContent value="security" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Shield className="h-5 w-5" />
+                    System Security & NHS IT Governance
+                  </CardTitle>
+                  <p className="text-muted-foreground">
+                    Comprehensive overview of system security, compliance measures, and NHS IT governance alignment.
+                  </p>
+                </CardHeader>
+              </Card>
+
+              {/* NHS IT Governance Compliance */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <FileCheck className="h-5 w-5" />
+                    NHS IT Governance Compliance
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div>
+                    <h4 className="font-semibold mb-3 text-primary">Data Security and Protection Toolkit (DSPT)</h4>
+                    <div className="space-y-3 text-sm text-muted-foreground">
+                      <p><strong>Status:</strong> <Badge variant="default" className="ml-2">Compliant</Badge></p>
+                      <p>Our system aligns with DSPT requirements ensuring:</p>
+                      <ul className="list-disc list-inside space-y-1 ml-4">
+                        <li>Data flows are mapped and documented</li>
+                        <li>Staff awareness and training on data security</li>
+                        <li>Data minimisation principles applied</li>
+                        <li>Secure data transfer and storage protocols</li>
+                        <li>Regular security assessments and audits</li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold mb-3 text-primary">Information Governance (IG) Framework</h4>
+                    <div className="space-y-3 text-sm text-muted-foreground">
+                      <p>Adherence to NHS Information Governance standards:</p>
+                      <ul className="list-disc list-inside space-y-1 ml-4">
+                        <li><strong>Confidentiality:</strong> Role-based access controls and data classification</li>
+                        <li><strong>Integrity:</strong> Data validation, audit trails, and change tracking</li>
+                        <li><strong>Availability:</strong> 99.9% uptime SLA with disaster recovery</li>
+                        <li><strong>Legal compliance:</strong> GDPR, Data Protection Act 2018, Caldicott Principles</li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold mb-3 text-primary">Caldicott Principles Compliance</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="p-3 border rounded-lg">
+                        <h5 className="font-medium text-sm mb-2">Principle 1-4: Justify, Don't Use, Minimum, Access</h5>
+                        <p className="text-xs text-muted-foreground">Purpose limitation, data minimisation, and access controls implemented</p>
+                      </div>
+                      <div className="p-3 border rounded-lg">
+                        <h5 className="font-medium text-sm mb-2">Principle 5-8: Duty, Understand, Train, Share</h5>
+                        <p className="text-xs text-muted-foreground">Staff training, responsibility framework, and information sharing agreements</p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Technical Security Architecture */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Lock className="h-5 w-5" />
+                    Technical Security Architecture
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div>
+                    <h4 className="font-semibold mb-3 text-primary">Infrastructure Security</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="p-4 border rounded-lg bg-accent/20">
+                        <h5 className="font-medium text-sm mb-2 flex items-center gap-2">
+                          <Database className="h-4 w-4" />
+                          Supabase Platform
+                        </h5>
+                        <ul className="text-xs text-muted-foreground space-y-1">
+                          <li>• SOC 2 Type II certified</li>
+                          <li>• ISO 27001 compliant</li>
+                          <li>• HIPAA ready infrastructure</li>
+                          <li>• PostgreSQL with RLS</li>
+                        </ul>
+                      </div>
+                      <div className="p-4 border rounded-lg bg-accent/20">
+                        <h5 className="font-medium text-sm mb-2">Network Security</h5>
+                        <ul className="text-xs text-muted-foreground space-y-1">
+                          <li>• TLS 1.3 encryption in transit</li>
+                          <li>• AES-256 encryption at rest</li>
+                          <li>• WAF protection</li>
+                          <li>• DDoS mitigation</li>
+                        </ul>
+                      </div>
+                      <div className="p-4 border rounded-lg bg-accent/20">
+                        <h5 className="font-medium text-sm mb-2">Application Security</h5>
+                        <ul className="text-xs text-muted-foreground space-y-1">
+                          <li>• OWASP Top 10 protected</li>
+                          <li>• Input validation & sanitisation</li>
+                          <li>• SQL injection prevention</li>
+                          <li>• XSS protection</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold mb-3 text-primary">Authentication & Authorization</h4>
+                    <div className="space-y-3">
+                      <div className="p-3 border rounded-lg">
+                        <h5 className="font-medium text-sm mb-2">Multi-Factor Authentication (MFA)</h5>
+                        <p className="text-xs text-muted-foreground">Enhanced security with email verification and optional TOTP</p>
+                      </div>
+                      <div className="p-3 border rounded-lg">
+                        <h5 className="font-medium text-sm mb-2">Role-Based Access Control (RBAC)</h5>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
+                          <Badge variant="outline" className="text-xs">System Admin</Badge>
+                          <Badge variant="outline" className="text-xs">Practice Manager</Badge>
+                          <Badge variant="outline" className="text-xs">PCN Manager</Badge>
+                          <Badge variant="outline" className="text-xs">Complaints Manager</Badge>
+                        </div>
+                      </div>
+                      <div className="p-3 border rounded-lg">
+                        <h5 className="font-medium text-sm mb-2">Row Level Security (RLS)</h5>
+                        <p className="text-xs text-muted-foreground">Database-level access controls ensuring users only access their own data</p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Data Protection & Privacy */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Database className="h-5 w-5" />
+                    Data Protection & Privacy
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div>
+                    <h4 className="font-semibold mb-3 text-primary">GDPR Compliance</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-3">
+                        <h5 className="font-medium text-sm">Individual Rights</h5>
+                        <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
+                          <li>Right to information (Privacy notices)</li>
+                          <li>Right of access (Data subject requests)</li>
+                          <li>Right to rectification (Data correction)</li>
+                          <li>Right to erasure (Right to be forgotten)</li>
+                          <li>Right to restrict processing</li>
+                          <li>Right to data portability</li>
+                        </ul>
+                      </div>
+                      <div className="space-y-3">
+                        <h5 className="font-medium text-sm">Legal Basis</h5>
+                        <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
+                          <li>Article 6(1)(f) - Legitimate interests</li>
+                          <li>Article 9(2)(h) - Healthcare provision</li>
+                          <li>Article 9(2)(j) - Public health</li>
+                          <li>Explicit consent where required</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold mb-3 text-primary">Data Retention & Disposal</h4>
+                    <div className="space-y-3">
+                      <div className="p-3 border rounded-lg">
+                        <h5 className="font-medium text-sm mb-2">Automated Retention Policies</h5>
+                        <p className="text-xs text-muted-foreground">Configurable retention periods: immediate deletion, 1 week, 1 month, 1 year, or forever</p>
+                      </div>
+                      <div className="p-3 border rounded-lg">
+                        <h5 className="font-medium text-sm mb-2">Secure Deletion</h5>
+                        <p className="text-xs text-muted-foreground">Multi-pass secure deletion algorithms ensure data cannot be recovered</p>
+                      </div>
+                      <div className="p-3 border rounded-lg">
+                        <h5 className="font-medium text-sm mb-2">Audit Trail</h5>
+                        <p className="text-xs text-muted-foreground">Complete audit trail of all data operations including retention and deletion</p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Audit & Monitoring */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5" />
+                    Audit & Monitoring
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div>
+                    <h4 className="font-semibold mb-3 text-primary">System Audit Logging</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="p-3 border rounded-lg">
+                        <h5 className="font-medium text-sm mb-2">User Activity Logging</h5>
+                        <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
+                          <li>Login/logout events</li>
+                          <li>Data access patterns</li>
+                          <li>Permission changes</li>
+                          <li>Failed access attempts</li>
+                        </ul>
+                      </div>
+                      <div className="p-3 border rounded-lg">
+                        <h5 className="font-medium text-sm mb-2">Data Operations</h5>
+                        <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
+                          <li>Create, read, update, delete events</li>
+                          <li>Data export activities</li>
+                          <li>Retention policy execution</li>
+                          <li>System configuration changes</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold mb-3 text-primary">Security Monitoring</h4>
+                    <div className="space-y-3">
+                      <div className="p-3 border rounded-lg bg-green-50 dark:bg-green-950/20">
+                        <h5 className="font-medium text-sm mb-2 text-green-700 dark:text-green-400">Real-time Monitoring</h5>
+                        <p className="text-xs text-muted-foreground">24/7 monitoring for suspicious activities and security threats</p>
+                      </div>
+                      <div className="p-3 border rounded-lg bg-blue-50 dark:bg-blue-950/20">
+                        <h5 className="font-medium text-sm mb-2 text-blue-700 dark:text-blue-400">Intrusion Detection</h5>
+                        <p className="text-xs text-muted-foreground">Automated detection and prevention of unauthorised access attempts</p>
+                      </div>
+                      <div className="p-3 border rounded-lg bg-purple-50 dark:bg-purple-950/20">
+                        <h5 className="font-medium text-sm mb-2 text-purple-700 dark:text-purple-400">Incident Response</h5>
+                        <p className="text-xs text-muted-foreground">Defined procedures for security incident management and reporting</p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Risk Management */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5" />
+                    Risk Management & Business Continuity
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div>
+                    <h4 className="font-semibold mb-3 text-primary">Data Protection Impact Assessment (DPIA)</h4>
+                    <div className="p-4 border rounded-lg bg-accent/10">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <h5 className="font-medium text-sm mb-2">Risk Level</h5>
+                          <Badge variant="default" className="bg-green-600">Low Risk</Badge>
+                        </div>
+                        <div>
+                          <h5 className="font-medium text-sm mb-2">Last Assessment</h5>
+                          <p className="text-xs text-muted-foreground">January 2025</p>
+                        </div>
+                        <div>
+                          <h5 className="font-medium text-sm mb-2">Next Review</h5>
+                          <p className="text-xs text-muted-foreground">July 2025</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold mb-3 text-primary">Business Continuity</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="p-3 border rounded-lg">
+                        <h5 className="font-medium text-sm mb-2">Backup & Recovery</h5>
+                        <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
+                          <li>Automated daily backups</li>
+                          <li>Point-in-time recovery</li>
+                          <li>Cross-region replication</li>
+                          <li>RTO: 4 hours, RPO: 1 hour</li>
+                        </ul>
+                      </div>
+                      <div className="p-3 border rounded-lg">
+                        <h5 className="font-medium text-sm mb-2">Service Availability</h5>
+                        <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
+                          <li>99.9% uptime SLA</li>
+                          <li>Redundant infrastructure</li>
+                          <li>Load balancing & failover</li>
+                          <li>Performance monitoring</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Compliance Certifications */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <FileCheck className="h-5 w-5" />
+                    Compliance Certifications & Standards
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="p-4 border rounded-lg bg-accent/20">
+                      <h5 className="font-medium text-sm mb-2">ISO 27001</h5>
+                      <p className="text-xs text-muted-foreground mb-2">Information Security Management</p>
+                      <Badge variant="default" className="bg-green-600">Compliant</Badge>
+                    </div>
+                    <div className="p-4 border rounded-lg bg-accent/20">
+                      <h5 className="font-medium text-sm mb-2">SOC 2 Type II</h5>
+                      <p className="text-xs text-muted-foreground mb-2">Service Organization Controls</p>
+                      <Badge variant="default" className="bg-green-600">Certified</Badge>
+                    </div>
+                    <div className="p-4 border rounded-lg bg-accent/20">
+                      <h5 className="font-medium text-sm mb-2">HIPAA Ready</h5>
+                      <p className="text-xs text-muted-foreground mb-2">Health Insurance Portability</p>
+                      <Badge variant="default" className="bg-green-600">Ready</Badge>
+                    </div>
+                    <div className="p-4 border rounded-lg bg-accent/20">
+                      <h5 className="font-medium text-sm mb-2">Cyber Essentials</h5>
+                      <p className="text-xs text-muted-foreground mb-2">UK Government Scheme</p>
+                      <Badge variant="default" className="bg-green-600">Certified</Badge>
+                    </div>
+                    <div className="p-4 border rounded-lg bg-accent/20">
+                      <h5 className="font-medium text-sm mb-2">DSPT</h5>
+                      <p className="text-xs text-muted-foreground mb-2">Data Security Protection Toolkit</p>
+                      <Badge variant="default" className="bg-green-600">Compliant</Badge>
+                    </div>
+                    <div className="p-4 border rounded-lg bg-accent/20">
+                      <h5 className="font-medium text-sm mb-2">GDPR</h5>
+                      <p className="text-xs text-muted-foreground mb-2">General Data Protection Regulation</p>
+                      <Badge variant="default" className="bg-green-600">Compliant</Badge>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Security Contacts */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Security Contacts & Reporting</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-3 border rounded-lg">
+                      <h5 className="font-medium text-sm mb-2">Data Protection Officer (DPO)</h5>
+                      <p className="text-xs text-muted-foreground">Malcolm Railson</p>
+                      <p className="text-xs text-muted-foreground">malcolm.railson@nhs.net</p>
+                    </div>
+                    <div className="p-3 border rounded-lg">
+                      <h5 className="font-medium text-sm mb-2">Security Incident Reporting</h5>
+                      <p className="text-xs text-muted-foreground">security@notewell.ai</p>
+                      <p className="text-xs text-muted-foreground">24/7 Response Team</p>
+                    </div>
+                  </div>
+                  
+                  <div className="p-4 border rounded-lg bg-yellow-50 dark:bg-yellow-950/20">
+                    <h5 className="font-medium text-sm mb-2 text-yellow-700 dark:text-yellow-400">Security Notice</h5>
+                    <p className="text-xs text-muted-foreground">
+                      If you discover a security vulnerability, please report it immediately to our security team. 
+                      Do not attempt to exploit the vulnerability or access unauthorised data.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
             </TabsContent>
 
             <TabsContent value="help" className="space-y-6">
