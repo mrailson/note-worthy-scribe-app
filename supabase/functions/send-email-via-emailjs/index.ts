@@ -137,6 +137,7 @@ const handler = async (req: Request): Promise<Response> => {
       to_email: emailData.to_email,
       template_type: emailData.template_type || 'meeting',
       user_name: emailData.user_name,
+      temporary_password: emailData.temporary_password,
       meeting_title: emailData.meeting_title 
     });
 
