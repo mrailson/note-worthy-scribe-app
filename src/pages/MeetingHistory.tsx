@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Plus, Clock, FileText, Trash2, Edit, Mail, RefreshCw, Square, CheckSquare, ChevronDown } from "lucide-react";
+import { Plus, Clock, FileText, Trash2, Edit, Edit2, Mail, RefreshCw, Square, CheckSquare, ChevronDown } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -366,6 +366,16 @@ const MeetingHistory = () => {
       setEditingMeeting(null);
       setEditTitle("");
       setEditMeetingType("");
+      
+      // Update the selected meeting if it's currently being viewed
+      if (selectedMeeting?.id === editingMeeting.id) {
+        setSelectedMeeting({
+          ...selectedMeeting,
+          title: editTitle.trim(),
+          meeting_type: editMeetingType
+        });
+      }
+      
       fetchMeetings(); // Refresh the list
     } catch (error: any) {
       console.error("Error Updating Meeting:", error.message);
@@ -678,8 +688,43 @@ const MeetingHistory = () => {
         {selectedMeeting ? (
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>{selectedMeeting.title}</CardTitle>
+              <div className="flex-1">
+                {editingMeeting?.id === selectedMeeting.id ? (
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={editTitle}
+                      onChange={(e) => setEditTitle(e.target.value)}
+                      className="text-lg font-semibold"
+                      autoFocus
+                    />
+                    <Button
+                      size="sm"
+                      onClick={handleSaveEdit}
+                      disabled={isSaving || !editTitle.trim()}
+                    >
+                      {isSaving ? 'Saving...' : 'Save'}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleCancelEdit}
+                      disabled={isSaving}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <CardTitle>{selectedMeeting.title}</CardTitle>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleMeetingEdit(selectedMeeting.id)}
+                    >
+                      <Edit2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
                 <p className="text-muted-foreground">
                   {new Date(selectedMeeting.start_time).toLocaleDateString()}
                 </p>
