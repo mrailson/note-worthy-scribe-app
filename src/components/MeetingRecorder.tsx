@@ -220,7 +220,7 @@ export const MeetingRecorder = ({
   const handleDeepgramTranscript = (data: DeepgramTranscriptData) => {
     const transcriptData: TranscriptData = {
       text: data.text,
-      speaker: 'Speaker 1', // Deepgram diarization can be added later
+      speaker: data.speaker || 'Speaker 1', // Use speaker from Deepgram diarization
       confidence: data.confidence,
       timestamp: new Date().toISOString(),
       isFinal: data.is_final

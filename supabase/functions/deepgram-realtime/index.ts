@@ -21,7 +21,7 @@ serve(async (req) => {
 
   // Connect to Deepgram WebSocket
   const deepgramWs = new WebSocket(
-    `wss://api.deepgram.com/v1/listen?encoding=webm&sample_rate=24000&channels=1&model=nova-2&smart_format=true&interim_results=true&endpointing=true&utterance_end_ms=1000&vad_events=true`,
+    `wss://api.deepgram.com/v1/listen?encoding=webm&sample_rate=24000&channels=1&model=nova-2&smart_format=true&interim_results=true&endpointing=true&utterance_end_ms=1000&vad_events=true&diarize=true&punctuate=true`,
     {
       headers: {
         Authorization: `Token ${deepgramApiKey}`

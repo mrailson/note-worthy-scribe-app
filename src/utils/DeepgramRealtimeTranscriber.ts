@@ -4,11 +4,13 @@ export interface TranscriptData {
   confidence: number;
   start?: number;
   end?: number;
+  speaker?: string;
   words?: Array<{
     word: string;
     start: number;
     end: number;
     confidence: number;
+    speaker?: number;
   }>;
 }
 
@@ -93,13 +95,23 @@ export class DeepgramRealtimeTranscriber {
         const transcript = alternative.transcript;
         
         if (transcript && transcript.trim().length > 0) {
+          // Extract speaker information from diarization
+          let speakerLabel = 'Speaker 1';
+          if (alternative.words && alternative.words.length > 0) {
+            const firstWord = alternative.words[0];
+            if (firstWord.speaker !== undefined) {
+              speakerLabel = `Speaker ${firstWord.speaker + 1}`;
+            }
+          }
+
           const transcriptData: TranscriptData = {
             text: transcript,
             is_final: message.is_final || false,
             confidence: alternative.confidence || 0,
             start: message.start,
             end: message.end,
-            words: alternative.words || []
+            words: alternative.words || [],
+            speaker: speakerLabel
           };
 
           // Filter out likely hallucinations
@@ -157,8 +169,8 @@ export class DeepgramRealtimeTranscriber {
         this.onError('Recording error occurred');
       };
 
-      // Start recording with small chunks for real-time streaming
-      this.mediaRecorder.start(100); // Send data every 100ms
+      // Start recording with optimized chunks for real-time streaming
+      this.mediaRecorder.start(250); // Send data every 250ms for better balance
       this.isRecording = true;
 
     } catch (error) {
