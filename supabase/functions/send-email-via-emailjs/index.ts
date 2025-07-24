@@ -85,7 +85,7 @@ const handler = async (req: Request): Promise<Response> => {
 
       enhancedEmailData = {
         ...emailData,
-        login_url: `https://91f61816-7ac8-43e0-a21d-31572f57dcab.lovableproject.com/`,
+        login_url: `https://notewell.dialai.co.uk/`,
         support_email: "support@gp-tools.nhs.uk",
         app_name: "GP Tools Suite",
         features_list,
