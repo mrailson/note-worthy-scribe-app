@@ -223,21 +223,98 @@ export const MeetingRecorder = ({
 
   const startRecording = async () => {
     try {
-      console.log('Starting browser speech recognition...');
+      console.log('Starting recording with mode:', recordingMode);
       
-      // Initialize browser speech recognition
-      speechRecognitionRef.current = new BrowserSpeechRecognition(
-        handleTranscript,
-        handleTranscriptionError,
-        handleStatusChange
-      );
+      if (recordingMode === 'mic-browser') {
+        // Request screen/browser audio capture
+        try {
+          const displayStream = await navigator.mediaDevices.getDisplayMedia({
+            video: false,
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true
+            }
+          });
+          
+          // Also get microphone audio
+          const micStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true
+            }
+          });
+          
+          // Create a combined audio context for mixing both streams
+          const audioContext = new AudioContext();
+          const destination = audioContext.createMediaStreamDestination();
+          
+          // Connect both audio sources
+          const displaySource = audioContext.createMediaStreamSource(displayStream);
+          const micSource = audioContext.createMediaStreamSource(micStream);
+          
+          displaySource.connect(destination);
+          micSource.connect(destination);
+          
+          // Use the combined stream for speech recognition
+          const combinedStream = destination.stream;
+          
+          console.log('Browser + Mic audio capture started');
+          toast.success('Browser audio sharing enabled. Speech recognition starting...');
+          
+          // Start speech recognition with the combined audio
+          speechRecognitionRef.current = new BrowserSpeechRecognition(
+            handleTranscript,
+            handleTranscriptionError,
+            handleStatusChange
+          );
 
-      // Check if supported before starting
-      if (!speechRecognitionRef.current.isSupported()) {
-        throw new Error('Speech recognition is not supported in this browser. Please use Chrome, Edge, or Chrome on Android.');
+          if (!speechRecognitionRef.current.isSupported()) {
+            throw new Error('Speech recognition is not supported in this browser. Please use Chrome, Edge, or Chrome on Android.');
+          }
+          
+          await speechRecognitionRef.current.startRecognition();
+          
+        } catch (error: any) {
+          if (error.name === 'NotAllowedError') {
+            throw new Error('Browser audio sharing was denied. Please allow screen sharing to capture browser audio from Teams/Zoom calls.');
+          } else if (error.name === 'NotSupportedError') {
+            throw new Error('Browser audio capture is not supported. Try using "Microphone Only" mode instead.');
+          } else {
+            throw new Error('Failed to access browser audio: ' + error.message);
+          }
+        }
+      } else {
+        // Microphone only mode
+        console.log('Starting microphone-only speech recognition...');
+        
+        // Check for microphone permissions first
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          stream.getTracks().forEach(track => track.stop()); // Stop the test stream
+        } catch (error: any) {
+          if (error.name === 'NotAllowedError') {
+            throw new Error('Microphone permission denied. Please allow microphone access to record.');
+          } else {
+            throw new Error('Failed to access microphone: ' + error.message);
+          }
+        }
+        
+        // Initialize browser speech recognition
+        speechRecognitionRef.current = new BrowserSpeechRecognition(
+          handleTranscript,
+          handleTranscriptionError,
+          handleStatusChange
+        );
+
+        // Check if supported before starting
+        if (!speechRecognitionRef.current.isSupported()) {
+          throw new Error('Speech recognition is not supported in this browser. Please use Chrome, Edge, or Chrome on Android.');
+        }
+        
+        await speechRecognitionRef.current.startRecognition();
       }
-      
-      await speechRecognitionRef.current.startRecognition();
       
       setIsRecording(true);
       setRealtimeTranscripts([]);
@@ -257,9 +334,10 @@ export const MeetingRecorder = ({
       }, 1000);
 
       console.log('Recording started successfully');
-    } catch (error) {
+      toast.success('Recording started successfully!');
+    } catch (error: any) {
       console.error('Failed to start recording:', error);
-      toast.error('Failed to start recording: ' + error.message);
+      toast.error(error.message || 'Failed to start recording');
       setIsRecording(false);
     }
   };
