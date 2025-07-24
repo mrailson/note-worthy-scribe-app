@@ -607,6 +607,36 @@ const SystemAdmin = () => {
     }
   };
 
+  const handleDeleteUser = async (userId: string, userEmail: string) => {
+    if (!confirm(`Are you sure you want to delete user ${userEmail}? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      const { data, error } = await supabase.functions.invoke('delete-user-admin', {
+        body: {
+          user_id: userId
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        toast.success("User deleted successfully!");
+        fetchUsers(); // Refresh the users list
+      } else {
+        throw new Error(data.error || "Failed to delete user");
+      }
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      toast.error("Failed to delete user");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleResendWelcomeEmail = async () => {
     if (!selectedUser) return;
     
@@ -797,13 +827,23 @@ const SystemAdmin = () => {
                         ))}
                       </TableCell>
                        <TableCell>
-                         <Button 
-                           variant="ghost" 
-                           size="sm"
-                           onClick={() => handleEditUser(user)}
-                         >
-                           <Edit className="h-4 w-4" />
-                         </Button>
+                         <div className="flex space-x-2">
+                           <Button 
+                             variant="ghost" 
+                             size="sm"
+                             onClick={() => handleEditUser(user)}
+                           >
+                             <Edit className="h-4 w-4" />
+                           </Button>
+                           <Button 
+                             variant="ghost" 
+                             size="sm"
+                             onClick={() => handleDeleteUser(user.id, user.email)}
+                             disabled={loading}
+                           >
+                             <Trash2 className="h-4 w-4 text-destructive" />
+                           </Button>
+                         </div>
                        </TableCell>
                     </TableRow>
                   ))}
