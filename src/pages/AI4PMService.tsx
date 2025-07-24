@@ -820,46 +820,31 @@ Always provide practical, actionable advice that follows NHS guidelines and best
         else {
           const processFormattedText = (text: string) => {
             const children: any[] = [];
-            let currentIndex = 0;
             
-            // First, handle bold formatting **text**
-            const boldRegex = /\*\*([^*]+?)\*\*/g;
-            let match;
+            // Split text by bold patterns and process each part
+            const parts = text.split(/(\*\*[^*]+?\*\*)/);
             
-            while ((match = boldRegex.exec(text)) !== null) {
-              // Add text before the bold formatting
-              if (match.index > currentIndex) {
-                const beforeText = text.substring(currentIndex, match.index);
-                if (beforeText) {
+            parts.forEach(part => {
+              if (part.startsWith('**') && part.endsWith('**')) {
+                // This is a bold section - remove the asterisks and make it bold
+                const boldText = part.slice(2, -2);
+                if (boldText) {
                   children.push(new TextRun({
-                    text: beforeText,
-                    size: 24
+                    text: boldText,
+                    size: 24,
+                    bold: true
                   }));
                 }
-              }
-              
-              // Add the bold text
-              children.push(new TextRun({
-                text: match[1],
-                size: 24,
-                bold: true
-              }));
-              
-              currentIndex = match.index + match[0].length;
-            }
-            
-            // Add remaining text after processing
-            if (currentIndex < text.length) {
-              const remainingText = text.substring(currentIndex);
-              if (remainingText) {
+              } else if (part) {
+                // This is regular text
                 children.push(new TextRun({
-                  text: remainingText,
+                  text: part,
                   size: 24
                 }));
               }
-            }
+            });
             
-            // If no bold formatting was found, add the entire text as plain
+            // If no parts were processed (shouldn't happen), add the entire text as plain
             if (children.length === 0) {
               children.push(new TextRun({
                 text: text,
