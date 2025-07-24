@@ -432,7 +432,9 @@ You understand and can explain:
 - EMIS, SystmOne, SNOMED, QOF indicators
 - Local policies uploaded by the user
 - You summarise, draft documents, create checklists, answer SOP queries
-- Always stay professional, accurate, and NHS-compliant`;
+- Always stay professional, accurate, and NHS-compliant
+
+${uploadedFiles.length > 0 ? `\nIMPORTANT: The user has uploaded ${uploadedFiles.length} file(s): ${uploadedFiles.map(f => f.name).join(', ')}. These files contain content that you can directly analyze and reference. You have full access to the file contents, so you can answer questions about them, summarize them, or analyze them without asking the user to upload again.` : ''}`;
 
     // Add practice context if available
     if (practiceContext.practiceName) {
@@ -468,6 +470,7 @@ You understand and can explain:
 
 SPECIAL CAPABILITIES:
 - Document Generation: When asked to create a Word document, format your response with clear headings, sections, and structured content that can be easily converted to a professional document.
+- File Analysis: When files are uploaded by the user, you have access to their full content and can analyze, summarize, and answer questions about them directly.
 
 Always provide practical, actionable advice that follows NHS guidelines and best practices.`;
 
@@ -477,10 +480,18 @@ Always provide practical, actionable advice that follows NHS guidelines and best
   const handleSend = async () => {
     if (!input.trim() && uploadedFiles.length === 0) return;
     
+    // Enhance the message content when files are attached
+    let messageContent = input;
+    if (uploadedFiles.length > 0 && input.trim()) {
+      messageContent = `${input}\n\n[Note: I have uploaded ${uploadedFiles.length} file(s): ${uploadedFiles.map(f => f.name).join(', ')}. Please analyze these files in relation to my question above.]`;
+    } else if (uploadedFiles.length > 0 && !input.trim()) {
+      messageContent = `Please analyze the uploaded file(s): ${uploadedFiles.map(f => f.name).join(', ')}`;
+    }
+    
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: input,
+      content: messageContent,
       timestamp: new Date(),
       files: uploadedFiles.length > 0 ? [...uploadedFiles] : undefined
     };
