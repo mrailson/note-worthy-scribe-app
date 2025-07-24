@@ -165,7 +165,9 @@ function isLikelyHallucination(text: string): boolean {
     'thank you', 'thanks', 'thank you very much', 
     'thank you for listening', 'thank you for joining',
     'thank you for watching', 'thank you for your time',
-    'good night', 'goodnight', 'good morning', 'good afternoon'
+    'good night', 'goodnight', 'good morning', 'good afternoon',
+    'thank you. bye', 'thank you. bye.', 'thanks. bye',
+    'thanks. bye.', 'thank you, bye', 'thanks, bye'
   ];
 
   // Religious/Arabic phrases that Whisper hallucinates
