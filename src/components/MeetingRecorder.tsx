@@ -62,6 +62,8 @@ export const MeetingRecorder = ({
   const [wordCount, setWordCount] = useState(0);
   const [startTime, setStartTime] = useState<string>("");
   const [liveSummary, setLiveSummary] = useState<string>("");
+  const [debugLog, setDebugLog] = useState<string[]>([]);
+  const [testTranscripts, setTestTranscripts] = useState<string[]>([]);
   
   
   // Meeting history state
@@ -224,21 +226,36 @@ export const MeetingRecorder = ({
       isFinal: data.is_final
     };
     
+    addDebugLog(`🎙️ ${data.is_final ? 'Final' : 'Interim'}: "${data.text}" (${Math.round(data.confidence * 100)}%)`);
+    setTestTranscripts(prev => [...prev.slice(-9), `${data.speaker || 'Speaker'}: ${data.text}`]);
+    
     handleTranscript(transcriptData);
   };
 
   const handleTranscriptionError = (error: string) => {
     console.error("Transcription Error:", error);
     setConnectionStatus("Error");
+    addDebugLog(`❌ Error: ${error}`);
+  };
+
+  const addDebugLog = (message: string) => {
+    const timestamp = new Date().toLocaleTimeString();
+    const logEntry = `[${timestamp}] ${message}`;
+    setDebugLog(prev => [...prev.slice(-19), logEntry]); // Keep last 20 entries
+    console.log(logEntry);
   };
 
   const handleStatusChange = (status: string) => {
     // Use a more robust approach to avoid state updates during render
-    queueMicrotask(() => setConnectionStatus(status));
+    queueMicrotask(() => {
+      setConnectionStatus(status);
+      addDebugLog(`🔄 Status: ${status}`);
+    });
   };
 
   const handleLiveSummary = (summary: string) => {
     setLiveSummary(summary);
+    addDebugLog(`📄 Summary generated (${summary.length} chars)`);
     toast.success("Live summary updated!");
   };
 
@@ -288,7 +305,12 @@ export const MeetingRecorder = ({
 
   const startRecording = async () => {
     try {
+      addDebugLog('🚀 Starting recording with Deepgram real-time transcription...');
       console.log('Starting recording with Deepgram real-time transcription...');
+      
+      // Clear previous debug logs and test transcripts
+      setDebugLog([]);
+      setTestTranscripts([]);
       
       // Initialize Deepgram real-time transcriber
       deepgramTranscriberRef.current = new DeepgramRealtimeTranscriber(
@@ -298,6 +320,7 @@ export const MeetingRecorder = ({
         handleLiveSummary
       );
 
+      addDebugLog('🔗 Attempting to connect to Deepgram...');
       // Start Deepgram transcription
       await deepgramTranscriberRef.current.startTranscription();
       
@@ -306,6 +329,8 @@ export const MeetingRecorder = ({
       setSpeakerCount(1);
       setStartTime(new Date().toISOString());
       setConnectionStatus("Connected");
+      
+      addDebugLog('✅ Recording started successfully');
       
       // Start duration timer
       intervalRef.current = setInterval(() => {
@@ -323,6 +348,7 @@ export const MeetingRecorder = ({
       toast.success('Recording started with real-time AI transcription!');
     } catch (error: any) {
       console.error('Failed to start recording:', error);
+      addDebugLog(`❌ Failed to start: ${error.message}`);
       toast.error(error.message || 'Failed to start recording');
       setIsRecording(false);
       setConnectionStatus("Error");
@@ -330,6 +356,7 @@ export const MeetingRecorder = ({
   };
 
   const stopRecording = async () => {
+    addDebugLog('🛑 Stopping recording...');
     console.log('Stopping recording...');
     
     // Stop duration timer
@@ -780,6 +807,51 @@ export const MeetingRecorder = ({
                        )}
                     </div>
                   </div>
+                )}
+
+                {/* Debug Log Panel - Always visible when recording */}
+                {isRecording && debugLog.length > 0 && (
+                  <Card className="mt-4 bg-gradient-to-br from-blue-50/50 to-blue-100/50 border-blue-200/50 dark:from-blue-900/20 dark:to-blue-800/20 dark:border-blue-700/50">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium flex items-center gap-2">
+                        <Monitor className="h-4 w-4" />
+                        Debug Log
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <div className="max-h-32 overflow-y-auto space-y-1 font-mono text-xs">
+                        {debugLog.map((log, index) => (
+                          <div key={index} className="text-muted-foreground">{log}</div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Ticker Tape Test Transcript */}
+                {testTranscripts.length > 0 && (
+                  <Card className="mt-4 bg-gradient-to-br from-green-50/50 to-green-100/50 border-green-200/50 dark:from-green-900/20 dark:to-green-800/20 dark:border-green-700/50">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium flex items-center gap-2">
+                        <Waves className="h-4 w-4" />
+                        Live Transcript Ticker
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <div className="overflow-hidden">
+                        <div className="animate-scroll space-y-1">
+                          {testTranscripts.map((transcript, index) => (
+                            <div 
+                              key={index} 
+                              className="text-xs font-mono p-1 bg-background/50 rounded border border-border/30 whitespace-nowrap"
+                            >
+                              {transcript}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 )}
               </CardContent>
             </Card>

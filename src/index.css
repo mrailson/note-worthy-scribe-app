@@ -68,6 +68,21 @@ All colors MUST be HSL.
 
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
+}
+
+/* Ticker tape animation */
+@keyframes scroll {
+  0% {
+    transform: translateY(100%);
+  }
+  100% {
+    transform: translateY(-100%);
+  }
+}
+
+.animate-scroll {
+  animation: scroll 10s linear infinite;
+}
 
   .dark {
     --background: 222.2 84% 4.9%;
