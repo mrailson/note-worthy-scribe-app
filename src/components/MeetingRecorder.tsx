@@ -597,26 +597,25 @@ export const MeetingRecorder = ({
               <CardContent className="pt-4 pb-4">
                 {/* Recording Mode Selection */}
                 {!isRecording && (
-                  <div className="mb-4">
+                  <div className="mb-3">
                     <div className="text-center mb-3">
-                      <h3 className="text-lg font-semibold mb-1">Recording Mode</h3>
-                      <p className="text-xs text-muted-foreground">Choose how to capture audio</p>
+                      <h3 className="text-base font-semibold">Recording Mode</h3>
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-xl mx-auto">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-w-lg mx-auto">
                       <Button
                         variant={recordingMode === 'mic-only' ? 'default' : 'outline'}
                         onClick={() => setRecordingMode('mic-only')}
-                        className={`flex flex-col items-center gap-2 h-auto py-4 px-4 border-2 transition-all duration-200 ${
+                        className={`flex items-center gap-2 h-auto py-2 px-3 border transition-all duration-200 ${
                           recordingMode === 'mic-only' 
-                            ? 'border-primary bg-primary text-primary-foreground shadow-md' 
+                            ? 'border-primary bg-primary text-primary-foreground' 
                             : 'border-border hover:border-primary/50 hover:bg-muted/50'
                         }`}
                       >
-                        <Mic className="h-5 w-5" />
-                        <div className="text-center">
-                          <div className="font-medium text-sm">Microphone Only</div>
-                          <div className="text-xs opacity-80">Face to face meetings</div>
+                        <Mic className="h-4 w-4" />
+                        <div className="text-left">
+                          <div className="font-medium text-xs">Microphone Only</div>
+                          <div className="text-xs opacity-75">Face to face</div>
                         </div>
                       </Button>
                       
@@ -625,19 +624,19 @@ export const MeetingRecorder = ({
                           <Button
                             variant={recordingMode === 'mic-browser' ? 'default' : 'outline'}
                             onClick={() => setRecordingMode('mic-browser')}
-                            className={`flex flex-col items-center gap-2 h-auto py-4 px-4 border-2 transition-all duration-200 ${
+                            className={`flex items-center gap-2 h-auto py-2 px-3 border transition-all duration-200 ${
                               recordingMode === 'mic-browser' 
-                                ? 'border-primary bg-primary text-primary-foreground shadow-md' 
+                                ? 'border-primary bg-primary text-primary-foreground' 
                                 : 'border-border hover:border-primary/50 hover:bg-muted/50'
                             }`}
                           >
                             <div className="flex items-center gap-1">
-                              <Mic className="h-4 w-4" />
-                              <Volume2 className="h-4 w-4" />
+                              <Mic className="h-3 w-3" />
+                              <Volume2 className="h-3 w-3" />
                             </div>
-                            <div className="text-center">
-                              <div className="font-medium text-sm">Mic + Browser Audio</div>
-                              <div className="text-xs opacity-80">Teams, Zoom meetings</div>
+                            <div className="text-left">
+                              <div className="font-medium text-xs">Mic + Browser Audio</div>
+                              <div className="text-xs opacity-75">Teams, Zoom</div>
                             </div>
                           </Button>
                         </TooltipTrigger>
