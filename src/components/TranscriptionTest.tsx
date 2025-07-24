@@ -85,6 +85,7 @@ export const TranscriptionTest = () => {
 
   const audioStreamsRef = useRef<Record<string, MediaStream>>({});
   const mediaRecordersRef = useRef<Record<string, MediaRecorder>>({});
+  const webSocketsRef = useRef<Record<string, WebSocket>>({});
   const speechRecognitionRef = useRef<any>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const processorRef = useRef<ScriptProcessorNode | null>(null);
@@ -300,8 +301,98 @@ export const TranscriptionTest = () => {
   };
 
   const startOpenAIRealtime = async (methodId: string) => {
-    // Placeholder for OpenAI Realtime API implementation
-    updateMethodStatus(methodId, { status: 'OpenAI Realtime API not implemented yet' });
+    try {
+      updateMethodStatus(methodId, { status: 'Connecting to OpenAI Realtime...' });
+      
+      // Connect to our Supabase edge function WebSocket
+      const ws = new WebSocket(`wss://dphcnbricafkbtizkoal.functions.supabase.co/realtime-transcription`);
+      
+      ws.onopen = async () => {
+        console.log('OpenAI Realtime WebSocket connected');
+        updateMethodStatus(methodId, { status: 'Connected, starting audio...' });
+        
+        try {
+          const stream = await setupAudioCapture();
+          audioStreamsRef.current[methodId] = stream;
+          
+          const mediaRecorder = new MediaRecorder(stream, {
+            mimeType: 'audio/webm;codecs=opus'
+          });
+          
+          mediaRecorder.ondataavailable = (event) => {
+            if (event.data.size > 0 && ws.readyState === WebSocket.OPEN) {
+              // Convert to base64 and send to OpenAI via WebSocket
+              const reader = new FileReader();
+              reader.onload = () => {
+                const base64 = (reader.result as string).split(',')[1];
+                ws.send(JSON.stringify({
+                  type: 'input_audio_buffer.append',
+                  audio: base64
+                }));
+              };
+              reader.readAsDataURL(event.data);
+            }
+          };
+          
+          mediaRecorder.start();
+          setInterval(() => {
+            if (mediaRecorder.state === 'recording') {
+              mediaRecorder.stop();
+              mediaRecorder.start();
+            }
+          }, 1000); // 1 second chunks for real-time
+          
+          mediaRecordersRef.current[methodId] = mediaRecorder;
+          updateMethodStatus(methodId, { isRecording: true, status: 'Recording with OpenAI Realtime...' });
+          
+        } catch (audioError) {
+          console.error('Audio setup error:', audioError);
+          updateMethodStatus(methodId, { status: 'Audio setup failed' });
+          ws.close();
+        }
+      };
+      
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          console.log('OpenAI Realtime message:', data);
+          
+          if (data.type === 'input_audio_buffer.speech_started') {
+            updateMethodStatus(methodId, { status: 'Speech detected...' });
+          } else if (data.type === 'input_audio_buffer.speech_stopped') {
+            updateMethodStatus(methodId, { status: 'Processing speech...' });
+          } else if (data.type === 'conversation.item.input_audio_transcription.completed') {
+            const transcript = data.transcript || '';
+            if (transcript.trim()) {
+              addTranscript(methodId, transcript.trim());
+              updateMethodStatus(methodId, { status: 'Recording with OpenAI Realtime...' });
+            }
+          } else if (data.type === 'error') {
+            console.error('OpenAI error:', data);
+            updateMethodStatus(methodId, { status: 'Error: ' + data.message });
+          }
+        } catch (error) {
+          console.error('Error parsing OpenAI message:', error);
+        }
+      };
+      
+      ws.onerror = (error) => {
+        console.error('OpenAI Realtime WebSocket error:', error);
+        updateMethodStatus(methodId, { status: 'WebSocket connection error' });
+      };
+      
+      ws.onclose = (event) => {
+        console.log('OpenAI Realtime WebSocket closed:', event.code, event.reason);
+        updateMethodStatus(methodId, { isRecording: false, status: 'Disconnected' });
+      };
+      
+      // Store WebSocket reference for cleanup
+      webSocketsRef.current[methodId] = ws;
+      
+    } catch (error) {
+      console.error('OpenAI Realtime setup error:', error);
+      updateMethodStatus(methodId, { status: 'Failed to connect' });
+    }
   };
 
   const startAzureSpeech = async (methodId: string) => {
@@ -433,6 +524,15 @@ export const TranscriptionTest = () => {
     if (audioStreamsRef.current[methodId]) {
       audioStreamsRef.current[methodId].getTracks().forEach(track => track.stop());
       delete audioStreamsRef.current[methodId];
+    }
+
+    // Stop WebSocket for OpenAI Realtime
+    if (methodId === 'openai-realtime' && webSocketsRef.current[methodId]) {
+      const ws = webSocketsRef.current[methodId];
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.close();
+      }
+      delete webSocketsRef.current[methodId];
     }
 
     // Stop speech recognition
