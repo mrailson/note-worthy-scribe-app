@@ -1229,7 +1229,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
           </TabsList>
 
           {/* AI Service Tab */}
-          <TabsContent value="ai-service" className="mt-6">
+          <TabsContent value="ai-service" className="mt-3">
             <Card className={getChatBoxHeight()}>
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
@@ -1524,7 +1524,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
           </TabsContent>
 
           {/* Previous Searches Tab */}
-          <TabsContent value="previous-searches" className="mt-6">
+          <TabsContent value="previous-searches" className="mt-3">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
@@ -1609,7 +1609,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
           </TabsContent>
 
           {/* AI Settings Tab */}
-          <TabsContent value="ai-settings" className="mt-6">
+          <TabsContent value="ai-settings" className="mt-3">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
@@ -1726,7 +1726,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
           </TabsContent>
 
           {/* What Can AI Do Tab */}
-          <TabsContent value="what-can-ai-do" className="mt-6">
+          <TabsContent value="what-can-ai-do" className="mt-3">
             <div className="space-y-6">
               {/* Overview Section */}
               <Card>
