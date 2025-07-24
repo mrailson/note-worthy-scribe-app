@@ -424,6 +424,11 @@ const SystemAdmin = () => {
         return;
       }
 
+      if (!userForm.password || userForm.password.trim() === '') {
+        toast.error("Please generate or enter a temporary password");
+        return;
+      }
+
       // Create user via edge function
       const { data, error } = await supabase.functions.invoke('create-user-admin', {
         body: {
@@ -464,6 +469,8 @@ const SystemAdmin = () => {
         // Send welcome email via EmailJS edge function
         try {
           const selectedPractice = practices.find(p => p.id === userForm.practice_id && userForm.practice_id !== 'none');
+          
+          console.log("Sending welcome email with password:", userForm.password);
           
           await supabase.functions.invoke('send-email-via-emailjs', {
             body: {
