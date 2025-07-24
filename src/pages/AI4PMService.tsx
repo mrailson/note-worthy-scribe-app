@@ -1205,6 +1205,15 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                         <div className="w-5 h-5 bg-current rounded-sm"></div>
                       </Button>
                       <Button
+                        variant={chatBoxSize === 'tall' ? 'secondary' : 'ghost'}
+                        size="sm"
+                        onClick={() => setChatBoxSize('tall')}
+                        className="h-8 w-8 p-0"
+                        title="Tall vertical window"
+                      >
+                        <div className="w-4 h-6 bg-current rounded-sm"></div>
+                      </Button>
+                      <Button
                         variant={chatBoxSize === 'full-screen' ? 'secondary' : 'ghost'}
                         size="sm"
                         onClick={() => setChatBoxSize('full-screen')}
