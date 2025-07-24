@@ -87,6 +87,10 @@ const SystemAdmin = () => {
     }
   });
   
+  // PCN Manager practice assignments state
+  const [pcnManagerPractices, setPcnManagerPractices] = useState<string[]>([]);
+  const [showPcnPracticeSelector, setShowPcnPracticeSelector] = useState(false);
+  
   // Dashboard state
   const [dashboardStats, setDashboardStats] = useState({
     totalUsers: 0,
@@ -415,6 +419,25 @@ const SystemAdmin = () => {
       if (data.success) {
         toast.success("User created successfully!");
         
+        // If PCN manager, assign practices
+        if (userForm.role === 'pcn_manager' && pcnManagerPractices.length > 0) {
+          try {
+            for (const practiceId of pcnManagerPractices) {
+              await supabase
+                .from('pcn_manager_practices')
+                .insert({
+                  user_id: data.user.id,
+                  practice_id: practiceId,
+                  assigned_by: user?.id
+                });
+            }
+            toast.success("PCN Manager practice assignments created!");
+          } catch (assignmentError) {
+            console.error('Practice assignment error:', assignmentError);
+            toast.warning("User created but practice assignments failed");
+          }
+        }
+        
         // Send welcome email via EmailJS edge function
         try {
           const selectedPractice = practices.find(p => p.id === userForm.practice_id);
@@ -452,6 +475,8 @@ const SystemAdmin = () => {
             replywell_access: false
           }
         });
+        setPcnManagerPractices([]);
+        setShowPcnPracticeSelector(false);
         setIsUserDialogOpen(false);
         fetchUsers();
       } else {
@@ -462,6 +487,14 @@ const SystemAdmin = () => {
       toast.error(`Failed to create user: ${error.message}`);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRoleChange = (role: string) => {
+    setUserForm(prev => ({ ...prev, role }));
+    setShowPcnPracticeSelector(role === 'pcn_manager');
+    if (role !== 'pcn_manager') {
+      setPcnManagerPractices([]);
     }
   };
 
@@ -1310,19 +1343,57 @@ const SystemAdmin = () => {
                   onChange={(e) => setUserForm(prev => ({ ...prev, email: e.target.value }))}
                   placeholder="Enter email address"
                 />
+            </div>
+            
+            {/* PCN Manager Practice Assignments */}
+            {showPcnPracticeSelector && (
+              <div>
+                <Label>PCN Manager Practice Assignments</Label>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Select multiple practices this PCN Manager will oversee
+                </p>
+                <div className="border rounded-lg p-3 max-h-48 overflow-y-auto space-y-2">
+                  {practices.map((practice) => (
+                    <div key={practice.id} className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id={`practice-${practice.id}`}
+                        checked={pcnManagerPractices.includes(practice.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setPcnManagerPractices(prev => [...prev, practice.id]);
+                          } else {
+                            setPcnManagerPractices(prev => prev.filter(id => id !== practice.id));
+                          }
+                        }}
+                        className="rounded"
+                      />
+                      <Label htmlFor={`practice-${practice.id}`} className="text-sm">
+                        {practice.name} {practice.pcn_code && `(${practice.pcn_code})`}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+                {pcnManagerPractices.length > 0 && (
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Selected {pcnManagerPractices.length} practice(s)
+                  </p>
+                )}
               </div>
+            )}
             </div>
             
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="user-role">Role</Label>
-                <Select value={userForm.role} onValueChange={(value) => setUserForm(prev => ({ ...prev, role: value }))}>
+                <Select value={userForm.role} onValueChange={handleRoleChange}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="gp">GP / Clinician</SelectItem>
                     <SelectItem value="practice_manager">Practice Manager</SelectItem>
+                    <SelectItem value="pcn_manager">PCN Manager</SelectItem>
                     <SelectItem value="complaints_manager">Complaints Manager</SelectItem>
                     <SelectItem value="system_admin">System Administrator</SelectItem>
                   </SelectContent>
