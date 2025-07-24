@@ -22,8 +22,7 @@ export const SafeMessageRenderer: React.FC<SafeMessageRendererProps> = ({
       'div', 'span', 'a'
     ],
     ALLOWED_ATTR: [
-      'class', 'style', 'href', 'title', 'alt', 'target',
-      'rel', 'id', 'data-*'
+      'class', 'href', 'title', 'alt', 'target', 'rel', 'id'
     ],
     ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
     ADD_ATTR: ['target', 'rel'],

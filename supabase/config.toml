@@ -5,3 +5,9 @@ verify_jwt = false
 
 [functions.generate-meeting-minutes]
 verify_jwt = false
+
+[functions.openai-realtime-session]
+verify_jwt = true
+
+[functions.realtime-transcription]
+verify_jwt = true
