@@ -336,7 +336,7 @@ export default function Settings() {
           <div className="flex items-center gap-4">
             <div>
               <h1 className="text-3xl font-bold text-foreground">Settings</h1>
-              <p className="text-muted-foreground">Manage your attendees and practice details</p>
+              <p className="text-muted-foreground">Notewell AI - System Settings Area</p>
             </div>
           </div>
 
