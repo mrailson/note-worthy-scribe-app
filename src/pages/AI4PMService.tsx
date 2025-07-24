@@ -1202,7 +1202,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                         className="h-8 w-8 p-0"
                         title="Extra large window"
                       >
-                        <div className="w-5 h-5 bg-current rounded-sm"></div>
+                        <div className="w-5 h-7 bg-current rounded-sm"></div>
                       </Button>
                     </div>
                     
