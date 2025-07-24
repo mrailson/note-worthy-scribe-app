@@ -147,18 +147,18 @@ const MeetingHistory = () => {
 
       if (error) throw error;
       
-      setMeetingSummary(data.summary);
+      setMeetingSummary(data.meetingMinutes);
       
       // Save to database
       await supabase
         .from('meeting_summaries')
         .upsert({
           meeting_id: selectedMeeting.id,
-          summary: data.summary,
-          key_points: data.key_points || [],
-          action_items: data.action_items || [],
-          decisions: data.decisions || [],
-          next_steps: data.next_steps || []
+          summary: data.meetingMinutes,
+          key_points: [],
+          action_items: [],
+          decisions: [],
+          next_steps: []
         });
         
     } catch (error: any) {
