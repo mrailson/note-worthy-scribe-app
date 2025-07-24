@@ -49,7 +49,9 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Get EmailJS credentials from Supabase secrets
     const serviceId = Deno.env.get("EMAILJS_SERVICE_ID");
-    const templateId = Deno.env.get("EMAILJS_TEMPLATE_ID");
+    const templateId = emailData.template_type === 'welcome' 
+      ? "template_00jzuhg"  // Welcome email template
+      : Deno.env.get("EMAILJS_TEMPLATE_ID"); // Default meeting template
     const publicKey = Deno.env.get("EMAILJS_PUBLIC_KEY");
     const privateKey = Deno.env.get("EMAILJS_PRIVATE_KEY");
 
