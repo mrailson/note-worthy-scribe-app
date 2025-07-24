@@ -1303,6 +1303,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      validate_nhs_email: {
+        Args: { email_address: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role:
