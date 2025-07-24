@@ -1264,6 +1264,7 @@ export type Database = {
         | "receptionist"
         | "user"
         | "complaints_manager"
+        | "pcn_manager"
       communication_mode: "create" | "improve"
       communication_tone:
         | "friendly"
@@ -1431,6 +1432,7 @@ export const Constants = {
         "receptionist",
         "user",
         "complaints_manager",
+        "pcn_manager",
       ],
       communication_mode: ["create", "improve"],
       communication_tone: [
