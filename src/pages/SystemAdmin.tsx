@@ -88,6 +88,28 @@ const SystemAdmin = () => {
     }
   });
   
+  // User edit state
+  const [isEditUserDialogOpen, setIsEditUserDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [editUserForm, setEditUserForm] = useState({
+    id: '',
+    email: '',
+    name: '',
+    newPassword: '',
+    confirmPassword: '',
+    role: 'gp',
+    practice_id: 'none',
+    module_access: {
+      meeting_notes_access: true,
+      gp_scribe_access: false,
+      complaints_manager_access: false,
+      complaints_admin_access: false,
+      replywell_access: false,
+      ai_4_pm_access: false
+    }
+  });
+  const [resendEmailAddress, setResendEmailAddress] = useState('');
+  
   // PCN Manager practice assignments state
   const [pcnManagerPractices, setPcnManagerPractices] = useState<string[]>([]);
   const [showPcnPracticeSelector, setShowPcnPracticeSelector] = useState(false);
@@ -499,6 +521,126 @@ const SystemAdmin = () => {
     }
   };
 
+  const handleEditUser = async (user: User) => {
+    setSelectedUser(user);
+    
+    // Fetch user's current role and module access
+    const { data: userRoles } = await supabase
+      .from('user_roles')
+      .select('*')
+      .eq('user_id', user.id)
+      .single();
+
+    setEditUserForm({
+      id: user.id,
+      email: user.email,
+      name: user.full_name,
+      newPassword: '',
+      confirmPassword: '',
+      role: (userRoles?.role as any) || 'gp',
+      practice_id: userRoles?.practice_id || 'none',
+      module_access: {
+        meeting_notes_access: userRoles?.meeting_notes_access ?? true,
+        gp_scribe_access: userRoles?.gp_scribe_access ?? false,
+        complaints_manager_access: userRoles?.complaints_manager_access ?? false,
+        complaints_admin_access: userRoles?.complaints_admin_access ?? false,
+        replywell_access: userRoles?.replywell_access ?? false,
+        ai_4_pm_access: userRoles?.ai_4_pm_access ?? false
+      }
+    });
+    setResendEmailAddress(user.email);
+    setIsEditUserDialogOpen(true);
+  };
+
+  const handleUpdateUser = async () => {
+    if (!selectedUser) return;
+    
+    setLoading(true);
+    try {
+      // Update profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          full_name: editUserForm.name,
+          email: editUserForm.email
+        })
+        .eq('user_id', editUserForm.id);
+
+      if (profileError) throw profileError;
+
+      // Update user roles
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .update({
+          role: editUserForm.role as any,
+          practice_id: editUserForm.practice_id === 'none' ? null : editUserForm.practice_id,
+          meeting_notes_access: editUserForm.module_access.meeting_notes_access,
+          gp_scribe_access: editUserForm.module_access.gp_scribe_access,
+          complaints_manager_access: editUserForm.module_access.complaints_manager_access,
+          complaints_admin_access: editUserForm.module_access.complaints_admin_access,
+          replywell_access: editUserForm.module_access.replywell_access,
+          ai_4_pm_access: editUserForm.module_access.ai_4_pm_access
+        })
+        .eq('user_id', editUserForm.id);
+
+      if (roleError) throw roleError;
+
+      // Update password if provided
+      if (editUserForm.newPassword && editUserForm.newPassword === editUserForm.confirmPassword) {
+        const { error: passwordError } = await supabase.auth.admin.updateUserById(
+          editUserForm.id,
+          { password: editUserForm.newPassword }
+        );
+
+        if (passwordError) throw passwordError;
+        toast.success("Password updated successfully!");
+      }
+
+      toast.success("User updated successfully!");
+      setIsEditUserDialogOpen(false);
+      fetchUsers();
+    } catch (error) {
+      console.error('Error updating user:', error);
+      toast.error(`Failed to update user: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendWelcomeEmail = async () => {
+    if (!selectedUser) return;
+    
+    setLoading(true);
+    try {
+      const selectedPractice = practices.find(p => p.id === editUserForm.practice_id);
+      
+      await supabase.functions.invoke('send-email-via-emailjs', {
+        body: {
+          to_email: resendEmailAddress,
+          user_name: editUserForm.name,
+          user_email: editUserForm.email,
+          temporary_password: editUserForm.newPassword || '[Password unchanged]',
+          user_role: editUserForm.role,
+          practice_name: selectedPractice?.name || 'Not assigned',
+          template_type: 'welcome',
+          meeting_notes_access: editUserForm.module_access.meeting_notes_access,
+          gp_scribe_access: editUserForm.module_access.gp_scribe_access,
+          complaints_manager_access: editUserForm.module_access.complaints_manager_access,
+          complaints_admin_access: editUserForm.module_access.complaints_admin_access,
+          replywell_access: editUserForm.module_access.replywell_access,
+          ai_4_pm_access: editUserForm.module_access.ai_4_pm_access
+        }
+      });
+      
+      toast.success(`Welcome email sent to ${resendEmailAddress}!`);
+    } catch (error) {
+      console.error('Error sending welcome email:', error);
+      toast.error('Failed to send welcome email');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleRoleChange = (role: string) => {
     setUserForm(prev => ({ ...prev, role }));
     setShowPcnPracticeSelector(role === 'pcn_manager');
@@ -654,11 +796,15 @@ const SystemAdmin = () => {
                           </Badge>
                         ))}
                       </TableCell>
-                      <TableCell>
-                        <Button variant="ghost" size="sm">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
+                       <TableCell>
+                         <Button 
+                           variant="ghost" 
+                           size="sm"
+                           onClick={() => handleEditUser(user)}
+                         >
+                           <Edit className="h-4 w-4" />
+                         </Button>
+                       </TableCell>
                     </TableRow>
                   ))}
               </TableBody>
@@ -1560,6 +1706,240 @@ const SystemAdmin = () => {
             </Button>
             <Button onClick={handleCreateUser} disabled={loading}>
               {loading ? 'Creating User...' : 'Create User & Send Email'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* User Edit Dialog */}
+      <Dialog open={isEditUserDialogOpen} onOpenChange={setIsEditUserDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+            <DialogDescription>
+              Update user details, change password, or resend welcome email
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="edit-user-name">Full Name</Label>
+                <Input
+                  id="edit-user-name"
+                  value={editUserForm.name}
+                  onChange={(e) => setEditUserForm(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="Enter full name"
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-user-email">Email</Label>
+                <Input
+                  id="edit-user-email"
+                  type="email"
+                  value={editUserForm.email}
+                  onChange={(e) => setEditUserForm(prev => ({ ...prev, email: e.target.value }))}
+                  placeholder="Enter email address"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="edit-new-password">New Password (optional)</Label>
+                <Input
+                  id="edit-new-password"
+                  type="password"
+                  value={editUserForm.newPassword}
+                  onChange={(e) => setEditUserForm(prev => ({ ...prev, newPassword: e.target.value }))}
+                  placeholder="Enter new password"
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-confirm-password">Confirm New Password</Label>
+                <Input
+                  id="edit-confirm-password"
+                  type="password"
+                  value={editUserForm.confirmPassword}
+                  onChange={(e) => setEditUserForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                  placeholder="Confirm new password"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="edit-user-role">Role</Label>
+                <Select value={editUserForm.role} onValueChange={(value) => setEditUserForm(prev => ({ ...prev, role: value }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="gp">GP</SelectItem>
+                    <SelectItem value="nurse">Nurse</SelectItem>
+                    <SelectItem value="receptionist">Receptionist</SelectItem>
+                    <SelectItem value="practice_manager">Practice Manager</SelectItem>
+                    <SelectItem value="pcn_manager">PCN Manager</SelectItem>
+                    <SelectItem value="complaints_manager">Complaints Manager</SelectItem>
+                    <SelectItem value="system_admin">System Administrator</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label htmlFor="edit-user-practice">Practice</Label>
+                <Select value={editUserForm.practice_id} onValueChange={(value) => setEditUserForm(prev => ({ ...prev, practice_id: value }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select practice" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No Practice Assigned</SelectItem>
+                    {practices.map((practice) => (
+                      <SelectItem key={practice.id} value={practice.id}>
+                        {practice.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-base font-semibold">Module Access</Label>
+              <div className="grid grid-cols-1 gap-4 mt-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="edit-meeting-notes">Meeting Notes</Label>
+                    <p className="text-sm text-muted-foreground">Access to meeting recording and transcription</p>
+                  </div>
+                  <Switch
+                    id="edit-meeting-notes"
+                    checked={editUserForm.module_access.meeting_notes_access}
+                    onCheckedChange={(checked) => 
+                      setEditUserForm(prev => ({
+                        ...prev, 
+                        module_access: { ...prev.module_access, meeting_notes_access: checked }
+                      }))
+                    }
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="edit-gp-scribe">GP Scribe</Label>
+                    <p className="text-sm text-muted-foreground">AI-powered consultation notes and SNOMED codes</p>
+                  </div>
+                  <Switch
+                    id="edit-gp-scribe"
+                    checked={editUserForm.module_access.gp_scribe_access}
+                    onCheckedChange={(checked) => 
+                      setEditUserForm(prev => ({
+                        ...prev, 
+                        module_access: { ...prev.module_access, gp_scribe_access: checked }
+                      }))
+                    }
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="edit-complaints-manager">Complaints Manager</Label>
+                    <p className="text-sm text-muted-foreground">Patient complaint management and workflows</p>
+                  </div>
+                  <Switch
+                    id="edit-complaints-manager"
+                    checked={editUserForm.module_access.complaints_manager_access}
+                    onCheckedChange={(checked) => 
+                      setEditUserForm(prev => ({
+                        ...prev, 
+                        module_access: { ...prev.module_access, complaints_manager_access: checked }
+                      }))
+                    }
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="edit-complaints-admin">Complaints Administration</Label>
+                    <p className="text-sm text-muted-foreground">Advanced complaint management with admin controls</p>
+                  </div>
+                  <Switch
+                    id="edit-complaints-admin"
+                    checked={editUserForm.module_access.complaints_admin_access}
+                    onCheckedChange={(checked) => 
+                      setEditUserForm(prev => ({
+                        ...prev, 
+                        module_access: { ...prev.module_access, complaints_admin_access: checked }
+                      }))
+                    }
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="edit-replywell">ReplyWell AI</Label>
+                    <p className="text-sm text-muted-foreground">AI-assisted email responses for patient communications</p>
+                  </div>
+                  <Switch
+                    id="edit-replywell"
+                    checked={editUserForm.module_access.replywell_access}
+                    onCheckedChange={(checked) => 
+                      setEditUserForm(prev => ({
+                        ...prev, 
+                        module_access: { ...prev.module_access, replywell_access: checked }
+                      }))
+                    }
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="edit-ai-4-pm">AI4PM Assistant</Label>
+                    <p className="text-sm text-muted-foreground">AI-powered practice management assistance</p>
+                  </div>
+                  <Switch
+                    id="edit-ai-4-pm"
+                    checked={editUserForm.module_access.ai_4_pm_access}
+                    onCheckedChange={(checked) => 
+                      setEditUserForm(prev => ({
+                        ...prev, 
+                        module_access: { ...prev.module_access, ai_4_pm_access: checked }
+                      }))
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t pt-4">
+              <Label className="text-base font-semibold">Resend Welcome Email</Label>
+              <div className="mt-2 space-y-2">
+                <div>
+                  <Label htmlFor="resend-email">Send to email address</Label>
+                  <Input
+                    id="resend-email"
+                    type="email"
+                    value={resendEmailAddress}
+                    onChange={(e) => setResendEmailAddress(e.target.value)}
+                    placeholder="Enter email address"
+                  />
+                </div>
+                <Button 
+                  variant="outline" 
+                  onClick={handleResendWelcomeEmail}
+                  disabled={loading || !resendEmailAddress}
+                  className="w-full"
+                >
+                  {loading ? 'Sending...' : 'Resend Welcome Email'}
+                </Button>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditUserDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateUser} disabled={loading}>
+              {loading ? 'Updating User...' : 'Update User'}
             </Button>
           </DialogFooter>
         </DialogContent>
