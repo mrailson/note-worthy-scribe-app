@@ -1224,7 +1224,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
             </TabsTrigger>
             <TabsTrigger value="what-can-ai-do" className="flex items-center gap-2">
               <HelpCircle className="h-4 w-4" />
-              What Can AI Do?
+              What can AI do for me?
             </TabsTrigger>
           </TabsList>
 
@@ -1733,7 +1733,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <HelpCircle className="h-5 w-5" />
-                    What Can AI Do for Practice Managers?
+                    What can AI do for me?
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
