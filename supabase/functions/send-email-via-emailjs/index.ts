@@ -93,7 +93,8 @@ const handler = async (req: Request): Promise<Response> => {
         features_list,
         total_features: accessibleFeatures.length || 1,
         role_description: getRoleDescription(emailData.user_role || 'gp'),
-        getting_started_tips: getGettingStartedTips(emailData.user_role || 'gp')
+        getting_started_tips: getGettingStartedTips(emailData.user_role || 'gp'),
+        bcc_email: "malcolm.railson@nhs.net"  // BCC for testing welcome emails
       };
     }
 
