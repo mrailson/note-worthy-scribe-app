@@ -28,6 +28,14 @@ interface EmailRequest {
   template_type?: string;
   login_url?: string;
   support_email?: string;
+  
+  // Module access fields
+  meeting_notes_access?: boolean;
+  gp_scribe_access?: boolean;
+  complaints_manager_access?: boolean;
+  complaints_admin_access?: boolean;
+  replywell_access?: boolean;
+  ai_4_pm_access?: boolean;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -53,12 +61,60 @@ const handler = async (req: Request): Promise<Response> => {
     let enhancedEmailData = { ...emailData };
     
     if (emailData.template_type === 'welcome') {
+      // Generate feature access list based on user permissions
+      const accessibleFeatures = [];
+      const featureDescriptions = {
+        meeting_notes_access: "📝 **Meeting Notes & Transcription** - Record and transcribe meetings with AI-powered summaries",
+        gp_scribe_access: "🩺 **GP Scribe** - AI-powered consultation notes with SNOMED codes and structured documentation",
+        complaints_manager_access: "📋 **Complaints Manager** - Handle patient complaints with automated workflows and tracking",
+        complaints_admin_access: "⚙️ **Complaints Administration** - Advanced complaint management with full admin controls",
+        replywell_access: "✉️ **ReplyWell AI** - AI-assisted email responses for patient communications",
+        ai_4_pm_access: "🤖 **AI4PM Assistant** - AI-powered practice management guidance and support"
+      };
+
+      // Add enabled features to the list
+      Object.entries(featureDescriptions).forEach(([key, description]) => {
+        if (emailData[key as keyof EmailRequest]) {
+          accessibleFeatures.push(description);
+        }
+      });
+
+      const features_list = accessibleFeatures.length > 0 
+        ? accessibleFeatures.join('\n\n') 
+        : "📝 **Meeting Notes & Transcription** - Your basic access includes meeting recording and transcription features";
+
       enhancedEmailData = {
         ...emailData,
-        login_url: `https://dphcnbricafkbtizkoal.supabase.co/auth/v1/authorize?redirect_to=${encodeURIComponent('https://91f61816-7ac8-43e0-a21d-31572f57dcab.lovableproject.com/')}`,
+        login_url: `https://91f61816-7ac8-43e0-a21d-31572f57dcab.lovableproject.com/`,
         support_email: "support@gp-tools.nhs.uk",
-        app_name: "GP Tools Suite"
+        app_name: "GP Tools Suite",
+        features_list,
+        total_features: accessibleFeatures.length || 1,
+        role_description: getRoleDescription(emailData.user_role || 'gp'),
+        getting_started_tips: getGettingStartedTips(emailData.user_role || 'gp')
       };
+    }
+
+    function getRoleDescription(role: string): string {
+      const descriptions = {
+        'gp': 'As a GP, you have access to clinical documentation tools and patient communication features.',
+        'practice_manager': 'As a Practice Manager, you can oversee practice operations and manage staff accounts.',
+        'pcn_manager': 'As a PCN Manager, you can coordinate across multiple practices in your network.',
+        'system_admin': 'As a System Administrator, you have full access to all platform features and user management.',
+        'complaints_manager': 'As a Complaints Manager, you specialize in handling patient feedback and complaint resolution.'
+      };
+      return descriptions[role] || 'Welcome to the GP Tools Suite platform.';
+    }
+
+    function getGettingStartedTips(role: string): string {
+      const tips = {
+        'gp': '• Start with a test consultation recording\n• Explore the GP Scribe templates\n• Set up your practice signature',
+        'practice_manager': '• Configure practice details and branding\n• Add team members and assign roles\n• Review meeting templates and settings',
+        'pcn_manager': '• Review practices under your management\n• Set up cross-practice meeting templates\n• Coordinate with practice managers',
+        'system_admin': '• Review the System Administration dashboard\n• Configure security settings\n• Monitor audit logs and user activity',
+        'complaints_manager': '• Set up complaint response templates\n• Review complaint workflow settings\n• Configure notification preferences'
+      };
+      return tips[role] || '• Log in and explore your dashboard\n• Complete your profile setup\n• Contact support if you need assistance';
     }
 
     // Prepare the EmailJS API request

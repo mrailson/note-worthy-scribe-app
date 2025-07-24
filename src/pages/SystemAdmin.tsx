@@ -451,7 +451,14 @@ const SystemAdmin = () => {
               temporary_password: userForm.password,
               user_role: userForm.role,
               practice_name: selectedPractice?.name || 'Not assigned',
-              template_type: 'welcome'
+              template_type: 'welcome',
+              // Pass module access information
+              meeting_notes_access: userForm.module_access.meeting_notes_access,
+              gp_scribe_access: userForm.module_access.gp_scribe_access,
+              complaints_manager_access: userForm.module_access.complaints_manager_access,
+              complaints_admin_access: userForm.module_access.complaints_admin_access,
+              replywell_access: userForm.module_access.replywell_access,
+              ai_4_pm_access: userForm.module_access.ai_4_pm_access
             }
           });
           
