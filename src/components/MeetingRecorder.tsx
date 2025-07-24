@@ -89,6 +89,9 @@ export const MeetingRecorder = ({
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const speechRecognitionRef = useRef<BrowserSpeechRecognition | null>(null);
   const autoSaveRef = useRef<NodeJS.Timeout | null>(null);
+  const browserAudioStreamRef = useRef<MediaStream | null>(null);
+  const micAudioStreamRef = useRef<MediaStream | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
 
   // Auto-save meeting data to localStorage
   const autoSaveMeeting = () => {
@@ -229,13 +232,20 @@ export const MeetingRecorder = ({
         // Request screen/browser audio capture
         try {
           const displayStream = await navigator.mediaDevices.getDisplayMedia({
-            video: false,
+            video: true, // Required for audio capture in most browsers
             audio: {
               echoCancellation: true,
               noiseSuppression: true,
               autoGainControl: true
             }
           });
+          
+          // Check if audio track is available
+          const audioTracks = displayStream.getAudioTracks();
+          if (audioTracks.length === 0) {
+            displayStream.getTracks().forEach(track => track.stop());
+            throw new Error('No audio track available from screen sharing. Make sure to share a tab with audio (like Teams/Zoom) and check "Share tab audio".');
+          }
           
           // Also get microphone audio
           const micStream = await navigator.mediaDevices.getUserMedia({
@@ -257,8 +267,10 @@ export const MeetingRecorder = ({
           displaySource.connect(destination);
           micSource.connect(destination);
           
-          // Use the combined stream for speech recognition
-          const combinedStream = destination.stream;
+          // Store references for cleanup
+          browserAudioStreamRef.current = displayStream;
+          micAudioStreamRef.current = micStream;
+          audioContextRef.current = audioContext;
           
           console.log('Browser + Mic audio capture started');
           toast.success('Browser audio sharing enabled. Speech recognition starting...');
@@ -274,13 +286,16 @@ export const MeetingRecorder = ({
             throw new Error('Speech recognition is not supported in this browser. Please use Chrome, Edge, or Chrome on Android.');
           }
           
+          // Use the mixed stream for speech recognition  
           await speechRecognitionRef.current.startRecognition();
           
         } catch (error: any) {
           if (error.name === 'NotAllowedError') {
-            throw new Error('Browser audio sharing was denied. Please allow screen sharing to capture browser audio from Teams/Zoom calls.');
+            throw new Error('Screen sharing was denied. Please allow screen sharing and select "Share tab audio" to capture browser audio from Teams/Zoom calls.');
           } else if (error.name === 'NotSupportedError') {
-            throw new Error('Browser audio capture is not supported. Try using "Microphone Only" mode instead.');
+            throw new Error('Screen sharing is not supported in this browser. Try using "Microphone Only" mode instead.');
+          } else if (error.message.includes('No audio track')) {
+            throw error; // Re-throw our custom audio track error
           } else {
             throw new Error('Failed to access browser audio: ' + error.message);
           }
@@ -346,6 +361,22 @@ export const MeetingRecorder = ({
     if (speechRecognitionRef.current) {
       speechRecognitionRef.current.stopRecognition();
       speechRecognitionRef.current = null;
+    }
+    
+    // Clean up browser audio streams
+    if (browserAudioStreamRef.current) {
+      browserAudioStreamRef.current.getTracks().forEach(track => track.stop());
+      browserAudioStreamRef.current = null;
+    }
+    
+    if (micAudioStreamRef.current) {
+      micAudioStreamRef.current.getTracks().forEach(track => track.stop());
+      micAudioStreamRef.current = null;
+    }
+    
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
+      audioContextRef.current = null;
     }
     
     if (intervalRef.current) {
