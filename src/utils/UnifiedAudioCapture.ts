@@ -15,8 +15,7 @@ export class UnifiedAudioCapture {
   constructor(
     private onTranscript: (transcript: any) => void,
     private onError: (error: string) => void,
-    private onStatusChange: (status: string) => void,
-    private onTranscriptionResult?: (result: any) => void
+    private onStatusChange: (status: string) => void
   ) {}
 
   async startCapture(mode: 'mic-only' | 'mic-browser' = 'mic-only') {
@@ -299,11 +298,6 @@ export class UnifiedAudioCapture {
       if (response.ok) {
         const result = await response.json();
         console.log('Transcription result:', result);
-        
-        // Send raw result to ticker callback
-        if (this.onTranscriptionResult) {
-          this.onTranscriptionResult(result);
-        }
         
         if (result.text && result.text.trim() && result.text.length > 2) {
           // Use Whisper's quality metrics to detect hallucinations

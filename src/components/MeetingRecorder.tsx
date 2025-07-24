@@ -23,7 +23,6 @@ import { MeetingHistoryList } from "@/components/MeetingHistoryList";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { TranscriptionTicker } from "@/components/TranscriptionTicker";
 
 import { UnifiedAudioCapture } from "@/utils/UnifiedAudioCapture";
 
@@ -60,7 +59,6 @@ export const MeetingRecorder = ({
   const [speakerCount, setSpeakerCount] = useState(0);
   const [wordCount, setWordCount] = useState(0);
   const [startTime, setStartTime] = useState<string>("");
-  const [latestTranscription, setLatestTranscription] = useState<any>(null);
   
   // Recording mode selection
   const [recordingMode, setRecordingMode] = useState<'mic-only' | 'mic-browser'>('mic-only');
@@ -220,10 +218,6 @@ export const MeetingRecorder = ({
     queueMicrotask(() => setConnectionStatus(status));
   };
 
-  const handleTranscriptionResult = (result: any) => {
-    // Update the latest transcription for the ticker tape
-    setLatestTranscription(result);
-  };
 
   const startRecording = async () => {
     try {
@@ -233,8 +227,7 @@ export const MeetingRecorder = ({
       audioCaptureRef.current = new UnifiedAudioCapture(
         handleTranscript,
         handleTranscriptionError,
-        handleStatusChange,
-        handleTranscriptionResult
+        handleStatusChange
       );
       
       await audioCaptureRef.current.startCapture(recordingMode);
@@ -978,12 +971,6 @@ export const MeetingRecorder = ({
           </Card>
         </TabsContent>
       </Tabs>
-      
-      {/* Transcription Ticker */}
-      <TranscriptionTicker 
-        latestTranscription={latestTranscription}
-        isRecording={isRecording}
-      />
     </div>
   );
 };
