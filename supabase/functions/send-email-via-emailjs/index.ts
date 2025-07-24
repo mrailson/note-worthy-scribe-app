@@ -46,6 +46,8 @@ const handler = async (req: Request): Promise<Response> => {
 
   try {
     const emailData: EmailRequest = await req.json();
+    
+    console.log("Received email data:", JSON.stringify(emailData, null, 2));
 
     // Get EmailJS credentials from Supabase secrets
     const serviceId = Deno.env.get("EMAILJS_SERVICE_ID");
