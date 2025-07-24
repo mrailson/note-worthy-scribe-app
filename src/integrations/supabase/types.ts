@@ -838,6 +838,41 @@ export type Database = {
         }
         Relationships: []
       }
+      pcn_manager_practices: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string | null
+          created_at: string | null
+          id: string
+          practice_id: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          created_at?: string | null
+          id?: string
+          practice_id: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          created_at?: string | null
+          id?: string
+          practice_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pcn_manager_practices_practice_id_fkey"
+            columns: ["practice_id"]
+            isOneToOne: false
+            referencedRelation: "gp_practices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       practice_details: {
         Row: {
           address: string | null
