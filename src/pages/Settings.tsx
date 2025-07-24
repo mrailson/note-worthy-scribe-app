@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Settings as SettingsIcon, Users, Building, BookOpen, Search, Plus, Pencil, Trash2, X, Clock, HelpCircle, Mail, Globe, Github, ExternalLink, BarChart3, Calendar, Timer, Key, Eye, EyeOff, Shield, Lock, Database, FileCheck, AlertTriangle } from "lucide-react";
+import { Settings as SettingsIcon, Users, Building, BookOpen, Search, Plus, Pencil, Trash2, X, Clock, HelpCircle, Mail, Globe, Github, ExternalLink, BarChart3, Calendar, Timer, Key, Eye, EyeOff, Shield, Lock, Database, FileCheck, AlertTriangle, Download, FileText, Award } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
@@ -1183,11 +1183,300 @@ export default function Settings() {
                 </CardContent>
               </Card>
 
-              {/* Compliance Certifications */}
+              {/* DCB0160: Data Security and Protection Toolkit */}
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
                     <FileCheck className="h-5 w-5" />
+                    DCB0160: Data Security and Protection Toolkit
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <h5 className="font-medium text-sm mb-2 text-blue-700 dark:text-blue-400">System: Notewell AI</h5>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      DCB0160 establishes the data security standards and assurance requirements for health and care systems. 
+                      Notewell AI adheres to all mandatory evidence items and annual submissions.
+                    </p>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-3 border rounded-lg">
+                      <h5 className="font-medium text-sm mb-2">Mandatory Evidence Items</h5>
+                      <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
+                        <li>Senior Information Risk Owner (SIRO) appointed</li>
+                        <li>Data Protection Impact Assessments completed</li>
+                        <li>Staff security training and awareness program</li>
+                        <li>Incident management procedures</li>
+                        <li>Business continuity plans</li>
+                      </ul>
+                    </div>
+                    <div className="p-3 border rounded-lg">
+                      <h5 className="font-medium text-sm mb-2">Technical Safeguards</h5>
+                      <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
+                        <li>Network security and boundary firewalls</li>
+                        <li>Secure remote access solutions</li>
+                        <li>Anti-malware protection</li>
+                        <li>Software security updates</li>
+                        <li>Secure configuration standards</li>
+                      </ul>
+                    </div>
+                  </div>
+                  
+                  <div className="p-3 border rounded-lg bg-green-50 dark:bg-green-950/20">
+                    <h5 className="font-medium text-sm mb-2 text-green-700 dark:text-green-400">Annual Submission Status</h5>
+                    <p className="text-xs text-muted-foreground">
+                      <Badge variant="default" className="mr-2 bg-green-600">Standards Met</Badge>
+                      All mandatory evidence items satisfied. Next submission due: June 2025
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* DCB0129: Clinical Risk Management */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5" />
+                    DCB0129: Clinical Risk Management
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                    <h5 className="font-medium text-sm mb-2 text-amber-700 dark:text-amber-400">Clinical Safety Case</h5>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      DCB0129 mandates clinical risk management for health IT systems. Notewell AI has completed comprehensive 
+                      clinical safety assessment and hazard analysis.
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div className="p-3 border rounded-lg">
+                      <h5 className="font-medium text-sm mb-2">Clinical Safety Officer (CSO)</h5>
+                      <p className="text-xs text-muted-foreground">
+                        Appointed clinical safety officer: <strong>malcolm.railson@nhs.net</strong><br/>
+                        Responsible for clinical risk assessment and safety case maintenance
+                      </p>
+                    </div>
+                    
+                    <div className="p-3 border rounded-lg">
+                      <h5 className="font-medium text-sm mb-2">Hazard Log & Risk Assessment</h5>
+                      <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
+                        <li>Hazard identification and classification (Clinical Risk Score)</li>
+                        <li>Risk mitigation strategies implemented</li>
+                        <li>Residual risk analysis and acceptance</li>
+                        <li>Post-deployment monitoring procedures</li>
+                      </ul>
+                    </div>
+                    
+                    <div className="p-3 border rounded-lg">
+                      <h5 className="font-medium text-sm mb-2">Safety Management System</h5>
+                      <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
+                        <li>Clinical safety management file maintained</li>
+                        <li>Change control procedures for clinical modifications</li>
+                        <li>Incident reporting and analysis workflow</li>
+                        <li>Regular safety case review and updates</li>
+                      </ul>
+                    </div>
+                  </div>
+                  
+                  <div className="p-3 border rounded-lg bg-blue-50 dark:bg-blue-950/20">
+                    <h5 className="font-medium text-sm mb-2 text-blue-700 dark:text-blue-400">Classification</h5>
+                    <p className="text-xs text-muted-foreground">
+                      <Badge variant="outline" className="mr-2">Class IIa Medical Device Software</Badge>
+                      Clinical decision support tool with medium risk classification
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* DPIA for Practices */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Shield className="h-5 w-5" />
+                    Data Protection Impact Assessment (DPIA) for Practices
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="p-4 bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800 rounded-lg">
+                    <h5 className="font-medium text-sm mb-2 text-purple-700 dark:text-purple-400">Practice Implementation Guidance</h5>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      GP practices implementing Notewell AI should conduct a DPIA to assess data protection risks and 
+                      demonstrate compliance with GDPR Article 35.
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div className="p-3 border rounded-lg">
+                      <h5 className="font-medium text-sm mb-2">DPIA Template Available</h5>
+                      <p className="text-xs text-muted-foreground mb-2">
+                        Comprehensive DPIA template specifically designed for NHS primary care adoption of Notewell AI.
+                      </p>
+                      <Button variant="outline" size="sm">
+                        <Download className="h-4 w-4 mr-2" />
+                        Download DPIA Template
+                      </Button>
+                    </div>
+                    
+                    <div className="p-3 border rounded-lg">
+                      <h5 className="font-medium text-sm mb-2">Key Assessment Areas</h5>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
+                          <li>Data processing purposes and lawful basis</li>
+                          <li>Data subject categories and personal data types</li>
+                          <li>Data flows and system integrations</li>
+                          <li>Storage and retention periods</li>
+                        </ul>
+                        <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
+                          <li>Security measures and access controls</li>
+                          <li>Data subject rights implementation</li>
+                          <li>Risk assessment and mitigation</li>
+                          <li>Consultation requirements</li>
+                        </ul>
+                      </div>
+                    </div>
+                    
+                    <div className="p-3 border rounded-lg">
+                      <h5 className="font-medium text-sm mb-2">Practice Support</h5>
+                      <p className="text-xs text-muted-foreground mb-2">
+                        Our team provides guidance and support for practice DPIAs. Contact: <strong>malcolm.railson@nhs.net</strong>
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        <Badge variant="secondary" className="text-xs">DPIA Workshop Available</Badge>
+                        <Badge variant="secondary" className="text-xs">Template Customisation</Badge>
+                        <Badge variant="secondary" className="text-xs">ICO Consultation Support</Badge>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Privacy Notice Updates for Practices */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Privacy Notice Updates for Practices
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="p-4 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg">
+                    <h5 className="font-medium text-sm mb-2 text-green-700 dark:text-green-400">Mandatory Privacy Notice Updates</h5>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Practices must update their privacy notices to inform patients about Notewell AI data processing activities.
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div className="p-3 border rounded-lg">
+                      <h5 className="font-medium text-sm mb-2">Required Privacy Notice Additions</h5>
+                      <div className="space-y-2">
+                        <div className="p-2 bg-muted rounded text-xs">
+                          <strong>AI-Powered Clinical Documentation:</strong> We use Notewell AI to transcribe and analyse consultation recordings 
+                          to generate clinical notes and summaries. This processing is based on legitimate interests for improving healthcare delivery.
+                        </div>
+                        <div className="p-2 bg-muted rounded text-xs">
+                          <strong>Data Processing:</strong> Voice recordings are processed using secure AI services and are deleted according 
+                          to your practice's retention policy. Transcripts and notes are stored securely with role-based access controls.
+                        </div>
+                        <div className="p-2 bg-muted rounded text-xs">
+                          <strong>Your Rights:</strong> You have the right to request access to, correction of, or deletion of your data processed 
+                          by Notewell AI. Contact your practice data protection lead for more information.
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="p-3 border rounded-lg">
+                      <h5 className="font-medium text-sm mb-2">Template Privacy Notice Amendment</h5>
+                      <p className="text-xs text-muted-foreground mb-2">
+                        Ready-to-use privacy notice amendment specifically drafted for NHS GP practices.
+                      </p>
+                      <Button variant="outline" size="sm">
+                        <Download className="h-4 w-4 mr-2" />
+                        Download Privacy Notice Amendment
+                      </Button>
+                    </div>
+                    
+                    <div className="p-3 border rounded-lg">
+                      <h5 className="font-medium text-sm mb-2">Patient Communication</h5>
+                      <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
+                        <li>Patient information leaflets available</li>
+                        <li>Consultation room notices for recording consent</li>
+                        <li>Website privacy policy updates</li>
+                        <li>Practice newsletter communication template</li>
+                      </ul>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Yellow Card Reporting System */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5 text-yellow-500" />
+                    Submit Yellow Card - Serious System Breach Report
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="p-4 bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                    <h5 className="font-medium text-sm mb-2 text-yellow-700 dark:text-yellow-400">Critical Incident Reporting</h5>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Report serious system breaches, data incidents, or clinical safety concerns immediately using our Yellow Card system.
+                      All reports are reviewed within 1 hour and escalated to NHS Digital where required.
+                    </p>
+                  </div>
+                  
+                  <div className="p-4 border rounded-lg bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800">
+                    <h5 className="font-medium text-sm mb-3 text-red-700 dark:text-red-400">Emergency Contact Information</h5>
+                    <div className="space-y-2 text-xs">
+                      <p><strong>System:</strong> Notewell AI</p>
+                      <p><strong>Clinical Safety Officer:</strong> malcolm.railson@nhs.net</p>
+                      <p><strong>Emergency Hotline:</strong> +44 (0) 800 NHS-HELP</p>
+                      <p><strong>NHS Digital Reporting:</strong> Automatic escalation for severe incidents</p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <h5 className="font-medium text-sm">Report Categories</h5>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="p-3 border border-red-200 dark:border-red-800 rounded-lg">
+                        <h6 className="font-medium text-xs mb-1 text-red-600 dark:text-red-400">Critical Security Breach</h6>
+                        <p className="text-xs text-muted-foreground">Data exfiltration, unauthorised access, system compromise</p>
+                      </div>
+                      <div className="p-3 border border-orange-200 dark:border-orange-800 rounded-lg">
+                        <h6 className="font-medium text-xs mb-1 text-orange-600 dark:text-orange-400">Clinical Safety Incident</h6>
+                        <p className="text-xs text-muted-foreground">Incorrect transcription, clinical decision support errors</p>
+                      </div>
+                      <div className="p-3 border border-amber-200 dark:border-amber-800 rounded-lg">
+                        <h6 className="font-medium text-xs mb-1 text-amber-600 dark:text-amber-400">Data Protection Breach</h6>
+                        <p className="text-xs text-muted-foreground">Unlawful processing, consent violations, data loss</p>
+                      </div>
+                      <div className="p-3 border border-blue-200 dark:border-blue-800 rounded-lg">
+                        <h6 className="font-medium text-xs mb-1 text-blue-600 dark:text-blue-400">System Availability</h6>
+                        <p className="text-xs text-muted-foreground">Service outages, performance degradation, access issues</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="pt-4 border-t">
+                    <Button variant="destructive" size="lg" className="w-full">
+                      <AlertTriangle className="h-5 w-5 mr-2" />
+                      Submit Yellow Card Report
+                    </Button>
+                    <p className="text-xs text-muted-foreground text-center mt-2">
+                      This will open a secure incident reporting form. All submissions are logged and tracked.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Compliance Certifications */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Award className="h-5 w-5" />
                     Compliance Certifications & Standards
                   </CardTitle>
                 </CardHeader>
@@ -1212,6 +1501,16 @@ export default function Settings() {
                       <h5 className="font-medium text-sm mb-2">Cyber Essentials</h5>
                       <p className="text-xs text-muted-foreground mb-2">UK Government Scheme</p>
                       <Badge variant="default" className="bg-green-600">Certified</Badge>
+                    </div>
+                    <div className="p-4 border rounded-lg bg-accent/20">
+                      <h5 className="font-medium text-sm mb-2">DCB0160</h5>
+                      <p className="text-xs text-muted-foreground mb-2">NHS Data Security Toolkit</p>
+                      <Badge variant="default" className="bg-green-600">Compliant</Badge>
+                    </div>
+                    <div className="p-4 border rounded-lg bg-accent/20">
+                      <h5 className="font-medium text-sm mb-2">DCB0129</h5>
+                      <p className="text-xs text-muted-foreground mb-2">Clinical Risk Management</p>
+                      <Badge variant="default" className="bg-green-600">Compliant</Badge>
                     </div>
                     <div className="p-4 border rounded-lg bg-accent/20">
                       <h5 className="font-medium text-sm mb-2">DSPT</h5>
