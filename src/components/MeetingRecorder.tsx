@@ -557,70 +557,66 @@ export const MeetingRecorder = ({
 
         {/* Meeting Recorder Tab - ONLY recording controls */}
         <TabsContent value="recorder" className="space-y-6 mt-6">
-          <div className="space-y-6">
-            {/* Stats Dashboard */}
-            <Card className="bg-gradient-to-br from-background to-muted/30 border-2">
-              <CardContent className="pt-6">
-                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+          <div className="space-y-4">
+            {/* Compact Stats Dashboard */}
+            <Card className="bg-gradient-to-br from-background to-muted/30">
+              <CardContent className="pt-4 pb-4">
+                <div className="grid grid-cols-3 gap-3">
                   {/* Duration */}
-                  <div className="text-center p-4 bg-background/50 rounded-xl border border-border/50 shadow-sm">
-                    <div className="text-3xl lg:text-4xl font-bold text-primary mb-1">
+                  <div className="text-center p-3 bg-background/50 rounded-lg border border-border/50">
+                    <div className="text-2xl font-bold text-primary mb-1">
                       {formatDuration(duration)}
                     </div>
-                    <div className="text-sm font-medium text-muted-foreground">Duration</div>
+                    <div className="text-xs font-medium text-muted-foreground">Duration</div>
                   </div>
                   
                   {/* Word Count */}
-                  <div className="text-center p-4 bg-background/50 rounded-xl border border-border/50 shadow-sm">
-                    <div className="text-3xl lg:text-4xl font-bold text-primary mb-1">
+                  <div className="text-center p-3 bg-background/50 rounded-lg border border-border/50">
+                    <div className="text-2xl font-bold text-primary mb-1">
                       {wordCount}
                     </div>
-                    <div className="text-sm font-medium text-muted-foreground">Words</div>
+                    <div className="text-xs font-medium text-muted-foreground">Words</div>
                   </div>
                   
                   {/* Connection Status */}
-                  <div className="col-span-2 lg:col-span-1 flex items-center justify-center p-4 bg-background/50 rounded-xl border border-border/50 shadow-sm">
-                    <div className="text-center">
-                      <div className="flex items-center justify-center gap-2 mb-2">
-                        <Badge variant={getConnectionStatusColor() as any} className="flex items-center gap-1 text-sm px-3 py-1">
-                          {getConnectionStatusIcon()}
-                          <span>{connectionStatus}</span>
-                        </Badge>
-                      </div>
-                      <div className="text-sm font-medium text-muted-foreground">Connection</div>
+                  <div className="text-center p-3 bg-background/50 rounded-lg border border-border/50">
+                    <div className="flex items-center justify-center mb-1">
+                      <Badge variant={getConnectionStatusColor() as any} className="flex items-center gap-1 text-xs px-2 py-1">
+                        {getConnectionStatusIcon()}
+                        <span className="hidden sm:inline">{connectionStatus}</span>
+                      </Badge>
                     </div>
+                    <div className="text-xs font-medium text-muted-foreground">Connection</div>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Recording Controls */}
-            <Card className="shadow-lg border-2">
-              <CardContent className="pt-6">
+            {/* Compact Recording Controls */}
+            <Card className="shadow-lg">
+              <CardContent className="pt-4 pb-4">
                 {/* Recording Mode Selection */}
                 {!isRecording && (
-                  <div className="mb-8">
-                    <div className="text-center mb-6">
-                      <h3 className="text-xl font-semibold mb-2">Recording Mode</h3>
-                      <p className="text-sm text-muted-foreground">Choose how you want to capture audio</p>
+                  <div className="mb-4">
+                    <div className="text-center mb-3">
+                      <h3 className="text-lg font-semibold mb-1">Recording Mode</h3>
+                      <p className="text-xs text-muted-foreground">Choose how to capture audio</p>
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-xl mx-auto">
                       <Button
                         variant={recordingMode === 'mic-only' ? 'default' : 'outline'}
                         onClick={() => setRecordingMode('mic-only')}
-                        className={`flex flex-col items-center gap-3 h-auto py-6 px-6 border-2 transition-all duration-200 ${
+                        className={`flex flex-col items-center gap-2 h-auto py-4 px-4 border-2 transition-all duration-200 ${
                           recordingMode === 'mic-only' 
-                            ? 'border-primary bg-primary text-primary-foreground shadow-lg scale-105' 
+                            ? 'border-primary bg-primary text-primary-foreground shadow-md' 
                             : 'border-border hover:border-primary/50 hover:bg-muted/50'
                         }`}
                       >
-                        <div className="p-3 rounded-full bg-primary/10">
-                          <Mic className="h-6 w-6" />
-                        </div>
+                        <Mic className="h-5 w-5" />
                         <div className="text-center">
-                          <div className="font-semibold text-base">Microphone Only</div>
-                          <div className="text-sm opacity-80 mt-1">Face to face meetings</div>
+                          <div className="font-medium text-sm">Microphone Only</div>
+                          <div className="text-xs opacity-80">Face to face meetings</div>
                         </div>
                       </Button>
                       
@@ -629,19 +625,19 @@ export const MeetingRecorder = ({
                           <Button
                             variant={recordingMode === 'mic-browser' ? 'default' : 'outline'}
                             onClick={() => setRecordingMode('mic-browser')}
-                            className={`flex flex-col items-center gap-3 h-auto py-6 px-6 border-2 transition-all duration-200 ${
+                            className={`flex flex-col items-center gap-2 h-auto py-4 px-4 border-2 transition-all duration-200 ${
                               recordingMode === 'mic-browser' 
-                                ? 'border-primary bg-primary text-primary-foreground shadow-lg scale-105' 
+                                ? 'border-primary bg-primary text-primary-foreground shadow-md' 
                                 : 'border-border hover:border-primary/50 hover:bg-muted/50'
                             }`}
                           >
-                            <div className="p-3 rounded-full bg-primary/10 flex items-center gap-2">
-                              <Mic className="h-5 w-5" />
-                              <Volume2 className="h-5 w-5" />
+                            <div className="flex items-center gap-1">
+                              <Mic className="h-4 w-4" />
+                              <Volume2 className="h-4 w-4" />
                             </div>
                             <div className="text-center">
-                              <div className="font-semibold text-base">Mic + Browser Audio</div>
-                              <div className="text-sm opacity-80 mt-1">Teams, Zoom meetings</div>
+                              <div className="font-medium text-sm">Mic + Browser Audio</div>
+                              <div className="text-xs opacity-80">Teams, Zoom meetings</div>
                             </div>
                           </Button>
                         </TooltipTrigger>
@@ -656,49 +652,46 @@ export const MeetingRecorder = ({
                 {/* Recording Button */}
                 <div className="text-center">
                   {!isRecording ? (
-                    <div className="space-y-4">
+                    <div className="space-y-2">
                       <Button 
                         onClick={startRecording}
                         size="lg"
-                        className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-white shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-200 px-12 py-6 text-lg font-semibold rounded-xl"
+                        className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 px-8 py-4 text-base font-semibold rounded-lg"
                       >
-                        <Mic className="h-6 w-6 mr-3" />
+                        <Mic className="h-5 w-5 mr-2" />
                         Start Recording
                       </Button>
-                      <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                        Click to begin recording with real-time transcription. Make sure you're in a quiet environment for best results.
-                      </p>
                     </div>
                   ) : (
-                    <div className="space-y-6">
-                      <div className="flex items-center justify-center gap-3 text-primary animate-pulse bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl p-6 border border-primary/20">
-                        <div className="w-4 h-4 bg-red-500 rounded-full animate-pulse"></div>
-                        <span className="text-lg font-semibold">Recording in progress...</span>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-center gap-3 text-primary animate-pulse bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg p-4 border border-primary/20">
+                        <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                        <span className="text-base font-semibold">Recording in progress...</span>
                       </div>
                       
                       <Button 
                         onClick={stopRecording}
                         variant="destructive"
                         size="lg"
-                        className="shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-200 px-12 py-6 text-lg font-semibold rounded-xl"
+                        className="shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 px-8 py-4 text-base font-semibold rounded-lg"
                       >
-                        <Square className="h-6 w-6 mr-3" />
+                        <Square className="h-5 w-5 mr-2" />
                         Stop Recording
                       </Button>
                     </div>
                   )}
                 </div>
 
-                {/* Welcome Message */}
+                {/* Compact Welcome Message */}
                 {!isRecording && (
-                  <div className="text-center py-8 mt-8 border-t border-border/50">
-                    <div className="max-w-md mx-auto">
-                      <div className="p-4 rounded-full bg-primary/5 w-20 h-20 mx-auto mb-4 flex items-center justify-center">
-                        <Mic className="h-10 w-10 text-primary/60" />
+                  <div className="text-center py-4 mt-4 border-t border-border/50">
+                    <div className="max-w-sm mx-auto">
+                      <div className="p-2 rounded-full bg-primary/5 w-12 h-12 mx-auto mb-2 flex items-center justify-center">
+                        <Mic className="h-6 w-6 text-primary/60" />
                       </div>
-                      <h3 className="text-xl font-semibold mb-3 text-foreground">Ready to Record</h3>
-                      <p className="text-muted-foreground leading-relaxed">
-                        Your meeting will be transcribed in real-time with speaker identification and timestamping.
+                      <h4 className="text-base font-medium mb-1">Ready to Record</h4>
+                      <p className="text-xs text-muted-foreground">
+                        Real-time transcription with speaker identification
                       </p>
                     </div>
                   </div>
