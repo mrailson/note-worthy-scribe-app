@@ -1361,7 +1361,11 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                       <Textarea
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
-                        placeholder="Ask me about NHS policies, compliance, or attach documents for analysis..."
+                        placeholder={
+                          uploadedFiles.length > 0 
+                            ? `📎 Files attached: ${uploadedFiles.map(f => f.name).join(', ')} - Ask me about NHS policies, compliance, or your documents...`
+                            : "Ask me about NHS policies, compliance, or attach documents for analysis..."
+                        }
                         className="min-h-[80px] pr-32 resize-none"
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' && !e.shiftKey) {
@@ -1413,7 +1417,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                           >
                             <Paperclip className={`h-4 w-4 transition-all duration-300 ${
                               uploadedFiles.length > 0 
-                                ? 'text-primary scale-110 animate-pulse' 
+                                ? 'text-primary scale-110' 
                                 : 'text-muted-foreground'
                             }`} />
                           </Button>
