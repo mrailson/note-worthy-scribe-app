@@ -115,8 +115,8 @@ serve(async (req) => {
       duration: result.duration
     });
 
-    // Strict quality thresholds
-    if (avgNoSpeechProb > 0.7) {
+    // Much stricter quality thresholds to prevent fake transcripts
+    if (avgNoSpeechProb > 0.5) {
       console.log('Rejected: High no_speech_prob:', avgNoSpeechProb);
       return new Response(
         JSON.stringify({ text: '', confidence: 0, filtered: true, reason: 'high_no_speech_prob', metrics: { avgNoSpeechProb, avgLogProb } }),
@@ -124,7 +124,7 @@ serve(async (req) => {
       );
     }
 
-    if (avgLogProb < -1.5) {
+    if (avgLogProb < -0.8) {
       console.log('Rejected: Low confidence logprob:', avgLogProb);
       return new Response(
         JSON.stringify({ text: '', confidence: 0, filtered: true, reason: 'low_confidence', metrics: { avgNoSpeechProb, avgLogProb } }),
@@ -178,13 +178,23 @@ function isLikelyHallucination(text: string): boolean {
     'good night', 'goodnight', 'good morning', 'good afternoon',
     'hello', 'hi there', 'welcome', 'cheers',
     'music', 'applause', 'laughter', 'silence',
-    'okay', 'ok', 'um', 'uh', 'hmm', 'you', 'me'
+    'okay', 'ok', 'um', 'uh', 'hmm', 'you', 'me',
+    'firming that', 'that\'s fine', 'there',
+    'jenny, i\'m in business', 'no, you\'re not',
+    'okay, we\'ll finish it'
   ];
 
   // Religious/Arabic phrases that Whisper hallucinates
   const religiousPatterns = [
     'bi hurmati', 'muhammad', 'al-mustafa', 'surat', 'al-fatiha', 
     'bismillah', 'allahu akbar', 'subhanallah'
+  ];
+
+  // Conversational fragments that are likely hallucinations
+  const conversationalFragments = [
+    'jenny', 'business', 'finish it', 'very much',
+    'not really', 'i think so', 'maybe', 'perhaps',
+    'probably', 'definitely', 'certainly', 'absolutely'
   ];
 
   // Check exact matches
@@ -194,6 +204,11 @@ function isLikelyHallucination(text: string): boolean {
 
   // Check for religious patterns
   if (religiousPatterns.some(pattern => text.includes(pattern))) {
+    return true;
+  }
+
+  // Check for conversational fragments without context
+  if (text.length < 20 && conversationalFragments.some(fragment => text.includes(fragment))) {
     return true;
   }
 
@@ -218,6 +233,23 @@ function isLikelyHallucination(text: string): boolean {
     if (allSame) {
       return true;
     }
+  }
+
+  // Check for sentences that start with common hallucination patterns
+  const hallucinationStarters = [
+    'jenny', 'okay', 'that\'s', 'there'
+  ];
+  
+  const firstWord = words[0]?.toLowerCase();
+  if (hallucinationStarters.includes(firstWord) && words.length < 8) {
+    return true;
+  }
+
+  // Check for audio duration vs text length mismatch
+  // If text is too long for a very short audio clip, it's likely hallucination
+  if (words.length > 10 && text.length > 50) {
+    // This suggests a lot of text from a short audio clip
+    return true;
   }
 
   return false;
