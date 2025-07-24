@@ -83,7 +83,8 @@ const handler = async (req: Request): Promise<Response> => {
         gp_scribe_access: userData.module_access?.gp_scribe_access ?? false,
         complaints_manager_access: userData.module_access?.complaints_manager_access ?? false,
         complaints_admin_access: userData.module_access?.complaints_admin_access ?? false,
-        replywell_access: userData.module_access?.replywell_access ?? false
+        replywell_access: userData.module_access?.replywell_access ?? false,
+        ai_4_pm_access: userData.module_access?.ai_4_pm_access ?? false
       });
 
     if (roleError) {

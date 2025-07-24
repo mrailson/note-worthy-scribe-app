@@ -1527,6 +1527,23 @@ const SystemAdmin = () => {
                     }
                   />
                 </div>
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="ai-4-pm">AI4PM Assistant</Label>
+                    <p className="text-sm text-muted-foreground">AI-powered practice management assistance</p>
+                  </div>
+                  <Switch
+                    id="ai-4-pm"
+                    checked={userForm.module_access.ai_4_pm_access}
+                    onCheckedChange={(checked) => 
+                      setUserForm(prev => ({
+                        ...prev, 
+                        module_access: { ...prev.module_access, ai_4_pm_access: checked }
+                      }))
+                    }
+                  />
+                </div>
               </div>
             </div>
           </div>

@@ -1121,6 +1121,7 @@ export type Database = {
       }
       user_roles: {
         Row: {
+          ai_4_pm_access: boolean | null
           assigned_at: string | null
           assigned_by: string | null
           complaints_admin_access: boolean | null
@@ -1135,6 +1136,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          ai_4_pm_access?: boolean | null
           assigned_at?: string | null
           assigned_by?: string | null
           complaints_admin_access?: boolean | null
@@ -1149,6 +1151,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          ai_4_pm_access?: boolean | null
           assigned_at?: string | null
           assigned_by?: string | null
           complaints_admin_access?: boolean | null
