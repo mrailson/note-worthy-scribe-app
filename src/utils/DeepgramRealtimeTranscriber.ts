@@ -1,3 +1,5 @@
+import { SystemAudioCapture } from '@/utils/SystemAudioCapture';
+
 export interface TranscriptData {
   text: string;
   is_final: boolean;
@@ -20,6 +22,7 @@ export class DeepgramRealtimeTranscriber {
   private mediaStream: MediaStream | null = null;
   private isRecording = false;
   private sessionId: string = '';
+  private audioCapture: SystemAudioCapture;
 
   constructor(
     private onTranscription: (data: TranscriptData) => void,
@@ -28,6 +31,7 @@ export class DeepgramRealtimeTranscriber {
     private onSummary?: (summary: string) => void
   ) {
     this.sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    this.audioCapture = new SystemAudioCapture();
   }
 
   async startTranscription() {
@@ -140,16 +144,8 @@ export class DeepgramRealtimeTranscriber {
 
   private async startAudioCapture() {
     try {
-      // Get audio stream with optimized settings for Deepgram
-      this.mediaStream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          sampleRate: 24000,
-          channelCount: 1,
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
-        }
-      });
+      // Always try to capture both mic + system audio
+      this.mediaStream = await this.audioCapture.startCapture();
 
       // Create MediaRecorder with WebM format
       this.mediaRecorder = new MediaRecorder(this.mediaStream, {
@@ -187,11 +183,9 @@ export class DeepgramRealtimeTranscriber {
       this.mediaRecorder.stop();
     }
 
-    // Stop media stream
-    if (this.mediaStream) {
-      this.mediaStream.getTracks().forEach(track => track.stop());
-      this.mediaStream = null;
-    }
+    // Stop audio capture
+    this.audioCapture.stopCapture();
+    this.mediaStream = null;
 
     // Send finalize message and close WebSocket
     if (this.ws?.readyState === WebSocket.OPEN) {

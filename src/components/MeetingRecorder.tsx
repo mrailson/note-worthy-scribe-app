@@ -63,8 +63,6 @@ export const MeetingRecorder = ({
   const [startTime, setStartTime] = useState<string>("");
   const [liveSummary, setLiveSummary] = useState<string>("");
   
-  // Recording mode selection
-  const [recordingMode, setRecordingMode] = useState<'mic-only' | 'mic-browser'>('mic-only');
   
   // Meeting history state
   const [meetings, setMeetings] = useState<any[]>([]);
@@ -719,66 +717,6 @@ export const MeetingRecorder = ({
             {/* Compact Recording Controls */}
             <Card className="shadow-lg">
               <CardContent className="pt-4 pb-4">
-                {/* Recording Mode Selection */}
-                {!isRecording && (
-                  <div className="mb-3">
-                    <div className="text-center mb-3">
-                      <h3 className="text-base font-semibold">Recording Mode</h3>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-w-lg mx-auto">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant={recordingMode === 'mic-only' ? 'default' : 'outline'}
-                            onClick={() => setRecordingMode('mic-only')}
-                            className={`flex items-center gap-2 h-auto py-2 px-3 border transition-all duration-200 ${
-                              recordingMode === 'mic-only' 
-                                ? 'border-primary bg-primary text-primary-foreground' 
-                                : 'border-border hover:border-primary/50 hover:bg-muted/50'
-                            }`}
-                          >
-                            <Mic className="h-4 w-4" />
-                            <div className="text-left">
-                              <div className="font-medium text-xs">Auto Record All</div>
-                              <div className="text-xs opacity-75">Mic + Speaker audio</div>
-                            </div>
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Automatically tries to capture both microphone and speaker audio. Falls back to microphone only if screen sharing is denied.</p>
-                        </TooltipContent>
-                      </Tooltip>
-                      
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant={recordingMode === 'mic-browser' ? 'default' : 'outline'}
-                            onClick={() => setRecordingMode('mic-browser')}
-                            className={`flex items-center gap-2 h-auto py-2 px-3 border transition-all duration-200 ${
-                              recordingMode === 'mic-browser' 
-                                ? 'border-primary bg-primary text-primary-foreground' 
-                                : 'border-border hover:border-primary/50 hover:bg-muted/50'
-                            }`}
-                          >
-                            <div className="flex items-center gap-1">
-                              <Mic className="h-3 w-3" />
-                              <Volume2 className="h-3 w-3" />
-                            </div>
-                            <div className="text-left">
-                              <div className="font-medium text-xs">Mic + Browser Audio</div>
-                              <div className="text-xs opacity-75">Teams, Zoom</div>
-                            </div>
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>You'll be asked to share your browser tab to capture system audio</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-                  </div>
-                )}
-
                 {/* Recording Button */}
                 <div className="text-center">
                   {!isRecording ? (
@@ -819,9 +757,9 @@ export const MeetingRecorder = ({
                       <div className="p-2 rounded-full bg-primary/5 w-12 h-12 mx-auto mb-2 flex items-center justify-center">
                         <Mic className="h-6 w-6 text-primary/60" />
                       </div>
-                      <h4 className="text-base font-medium mb-1">Ready to Record</h4>
+                       <h4 className="text-base font-medium mb-1">Ready to Record</h4>
                        <p className="text-xs text-muted-foreground">
-                         Real-time transcription with live AI summaries
+                         Automatic microphone + system audio capture with live AI summaries
                        </p>
                        
                        {/* Live Summary Display */}
