@@ -1187,28 +1187,10 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                     {/* Chat size controls */}
                     <div className="flex items-center gap-1 border rounded-lg p-1">
                       <Button
-                        variant={chatBoxSize === 'small' ? 'secondary' : 'ghost'}
-                        size="sm"
-                        onClick={() => setChatBoxSize('small')}
-                        className="h-7 w-7 p-0"
-                        title="Small window"
-                      >
-                        <div className="w-2 h-2 bg-current rounded-sm"></div>
-                      </Button>
-                      <Button
-                        variant={chatBoxSize === 'default' ? 'secondary' : 'ghost'}
-                        size="sm"
-                        onClick={() => setChatBoxSize('default')}
-                        className="h-7 w-7 p-0"
-                        title="Default window"
-                      >
-                        <div className="w-3 h-3 bg-current rounded-sm"></div>
-                      </Button>
-                      <Button
                         variant={chatBoxSize === 'large' ? 'secondary' : 'ghost'}
                         size="sm"
                         onClick={() => setChatBoxSize('large')}
-                        className="h-7 w-7 p-0"
+                        className="h-8 w-8 p-0"
                         title="Large window"
                       >
                         <div className="w-4 h-4 bg-current rounded-sm"></div>
@@ -1217,10 +1199,19 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                         variant={chatBoxSize === 'extra-large' ? 'secondary' : 'ghost'}
                         size="sm"
                         onClick={() => setChatBoxSize('extra-large')}
-                        className="h-7 w-7 p-0"
+                        className="h-8 w-8 p-0"
                         title="Extra large window"
                       >
                         <div className="w-5 h-5 bg-current rounded-sm"></div>
+                      </Button>
+                      <Button
+                        variant={chatBoxSize === 'full-screen' ? 'secondary' : 'ghost'}
+                        size="sm"
+                        onClick={() => setChatBoxSize('full-screen')}
+                        className="h-8 w-8 p-0"
+                        title="Full screen window"
+                      >
+                        <div className="w-6 h-6 bg-current rounded-sm"></div>
                       </Button>
                     </div>
                     
