@@ -1316,7 +1316,7 @@ const SystemAdmin = () => {
 
       {/* User Creation Dialog */}
       <Dialog open={isUserDialogOpen} onOpenChange={setIsUserDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add New User</DialogTitle>
             <DialogDescription>
