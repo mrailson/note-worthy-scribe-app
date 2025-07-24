@@ -42,11 +42,11 @@ serve(async (req) => {
   }
 
   try {
-    console.log('Processing audio data...');
+    console.log('Processing audio data with Deepgram...');
     
-    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-    if (!openAIApiKey) {
-      throw new Error('OPENAI_API_KEY is not set');
+    const deepgramApiKey = Deno.env.get('DEEPGRAM_API_KEY');
+    if (!deepgramApiKey) {
+      throw new Error('DEEPGRAM_API_KEY is not set');
     }
 
     const { audio } = await req.json();
@@ -55,74 +55,50 @@ serve(async (req) => {
       throw new Error('No audio data provided');
     }
 
-    console.log('Sending to OpenAI Whisper...');
+    console.log('Sending to Deepgram...');
 
     // Process audio in chunks
     const binaryAudio = processBase64Chunks(audio);
     
-    // Prepare form data for OpenAI Whisper
-    const formData = new FormData();
-    const blob = new Blob([binaryAudio], { type: 'audio/wav' });
-    formData.append('file', blob, 'audio.wav');
-    formData.append('model', 'whisper-1');
-    formData.append('response_format', 'verbose_json');
-    formData.append('temperature', '0');
-    formData.append('language', 'en');
-
-    // Send to OpenAI Whisper
-    const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+    // Send to Deepgram
+    const response = await fetch('https://api.deepgram.com/v1/listen?model=nova-2&smart_format=true&punctuate=true&diarize=false&language=en&encoding=webm', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
+        'Authorization': `Token ${deepgramApiKey}`,
+        'Content-Type': 'audio/webm',
       },
-      body: formData,
+      body: binaryAudio,
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('OpenAI API error:', response.status, errorText);
-      throw new Error(`OpenAI API error: ${errorText}`);
+      console.error('Deepgram API error:', response.status, errorText);
+      throw new Error(`Deepgram API error: ${errorText}`);
     }
 
     const result = await response.json();
-    console.log('OpenAI Whisper response:', JSON.stringify(result, null, 2));
+    console.log('Deepgram response:', JSON.stringify(result, null, 2));
 
-    // Enhanced quality filtering using OpenAI's detailed response
-    if (!result.text || result.text.trim().length === 0) {
-      console.log('No transcription text received from Whisper');
+    // Extract transcription from Deepgram response
+    const transcript = result.results?.channels?.[0]?.alternatives?.[0]?.transcript || '';
+    const confidence = result.results?.channels?.[0]?.alternatives?.[0]?.confidence || 0;
+    const words = result.results?.channels?.[0]?.alternatives?.[0]?.words || [];
+
+    if (!transcript || transcript.trim().length === 0) {
+      console.log('No transcription text received from Deepgram');
       return new Response(
         JSON.stringify({ text: '', confidence: 0, filtered: true, reason: 'no_text' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const text = result.text.trim();
-    const segments = result.segments || [];
-    
-    // Calculate average confidence metrics
-    let avgNoSpeechProb = 0;
-    let avgLogProb = 0;
-    
-    if (segments.length > 0) {
-      avgNoSpeechProb = segments.reduce((sum: number, seg: any) => sum + (seg.no_speech_prob || 0), 0) / segments.length;
-      avgLogProb = segments.reduce((sum: number, seg: any) => sum + (seg.avg_logprob || 0), 0) / segments.length;
-    }
+    const text = transcript.trim();
 
-    console.log('Quality metrics:', {
+    console.log('Deepgram transcription:', {
       text,
-      avgNoSpeechProb,
-      avgLogProb,
-      duration: result.duration
+      confidence,
+      wordCount: words.length
     });
-
-    // Very relaxed quality thresholds - let OpenAI's transcription through
-    if (avgNoSpeechProb > 0.99) {
-      console.log('Rejected: Extremely high no_speech_prob:', avgNoSpeechProb);
-      return new Response(
-        JSON.stringify({ text: '', confidence: 0, filtered: true, reason: 'no_speech_detected', metrics: { avgNoSpeechProb, avgLogProb } }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
 
     // Enhanced hallucination detection
     const isHallucination = isLikelyHallucination(text.toLowerCase());
@@ -135,13 +111,22 @@ serve(async (req) => {
       );
     }
 
+    // Filter out very low confidence results
+    if (confidence < 0.3) {
+      console.log('Rejected: Low confidence:', confidence);
+      return new Response(
+        JSON.stringify({ text: '', confidence: 0, filtered: true, reason: 'low_confidence', original_text: text }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     return new Response(
       JSON.stringify({ 
         text: text,
-        confidence: Math.max(0, 1 + avgLogProb / 2), // Convert logprob to confidence
-        segments: segments,
-        duration: result.duration,
-        metrics: { avgNoSpeechProb, avgLogProb }
+        confidence: confidence,
+        words: words,
+        duration: result.metadata?.duration || 0,
+        provider: 'deepgram'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
@@ -159,7 +144,7 @@ serve(async (req) => {
 });
 
 function isLikelyHallucination(text: string): boolean {
-  // Common Whisper hallucinations - exact matches only
+  // Common speech-to-text hallucinations - exact matches only
   const exactHallucinations = [
     'bye', 'bye-bye', 'bye bye', 'goodbye',
     'thank you', 'thanks', 'thank you very much', 
@@ -170,7 +155,7 @@ function isLikelyHallucination(text: string): boolean {
     'thanks. bye.', 'thank you, bye', 'thanks, bye'
   ];
 
-  // Religious/Arabic phrases that Whisper hallucinates
+  // Religious/Arabic phrases that can be hallucinated
   const religiousPatterns = [
     'bi hurmati', 'muhammad', 'al-mustafa', 'surat', 'al-fatiha', 'bismillah'
   ];
