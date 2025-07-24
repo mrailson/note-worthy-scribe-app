@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Clock, FileText, Trash2, Edit, Mail, RefreshCw, Square, CheckSquare } from "lucide-react";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Plus, Clock, FileText, Trash2, Edit, Mail, RefreshCw, Square, CheckSquare, ChevronDown } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -692,127 +693,139 @@ const MeetingHistory = () => {
               </Button>
             </CardHeader>
             <CardContent>
-              <Tabs defaultValue="minutes" className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="minutes">AI Generated Minutes</TabsTrigger>
-                  <TabsTrigger value="details">Meeting Details</TabsTrigger>
-                  <TabsTrigger value="transcript">Transcript</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="minutes" className="mt-4">
-                  <div className="space-y-4">
-                    {meetingSummary ? (
-                      <div className="prose max-w-none">
-                        <pre className="whitespace-pre-wrap text-sm">{meetingSummary}</pre>
+              <div className="space-y-6">
+                {/* Meeting Notes Section */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Meeting Notes</h3>
+                  {meetingSummary ? (
+                    <div className="prose max-w-none">
+                      <pre className="whitespace-pre-wrap text-sm bg-muted p-4 rounded-lg border">
+                        {meetingSummary}
+                      </pre>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 bg-muted/50 rounded-lg border">
+                      <p className="text-muted-foreground mb-4">No AI-generated notes available for this meeting.</p>
+                      <Button 
+                        onClick={handleGenerateNotes}
+                        disabled={isGeneratingNotes || !meetingTranscript}
+                        className="touch-manipulation min-h-[44px]"
+                      >
+                        <RefreshCw className={`h-4 w-4 mr-2 ${isGeneratingNotes ? 'animate-spin' : ''}`} />
+                        {isGeneratingNotes ? 'Generating...' : 'Generate Notes'}
+                      </Button>
+                    </div>
+                  )}
+                  
+                  {/* Action Buttons */}
+                  {meetingSummary && (
+                    <div className="flex flex-col sm:flex-row gap-4 pt-4 border-t">
+                      <Button 
+                        onClick={handleGenerateNotes}
+                        disabled={isGeneratingNotes || !meetingTranscript}
+                        variant="outline"
+                        className="flex-1 touch-manipulation min-h-[44px]"
+                      >
+                        <RefreshCw className={`h-4 w-4 mr-2 ${isGeneratingNotes ? 'animate-spin' : ''}`} />
+                        {isGeneratingNotes ? 'Regenerating...' : 'Regenerate Notes'}
+                      </Button>
+                      
+                      <Button 
+                        onClick={handleEmailNotes}
+                        disabled={!meetingSummary}
+                        variant="outline"
+                        className="flex-1 touch-manipulation min-h-[44px]"
+                      >
+                        <Mail className="h-4 w-4 mr-2" />
+                        Email Notes
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Transcript Section - Collapsible */}
+                <Accordion type="single" collapsible className="w-full">
+                  <AccordionItem value="transcript" className="border rounded-lg px-4">
+                    <AccordionTrigger className="text-lg font-semibold hover:no-underline py-4">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-5 w-5" />
+                        Transcript
+                        {meetingTranscript && (
+                          <span className="text-sm text-muted-foreground font-normal">
+                            ({meetingTranscript.split(' ').length} words)
+                          </span>
+                        )}
                       </div>
-                    ) : (
-                      <div className="text-center py-8">
-                        <p className="text-muted-foreground mb-4">No AI-generated minutes available for this meeting.</p>
-                        <Button 
-                          onClick={handleGenerateNotes}
-                          disabled={isGeneratingNotes || !meetingTranscript}
-                          className="touch-manipulation min-h-[44px]"
-                        >
-                          <RefreshCw className={`h-4 w-4 mr-2 ${isGeneratingNotes ? 'animate-spin' : ''}`} />
-                          {isGeneratingNotes ? 'Generating...' : 'Generate Minutes'}
-                        </Button>
+                    </AccordionTrigger>
+                    <AccordionContent className="pb-4">
+                      {meetingTranscript ? (
+                        <div className="prose max-w-none">
+                          <pre className="whitespace-pre-wrap text-sm bg-muted p-4 rounded-lg max-h-96 overflow-y-auto">
+                            {meetingTranscript}
+                          </pre>
+                        </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <p className="text-muted-foreground">No transcript available for this meeting.</p>
+                        </div>
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+
+                {/* Meeting Details Section */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Meeting Details</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-muted/50 p-4 rounded-lg border">
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Title</Label>
+                      <p className="text-sm">{selectedMeeting.title}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Type</Label>
+                      <p className="text-sm">{selectedMeeting.meeting_type}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Date</Label>
+                      <p className="text-sm">{new Date(selectedMeeting.start_time).toLocaleDateString()}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Time</Label>
+                      <p className="text-sm">{new Date(selectedMeeting.start_time).toLocaleTimeString()}</p>
+                    </div>
+                    {selectedMeeting.duration_minutes && (
+                      <div>
+                        <Label className="text-sm font-medium text-muted-foreground">Duration</Label>
+                        <p className="text-sm">{selectedMeeting.duration_minutes} minutes</p>
                       </div>
                     )}
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="details" className="mt-4">
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {selectedMeeting.location && (
                       <div>
-                        <Label className="text-sm font-medium text-muted-foreground">Title</Label>
-                        <p className="text-sm">{selectedMeeting.title}</p>
+                        <Label className="text-sm font-medium text-muted-foreground">Location</Label>
+                        <p className="text-sm">{selectedMeeting.location}</p>
                       </div>
+                    )}
+                    {selectedMeeting.format && (
                       <div>
-                        <Label className="text-sm font-medium text-muted-foreground">Type</Label>
-                        <p className="text-sm">{selectedMeeting.meeting_type}</p>
+                        <Label className="text-sm font-medium text-muted-foreground">Format</Label>
+                        <p className="text-sm">{selectedMeeting.format === 'face-to-face' ? 'Face to Face' : 'Teams/Online'}</p>
                       </div>
+                    )}
+                    {selectedMeeting.status && (
                       <div>
-                        <Label className="text-sm font-medium text-muted-foreground">Date</Label>
-                        <p className="text-sm">{new Date(selectedMeeting.start_time).toLocaleDateString()}</p>
+                        <Label className="text-sm font-medium text-muted-foreground">Status</Label>
+                        <p className="text-sm capitalize">{selectedMeeting.status}</p>
                       </div>
-                      <div>
-                        <Label className="text-sm font-medium text-muted-foreground">Time</Label>
-                        <p className="text-sm">{new Date(selectedMeeting.start_time).toLocaleTimeString()}</p>
-                      </div>
-                      {selectedMeeting.duration_minutes && (
-                        <div>
-                          <Label className="text-sm font-medium text-muted-foreground">Duration</Label>
-                          <p className="text-sm">{selectedMeeting.duration_minutes} minutes</p>
-                        </div>
-                      )}
-                      {selectedMeeting.location && (
-                        <div>
-                          <Label className="text-sm font-medium text-muted-foreground">Location</Label>
-                          <p className="text-sm">{selectedMeeting.location}</p>
-                        </div>
-                      )}
-                      {selectedMeeting.format && (
-                        <div>
-                          <Label className="text-sm font-medium text-muted-foreground">Format</Label>
-                          <p className="text-sm">{selectedMeeting.format === 'face-to-face' ? 'Face to Face' : 'Teams/Online'}</p>
-                        </div>
-                      )}
-                      {selectedMeeting.status && (
-                        <div>
-                          <Label className="text-sm font-medium text-muted-foreground">Status</Label>
-                          <p className="text-sm capitalize">{selectedMeeting.status}</p>
-                        </div>
-                      )}
-                    </div>
+                    )}
                     {selectedMeeting.description && (
-                      <div>
+                      <div className="sm:col-span-2">
                         <Label className="text-sm font-medium text-muted-foreground">Description</Label>
                         <p className="text-sm mt-1">{selectedMeeting.description}</p>
                       </div>
                     )}
-                    
-                    <div className="pt-4 border-t">
-                      <div className="flex flex-col sm:flex-row gap-4">
-                        <Button 
-                          onClick={handleGenerateNotes}
-                          disabled={isGeneratingNotes || !meetingTranscript}
-                          className="flex-1 touch-manipulation min-h-[44px]"
-                        >
-                          <RefreshCw className={`h-4 w-4 mr-2 ${isGeneratingNotes ? 'animate-spin' : ''}`} />
-                          {isGeneratingNotes ? 'Generating...' : 'Regenerate Notes'}
-                        </Button>
-                        
-                        <Button 
-                          onClick={handleEmailNotes}
-                          disabled={!meetingSummary}
-                          variant="outline"
-                          className="flex-1 touch-manipulation min-h-[44px]"
-                        >
-                          <Mail className="h-4 w-4 mr-2" />
-                          Email Notes
-                        </Button>
-                      </div>
-                    </div>
                   </div>
-                </TabsContent>
-                
-                <TabsContent value="transcript" className="mt-4">
-                  <div className="space-y-4">
-                    {meetingTranscript ? (
-                      <div className="prose max-w-none">
-                        <pre className="whitespace-pre-wrap text-sm bg-muted p-4 rounded-lg">
-                          {meetingTranscript}
-                        </pre>
-                      </div>
-                    ) : (
-                      <div className="text-center py-8">
-                        <p className="text-muted-foreground">No transcript available for this meeting.</p>
-                      </div>
-                    )}
-                  </div>
-                </TabsContent>
-              </Tabs>
+                </div>
+              </div>
             </CardContent>
           </Card>
         ) : (
