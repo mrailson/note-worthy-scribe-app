@@ -34,7 +34,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Deleting user with admin privileges:", user_id);
 
-    // Delete related records first to avoid foreign key constraints
+    // Delete all related records first to avoid foreign key constraints
     console.log("Deleting complaint templates...");
     const { error: templatesError } = await supabaseAdmin
       .from('complaint_templates')
@@ -44,6 +44,72 @@ const handler = async (req: Request): Promise<Response> => {
     if (templatesError) {
       console.error("Error deleting complaint templates:", templatesError);
       throw templatesError;
+    }
+
+    console.log("Deleting complaint audit logs...");
+    const { error: auditError } = await supabaseAdmin
+      .from('complaint_audit_log')
+      .delete()
+      .eq('performed_by', user_id);
+
+    if (auditError) {
+      console.error("Error deleting complaint audit logs:", auditError);
+      throw auditError;
+    }
+
+    console.log("Deleting complaint notes...");
+    const { error: notesError } = await supabaseAdmin
+      .from('complaint_notes')
+      .delete()
+      .eq('created_by', user_id);
+
+    if (notesError) {
+      console.error("Error deleting complaint notes:", notesError);
+      throw notesError;
+    }
+
+    console.log("Deleting complaint responses...");
+    const { error: responsesError } = await supabaseAdmin
+      .from('complaint_responses')
+      .delete()
+      .eq('sent_by', user_id);
+
+    if (responsesError) {
+      console.error("Error deleting complaint responses:", responsesError);
+      throw responsesError;
+    }
+
+    console.log("Deleting complaint documents...");
+    const { error: documentsError } = await supabaseAdmin
+      .from('complaint_documents')
+      .delete()
+      .eq('uploaded_by', user_id);
+
+    if (documentsError) {
+      console.error("Error deleting complaint documents:", documentsError);
+      throw documentsError;
+    }
+
+    console.log("Updating complaints assigned to user...");
+    const { error: assignedError } = await supabaseAdmin
+      .from('complaints')
+      .update({ assigned_to: null })
+      .eq('assigned_to', user_id);
+
+    if (assignedError) {
+      console.error("Error updating assigned complaints:", assignedError);
+      throw assignedError;
+    }
+
+    console.log("Deleting PCN manager practice assignments...");
+    const { error: pcnError } = await supabaseAdmin
+      .from('pcn_manager_practices')
+      .delete()
+      .eq('user_id', user_id);
+
+    if (pcnError) {
+      console.error("Error deleting PCN manager practices:", pcnError);
+      throw pcnError;
     }
 
     console.log("Deleting user roles...");
