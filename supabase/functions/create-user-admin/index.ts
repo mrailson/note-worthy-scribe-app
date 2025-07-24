@@ -20,6 +20,7 @@ interface CreateUserRequest {
     complaints_manager_access: boolean;
     complaints_admin_access: boolean;
     replywell_access: boolean;
+    ai_4_pm_access: boolean;
   };
 }
 

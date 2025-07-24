@@ -83,7 +83,8 @@ const SystemAdmin = () => {
       gp_scribe_access: false,
       complaints_manager_access: false,
       complaints_admin_access: false,
-      replywell_access: false
+      replywell_access: false,
+      ai_4_pm_access: false
     }
   });
   
@@ -472,7 +473,8 @@ const SystemAdmin = () => {
             gp_scribe_access: false,
             complaints_manager_access: false,
             complaints_admin_access: false,
-            replywell_access: false
+            replywell_access: false,
+            ai_4_pm_access: false
           }
         });
         setPcnManagerPractices([]);
