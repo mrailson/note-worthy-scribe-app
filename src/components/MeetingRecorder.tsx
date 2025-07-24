@@ -26,7 +26,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
-import { BrowserSpeechRecognition } from "@/utils/BrowserSpeechRecognition";
+import { DeepgramRealtimeTranscriber, TranscriptData as DeepgramTranscriptData } from '@/utils/DeepgramRealtimeTranscriber';
 
 interface TranscriptData {
   text: string;
@@ -94,6 +94,7 @@ export const MeetingRecorder = ({
   const audioContextRef = useRef<AudioContext | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const deepgramTranscriberRef = useRef<DeepgramRealtimeTranscriber | null>(null);
 
   // Auto-save meeting data to localStorage
   const autoSaveMeeting = () => {
@@ -215,6 +216,18 @@ export const MeetingRecorder = ({
     });
   };
 
+  const handleDeepgramTranscript = (data: DeepgramTranscriptData) => {
+    const transcriptData: TranscriptData = {
+      text: data.text,
+      speaker: 'Speaker 1', // Deepgram diarization can be added later
+      confidence: data.confidence,
+      timestamp: new Date().toISOString(),
+      isFinal: data.is_final
+    };
+    
+    handleTranscript(transcriptData);
+  };
+
   const handleTranscriptionError = (error: string) => {
     console.error("Transcription Error:", error);
     setConnectionStatus("Error");
@@ -271,128 +284,21 @@ export const MeetingRecorder = ({
 
   const startRecording = async () => {
     try {
-      console.log('Starting recording with OpenAI Whisper transcription...');
+      console.log('Starting recording with Deepgram real-time transcription...');
       
-      let finalStream: MediaStream;
-      
-      if (recordingMode === 'mic-browser') {
-        // Request screen/browser audio capture
-        try {
-          const displayStream = await navigator.mediaDevices.getDisplayMedia({
-            video: true, // Required for audio capture in most browsers
-            audio: {
-              echoCancellation: true,
-              noiseSuppression: true,
-              autoGainControl: true
-            }
-          });
-          
-          // Check if audio track is available
-          const audioTracks = displayStream.getAudioTracks();
-          if (audioTracks.length === 0) {
-            displayStream.getTracks().forEach(track => track.stop());
-            throw new Error('No audio track available from screen sharing. Make sure to share a tab with audio (like Teams/Zoom) and check "Share tab audio".');
-          }
-          
-          // Also get microphone audio
-          const micStream = await navigator.mediaDevices.getUserMedia({
-            audio: {
-              echoCancellation: true,
-              noiseSuppression: true,
-              autoGainControl: true
-            }
-          });
-          
-          // Create a combined audio context for mixing both streams
-          const audioContext = new AudioContext();
-          const destination = audioContext.createMediaStreamDestination();
-          
-          // Connect both audio sources
-          const displaySource = audioContext.createMediaStreamSource(displayStream);
-          const micSource = audioContext.createMediaStreamSource(micStream);
-          
-          displaySource.connect(destination);
-          micSource.connect(destination);
-          
-          // Store references for cleanup
-          browserAudioStreamRef.current = displayStream;
-          micAudioStreamRef.current = micStream;
-          audioContextRef.current = audioContext;
-          
-          finalStream = destination.stream;
-          
-          console.log('Browser + Mic audio capture started');
-          toast.success('Browser audio sharing enabled. Transcription starting...');
-          
-        } catch (error: any) {
-          if (error.name === 'NotAllowedError') {
-            throw new Error('Screen sharing was denied. Please allow screen sharing and select "Share tab audio" to capture browser audio from Teams/Zoom calls.');
-          } else if (error.name === 'NotSupportedError') {
-            throw new Error('Screen sharing is not supported in this browser. Try using "Microphone Only" mode instead.');
-          } else if (error.message.includes('No audio track')) {
-            throw error; // Re-throw our custom audio track error
-          } else {
-            throw new Error('Failed to access browser audio: ' + error.message);
-          }
-        }
-      } else {
-        // Microphone only mode
-        console.log('Starting microphone-only audio capture with OpenAI Whisper transcription...');
-        
-        try {
-          const micStream = await navigator.mediaDevices.getUserMedia({
-            audio: {
-              echoCancellation: true,
-              noiseSuppression: true,
-              autoGainControl: true,
-              sampleRate: 24000  // Optimized for Whisper
-            }
-          });
-          
-          micAudioStreamRef.current = micStream;
-          finalStream = micStream;
-          
-          toast.success('Recording started with microphone');
-          
-        } catch (error: any) {
-          if (error.name === 'NotAllowedError') {
-            throw new Error('Microphone permission denied. Please allow microphone access to record.');
-          } else {
-            throw new Error('Failed to access microphone: ' + error.message);
-          }
-        }
-      }
-      
-      // Set up MediaRecorder with optimized settings for Whisper
-      const mediaRecorder = new MediaRecorder(finalStream, {
-        mimeType: 'audio/webm;codecs=opus'
-      });
-      
-      mediaRecorderRef.current = mediaRecorder;
-      
-      // Process audio in chunks every 3 seconds for better real-time experience
-      const audioChunks: Blob[] = [];
-      
-      mediaRecorder.ondataavailable = async (event) => {
-        if (event.data.size > 0) {
-          audioChunks.push(event.data);
-          
-          // Process chunk immediately for real-time transcription
-          const audioBlob = new Blob([event.data], { type: 'audio/webm' });
-          await processAudioChunk(audioBlob);
-        }
-      };
-      
-      mediaRecorder.onstop = () => {
-        console.log('MediaRecorder stopped');
-      };
-      
-      // Start recording with timeslice for chunking
-      mediaRecorder.start(3000); // 3-second chunks for optimal balance
+      // Initialize Deepgram real-time transcriber
+      deepgramTranscriberRef.current = new DeepgramRealtimeTranscriber(
+        handleDeepgramTranscript,
+        handleTranscriptionError,
+        handleStatusChange
+      );
+
+      // Start Deepgram transcription
+      await deepgramTranscriberRef.current.startTranscription();
       
       setIsRecording(true);
       setRealtimeTranscripts([]);
-      setSpeakerCount(0);
+      setSpeakerCount(1);
       setStartTime(new Date().toISOString());
       setConnectionStatus("Connected");
       
@@ -408,12 +314,13 @@ export const MeetingRecorder = ({
         });
       }, 1000);
 
-      console.log('Recording started successfully with OpenAI Whisper');
-      toast.success('Recording started with AI transcription!');
+      console.log('Recording started successfully with Deepgram real-time transcription');
+      toast.success('Recording started with real-time AI transcription!');
     } catch (error: any) {
       console.error('Failed to start recording:', error);
       toast.error(error.message || 'Failed to start recording');
       setIsRecording(false);
+      setConnectionStatus("Error");
     }
   };
 
@@ -426,32 +333,10 @@ export const MeetingRecorder = ({
       intervalRef.current = null;
     }
     
-    // Stop recording interval
-    if (recordingIntervalRef.current) {
-      clearInterval(recordingIntervalRef.current);
-      recordingIntervalRef.current = null;
-    }
-    
-    // Stop MediaRecorder
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-      mediaRecorderRef.current.stop();
-      mediaRecorderRef.current = null;
-    }
-    
-    // Clean up audio streams
-    if (browserAudioStreamRef.current) {
-      browserAudioStreamRef.current.getTracks().forEach(track => track.stop());
-      browserAudioStreamRef.current = null;
-    }
-    
-    if (micAudioStreamRef.current) {
-      micAudioStreamRef.current.getTracks().forEach(track => track.stop());
-      micAudioStreamRef.current = null;
-    }
-    
-    if (audioContextRef.current) {
-      audioContextRef.current.close();
-      audioContextRef.current = null;
+    // Stop Deepgram transcriber
+    if (deepgramTranscriberRef.current) {
+      deepgramTranscriberRef.current.stopTranscription();
+      deepgramTranscriberRef.current = null;
     }
     
     setIsRecording(false);
