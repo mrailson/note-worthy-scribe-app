@@ -24,7 +24,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
-import { UnifiedAudioCapture } from "@/utils/UnifiedAudioCapture";
+import { BrowserSpeechRecognition } from "@/utils/BrowserSpeechRecognition";
 
 interface TranscriptData {
   text: string;
@@ -85,7 +85,7 @@ export const MeetingRecorder = ({
   const { user } = useAuth();
   
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const audioCaptureRef = useRef<UnifiedAudioCapture | null>(null);
+  const speechRecognitionRef = useRef<BrowserSpeechRecognition | null>(null);
   const autoSaveRef = useRef<NodeJS.Timeout | null>(null);
 
   // Auto-save meeting data to localStorage
@@ -221,16 +221,21 @@ export const MeetingRecorder = ({
 
   const startRecording = async () => {
     try {
-      console.log(`Starting unified audio capture in ${recordingMode} mode...`);
+      console.log('Starting browser speech recognition...');
       
-      // Initialize unified audio capture
-      audioCaptureRef.current = new UnifiedAudioCapture(
+      // Initialize browser speech recognition
+      speechRecognitionRef.current = new BrowserSpeechRecognition(
         handleTranscript,
         handleTranscriptionError,
         handleStatusChange
       );
+
+      // Check if supported before starting
+      if (!speechRecognitionRef.current.isSupported()) {
+        throw new Error('Speech recognition is not supported in this browser. Please use Chrome, Edge, or Chrome on Android.');
+      }
       
-      await audioCaptureRef.current.startCapture(recordingMode);
+      await speechRecognitionRef.current.startRecognition();
       
       setIsRecording(true);
       setRealtimeTranscripts([]);
@@ -258,9 +263,9 @@ export const MeetingRecorder = ({
   };
 
   const stopRecording = async () => {
-    if (audioCaptureRef.current) {
-      audioCaptureRef.current.stopCapture();
-      audioCaptureRef.current = null;
+    if (speechRecognitionRef.current) {
+      speechRecognitionRef.current.stopRecognition();
+      speechRecognitionRef.current = null;
     }
     
     if (intervalRef.current) {
