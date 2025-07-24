@@ -20,6 +20,7 @@ import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Setti
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { MeetingSettings } from "@/components/MeetingSettings";
 import { MeetingHistoryList } from "@/components/MeetingHistoryList";
+import { NotewellAIAnimation } from "@/components/NotewellAIAnimation";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -73,6 +74,7 @@ export const MeetingRecorder = ({
   const [selectedMeetings, setSelectedMeetings] = useState<string[]>([]);
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
+  const [isGeneratingNotes, setIsGeneratingNotes] = useState(false);
   
   // Meeting settings
   const [meetingSettings, setMeetingSettings] = useState(initialSettings || {
@@ -303,8 +305,8 @@ export const MeetingRecorder = ({
       startTime: startTime
     };
 
-    // Show loading state while generating meeting notes
-    toast.loading('Generating meeting notes...', { id: 'meeting-notes' });
+    // Show Notewell AI animation
+    setIsGeneratingNotes(true);
 
     try {
       // Call the generate-meeting-minutes edge function
@@ -328,7 +330,8 @@ export const MeetingRecorder = ({
           generatedNotes: minutesData.meetingMinutes
         };
 
-        toast.success('Meeting notes generated successfully!', { id: 'meeting-notes' });
+        setIsGeneratingNotes(false);
+        toast.success('Meeting notes generated successfully!');
         
         // Navigate to meeting summary with data and generated notes
         navigate('/meeting-summary', { state: enhancedMeetingData });
@@ -337,7 +340,8 @@ export const MeetingRecorder = ({
       }
     } catch (error) {
       console.error('Error generating meeting notes:', error);
-      toast.error('Failed to generate meeting notes. Proceeding without AI notes.', { id: 'meeting-notes' });
+      setIsGeneratingNotes(false);
+      toast.error('Failed to generate meeting notes. Proceeding without AI notes.');
       
       // Still navigate to meeting summary even if note generation fails
       navigate('/meeting-summary', { state: meetingData });
@@ -976,6 +980,8 @@ export const MeetingRecorder = ({
           </Card>
         </TabsContent>
       </Tabs>
+      
+      <NotewellAIAnimation isVisible={isGeneratingNotes} />
     </div>
   );
 };

@@ -107,6 +107,10 @@ export default {
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out'
+			},
+			animationDelay: {
+				'200': '200ms',
+				'400': '400ms'
 			}
 		}
 	},
