@@ -115,20 +115,11 @@ serve(async (req) => {
       duration: result.duration
     });
 
-    // Only reject very obvious cases where OpenAI returns no speech
-    if (avgNoSpeechProb > 0.95) {
-      console.log('Rejected: Very high no_speech_prob:', avgNoSpeechProb);
+    // Very relaxed quality thresholds - let OpenAI's transcription through
+    if (avgNoSpeechProb > 0.99) {
+      console.log('Rejected: Extremely high no_speech_prob:', avgNoSpeechProb);
       return new Response(
         JSON.stringify({ text: '', confidence: 0, filtered: true, reason: 'no_speech_detected', metrics: { avgNoSpeechProb, avgLogProb } }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Only reject extremely low confidence transcripts
-    if (avgLogProb < -2.0) {
-      console.log('Rejected: Extremely low confidence:', avgLogProb);
-      return new Response(
-        JSON.stringify({ text: '', confidence: 0, filtered: true, reason: 'very_low_confidence', metrics: { avgNoSpeechProb, avgLogProb } }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

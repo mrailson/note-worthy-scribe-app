@@ -190,45 +190,24 @@ export class UnifiedAudioCapture {
   }
 
   private isLikelyHallucination(text: string): boolean {
-    // Common Whisper hallucinations
-    const hallucinations = [
-      'bye', 'bye-bye', 'bye bye',
-      'thank you', 'thanks', 'thank you very much', 'thank you for listening',
-      'thank you for joining', 'thank you for watching',
-      'good night', 'goodnight', 'good morning', 'good afternoon',
-      'hello', 'hi there', 'welcome', 'cheers',
-      'music', 'applause', 'laughter', 'silence',
-      'okay', 'ok', 'um', 'uh', 'hmm',
-      'you', 'me', 'i', 'we', 'they'
+    // Only filter very obvious hallucinations
+    const obviousHallucinations = [
+      'bi hurmati', 'muhammad', 'al-mustafa', 'surat', 'al-fatiha', 'bismillah',
+      'thank you for listening', 'thank you for joining', 'thank you for watching'
     ];
 
-    // Religious/Arabic phrases that Whisper sometimes hallucinates
-    const religiousPatterns = [
-      'bi hurmati', 'muhammad', 'al-mustafa', 'surat', 'al-fatiha', 'bismillah'
-    ];
-
-    // Check exact matches and short phrases
-    if (text.length < 4 || hallucinations.includes(text)) {
+    // Check for obvious religious/formulaic hallucinations
+    if (obviousHallucinations.some(pattern => text.includes(pattern))) {
       return true;
     }
 
-    // Check for religious hallucinations
-    if (religiousPatterns.some(pattern => text.includes(pattern))) {
-      return true;
-    }
-
-    // Check for repetitive patterns
+    // Only filter extremely repetitive patterns (same word 4+ times)
     const words = text.split(' ');
-    if (words.length > 1) {
+    if (words.length >= 4) {
       const uniqueWords = new Set(words.map(w => w.toLowerCase()));
-      if (uniqueWords.size === 1 && words.length > 2) {
-        return true; // Repetitive like "bye bye bye"
+      if (uniqueWords.size === 1) {
+        return true; // Repetitive like "bye bye bye bye"
       }
-    }
-
-    // Check for very short responses that are likely noise
-    if (text.length < 8 && words.length < 3) {
-      return true;
     }
 
     return false;
@@ -307,9 +286,9 @@ export class UnifiedAudioCapture {
             const avgNoSpeechProb = segments.reduce((sum: number, seg: any) => sum + (seg.no_speech_prob || 0), 0) / segments.length;
             const avgLogProb = segments.reduce((sum: number, seg: any) => sum + (seg.avg_logprob || 0), 0) / segments.length;
             
-            // Reject if high probability of no speech or very low confidence
-            if (avgNoSpeechProb > 0.6 || avgLogProb < -1.0) {
-              console.log('Rejected transcription - poor quality metrics:', {
+            // Much more relaxed quality filtering - only reject obvious silence
+            if (avgNoSpeechProb > 0.98 || avgLogProb < -2.5) {
+              console.log('Rejected transcription - very poor quality metrics:', {
                 no_speech_prob: avgNoSpeechProb,
                 avg_logprob: avgLogProb,
                 text: result.text
