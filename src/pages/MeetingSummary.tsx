@@ -54,6 +54,7 @@ interface MeetingData {
   speakerCount: number;
   startTime: string;
   practiceName?: string;
+  generatedNotes?: string;
 }
 
 export default function MeetingSummary() {
@@ -131,10 +132,16 @@ export default function MeetingSummary() {
   }, [user]);
 
   useEffect(() => {
-    const data = location.state as MeetingData & { extractedSettings?: any };
+    const data = location.state as MeetingData & { extractedSettings?: any; generatedNotes?: string };
     if (data && !isSaved && !isSaving && !meetingData?.id) {
       console.log('MeetingSummary useEffect triggered with data:', data.title, data.startTime);
       setMeetingData(data);
+      
+      // If we have generated notes, set them as AI generated minutes
+      if (data.generatedNotes) {
+        setAiGeneratedMinutes(data.generatedNotes);
+        toast.success('AI-generated meeting notes are ready!');
+      }
       
       // Initialize meeting settings
       setMeetingSettings({

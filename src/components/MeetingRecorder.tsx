@@ -256,7 +256,7 @@ export const MeetingRecorder = ({
     }
   };
 
-  const stopRecording = () => {
+  const stopRecording = async () => {
     if (audioCaptureRef.current) {
       audioCaptureRef.current.stopCapture();
       audioCaptureRef.current = null;
@@ -287,7 +287,7 @@ export const MeetingRecorder = ({
       return;
     }
     
-    // Navigate to meeting summary with data
+    // Prepare meeting data
     const meetingData = {
       title: initialSettings?.title || 'General Meeting',
       duration: formatDuration(duration),
@@ -297,8 +297,45 @@ export const MeetingRecorder = ({
       startTime: startTime
     };
 
-    navigate('/meeting-summary', { state: meetingData });
-    
+    // Show loading state while generating meeting notes
+    toast.loading('Generating meeting notes...', { id: 'meeting-notes' });
+
+    try {
+      // Call the generate-meeting-minutes edge function
+      const { data: minutesData, error } = await supabase.functions.invoke('generate-meeting-minutes', {
+        body: {
+          transcript: transcript,
+          meetingTitle: meetingData.title,
+          meetingDate: new Date().toLocaleDateString(),
+          meetingTime: new Date().toLocaleTimeString()
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (minutesData?.success && minutesData?.meetingMinutes) {
+        // Add the generated meeting notes to the meeting data
+        const enhancedMeetingData = {
+          ...meetingData,
+          generatedNotes: minutesData.meetingMinutes
+        };
+
+        toast.success('Meeting notes generated successfully!', { id: 'meeting-notes' });
+        
+        // Navigate to meeting summary with data and generated notes
+        navigate('/meeting-summary', { state: enhancedMeetingData });
+      } else {
+        throw new Error('Failed to generate meeting notes');
+      }
+    } catch (error) {
+      console.error('Error generating meeting notes:', error);
+      toast.error('Failed to generate meeting notes. Proceeding without AI notes.', { id: 'meeting-notes' });
+      
+      // Still navigate to meeting summary even if note generation fails
+      navigate('/meeting-summary', { state: meetingData });
+    }
   };
 
   const getConnectionStatusIcon = () => {
