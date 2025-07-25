@@ -86,13 +86,8 @@ export class DeepgramRealtimeTranscriber {
         };
 
         this.ws.onerror = (error) => {
-          console.error('❌ WebSocket error:', error);
-          console.error('Connection details:', {
-            url: wsUrl,
-            readyState: this.ws?.readyState,
-            protocol: this.ws?.protocol,
-            extensions: this.ws?.extensions
-          });
+          console.error('❌ WebSocket error event:', error);
+          console.error('WebSocket state when error occurred:', this.ws?.readyState);
           reject(new Error('WebSocket connection failed'));
         };
 
@@ -105,14 +100,15 @@ export class DeepgramRealtimeTranscriber {
           this.onStatusChange('Disconnected');
         };
 
-        // Set timeout for connection
+        // Reduce timeout to 5 seconds for faster feedback
         setTimeout(() => {
           if (this.ws?.readyState !== WebSocket.OPEN) {
-            console.error('❌ WebSocket connection timeout after 10 seconds');
+            console.error('❌ WebSocket connection timeout after 5 seconds');
             console.error('Final readyState:', this.ws?.readyState);
+            console.error('ReadyState meanings: 0=CONNECTING, 1=OPEN, 2=CLOSING, 3=CLOSED');
             reject(new Error('WebSocket connection timeout'));
           }
-        }, 10000);
+        }, 5000);
       } catch (error) {
         console.error('Error setting up WebSocket connection:', error);
         reject(new Error('Failed to initialize WebSocket connection'));
