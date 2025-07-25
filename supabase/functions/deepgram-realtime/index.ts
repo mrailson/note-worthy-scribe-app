@@ -29,9 +29,10 @@ serve(async (req) => {
 
   console.log('🔗 Connecting to Deepgram with API key present:', !!deepgramApiKey);
 
-  // Connect to Deepgram WebSocket
+  // Connect to Deepgram WebSocket with proper encoding parameters
   const deepgramWs = new WebSocket(
-    `wss://api.deepgram.com/v1/listen?encoding=webm&sample_rate=24000&channels=1&model=nova-2&smart_format=true&interim_results=true&endpointing=true&utterance_end_ms=1000&vad_events=true&diarize=true&punctuate=true`,
+    `wss://api.deepgram.com/v1/listen?encoding=webm&sample_rate=48000&channels=1&model=nova-2&smart_format=true&interim_results=true&endpointing=true&utterance_end_ms=1000&vad_events=true&diarize=true&punctuate=true`,
+    [],
     {
       headers: {
         Authorization: `Token ${deepgramApiKey}`
