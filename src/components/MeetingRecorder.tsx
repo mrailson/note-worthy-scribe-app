@@ -663,7 +663,7 @@ export const MeetingRecorder = ({
       console.log('Microphone audio tracks:', micAudioTracks.length);
       addDebugLog(`🎤 Got ${micAudioTracks.length} microphone track(s)`);
 
-      // Step 3: Combine both streams using simple MediaStream approach
+      // Step 3: Combine both streams and add audio level monitoring
       addDebugLog('🔀 Combining audio streams...');
       const combinedStream = new MediaStream([
         ...displayStream.getAudioTracks(),
@@ -672,6 +672,59 @@ export const MeetingRecorder = ({
       
       console.log('Combined stream tracks:', combinedStream.getTracks().length);
       addDebugLog(`🔀 Combined stream has ${combinedStream.getTracks().length} total tracks`);
+      
+      // Add audio level monitoring to check if we're getting audio
+      const audioContext = new AudioContext();
+      const analyser = audioContext.createAnalyser();
+      const source = audioContext.createMediaStreamSource(combinedStream);
+      source.connect(analyser);
+      
+      analyser.fftSize = 256;
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+      
+      // Monitor audio levels
+      const monitorAudio = () => {
+        analyser.getByteFrequencyData(dataArray);
+        const average = dataArray.reduce((a, b) => a + b) / bufferLength;
+        
+        if (average > 5) { // If there's some audio activity
+          console.log(`Audio level detected: ${average.toFixed(1)}`);
+          addDebugLog(`🔊 Audio activity: ${average.toFixed(1)}`);
+        }
+      };
+      
+      // Check audio levels every 2 seconds
+      const audioMonitor = setInterval(monitorAudio, 2000);
+      
+      // Store cleanup function
+      const originalCleanup = () => {
+        clearInterval(audioMonitor);
+        audioContext.close();
+        displayStream.getTracks().forEach(track => {
+          track.stop();
+          addDebugLog(`🔇 Stopped display track: ${track.kind}`);
+        });
+        micStream.getTracks().forEach(track => {
+          track.stop();
+          addDebugLog(`🔇 Stopped mic track: ${track.kind}`);
+        });
+        combinedStream.getTracks().forEach(track => {
+          track.stop();
+        });
+      };
+      
+      // Debug: Check if tracks are active and have audio
+      combinedStream.getTracks().forEach((track, index) => {
+        console.log(`Track ${index}:`, {
+          kind: track.kind,
+          enabled: track.enabled,
+          readyState: track.readyState,
+          muted: track.muted,
+          label: track.label
+        });
+        addDebugLog(`🎵 Track ${index}: ${track.kind} - ${track.readyState} - ${track.enabled ? 'enabled' : 'disabled'}`);
+      });
 
       // Step 4: Set up MediaRecorder with simple, compatible settings
       let mimeType = 'audio/webm';
@@ -705,9 +758,17 @@ export const MeetingRecorder = ({
       const audioChunks: Blob[] = [];
       
       mediaRecorder.ondataavailable = (event) => {
+        console.log('MediaRecorder data available:', {
+          dataSize: event.data.size,
+          type: event.data.type,
+          timestamp: new Date().toISOString()
+        });
+        
         if (event.data.size > 0) {
           audioChunks.push(event.data);
           addDebugLog(`📦 Audio chunk captured: ${(event.data.size / 1024).toFixed(1)}KB`);
+        } else {
+          addDebugLog(`⚠️ Empty audio chunk received`);
         }
       };
 
@@ -765,31 +826,28 @@ export const MeetingRecorder = ({
         addDebugLog(`❌ MediaRecorder error: ${event}`);
       };
 
-      // Start recording with data collection every 10 seconds
-      mediaRecorder.start(10000);
+      // Start recording with more frequent data collection and debugging
+      console.log('Starting MediaRecorder...');
+      addDebugLog('🎯 Starting MediaRecorder with 5-second intervals');
+      
+      // Check if the stream is actually active before starting
+      const activeTracks = combinedStream.getTracks().filter(track => track.readyState === 'live');
+      console.log(`Active tracks before recording: ${activeTracks.length}`);
+      addDebugLog(`🟢 ${activeTracks.length} active tracks ready for recording`);
+      
+      if (activeTracks.length === 0) {
+        throw new Error('No active audio tracks available for recording');
+      }
+      
+      mediaRecorder.start(5000); // Capture data every 5 seconds for more responsive feedback
       addDebugLog('🎯 Advanced dual audio recording started');
 
       // Store references for cleanup
       micAudioStreamRef.current = combinedStream;
       mediaRecorderRef.current = mediaRecorder;
       
-      // Store cleanup function for all streams
-      const cleanupStreams = () => {
-        displayStream.getTracks().forEach(track => {
-          track.stop();
-          addDebugLog(`🔇 Stopped display track: ${track.kind}`);
-        });
-        micStream.getTracks().forEach(track => {
-          track.stop();
-          addDebugLog(`🔇 Stopped mic track: ${track.kind}`);
-        });
-        combinedStream.getTracks().forEach(track => {
-          track.stop();
-        });
-      };
-      
       // Store cleanup function
-      (mediaRecorder as any).cleanup = cleanupStreams;
+      (mediaRecorder as any).cleanup = originalCleanup;
 
     } catch (error) {
       console.error('Dual audio capture error details:', {
