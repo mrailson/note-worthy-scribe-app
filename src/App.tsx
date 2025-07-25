@@ -12,6 +12,7 @@ import ReplyWellAI from "./pages/ReplyWellAI";
 import AI4PMService from "./pages/AI4PMService";
 import NotFound from "./pages/NotFound";
 import { ResetPassword } from "./components/ResetPassword";
+import { RecorderV2Test } from "./pages/RecorderV2Test";
 
 const App = () => (
   <TooltipProvider>
@@ -27,6 +28,7 @@ const App = () => (
       <Route path="/replywell-ai" element={<ReplyWellAI />} />
       <Route path="/ai-4-pm" element={<AI4PMService />} />
       <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/recorder-v2-test" element={<RecorderV2Test />} />
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
       <Route path="*" element={<NotFound />} />
     </Routes>
