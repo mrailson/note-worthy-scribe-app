@@ -324,51 +324,18 @@ export const MeetingRecorder = ({
     console.log('Recording started with microphone speech recognition');
   };
 
-  // Computer audio transcription for Teams/Zoom meetings using enhanced capture
+  // Computer audio transcription for Teams/Zoom meetings using screen share
   const startComputerAudioTranscription = async () => {
-    addDebugLog('💻 Starting enhanced computer audio capture...');
+    addDebugLog('💻 Starting computer audio capture via screen share...');
     
     try {
-      const { EnhancedAudioCapture } = await import('../utils/EnhancedAudioCapture');
-      
-      const audioCapture = new EnhancedAudioCapture(
-        (transcript: any) => {
-          if (transcript && transcript.text) {
-            addDebugLog(`🎙️ Enhanced: "${transcript.text}"`);
-            const transcriptData: TranscriptData = {
-              text: transcript.text,
-              speaker: 'System Audio',
-              isFinal: true,
-              confidence: transcript.confidence || 0.8,
-              timestamp: new Date().toISOString()
-            };
-            handleTranscript(transcriptData);
-          }
-        },
-        (error: string) => {
-          addDebugLog(`❌ Enhanced audio error: ${error}`);
-          handleTranscriptionError(error);
-        },
-        (status: string) => {
-          addDebugLog(`🔄 Enhanced status: ${status}`);
-        }
-      );
-
-      await audioCapture.startCapture();
-      enhancedAudioCaptureRef.current = audioCapture;
-      
-      addDebugLog('✅ Enhanced computer audio transcription started');
-      addDebugLog('💡 This will capture both microphone and system audio from Teams/YouTube');
-      console.log('Recording started with enhanced computer audio transcription');
-      
-    } catch (error) {
-      addDebugLog(`❌ Enhanced audio setup failed: ${error}`);
-      
-      // Fallback to microphone-based approach
-      addDebugLog('🔄 Falling back to microphone capture...');
+      // Try screen sharing with audio first
+      let stream: MediaStream;
       
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
+        addDebugLog('🖥️ Requesting screen share with audio...');
+        stream = await navigator.mediaDevices.getDisplayMedia({
+          video: false,
           audio: {
             echoCancellation: false,
             noiseSuppression: false,
@@ -376,24 +343,68 @@ export const MeetingRecorder = ({
             sampleRate: 48000
           }
         });
-
-        addDebugLog('✅ Microphone fallback successful');
+        
+        addDebugLog('✅ Screen audio access granted');
+        screenStreamRef.current = stream;
+        
+        // Check if we actually got audio tracks
+        const audioTracks = stream.getAudioTracks();
+        if (audioTracks.length === 0) {
+          throw new Error('No audio tracks in screen share');
+        }
+        
+        addDebugLog(`🔊 Audio tracks found: ${audioTracks.length}`);
+        
+      } catch (screenError) {
+        addDebugLog(`❌ Screen share failed: ${screenError.message}`);
+        addDebugLog('🎤 Falling back to enhanced microphone capture...');
+        
+        // Fallback to microphone with very sensitive settings
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false,
+            sampleRate: 48000,
+            channelCount: 2,
+            sampleSize: 16
+          }
+        });
+        
+        addDebugLog('✅ Enhanced microphone access granted');
         micAudioStreamRef.current = stream;
+      }
 
-        const transcriber = new BrowserSpeechTranscriber(
-          handleBrowserTranscript,
-          handleTranscriptionError,
-          handleStatusChange,
-          handleLiveSummary
-        );
+      // Set up transcriber with the audio stream
+      const transcriber = new BrowserSpeechTranscriber(
+        handleBrowserTranscript,
+        handleTranscriptionError,
+        handleStatusChange,
+        handleLiveSummary
+      );
 
-        await transcriber.startTranscription();
-        browserTranscriberRef.current = transcriber;
-        
-        addDebugLog('💡 Using microphone fallback - ensure Teams/Zoom audio plays through speakers');
-        
-      } catch (fallbackError) {
-        throw new Error(`Computer audio setup failed: ${error.message}. Microphone fallback also failed: ${fallbackError.message}`);
+      await transcriber.startTranscription();
+      browserTranscriberRef.current = transcriber;
+      
+      addDebugLog('✅ Computer audio transcription started successfully');
+      
+      if (screenStreamRef.current) {
+        addDebugLog('💡 Screen audio capture active - should pick up Teams/YouTube audio');
+      } else {
+        addDebugLog('💡 Using enhanced microphone - ensure Teams/YouTube audio plays through speakers loudly');
+      }
+      
+      console.log('Recording started with computer audio transcription');
+      
+    } catch (error) {
+      addDebugLog(`❌ Computer audio setup failed: ${error.message}`);
+      
+      if (error.name === 'NotAllowedError') {
+        throw new Error('Permission denied. Please allow screen sharing or microphone access to capture Teams/YouTube audio.');
+      } else if (error.name === 'NotFoundError') {
+        throw new Error('No audio devices found. Please check your system audio settings.');
+      } else {
+        throw new Error(`Computer audio setup failed: ${error.message}. Try using microphone mode instead.`);
       }
     }
   };
@@ -942,9 +953,10 @@ export const MeetingRecorder = ({
                           <Video className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
                           <div className="text-xs text-blue-700 dark:text-blue-300">
                             <strong>Teams/Zoom Mode:</strong> 
-                            <br />• Make sure Teams/Zoom audio is playing through <strong>speakers</strong> (not headphones)
-                            <br />• The microphone will capture the speaker audio for transcription
-                            <br />• For best results, sit close to your speakers
+                            <br />• First, you'll be asked to share your screen with audio
+                            <br />• If screen sharing fails, it will use your microphone
+                            <br />• For microphone mode: make sure Teams/Zoom audio plays through <strong>speakers</strong> loudly
+                            <br />• Avoid using headphones as this prevents audio capture
                           </div>
                         </div>
                       </div>
