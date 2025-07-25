@@ -1400,29 +1400,41 @@ const ComplaintsSystem = () => {
 
                       <div className="space-y-2 max-h-60 overflow-y-auto">
                         {complianceChecks.map((check) => (
-                          <div key={check.id} className="flex items-start justify-between p-3 border rounded-lg">
+                          <div 
+                            key={check.id} 
+                            className={`flex items-start justify-between p-3 border rounded-lg cursor-pointer transition-all hover:shadow-md hover:border-primary/50 ${
+                              check.is_compliant ? 'bg-green-50 border-green-200' : 'bg-white hover:bg-gray-50'
+                            }`}
+                            onClick={() => updateComplianceCheck(check.id, !check.is_compliant)}
+                          >
                             <div className="flex-1">
                               <div className="flex items-center gap-2">
                                 <input
                                   type="checkbox"
                                   checked={check.is_compliant}
-                                  onChange={(e) => updateComplianceCheck(check.id, e.target.checked)}
-                                  className="rounded"
+                                  onChange={(e) => {
+                                    e.stopPropagation();
+                                    updateComplianceCheck(check.id, e.target.checked);
+                                  }}
+                                  className="rounded pointer-events-none"
+                                  tabIndex={-1}
                                 />
-                                <span className={`text-sm ${check.is_compliant ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
+                                <span className={`text-sm font-medium ${
+                                  check.is_compliant ? 'line-through text-muted-foreground' : 'text-foreground'
+                                }`}>
                                   {check.compliance_item}
                                 </span>
+                                {check.is_compliant && (
+                                  <Badge variant="default" className="ml-auto">
+                                    <CheckCircle className="h-3 w-3 mr-1" />
+                                    Complete
+                                  </Badge>
+                                )}
                               </div>
                               {check.notes && (
                                 <p className="text-xs text-muted-foreground mt-1 ml-6">{check.notes}</p>
                               )}
                             </div>
-                            {check.is_compliant && (
-                              <Badge variant="default" className="ml-2">
-                                <CheckCircle className="h-3 w-3 mr-1" />
-                                Complete
-                              </Badge>
-                            )}
                           </div>
                         ))}
                       </div>
