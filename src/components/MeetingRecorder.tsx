@@ -303,6 +303,37 @@ export const MeetingRecorder = ({
     }
   };
   // Test mode simulation
+  const startRealTranscription = async () => {
+    addDebugLog('🎤 Starting microphone access...');
+    
+    const stream = await navigator.mediaDevices.getUserMedia({ 
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        sampleRate: 24000
+      } 
+    });
+    
+    addDebugLog('✅ Microphone access granted');
+    micAudioStreamRef.current = stream;
+
+    // Initialize transcriber
+    const transcriber = new DeepgramRealtimeTranscriber(
+      handleDeepgramTranscript,
+      handleTranscriptionError,
+      handleStatusChange,
+      handleLiveSummary
+    );
+
+    await transcriber.startTranscription();
+    deepgramTranscriberRef.current = transcriber;
+    setIsRecording(true);
+    setStartTime(new Date().toISOString());
+    
+    addDebugLog('✅ Recording started successfully');
+    console.log('Recording started successfully with Deepgram real-time transcription');
+  };
+
   const startTestMode = async () => {
     addDebugLog('🎤 Starting microphone access...');
     
@@ -368,24 +399,12 @@ export const MeetingRecorder = ({
       setDebugLog([]);
       setTestTranscripts([]);
       
-      // Test mode - simulate transcription for debugging
-      const useTestMode = true;
-      
-      if (useTestMode) {
-        addDebugLog('🧪 Using test mode - simulating transcription');
+      // Try real transcription first, fallback to test mode if it fails
+      try {
+        await startRealTranscription();
+      } catch (error) {
+        addDebugLog(`❌ Real transcription failed: ${error}. Falling back to test mode.`);
         await startTestMode();
-      } else {
-        // Initialize Deepgram real-time transcriber
-        deepgramTranscriberRef.current = new DeepgramRealtimeTranscriber(
-          handleDeepgramTranscript,
-          handleTranscriptionError,
-          handleStatusChange,
-          handleLiveSummary
-        );
-
-        addDebugLog('🔗 Attempting to connect to Deepgram...');
-        // Start Deepgram transcription
-        await deepgramTranscriberRef.current.startTranscription();
       }
       
       setIsRecording(true);
