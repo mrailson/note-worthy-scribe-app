@@ -92,15 +92,25 @@ const PMGenieVoiceAgent = () => {
       if (!hasPermission) return;
     }
 
-    const url = agentUrl || await generateSignedUrl();
-    if (!url) return;
-
     try {
-      await conversation.startSession({ agentId: 'agent_01jzsg04q1fwy9bfydkhszan7s' });
+      setIsLoading(true);
+      
+      // Generate signed URL first
+      const url = await generateSignedUrl();
+      if (!url) {
+        setError('Failed to get authorization for PM Genie');
+        return;
+      }
+
+      console.log('Starting conversation with URL:', url);
+      const conversationId = await conversation.startSession({ agentId: 'agent_01jzsg04q1fwy9bfydkhszan7s' });
+      
     } catch (err: any) {
       console.error('Failed to start conversation:', err);
-      setError('Failed to start conversation');
+      setError('Failed to start conversation with PM Genie');
       toast.error('Failed to start conversation');
+    } finally {
+      setIsLoading(false);
     }
   };
 
