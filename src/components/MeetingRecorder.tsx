@@ -1465,8 +1465,8 @@ export const MeetingRecorder = ({
                           <div className="flex items-center gap-2">
                             <Mic className="h-4 w-4" />
                             <div>
-                              <div className="font-medium">Microphone</div>
-                              <div className="text-xs text-muted-foreground">Record from your microphone</div>
+                              <div className="font-medium">Microphone Only</div>
+                              <div className="text-xs text-muted-foreground">For face-to-face meetings or phone calls</div>
                             </div>
                           </div>
                         </SelectItem>
@@ -1474,8 +1474,8 @@ export const MeetingRecorder = ({
                           <div className="flex items-center gap-2">
                             <Headphones className="h-4 w-4" />
                             <div className="flex-1">
-                              <div className="font-medium">Teams/Zoom Meeting</div>
-                              <div className="text-xs text-muted-foreground">Capture computer audio from Teams/Zoom</div>
+                              <div className="font-medium">Dual Audio (System + Microphone)</div>
+                              <div className="text-xs text-muted-foreground">Captures Teams/Zoom meeting + your mic</div>
                             </div>
                           </div>
                         </SelectItem>
