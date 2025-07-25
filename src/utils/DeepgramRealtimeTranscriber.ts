@@ -1,4 +1,5 @@
 import { SystemAudioCapture } from '@/utils/SystemAudioCapture';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface TranscriptData {
   text: string;
@@ -17,12 +18,13 @@ export interface TranscriptData {
 }
 
 export class DeepgramRealtimeTranscriber {
-  private ws: WebSocket | null = null;
   private mediaRecorder: MediaRecorder | null = null;
   private mediaStream: MediaStream | null = null;
   private isRecording = false;
   private sessionId: string = '';
   private audioCapture: SystemAudioCapture;
+  private pollingInterval: number | null = null;
+  private audioChunks: Blob[] = [];
 
   constructor(
     private onTranscription: (data: TranscriptData) => void,
@@ -37,8 +39,9 @@ export class DeepgramRealtimeTranscriber {
   async startTranscription() {
     try {
       this.onStatusChange('Connecting...');
-      await this.connectToWebSocket();
+      console.log('🚀 Starting HTTP polling transcription...');
       await this.startAudioCapture();
+      this.startPolling();
       this.onStatusChange('Recording');
     } catch (error) {
       console.error('Error starting transcription:', error);
@@ -46,74 +49,62 @@ export class DeepgramRealtimeTranscriber {
     }
   }
 
-  private async connectToWebSocket() {
-    return new Promise<void>((resolve, reject) => {
-      // Since WebSocket edge functions aren't accessible, let's fall back to a simpler approach
-      console.log('❌ WebSocket edge functions not accessible from this environment');
-      reject(new Error('WebSocket connection not supported - edge functions not accessible. Please check if the Deepgram edge function is properly deployed and accessible.'));
-    });
+  private startPolling() {
+    // Start polling every 2 seconds to send accumulated audio
+    this.pollingInterval = window.setInterval(async () => {
+      if (this.audioChunks.length > 0) {
+        await this.sendAudioChunkForTranscription();
+      }
+    }, 2000);
   }
 
-  private handleDeepgramMessage(data: string) {
+  private async sendAudioChunkForTranscription() {
+    if (this.audioChunks.length === 0) return;
+
     try {
-      const message = JSON.parse(data);
-      
-      if (message.type === 'connection_established') {
-        console.log('Deepgram connection established');
+      // Combine all audio chunks into one blob
+      const combinedBlob = new Blob(this.audioChunks, { type: 'audio/webm;codecs=opus' });
+      console.log('📤 Sending audio chunk for transcription:', combinedBlob.size, 'bytes');
+
+      // Clear the chunks after combining
+      this.audioChunks = [];
+
+      // Create form data
+      const formData = new FormData();
+      formData.append('audio', combinedBlob, 'audio.webm');
+
+      // Send to our HTTP transcription edge function
+      const { data, error } = await supabase.functions.invoke('deepgram-http-transcription', {
+        body: formData,
+      });
+
+      if (error) {
+        console.error('❌ Transcription request error:', error);
         return;
       }
 
-      if (message.type === 'error') {
-        this.onError(message.message);
-        return;
-      }
-
-      // Handle Deepgram transcription results
-      if (message.channel?.alternatives?.[0]) {
-        const alternative = message.channel.alternatives[0];
-        const transcript = alternative.transcript;
+      if (data?.success && data.transcript?.trim()) {
+        console.log('✅ Received transcription:', data.transcript);
         
-        if (transcript && transcript.trim().length > 0) {
-          // Extract speaker information from diarization
-          let speakerLabel = 'Speaker 1';
-          if (alternative.words && alternative.words.length > 0) {
-            const firstWord = alternative.words[0];
-            if (firstWord.speaker !== undefined) {
-              speakerLabel = `Speaker ${firstWord.speaker + 1}`;
-            }
-          }
+        const transcriptData: TranscriptData = {
+          text: data.transcript,
+          is_final: data.is_final || true,
+          confidence: data.confidence || 0,
+          words: data.words || [],
+          speaker: 'Speaker 1' // HTTP mode doesn't have real-time speaker detection
+        };
 
-          const transcriptData: TranscriptData = {
-            text: transcript,
-            is_final: message.is_final || false,
-            confidence: alternative.confidence || 0,
-            start: message.start,
-            end: message.end,
-            words: alternative.words || [],
-            speaker: speakerLabel
-          };
-
-          // Filter out likely hallucinations
-          if (!this.isLikelyHallucination(transcript.toLowerCase())) {
-            this.onTranscription(transcriptData);
-            
-            // Send final transcripts to summarizer
-            if (message.is_final) {
-              this.sendToSummarizer(transcript);
-            }
-          }
+        // Filter out likely hallucinations
+        if (!this.isLikelyHallucination(data.transcript.toLowerCase())) {
+          this.onTranscription(transcriptData);
+          
+          // Send to summarizer
+          this.sendToSummarizer(data.transcript);
         }
       }
 
-      // Handle speech started/ended events
-      if (message.type === 'SpeechStarted') {
-        console.log('Speech started detected');
-      } else if (message.type === 'UtteranceEnd') {
-        console.log('Utterance end detected');
-      }
-
     } catch (error) {
-      console.error('Error parsing Deepgram message:', error);
+      console.error('❌ Error sending audio for transcription:', error);
     }
   }
 
@@ -127,11 +118,11 @@ export class DeepgramRealtimeTranscriber {
         mimeType: 'audio/webm;codecs=opus'
       });
 
-      this.mediaRecorder.ondataavailable = async (event) => {
-        if (event.data.size > 0 && this.ws?.readyState === WebSocket.OPEN) {
-          // Convert blob to array buffer and send to WebSocket
-          const arrayBuffer = await event.data.arrayBuffer();
-          this.ws.send(arrayBuffer);
+      this.mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          // Store audio chunks for HTTP transmission
+          this.audioChunks.push(event.data);
+          console.log('🎵 Audio chunk received:', event.data.size, 'bytes');
         }
       };
 
@@ -140,8 +131,8 @@ export class DeepgramRealtimeTranscriber {
         this.onError('Recording error occurred');
       };
 
-      // Start recording with optimized chunks for real-time streaming
-      this.mediaRecorder.start(250); // Send data every 250ms for better balance
+      // Start recording with chunks every 1 second
+      this.mediaRecorder.start(1000);
       this.isRecording = true;
 
     } catch (error) {
@@ -151,7 +142,19 @@ export class DeepgramRealtimeTranscriber {
   }
 
   stopTranscription() {
+    console.log('🛑 Stopping HTTP polling transcription...');
     this.isRecording = false;
+    
+    // Stop polling
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
+      this.pollingInterval = null;
+    }
+
+    // Send any remaining audio chunks
+    if (this.audioChunks.length > 0) {
+      this.sendAudioChunkForTranscription();
+    }
     
     // Stop audio recording
     if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
@@ -161,14 +164,6 @@ export class DeepgramRealtimeTranscriber {
     // Stop audio capture
     this.audioCapture.stopCapture();
     this.mediaStream = null;
-
-    // Send finalize message and close WebSocket
-    if (this.ws?.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify({ type: 'finalize' }));
-      this.ws.close();
-    }
-
-    this.ws = null;
     this.mediaRecorder = null;
     this.onStatusChange('Stopped');
   }
