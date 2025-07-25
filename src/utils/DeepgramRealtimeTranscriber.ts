@@ -51,45 +51,32 @@ export class DeepgramRealtimeTranscriber {
       try {
         console.log('🔗 Attempting WebSocket connection to Deepgram proxy...');
         
-        // Try different URL patterns for Lovable edge functions
-        const testUrls = [
-          'https://91f61816-7ac8-43e0-a21d-31572f57dcab.lovableproject.com/functions/echo-proxy',
-          'https://91f61816-7ac8-43e0-a21d-31572f57dcab.lovableproject.com/echo-proxy',
-          'https://dphcnbricafkbtizkoal.supabase.co/functions/v1/echo-proxy'
-        ];
+        // Use Supabase Edge Function (which supports WebSocket) instead of Lovable
+        const wsUrl = 'wss://dphcnbricafkbtizkoal.supabase.co/functions/v1/deepgram-realtime';
+        console.log('🔗 Using Supabase Edge Function WebSocket URL:', wsUrl);
         
-        let workingUrl = '';
-        for (const testUrl of testUrls) {
-          try {
-            console.log(`🔗 Testing URL: ${testUrl}`);
-            const response = await fetch(testUrl, { method: 'GET' });
-            console.log(`Response from ${testUrl}: ${response.status}`);
-            if (response.status === 400) {
-              // 400 is expected for WebSocket endpoints without upgrade header
-              workingUrl = testUrl.replace('https://', 'wss://');
-              console.log(`✅ Found working URL: ${workingUrl}`);
-              break;
-            }
-          } catch (error: any) {
-            console.log(`❌ Failed ${testUrl}: ${error.message}`);
+        // Test the Supabase function accessibility first
+        try {
+          console.log('🔗 Testing Supabase edge function accessibility...');
+          const testResponse = await fetch('https://dphcnbricafkbtizkoal.supabase.co/functions/v1/deepgram-realtime', {
+            method: 'GET'
+          });
+          console.log('🔗 Supabase edge function test response status:', testResponse.status);
+          if (testResponse.status === 400) {
+            console.log('✅ Supabase function deployed correctly - 400 expected without WebSocket headers');
           }
-        }
-        
-        if (!workingUrl) {
-          reject(new Error('No accessible echo function URLs found'));
+        } catch (testError: any) {
+          console.error('❌ Supabase edge function test failed:', testError.message);
+          reject(new Error('Supabase edge function not accessible: ' + testError.message));
           return;
         }
-        
-        const wsUrl = workingUrl;
         
         this.ws = new WebSocket(wsUrl);
         console.log('🔗 WebSocket object created, readyState:', this.ws.readyState);
 
         this.ws.onopen = () => {
-          console.log('✅ Connected to Echo WebSocket proxy');
+          console.log('✅ Connected to Deepgram WebSocket proxy via Supabase');
           console.log('🔗 WebSocket readyState after open:', this.ws?.readyState);
-          // Send a test message to the echo function
-          this.ws?.send('Hello Echo Test');
           resolve();
         };
 
