@@ -576,16 +576,16 @@ export const MeetingRecorder = ({
   };
 
   const startTestMode = async () => {
-    addDebugLog('🎤 Starting dual audio capture (system + microphone)...');
+    addDebugLog('🎤 Starting advanced dual audio capture (system + microphone)...');
     
     try {
-      // Step 1: Get display media (system audio)
+      // Step 1: Get display media (system audio) - user selects screen/tab
       addDebugLog('📺 Requesting screen capture with audio...');
       const displayStream = await navigator.mediaDevices.getDisplayMedia({
-        video: false,
+        video: false, // We only need audio
         audio: {
-          sampleRate: 24000,
-          channelCount: 1,
+          sampleRate: 48000,
+          channelCount: 2,
           echoCancellation: false,
           noiseSuppression: false,
           autoGainControl: false
@@ -597,7 +597,7 @@ export const MeetingRecorder = ({
       addDebugLog('🎤 Requesting microphone access...');
       const micStream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          sampleRate: 24000,
+          sampleRate: 48000,
           channelCount: 1,
           echoCancellation: true,
           noiseSuppression: true,
@@ -606,30 +606,17 @@ export const MeetingRecorder = ({
       });
       addDebugLog('✅ Microphone access granted');
 
-      // Step 3: Create AudioContext to mix streams
-      const audioContext = new AudioContext({ sampleRate: 24000 });
-      const displaySource = audioContext.createMediaStreamSource(displayStream);
-      const micSource = audioContext.createMediaStreamSource(micStream);
-      
-      // Create gain nodes for volume control
-      const displayGain = audioContext.createGain();
-      const micGain = audioContext.createGain();
-      displayGain.gain.value = 0.8; // System audio at 80%
-      micGain.gain.value = 1.0;     // Microphone at 100%
+      // Step 3: Combine both streams using MediaStream constructor
+      addDebugLog('🔀 Combining audio streams...');
+      const combinedStream = new MediaStream([
+        ...displayStream.getAudioTracks(),
+        ...micStream.getAudioTracks()
+      ]);
 
-      // Create destination for mixed audio
-      const destination = audioContext.createMediaStreamDestination();
-      
-      // Connect audio graph
-      displaySource.connect(displayGain).connect(destination);
-      micSource.connect(micGain).connect(destination);
-      
-      addDebugLog('🔀 Audio streams mixed successfully');
-
-      // Step 4: Set up MediaRecorder for the mixed stream
-      const mixedStream = destination.stream;
-      const mediaRecorder = new MediaRecorder(mixedStream, {
-        mimeType: 'audio/webm;codecs=opus'
+      // Step 4: Set up MediaRecorder with optimal settings for Whisper API
+      const mediaRecorder = new MediaRecorder(combinedStream, {
+        mimeType: 'audio/webm;codecs=opus',
+        audioBitsPerSecond: 128000 // Optimal for Whisper API
       });
       
       const audioChunks: Blob[] = [];
@@ -637,43 +624,104 @@ export const MeetingRecorder = ({
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           audioChunks.push(event.data);
-          addDebugLog(`📦 Audio chunk captured: ${event.data.size} bytes`);
+          addDebugLog(`📦 Audio chunk captured: ${(event.data.size / 1024).toFixed(1)}KB`);
         }
       };
 
       mediaRecorder.onstop = async () => {
         addDebugLog('🔄 Processing recorded audio...');
-        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
         
-        // Convert to base64 and send for transcription
-        const reader = new FileReader();
-        reader.onload = async () => {
-          const base64Audio = (reader.result as string).split(',')[1];
-          await processRecordedAudio(base64Audio);
-        };
-        reader.readAsDataURL(audioBlob);
+        try {
+          // Create the final audio blob
+          const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+          addDebugLog(`📁 Final audio file: ${(audioBlob.size / 1024 / 1024).toFixed(2)}MB`);
+
+          // Upload to Supabase Edge Function for processing
+          addDebugLog('☁️ Uploading to backend for transcription and NHS summary...');
+          const formData = new FormData();
+          formData.append('audio', audioBlob, 'meeting.webm');
+
+          const { data, error } = await supabase.functions.invoke('process-meeting-audio', {
+            body: formData,
+          });
+
+          if (error) {
+            throw new Error(`Backend error: ${error.message}`);
+          }
+
+          if (data.success) {
+            addDebugLog('✅ Processing completed successfully!');
+            
+            // Display the transcript
+            handleBrowserTranscript({
+              text: data.transcript,
+              is_final: true,
+              confidence: 0.95,
+              speaker: 'Meeting Audio'
+            });
+
+            // Show NHS summary in a toast or update the UI
+            console.log('NHS Summary:', data.summary);
+            toast.success('Meeting processed! Check transcript and summary below.');
+            
+            // You could also update a state to show the NHS summary in the UI
+            // For now, we'll log it for testing
+            addDebugLog('📋 NHS Summary generated - check console for details');
+            
+          } else {
+            throw new Error(data.error || 'Processing failed');
+          }
+
+        } catch (uploadError) {
+          addDebugLog(`❌ Upload/Processing failed: ${uploadError.message}`);
+          toast.error(`Processing failed: ${uploadError.message}`);
+        }
       };
 
-      // Start recording
-      mediaRecorder.start(1000); // Capture data every second
-      addDebugLog('🎯 Dual audio recording started');
+      mediaRecorder.onerror = (event) => {
+        addDebugLog(`❌ MediaRecorder error: ${event}`);
+      };
+
+      // Start recording with data collection every 10 seconds
+      mediaRecorder.start(10000);
+      addDebugLog('🎯 Advanced dual audio recording started');
 
       // Store references for cleanup
-      micAudioStreamRef.current = mixedStream;
+      micAudioStreamRef.current = combinedStream;
       mediaRecorderRef.current = mediaRecorder;
       
-      // Store original streams for cleanup
+      // Store cleanup function for all streams
       const cleanupStreams = () => {
-        displayStream.getTracks().forEach(track => track.stop());
-        micStream.getTracks().forEach(track => track.stop());
-        audioContext.close();
+        displayStream.getTracks().forEach(track => {
+          track.stop();
+          addDebugLog(`🔇 Stopped display track: ${track.kind}`);
+        });
+        micStream.getTracks().forEach(track => {
+          track.stop();
+          addDebugLog(`🔇 Stopped mic track: ${track.kind}`);
+        });
+        combinedStream.getTracks().forEach(track => {
+          track.stop();
+        });
       };
       
       // Store cleanup function
       (mediaRecorder as any).cleanup = cleanupStreams;
 
     } catch (error) {
-      addDebugLog(`❌ Dual audio capture failed: ${error.message}`);
+      addDebugLog(`❌ Advanced dual audio capture failed: ${error.message}`);
+      
+      // Provide helpful error messages
+      if (error.name === 'NotAllowedError') {
+        toast.error('Permission denied. Please allow screen sharing and microphone access.');
+      } else if (error.name === 'NotFoundError') {
+        toast.error('No audio source found. Please ensure your microphone is connected.');
+      } else if (error.name === 'NotSupportedError') {
+        toast.error('Your browser does not support this recording method. Please use Chrome or Edge.');
+      } else {
+        toast.error(`Recording failed: ${error.message}`);
+      }
+      
       throw error;
     }
   };
@@ -713,7 +761,7 @@ export const MeetingRecorder = ({
       
       // Choose recording method based on mode
       if (recordingMode === 'computer-audio') {
-        await startTestMode(); // Use our new dual audio function
+        await startTestMode(); // Use our new advanced dual audio function
       } else {
         await startMicrophoneTranscription();
       }
@@ -1487,11 +1535,12 @@ export const MeetingRecorder = ({
                         <div className="flex items-start gap-2">
                           <Video className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
                           <div className="text-xs text-green-700 dark:text-green-300">
-                            <strong className="text-green-800 dark:text-green-200">🎉 Test Feature:</strong> 
-                            <br />• This captures both system audio (Teams/Zoom) AND your microphone
-                            <br />• Click "Share your screen" → Select the Teams/Zoom tab or window
-                            <br />• Grant microphone access when prompted
-                            <br />• Both audio streams will be mixed and transcribed together
+                            <strong className="text-green-800 dark:text-green-200">🚀 Advanced Feature:</strong> 
+                            <br />• Captures Teams/Zoom meeting audio + your microphone simultaneously
+                            <br />• Click "Share your screen" → Select the meeting tab/window → Grant mic access
+                            <br />• Automatically transcribes using OpenAI Whisper API
+                            <br />• Generates NHS-style clinical summary with SOAP notes
+                            <br />• Perfect for medical consultations and professional meetings
                           </div>
                         </div>
                       </div>
@@ -1548,9 +1597,9 @@ export const MeetingRecorder = ({
                       <div className="p-2 rounded-full bg-primary/5 w-12 h-12 mx-auto mb-2 flex items-center justify-center">
                         <Mic className="h-6 w-6 text-primary/60" />
                       </div>
-                       <h4 className="text-base font-medium mb-1">Ready for Test Recording</h4>
+                       <h4 className="text-base font-medium mb-1">Advanced Recording Ready</h4>
                        <p className="text-xs text-muted-foreground">
-                         Dual audio capture: System audio (Teams/Zoom) + Microphone with live transcription
+                         Professional dual audio capture: Teams/Zoom meeting + microphone with AI transcription & NHS summary generation
                        </p>
                        
                        {/* Live Summary Display */}
