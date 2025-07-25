@@ -1113,9 +1113,6 @@ export const MeetingRecorder = ({
                             <div className="flex-1">
                               <div className="font-medium">Teams/Zoom Meeting</div>
                               <div className="text-xs text-muted-foreground">Capture computer audio from Teams/Zoom</div>
-                              <div className="text-xs text-red-600 font-medium mt-1">
-                                ⚠️ Feature in development - Release: 10th August 2025
-                              </div>
                             </div>
                           </div>
                         </SelectItem>
