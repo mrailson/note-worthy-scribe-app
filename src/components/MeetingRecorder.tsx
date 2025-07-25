@@ -870,7 +870,7 @@ export const MeetingRecorder = ({
               <CardContent className="pt-4 pb-4">
                 {/* Recording Mode Selection */}
                 {!isRecording && (
-                  <div className="space-y-3 mb-4">
+                  <div className="space-y-3 mb-4 flex flex-col items-center">
                     <label className="text-sm font-medium">Recording Source:</label>
                     <Select value={recordingMode} onValueChange={(value: 'microphone' | 'computer-audio') => setRecordingMode(value)}>
                       <SelectTrigger className="w-[50%] bg-background/50 border-border/50">
