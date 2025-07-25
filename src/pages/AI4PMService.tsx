@@ -1748,15 +1748,21 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <p className="text-sm leading-relaxed">
-                    The AI 4 PM Service is designed specifically for NHS GP Practice Managers. It combines deep knowledge of NHS policies, 
-                    CQC requirements, and practice operations with powerful AI capabilities to assist with daily management tasks.
+                    The AI 4 PM Service offers two powerful ways to get expert assistance: traditional text-based chat through the AI Service tab, 
+                    and our new revolutionary voice conversation feature with PM Genie. Both are designed specifically for NHS GP Practice Managers, 
+                    combining deep knowledge of NHS policies, CQC requirements, and practice operations with cutting-edge AI capabilities.
                   </p>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
                     <div className="text-center p-4 bg-muted/50 rounded-lg">
                       <Bot className="h-8 w-8 mx-auto mb-2 text-primary" />
                       <h4 className="font-medium text-sm mb-1">AI-Powered Analysis</h4>
                       <p className="text-xs text-muted-foreground">Smart document analysis and insights</p>
+                    </div>
+                    <div className="text-center p-4 bg-muted/50 rounded-lg">
+                      <Mic className="h-8 w-8 mx-auto mb-2 text-primary" />
+                      <h4 className="font-medium text-sm mb-1">Voice Conversations</h4>
+                      <p className="text-xs text-muted-foreground">Natural speech with PM Genie voice assistant</p>
                     </div>
                     <div className="text-center p-4 bg-muted/50 rounded-lg">
                       <Shield className="h-8 w-8 mx-auto mb-2 text-primary" />
@@ -1768,6 +1774,102 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                       <h4 className="font-medium text-sm mb-1">Time Saving</h4>
                       <p className="text-xs text-muted-foreground">Automate routine tasks and analysis</p>
                     </div>
+                  </div>
+                </CardContent>
+                </Card>
+
+              {/* Chat with PM Genie Feature */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Mic className="h-5 w-5 text-primary" />
+                    Chat with PM Genie - Voice AI Assistant
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm leading-relaxed">
+                    Experience the future of practice management with PM Genie, our revolutionary voice AI assistant. 
+                    Have natural conversations about NHS policies, CQC compliance, and daily operations - just like talking to an expert colleague.
+                  </p>
+                  
+                  <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+                    <h4 className="font-medium text-sm mb-2 text-primary">🎯 Why Voice Conversations Are Game-Changing:</h4>
+                    <ul className="text-xs space-y-1 text-muted-foreground">
+                      <li>• <strong>Hands-free operation</strong> - Perfect for busy practice managers on the go</li>
+                      <li>• <strong>Natural communication</strong> - Explain complex scenarios as if talking to a colleague</li>
+                      <li>• <strong>Instant responses</strong> - No typing delays, get immediate voice feedback</li>
+                      <li>• <strong>Multi-tasking friendly</strong> - Continue with other tasks while conversing</li>
+                      <li>• <strong>Accessibility focused</strong> - Ideal for visual impairments or typing difficulties</li>
+                    </ul>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-3">
+                      <h4 className="font-medium text-sm">How It Works:</h4>
+                      <div className="space-y-2">
+                        <div className="flex items-start gap-3">
+                          <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">1</div>
+                          <div>
+                            <p className="text-xs font-medium">Grant microphone access</p>
+                            <p className="text-xs text-muted-foreground">One-time setup for voice conversations</p>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-3">
+                          <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">2</div>
+                          <div>
+                            <p className="text-xs font-medium">Start conversation</p>
+                            <p className="text-xs text-muted-foreground">Click "Start Conversation" to connect</p>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-3">
+                          <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">3</div>
+                          <div>
+                            <p className="text-xs font-medium">Speak naturally</p>
+                            <p className="text-xs text-muted-foreground">Ask questions as you would to a colleague</p>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-3">
+                          <div className="w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">4</div>
+                          <div>
+                            <p className="text-xs font-medium">Get instant voice replies</p>
+                            <p className="text-xs text-muted-foreground">PM Genie responds with expert advice</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <h4 className="font-medium text-sm">Perfect For:</h4>
+                      <div className="space-y-2 text-xs">
+                        <div className="flex items-center gap-2">
+                          <CheckSquare className="h-3 w-3 text-primary flex-shrink-0" />
+                          <span>Quick CQC compliance questions during inspections</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <CheckSquare className="h-3 w-3 text-primary flex-shrink-0" />
+                          <span>Complex policy clarifications while multitasking</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <CheckSquare className="h-3 w-3 text-primary flex-shrink-0" />
+                          <span>Urgent guidance during practice meetings</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <CheckSquare className="h-3 w-3 text-primary flex-shrink-0" />
+                          <span>Learning NHS procedures through conversation</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <CheckSquare className="h-3 w-3 text-primary flex-shrink-0" />
+                          <span>Brainstorming solutions to practice challenges</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                    <p className="text-xs text-green-800">
+                      <strong>💡 Pro Tip:</strong> Use voice conversations for initial exploration and complex discussions, 
+                      then switch to the AI Service tab for document analysis and detailed written responses you can save or share.
+                    </p>
                   </div>
                 </CardContent>
               </Card>
