@@ -796,13 +796,15 @@ export const MeetingRecorder = ({
           if (data.success) {
             addDebugLog('✅ Processing completed successfully!');
             
-            // Display the transcript
-            handleBrowserTranscript({
-              text: data.transcript,
-              is_final: true,
-              confidence: 0.95,
-              speaker: 'Meeting Audio'
-            });
+            // Display the transcript in the next render cycle
+            setTimeout(() => {
+              handleBrowserTranscript({
+                text: data.transcript,
+                is_final: true,
+                confidence: 0.95,
+                speaker: 'Meeting Audio'
+              });
+            }, 0);
 
             // Show meeting summary if available
             if (data.summary) {
