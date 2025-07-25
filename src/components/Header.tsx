@@ -23,6 +23,14 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [isAdmin, setIsAdmin] = useState(false);
+  const [moduleAccess, setModuleAccess] = useState({
+    meeting_notes_access: true,
+    gp_scribe_access: false,
+    complaints_manager_access: false,
+    complaints_admin_access: false,
+    replywell_access: false,
+    ai_4_pm_access: false
+  });
   
   const isHomePage = location.pathname === '/';
   const isGPScribePage = location.pathname === '/gp-scribe';
@@ -31,22 +39,41 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
   const isAdminPage = location.pathname === '/admin';
 
   useEffect(() => {
-    const checkAdminAccess = async () => {
+    const checkUserPermissions = async () => {
       if (!user) return;
       
       try {
-        const { data, error } = await supabase
+        // Check admin access
+        const { data: adminData, error: adminError } = await supabase
           .rpc('is_system_admin', { _user_id: user.id });
         
-        if (!error) {
-          setIsAdmin(data);
+        if (!adminError) {
+          setIsAdmin(adminData);
+        }
+
+        // Get user module access from user_roles table
+        const { data: roleData, error: roleError } = await supabase
+          .from('user_roles')
+          .select('meeting_notes_access, gp_scribe_access, complaints_manager_access, complaints_admin_access, replywell_access, ai_4_pm_access')
+          .eq('user_id', user.id)
+          .single();
+
+        if (!roleError && roleData) {
+          setModuleAccess({
+            meeting_notes_access: roleData.meeting_notes_access ?? true,
+            gp_scribe_access: roleData.gp_scribe_access ?? false,
+            complaints_manager_access: roleData.complaints_manager_access ?? false,
+            complaints_admin_access: roleData.complaints_admin_access ?? false,
+            replywell_access: roleData.replywell_access ?? false,
+            ai_4_pm_access: roleData.ai_4_pm_access ?? false
+          });
         }
       } catch (error) {
-        console.error('Error checking admin access:', error);
+        console.error('Error checking user permissions:', error);
       }
     };
 
-    checkAdminAccess();
+    checkUserPermissions();
   }, [user]);
 
   return (
@@ -88,34 +115,42 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                   align="end" 
                   className="bg-background border border-border shadow-lg z-50 w-48"
                 >
-                  <DropdownMenuItem 
-                    onClick={() => navigate('/')}
-                    className="cursor-pointer py-3"
-                  >
-                    <FileText className="h-4 w-4 mr-2" />
-                    Meeting Notes
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={() => navigate('/gp-scribe')}
-                    className="cursor-pointer py-3"
-                  >
-                    <Stethoscope className="h-4 w-4 mr-2" />
-                    GP Scribe
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={() => navigate('/complaints')}
-                    className="cursor-pointer py-3"
-                  >
-                    <MessageSquareWarning className="h-4 w-4 mr-2" />
-                    Complaints System
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={() => navigate('/ai-4-pm')}
-                    className="cursor-pointer py-3"
-                  >
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    AI Assistant
-                  </DropdownMenuItem>
+                  {moduleAccess.meeting_notes_access && (
+                    <DropdownMenuItem 
+                      onClick={() => navigate('/')}
+                      className="cursor-pointer py-3"
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      Meeting Notes
+                    </DropdownMenuItem>
+                  )}
+                  {moduleAccess.gp_scribe_access && (
+                    <DropdownMenuItem 
+                      onClick={() => navigate('/gp-scribe')}
+                      className="cursor-pointer py-3"
+                    >
+                      <Stethoscope className="h-4 w-4 mr-2" />
+                      GP Scribe
+                    </DropdownMenuItem>
+                  )}
+                  {(moduleAccess.complaints_manager_access || moduleAccess.complaints_admin_access) && (
+                    <DropdownMenuItem 
+                      onClick={() => navigate('/complaints')}
+                      className="cursor-pointer py-3"
+                    >
+                      <MessageSquareWarning className="h-4 w-4 mr-2" />
+                      Complaints System
+                    </DropdownMenuItem>
+                  )}
+                  {moduleAccess.ai_4_pm_access && (
+                    <DropdownMenuItem 
+                      onClick={() => navigate('/ai-4-pm')}
+                      className="cursor-pointer py-3"
+                    >
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      AI Assistant
+                    </DropdownMenuItem>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
