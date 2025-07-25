@@ -16,7 +16,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History, Search, Trash2, CheckSquare, SquareIcon, Monitor, Volume2, Waves } from "lucide-react";
+import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History, Search, Trash2, CheckSquare, SquareIcon, Monitor, Volume2, Waves, Video, Headphones } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { MeetingSettings } from "@/components/MeetingSettings";
 import { MeetingHistoryList } from "@/components/MeetingHistoryList";
@@ -64,6 +65,7 @@ export const MeetingRecorder = ({
   const [liveSummary, setLiveSummary] = useState<string>("");
   const [debugLog, setDebugLog] = useState<string[]>([]);
   const [testTranscripts, setTestTranscripts] = useState<string[]>([]);
+  const [recordingMode, setRecordingMode] = useState<'microphone' | 'computer-audio'>('microphone');
   
   
   // Meeting history state
@@ -96,6 +98,7 @@ export const MeetingRecorder = ({
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const browserTranscriberRef = useRef<BrowserSpeechTranscriber | null>(null);
+  const screenStreamRef = useRef<MediaStream | null>(null);
 
   // Auto-save meeting data to localStorage
   const autoSaveMeeting = () => {
@@ -302,9 +305,9 @@ export const MeetingRecorder = ({
       console.error('Error processing audio chunk:', error);
     }
   };
-  // Browser speech transcription
-  const startBrowserTranscription = async () => {
-    addDebugLog('🎤 Starting browser speech recognition...');
+  // Browser speech transcription with microphone
+  const startMicrophoneTranscription = async () => {
+    addDebugLog('🎤 Starting microphone speech recognition...');
     
     const transcriber = new BrowserSpeechTranscriber(
       handleBrowserTranscript,
@@ -315,11 +318,47 @@ export const MeetingRecorder = ({
 
     await transcriber.startTranscription();
     browserTranscriberRef.current = transcriber;
-    setIsRecording(true);
-    setStartTime(new Date().toISOString());
     
-    addDebugLog('✅ Browser speech recognition started successfully');
-    console.log('Recording started with browser speech recognition');
+    addDebugLog('✅ Microphone speech recognition started successfully');
+    console.log('Recording started with microphone speech recognition');
+  };
+
+  // Computer audio transcription for Teams/Zoom meetings
+  const startComputerAudioTranscription = async () => {
+    addDebugLog('💻 Starting computer audio capture...');
+    
+    try {
+      // Request screen share with audio
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: false,
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          sampleRate: 48000
+        }
+      });
+
+      addDebugLog('✅ Computer audio access granted');
+      screenStreamRef.current = stream;
+
+      // Set up transcriber with computer audio
+      const transcriber = new BrowserSpeechTranscriber(
+        handleBrowserTranscript,
+        handleTranscriptionError,
+        handleStatusChange,
+        handleLiveSummary
+      );
+
+      await transcriber.startTranscription();
+      browserTranscriberRef.current = transcriber;
+      
+      addDebugLog('✅ Computer audio transcription started successfully');
+      console.log('Recording started with computer audio transcription');
+      
+    } catch (error) {
+      addDebugLog(`❌ Computer audio access failed: ${error}`);
+      throw new Error('Please allow screen sharing with audio to record Teams/Zoom meetings');
+    }
   };
 
   const startTestMode = async () => {
@@ -380,15 +419,20 @@ export const MeetingRecorder = ({
 
   const startRecording = async () => {
     try {
-      addDebugLog('🚀 Starting recording with browser speech recognition...');
-      console.log('Starting recording with browser speech recognition...');
+      const modeText = recordingMode === 'computer-audio' ? 'computer audio for Teams/Zoom' : 'microphone';
+      addDebugLog(`🚀 Starting recording with ${modeText}...`);
+      console.log(`Starting recording with ${modeText}...`);
       
       // Clear previous debug logs and test transcripts
       setDebugLog([]);
       setTestTranscripts([]);
       
-      // Use browser speech recognition
-      await startBrowserTranscription();
+      // Choose transcription method based on recording mode
+      if (recordingMode === 'computer-audio') {
+        await startComputerAudioTranscription();
+      } else {
+        await startMicrophoneTranscription();
+      }
       
       setIsRecording(true);
       setRealtimeTranscripts([]);
@@ -410,8 +454,10 @@ export const MeetingRecorder = ({
         });
       }, 1000);
 
-      console.log('Recording started successfully with browser speech recognition');
-      toast.success('Recording started with browser speech recognition!');
+      const successMessage = recordingMode === 'computer-audio' ? 
+        'Recording started with computer audio for Teams/Zoom!' : 
+        'Recording started with microphone!';
+      toast.success(successMessage);
     } catch (error: any) {
       console.error('Failed to start recording:', error);
       addDebugLog(`❌ Failed to start: ${error.message}`);
@@ -431,10 +477,16 @@ export const MeetingRecorder = ({
       intervalRef.current = null;
     }
     
-    // Stop test mode microphone stream
+    // Stop microphone stream
     if (micAudioStreamRef.current) {
       micAudioStreamRef.current.getTracks().forEach(track => track.stop());
       micAudioStreamRef.current = null;
+    }
+    
+    // Stop screen stream (computer audio)
+    if (screenStreamRef.current) {
+      screenStreamRef.current.getTracks().forEach(track => track.stop());
+      screenStreamRef.current = null;
     }
     
     // Stop browser transcriber
@@ -816,6 +868,49 @@ export const MeetingRecorder = ({
             {/* Compact Recording Controls */}
             <Card className="shadow-lg">
               <CardContent className="pt-4 pb-4">
+                {/* Recording Mode Selection */}
+                {!isRecording && (
+                  <div className="space-y-3 mb-4">
+                    <label className="text-sm font-medium">Recording Source:</label>
+                    <Select value={recordingMode} onValueChange={(value: 'microphone' | 'computer-audio') => setRecordingMode(value)}>
+                      <SelectTrigger className="w-full bg-background/50 border-border/50">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-background border border-border shadow-lg z-50">
+                        <SelectItem value="microphone" className="flex items-center gap-2">
+                          <div className="flex items-center gap-2">
+                            <Mic className="h-4 w-4" />
+                            <div>
+                              <div className="font-medium">Microphone</div>
+                              <div className="text-xs text-muted-foreground">Record from your microphone</div>
+                            </div>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="computer-audio" className="flex items-center gap-2">
+                          <div className="flex items-center gap-2">
+                            <Headphones className="h-4 w-4" />
+                            <div>
+                              <div className="font-medium">Teams/Zoom Meeting</div>
+                              <div className="text-xs text-muted-foreground">Capture computer audio from Teams/Zoom</div>
+                            </div>
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    
+                    {recordingMode === 'computer-audio' && (
+                      <div className="p-3 bg-blue-50/50 border border-blue-200/50 rounded-lg dark:bg-blue-900/20 dark:border-blue-700/50">
+                        <div className="flex items-start gap-2">
+                          <Video className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                          <div className="text-xs text-blue-700 dark:text-blue-300">
+                            <strong>Teams/Zoom Mode:</strong> You'll be prompted to share your screen with audio to capture the meeting audio.
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Recording Button */}
                 <div className="text-center">
                   {!isRecording ? (
@@ -825,8 +920,17 @@ export const MeetingRecorder = ({
                         size="lg"
                         className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 px-8 py-4 text-base font-semibold rounded-lg"
                       >
-                        <Mic className="h-5 w-5 mr-2" />
-                        Start Recording
+                        {recordingMode === 'computer-audio' ? (
+                          <>
+                            <Headphones className="h-5 w-5 mr-2" />
+                            Start Recording Teams/Zoom
+                          </>
+                        ) : (
+                          <>
+                            <Mic className="h-5 w-5 mr-2" />
+                            Start Recording
+                          </>
+                        )}
                       </Button>
                     </div>
                   ) : (
