@@ -50,28 +50,26 @@ export class DeepgramRealtimeTranscriber {
   }
 
   private startPolling() {
-    // Start polling every 2 seconds to send accumulated audio
+    // Start polling every 3 seconds to send individual audio chunks
     this.pollingInterval = window.setInterval(async () => {
       if (this.audioChunks.length > 0) {
-        await this.sendAudioChunkForTranscription();
+        // Send the most recent audio chunk (don't combine them)
+        const latestChunk = this.audioChunks.pop(); // Get the latest chunk
+        this.audioChunks = []; // Clear remaining chunks
+        if (latestChunk) {
+          await this.sendAudioChunkForTranscription(latestChunk);
+        }
       }
-    }, 2000);
+    }, 3000);
   }
 
-  private async sendAudioChunkForTranscription() {
-    if (this.audioChunks.length === 0) return;
-
+  private async sendAudioChunkForTranscription(audioBlob: Blob) {
     try {
-      // Combine all audio chunks into one blob
-      const combinedBlob = new Blob(this.audioChunks, { type: 'audio/webm;codecs=opus' });
-      console.log('📤 Sending audio chunk for transcription:', combinedBlob.size, 'bytes');
-
-      // Clear the chunks after combining
-      this.audioChunks = [];
+      console.log('📤 Sending audio chunk for transcription:', audioBlob.size, 'bytes');
 
       // Create form data
       const formData = new FormData();
-      formData.append('audio', combinedBlob, 'audio.webm');
+      formData.append('audio', audioBlob, 'audio.webm');
 
       // Send to our HTTP transcription edge function
       const { data, error } = await supabase.functions.invoke('deepgram-http-transcription', {
@@ -153,7 +151,11 @@ export class DeepgramRealtimeTranscriber {
 
     // Send any remaining audio chunks
     if (this.audioChunks.length > 0) {
-      this.sendAudioChunkForTranscription();
+      const latestChunk = this.audioChunks.pop();
+      if (latestChunk) {
+        this.sendAudioChunkForTranscription(latestChunk);
+      }
+      this.audioChunks = [];
     }
     
     // Stop audio recording
