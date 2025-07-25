@@ -594,7 +594,119 @@ export const MeetingRecorder = ({
   };
 
   const startTestMode = async () => {
-    addDebugLog('🎤 Starting advanced dual audio capture (system + microphone)...');
+    addDebugLog('🎤 Starting separate dual audio capture (system + microphone)...');
+    
+    try {
+      // Step 1: Get system audio
+      addDebugLog('📺 Requesting screen capture with audio...');
+      const displayStream = await navigator.mediaDevices.getDisplayMedia({
+        video: false,
+        audio: true
+      });
+      
+      // Step 2: Get microphone audio separately  
+      addDebugLog('🎤 Requesting microphone access...');
+      const micStream = await navigator.mediaDevices.getUserMedia({
+        audio: true
+      });
+      
+      addDebugLog('✅ Both audio streams captured successfully');
+      
+      // Step 3: Set up separate recorders
+      const systemChunks: Blob[] = [];
+      const micChunks: Blob[] = [];
+      
+      const systemRecorder = new MediaRecorder(displayStream);
+      const micRecorder = new MediaRecorder(micStream);
+      
+      systemRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          systemChunks.push(e.data);
+          addDebugLog(`📺 System: ${(e.data.size/1024).toFixed(1)}KB`);
+        }
+      };
+      
+      micRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          micChunks.push(e.data);
+          addDebugLog(`🎤 Mic: ${(e.data.size/1024).toFixed(1)}KB`);
+        }
+      };
+      
+      // Process audio separately
+      const processSystemAudio = async () => {
+        if (systemChunks.length > 0) {
+          const blob = new Blob(systemChunks, { type: 'audio/webm' });
+          systemChunks.length = 0;
+          await processAudioBlob(blob, 'System Audio');
+        }
+      };
+      
+      const processMicAudio = async () => {
+        if (micChunks.length > 0) {
+          const blob = new Blob(micChunks, { type: 'audio/webm' });
+          micChunks.length = 0;
+          await processAudioBlob(blob, 'Microphone');
+        }
+      };
+      
+      // Start both recorders
+      systemRecorder.start(5000);
+      micRecorder.start(5000);
+      
+      const systemInterval = setInterval(processSystemAudio, 5000);
+      const micInterval = setInterval(processMicAudio, 5000);
+      
+      // Store cleanup
+      mediaRecorderRef.current = {
+        ...systemRecorder,
+        cleanup: () => {
+          clearInterval(systemInterval);
+          clearInterval(micInterval);
+          systemRecorder.stop();
+          micRecorder.stop();
+          displayStream.getTracks().forEach(t => t.stop());
+          micStream.getTracks().forEach(t => t.stop());
+        }
+      } as any;
+      
+      addDebugLog('🎯 Dual audio recording started');
+      
+    } catch (error) {
+      console.error('Dual audio error:', error);
+      throw error;
+    }
+  };
+
+  // Process individual audio blobs
+  const processAudioBlob = async (audioBlob: Blob, source: string) => {
+    try {
+      const arrayBuffer = await audioBlob.arrayBuffer();
+      const base64Audio = arrayBufferToBase64(arrayBuffer);
+      
+      const { data, error } = await supabase.functions.invoke('process-meeting-audio', {
+        body: { audio: base64Audio }
+      });
+
+      if (error) throw new Error(error.message);
+
+      if (data?.success && data?.transcript) {
+        addDebugLog(`✅ ${source}: "${data.transcript}"`);
+        
+        setTimeout(() => {
+          handleBrowserTranscript({
+            text: data.transcript,
+            is_final: true,
+            confidence: 0.95,
+            speaker: source
+          });
+        }, 0);
+      }
+    } catch (error) {
+      addDebugLog(`❌ ${source} failed: ${error.message}`);
+    }
+  };
+  // Browser speech transcription with microphone
     
     try {
       // Check browser support first
