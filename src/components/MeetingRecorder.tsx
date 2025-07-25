@@ -32,7 +32,7 @@ import {
   Eye,
   Edit,
   MoreVertical,
-  CheckSquare
+  CheckCheck
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
@@ -882,7 +882,7 @@ const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
                       onClick={() => setIsSelectMode(!isSelectMode)}
                       className="flex items-center gap-2"
                     >
-                      {isSelectMode ? <Square className="h-4 w-4" /> : <CheckSquare className="h-4 w-4" />}
+                      {isSelectMode ? <Square className="h-4 w-4" /> : <CheckCheck className="h-4 w-4" />}
                       {isSelectMode ? 'Cancel Selection' : 'Select Multiple'}
                     </Button>
                     
