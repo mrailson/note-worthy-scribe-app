@@ -55,31 +55,19 @@ serve(async (req) => {
     const transcript = whisperResult.text;
     console.log('Transcription completed, length:', transcript.length);
 
-    // Step 2: Generate NHS-style summary via GPT
-    console.log('Generating NHS summary...');
-    const summaryPrompt = `You are a GP assistant creating SystmOne-ready notes from a meeting transcript.
+    // Generate a basic business meeting summary (optional - can be removed if just transcript is needed)
+    console.log('Generating meeting summary...');
+    const summaryPrompt = `Please create a concise summary of this business meeting transcript:
 
-Input transcript:
 ${transcript}
 
-Please create:
-1. A concise GP summary line (max 100 characters)
-2. SOAP format notes
-3. Use UK NHS GP shorthand where appropriate (e.g., 2/7 for "2 days", NKDA for "no known drug allergies")
-4. Add relevant SNOMED codes where applicable
-5. Include any action points or follow-up required
+Please provide:
+1. A brief overview (2-3 sentences)
+2. Key discussion points
+3. Action items or decisions made
+4. Next steps if mentioned
 
-Format your response as:
-SUMMARY: [brief summary line]
-
-SOAP NOTES:
-S: [Subjective - what was discussed]
-O: [Objective - key findings or observations]
-A: [Assessment - conclusions or diagnoses]
-P: [Plan - actions, treatments, follow-up]
-
-ACTION POINTS:
-- [List any specific actions required]`;
+Keep it professional and business-focused.`;
 
     const summaryResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -88,11 +76,11 @@ ACTION POINTS:
         'Authorization': `Bearer ${OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'gpt-4o-mini', // Using mini for cost efficiency on business summaries
         messages: [
           {
             role: 'system',
-            content: 'You are an expert NHS GP assistant specializing in creating clinical notes from meeting transcripts. Always use proper medical terminology and UK NHS standards.'
+            content: 'You are a professional meeting assistant. Create clear, concise summaries of business meetings.'
           },
           {
             role: 'user',
@@ -100,19 +88,31 @@ ACTION POINTS:
           }
         ],
         temperature: 0.3,
-        max_tokens: 1500,
+        max_tokens: 800,
       }),
     });
 
     if (!summaryResponse.ok) {
       const errorText = await summaryResponse.text();
       console.error('OpenAI summary API error:', errorText);
-      throw new Error(`OpenAI API error: ${summaryResponse.status} - ${errorText}`);
+      // If summary fails, just return transcript
+      console.log('Summary generation failed, returning transcript only');
+      const response = {
+        success: true,
+        transcript: transcript,
+        summary: null,
+        processingTime: Date.now(),
+        audioSize: audioFile.size,
+        transcriptLength: transcript.length
+      };
+      return new Response(JSON.stringify(response), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const summaryResult = await summaryResponse.json();
     const summary = summaryResult.choices[0].message.content;
-    console.log('NHS summary generated successfully');
+    console.log('Business meeting summary generated successfully');
 
     // Return the results
     const response = {

@@ -637,7 +637,7 @@ export const MeetingRecorder = ({
           addDebugLog(`📁 Final audio file: ${(audioBlob.size / 1024 / 1024).toFixed(2)}MB`);
 
           // Upload to Supabase Edge Function for processing
-          addDebugLog('☁️ Uploading to backend for transcription and NHS summary...');
+          addDebugLog('☁️ Uploading to backend for transcription...');
           const formData = new FormData();
           formData.append('audio', audioBlob, 'meeting.webm');
 
@@ -660,13 +660,13 @@ export const MeetingRecorder = ({
               speaker: 'Meeting Audio'
             });
 
-            // Show NHS summary in a toast or update the UI
-            console.log('NHS Summary:', data.summary);
-            toast.success('Meeting processed! Check transcript and summary below.');
+            // Show meeting summary if available
+            if (data.summary) {
+              console.log('Meeting Summary:', data.summary);
+              addDebugLog('📋 Meeting summary generated - check console for details');
+            }
             
-            // You could also update a state to show the NHS summary in the UI
-            // For now, we'll log it for testing
-            addDebugLog('📋 NHS Summary generated - check console for details');
+            toast.success('Meeting processed! Check transcript below.');
             
           } else {
             throw new Error(data.error || 'Processing failed');
@@ -1535,12 +1535,12 @@ export const MeetingRecorder = ({
                         <div className="flex items-start gap-2">
                           <Video className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
                           <div className="text-xs text-green-700 dark:text-green-300">
-                            <strong className="text-green-800 dark:text-green-200">🚀 Advanced Feature:</strong> 
+                            <strong className="text-green-800 dark:text-green-200">🚀 Business Meeting Recorder:</strong> 
                             <br />• Captures Teams/Zoom meeting audio + your microphone simultaneously
                             <br />• Click "Share your screen" → Select the meeting tab/window → Grant mic access
                             <br />• Automatically transcribes using OpenAI Whisper API
-                            <br />• Generates NHS-style clinical summary with SOAP notes
-                            <br />• Perfect for medical consultations and professional meetings
+                            <br />• Generates optional meeting summary with key points and action items
+                            <br />• Perfect for business meetings, client calls, and team discussions
                           </div>
                         </div>
                       </div>
@@ -1597,9 +1597,9 @@ export const MeetingRecorder = ({
                       <div className="p-2 rounded-full bg-primary/5 w-12 h-12 mx-auto mb-2 flex items-center justify-center">
                         <Mic className="h-6 w-6 text-primary/60" />
                       </div>
-                       <h4 className="text-base font-medium mb-1">Advanced Recording Ready</h4>
+                       <h4 className="text-base font-medium mb-1">Professional Recording Ready</h4>
                        <p className="text-xs text-muted-foreground">
-                         Professional dual audio capture: Teams/Zoom meeting + microphone with AI transcription & NHS summary generation
+                         Advanced dual audio capture: Teams/Zoom meetings + microphone with AI transcription for business meetings
                        </p>
                        
                        {/* Live Summary Display */}
