@@ -1,0 +1,130 @@
+NHS FORMAL COMPLAINT FORM
+============================
+
+PATIENT DETAILS:
+================
+Full Name: Mrs. Margaret Elizabeth Wilson
+Date of Birth: 12th September 1958 (Age: 66)
+NHS Number: 485 123 4567
+
+CONTACT INFORMATION:
+===================
+Address: 15 Rose Gardens, Oakville, Birmingham, B12 8QR
+Telephone: 0121 456 7890
+Mobile: 07712 345 678
+Email: margaret.wilson@email.co.uk
+
+COMPLAINT INFORMATION:
+=====================
+Date of Incident: Monday, 18th November 2024
+Time of Incident: Approximately 2:15 PM
+Location/Service: Oakville Family Practice, Main Surgery
+Practice Address: 67 High Street, Oakville, Birmingham, B12 9TR
+
+COMPLAINT TITLE:
+===============
+Medication Error and Inadequate Response to Patient Safety Concern
+
+DETAILED DESCRIPTION OF COMPLAINT:
+=================================
+
+I am writing to formally complain about a serious medication error that occurred during my consultation on 18th November 2024, and the inadequate response from practice staff when I raised my concerns about patient safety.
+
+BACKGROUND:
+I have been a patient at Oakville Family Practice for over 15 years and have Type 2 diabetes, hypertension, and a history of penicillin allergy, which is clearly documented in my medical records and highlighted with red warning flags.
+
+INCIDENT DETAILS:
+During my routine diabetes review appointment with Dr. James Patterson at 2:15 PM, I presented with symptoms of what appeared to be a chest infection - persistent cough, yellow sputum, and mild fever for 3 days.
+
+Without conducting a proper physical examination or reviewing my allergy status, Dr. Patterson immediately prescribed Amoxicillin 500mg three times daily for 7 days. When I questioned him about my penicillin allergy, he dismissed my concerns and said "a little rash won't hurt you."
+
+MEDICATION ERROR:
+The prescription was processed by the practice pharmacist, Ms. Rebecca Thompson, who also failed to check my allergy status despite the electronic warning system. I only discovered the error when I collected the prescription from the attached pharmacy and the pharmacist, Mr. David Chen, immediately flagged the dangerous drug interaction.
+
+STAFF RESPONSE:
+When I returned to the practice reception to report the error, the receptionist, Mrs. Linda Foster, was dismissive and suggested it was "just a precaution." When I insisted on speaking to the practice manager, Mrs. Jennifer Hayes, I was told she was "too busy" and that I should "just get a different antibiotic from any pharmacy."
+
+SAFETY CONCERNS:
+This medication error could have resulted in a severe allergic reaction, including anaphylaxis, which could have been life-threatening. The casual attitude of staff towards patient safety is deeply concerning and suggests systemic issues with the practice's medication management protocols.
+
+STAFF MENTIONED:
+===============
+- Dr. James Patterson (General Practitioner) - Prescribing physician
+- Ms. Rebecca Thompson (Practice Pharmacist) - Failed to check allergies
+- Mrs. Linda Foster (Senior Receptionist) - Dismissive attitude to safety concern
+- Mrs. Jennifer Hayes (Practice Manager) - Refused to meet with patient
+- Mr. David Chen (Community Pharmacist) - Identified the error (NOT part of complaint)
+
+COMPLAINT CATEGORY:
+==================
+Primary: Clinical Care (Medication Safety)
+Secondary: Staff Attitude (Dismissive behavior)
+
+PRIORITY LEVEL:
+==============
+HIGH - Patient safety incident with potential for serious harm
+
+PREVIOUS ATTEMPTS TO RESOLVE:
+============================
+- Attempted to speak with Practice Manager on 18th November 2024 - Refused
+- Called practice on 19th November 2024 to request callback - No response received
+- Submitted informal complaint via practice website on 20th November 2024 - Acknowledged but no response to date
+
+CONSENT AND AUTHORITY:
+=====================
+I consent to this complaint being processed according to NHS England complaints procedures and the Local Authority Social Services and NHS Complaints (England) Regulations 2009.
+
+This complaint is made by me personally as the patient affected.
+I understand my information will be shared with relevant staff for investigation purposes.
+I consent to the practice contacting my GP records for investigation.
+
+DESIRED OUTCOMES:
+================
+1. Full investigation of the medication prescribing error
+2. Review of practice medication management systems and protocols
+3. Formal apology from Dr. Patterson for dismissive attitude towards patient safety
+4. Staff training on medication allergy management and patient communication
+5. Assurance that systems are in place to prevent similar incidents
+6. Practice Manager to personally review my case and provide written response
+7. Confirmation of any changes to practice procedures following this incident
+
+SUPPORTING EVIDENCE:
+===================
+- Copy of erroneous prescription dated 18th November 2024
+- Pharmacy intervention record from Mr. David Chen
+- Screenshot of practice website complaint submission confirmation
+- Medical records showing documented penicillin allergy since 2009
+
+PATIENT SIGNATURE AND DECLARATION:
+==================================
+I declare that the information provided in this complaint is true and accurate to the best of my knowledge.
+
+Signed: Margaret E. Wilson
+Date: 22nd November 2024
+
+PRACTICE USE ONLY:
+=================
+Reference Number: [To be assigned]
+Received Date: [To be completed]
+Acknowledged Date: [To be completed]
+Investigation Start Date: [To be completed]
+Response Due Date: [To be completed]
+Assigned Investigator: [To be completed]
+
+---
+
+NOTES FOR AI EXTRACTION TESTING:
+===============================
+This example complaint contains comprehensive information that should be extractable:
+
+- Patient Details: Name, DOB, contact information, address
+- Incident Details: Date, time, location, description
+- Staff Involved: Multiple staff members with roles
+- Complaint Categories: Clinical care, staff attitude
+- Priority: High due to safety concerns
+- Consent: Explicitly given
+- Complaint on behalf: No (made by patient directly)
+
+The AI system should be able to extract all key fields and populate the complaint form automatically, demonstrating the effectiveness of the import functionality.
+
+END OF DOCUMENT

@@ -11,6 +11,7 @@ import { Header } from "@/components/Header";
 import { useAuth } from "@/contexts/AuthContext";
 import { LoginForm } from "@/components/LoginForm";
 import { supabase } from "@/integrations/supabase/client";
+import { ComplaintImport } from "@/components/ComplaintImport";
 
 import { 
   AlertCircle, 
@@ -117,6 +118,7 @@ const ComplaintsSystem = () => {
     compliance_percentage: number;
     outstanding_items: string[];
   } | null>(null);
+  const [showImport, setShowImport] = useState(false);
 
   const [formData, setFormData] = useState<ComplaintFormData>({
     patient_name: "",
@@ -460,6 +462,29 @@ const ComplaintsSystem = () => {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleImportData = (importedData: any) => {
+    // Auto-populate form with imported data
+    setFormData(prev => ({
+      ...prev,
+      patient_name: importedData.patient_name || prev.patient_name,
+      patient_dob: importedData.patient_dob || prev.patient_dob,
+      patient_contact_phone: importedData.patient_contact_phone || prev.patient_contact_phone,
+      patient_contact_email: importedData.patient_contact_email || prev.patient_contact_email,
+      patient_address: importedData.patient_address || prev.patient_address,
+      incident_date: importedData.incident_date || prev.incident_date,
+      complaint_title: importedData.complaint_title || prev.complaint_title,
+      complaint_description: importedData.complaint_description || prev.complaint_description,
+      category: importedData.category || prev.category,
+      location_service: importedData.location_service || prev.location_service,
+      staff_mentioned: importedData.staff_mentioned ? importedData.staff_mentioned.join(', ') : prev.staff_mentioned,
+      priority: importedData.priority || prev.priority,
+      consent_given: importedData.consent_given !== undefined ? importedData.consent_given : prev.consent_given,
+      complaint_on_behalf: importedData.complaint_on_behalf !== undefined ? importedData.complaint_on_behalf : prev.complaint_on_behalf,
+    }));
+    
+    toast.success('Form populated with imported data - please review and submit');
   };
 
   const getStatusIcon = (status: string) => {
@@ -840,8 +865,20 @@ const ComplaintsSystem = () => {
           <TabsContent value="new" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Submit New Complaint</CardTitle>
-                <CardDescription>Record a new patient complaint following NHS procedures</CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Submit New Complaint</CardTitle>
+                    <CardDescription>Record a new patient complaint following NHS procedures</CardDescription>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowImport(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <Upload className="h-4 w-4" />
+                    Import Data
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmitComplaint} className="space-y-6">
@@ -1430,6 +1467,14 @@ const ComplaintsSystem = () => {
               </div>
             </div>
           </div>
+          )}
+        
+        {/* Complaint Import Modal */}
+        {showImport && (
+          <ComplaintImport
+            onDataExtracted={handleImportData}
+            onClose={() => setShowImport(false)}
+          />
         )}
       </div>
     </div>
