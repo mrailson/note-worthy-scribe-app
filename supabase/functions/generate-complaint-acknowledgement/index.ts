@@ -32,15 +32,23 @@ serve(async (req) => {
     // Fetch complaint details
     const { data: complaint, error: complaintError } = await supabase
       .from('complaints')
-      .select(`
-        *,
-        practice_details!inner(practice_name, address, phone, email)
-      `)
+      .select('*')
       .eq('id', complaintId)
       .single();
 
     if (complaintError || !complaint) {
       throw new Error('Complaint not found');
+    }
+
+    // Get practice details if practice_id exists
+    let practiceDetails = null;
+    if (complaint.practice_id) {
+      const { data: practice } = await supabase
+        .from('practice_details')
+        .select('practice_name, address, phone, email')
+        .eq('id', complaint.practice_id)
+        .single();
+      practiceDetails = practice;
     }
 
     const systemPrompt = `You are a professional NHS complaints officer writing acknowledgement letters. Generate a formal acknowledgement letter for a patient complaint that:
@@ -58,7 +66,7 @@ Format as a formal letter with appropriate NHS letterhead styling.`;
     const userPrompt = `Generate an acknowledgement letter for this complaint:
 
 Reference: ${complaint.reference_number}
-Practice: ${complaint.practice_details.practice_name}
+Patient: ${complaint.patient_name}
 Complaint Title: ${complaint.complaint_title}
 Description: ${complaint.complaint_description}
 Category: ${complaint.category}
@@ -66,10 +74,10 @@ Incident Date: ${complaint.incident_date}
 Location/Service: ${complaint.location_service || 'Not specified'}
 
 Practice Details:
-Name: ${complaint.practice_details.practice_name}
-Address: ${complaint.practice_details.address || 'Address not provided'}
-Phone: ${complaint.practice_details.phone || 'Phone not provided'}
-Email: ${complaint.practice_details.email || 'Email not provided'}
+Name: ${practiceDetails?.practice_name || 'NHS Practice'}
+Address: ${practiceDetails?.address || 'Address not provided'}
+Phone: ${practiceDetails?.phone || 'Phone not provided'}
+Email: ${practiceDetails?.email || 'Email not provided'}
 
 Generate a professional acknowledgement letter addressing the specific concerns raised.`;
 
