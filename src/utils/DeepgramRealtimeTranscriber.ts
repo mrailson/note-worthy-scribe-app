@@ -111,10 +111,24 @@ export class DeepgramRealtimeTranscriber {
       // Always try to capture both mic + system audio
       this.mediaStream = await this.audioCapture.startCapture();
 
-      // Create MediaRecorder with WebM format
-      this.mediaRecorder = new MediaRecorder(this.mediaStream, {
-        mimeType: 'audio/webm;codecs=opus'
-      });
+      // Create MediaRecorder with a more compatible format
+      const options = [
+        { mimeType: 'audio/webm;codecs=opus' },
+        { mimeType: 'audio/webm' },
+        { mimeType: 'audio/mp4' },
+        { mimeType: 'audio/wav' }
+      ];
+      
+      let selectedOptions = { mimeType: 'audio/webm' };
+      for (const option of options) {
+        if (MediaRecorder.isTypeSupported(option.mimeType)) {
+          selectedOptions = option;
+          break;
+        }
+      }
+      
+      console.log('🎙️ Using audio format:', selectedOptions.mimeType);
+      this.mediaRecorder = new MediaRecorder(this.mediaStream, selectedOptions);
 
       this.mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
@@ -129,8 +143,8 @@ export class DeepgramRealtimeTranscriber {
         this.onError('Recording error occurred');
       };
 
-      // Start recording with chunks every 1 second
-      this.mediaRecorder.start(1000);
+      // Start recording with smaller chunks every 2 seconds for better quality
+      this.mediaRecorder.start(2000);
       this.isRecording = true;
 
     } catch (error) {

@@ -27,18 +27,23 @@ serve(async (req) => {
       throw new Error('No audio file provided');
     }
 
-    console.log('🎵 Processing audio file:', audioFile.size, 'bytes');
+    console.log('🎵 Processing audio file:', audioFile.size, 'bytes', 'type:', audioFile.type);
 
-    // Send to Deepgram REST API
+    // Convert to proper format for Deepgram
+    const arrayBuffer = await audioFile.arrayBuffer();
+    
+    // Send to Deepgram REST API with form data
+    const deepgramFormData = new FormData();
+    deepgramFormData.append('file', new Blob([arrayBuffer], { type: 'audio/wav' }), 'audio.wav');
+    
     const deepgramResponse = await fetch(
-      'https://api.deepgram.com/v1/listen?model=nova-2&smart_format=true&punctuate=true&diarize=true',
+      'https://api.deepgram.com/v1/listen?model=nova-2&smart_format=true&punctuate=true&diarize=false',
       {
         method: 'POST',
         headers: {
           'Authorization': `Token ${deepgramApiKey}`,
-          'Content-Type': audioFile.type || 'audio/webm',
         },
-        body: audioFile,
+        body: deepgramFormData,
       }
     );
 
