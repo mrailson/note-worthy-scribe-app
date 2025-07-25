@@ -671,12 +671,17 @@ export const MeetingRecorder = ({
       const audioContext = new AudioContext();
       const destination = audioContext.createMediaStreamDestination();
       
+      // Create a gain node for analysis
+      const analysisGain = audioContext.createGain();
+      analysisGain.gain.value = 1.0;
+      
       // Connect display audio
       const displaySource = audioContext.createMediaStreamSource(displayStream);
       const displayGain = audioContext.createGain();
       displayGain.gain.value = 1.0; // Full volume for system audio
       displaySource.connect(displayGain);
       displayGain.connect(destination);
+      displayGain.connect(analysisGain); // For monitoring
       
       // Connect microphone audio
       const micSource = audioContext.createMediaStreamSource(micStream);
@@ -684,6 +689,7 @@ export const MeetingRecorder = ({
       micGain.gain.value = 1.2; // Slightly boost mic audio
       micSource.connect(micGain);
       micGain.connect(destination);
+      micGain.connect(analysisGain); // For monitoring
       
       // Get the mixed stream
       const combinedStream = destination.stream;
@@ -691,9 +697,9 @@ export const MeetingRecorder = ({
       console.log('Combined stream tracks:', combinedStream.getTracks().length);
       addDebugLog(`🔀 Combined stream has ${combinedStream.getTracks().length} total tracks`);
       
-      // Add audio level monitoring to check if we're getting audio
+      // Add audio level monitoring
       const analyser = audioContext.createAnalyser();
-      destination.connect(analyser);
+      analysisGain.connect(analyser);
       
       analyser.fftSize = 256;
       const bufferLength = analyser.frequencyBinCount;
