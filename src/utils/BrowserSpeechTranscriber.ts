@@ -82,12 +82,25 @@ export class BrowserSpeechTranscriber {
       this.recognition.onend = () => {
         console.log('🔄 Speech recognition ended, restarting...');
         if (this.isRecording) {
-          // Automatically restart recognition to keep it continuous
-          setTimeout(() => {
-            if (this.isRecording && this.recognition) {
+          // Immediately restart recognition to minimize gaps
+          try {
+            if (this.recognition) {
               this.recognition.start();
             }
-          }, 100);
+          } catch (error) {
+            console.log('⚠️ Restart failed, retrying...', error);
+            // Fallback with minimal delay if immediate restart fails
+            setTimeout(() => {
+              if (this.isRecording && this.recognition) {
+                try {
+                  this.recognition.start();
+                } catch (retryError) {
+                  console.error('❌ Failed to restart speech recognition:', retryError);
+                  this.onError('Speech recognition restart failed');
+                }
+              }
+            }, 50);
+          }
         }
       };
 
