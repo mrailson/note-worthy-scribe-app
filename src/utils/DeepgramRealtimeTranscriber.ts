@@ -1,6 +1,6 @@
 import { SystemAudioCapture } from '@/utils/SystemAudioCapture';
 import { supabase } from '@/integrations/supabase/client';
-
+import { BrowserSpeechTranscriber } from '@/utils/BrowserSpeechTranscriber';
 export interface TranscriptData {
   text: string;
   is_final: boolean;
@@ -18,13 +18,7 @@ export interface TranscriptData {
 }
 
 export class DeepgramRealtimeTranscriber {
-  private mediaRecorder: MediaRecorder | null = null;
-  private mediaStream: MediaStream | null = null;
-  private isRecording = false;
-  private sessionId: string = '';
-  private audioCapture: SystemAudioCapture;
-  private pollingInterval: number | null = null;
-  private audioChunks: Blob[] = [];
+  private browserTranscriber: BrowserSpeechTranscriber;
 
   constructor(
     private onTranscription: (data: TranscriptData) => void,
@@ -32,263 +26,28 @@ export class DeepgramRealtimeTranscriber {
     private onStatusChange: (status: string) => void,
     private onSummary?: (summary: string) => void
   ) {
-    this.sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    this.audioCapture = new SystemAudioCapture();
+    this.browserTranscriber = new BrowserSpeechTranscriber(
+      onTranscription,
+      onError,
+      onStatusChange,
+      onSummary
+    );
   }
 
   async startTranscription() {
-    try {
-      this.onStatusChange('Connecting...');
-      console.log('🚀 Starting HTTP polling transcription...');
-      await this.startAudioCapture();
-      this.startPolling();
-      this.onStatusChange('Recording');
-    } catch (error) {
-      console.error('Error starting transcription:', error);
-      this.onError(`Failed to start transcription: ${error}`);
-    }
-  }
-
-  private startPolling() {
-    // Start polling every 3 seconds to send individual audio chunks
-    this.pollingInterval = window.setInterval(async () => {
-      if (this.audioChunks.length > 0) {
-        console.log(`📊 Audio chunks available: ${this.audioChunks.length}`);
-        // Send the most recent audio chunk (don't combine them)
-        const latestChunk = this.audioChunks.pop(); // Get the latest chunk
-        this.audioChunks = []; // Clear remaining chunks
-        if (latestChunk && latestChunk.size > 1000) { // Only send if chunk has meaningful data
-          await this.sendAudioChunkForTranscription(latestChunk);
-        } else {
-          console.log('⚠️ Skipping small or empty audio chunk:', latestChunk?.size || 0, 'bytes');
-        }
-      }
-    }, 3000);
-  }
-
-  private async sendAudioChunkForTranscription(audioBlob: Blob) {
-    try {
-      console.log('📤 Sending audio chunk for transcription:', audioBlob.size, 'bytes');
-
-      // Test with a simple working function first
-      console.log('🧪 Testing edge function connectivity...');
-      const testResponse = await supabase.functions.invoke('echo-proxy', {
-        body: { test: 'connectivity check' },
-      });
-      
-      console.log('✅ Edge function connectivity test:', testResponse);
-
-      // Convert blob to base64 for the actual transcription
-      const reader = new FileReader();
-      const base64Audio = await new Promise<string>((resolve, reject) => {
-        reader.onload = () => {
-          const result = reader.result as string;
-          const base64 = result.split(',')[1];
-          resolve(base64);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(audioBlob);
-      });
-
-      console.log('📡 Calling speech-to-text function...');
-      const { data, error } = await supabase.functions.invoke('speech-to-text', {
-        body: { audio: base64Audio },
-      });
-
-      if (error) {
-        console.error('❌ Speech-to-text error:', error);
-        return;
-      }
-
-      if (data?.text?.trim()) {
-        console.log('✅ Received transcription:', data.text);
-        
-        const transcriptData: TranscriptData = {
-          text: data.text,
-          is_final: true,
-          confidence: 1.0,
-          words: [],
-          speaker: 'Speaker 1'
-        };
-
-        if (!this.isLikelyHallucination(data.text.toLowerCase())) {
-          this.onTranscription(transcriptData);
-          this.sendToSummarizer(data.text);
-        }
-      } else {
-        console.log('📭 No speech detected in this chunk');
-      }
-
-    } catch (error) {
-      console.error('❌ Error in transcription process:', error);
-    }
-  }
-
-  private async startAudioCapture() {
-    try {
-      // Always try to capture both mic + system audio
-      this.mediaStream = await this.audioCapture.startCapture();
-
-      // Create MediaRecorder with a more compatible format
-      const options = [
-        { mimeType: 'audio/webm;codecs=opus' },
-        { mimeType: 'audio/webm' },
-        { mimeType: 'audio/mp4' },
-        { mimeType: 'audio/wav' }
-      ];
-      
-      let selectedOptions = { mimeType: 'audio/webm' };
-      for (const option of options) {
-        if (MediaRecorder.isTypeSupported(option.mimeType)) {
-          selectedOptions = option;
-          break;
-        }
-      }
-      
-      console.log('🎙️ Using audio format:', selectedOptions.mimeType);
-      this.mediaRecorder = new MediaRecorder(this.mediaStream, selectedOptions);
-
-      this.mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          // Store audio chunks for HTTP transmission
-          this.audioChunks.push(event.data);
-          console.log('🎵 Audio chunk received:', event.data.size, 'bytes', 'Total chunks:', this.audioChunks.length);
-        } else {
-          console.log('⚠️ Received empty audio chunk');
-        }
-      };
-
-      this.mediaRecorder.onerror = (event) => {
-        console.error('MediaRecorder error:', event);
-        this.onError('Recording error occurred');
-      };
-
-      this.mediaRecorder.onstop = () => {
-        console.log('🛑 MediaRecorder stopped');
-      };
-
-      // Start recording with smaller chunks every 2 seconds for better quality
-      this.mediaRecorder.start(2000);
-      this.isRecording = true;
-
-    } catch (error) {
-      console.error('Error starting audio capture:', error);
-      throw new Error('Could not access microphone');
-    }
+    console.log('🎙️ Using browser speech recognition instead of edge functions');
+    await this.browserTranscriber.startTranscription();
   }
 
   stopTranscription() {
-    console.log('🛑 Stopping HTTP polling transcription...');
-    this.isRecording = false;
-    
-    // Stop polling
-    if (this.pollingInterval) {
-      clearInterval(this.pollingInterval);
-      this.pollingInterval = null;
-    }
-
-    // Send any remaining audio chunks
-    if (this.audioChunks.length > 0) {
-      const latestChunk = this.audioChunks.pop();
-      if (latestChunk) {
-        this.sendAudioChunkForTranscription(latestChunk);
-      }
-      this.audioChunks = [];
-    }
-    
-    // Stop audio recording
-    if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
-      this.mediaRecorder.stop();
-    }
-
-    // Stop audio capture
-    this.audioCapture.stopCapture();
-    this.mediaStream = null;
-    this.mediaRecorder = null;
-    this.onStatusChange('Stopped');
+    this.browserTranscriber.stopTranscription();
   }
 
   isActive(): boolean {
-    return this.isRecording;
-  }
-
-  private isLikelyHallucination(text: string): boolean {
-    // Common speech-to-text hallucinations
-    const exactHallucinations = [
-      'bye', 'bye-bye', 'bye bye', 'goodbye',
-      'thank you', 'thanks', 'thank you very much', 
-      'thank you for listening', 'thank you for joining',
-      'thank you for watching', 'thank you for your time',
-      'good night', 'goodnight', 'good morning', 'good afternoon',
-      'thank you. bye', 'thank you. bye.', 'thanks. bye',
-      'thanks. bye.', 'thank you, bye', 'thanks, bye'
-    ];
-
-    // Religious/Arabic phrases that can be hallucinated
-    const religiousPatterns = [
-      'bi hurmati', 'muhammad', 'al-mustafa', 'surat', 'al-fatiha', 'bismillah'
-    ];
-
-    // Check exact matches
-    if (exactHallucinations.includes(text)) {
-      return true;
-    }
-
-    // Check for religious patterns
-    if (religiousPatterns.some(pattern => text.includes(pattern))) {
-      return true;
-    }
-
-    // Filter extremely repetitive patterns
-    const words = text.split(' ');
-    if (words.length >= 4) {
-      const uniqueWords = new Set(words.map(w => w.toLowerCase()));
-      if (uniqueWords.size === 1) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  private async sendToSummarizer(text: string) {
-    try {
-      const response = await fetch('https://dphcnbricafkbtizkoal.functions.supabase.co/realtime-summarizer', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          sessionId: this.sessionId,
-          text: text,
-          action: 'add'
-        }),
-      });
-
-      const data = await response.json();
-      
-      if (data.success && data.action === 'summary_generated' && this.onSummary) {
-        this.onSummary(data.summary);
-      }
-    } catch (error) {
-      console.error('Error sending to summarizer:', error);
-    }
+    return this.browserTranscriber.isActive();
   }
 
   async clearSummary() {
-    try {
-      await fetch('https://dphcnbricafkbtizkoal.functions.supabase.co/realtime-summarizer', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          sessionId: this.sessionId,
-          action: 'clear'
-        }),
-      });
-    } catch (error) {
-      console.error('Error clearing summary:', error);
-    }
+    await this.browserTranscriber.clearSummary();
   }
 }
