@@ -32,7 +32,9 @@ import {
   Edit,
   Trash2,
   Download,
-  Upload
+  Upload,
+  Brain,
+  Shield
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -101,6 +103,20 @@ const ComplaintsSystem = () => {
   const [newParty, setNewParty] = useState({staffName: '', staffEmail: '', staffRole: ''});
   const [outcomeType, setOutcomeType] = useState('');
   const [outcomeSummary, setOutcomeSummary] = useState('');
+  const [aiAnalysis, setAiAnalysis] = useState('');
+  const [complianceChecks, setComplianceChecks] = useState<Array<{
+    id: string;
+    compliance_item: string;
+    is_compliant: boolean;
+    evidence: string | null;
+    notes: string | null;
+  }>>([]);
+  const [complianceSummary, setComplianceSummary] = useState<{
+    total_items: number;
+    compliant_items: number;
+    compliance_percentage: number;
+    outstanding_items: string[];
+  } | null>(null);
 
   const [formData, setFormData] = useState<ComplaintFormData>({
     patient_name: "",
@@ -234,6 +250,11 @@ const ComplaintsSystem = () => {
 
       // Refresh complaints list
       fetchComplaints();
+      
+      // Initialize compliance checklist for new complaint
+      if (data?.id) {
+        await initializeComplianceChecklist(data.id);
+      }
     } catch (error) {
       console.error('Error submitting complaint:', error);
       toast.error("Failed to submit complaint");
@@ -358,6 +379,87 @@ const ComplaintsSystem = () => {
 
   const removeInvolvedParty = (index: number) => {
     setInvolvedParties(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const initializeComplianceChecklist = async (complaintId: string) => {
+    try {
+      const { error } = await supabase.rpc('initialize_complaint_compliance', {
+        complaint_id_param: complaintId
+      });
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error initializing compliance checklist:', error);
+    }
+  };
+
+  const fetchComplianceData = async (complaintId: string) => {
+    try {
+      // Fetch compliance checks
+      const { data: checksData, error: checksError } = await supabase
+        .from('complaint_compliance_checks')
+        .select('*')
+        .eq('complaint_id', complaintId)
+        .order('compliance_item');
+
+      if (checksError) throw checksError;
+      setComplianceChecks(checksData || []);
+
+      // Fetch compliance summary
+      const { data: summaryData, error: summaryError } = await supabase.rpc('get_complaint_compliance_summary', {
+        complaint_id_param: complaintId
+      });
+
+      if (summaryError) throw summaryError;
+      if (summaryData && summaryData.length > 0) {
+        setComplianceSummary(summaryData[0]);
+      }
+    } catch (error) {
+      console.error('Error fetching compliance data:', error);
+    }
+  };
+
+  const updateComplianceCheck = async (checkId: string, isCompliant: boolean, evidence?: string) => {
+    try {
+      const { error } = await supabase
+        .from('complaint_compliance_checks')
+        .update({ 
+          is_compliant: isCompliant, 
+          evidence,
+          checked_by: user?.id,
+          checked_at: new Date().toISOString()
+        })
+        .eq('id', checkId);
+
+      if (error) throw error;
+
+      // Refresh compliance data
+      if (selectedComplaint) {
+        await fetchComplianceData(selectedComplaint.id);
+      }
+      toast.success('Compliance check updated');
+    } catch (error) {
+      console.error('Error updating compliance check:', error);
+      toast.error('Failed to update compliance check');
+    }
+  };
+
+  const handleAnalyzeOutcome = async (complaintId: string) => {
+    try {
+      setSubmitting(true);
+      const { data, error } = await supabase.functions.invoke('analyze-complaint-outcome', {
+        body: { complaintId }
+      });
+
+      if (error) throw error;
+
+      setAiAnalysis(data.analysis);
+      toast.success('AI analysis completed');
+    } catch (error) {
+      console.error('Error analyzing outcome:', error);
+      toast.error('Failed to analyze complaint outcome');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const getStatusIcon = (status: string) => {
@@ -702,9 +804,10 @@ const ComplaintsSystem = () => {
                             <Button 
                               size="sm" 
                               variant="outline"
-                              onClick={() => {
+                              onClick={async () => {
                                 setSelectedComplaint(complaint);
                                 setShowDetails(true);
+                                await fetchComplianceData(complaint.id);
                               }}
                             >
                               <Eye className="h-4 w-4 mr-1" />
@@ -1060,13 +1163,16 @@ const ComplaintsSystem = () => {
                   <h2 className="text-2xl font-bold">Complaint Workflow Management</h2>
                   <Button 
                     variant="outline" 
-                    onClick={() => {
-                      setShowDetails(false);
-                      setSelectedComplaint(null);
-                      setInvolvedParties([]);
-                      setOutcomeType('');
-                      setOutcomeSummary('');
-                    }}
+                     onClick={() => {
+                       setShowDetails(false);
+                       setSelectedComplaint(null);
+                       setInvolvedParties([]);
+                       setOutcomeType('');
+                       setOutcomeSummary('');
+                       setAiAnalysis('');
+                       setComplianceChecks([]);
+                       setComplianceSummary(null);
+                     }}
                   >
                     Close
                   </Button>
@@ -1096,6 +1202,115 @@ const ComplaintsSystem = () => {
                         <strong>Description:</strong>
                         <p className="mt-1 text-sm text-muted-foreground">{selectedComplaint.complaint_description}</p>
                       </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* NHS Compliance Tracking */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="h-5 w-5" />
+                          NHS Compliance & Best Practice
+                        </div>
+                        {complianceSummary && (
+                          <Badge variant={complianceSummary.compliance_percentage >= 80 ? "default" : "destructive"}>
+                            {complianceSummary.compliance_percentage}% Complete
+                          </Badge>
+                        )}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {complianceSummary && (
+                        <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
+                          <div className="text-center">
+                            <div className="text-2xl font-bold text-green-600">{complianceSummary.compliant_items}</div>
+                            <div className="text-sm text-muted-foreground">Completed</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-2xl font-bold text-orange-600">{complianceSummary.total_items - complianceSummary.compliant_items}</div>
+                            <div className="text-sm text-muted-foreground">Outstanding</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-2xl font-bold text-blue-600">{complianceSummary.total_items}</div>
+                            <div className="text-sm text-muted-foreground">Total Checks</div>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="space-y-2 max-h-60 overflow-y-auto">
+                        {complianceChecks.map((check) => (
+                          <div key={check.id} className="flex items-start justify-between p-3 border rounded-lg">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="checkbox"
+                                  checked={check.is_compliant}
+                                  onChange={(e) => updateComplianceCheck(check.id, e.target.checked)}
+                                  className="rounded"
+                                />
+                                <span className={`text-sm ${check.is_compliant ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
+                                  {check.compliance_item}
+                                </span>
+                              </div>
+                              {check.notes && (
+                                <p className="text-xs text-muted-foreground mt-1 ml-6">{check.notes}</p>
+                              )}
+                            </div>
+                            {check.is_compliant && (
+                              <Badge variant="default" className="ml-2">
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                Complete
+                              </Badge>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                        <p className="text-sm text-blue-800">
+                          <strong>CQC/ICB Compliance:</strong> This checklist ensures your complaint handling follows NHS England procedures, 
+                          CQC regulations, and demonstrates good governance for inspection purposes.
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* AI Outcome Analysis */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <AlertCircle className="h-5 w-5" />
+                          AI Outcome Analysis
+                        </div>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleAnalyzeOutcome(selectedComplaint.id)}
+                          disabled={submitting}
+                        >
+                          {submitting ? 'Analyzing...' : 'Get AI Recommendation'}
+                        </Button>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {aiAnalysis ? (
+                        <div className="space-y-4">
+                          <div className="p-4 bg-gray-50 rounded-lg">
+                            <pre className="text-sm whitespace-pre-wrap text-foreground">{aiAnalysis}</pre>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            This analysis is based on NHS standards, CQC requirements, and professional medical guidelines. 
+                            It should be reviewed by qualified staff before making final decisions.
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <AlertCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                          <p>Click "Get AI Recommendation" to analyze this complaint and receive outcome suggestions with detailed reasoning.</p>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
 

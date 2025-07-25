@@ -242,6 +242,50 @@ export type Database = {
           },
         ]
       }
+      complaint_compliance_checks: {
+        Row: {
+          checked_at: string | null
+          checked_by: string | null
+          complaint_id: string
+          compliance_item: string
+          created_at: string | null
+          evidence: string | null
+          id: string
+          is_compliant: boolean
+          notes: string | null
+        }
+        Insert: {
+          checked_at?: string | null
+          checked_by?: string | null
+          complaint_id: string
+          compliance_item: string
+          created_at?: string | null
+          evidence?: string | null
+          id?: string
+          is_compliant?: boolean
+          notes?: string | null
+        }
+        Update: {
+          checked_at?: string | null
+          checked_by?: string | null
+          complaint_id?: string
+          compliance_item?: string
+          created_at?: string | null
+          evidence?: string | null
+          id?: string
+          is_compliant?: boolean
+          notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_compliance_checks_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       complaint_documents: {
         Row: {
           complaint_id: string
@@ -1349,6 +1393,15 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_complaint_compliance_summary: {
+        Args: { complaint_id_param: string }
+        Returns: {
+          total_items: number
+          compliant_items: number
+          compliance_percentage: number
+          outstanding_items: string[]
+        }[]
+      }
       get_complaint_for_external_access: {
         Args: { access_token_param: string }
         Returns: {
@@ -1400,6 +1453,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
         }
         Returns: boolean
+      }
+      initialize_complaint_compliance: {
+        Args: { complaint_id_param: string }
+        Returns: undefined
       }
       is_pcn_manager: {
         Args: { _user_id?: string }
