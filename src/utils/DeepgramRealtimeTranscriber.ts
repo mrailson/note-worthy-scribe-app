@@ -51,35 +51,25 @@ export class DeepgramRealtimeTranscriber {
       try {
         console.log('🔗 Attempting WebSocket connection to Deepgram proxy...');
         
-        // Test multiple edge functions to verify URL format
-        const testUrls = [
-          'https://dphcnbricafkbtizkoal.supabase.co/functions/v1/deepgram-realtime',
-          'https://dphcnbricafkbtizkoal.supabase.co/functions/v1/assemblyai-transcription'
-        ];
+        // Use the correct Lovable Edge Function URL format
+        const wsUrl = 'wss://91f61816-7ac8-43e0-a21d-31572f57dcab.lovableproject.com/functions/deepgram-realtime';
+        console.log('🔗 Using correct Lovable WebSocket URL:', wsUrl);
         
-        let workingUrl = '';
-        for (const testUrl of testUrls) {
-          try {
-            console.log(`🔗 Testing edge function: ${testUrl}`);
-            const testResponse = await fetch(testUrl, { method: 'GET' });
-            console.log(`✅ URL ${testUrl} responded with status: ${testResponse.status}`);
-            if (testUrl.includes('deepgram-realtime') && testResponse.status === 400) {
-              // 400 is expected for deepgram without WebSocket headers
-              workingUrl = testUrl.replace('https://', 'wss://');
-              console.log(`🔗 Found working deepgram URL: ${workingUrl}`);
-              break;
-            }
-          } catch (testError: any) {
-            console.error(`❌ URL ${testUrl} failed:`, testError.message);
+        // Test the function accessibility first
+        try {
+          console.log('🔗 Testing Lovable edge function accessibility...');
+          const testResponse = await fetch('https://91f61816-7ac8-43e0-a21d-31572f57dcab.lovableproject.com/functions/deepgram-realtime', {
+            method: 'GET'
+          });
+          console.log('🔗 Edge function test response status:', testResponse.status);
+          if (testResponse.status === 400) {
+            console.log('✅ Function deployed correctly - 400 expected without WebSocket headers');
           }
-        }
-        
-        if (!workingUrl) {
-          reject(new Error('No accessible edge function URLs found'));
+        } catch (testError: any) {
+          console.error('❌ Edge function test failed:', testError.message);
+          reject(new Error('Edge function not accessible: ' + testError.message));
           return;
         }
-        
-        const wsUrl = workingUrl;
         
         this.ws = new WebSocket(wsUrl);
         console.log('🔗 WebSocket object created, readyState:', this.ws.readyState);
