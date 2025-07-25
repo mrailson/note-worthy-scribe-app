@@ -1,39 +1,22 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from "https://deno.land/std/http/server.ts";
 
 serve(async (req) => {
-  console.log('🔗 Deepgram WebSocket proxy - New connection request');
-  
-  if (req.headers.get("upgrade") !== "websocket") {
-    console.error('❌ Not a WebSocket request');
-    return new Response("Expected WebSocket upgrade", { status: 400 });
-  }
+  if (req.headers.get("upgrade") === "websocket") {
+    const { socket, response } = Deno.upgradeWebSocket(req);
 
-  console.log("✅ Setting up WebSocket connection to Deepgram...");
-
-  const { socket, response } = Deno.upgradeWebSocket(req);
-  
-  const deepgramApiKey = Deno.env.get('DEEPGRAM_API_KEY');
-  if (!deepgramApiKey) {
-    console.error('❌ DEEPGRAM_API_KEY is not set');
-    socket.close(1011, 'DEEPGRAM_API_KEY is not set');
-    return response;
-  }
-
-  console.log('🔗 Connecting to Deepgram with API key present:', !!deepgramApiKey);
-
-  try {
+    // Connect to Deepgram WebSocket using fetch upgrade
     const dgReq = await fetch(
       "https://api.deepgram.com/v1/listen?encoding=opus&sample_rate=48000&punctuate=true&diarize=true",
       {
-        headers: { Authorization: `Token ${deepgramApiKey}` },
+        headers: { Authorization: `Token ${Deno.env.get("DEEPGRAM_API_KEY")}` },
         method: "GET",
         upgrade: "websocket"
       }
     );
 
     if (!dgReq.webSocket) {
-      console.error("❌ Deepgram WS upgrade failed");
-      socket.close(1011, 'Failed to connect to Deepgram');
+      console.error("Deepgram WS upgrade failed");
+      socket.close();
       return new Response("Failed to connect to Deepgram", { status: 502 });
     }
 
@@ -42,36 +25,19 @@ serve(async (req) => {
 
     console.log("✅ Connected to Deepgram WebSocket");
 
-    // Forward messages from client to Deepgram
-    socket.onmessage = (e) => {
-      if (dgSocket.readyState === WebSocket.OPEN) {
-        dgSocket.send(e.data);
-      }
-    };
+    // Forward data both ways
+    socket.onmessage = (e) => dgSocket.send(e.data);
+    dgSocket.onmessage = (e) => socket.send(e.data);
 
-    // Forward messages from Deepgram to client
-    dgSocket.onmessage = (e) => {
-      if (socket.readyState === WebSocket.OPEN) {
-        socket.send(e.data);
-      }
-    };
-
-    // Handle connection closures
     socket.onclose = () => {
       console.log("Client WebSocket closed");
-      if (dgSocket.readyState === WebSocket.OPEN) {
-        dgSocket.close();
-      }
+      dgSocket.close();
     };
-
     dgSocket.onclose = () => {
-      console.log("Deepgram WebSocket closed");
-      if (socket.readyState === WebSocket.OPEN) {
-        socket.close();
-      }
+      console.log("Deepgram WebSocket closed"); 
+      socket.close();
     };
 
-    // Handle errors
     socket.onerror = (error) => {
       console.error("Client WebSocket error:", error);
     };
@@ -81,10 +47,7 @@ serve(async (req) => {
     };
 
     return response;
-
-  } catch (error) {
-    console.error("❌ Error setting up Deepgram connection:", error);
-    socket.close(1011, `Connection failed: ${error.message}`);
-    return response;
   }
+
+  return new Response("Expected WebSocket upgrade", { status: 400 });
 });
