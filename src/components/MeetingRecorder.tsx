@@ -926,14 +926,19 @@ export const MeetingRecorder = ({
   };
 
   const startTestRecording = async () => {
+    console.log('🔥 START TEST RECORDING CALLED'); // Basic debug
+    
     try {
       const modeText = recordingMode === 'computer-audio' ? 'dual audio (system + microphone)' : 'microphone';
+      console.log('🔥 MODE:', modeText); // Basic debug
       addDebugLog(`🚀 Starting test recording with ${modeText}...`);
       console.log(`Starting test recording with ${modeText}...`);
       
       // Clear previous debug logs and test transcripts
       setDebugLog([]);
       setTestTranscripts([]);
+      
+      console.log('🔥 ABOUT TO START MODE'); // Basic debug
       
       // Choose recording method based on mode
       if (recordingMode === 'computer-audio') {
@@ -1729,7 +1734,10 @@ export const MeetingRecorder = ({
                   {!isRecording ? (
                     <div className="space-y-2">
                       <Button 
-                        onClick={startTestRecording}
+                        onClick={() => {
+                          console.log('🔥 BUTTON CLICKED!'); // Basic debug
+                          startTestRecording();
+                        }}
                         size="lg"
                         className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 px-8 py-4 text-base font-semibold rounded-lg"
                       >
