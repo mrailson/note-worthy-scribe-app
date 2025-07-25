@@ -50,11 +50,11 @@ export class DeepgramRealtimeTranscriber {
     return new Promise<void>((resolve, reject) => {
       try {
         console.log('🔗 Attempting WebSocket connection to Deepgram proxy...');
-        const wsUrl = 'wss://dphcnbricafkbtizkoal.supabase.co/functions/v1/deepgram-realtime';
+        const wsUrl = 'wss://dphcnbricafkbtizkoal.functions.supabase.co/deepgram-realtime';
         console.log('🔗 WebSocket URL:', wsUrl);
         
         // Test if the URL is reachable first
-        fetch(`https://dphcnbricafkbtizkoal.supabase.co/functions/v1/deepgram-realtime`, {
+        fetch(`https://dphcnbricafkbtizkoal.functions.supabase.co/deepgram-realtime`, {
           method: 'GET'
         }).then(response => {
           console.log('🔗 Edge function HTTP test - Status:', response.status);
