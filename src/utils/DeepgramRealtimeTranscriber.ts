@@ -47,23 +47,44 @@ export class DeepgramRealtimeTranscriber {
   }
 
   private async connectToWebSocket() {
-    return new Promise<void>((resolve, reject) => {
+    return new Promise<void>(async (resolve, reject) => {
       try {
         console.log('🔗 Attempting WebSocket connection to Deepgram proxy...');
-        const wsUrl = 'wss://dphcnbricafkbtizkoal.functions.supabase.co/deepgram-realtime';
-        console.log('🔗 WebSocket URL:', wsUrl);
         
-        // Test if the URL is reachable first
-        fetch(`https://dphcnbricafkbtizkoal.functions.supabase.co/deepgram-realtime`, {
-          method: 'GET'
-        }).then(response => {
-          console.log('🔗 Edge function HTTP test - Status:', response.status);
-          console.log('🔗 Edge function HTTP test - Headers:', Object.fromEntries(response.headers.entries()));
-        }).catch(err => {
-          console.error('❌ Edge function HTTP test failed:', err);
-        });
+        // Try different URL formats to find the correct one
+        const urlFormats = [
+          'wss://dphcnbricafkbtizkoal.supabase.co/functions/v1/deepgram-realtime',
+          'wss://dphcnbricafkbtizkoal.functions.supabase.co/deepgram-realtime'
+        ];
+        
+        console.log('🔗 Testing multiple URL formats...');
+        let workingUrl = '';
+        
+        // Test which URL format works
+        for (const testUrl of urlFormats) {
+          try {
+            const httpUrl = testUrl.replace('wss://', 'https://');
+            console.log(`🔗 Testing URL: ${httpUrl}`);
+            const response = await fetch(httpUrl, { method: 'GET' });
+            console.log(`✅ URL ${httpUrl} responded with status:`, response.status);
+            if (response.status !== 404) {
+              // Found working URL
+              workingUrl = testUrl;
+              console.log(`🔗 Using WebSocket URL: ${testUrl}`);
+              break;
+            }
+          } catch (err: any) {
+            console.log(`❌ URL ${testUrl} failed:`, err.message);
+          }
+        }
+        
+        if (!workingUrl) {
+          console.error('❌ No working edge function URL found');
+          reject(new Error('Edge function not accessible'));
+          return;
+        }
 
-        this.ws = new WebSocket(wsUrl);
+        this.ws = new WebSocket(workingUrl);
         console.log('🔗 WebSocket object created, readyState:', this.ws.readyState);
 
         this.ws.onopen = () => {
@@ -80,7 +101,7 @@ export class DeepgramRealtimeTranscriber {
         this.ws.onerror = (error) => {
           console.error('❌ WebSocket error:', error);
           console.error('Connection details:', {
-            url: wsUrl,
+            url: workingUrl,
             readyState: this.ws?.readyState,
             protocol: this.ws?.protocol,
             extensions: this.ws?.extensions
