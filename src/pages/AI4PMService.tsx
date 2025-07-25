@@ -1215,6 +1215,10 @@ Always provide practical, actionable advice that follows NHS guidelines and best
               <MessageSquare className="h-4 w-4" />
               AI Service
             </TabsTrigger>
+            <TabsTrigger value="pm-genie" className="flex items-center gap-2">
+              <Bot className="h-4 w-4" />
+              Chat with PM Genie
+            </TabsTrigger>
             <TabsTrigger value="previous-searches" className="flex items-center gap-2">
               <History className="h-4 w-4" />
               Previous Searches
@@ -1222,10 +1226,6 @@ Always provide practical, actionable advice that follows NHS guidelines and best
             <TabsTrigger value="ai-settings" className="flex items-center gap-2">
               <Settings className="h-4 w-4" />
               AI Settings
-            </TabsTrigger>
-            <TabsTrigger value="pm-genie" className="flex items-center gap-2">
-              <Bot className="h-4 w-4" />
-              Chat with PM Genie
             </TabsTrigger>
             <TabsTrigger value="what-can-ai-do" className="flex items-center gap-2">
               <HelpCircle className="h-4 w-4" />
