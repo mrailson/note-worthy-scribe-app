@@ -76,7 +76,11 @@ export class BrowserSpeechTranscriber {
 
       this.recognition.onerror = (event) => {
         console.error('❌ Speech recognition error:', event.error);
-        this.onError(`Speech recognition error: ${event.error}`);
+        
+        // Don't treat "no-speech" as an actual error - it's normal during silence
+        if (event.error !== 'no-speech') {
+          this.onError(`Speech recognition error: ${event.error}`);
+        }
       };
 
       this.recognition.onend = () => {
