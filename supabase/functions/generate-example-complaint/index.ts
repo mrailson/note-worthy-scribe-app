@@ -1,4 +1,3 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -12,75 +11,82 @@ serve(async (req) => {
   }
 
   try {
-    // Create a sample complaint PDF content
-    const pdfContent = `
-NHS COMPLAINT EXAMPLE DOCUMENT
-================================
+    console.log('Generating example complaint document...');
+    
+    // Create a comprehensive sample complaint letter
+    const complaintContent = `NHS FORMAL COMPLAINT LETTER
 
-PATIENT INFORMATION:
-Name: Sarah Johnson
+Date: ${new Date().toLocaleDateString('en-GB')}
+
+Dear Complaints Manager,
+
+PATIENT DETAILS:
+Name: Mrs. Sarah Elizabeth Johnson
 Date of Birth: 15th March 1985
+NHS Number: 485 123 4567
 Address: 42 Oak Street, Manchester, M1 2AB
 Phone: 0161 123 4567
 Email: sarah.johnson@email.com
 
-COMPLAINT DETAILS:
-Date of Incident: 23rd October 2024
-Location/Service: Greenwood Medical Centre, Reception Area
+COMPLAINT REFERENCE: Unprofessional Staff Behavior and Delayed Appointment
 
-COMPLAINT TITLE:
-Unprofessional Staff Behavior and Delayed Appointment
+I am writing to formally complain about the unacceptable treatment I received during my visit to Greenwood Medical Centre on 23rd October 2024 at approximately 2:30 PM.
 
-DETAILED COMPLAINT:
-I am writing to formally complain about the unprofessional behavior I experienced during my visit to Greenwood Medical Centre on 23rd October 2024.
+INCIDENT DETAILS:
+I arrived punctually for my scheduled appointment with Dr. Sarah Smith. Despite arriving on time, I was kept waiting for over 45 minutes in the reception area without any explanation or acknowledgment from the staff.
 
-I arrived for my 2:30 PM appointment with Dr. Smith at the scheduled time. However, I was kept waiting for over 45 minutes without any explanation or apology from the reception staff.
+When I politely approached the reception desk to inquire about the delay, the receptionist, Emma Thompson, was extremely rude and dismissive. She told me to "just wait like everyone else" and rolled her eyes when I asked for an estimated waiting time.
 
-When I politely inquired about the delay at the reception desk, the receptionist, who I believe was named Emma Thompson, was extremely rude and dismissive. She told me to "just wait like everyone else" and rolled her eyes when I asked if there was an estimated time for when I would be seen.
+CLINICAL CONCERNS:
+When I finally saw Dr. Smith at 3:20 PM, she appeared rushed and unprofessional. She failed to properly examine me despite my concerns about recurring headaches that have been affecting my daily life. The consultation lasted only 5 minutes, during which she prescribed medication without conducting any physical examination or taking my symptoms seriously.
 
-Furthermore, when I finally saw Dr. Smith at 3:20 PM, she seemed rushed and did not adequately address my concerns about recurring headaches. She prescribed medication without proper examination and cut the consultation short after only 5 minutes.
+STAFF INVOLVED:
+- Emma Thompson (Reception Staff)
+- Dr. Sarah Smith (General Practitioner)
 
-STAFF MENTIONED:
-- Emma Thompson (Receptionist)
-- Dr. Sarah Smith (GP)
+IMPACT:
+This experience has caused me significant distress and has undermined my confidence in the practice's ability to provide adequate healthcare. The unprofessional behavior and rushed consultation have left my health concerns unaddressed.
 
 CATEGORY: Staff Attitude and Clinical Care
+PRIORITY: High - Patient safety and dignity concerns
 
-PRIORITY: Medium - This behavior is unacceptable and affects patient care quality
+CONSENT:
+I consent to this complaint being processed according to NHS complaints procedures. I understand that relevant staff may need to be contacted as part of the investigation.
 
-CONSENT: I consent to this complaint being processed according to NHS procedures
+COMPLAINT ON BEHALF: No - I am making this complaint myself as the affected patient.
 
-COMPLAINT MADE ON BEHALF: No - this complaint is made by the patient directly
-
-DESIRED OUTCOME:
-I would like:
-1. A formal apology from the staff involved
-2. Assurance that staff will receive appropriate training on patient interaction
+DESIRED OUTCOMES:
+1. A formal written apology from both staff members involved
+2. Assurance that reception staff will receive training on patient communication
 3. A proper medical consultation to address my ongoing health concerns
-4. Confirmation that procedures will be improved to prevent similar incidents
+4. Implementation of measures to prevent similar incidents
+5. Confirmation of any changes made to practice procedures
 
-SIGNATURE:
+I look forward to your prompt response and a thorough investigation of this matter.
+
+Yours sincerely,
+
 Sarah Johnson
-Date: 25th October 2024
+Date: ${new Date().toLocaleDateString('en-GB')}
 
 ---
-This example complaint contains all the necessary information that can be extracted by the AI import system including patient details, incident information, staff involved, and complaint specifics.
-    `;
+ADDITIONAL INFORMATION:
+This complaint contains comprehensive details suitable for AI extraction testing including patient demographics, incident specifics, staff identification, clinical concerns, and desired outcomes.`;
 
-    // Create a simple PDF-like response (in practice, you'd use a proper PDF library)
-    // For this example, we'll return the content as plain text that can be copied
-    return new Response(pdfContent, {
+    console.log('Complaint content generated successfully');
+
+    return new Response(complaintContent, {
       headers: { 
         ...corsHeaders, 
-        'Content-Type': 'text/plain',
-        'Content-Disposition': 'attachment; filename="example-complaint.txt"'
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Content-Disposition': 'attachment; filename="example-patient-complaint-letter.txt"'
       },
     });
   } catch (error) {
     console.error('Error generating example complaint:', error);
     return new Response(JSON.stringify({ 
       error: error.message,
-      details: 'Failed to generate example complaint' 
+      details: 'Failed to generate example complaint document' 
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
