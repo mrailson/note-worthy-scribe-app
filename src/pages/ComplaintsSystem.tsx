@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Header } from "@/components/Header";
 import { useAuth } from "@/contexts/AuthContext";
 import { LoginForm } from "@/components/LoginForm";
@@ -35,7 +36,8 @@ import {
   Download,
   Upload,
   Brain,
-  Shield
+  Shield,
+  X
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -97,6 +99,11 @@ const ComplaintsSystem = () => {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedPriority, setSelectedPriority] = useState("all");
+  const [dashboardFilter, setDashboardFilter] = useState("all");
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   const [submitting, setSubmitting] = useState(false);
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
   const [showDetails, setShowDetails] = useState(false);
@@ -551,8 +558,29 @@ const ComplaintsSystem = () => {
     const matchesStatus = selectedStatus === 'all' || complaint.status === selectedStatus;
     const matchesPriority = selectedPriority === 'all' || complaint.priority === selectedPriority;
 
-    return matchesSearch && matchesCategory && matchesStatus && matchesPriority;
+    // Apply dashboard filter
+    let matchesDashboardFilter = true;
+    if (dashboardFilter === "open") {
+      matchesDashboardFilter = ['submitted', 'under_review'].includes(complaint.status);
+    } else if (dashboardFilter === "overdue") {
+      matchesDashboardFilter = isOverdue(complaint);
+    } else if (dashboardFilter === "closed_this_month") {
+      matchesDashboardFilter = complaint.status === 'closed' && 
+        new Date(complaint.closed_at || '').getMonth() === new Date().getMonth();
+    }
+
+    return matchesSearch && matchesCategory && matchesStatus && matchesPriority && matchesDashboardFilter;
   });
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredComplaints.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedComplaints = filteredComplaints.slice(startIndex, startIndex + itemsPerPage);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedCategory, selectedStatus, selectedPriority, dashboardFilter]);
 
   if (!user) {
     return (
@@ -590,7 +618,8 @@ const ComplaintsSystem = () => {
           {/* Dashboard Tab */}
           <TabsContent value="dashboard" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Card>
+              <Card className="cursor-pointer hover:shadow-md transition-shadow" 
+                    onClick={() => { setDashboardFilter("all"); }}>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">Total Complaints</CardTitle>
                 </CardHeader>
@@ -598,7 +627,8 @@ const ComplaintsSystem = () => {
                   <div className="text-2xl font-bold">{complaints.length}</div>
                 </CardContent>
               </Card>
-              <Card>
+              <Card className="cursor-pointer hover:shadow-md transition-shadow" 
+                    onClick={() => { setDashboardFilter("open"); }}>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">Open</CardTitle>
                 </CardHeader>
@@ -608,7 +638,8 @@ const ComplaintsSystem = () => {
                   </div>
                 </CardContent>
               </Card>
-              <Card>
+              <Card className="cursor-pointer hover:shadow-md transition-shadow" 
+                    onClick={() => { setDashboardFilter("overdue"); }}>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">Overdue</CardTitle>
                 </CardHeader>
@@ -618,7 +649,8 @@ const ComplaintsSystem = () => {
                   </div>
                 </CardContent>
               </Card>
-              <Card>
+              <Card className="cursor-pointer hover:shadow-md transition-shadow" 
+                    onClick={() => { setDashboardFilter("closed_this_month"); }}>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">Closed This Month</CardTitle>
                 </CardHeader>
@@ -730,17 +762,18 @@ const ComplaintsSystem = () => {
                     </Select>
                   </div>
                   <div className="flex items-end">
-                    <Button 
-                      variant="outline" 
-                      onClick={() => {
-                        setSearchTerm("");
-                        setSelectedCategory("all");
-                        setSelectedStatus("all");
-                        setSelectedPriority("all");
-                      }}
-                    >
-                      Clear Filters
-                    </Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => {
+                          setSearchTerm("");
+                          setSelectedCategory("all");
+                          setSelectedStatus("all");
+                          setSelectedPriority("all");
+                          setDashboardFilter("all");
+                        }}
+                      >
+                        Clear Filters
+                      </Button>
                   </div>
                 </div>
               </CardContent>
@@ -762,7 +795,31 @@ const ComplaintsSystem = () => {
                     </CardContent>
                   </Card>
                 ) : (
-                  filteredComplaints.map((complaint) => (
+                  <>
+                    {/* Active Filter Display */}
+                    {dashboardFilter !== "all" && (
+                      <Card className="border-l-4 border-l-primary">
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium">
+                              Showing: {dashboardFilter === "open" && "Open Complaints"}
+                              {dashboardFilter === "overdue" && "Overdue Complaints"}
+                              {dashboardFilter === "closed_this_month" && "Closed This Month"}
+                            </p>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => setDashboardFilter("all")}
+                            >
+                              <X className="h-4 w-4" />
+                              Clear Filter
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                    
+                    {paginatedComplaints.map((complaint) => (
                     <Card key={complaint.id} className="hover:shadow-md transition-shadow">
                       <CardHeader>
                         <div className="flex items-center justify-between">
@@ -855,7 +912,73 @@ const ComplaintsSystem = () => {
                         </div>
                       </CardContent>
                     </Card>
-                  ))
+                    ))}
+                    
+                    {/* Pagination */}
+                    {totalPages > 1 && (
+                      <div className="flex justify-center mt-6">
+                        <Pagination>
+                          <PaginationContent>
+                            <PaginationItem>
+                              <PaginationPrevious 
+                                href="#"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  if (currentPage > 1) setCurrentPage(currentPage - 1);
+                                }}
+                                className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
+                              />
+                            </PaginationItem>
+                            
+                            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                              let pageNum;
+                              if (totalPages <= 5) {
+                                pageNum = i + 1;
+                              } else if (currentPage <= 3) {
+                                pageNum = i + 1;
+                              } else if (currentPage >= totalPages - 2) {
+                                pageNum = totalPages - 4 + i;
+                              } else {
+                                pageNum = currentPage - 2 + i;
+                              }
+                              
+                              return (
+                                <PaginationItem key={pageNum}>
+                                  <PaginationLink
+                                    href="#"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      setCurrentPage(pageNum);
+                                    }}
+                                    isActive={currentPage === pageNum}
+                                  >
+                                    {pageNum}
+                                  </PaginationLink>
+                                </PaginationItem>
+                              );
+                            })}
+                            
+                            {totalPages > 5 && currentPage < totalPages - 2 && (
+                              <PaginationItem>
+                                <PaginationEllipsis />
+                              </PaginationItem>
+                            )}
+                            
+                            <PaginationItem>
+                              <PaginationNext 
+                                href="#"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+                                }}
+                                className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
+                              />
+                            </PaginationItem>
+                          </PaginationContent>
+                        </Pagination>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}
