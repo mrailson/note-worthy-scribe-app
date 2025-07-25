@@ -50,36 +50,58 @@ export class DeepgramRealtimeTranscriber {
     return new Promise<void>((resolve, reject) => {
       try {
         console.log('🔗 Attempting WebSocket connection to Deepgram proxy...');
-        // Use the full WebSocket URL to the Supabase edge function
-        this.ws = new WebSocket('wss://dphcnbricafkbtizkoal.supabase.co/functions/v1/deepgram-realtime');
+        const wsUrl = 'wss://dphcnbricafkbtizkoal.supabase.co/functions/v1/deepgram-realtime';
+        console.log('🔗 WebSocket URL:', wsUrl);
+        
+        // Test if the URL is reachable first
+        fetch(`https://dphcnbricafkbtizkoal.supabase.co/functions/v1/deepgram-realtime`, {
+          method: 'GET'
+        }).then(response => {
+          console.log('🔗 Edge function HTTP test - Status:', response.status);
+          console.log('🔗 Edge function HTTP test - Headers:', Object.fromEntries(response.headers.entries()));
+        }).catch(err => {
+          console.error('❌ Edge function HTTP test failed:', err);
+        });
+
+        this.ws = new WebSocket(wsUrl);
+        console.log('🔗 WebSocket object created, readyState:', this.ws.readyState);
 
         this.ws.onopen = () => {
           console.log('✅ Connected to Deepgram WebSocket proxy');
+          console.log('🔗 WebSocket readyState after open:', this.ws?.readyState);
           resolve();
         };
 
         this.ws.onmessage = (event) => {
+          console.log('📨 Received message:', event.data);
           this.handleDeepgramMessage(event.data);
         };
 
         this.ws.onerror = (error) => {
           console.error('❌ WebSocket error:', error);
           console.error('Connection details:', {
-            url: 'wss://dphcnbricafkbtizkoal.supabase.co/functions/v1/deepgram-realtime',
+            url: wsUrl,
             readyState: this.ws?.readyState,
-            protocol: this.ws?.protocol
+            protocol: this.ws?.protocol,
+            extensions: this.ws?.extensions
           });
           reject(new Error('WebSocket connection failed'));
         };
 
         this.ws.onclose = (event) => {
-          console.log('🔌 WebSocket closed:', { code: event.code, reason: event.reason, wasClean: event.wasClean });
+          console.log('🔌 WebSocket closed:', { 
+            code: event.code, 
+            reason: event.reason, 
+            wasClean: event.wasClean 
+          });
           this.onStatusChange('Disconnected');
         };
 
         // Set timeout for connection
         setTimeout(() => {
           if (this.ws?.readyState !== WebSocket.OPEN) {
+            console.error('❌ WebSocket connection timeout after 10 seconds');
+            console.error('Final readyState:', this.ws?.readyState);
             reject(new Error('WebSocket connection timeout'));
           }
         }, 10000);
