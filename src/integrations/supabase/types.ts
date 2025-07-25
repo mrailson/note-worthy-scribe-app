@@ -172,6 +172,41 @@ export type Database = {
         }
         Relationships: []
       }
+      complaint_acknowledgements: {
+        Row: {
+          acknowledgement_letter: string
+          complaint_id: string
+          created_at: string | null
+          id: string
+          sent_at: string | null
+          sent_by: string | null
+        }
+        Insert: {
+          acknowledgement_letter: string
+          complaint_id: string
+          created_at?: string | null
+          id?: string
+          sent_at?: string | null
+          sent_by?: string | null
+        }
+        Update: {
+          acknowledgement_letter?: string
+          complaint_id?: string
+          created_at?: string | null
+          id?: string
+          sent_at?: string | null
+          sent_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_acknowledgements_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       complaint_audit_log: {
         Row: {
           action: string
@@ -248,6 +283,53 @@ export type Database = {
           },
         ]
       }
+      complaint_involved_parties: {
+        Row: {
+          access_token: string | null
+          complaint_id: string
+          created_at: string | null
+          id: string
+          response_requested_at: string | null
+          response_submitted_at: string | null
+          response_text: string | null
+          staff_email: string
+          staff_name: string
+          staff_role: string | null
+        }
+        Insert: {
+          access_token?: string | null
+          complaint_id: string
+          created_at?: string | null
+          id?: string
+          response_requested_at?: string | null
+          response_submitted_at?: string | null
+          response_text?: string | null
+          staff_email: string
+          staff_name: string
+          staff_role?: string | null
+        }
+        Update: {
+          access_token?: string | null
+          complaint_id?: string
+          created_at?: string | null
+          id?: string
+          response_requested_at?: string | null
+          response_submitted_at?: string | null
+          response_text?: string | null
+          staff_email?: string
+          staff_name?: string
+          staff_role?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_involved_parties_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       complaint_notes: {
         Row: {
           complaint_id: string
@@ -276,6 +358,47 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "complaint_notes_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      complaint_outcomes: {
+        Row: {
+          complaint_id: string
+          created_at: string | null
+          decided_at: string | null
+          decided_by: string | null
+          id: string
+          outcome_letter: string
+          outcome_summary: string
+          outcome_type: string
+        }
+        Insert: {
+          complaint_id: string
+          created_at?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          outcome_letter: string
+          outcome_summary: string
+          outcome_type: string
+        }
+        Update: {
+          complaint_id?: string
+          created_at?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          outcome_letter?: string
+          outcome_summary?: string
+          outcome_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_outcomes_complaint_id_fkey"
             columns: ["complaint_id"]
             isOneToOne: false
             referencedRelation: "complaints"
@@ -1226,6 +1349,23 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_complaint_for_external_access: {
+        Args: { access_token_param: string }
+        Returns: {
+          complaint_id: string
+          reference_number: string
+          complaint_title: string
+          complaint_description: string
+          category: Database["public"]["Enums"]["complaint_category"]
+          incident_date: string
+          location_service: string
+          staff_name: string
+          staff_email: string
+          staff_role: string
+          response_text: string
+          response_submitted: boolean
+        }[]
+      }
       get_current_user_id: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -1302,6 +1442,10 @@ export type Database = {
       purge_expired_data: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      submit_external_response: {
+        Args: { access_token_param: string; response_text_param: string }
+        Returns: boolean
       }
       validate_nhs_email: {
         Args: { email_address: string }

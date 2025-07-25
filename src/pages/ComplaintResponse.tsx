@@ -1,0 +1,237 @@
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Calendar, MapPin, User, CheckCircle, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
+
+interface ComplaintDetails {
+  complaint_id: string;
+  reference_number: string;
+  complaint_title: string;
+  complaint_description: string;
+  category: string;
+  incident_date: string;
+  location_service: string;
+  staff_name: string;
+  staff_email: string;
+  staff_role: string;
+  response_text: string | null;
+  response_submitted: boolean;
+}
+
+export default function ComplaintResponse() {
+  const { accessToken } = useParams<{ accessToken: string }>();
+  const [complaint, setComplaint] = useState<ComplaintDetails | null>(null);
+  const [response, setResponse] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (accessToken) {
+      fetchComplaintDetails();
+    }
+  }, [accessToken]);
+
+  const fetchComplaintDetails = async () => {
+    try {
+      const { data, error } = await supabase.rpc('get_complaint_for_external_access', {
+        access_token_param: accessToken
+      });
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        const complaintData = data[0];
+        setComplaint(complaintData);
+        setResponse(complaintData.response_text || '');
+      } else {
+        setError('Complaint not found or access denied');
+      }
+    } catch (err) {
+      console.error('Error fetching complaint:', err);
+      setError('Failed to load complaint details');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmitResponse = async () => {
+    if (!response.trim()) {
+      toast.error('Please enter your response');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const { data, error } = await supabase.rpc('submit_external_response', {
+        access_token_param: accessToken,
+        response_text_param: response
+      });
+
+      if (error) throw error;
+
+      if (data) {
+        toast.success('Response submitted successfully');
+        await fetchComplaintDetails(); // Refresh to show updated status
+      } else {
+        throw new Error('Failed to submit response');
+      }
+    } catch (err) {
+      console.error('Error submitting response:', err);
+      toast.error('Failed to submit response');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-2 text-muted-foreground">Loading complaint details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6">
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!complaint) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6">
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>No complaint found</AlertDescription>
+            </Alert>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto space-y-6">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-foreground">NHS Complaint Response</h1>
+            <p className="text-muted-foreground mt-2">
+              Please review the complaint details and provide your response
+            </p>
+          </div>
+
+          {complaint.response_submitted && (
+            <Alert className="border-green-200 bg-green-50">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <AlertDescription className="text-green-800">
+                Your response has been submitted successfully. Thank you for your cooperation.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>Complaint Details</span>
+                <Badge variant="outline">{complaint.reference_number}</Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div>
+                <h3 className="font-semibold text-lg mb-2">{complaint.complaint_title}</h3>
+                <p className="text-muted-foreground">{complaint.complaint_description}</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary">
+                    {complaint.category.replace('_', ' ').toUpperCase()}
+                  </Badge>
+                </div>
+                
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Calendar className="h-4 w-4" />
+                  <span>Incident Date: {new Date(complaint.incident_date).toLocaleDateString()}</span>
+                </div>
+
+                {complaint.location_service && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <MapPin className="h-4 w-4" />
+                    <span>Location: {complaint.location_service}</span>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <User className="h-4 w-4" />
+                  <span>Your Role: {complaint.staff_role}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Your Response</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Please provide your response to this complaint. Include any relevant information about the incident and any actions taken.
+                </p>
+                <Textarea
+                  placeholder="Enter your response here..."
+                  value={response}
+                  onChange={(e) => setResponse(e.target.value)}
+                  rows={10}
+                  disabled={complaint.response_submitted}
+                  className="min-h-[200px]"
+                />
+              </div>
+
+              {!complaint.response_submitted && (
+                <div className="flex justify-end">
+                  <Button 
+                    onClick={handleSubmitResponse}
+                    disabled={submitting || !response.trim()}
+                    className="px-8"
+                  >
+                    {submitting ? 'Submitting...' : 'Submit Response'}
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <div className="text-center text-sm text-muted-foreground">
+            <p>
+              This is a secure link for responding to NHS complaint reference {complaint.reference_number}.
+              If you have any questions, please contact the practice directly.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

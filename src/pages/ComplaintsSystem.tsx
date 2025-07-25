@@ -35,6 +35,7 @@ import {
   Upload
 } from "lucide-react";
 import { format } from "date-fns";
+import { toast } from "sonner";
 
 interface Complaint {
   id: string;
@@ -94,6 +95,12 @@ const ComplaintsSystem = () => {
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedPriority, setSelectedPriority] = useState("all");
   const [submitting, setSubmitting] = useState(false);
+  const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
+  const [showDetails, setShowDetails] = useState(false);
+  const [involvedParties, setInvolvedParties] = useState<Array<{staffName: string; staffEmail: string; staffRole: string}>>([]);
+  const [newParty, setNewParty] = useState({staffName: '', staffEmail: '', staffRole: ''});
+  const [outcomeType, setOutcomeType] = useState('');
+  const [outcomeSummary, setOutcomeSummary] = useState('');
 
   const [formData, setFormData] = useState<ComplaintFormData>({
     patient_name: "",
@@ -160,7 +167,7 @@ const ComplaintsSystem = () => {
       setComplaints(data || []);
     } catch (error) {
       console.error('Error fetching complaints:', error);
-      console.error("Failed to fetch complaints");
+      toast.error("Failed to fetch complaints");
     } finally {
       setLoading(false);
     }
@@ -204,7 +211,7 @@ const ComplaintsSystem = () => {
 
       if (error) throw error;
 
-      console.log(`Complaint submitted successfully. Reference: ${data.reference_number}`);
+      toast.success(`Complaint submitted successfully. Reference: ${data.reference_number}`);
 
       // Reset form
       setFormData({
@@ -229,7 +236,7 @@ const ComplaintsSystem = () => {
       fetchComplaints();
     } catch (error) {
       console.error('Error submitting complaint:', error);
-      console.error("Failed to submit complaint");
+      toast.error("Failed to submit complaint");
     } finally {
       setSubmitting(false);
     }
@@ -237,6 +244,120 @@ const ComplaintsSystem = () => {
 
   const handleInputChange = (field: keyof ComplaintFormData, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleGenerateAcknowledgement = async (complaintId: string) => {
+    try {
+      setSubmitting(true);
+      const { data, error } = await supabase.functions.invoke('generate-complaint-acknowledgement', {
+        body: { complaintId }
+      });
+
+      if (error) throw error;
+
+      toast.success('Acknowledgement letter generated successfully');
+      fetchComplaints(); // Refresh to show updated status
+    } catch (error) {
+      console.error('Error generating acknowledgement:', error);
+      toast.error('Failed to generate acknowledgement letter');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleSendStaffNotifications = async (complaintId: string) => {
+    if (involvedParties.length === 0) {
+      toast.error('Please add at least one staff member to notify');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const { data, error } = await supabase.functions.invoke('send-complaint-notifications', {
+        body: { 
+          complaintId,
+          involvedParties 
+        }
+      });
+
+      if (error) throw error;
+
+      toast.success('Notifications sent to staff members');
+      setInvolvedParties([]);
+      fetchComplaints();
+    } catch (error) {
+      console.error('Error sending notifications:', error);
+      toast.error('Failed to send staff notifications');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleGenerateOutcomeLetter = async (complaintId: string) => {
+    if (!outcomeType || !outcomeSummary) {
+      toast.error('Please select outcome type and provide summary');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const { data: letterData, error: letterError } = await supabase.functions.invoke('generate-complaint-outcome-letter', {
+        body: { 
+          complaintId,
+          outcomeType,
+          outcomeSummary 
+        }
+      });
+
+      if (letterError) throw letterError;
+
+      // Store the outcome in database
+      const { error: outcomeError } = await supabase
+        .from('complaint_outcomes')
+        .insert({
+          complaint_id: complaintId,
+          outcome_type: outcomeType,
+          outcome_summary: outcomeSummary,
+          outcome_letter: letterData.outcomeLetter,
+          decided_by: user?.id,
+        });
+
+      if (outcomeError) throw outcomeError;
+
+      // Update complaint status
+      const { error: updateError } = await supabase
+        .from('complaints')
+        .update({ status: 'closed' })
+        .eq('id', complaintId);
+
+      if (updateError) throw updateError;
+
+      toast.success('Outcome letter generated and complaint closed');
+      setOutcomeType('');
+      setOutcomeSummary('');
+      setSelectedComplaint(null);
+      setShowDetails(false);
+      fetchComplaints();
+    } catch (error) {
+      console.error('Error generating outcome letter:', error);
+      toast.error('Failed to generate outcome letter');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const addInvolvedParty = () => {
+    if (!newParty.staffName || !newParty.staffEmail) {
+      toast.error('Please provide staff name and email');
+      return;
+    }
+
+    setInvolvedParties(prev => [...prev, newParty]);
+    setNewParty({staffName: '', staffEmail: '', staffRole: ''});
+  };
+
+  const removeInvolvedParty = (index: number) => {
+    setInvolvedParties(prev => prev.filter((_, i) => i !== index));
   };
 
   const getStatusIcon = (status: string) => {
@@ -578,17 +699,25 @@ const ComplaintsSystem = () => {
                           )}
                           
                           <div className="flex gap-2 pt-2">
-                            <Button size="sm" variant="outline">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedComplaint(complaint);
+                                setShowDetails(true);
+                              }}
+                            >
                               <Eye className="h-4 w-4 mr-1" />
-                              View Details
+                              Manage Workflow
                             </Button>
-                            <Button size="sm" variant="outline">
-                              <Edit className="h-4 w-4 mr-1" />
-                              Update Status
-                            </Button>
-                            <Button size="sm" variant="outline">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => handleGenerateAcknowledgement(complaint.id)}
+                              disabled={submitting || complaint.status !== 'submitted'}
+                            >
                               <Send className="h-4 w-4 mr-1" />
-                              Send Response
+                              Generate Acknowledgement
                             </Button>
                             <Button size="sm" variant="outline">
                               <Download className="h-4 w-4 mr-1" />
@@ -921,6 +1050,172 @@ const ComplaintsSystem = () => {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Complaint Workflow Management Modal */}
+        {showDetails && selectedComplaint && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold">Complaint Workflow Management</h2>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setShowDetails(false);
+                      setSelectedComplaint(null);
+                      setInvolvedParties([]);
+                      setOutcomeType('');
+                      setOutcomeSummary('');
+                    }}
+                  >
+                    Close
+                  </Button>
+                </div>
+
+                <div className="space-y-6">
+                  {/* Complaint Details */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <FileText className="h-5 w-5" />
+                        {selectedComplaint.reference_number} - {selectedComplaint.complaint_title}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div><strong>Patient:</strong> {selectedComplaint.patient_name}</div>
+                        <div><strong>Category:</strong> {getCategoryLabel(selectedComplaint.category)}</div>
+                        <div><strong>Priority:</strong> {getPriorityLabel(selectedComplaint.priority)}</div>
+                        <div><strong>Status:</strong> {getStatusLabel(selectedComplaint.status)}</div>
+                        <div><strong>Incident Date:</strong> {format(new Date(selectedComplaint.incident_date), 'dd/MM/yyyy')}</div>
+                        {selectedComplaint.response_due_date && (
+                          <div><strong>Due Date:</strong> {format(new Date(selectedComplaint.response_due_date), 'dd/MM/yyyy')}</div>
+                        )}
+                      </div>
+                      <div className="mt-4">
+                        <strong>Description:</strong>
+                        <p className="mt-1 text-sm text-muted-foreground">{selectedComplaint.complaint_description}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Staff Notifications Section */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Users className="h-5 w-5" />
+                        Staff Notifications
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div>
+                        <Label className="text-sm font-medium">Add Staff Members to Notify</Label>
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mt-2">
+                          <Input
+                            placeholder="Staff name"
+                            value={newParty.staffName}
+                            onChange={(e) => setNewParty(prev => ({...prev, staffName: e.target.value}))}
+                          />
+                          <Input
+                            type="email"
+                            placeholder="Email address"
+                            value={newParty.staffEmail}
+                            onChange={(e) => setNewParty(prev => ({...prev, staffEmail: e.target.value}))}
+                          />
+                          <Input
+                            placeholder="Role (optional)"
+                            value={newParty.staffRole}
+                            onChange={(e) => setNewParty(prev => ({...prev, staffRole: e.target.value}))}
+                          />
+                          <Button onClick={addInvolvedParty} size="sm">
+                            <Plus className="h-4 w-4 mr-1" />
+                            Add
+                          </Button>
+                        </div>
+                      </div>
+
+                      {involvedParties.length > 0 && (
+                        <div>
+                          <Label className="text-sm font-medium">Staff to be notified:</Label>
+                          <div className="space-y-2 mt-2">
+                            {involvedParties.map((party, index) => (
+                              <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                                <div className="text-sm">
+                                  <strong>{party.staffName}</strong> ({party.staffEmail})
+                                  {party.staffRole && ` - ${party.staffRole}`}
+                                </div>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  onClick={() => removeInvolvedParty(index)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                          <Button 
+                            onClick={() => handleSendStaffNotifications(selectedComplaint.id)}
+                            disabled={submitting}
+                            className="mt-3"
+                          >
+                            <Send className="h-4 w-4 mr-2" />
+                            {submitting ? 'Sending...' : 'Send Notifications'}
+                          </Button>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Outcome Decision Section */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <CheckCircle className="h-5 w-5" />
+                        Complaint Outcome
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Outcome Decision</Label>
+                          <Select value={outcomeType} onValueChange={setOutcomeType}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select outcome" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="rejected">Complaint Rejected</SelectItem>
+                              <SelectItem value="upheld">Complaint Upheld</SelectItem>
+                              <SelectItem value="partially_upheld">Partially Upheld</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Outcome Summary</Label>
+                        <Textarea
+                          placeholder="Provide a summary of the investigation findings and decision rationale..."
+                          value={outcomeSummary}
+                          onChange={(e) => setOutcomeSummary(e.target.value)}
+                          rows={4}
+                        />
+                      </div>
+
+                      <Button 
+                        onClick={() => handleGenerateOutcomeLetter(selectedComplaint.id)}
+                        disabled={submitting || !outcomeType || !outcomeSummary}
+                      >
+                        <FileText className="h-4 w-4 mr-2" />
+                        {submitting ? 'Generating...' : 'Generate Outcome Letter & Close Complaint'}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
