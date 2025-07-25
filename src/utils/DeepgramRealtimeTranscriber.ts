@@ -51,14 +51,14 @@ export class DeepgramRealtimeTranscriber {
       try {
         console.log('🔗 Attempting WebSocket connection to Deepgram proxy...');
         
-        // The analytics show that the newer URL format works and gets 101 (WebSocket upgrade)
-        const wsUrl = 'wss://dphcnbricafkbtizkoal.functions.supabase.co/deepgram-realtime';
+        // Use the URL format that showed successful 101 responses in analytics
+        const wsUrl = 'wss://dphcnbricafkbtizkoal.supabase.co/functions/v1/deepgram-realtime';
         console.log('🔗 Using WebSocket URL:', wsUrl);
         
         // First test with a simple HTTP GET to see if the function responds
         try {
           console.log('🔗 Testing edge function accessibility...');
-          const testResponse = await fetch('https://dphcnbricafkbtizkoal.functions.supabase.co/deepgram-realtime', {
+          const testResponse = await fetch('https://dphcnbricafkbtizkoal.supabase.co/functions/v1/deepgram-realtime', {
             method: 'GET'
           });
           console.log('🔗 Edge function test response status:', testResponse.status);
