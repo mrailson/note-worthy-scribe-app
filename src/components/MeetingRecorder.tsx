@@ -324,13 +324,14 @@ export const MeetingRecorder = ({
     console.log('Recording started with microphone speech recognition');
   };
 
-  // Computer audio transcription for Teams/Zoom meetings using screen share
+  // Computer audio transcription for Teams/Zoom meetings using enhanced audio processing
   const startComputerAudioTranscription = async () => {
     addDebugLog('💻 Starting computer audio capture via screen share...');
     
     try {
       // Try screen sharing with audio first
       let stream: MediaStream;
+      let useCustomProcessing = false;
       
       try {
         addDebugLog('🖥️ Requesting screen share with audio...');
@@ -357,9 +358,9 @@ export const MeetingRecorder = ({
         
       } catch (screenError) {
         addDebugLog(`❌ Screen share failed: ${screenError.message}`);
-        addDebugLog('🎤 Falling back to enhanced microphone capture...');
+        addDebugLog('🎤 Using enhanced microphone with custom audio processing...');
         
-        // Fallback to microphone with very sensitive settings
+        // Fallback to microphone with custom audio processing
         stream = await navigator.mediaDevices.getUserMedia({
           audio: {
             echoCancellation: false,
@@ -373,25 +374,31 @@ export const MeetingRecorder = ({
         
         addDebugLog('✅ Enhanced microphone access granted');
         micAudioStreamRef.current = stream;
+        useCustomProcessing = true;
       }
 
-      // Set up transcriber with the audio stream
-      const transcriber = new BrowserSpeechTranscriber(
-        handleBrowserTranscript,
-        handleTranscriptionError,
-        handleStatusChange,
-        handleLiveSummary
-      );
+      if (useCustomProcessing) {
+        // Use custom audio processing for better speaker audio capture
+        await startCustomAudioProcessing(stream);
+      } else {
+        // Use browser speech recognition for screen audio
+        const transcriber = new BrowserSpeechTranscriber(
+          handleBrowserTranscript,
+          handleTranscriptionError,
+          handleStatusChange,
+          handleLiveSummary
+        );
 
-      await transcriber.startTranscription();
-      browserTranscriberRef.current = transcriber;
+        await transcriber.startTranscription();
+        browserTranscriberRef.current = transcriber;
+      }
       
       addDebugLog('✅ Computer audio transcription started successfully');
       
       if (screenStreamRef.current) {
         addDebugLog('💡 Screen audio capture active - should pick up Teams/YouTube audio');
       } else {
-        addDebugLog('💡 Using enhanced microphone - ensure Teams/YouTube audio plays through speakers loudly');
+        addDebugLog('💡 Using enhanced microphone processing - optimized for speaker audio capture');
       }
       
       console.log('Recording started with computer audio transcription');
@@ -407,6 +414,165 @@ export const MeetingRecorder = ({
         throw new Error(`Computer audio setup failed: ${error.message}. Try using microphone mode instead.`);
       }
     }
+  };
+
+  // Custom audio processing for better speaker audio capture
+  const startCustomAudioProcessing = async (stream: MediaStream) => {
+    addDebugLog('🔧 Starting custom audio processing...');
+    
+    try {
+      // Create audio context for processing
+      const audioContext = new AudioContext({ sampleRate: 24000 });
+      const source = audioContext.createMediaStreamSource(stream);
+      
+      // Create a gain node to amplify speaker audio
+      const gainNode = audioContext.createGain();
+      gainNode.gain.value = 3.0; // Amplify audio significantly
+      
+      // Create a processor for chunked audio processing
+      const processor = audioContext.createScriptProcessor(4096, 1, 1);
+      
+      let audioBuffer: Float32Array[] = [];
+      let bufferDuration = 0;
+      const targetDuration = 3; // Process every 3 seconds
+      
+      processor.onaudioprocess = (event) => {
+        const inputBuffer = event.inputBuffer;
+        const inputData = inputBuffer.getChannelData(0);
+        
+        // Store audio data
+        audioBuffer.push(new Float32Array(inputData));
+        bufferDuration += inputBuffer.duration;
+        
+        // Process when we have enough audio
+        if (bufferDuration >= targetDuration) {
+          processAudioBuffer(audioBuffer, audioContext.sampleRate);
+          audioBuffer = [];
+          bufferDuration = 0;
+        }
+      };
+      
+      // Connect the audio pipeline
+      source.connect(gainNode);
+      gainNode.connect(processor);
+      processor.connect(audioContext.destination);
+      
+      // Store references for cleanup
+      audioContextRef.current = audioContext;
+      
+      addDebugLog('✅ Custom audio processing pipeline established');
+      
+    } catch (error) {
+      addDebugLog(`❌ Custom audio processing failed: ${error.message}`);
+      throw error;
+    }
+  };
+
+  // Process audio buffer and send to speech-to-text API
+  const processAudioBuffer = async (audioBuffer: Float32Array[], sampleRate: number) => {
+    try {
+      // Combine all audio chunks
+      const totalLength = audioBuffer.reduce((acc, chunk) => acc + chunk.length, 0);
+      const combinedBuffer = new Float32Array(totalLength);
+      
+      let offset = 0;
+      for (const chunk of audioBuffer) {
+        combinedBuffer.set(chunk, offset);
+        offset += chunk.length;
+      }
+      
+      // Check if audio has sufficient volume (speaker audio detection)
+      const rms = Math.sqrt(combinedBuffer.reduce((acc, val) => acc + val * val, 0) / combinedBuffer.length);
+      const volumeThreshold = 0.005; // Lower threshold for speaker audio
+      
+      if (rms < volumeThreshold) {
+        addDebugLog(`🔇 Audio too quiet (RMS: ${rms.toFixed(6)}) - likely no speaker audio`);
+        return;
+      }
+      
+      addDebugLog(`🔊 Processing audio chunk (RMS: ${rms.toFixed(4)})`);
+      
+      // Convert to WAV format
+      const wavBuffer = encodeWAV(combinedBuffer, sampleRate);
+      const base64Audio = arrayBufferToBase64(wavBuffer);
+      
+      // Send to speech-to-text edge function
+      const response = await fetch('/functions/v1/speech-to-text', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+        },
+        body: JSON.stringify({ audio: base64Audio })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Speech-to-text API error: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      
+      if (result.text && result.text.trim()) {
+        addDebugLog(`🎙️ Custom: "${result.text}"`);
+        const transcriptData: TranscriptData = {
+          text: result.text,
+          speaker: 'Speaker Audio',
+          isFinal: true,
+          confidence: 0.85,
+          timestamp: new Date().toISOString()
+        };
+        handleTranscript(transcriptData);
+      }
+      
+    } catch (error) {
+      addDebugLog(`❌ Audio processing error: ${error.message}`);
+    }
+  };
+
+  // Encode Float32Array to WAV format
+  const encodeWAV = (samples: Float32Array, sampleRate: number): ArrayBuffer => {
+    const buffer = new ArrayBuffer(44 + samples.length * 2);
+    const view = new DataView(buffer);
+    
+    // WAV header
+    const writeString = (offset: number, string: string) => {
+      for (let i = 0; i < string.length; i++) {
+        view.setUint8(offset + i, string.charCodeAt(i));
+      }
+    };
+    
+    writeString(0, 'RIFF');
+    view.setUint32(4, 36 + samples.length * 2, true);
+    writeString(8, 'WAVE');
+    writeString(12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, 1, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * 2, true);
+    view.setUint16(32, 2, true);
+    view.setUint16(34, 16, true);
+    writeString(36, 'data');
+    view.setUint32(40, samples.length * 2, true);
+    
+    // Convert samples to 16-bit PCM
+    const offset = 44;
+    for (let i = 0; i < samples.length; i++) {
+      const sample = Math.max(-1, Math.min(1, samples[i]));
+      view.setInt16(offset + i * 2, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
+    }
+    
+    return buffer;
+  };
+
+  // Convert ArrayBuffer to Base64
+  const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
   };
 
   const startTestMode = async () => {
@@ -547,6 +713,12 @@ export const MeetingRecorder = ({
     if (enhancedAudioCaptureRef.current) {
       enhancedAudioCaptureRef.current.stopCapture();
       enhancedAudioCaptureRef.current = null;
+    }
+    
+    // Stop audio context
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
+      audioContextRef.current = null;
     }
     
     setIsRecording(false);
