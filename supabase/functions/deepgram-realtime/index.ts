@@ -1,23 +1,33 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 serve(async (req) => {
+  console.log('🔗 Deepgram WebSocket proxy - New connection request');
+  console.log('Request details:', {
+    method: req.method,
+    url: req.url,
+    headers: Object.fromEntries(req.headers.entries())
+  });
+
   const { headers } = req;
   const upgradeHeader = headers.get("upgrade") || "";
 
   if (upgradeHeader.toLowerCase() !== "websocket") {
+    console.error('❌ Not a WebSocket request, upgrade header:', upgradeHeader);
     return new Response("Expected WebSocket connection", { status: 400 });
   }
 
-  console.log("Setting up WebSocket connection to Deepgram...");
+  console.log("✅ Setting up WebSocket connection to Deepgram...");
 
   const { socket, response } = Deno.upgradeWebSocket(req);
   
   const deepgramApiKey = Deno.env.get('DEEPGRAM_API_KEY');
   if (!deepgramApiKey) {
-    console.error('DEEPGRAM_API_KEY is not set');
+    console.error('❌ DEEPGRAM_API_KEY is not set');
     socket.close(1011, 'DEEPGRAM_API_KEY is not set');
     return response;
   }
+
+  console.log('🔗 Connecting to Deepgram with API key present:', !!deepgramApiKey);
 
   // Connect to Deepgram WebSocket
   const deepgramWs = new WebSocket(
@@ -32,7 +42,7 @@ serve(async (req) => {
   let isConnected = false;
 
   deepgramWs.onopen = () => {
-    console.log("Connected to Deepgram WebSocket");
+    console.log("✅ Connected to Deepgram WebSocket");
     isConnected = true;
     socket.send(JSON.stringify({ 
       type: 'connection_established',
@@ -55,7 +65,7 @@ serve(async (req) => {
   };
 
   deepgramWs.onerror = (error) => {
-    console.error("Deepgram WebSocket error:", error);
+    console.error("❌ Deepgram WebSocket error:", error);
     if (socket.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify({ 
         type: 'error',
@@ -65,7 +75,11 @@ serve(async (req) => {
   };
 
   deepgramWs.onclose = (event) => {
-    console.log("Deepgram WebSocket closed:", event.code, event.reason);
+    console.log("🔌 Deepgram WebSocket closed:", {
+      code: event.code,
+      reason: event.reason,
+      wasClean: event.wasClean
+    });
     if (socket.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify({ 
         type: 'connection_closed',

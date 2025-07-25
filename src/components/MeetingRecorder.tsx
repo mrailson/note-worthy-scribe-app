@@ -302,6 +302,62 @@ export const MeetingRecorder = ({
       console.error('Error processing audio chunk:', error);
     }
   };
+  // Test mode simulation
+  const startTestMode = async () => {
+    addDebugLog('🎤 Starting microphone access...');
+    
+    try {
+      // Test microphone access
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: { sampleRate: 24000, channelCount: 1 } 
+      });
+      addDebugLog('✅ Microphone access granted');
+      
+      // Simulate transcription
+      const testPhrases = [
+        "Hello, this is a test of the transcription system.",
+        "The meeting is starting now.",
+        "Can everyone hear me clearly?",
+        "Let's discuss the agenda for today.",
+        "The first item is project updates.",
+        "How is the development progressing?",
+        "We need to review the timeline.",
+        "Any questions or concerns?",
+        "Moving to the next topic.",
+        "Thank you for your attention."
+      ];
+      
+      let phraseIndex = 0;
+      const simulateTranscript = () => {
+        if (phraseIndex < testPhrases.length && isRecording) {
+          const phrase = testPhrases[phraseIndex];
+          const fakeData = {
+            text: phrase,
+            is_final: true,
+            confidence: 0.95,
+            speaker: `Speaker ${(phraseIndex % 2) + 1}`
+          };
+          
+          addDebugLog(`🎙️ Simulated: "${phrase}"`);
+          handleDeepgramTranscript(fakeData);
+          phraseIndex++;
+          
+          // Schedule next phrase
+          setTimeout(simulateTranscript, 3000 + Math.random() * 2000);
+        }
+      };
+      
+      // Start simulation after 2 seconds
+      setTimeout(simulateTranscript, 2000);
+      
+      // Store the stream for cleanup
+      micAudioStreamRef.current = stream;
+      
+    } catch (error) {
+      addDebugLog(`❌ Microphone access failed: ${error}`);
+      throw error;
+    }
+  };
 
   const startRecording = async () => {
     try {
@@ -312,17 +368,25 @@ export const MeetingRecorder = ({
       setDebugLog([]);
       setTestTranscripts([]);
       
-      // Initialize Deepgram real-time transcriber
-      deepgramTranscriberRef.current = new DeepgramRealtimeTranscriber(
-        handleDeepgramTranscript,
-        handleTranscriptionError,
-        handleStatusChange,
-        handleLiveSummary
-      );
+      // Test mode - simulate transcription for debugging
+      const useTestMode = true;
+      
+      if (useTestMode) {
+        addDebugLog('🧪 Using test mode - simulating transcription');
+        await startTestMode();
+      } else {
+        // Initialize Deepgram real-time transcriber
+        deepgramTranscriberRef.current = new DeepgramRealtimeTranscriber(
+          handleDeepgramTranscript,
+          handleTranscriptionError,
+          handleStatusChange,
+          handleLiveSummary
+        );
 
-      addDebugLog('🔗 Attempting to connect to Deepgram...');
-      // Start Deepgram transcription
-      await deepgramTranscriberRef.current.startTranscription();
+        addDebugLog('🔗 Attempting to connect to Deepgram...');
+        // Start Deepgram transcription
+        await deepgramTranscriberRef.current.startTranscription();
+      }
       
       setIsRecording(true);
       setRealtimeTranscripts([]);
@@ -363,6 +427,12 @@ export const MeetingRecorder = ({
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
+    }
+    
+    // Stop test mode microphone stream
+    if (micAudioStreamRef.current) {
+      micAudioStreamRef.current.getTracks().forEach(track => track.stop());
+      micAudioStreamRef.current = null;
     }
     
     // Stop Deepgram transcriber
