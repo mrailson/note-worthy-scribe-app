@@ -2,9 +2,13 @@ import { serve } from "https://deno.land/std/http/server.ts";
 
 serve(async (req) => {
   console.log("Incoming request:", req.method, req.url);
+  console.log("Request headers:", Object.fromEntries(req.headers.entries()));
 
-  if (req.headers.get("upgrade") !== "websocket") {
-    console.error("Missing WebSocket upgrade header");
+  const upgradeHeader = req.headers.get("upgrade");
+  console.log("Upgrade header value:", upgradeHeader);
+
+  if (upgradeHeader !== "websocket") {
+    console.error("Missing or invalid WebSocket upgrade header, got:", upgradeHeader);
     return new Response("Expected WebSocket upgrade", { status: 400 });
   }
 
