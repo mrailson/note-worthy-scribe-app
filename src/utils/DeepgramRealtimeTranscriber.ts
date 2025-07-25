@@ -70,12 +70,19 @@ export class DeepgramRealtimeTranscriber {
     try {
       console.log('📤 Sending audio chunk for transcription:', audioBlob.size, 'bytes');
 
-      // Convert blob to base64
+      // Test with a simple working function first
+      console.log('🧪 Testing edge function connectivity...');
+      const testResponse = await supabase.functions.invoke('echo-proxy', {
+        body: { test: 'connectivity check' },
+      });
+      
+      console.log('✅ Edge function connectivity test:', testResponse);
+
+      // Convert blob to base64 for the actual transcription
       const reader = new FileReader();
       const base64Audio = await new Promise<string>((resolve, reject) => {
         reader.onload = () => {
           const result = reader.result as string;
-          // Remove data URL prefix
           const base64 = result.split(',')[1];
           resolve(base64);
         };
@@ -83,13 +90,13 @@ export class DeepgramRealtimeTranscriber {
         reader.readAsDataURL(audioBlob);
       });
 
-      // Send to speech-to-text edge function
+      console.log('📡 Calling speech-to-text function...');
       const { data, error } = await supabase.functions.invoke('speech-to-text', {
         body: { audio: base64Audio },
       });
 
       if (error) {
-        console.error('❌ Transcription request error:', error);
+        console.error('❌ Speech-to-text error:', error);
         return;
       }
 
@@ -104,23 +111,16 @@ export class DeepgramRealtimeTranscriber {
           speaker: 'Speaker 1'
         };
 
-        // Filter out likely hallucinations
         if (!this.isLikelyHallucination(data.text.toLowerCase())) {
           this.onTranscription(transcriptData);
-          
-          // Send to summarizer
           this.sendToSummarizer(data.text);
-        } else {
-          console.log('🚫 Filtered likely hallucination:', data.text);
         }
-      } else if (data?.text !== undefined) {
-        console.log('📭 No speech detected in this chunk');
       } else {
-        console.log('⚠️ Unexpected response format:', data);
+        console.log('📭 No speech detected in this chunk');
       }
 
     } catch (error) {
-      console.error('❌ Error sending audio for transcription:', error);
+      console.error('❌ Error in transcription process:', error);
     }
   }
 
