@@ -248,6 +248,7 @@ export const MeetingRecorder = ({
     };
     
     addDebugLog(`🎙️ ${data.is_final ? 'Final' : 'Interim'}: "${data.text}" (${Math.round(data.confidence * 100)}%)`);
+    console.log('🔥 ADDING TO TEST TRANSCRIPTS:', data.text); // Debug transcript display
     setTestTranscripts(prev => [...prev.slice(-9), `${data.speaker || 'Speaker'}: ${data.text}`]);
     
     handleTranscript(transcriptData);
@@ -663,21 +664,36 @@ export const MeetingRecorder = ({
       console.log('Microphone audio tracks:', micAudioTracks.length);
       addDebugLog(`🎤 Got ${micAudioTracks.length} microphone track(s)`);
 
-      // Step 3: Combine both streams and add audio level monitoring
+      // Step 3: Properly mix audio using Web Audio API
       addDebugLog('🔀 Combining audio streams...');
-      const combinedStream = new MediaStream([
-        ...displayStream.getAudioTracks(),
-        ...micStream.getAudioTracks()
-      ]);
+      
+      // Create audio context for mixing
+      const audioContext = new AudioContext();
+      const destination = audioContext.createMediaStreamDestination();
+      
+      // Connect display audio
+      const displaySource = audioContext.createMediaStreamSource(displayStream);
+      const displayGain = audioContext.createGain();
+      displayGain.gain.value = 1.0; // Full volume for system audio
+      displaySource.connect(displayGain);
+      displayGain.connect(destination);
+      
+      // Connect microphone audio
+      const micSource = audioContext.createMediaStreamSource(micStream);
+      const micGain = audioContext.createGain();
+      micGain.gain.value = 1.2; // Slightly boost mic audio
+      micSource.connect(micGain);
+      micGain.connect(destination);
+      
+      // Get the mixed stream
+      const combinedStream = destination.stream;
       
       console.log('Combined stream tracks:', combinedStream.getTracks().length);
       addDebugLog(`🔀 Combined stream has ${combinedStream.getTracks().length} total tracks`);
       
       // Add audio level monitoring to check if we're getting audio
-      const audioContext = new AudioContext();
       const analyser = audioContext.createAnalyser();
-      const source = audioContext.createMediaStreamSource(combinedStream);
-      source.connect(analyser);
+      destination.connect(analyser);
       
       analyser.fftSize = 256;
       const bufferLength = analyser.frequencyBinCount;
