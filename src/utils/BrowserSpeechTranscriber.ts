@@ -49,20 +49,25 @@ export class BrowserSpeechTranscriber {
           if (transcript.trim()) {
             console.log('📝 Transcription:', transcript, 'Final:', result.isFinal);
             
-            const transcriptData: TranscriptData = {
-              text: transcript,
-              is_final: result.isFinal,
-              confidence: result[0].confidence || 0.9,
-              speaker: 'Speaker 1'
-            };
+            // Only process final results to avoid duplicate interim results
+            if (result.isFinal) {
+              const transcriptData: TranscriptData = {
+                text: transcript,
+                is_final: true, // Always mark as final since we're only processing finals
+                confidence: result[0].confidence || 0.9,
+                speaker: 'Speaker 1'
+              };
 
-            // Filter out likely hallucinations
-            if (!this.isLikelyHallucination(transcript.toLowerCase())) {
-              this.onTranscription(transcriptData);
-              
-              // Only send final results to summarizer
-              if (result.isFinal && this.onSummary) {
-                this.sendToSummarizer(transcript);
+              // Filter out likely hallucinations
+              if (!this.isLikelyHallucination(transcript.toLowerCase())) {
+                this.onTranscription(transcriptData);
+                
+                // Send to summarizer
+                if (this.onSummary) {
+                  this.sendToSummarizer(transcript);
+                }
+              } else {
+                console.log('🚫 Filtered hallucination:', transcript);
               }
             }
           }
