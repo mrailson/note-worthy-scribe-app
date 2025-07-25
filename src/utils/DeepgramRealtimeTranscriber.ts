@@ -75,7 +75,7 @@ export class DeepgramRealtimeTranscriber {
       formData.append('audio', audioBlob, 'audio.webm');
 
       // Send to our HTTP transcription edge function
-      const { data, error } = await supabase.functions.invoke('deepgram-http-transcription', {
+      const { data, error } = await supabase.functions.invoke('audio-transcription', {
         body: formData,
       });
 

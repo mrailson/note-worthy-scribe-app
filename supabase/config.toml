@@ -18,5 +18,5 @@ verify_jwt = false
 [functions.echo-proxy]
 verify_jwt = false
 
-[functions.deepgram-http-transcription]
+[functions.audio-transcription]
 verify_jwt = false
