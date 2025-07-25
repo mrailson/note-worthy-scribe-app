@@ -210,15 +210,6 @@ const Index = () => {
             initialSettings={meetingSettings}
           />
 
-          {/* Test Button for V2 Recorder */}
-          <div className="flex justify-center">
-            <button
-              onClick={() => navigate('/recorder-v2-test')}
-              className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 shadow-medium transition-all font-medium"
-            >
-              🚀 Test V2 Recorder (Enhanced Speech API)
-            </button>
-          </div>
 
           {/* Show Summary Button when there's content */}
           {transcript && (
