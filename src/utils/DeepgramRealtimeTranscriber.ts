@@ -51,9 +51,9 @@ export class DeepgramRealtimeTranscriber {
       try {
         console.log('🔗 Attempting WebSocket connection to Deepgram proxy...');
         
-        // Use the correct Lovable Edge Function URL format
-        const wsUrl = 'wss://91f61816-7ac8-43e0-a21d-31572f57dcab.lovableproject.com/functions/deepgram-realtime';
-        console.log('🔗 Using correct Lovable WebSocket URL:', wsUrl);
+        // Test the echo function first to verify WebSocket upgrade works
+        const wsUrl = 'wss://91f61816-7ac8-43e0-a21d-31572f57dcab.lovableproject.com/functions/echo-proxy';
+        console.log('🔗 Testing echo WebSocket URL:', wsUrl);
         
         // Test the function accessibility first
         try {
@@ -75,8 +75,10 @@ export class DeepgramRealtimeTranscriber {
         console.log('🔗 WebSocket object created, readyState:', this.ws.readyState);
 
         this.ws.onopen = () => {
-          console.log('✅ Connected to Deepgram WebSocket proxy');
+          console.log('✅ Connected to Echo WebSocket proxy');
           console.log('🔗 WebSocket readyState after open:', this.ws?.readyState);
+          // Send a test message to the echo function
+          this.ws?.send('Hello Echo Test');
           resolve();
         };
 
