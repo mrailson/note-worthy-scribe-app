@@ -55,6 +55,20 @@ export class DeepgramRealtimeTranscriber {
         const wsUrl = 'wss://dphcnbricafkbtizkoal.functions.supabase.co/deepgram-realtime';
         console.log('🔗 Using WebSocket URL:', wsUrl);
         
+        // First test with a simple HTTP GET to see if the function responds
+        try {
+          console.log('🔗 Testing edge function accessibility...');
+          const testResponse = await fetch('https://dphcnbricafkbtizkoal.functions.supabase.co/deepgram-realtime', {
+            method: 'GET'
+          });
+          console.log('🔗 Edge function test response status:', testResponse.status);
+          console.log('🔗 Edge function test response text:', await testResponse.text());
+        } catch (testError: any) {
+          console.error('❌ Edge function test failed:', testError.message);
+          reject(new Error('Edge function not accessible: ' + testError.message));
+          return;
+        }
+        
         this.ws = new WebSocket(wsUrl);
         console.log('🔗 WebSocket object created, readyState:', this.ws.readyState);
 
