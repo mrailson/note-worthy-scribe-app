@@ -324,6 +324,10 @@ const ComplaintsSystem = () => {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-foreground mb-2">🏥 GP Practice Complaint Management System</h1>
           <p className="text-muted-foreground">Secure, NHS-compliant complaint management with full audit trail</p>
+          <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-blue-800 font-medium">⚠️ Under Development</p>
+            <p className="text-blue-700 text-sm">This system is currently under development and is due for launch on 10th August 2025.</p>
+          </div>
         </div>
 
         <Tabs defaultValue="dashboard" className="space-y-6">
