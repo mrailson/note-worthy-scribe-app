@@ -328,20 +328,23 @@ export const MeetingRecorder = ({
     addDebugLog('💻 Starting computer audio capture...');
     
     try {
-      // Request screen share with audio
-      const stream = await navigator.mediaDevices.getDisplayMedia({
-        video: false,
+      // For Teams/Zoom, we'll use microphone but guide user to use speakers
+      addDebugLog('ℹ️ Note: Using microphone to capture audio from speakers');
+      
+      // Get microphone stream with enhanced settings for computer audio
+      const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
+          echoCancellation: false, // Disable to capture speaker audio better
+          noiseSuppression: false, // Disable to capture all audio
+          autoGainControl: false,  // Disable to prevent volume changes
           sampleRate: 48000
         }
       });
 
-      addDebugLog('✅ Computer audio access granted');
-      screenStreamRef.current = stream;
+      addDebugLog('✅ Microphone access granted for computer audio capture');
+      micAudioStreamRef.current = stream;
 
-      // Set up transcriber with computer audio
+      // Set up transcriber with computer audio optimized settings
       const transcriber = new BrowserSpeechTranscriber(
         handleBrowserTranscript,
         handleTranscriptionError,
@@ -353,11 +356,20 @@ export const MeetingRecorder = ({
       browserTranscriberRef.current = transcriber;
       
       addDebugLog('✅ Computer audio transcription started successfully');
+      addDebugLog('💡 Make sure your Teams/Zoom audio is playing through speakers (not headphones)');
       console.log('Recording started with computer audio transcription');
       
     } catch (error) {
       addDebugLog(`❌ Computer audio access failed: ${error}`);
-      throw new Error('Please allow screen sharing with audio to record Teams/Zoom meetings');
+      
+      // Provide specific error messages
+      if (error.name === 'NotAllowedError') {
+        throw new Error('Microphone access denied. Please allow microphone access and ensure Teams/Zoom audio is playing through speakers.');
+      } else if (error.name === 'NotFoundError') {
+        throw new Error('No microphone found. Please check your audio devices.');
+      } else {
+        throw new Error(`Computer audio setup failed: ${error.message}. Try using microphone mode instead.`);
+      }
     }
   };
 
@@ -903,7 +915,10 @@ export const MeetingRecorder = ({
                         <div className="flex items-start gap-2">
                           <Video className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
                           <div className="text-xs text-blue-700 dark:text-blue-300">
-                            <strong>Teams/Zoom Mode:</strong> You'll be prompted to share your screen with audio to capture the meeting audio.
+                            <strong>Teams/Zoom Mode:</strong> 
+                            <br />• Make sure Teams/Zoom audio is playing through <strong>speakers</strong> (not headphones)
+                            <br />• The microphone will capture the speaker audio for transcription
+                            <br />• For best results, sit close to your speakers
                           </div>
                         </div>
                       </div>
