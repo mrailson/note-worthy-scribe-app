@@ -16,7 +16,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History, Search, Trash2, CheckSquare, SquareIcon, Monitor, Volume2, Waves, Video, Headphones } from "lucide-react";
+import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History, Search, Trash2, CheckSquare, SquareIcon, Monitor, Volume2, Waves, Video, Headphones, AlertCircle } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { MeetingSettings } from "@/components/MeetingSettings";
@@ -96,6 +96,23 @@ export const MeetingRecorder = ({
   const micAudioStreamRef = useRef<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+
+  // Browser compatibility check
+  const checkBrowserSupport = () => {
+    const isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
+    const isEdge = /Edg/.test(navigator.userAgent);
+    const isFirefox = /Firefox/.test(navigator.userAgent);
+    
+    const hasDisplayMedia = navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia;
+    const hasUserMedia = navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
+    const hasMediaRecorder = typeof MediaRecorder !== 'undefined';
+    
+    return {
+      isSupported: hasDisplayMedia && hasUserMedia && hasMediaRecorder,
+      isRecommendedBrowser: isChrome || isEdge || isFirefox,
+      browserName: isChrome ? 'Chrome' : isEdge ? 'Edge' : isFirefox ? 'Firefox' : 'Unknown'
+    };
+  };
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const browserTranscriberRef = useRef<BrowserSpeechTranscriber | null>(null);
   const screenStreamRef = useRef<MediaStream | null>(null);
@@ -579,6 +596,19 @@ export const MeetingRecorder = ({
     addDebugLog('🎤 Starting advanced dual audio capture (system + microphone)...');
     
     try {
+      // Check browser support first
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+        throw new Error('Your browser does not support screen capture. Please use Chrome, Edge, or Firefox.');
+      }
+
+      if (!MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+        if (!MediaRecorder.isTypeSupported('audio/webm')) {
+          if (!MediaRecorder.isTypeSupported('audio/mp4')) {
+            throw new Error('Your browser does not support audio recording. Please use a modern browser.');
+          }
+        }
+      }
+
       // Step 1: Get display media (system audio) - user selects screen/tab
       addDebugLog('📺 Requesting screen capture with audio...');
       const displayStream = await navigator.mediaDevices.getDisplayMedia({
@@ -614,8 +644,19 @@ export const MeetingRecorder = ({
       ]);
 
       // Step 4: Set up MediaRecorder with optimal settings for Whisper API
+      let mimeType = 'audio/webm;codecs=opus';
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = 'audio/webm';
+        if (!MediaRecorder.isTypeSupported(mimeType)) {
+          mimeType = 'audio/mp4';
+          addDebugLog('⚠️ Using MP4 format as fallback');
+        } else {
+          addDebugLog('⚠️ Using WebM without Opus codec');
+        }
+      }
+      
       const mediaRecorder = new MediaRecorder(combinedStream, {
-        mimeType: 'audio/webm;codecs=opus',
+        mimeType: mimeType,
         audioBitsPerSecond: 128000 // Optimal for Whisper API
       });
       
@@ -711,16 +752,28 @@ export const MeetingRecorder = ({
     } catch (error) {
       addDebugLog(`❌ Advanced dual audio capture failed: ${error.message}`);
       
-      // Provide helpful error messages
+      // Provide specific, helpful error messages
       if (error.name === 'NotAllowedError') {
-        toast.error('Permission denied. Please allow screen sharing and microphone access.');
+        toast.error('Permission denied. Please allow screen sharing and microphone access when prompted.');
+        addDebugLog('💡 Tip: Click the address bar and enable camera/microphone permissions for this site');
       } else if (error.name === 'NotFoundError') {
-        toast.error('No audio source found. Please ensure your microphone is connected.');
+        toast.error('No audio source found. Please ensure your microphone is connected and working.');
       } else if (error.name === 'NotSupportedError') {
-        toast.error('Your browser does not support this recording method. Please use Chrome or Edge.');
+        toast.error('Screen audio capture not supported. Please try Chrome, Edge, or Firefox browser.');
+        addDebugLog('💡 Tip: This feature requires a Chromium-based browser (Chrome/Edge) for best results');
+      } else if (error.name === 'AbortError') {
+        toast.error('Recording was cancelled. Please try again and select a window/tab to share.');
+      } else if (error.message.includes('audio')) {
+        toast.error('Audio capture failed. Please check your audio settings and try again.');
+      } else if (error.message.includes('browser')) {
+        toast.error(error.message);
       } else {
         toast.error(`Recording failed: ${error.message}`);
       }
+      
+      // Reset recording state
+      setIsRecording(false);
+      setConnectionStatus('Error');
       
       throw error;
     }
