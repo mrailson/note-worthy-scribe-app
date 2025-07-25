@@ -427,7 +427,7 @@ export const MeetingRecorder = ({
       
       // Create a gain node to amplify speaker audio
       const gainNode = audioContext.createGain();
-      gainNode.gain.value = 3.0; // Amplify audio significantly
+      gainNode.gain.value = 10.0; // Much higher amplification for speaker audio
       
       // Create a processor for chunked audio processing
       const processor = audioContext.createScriptProcessor(4096, 1, 1);
@@ -483,7 +483,7 @@ export const MeetingRecorder = ({
       
       // Check if audio has sufficient volume (speaker audio detection)
       const rms = Math.sqrt(combinedBuffer.reduce((acc, val) => acc + val * val, 0) / combinedBuffer.length);
-      const volumeThreshold = 0.005; // Lower threshold for speaker audio
+      const volumeThreshold = 0.001; // Much lower threshold for weak speaker audio
       
       if (rms < volumeThreshold) {
         addDebugLog(`🔇 Audio too quiet (RMS: ${rms.toFixed(6)}) - likely no speaker audio`);
