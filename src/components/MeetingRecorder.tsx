@@ -1217,24 +1217,6 @@ export const MeetingRecorder = ({
                   </div>
                 )}
 
-                {/* Debug Log Panel - Always visible when recording */}
-                {isRecording && debugLog.length > 0 && (
-                  <Card className="mt-4 bg-gradient-to-br from-blue-50/50 to-blue-100/50 border-blue-200/50 dark:from-blue-900/20 dark:to-blue-800/20 dark:border-blue-700/50">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium flex items-center gap-2">
-                        <Monitor className="h-4 w-4" />
-                        Debug Log
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                      <div className="max-h-32 overflow-y-auto space-y-1 font-mono text-xs">
-                        {debugLog.map((log, index) => (
-                          <div key={index} className="text-muted-foreground">{log}</div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
 
                 {/* Ticker Tape Test Transcript */}
                 {testTranscripts.length > 0 && (
