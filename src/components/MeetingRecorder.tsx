@@ -99,6 +99,7 @@ export const MeetingRecorder = ({
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const browserTranscriberRef = useRef<BrowserSpeechTranscriber | null>(null);
   const screenStreamRef = useRef<MediaStream | null>(null);
+  const enhancedAudioCaptureRef = useRef<any>(null);
 
   // Auto-save meeting data to localStorage
   const autoSaveMeeting = () => {
@@ -323,52 +324,76 @@ export const MeetingRecorder = ({
     console.log('Recording started with microphone speech recognition');
   };
 
-  // Computer audio transcription for Teams/Zoom meetings
+  // Computer audio transcription for Teams/Zoom meetings using enhanced capture
   const startComputerAudioTranscription = async () => {
-    addDebugLog('💻 Starting computer audio capture...');
+    addDebugLog('💻 Starting enhanced computer audio capture...');
     
     try {
-      // For Teams/Zoom, we'll use microphone but guide user to use speakers
-      addDebugLog('ℹ️ Note: Using microphone to capture audio from speakers');
+      const { EnhancedAudioCapture } = await import('../utils/EnhancedAudioCapture');
       
-      // Get microphone stream with enhanced settings for computer audio
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: false, // Disable to capture speaker audio better
-          noiseSuppression: false, // Disable to capture all audio
-          autoGainControl: false,  // Disable to prevent volume changes
-          sampleRate: 48000
+      const audioCapture = new EnhancedAudioCapture(
+        (transcript: any) => {
+          if (transcript && transcript.text) {
+            addDebugLog(`🎙️ Enhanced: "${transcript.text}"`);
+            const transcriptData: TranscriptData = {
+              text: transcript.text,
+              speaker: 'System Audio',
+              isFinal: true,
+              confidence: transcript.confidence || 0.8,
+              timestamp: new Date().toISOString()
+            };
+            handleTranscript(transcriptData);
+          }
+        },
+        (error: string) => {
+          addDebugLog(`❌ Enhanced audio error: ${error}`);
+          handleTranscriptionError(error);
+        },
+        (status: string) => {
+          addDebugLog(`🔄 Enhanced status: ${status}`);
         }
-      });
-
-      addDebugLog('✅ Microphone access granted for computer audio capture');
-      micAudioStreamRef.current = stream;
-
-      // Set up transcriber with computer audio optimized settings
-      const transcriber = new BrowserSpeechTranscriber(
-        handleBrowserTranscript,
-        handleTranscriptionError,
-        handleStatusChange,
-        handleLiveSummary
       );
 
-      await transcriber.startTranscription();
-      browserTranscriberRef.current = transcriber;
+      await audioCapture.startCapture();
+      enhancedAudioCaptureRef.current = audioCapture;
       
-      addDebugLog('✅ Computer audio transcription started successfully');
-      addDebugLog('💡 Make sure your Teams/Zoom audio is playing through speakers (not headphones)');
-      console.log('Recording started with computer audio transcription');
+      addDebugLog('✅ Enhanced computer audio transcription started');
+      addDebugLog('💡 This will capture both microphone and system audio from Teams/YouTube');
+      console.log('Recording started with enhanced computer audio transcription');
       
     } catch (error) {
-      addDebugLog(`❌ Computer audio access failed: ${error}`);
+      addDebugLog(`❌ Enhanced audio setup failed: ${error}`);
       
-      // Provide specific error messages
-      if (error.name === 'NotAllowedError') {
-        throw new Error('Microphone access denied. Please allow microphone access and ensure Teams/Zoom audio is playing through speakers.');
-      } else if (error.name === 'NotFoundError') {
-        throw new Error('No microphone found. Please check your audio devices.');
-      } else {
-        throw new Error(`Computer audio setup failed: ${error.message}. Try using microphone mode instead.`);
+      // Fallback to microphone-based approach
+      addDebugLog('🔄 Falling back to microphone capture...');
+      
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false,
+            sampleRate: 48000
+          }
+        });
+
+        addDebugLog('✅ Microphone fallback successful');
+        micAudioStreamRef.current = stream;
+
+        const transcriber = new BrowserSpeechTranscriber(
+          handleBrowserTranscript,
+          handleTranscriptionError,
+          handleStatusChange,
+          handleLiveSummary
+        );
+
+        await transcriber.startTranscription();
+        browserTranscriberRef.current = transcriber;
+        
+        addDebugLog('💡 Using microphone fallback - ensure Teams/Zoom audio plays through speakers');
+        
+      } catch (fallbackError) {
+        throw new Error(`Computer audio setup failed: ${error.message}. Microphone fallback also failed: ${fallbackError.message}`);
       }
     }
   };
@@ -505,6 +530,12 @@ export const MeetingRecorder = ({
     if (browserTranscriberRef.current) {
       browserTranscriberRef.current.stopTranscription();
       browserTranscriberRef.current = null;
+    }
+    
+    // Stop enhanced audio capture
+    if (enhancedAudioCaptureRef.current) {
+      enhancedAudioCaptureRef.current.stopCapture();
+      enhancedAudioCaptureRef.current = null;
     }
     
     setIsRecording(false);
