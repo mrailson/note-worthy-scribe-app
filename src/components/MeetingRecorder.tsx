@@ -200,18 +200,57 @@ const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
     addDebugLog('🎤 Starting separate dual audio capture (system + microphone)...');
     
     try {
-      // Step 1: Get system audio
+      // Step 1: Try to get system audio with fallback
       addDebugLog('📺 Requesting screen capture with audio...');
-      const displayStream = await navigator.mediaDevices.getDisplayMedia({
-        video: false,
-        audio: true
-      });
+      let displayStream: MediaStream | null = null;
+      
+      try {
+        displayStream = await navigator.mediaDevices.getDisplayMedia({
+          video: false,
+          audio: {
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false,
+            channelCount: 2
+          }
+        });
+        
+        // Check if audio track is actually available
+        const audioTracks = displayStream.getAudioTracks();
+        if (audioTracks.length === 0) {
+          displayStream.getTracks().forEach(track => track.stop());
+          throw new Error('No system audio available - screen sharing without audio');
+        }
+        
+        addDebugLog(`✅ System audio captured: ${audioTracks.length} track(s)`);
+      } catch (displayError) {
+        addDebugLog(`⚠️ System audio failed: ${displayError.message}`);
+        addDebugLog('🔄 Falling back to microphone-only recording...');
+        
+        // Fallback to microphone only
+        return await startMicrophoneTranscription();
+      }
       
       // Step 2: Get microphone audio separately  
       addDebugLog('🎤 Requesting microphone access...');
-      const micStream = await navigator.mediaDevices.getUserMedia({
-        audio: true
-      });
+      let micStream: MediaStream;
+      
+      try {
+        micStream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          }
+        });
+        addDebugLog('✅ Microphone captured successfully');
+      } catch (micError) {
+        // Clean up display stream if mic fails
+        if (displayStream) {
+          displayStream.getTracks().forEach(track => track.stop());
+        }
+        throw new Error(`Microphone access failed: ${micError.message}`);
+      }
       
       addDebugLog('✅ Both audio streams captured successfully');
       
@@ -275,8 +314,22 @@ const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
       
       addDebugLog('🎯 Dual audio recording started');
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Dual audio error:', error);
+      addDebugLog(`❌ Dual audio failed: ${error.message}`);
+      
+      // If dual audio completely fails, try microphone only as final fallback
+      if (error.message.includes('system audio') || error.message.includes('getDisplayMedia')) {
+        addDebugLog('🔄 Attempting microphone-only fallback...');
+        try {
+          await startMicrophoneTranscription();
+          addDebugLog('✅ Fallback to microphone successful');
+          return;
+        } catch (fallbackError) {
+          throw new Error(`Both dual audio and microphone fallback failed: ${fallbackError.message}`);
+        }
+      }
+      
       throw error;
     }
   };
