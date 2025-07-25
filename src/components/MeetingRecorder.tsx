@@ -597,68 +597,110 @@ export const MeetingRecorder = ({
     
     try {
       // Check browser support first
+      console.log('Browser check:', {
+        hasMediaDevices: !!navigator.mediaDevices,
+        hasGetDisplayMedia: !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia),
+        hasGetUserMedia: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia),
+        userAgent: navigator.userAgent
+      });
+
       if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
         throw new Error('Your browser does not support screen capture. Please use Chrome, Edge, or Firefox.');
       }
 
-      if (!MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
-        if (!MediaRecorder.isTypeSupported('audio/webm')) {
-          if (!MediaRecorder.isTypeSupported('audio/mp4')) {
-            throw new Error('Your browser does not support audio recording. Please use a modern browser.');
-          }
+      // Step 1: Try getting display media with different approaches
+      addDebugLog('📺 Requesting screen capture with audio...');
+      let displayStream;
+      
+      try {
+        // First try: audio-only capture (preferred)
+        console.log('Attempting audio-only screen capture...');
+        displayStream = await navigator.mediaDevices.getDisplayMedia({
+          video: false,
+          audio: true
+        });
+        addDebugLog('✅ Audio-only screen capture successful');
+      } catch (audioOnlyError) {
+        console.log('Audio-only failed:', audioOnlyError.message);
+        addDebugLog('⚠️ Audio-only failed, trying video+audio approach...');
+        
+        try {
+          // Second try: video+audio, then extract audio
+          console.log('Attempting video+audio screen capture...');
+          displayStream = await navigator.mediaDevices.getDisplayMedia({
+            video: true,
+            audio: true
+          });
+          
+          // Remove video tracks, keep only audio
+          const videoTracks = displayStream.getVideoTracks();
+          videoTracks.forEach(track => {
+            track.stop();
+            displayStream.removeTrack(track);
+          });
+          addDebugLog('✅ Video+audio capture successful, video tracks removed');
+        } catch (videoAudioError) {
+          console.log('Video+audio failed:', videoAudioError.message);
+          throw new Error(`Screen capture not supported: ${videoAudioError.message}`);
         }
       }
 
-      // Step 1: Get display media (system audio) - user selects screen/tab
-      addDebugLog('📺 Requesting screen capture with audio...');
-      const displayStream = await navigator.mediaDevices.getDisplayMedia({
-        video: false, // We only need audio
-        audio: {
-          sampleRate: 48000,
-          channelCount: 2,
-          echoCancellation: false,
-          noiseSuppression: false,
-          autoGainControl: false
-        }
-      });
-      addDebugLog('✅ Screen audio capture granted');
-
-      // Step 2: Get microphone audio
+      // Check if we got audio tracks
+      const audioTracks = displayStream.getAudioTracks();
+      if (audioTracks.length === 0) {
+        throw new Error('No audio tracks found in screen capture. Please ensure you share a tab/window with audio.');
+      }
+      
+      console.log('Display stream audio tracks:', audioTracks.length);
+      addDebugLog(`📺 Got ${audioTracks.length} audio track(s) from screen capture`);
+      // Step 2: Get microphone audio with simpler constraints
       addDebugLog('🎤 Requesting microphone access...');
       const micStream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          sampleRate: 48000,
-          channelCount: 1,
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
-        }
+        audio: true // Use simple constraints for better compatibility
       });
-      addDebugLog('✅ Microphone access granted');
+      
+      const micAudioTracks = micStream.getAudioTracks();
+      console.log('Microphone audio tracks:', micAudioTracks.length);
+      addDebugLog(`🎤 Got ${micAudioTracks.length} microphone track(s)`);
 
-      // Step 3: Combine both streams using MediaStream constructor
+      // Step 3: Combine both streams using simple MediaStream approach
       addDebugLog('🔀 Combining audio streams...');
       const combinedStream = new MediaStream([
         ...displayStream.getAudioTracks(),
         ...micStream.getAudioTracks()
       ]);
+      
+      console.log('Combined stream tracks:', combinedStream.getTracks().length);
+      addDebugLog(`🔀 Combined stream has ${combinedStream.getTracks().length} total tracks`);
 
-      // Step 4: Set up MediaRecorder with optimal settings for Whisper API
-      let mimeType = 'audio/webm;codecs=opus';
+      // Step 4: Set up MediaRecorder with simple, compatible settings
+      let mimeType = 'audio/webm';
+      let bitrate = 128000;
+      
+      // Check what's actually supported
       if (!MediaRecorder.isTypeSupported(mimeType)) {
-        mimeType = 'audio/webm';
-        if (!MediaRecorder.isTypeSupported(mimeType)) {
+        if (MediaRecorder.isTypeSupported('audio/mp4')) {
           mimeType = 'audio/mp4';
-          addDebugLog('⚠️ Using MP4 format as fallback');
+          addDebugLog('⚠️ Using MP4 format for compatibility');
+        } else if (MediaRecorder.isTypeSupported('audio/ogg')) {
+          mimeType = 'audio/ogg';
+          addDebugLog('⚠️ Using OGG format for compatibility');
         } else {
-          addDebugLog('⚠️ Using WebM without Opus codec');
+          // Use default, let browser decide
+          mimeType = '';
+          bitrate = undefined;
+          addDebugLog('⚠️ Using browser default audio format');
         }
       }
       
-      const mediaRecorder = new MediaRecorder(combinedStream, {
-        mimeType: mimeType,
-        audioBitsPerSecond: 128000 // Optimal for Whisper API
-      });
+      console.log('Using MediaRecorder with:', { mimeType, bitrate });
+      
+      const mediaRecorderOptions: any = {};
+      if (mimeType) mediaRecorderOptions.mimeType = mimeType;
+      if (bitrate) mediaRecorderOptions.audioBitsPerSecond = bitrate;
+      
+      const mediaRecorder = new MediaRecorder(combinedStream, mediaRecorderOptions);
+      addDebugLog(`📹 MediaRecorder created with ${mimeType || 'default'} format`);
       
       const audioChunks: Blob[] = [];
       
@@ -750,7 +792,28 @@ export const MeetingRecorder = ({
       (mediaRecorder as any).cleanup = cleanupStreams;
 
     } catch (error) {
+      console.error('Dual audio capture error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
+      
       addDebugLog(`❌ Advanced dual audio capture failed: ${error.message}`);
+      
+      // Try fallback to microphone-only mode
+      if (error.name === 'NotSupportedError' || error.message.includes('not supported')) {
+        addDebugLog('🔄 Attempting fallback to microphone-only recording...');
+        toast.info('Dual audio not supported. Falling back to microphone-only recording.');
+        
+        try {
+          // Fallback to simple microphone recording
+          await startMicrophoneTranscription();
+          return; // Success with fallback
+        } catch (fallbackError) {
+          addDebugLog(`❌ Microphone fallback also failed: ${fallbackError.message}`);
+          error = fallbackError; // Use the fallback error for final error handling
+        }
+      }
       
       // Provide specific, helpful error messages
       if (error.name === 'NotAllowedError') {
@@ -759,8 +822,8 @@ export const MeetingRecorder = ({
       } else if (error.name === 'NotFoundError') {
         toast.error('No audio source found. Please ensure your microphone is connected and working.');
       } else if (error.name === 'NotSupportedError') {
-        toast.error('Screen audio capture not supported. Please try Chrome, Edge, or Firefox browser.');
-        addDebugLog('💡 Tip: This feature requires a Chromium-based browser (Chrome/Edge) for best results');
+        toast.error('Screen audio capture not supported in this browser. Please try Chrome or Edge, or use microphone-only mode.');
+        addDebugLog('💡 Tip: Try using the regular "Microphone Only" recording mode instead');
       } else if (error.name === 'AbortError') {
         toast.error('Recording was cancelled. Please try again and select a window/tab to share.');
       } else if (error.message.includes('audio')) {
