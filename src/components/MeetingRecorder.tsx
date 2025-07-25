@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MeetingSettings } from '@/components/MeetingSettings';
+import { MeetingHistoryList } from '@/components/MeetingHistoryList';
+import { MeetingSearchBar, SearchFilters } from '@/components/MeetingSearchBar';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -29,7 +31,8 @@ import {
   Filter,
   Eye,
   Edit,
-  MoreVertical
+  MoreVertical,
+  CheckSquare
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
@@ -94,6 +97,7 @@ const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [selectedMeetings, setSelectedMeetings] = useState<string[]>([]);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const [advancedFilters, setAdvancedFilters] = useState<Partial<SearchFilters>>({});
 
   // Refs
   const intervalRef = useRef<NodeJS.Timeout>();
@@ -447,6 +451,170 @@ const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
     toast.success(`Transcript imported: ${importedTranscript.wordCount} words`);
   };
 
+  // Meeting history handlers
+  const handleMeetingEdit = (meetingId: string) => {
+    // Navigate to edit the meeting
+    window.open(`/?edit=${meetingId}`, '_blank');
+  };
+
+  const handleViewSummary = (meetingId: string) => {
+    // Navigate to view meeting summary
+    window.open(`/meeting-summary?id=${meetingId}`, '_blank');
+  };
+
+  const handleMeetingDelete = async (meetingId: string) => {
+    try {
+      const { error } = await supabase
+        .from('meetings')
+        .delete()
+        .eq('id', meetingId)
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+
+      toast.success('Meeting deleted successfully');
+      await loadMeetingHistory();
+    } catch (error: any) {
+      toast.error(`Error deleting meeting: ${error.message}`);
+    }
+  };
+
+  const handleSelectAll = () => {
+    if (selectedMeetings.length === filteredMeetings.length) {
+      setSelectedMeetings([]);
+    } else {
+      setSelectedMeetings(filteredMeetings.map(m => m.id));
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    try {
+      const { error } = await supabase
+        .from('meetings')
+        .delete()
+        .in('id', selectedMeetings)
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+
+      toast.success(`${selectedMeetings.length} meetings deleted successfully`);
+      setSelectedMeetings([]);
+      setIsSelectMode(false);
+      await loadMeetingHistory();
+    } catch (error: any) {
+      toast.error(`Error deleting meetings: ${error.message}`);
+    }
+  };
+
+  const handleSelectMeeting = (meetingId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedMeetings(prev => [...prev, meetingId]);
+    } else {
+      setSelectedMeetings(prev => prev.filter(id => id !== meetingId));
+    }
+  };
+
+  const loadMeetingHistory = async () => {
+    if (!user) return;
+    
+    setLoadingHistory(true);
+    try {
+      const { data: meetingsData, error } = await supabase
+        .from('meetings')
+        .select(`
+          id,
+          title,
+          description,
+          meeting_type,
+          start_time,
+          end_time,
+          duration_minutes,
+          status,
+          created_at,
+          location,
+          format,
+          meeting_overviews(overview)
+        `)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+
+      if (meetingsData) {
+        const meetingIds = meetingsData.map(m => m.id);
+        
+        const [transcriptCounts, summaryExists] = await Promise.all([
+          supabase
+            .from('meeting_transcripts')
+            .select('meeting_id')
+            .in('meeting_id', meetingIds)
+            .then(({ data }) => {
+              return data?.reduce((acc, t) => {
+                acc[t.meeting_id] = (acc[t.meeting_id] || 0) + 1;
+                return acc;
+              }, {} as Record<string, number>) || {};
+            }),
+          
+          supabase
+            .from('meeting_summaries')
+            .select('meeting_id')
+            .in('meeting_id', meetingIds)
+            .then(({ data }) => {
+              return data?.reduce((acc, s) => {
+                acc[s.meeting_id] = true;
+                return acc;
+              }, {} as Record<string, boolean>) || {};
+            })
+        ]);
+
+        const enrichedMeetings = meetingsData.map(meeting => ({
+          ...meeting,
+          transcript_count: transcriptCounts[meeting.id] || 0,
+          summary_exists: !!summaryExists[meeting.id]
+        }));
+
+        setMeetings(enrichedMeetings);
+        filterMeetings();
+      }
+    } catch (error: any) {
+      addDebugLog(`❌ Error loading meeting history: ${error.message}`);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  const filterMeetings = () => {
+    let filtered = meetings;
+
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(meeting =>
+        meeting.title.toLowerCase().includes(query) ||
+        meeting.description?.toLowerCase().includes(query) ||
+        meeting.meeting_type.toLowerCase().includes(query) ||
+        meeting.location?.toLowerCase().includes(query)
+      );
+    }
+
+    if (filterType !== "all") {
+      filtered = filtered.filter(meeting => meeting.meeting_type === filterType);
+    }
+
+    setFilteredMeetings(filtered);
+  };
+
+  // Load meeting history when tab is selected
+  useEffect(() => {
+    if (user) {
+      loadMeetingHistory();
+    }
+  }, [user]);
+
+  useEffect(() => {
+    filterMeetings();
+  }, [meetings, searchQuery, filterType]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20 p-4">
       <Tabs defaultValue="recording" className="w-full max-w-6xl mx-auto">
@@ -692,53 +860,71 @@ const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
                 Meeting History
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Search meetings..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="flex-1"
-                  />
-                  <Select value={filterType} onValueChange={setFilterType}>
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Filter by type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Meetings</SelectItem>
-                      <SelectItem value="general">General</SelectItem>
-                      <SelectItem value="standup">Standup</SelectItem>
-                      <SelectItem value="review">Review</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-2">
-                  {filteredMeetings.length > 0 ? (
-                    filteredMeetings.map((meeting) => (
-                      <div key={meeting.id} className="flex items-center justify-between p-3 border rounded-lg">
-                        <div>
-                          <h3 className="font-medium">{meeting.title}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {formatDistanceToNow(new Date(meeting.created_at))} ago
-                          </p>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button variant="outline" size="sm">
-                            <Eye className="h-4 w-4" />
+            <CardContent className="space-y-4">
+              {/* Search and Filters */}
+              <MeetingSearchBar
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                filterType={filterType}
+                onFilterChange={setFilterType}
+                advancedFilters={advancedFilters}
+                onAdvancedFiltersChange={setAdvancedFilters}
+                resultsCount={filteredMeetings.length}
+              />
+              
+              {/* Multi-select controls */}
+              {meetings.length > 0 && (
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 sm:items-center">
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsSelectMode(!isSelectMode)}
+                      className="flex items-center gap-2"
+                    >
+                      {isSelectMode ? <Square className="h-4 w-4" /> : <CheckSquare className="h-4 w-4" />}
+                      {isSelectMode ? 'Cancel Selection' : 'Select Multiple'}
+                    </Button>
+                    
+                    {isSelectMode && (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleSelectAll}
+                          className="flex items-center gap-2"
+                        >
+                          {selectedMeetings.length === filteredMeetings.length ? 'Deselect All' : 'Select All'}
+                        </Button>
+                        
+                        {selectedMeetings.length > 0 && (
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={handleDeleteSelected}
+                            className="flex items-center gap-2"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Delete Selected ({selectedMeetings.length})
                           </Button>
-                          <Button variant="outline" size="sm">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-muted-foreground text-center py-8">No meetings found</p>
-                  )}
+                        )}
+                      </>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* Meeting List */}
+              <MeetingHistoryList
+                meetings={filteredMeetings}
+                onEdit={handleMeetingEdit}
+                onViewSummary={handleViewSummary}
+                onDelete={handleMeetingDelete}
+                loading={loadingHistory}
+                isSelectMode={isSelectMode}
+                selectedMeetings={selectedMeetings}
+                onSelectMeeting={handleSelectMeeting}
+              />
             </CardContent>
           </Card>
         </TabsContent>
