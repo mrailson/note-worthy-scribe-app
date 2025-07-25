@@ -576,58 +576,220 @@ export const MeetingRecorder = ({
   };
 
   const startTestMode = async () => {
-    addDebugLog('🎤 Starting microphone access...');
+    addDebugLog('🎤 Starting dual audio capture (system + microphone)...');
     
     try {
-      // Test microphone access
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: { sampleRate: 24000, channelCount: 1 } 
+      // Step 1: Get display media (system audio)
+      addDebugLog('📺 Requesting screen capture with audio...');
+      const displayStream = await navigator.mediaDevices.getDisplayMedia({
+        video: false,
+        audio: {
+          sampleRate: 24000,
+          channelCount: 1,
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false
+        }
+      });
+      addDebugLog('✅ Screen audio capture granted');
+
+      // Step 2: Get microphone audio
+      addDebugLog('🎤 Requesting microphone access...');
+      const micStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          sampleRate: 24000,
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
       });
       addDebugLog('✅ Microphone access granted');
+
+      // Step 3: Create AudioContext to mix streams
+      const audioContext = new AudioContext({ sampleRate: 24000 });
+      const displaySource = audioContext.createMediaStreamSource(displayStream);
+      const micSource = audioContext.createMediaStreamSource(micStream);
       
-      // Simulate transcription
-      const testPhrases = [
-        "Hello, this is a test of the transcription system.",
-        "The meeting is starting now.",
-        "Can everyone hear me clearly?",
-        "Let's discuss the agenda for today.",
-        "The first item is project updates.",
-        "How is the development progressing?",
-        "We need to review the timeline.",
-        "Any questions or concerns?",
-        "Moving to the next topic.",
-        "Thank you for your attention."
-      ];
+      // Create gain nodes for volume control
+      const displayGain = audioContext.createGain();
+      const micGain = audioContext.createGain();
+      displayGain.gain.value = 0.8; // System audio at 80%
+      micGain.gain.value = 1.0;     // Microphone at 100%
+
+      // Create destination for mixed audio
+      const destination = audioContext.createMediaStreamDestination();
       
-      let phraseIndex = 0;
-      const simulateTranscript = () => {
-        if (phraseIndex < testPhrases.length && isRecording) {
-          const phrase = testPhrases[phraseIndex];
-          const fakeData = {
-            text: phrase,
-            is_final: true,
-            confidence: 0.95,
-            speaker: `Speaker ${(phraseIndex % 2) + 1}`
-          };
-          
-          addDebugLog(`🎙️ Simulated: "${phrase}"`);
-          handleBrowserTranscript(fakeData);
-          phraseIndex++;
-          
-          // Schedule next phrase
-          setTimeout(simulateTranscript, 3000 + Math.random() * 2000);
+      // Connect audio graph
+      displaySource.connect(displayGain).connect(destination);
+      micSource.connect(micGain).connect(destination);
+      
+      addDebugLog('🔀 Audio streams mixed successfully');
+
+      // Step 4: Set up MediaRecorder for the mixed stream
+      const mixedStream = destination.stream;
+      const mediaRecorder = new MediaRecorder(mixedStream, {
+        mimeType: 'audio/webm;codecs=opus'
+      });
+      
+      const audioChunks: Blob[] = [];
+      
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunks.push(event.data);
+          addDebugLog(`📦 Audio chunk captured: ${event.data.size} bytes`);
         }
       };
+
+      mediaRecorder.onstop = async () => {
+        addDebugLog('🔄 Processing recorded audio...');
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        
+        // Convert to base64 and send for transcription
+        const reader = new FileReader();
+        reader.onload = async () => {
+          const base64Audio = (reader.result as string).split(',')[1];
+          await processRecordedAudio(base64Audio);
+        };
+        reader.readAsDataURL(audioBlob);
+      };
+
+      // Start recording
+      mediaRecorder.start(1000); // Capture data every second
+      addDebugLog('🎯 Dual audio recording started');
+
+      // Store references for cleanup
+      micAudioStreamRef.current = mixedStream;
+      mediaRecorderRef.current = mediaRecorder;
       
-      // Start simulation after 2 seconds
-      setTimeout(simulateTranscript, 2000);
+      // Store original streams for cleanup
+      const cleanupStreams = () => {
+        displayStream.getTracks().forEach(track => track.stop());
+        micStream.getTracks().forEach(track => track.stop());
+        audioContext.close();
+      };
       
-      // Store the stream for cleanup
-      micAudioStreamRef.current = stream;
-      
+      // Store cleanup function
+      (mediaRecorder as any).cleanup = cleanupStreams;
+
     } catch (error) {
-      addDebugLog(`❌ Microphone access failed: ${error}`);
+      addDebugLog(`❌ Dual audio capture failed: ${error.message}`);
       throw error;
+    }
+  };
+
+  const processRecordedAudio = async (base64Audio: string) => {
+    try {
+      addDebugLog('🤖 Sending audio to transcription service...');
+      
+      const { data, error } = await supabase.functions.invoke('speech-to-text', {
+        body: { audio: base64Audio }
+      });
+
+      if (error) throw error;
+
+      addDebugLog('✅ Transcription received');
+      handleBrowserTranscript({
+        text: data.text,
+        is_final: true,
+        confidence: 0.95,
+        speaker: 'Mixed Audio'
+      });
+
+    } catch (error) {
+      addDebugLog(`❌ Transcription failed: ${error.message}`);
+    }
+  };
+
+  const startTestRecording = async () => {
+    try {
+      const modeText = recordingMode === 'computer-audio' ? 'dual audio (system + microphone)' : 'microphone';
+      addDebugLog(`🚀 Starting test recording with ${modeText}...`);
+      console.log(`Starting test recording with ${modeText}...`);
+      
+      // Clear previous debug logs and test transcripts
+      setDebugLog([]);
+      setTestTranscripts([]);
+      
+      // Choose recording method based on mode
+      if (recordingMode === 'computer-audio') {
+        await startTestMode(); // Use our new dual audio function
+      } else {
+        await startMicrophoneTranscription();
+      }
+      
+      setIsRecording(true);
+      setRealtimeTranscripts([]);
+      setSpeakerCount(1);
+      setStartTime(new Date().toISOString());
+      setConnectionStatus("Connected");
+      
+      addDebugLog('✅ Test recording started successfully');
+      
+      // Start duration timer
+      intervalRef.current = setInterval(() => {
+        setDuration(prev => {
+          const newDuration = prev + 1;
+          const minutes = Math.floor(newDuration / 60);
+          const seconds = newDuration % 60;
+          const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+          onDurationUpdate(timeString);
+          return newDuration;
+        });
+      }, 1000);
+
+      const successMessage = recordingMode === 'computer-audio' ? 
+        'Test recording started with dual audio capture!' : 
+        'Test recording started with microphone!';
+      toast.success(successMessage);
+    } catch (error: any) {
+      console.error('Failed to start test recording:', error);
+      addDebugLog(`❌ Failed to start test: ${error.message}`);
+      toast.error(error.message || 'Failed to start test recording');
+      setIsRecording(false);
+      setConnectionStatus("Error");
+    }
+  };
+
+  const stopTestRecording = async () => {
+    try {
+      addDebugLog('🛑 Stopping test recording...');
+      
+      // Stop MediaRecorder if active
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
+        
+        // Clean up streams if cleanup function exists
+        if ((mediaRecorderRef.current as any).cleanup) {
+          (mediaRecorderRef.current as any).cleanup();
+        }
+      }
+      
+      // Stop other streams
+      if (micAudioStreamRef.current) {
+        micAudioStreamRef.current.getTracks().forEach(track => track.stop());
+        micAudioStreamRef.current = null;
+      }
+      
+      if (browserTranscriberRef.current) {
+        browserTranscriberRef.current.stopTranscription();
+      }
+      
+      // Clear timer
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      
+      setIsRecording(false);
+      setConnectionStatus("Disconnected");
+      addDebugLog('✅ Test recording stopped');
+      toast.success('Test recording stopped successfully');
+      
+    } catch (error: any) {
+      console.error('Failed to stop test recording:', error);
+      addDebugLog(`❌ Failed to stop test: ${error.message}`);
+      toast.error('Failed to stop test recording');
     }
   };
 
@@ -1324,12 +1486,12 @@ export const MeetingRecorder = ({
                       <div className="p-3 bg-red-50/50 border border-red-200/50 rounded-lg dark:bg-red-900/20 dark:border-red-700/50">
                         <div className="flex items-start gap-2">
                           <Video className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
-                          <div className="text-xs text-red-700 dark:text-red-300">
-                            <strong className="text-red-800 dark:text-red-200">🚧 Development Notice:</strong> 
-                            <br />• This feature is currently being developed
-                            <br />• Expected release: <strong>10th August 2025</strong>
-                            <br />• Please use <strong>Teams own recording service</strong> to record Teams meetings in the meantime
-                            <br />• You can still use microphone mode for general audio recording (ie Face 2 Face or via conference phone etc)
+                          <div className="text-xs text-green-700 dark:text-green-300">
+                            <strong className="text-green-800 dark:text-green-200">🎉 Test Feature:</strong> 
+                            <br />• This captures both system audio (Teams/Zoom) AND your microphone
+                            <br />• Click "Share your screen" → Select the Teams/Zoom tab or window
+                            <br />• Grant microphone access when prompted
+                            <br />• Both audio streams will be mixed and transcribed together
                           </div>
                         </div>
                       </div>
@@ -1342,23 +1504,19 @@ export const MeetingRecorder = ({
                   {!isRecording ? (
                     <div className="space-y-2">
                       <Button 
-                        onClick={startRecording}
+                        onClick={startTestRecording}
                         size="lg"
-                        disabled={recordingMode === 'computer-audio'}
-                        className={`${recordingMode === 'computer-audio' 
-                          ? 'bg-gray-400 cursor-not-allowed opacity-50' 
-                          : 'bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary'
-                        } text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 px-8 py-4 text-base font-semibold rounded-lg`}
+                        className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 px-8 py-4 text-base font-semibold rounded-lg"
                       >
                         {recordingMode === 'computer-audio' ? (
                           <>
                             <Headphones className="h-5 w-5 mr-2" />
-                            Start Recording Teams/Zoom (Coming Soon)
+                            Start Dual Audio Recording (System + Mic)
                           </>
                         ) : (
                           <>
                             <Mic className="h-5 w-5 mr-2" />
-                            Start Recording
+                            Start Test Recording
                           </>
                         )}
                       </Button>
@@ -1371,13 +1529,13 @@ export const MeetingRecorder = ({
                       </div>
                       
                       <Button 
-                        onClick={stopRecording}
+                        onClick={stopTestRecording}
                         variant="destructive"
                         size="lg"
                         className="shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 px-8 py-4 text-base font-semibold rounded-lg"
                       >
                         <Square className="h-5 w-5 mr-2" />
-                        Stop Recording
+                        Stop Test Recording
                       </Button>
                     </div>
                   )}
@@ -1390,9 +1548,9 @@ export const MeetingRecorder = ({
                       <div className="p-2 rounded-full bg-primary/5 w-12 h-12 mx-auto mb-2 flex items-center justify-center">
                         <Mic className="h-6 w-6 text-primary/60" />
                       </div>
-                       <h4 className="text-base font-medium mb-1">Ready to Record</h4>
+                       <h4 className="text-base font-medium mb-1">Ready for Test Recording</h4>
                        <p className="text-xs text-muted-foreground">
-                         Automatic microphone + system audio capture with live AI summaries
+                         Dual audio capture: System audio (Teams/Zoom) + Microphone with live transcription
                        </p>
                        
                        {/* Live Summary Display */}
