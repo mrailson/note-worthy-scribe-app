@@ -1209,7 +1209,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
       
       <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 max-w-7xl">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="ai-service" className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4" />
               AI Service
@@ -1221,6 +1221,10 @@ Always provide practical, actionable advice that follows NHS guidelines and best
             <TabsTrigger value="ai-settings" className="flex items-center gap-2">
               <Settings className="h-4 w-4" />
               AI Settings
+            </TabsTrigger>
+            <TabsTrigger value="pm-genie" className="flex items-center gap-2">
+              <Bot className="h-4 w-4" />
+              Chat with PM Genie
             </TabsTrigger>
             <TabsTrigger value="what-can-ai-do" className="flex items-center gap-2">
               <HelpCircle className="h-4 w-4" />
@@ -1719,6 +1723,270 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                     <p className="text-xs text-muted-foreground">
                       This will remove all messages and uploaded files from the current session.
                     </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Chat with PM Genie Tab */}
+          <TabsContent value="pm-genie" className="mt-3">
+            <Card className={getChatBoxHeight()}>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Bot className="h-5 w-5 text-primary" />
+                    Chat with PM Genie
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="text-xs">
+                      <Sparkles className="h-3 w-3 mr-1" />
+                      AI-Powered
+                    </Badge>
+                    <Button
+                      onClick={handleNewMeeting}
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-2"
+                    >
+                      <Plus className="h-4 w-4" />
+                      New Chat
+                    </Button>
+                  </div>
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Your dedicated AI assistant for GP practice management. Ask anything about NHS policies, CQC compliance, or daily operations.
+                </p>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="flex flex-col h-full">
+                  {/* Messages Container */}
+                  <ScrollArea className="flex-1 px-4" style={{ height: 'calc(100vh - 400px)', minHeight: '400px' }}>
+                    <div className="space-y-4 py-4">
+                      {messages.length === 0 ? (
+                        <div className="text-center py-8 space-y-4">
+                          <div className="w-16 h-16 mx-auto bg-primary/10 rounded-full flex items-center justify-center">
+                            <Bot className="h-8 w-8 text-primary" />
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-medium text-primary mb-2">Hello! I'm PM Genie</h3>
+                            <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
+                              I'm your AI assistant specialized in NHS GP practice management. I can help with policies, 
+                              compliance, documentation, and daily operational questions.
+                            </p>
+                          </div>
+                          
+                          {/* Quick Start Suggestions */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-6 max-w-2xl mx-auto">
+                            {[
+                              {
+                                icon: Shield,
+                                title: "CQC Compliance",
+                                description: "Ask about CQC requirements, KLOEs, or inspection preparation",
+                                prompt: "What are the key CQC requirements for GP practices in 2024?"
+                              },
+                              {
+                                icon: FileText,
+                                title: "Policy Guidance",
+                                description: "Get help with NHS policies, procedures, and documentation",
+                                prompt: "Help me understand the latest GP contract requirements"
+                              },
+                              {
+                                icon: Users,
+                                title: "Staff Management",
+                                description: "Support with HR issues, training, and team management",
+                                prompt: "What are the essential training requirements for practice staff?"
+                              },
+                              {
+                                icon: TrendingUp,
+                                title: "Practice Operations",
+                                description: "Advice on improving efficiency and patient care",
+                                prompt: "How can I improve patient access and appointment management?"
+                              }
+                            ].map((suggestion, index) => (
+                              <div 
+                                key={index}
+                                onClick={() => setInput(suggestion.prompt)}
+                                className="p-3 border rounded-lg hover:shadow-sm cursor-pointer transition-all hover:border-primary/50 text-left"
+                              >
+                                <div className="flex items-start gap-3">
+                                  <div className="p-2 bg-primary/10 rounded-lg flex-shrink-0">
+                                    <suggestion.icon className="h-4 w-4 text-primary" />
+                                  </div>
+                                  <div className="flex-1">
+                                    <h4 className="font-medium text-sm mb-1">{suggestion.title}</h4>
+                                    <p className="text-xs text-muted-foreground leading-relaxed">
+                                      {suggestion.description}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          {messages.map((message) => (
+                            <div key={message.id} className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                              <div className={`flex gap-3 max-w-[85%] ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                                  message.role === 'user' 
+                                    ? 'bg-primary text-primary-foreground' 
+                                    : 'bg-muted text-muted-foreground'
+                                }`}>
+                                  {message.role === 'user' ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
+                                </div>
+                                <div className={`rounded-lg p-3 ${
+                                  message.role === 'user' 
+                                    ? 'bg-primary text-primary-foreground' 
+                                    : 'bg-muted/50'
+                                }`}>
+                                  {message.files && message.files.length > 0 && (
+                                    <div className="mb-2 space-y-1">
+                                      {message.files.map((file, index) => {
+                                        const IconComponent = getFileTypeIcon(file.name, file.type);
+                                        return (
+                                          <div key={index} className="flex items-center gap-2 text-xs opacity-80">
+                                            <IconComponent className="h-3 w-3" />
+                                            <span className="truncate">{file.name}</span>
+                                            {file.isLoading && <Loader2 className="h-3 w-3 animate-spin" />}
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
+                                  <MessageRenderer message={message} />
+                                  <div className="text-xs opacity-70 mt-1">
+                                    {message.timestamp.toLocaleTimeString()}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                          {isLoading && (
+                            <div className="flex gap-3">
+                              <div className="w-8 h-8 rounded-full bg-muted text-muted-foreground flex items-center justify-center">
+                                <Bot className="h-4 w-4" />
+                              </div>
+                              <div className="bg-muted/50 rounded-lg p-3">
+                                <div className="flex items-center gap-2">
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                  <span className="text-sm">PM Genie is thinking...</span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )}
+                      <div ref={messagesEndRef} />
+                    </div>
+                  </ScrollArea>
+
+                  {/* Upload Preview */}
+                  {uploadedFiles.length > 0 && (
+                    <div className="px-4 py-2 border-t bg-muted/30">
+                      <div className="flex flex-wrap gap-2">
+                        {uploadedFiles.map((file, index) => {
+                          const IconComponent = getFileTypeIcon(file.name, file.type);
+                          return (
+                            <div key={index} className="flex items-center gap-2 bg-background px-3 py-1 rounded-md border text-sm">
+                              <IconComponent className="h-4 w-4" />
+                              <span className="truncate max-w-[200px]">{file.name}</span>
+                              {file.isLoading && <Loader2 className="h-3 w-3 animate-spin" />}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-auto p-0 hover:bg-transparent"
+                                onClick={() => removeFile(index)}
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Input Area */}
+                  <div className="p-4 border-t">
+                    <div className="flex gap-2">
+                      <div className="flex-1 relative">
+                        <Textarea
+                          value={input}
+                          onChange={(e) => setInput(e.target.value)}
+                          placeholder="Ask PM Genie anything about NHS practice management..."
+                          className="min-h-[80px] pr-24 resize-none"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault();
+                              handleSend();
+                            }
+                          }}
+                          onPaste={(e) => {
+                            const items = e.clipboardData?.items;
+                            if (items) {
+                              for (const item of Array.from(items)) {
+                                if (item.type.startsWith('image/')) {
+                                  const file = item.getAsFile();
+                                  if (file) {
+                                    handleFileUpload([file]);
+                                  }
+                                } else if (item.type === 'text/plain') {
+                                  item.getAsString((text) => {
+                                    if (text.length > 1000) {
+                                      const blob = new Blob([text], { type: 'text/plain' });
+                                      const file = new File([blob], `Pasted text (${text.length} chars)`, { type: 'text/plain' });
+                                      handleFileUpload([file]);
+                                    }
+                                  });
+                                }
+                              }
+                            }
+                          }}
+                        />
+                        <div className="absolute bottom-2 right-2 flex gap-1">
+                          {/* File Upload Button */}
+                          <div className="relative">
+                            <input
+                              type="file"
+                              multiple
+                              accept=".pdf,.doc,.docx,.xlsx,.csv,.txt,.msg,.eml"
+                              onChange={(e) => {
+                                const files = Array.from(e.target.files || []);
+                                if (files.length > 0) {
+                                  handleFileUpload(files);
+                                  e.target.value = '';
+                                }
+                              }}
+                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 hover:bg-muted"
+                              title="Attach files"
+                            >
+                              <Paperclip className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          
+                          <SpeechToText
+                            onTranscription={handleSpeechTranscription}
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                          />
+                        </div>
+                      </div>
+                      <Button
+                        onClick={handleSend}
+                        disabled={isLoading || (!input.trim() && uploadedFiles.length === 0)}
+                        className="h-20"
+                      >
+                        <Send className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </CardContent>
