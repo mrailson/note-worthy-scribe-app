@@ -194,23 +194,6 @@ const PMGenieVoiceAgent = () => {
         <div className="flex flex-col items-center space-y-6 py-8">
           {/* Status Indicator */}
           <div className="text-center space-y-2">
-            <div className={`w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300 ${
-              conversation.status === 'connected' 
-                ? conversation.isSpeaking 
-                  ? 'bg-primary/20 ring-4 ring-primary/30 animate-pulse' 
-                  : 'bg-primary/10 ring-2 ring-primary/20'
-                : 'bg-muted'
-            }`}>
-              {conversation.status === 'connected' ? (
-                conversation.isSpeaking ? (
-                  <Volume2 className="h-8 w-8 text-primary" />
-                ) : (
-                  <Mic className="h-8 w-8 text-primary" />
-                )
-              ) : (
-                <Bot className="h-8 w-8 text-muted-foreground" />
-              )}
-            </div>
             
             <div className="space-y-1">
               <p className="font-medium">
