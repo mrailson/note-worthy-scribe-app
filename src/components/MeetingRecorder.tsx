@@ -336,7 +336,7 @@ export const MeetingRecorder = ({
       try {
         addDebugLog('🖥️ Requesting screen share with audio...');
         stream = await navigator.mediaDevices.getDisplayMedia({
-          video: false,
+          video: true, // Need video for screen share to work properly
           audio: {
             echoCancellation: false,
             noiseSuppression: false,
