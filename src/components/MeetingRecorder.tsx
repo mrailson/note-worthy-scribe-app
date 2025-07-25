@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { MeetingSettings } from '@/components/MeetingSettings';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -38,6 +39,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 import { BrowserSpeechTranscriber, TranscriptData as BrowserTranscriptData } from '@/utils/BrowserSpeechTranscriber';
+import { ImportedTranscript } from '@/utils/FileImporter';
 
 interface TranscriptData {
   text: string;
@@ -431,6 +433,20 @@ const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
     }
   };
 
+  // Handle audio/transcript imports from MeetingSettings
+  const handleAudioImported = (audioFile: File) => {
+    addDebugLog(`📁 Audio file imported: ${audioFile.name}`);
+    toast.success(`Audio file imported: ${audioFile.name}`);
+  };
+
+  const handleTranscriptImported = (importedTranscript: ImportedTranscript) => {
+    addDebugLog(`📄 Transcript imported: ${importedTranscript.wordCount} words`);
+    setTranscript(importedTranscript.content);
+    setWordCount(importedTranscript.wordCount);
+    onWordCountUpdate(importedTranscript.wordCount);
+    toast.success(`Transcript imported: ${importedTranscript.wordCount} words`);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20 p-4">
       <Tabs defaultValue="recording" className="w-full max-w-6xl mx-auto">
@@ -629,65 +645,21 @@ const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
           </Card>
         </TabsContent>
 
-        {/* Meeting History Tab */}
-        <TabsContent value="history" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="h-5 w-5" />
-                Meeting History
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">Meeting history functionality would go here</p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
         {/* Settings Tab */}
         <TabsContent value="settings">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Settings className="h-5 w-5" />
-                Meeting Settings
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Meeting Title</label>
-                <Input placeholder="Enter meeting title" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Meeting Type</label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select meeting type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="general">General Meeting</SelectItem>
-                    <SelectItem value="standup">Daily Standup</SelectItem>
-                    <SelectItem value="review">Code Review</SelectItem>
-                    <SelectItem value="planning">Sprint Planning</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Recording Mode</label>
-                <Select value={recordingMode} onValueChange={(value: 'microphone' | 'computer-audio') => setRecordingMode(value)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="microphone">Microphone Only</SelectItem>
-                    <SelectItem value="computer-audio">Computer Audio + Microphone</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
+          <MeetingSettings
+            onSettingsChange={(settings) => {
+              console.log('Meeting settings changed:', settings);
+            }}
+            onAudioImported={handleAudioImported}
+            onTranscriptImported={handleTranscriptImported}
+            initialSettings={{
+              title: "",
+              description: "",
+              meetingType: "general"
+            }}
+          />
         </TabsContent>
 
         {/* Live Transcript Tab */}
