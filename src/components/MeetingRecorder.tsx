@@ -26,7 +26,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
-import { DeepgramRealtimeTranscriber, TranscriptData as DeepgramTranscriptData } from '@/utils/DeepgramRealtimeTranscriber';
+import { BrowserSpeechTranscriber, TranscriptData as BrowserTranscriptData } from '@/utils/BrowserSpeechTranscriber';
 
 interface TranscriptData {
   text: string;
@@ -95,7 +95,7 @@ export const MeetingRecorder = ({
   const audioContextRef = useRef<AudioContext | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const deepgramTranscriberRef = useRef<DeepgramRealtimeTranscriber | null>(null);
+  const browserTranscriberRef = useRef<BrowserSpeechTranscriber | null>(null);
 
   // Auto-save meeting data to localStorage
   const autoSaveMeeting = () => {
@@ -217,10 +217,10 @@ export const MeetingRecorder = ({
     });
   };
 
-  const handleDeepgramTranscript = (data: DeepgramTranscriptData) => {
+  const handleBrowserTranscript = (data: BrowserTranscriptData) => {
     const transcriptData: TranscriptData = {
       text: data.text,
-      speaker: data.speaker || 'Speaker 1', // Use speaker from Deepgram diarization
+      speaker: data.speaker || 'Speaker 1',
       confidence: data.confidence,
       timestamp: new Date().toISOString(),
       isFinal: data.is_final
@@ -302,36 +302,24 @@ export const MeetingRecorder = ({
       console.error('Error processing audio chunk:', error);
     }
   };
-  // Test mode simulation
-  const startRealTranscription = async () => {
-    addDebugLog('🎤 Starting microphone access...');
+  // Browser speech transcription
+  const startBrowserTranscription = async () => {
+    addDebugLog('🎤 Starting browser speech recognition...');
     
-    const stream = await navigator.mediaDevices.getUserMedia({ 
-      audio: {
-        echoCancellation: true,
-        noiseSuppression: true,
-        sampleRate: 24000
-      } 
-    });
-    
-    addDebugLog('✅ Microphone access granted');
-    micAudioStreamRef.current = stream;
-
-    // Initialize transcriber
-    const transcriber = new DeepgramRealtimeTranscriber(
-      handleDeepgramTranscript,
+    const transcriber = new BrowserSpeechTranscriber(
+      handleBrowserTranscript,
       handleTranscriptionError,
       handleStatusChange,
       handleLiveSummary
     );
 
     await transcriber.startTranscription();
-    deepgramTranscriberRef.current = transcriber;
+    browserTranscriberRef.current = transcriber;
     setIsRecording(true);
     setStartTime(new Date().toISOString());
     
-    addDebugLog('✅ Recording started successfully');
-    console.log('Recording started successfully with Deepgram real-time transcription');
+    addDebugLog('✅ Browser speech recognition started successfully');
+    console.log('Recording started with browser speech recognition');
   };
 
   const startTestMode = async () => {
@@ -370,7 +358,7 @@ export const MeetingRecorder = ({
           };
           
           addDebugLog(`🎙️ Simulated: "${phrase}"`);
-          handleDeepgramTranscript(fakeData);
+          handleBrowserTranscript(fakeData);
           phraseIndex++;
           
           // Schedule next phrase
@@ -392,20 +380,15 @@ export const MeetingRecorder = ({
 
   const startRecording = async () => {
     try {
-      addDebugLog('🚀 Starting recording with Deepgram real-time transcription...');
-      console.log('Starting recording with Deepgram real-time transcription...');
+      addDebugLog('🚀 Starting recording with browser speech recognition...');
+      console.log('Starting recording with browser speech recognition...');
       
       // Clear previous debug logs and test transcripts
       setDebugLog([]);
       setTestTranscripts([]);
       
-      // Try real transcription first, fallback to test mode if it fails
-      try {
-        await startRealTranscription();
-      } catch (error) {
-        addDebugLog(`❌ Real transcription failed: ${error}. Falling back to test mode.`);
-        await startTestMode();
-      }
+      // Use browser speech recognition
+      await startBrowserTranscription();
       
       setIsRecording(true);
       setRealtimeTranscripts([]);
@@ -427,8 +410,8 @@ export const MeetingRecorder = ({
         });
       }, 1000);
 
-      console.log('Recording started successfully with Deepgram real-time transcription');
-      toast.success('Recording started with real-time AI transcription!');
+      console.log('Recording started successfully with browser speech recognition');
+      toast.success('Recording started with browser speech recognition!');
     } catch (error: any) {
       console.error('Failed to start recording:', error);
       addDebugLog(`❌ Failed to start: ${error.message}`);
@@ -454,10 +437,10 @@ export const MeetingRecorder = ({
       micAudioStreamRef.current = null;
     }
     
-    // Stop Deepgram transcriber
-    if (deepgramTranscriberRef.current) {
-      deepgramTranscriberRef.current.stopTranscription();
-      deepgramTranscriberRef.current = null;
+    // Stop browser transcriber
+    if (browserTranscriberRef.current) {
+      browserTranscriberRef.current.stopTranscription();
+      browserTranscriberRef.current = null;
     }
     
     setIsRecording(false);
