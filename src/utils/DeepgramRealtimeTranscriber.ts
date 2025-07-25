@@ -51,7 +51,7 @@ export class DeepgramRealtimeTranscriber {
       try {
         console.log('🔗 Attempting WebSocket connection to Deepgram proxy...');
         // Use the full WebSocket URL to the Supabase edge function
-        this.ws = new WebSocket('wss://dphcnbricafkbtizkoal.functions.supabase.co/deepgram-realtime');
+        this.ws = new WebSocket('wss://dphcnbricafkbtizkoal.supabase.co/functions/v1/deepgram-realtime');
 
         this.ws.onopen = () => {
           console.log('✅ Connected to Deepgram WebSocket proxy');
@@ -65,7 +65,7 @@ export class DeepgramRealtimeTranscriber {
         this.ws.onerror = (error) => {
           console.error('❌ WebSocket error:', error);
           console.error('Connection details:', {
-            url: 'wss://dphcnbricafkbtizkoal.functions.supabase.co/deepgram-realtime',
+            url: 'wss://dphcnbricafkbtizkoal.supabase.co/functions/v1/deepgram-realtime',
             readyState: this.ws?.readyState,
             protocol: this.ws?.protocol
           });
