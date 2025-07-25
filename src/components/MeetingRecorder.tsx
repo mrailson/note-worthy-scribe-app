@@ -782,153 +782,84 @@ const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
 
         {/* Record Meeting Tab */}
         <TabsContent value="recording" className="space-y-6">
-          <Card className="shadow-medium border-accent/20">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <span className="flex items-center gap-2">
-                  <Mic className="h-5 w-5 text-primary" />
-                  Meeting Recorder
-                </span>
-                <Badge variant={connectionStatus === "Connected" ? "default" : connectionStatus === "Connecting" ? "secondary" : "destructive"} className="flex items-center gap-1 text-xs">
-                  <div className={`w-2 h-2 rounded-full ${
-                    connectionStatus === "Connected" ? "bg-green-500" : 
-                    connectionStatus === "Connecting" ? "bg-yellow-500" : "bg-red-500"
-                  }`}></div>
-                  <span className="hidden sm:inline">{connectionStatus}</span>
-                </Badge>
-              </CardTitle>
-            </CardHeader>
-            
-            <CardContent className="space-y-6">
-              {/* Meeting Setup */}
-              <div className="bg-gradient-to-br from-primary/5 to-accent/10 rounded-xl p-6 border border-primary/20 shadow-subtle">
-                <div className="flex flex-col lg:flex-row lg:items-start gap-6">
-                  {/* Left Side - Setup Options */}
-                  <div className="flex-1 space-y-6">
-                    {/* Recording Mode */}
-                    <div>
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
-                        <h4 className="text-sm font-semibold text-primary flex items-center gap-2">
-                          <Settings className="h-4 w-4" />
-                          Recording Mode
-                        </h4>
-                        <div className="flex gap-3">
-                          <label className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
-                            recordingMode === "microphone" 
-                              ? "border-primary bg-primary/10 shadow-sm" 
-                              : "border-border hover:border-primary/50 bg-background"
-                          }`}>
-                            <input
-                              type="radio"
-                              name="recordingMode"
-                              value="microphone"
-                              checked={recordingMode === "microphone"}
-                              onChange={(e) => setRecordingMode(e.target.value as "microphone" | "computer-audio")}
-                              className="sr-only"
-                            />
-                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                              recordingMode === "microphone" ? "border-primary" : "border-muted-foreground"
-                            }`}>
-                              {recordingMode === "microphone" && (
-                                <div className="w-2 h-2 rounded-full bg-primary"></div>
-                              )}
-                            </div>
-                            <Mic className="h-4 w-4" />
-                            <span className="text-sm font-medium">Microphone Only</span>
-                          </label>
-                          
-                          <label className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
-                            recordingMode === "computer-audio" 
-                              ? "border-primary bg-primary/10 shadow-sm" 
-                              : "border-border hover:border-primary/50 bg-background"
-                          }`}>
-                            <input
-                              type="radio"
-                              name="recordingMode"
-                              value="computer-audio"
-                              checked={recordingMode === "computer-audio"}
-                              onChange={(e) => setRecordingMode(e.target.value as "microphone" | "computer-audio")}
-                              className="sr-only"
-                            />
-                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                              recordingMode === "computer-audio" ? "border-primary" : "border-muted-foreground"
-                            }`}>
-                              {recordingMode === "computer-audio" && (
-                                <div className="w-2 h-2 rounded-full bg-primary"></div>
-                              )}
-                            </div>
-                            <Headphones className="h-4 w-4" />
-                            <span className="text-sm font-medium">System + Microphone</span>
-                          </label>
-                        </div>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Choose microphone for in-person meetings or system audio for online meetings
-                      </p>
-                    </div>
+          {/* Stats Header */}
+          <div className="grid grid-cols-3 gap-6">
+            <div className="text-center">
+              <div className="text-4xl font-bold text-primary">
+                {Math.floor(duration / 60).toString().padStart(2, '0')}:{(duration % 60).toString().padStart(2, '0')}
+              </div>
+              <div className="text-sm text-muted-foreground">Duration</div>
+            </div>
+            <div className="text-center">
+              <div className="text-4xl font-bold text-primary">{wordCount}</div>
+              <div className="text-sm text-muted-foreground">Words</div>
+            </div>
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                <WifiOff className="h-4 w-4" />
+                <span className="text-sm">Disconnected</span>
+              </div>
+              <div className="text-sm text-muted-foreground">Connection</div>
+            </div>
+          </div>
 
-                    {/* Recording Stats */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-accent/20 rounded-lg p-4 text-center">
-                        <div className="text-2xl font-bold text-primary">
-                          {Math.floor(duration / 60).toString().padStart(2, '0')}:{(duration % 60).toString().padStart(2, '0')}
-                        </div>
-                        <div className="text-sm text-muted-foreground">Duration</div>
-                      </div>
-                      <div className="bg-accent/20 rounded-lg p-4 text-center">
-                        <div className="text-2xl font-bold text-primary">{wordCount}</div>
-                        <div className="text-sm text-muted-foreground">Words</div>
-                      </div>
-                    </div>
+          {/* Main Recording Card */}
+          <Card className="p-8">
+            <CardContent className="space-y-8">
+              {/* Recording Source */}
+              <div className="text-center space-y-4">
+                <h3 className="text-lg font-semibold">Recording Source:</h3>
+                <div className="flex items-center justify-center gap-3">
+                  <Mic className="h-5 w-5 text-muted-foreground" />
+                  <Select value={recordingMode} onValueChange={(value: 'microphone' | 'computer-audio') => setRecordingMode(value)}>
+                    <SelectTrigger className="w-auto border-none shadow-none text-lg font-medium">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="microphone">Microphone</SelectItem>
+                      <SelectItem value="computer-audio">System Audio + Microphone</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {recordingMode === 'microphone' ? 'Record from your microphone' : 'Record from system audio and microphone'}
+                </p>
+              </div>
 
-                    {/* Live Transcript Preview */}
-                    {isRecording && transcript && (
-                      <div className="bg-muted/50 rounded-lg p-4">
-                        <h4 className="text-sm font-semibold text-primary mb-2 flex items-center gap-2">
-                          <MessageCircle className="h-4 w-4" />
-                          Live Transcript
-                        </h4>
-                        <div className="max-h-32 overflow-y-auto">
-                          <p className="text-sm text-muted-foreground">
-                            {transcript.split('\n').slice(-3).join('\n')}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+              {/* Start Recording Button */}
+              <div className="text-center">
+                {!isRecording ? (
+                  <Button 
+                    onClick={startRecording}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg font-medium rounded-lg min-h-[56px]"
+                  >
+                    <Mic className="h-5 w-5 mr-3" />
+                    Start Recording
+                  </Button>
+                ) : (
+                  <Button 
+                    onClick={stopRecording}
+                    variant="destructive"
+                    className="px-8 py-4 text-lg font-medium rounded-lg min-h-[56px]"
+                  >
+                    <MicOff className="h-5 w-5 mr-3" />
+                    Stop Recording
+                  </Button>
+                )}
+              </div>
 
-                  {/* Right Side - Recording Controls */}
-                  <div className="lg:border-l lg:border-primary/20 lg:pl-6 flex flex-col items-center">
-                    <div className="flex flex-col items-center gap-4">
-                      {!isRecording ? (
-                        <Button 
-                          onClick={startRecording}
-                          className="shadow-elegant px-8 py-6 text-lg font-semibold min-h-[64px] rounded-xl transition-all duration-300 bg-gradient-primary hover:bg-primary-hover hover:shadow-glow hover:scale-105"
-                        >
-                          <Mic className="h-6 w-6 mr-3" />
-                          Start Recording
-                        </Button>
-                      ) : (
-                        <div className="flex flex-col gap-3">
-                          <Button 
-                            onClick={stopRecording}
-                            variant="destructive"
-                            className="shadow-subtle px-8 py-4 text-lg font-medium min-h-[56px] rounded-xl"
-                          >
-                            <MicOff className="h-5 w-5 mr-3" />
-                            Stop Recording
-                          </Button>
-                        </div>
-                      )}
-                      
-                      {isRecording && (
-                        <div className="flex items-center justify-center gap-3 rounded-lg p-4 mt-4 text-primary bg-accent/20 animate-pulse">
-                          <div className="w-3 h-3 rounded-full bg-primary"></div>
-                          <span className="text-base font-medium">Recording meeting...</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+              {/* Ready State */}
+              <div className="text-center space-y-4">
+                <div className="w-16 h-16 mx-auto bg-blue-50 rounded-full flex items-center justify-center">
+                  <Mic className="h-8 w-8 text-blue-600" />
+                </div>
+                <div>
+                  <h4 className="text-lg font-medium">
+                    {isRecording ? 'Recording in Progress' : 'Ready to Record'}
+                  </h4>
+                  <p className="text-sm text-muted-foreground">
+                    Automatic microphone + system audio capture with live AI summaries
+                  </p>
                 </div>
               </div>
             </CardContent>
