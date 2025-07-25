@@ -53,11 +53,14 @@ export class DeepgramRealtimeTranscriber {
     // Start polling every 3 seconds to send individual audio chunks
     this.pollingInterval = window.setInterval(async () => {
       if (this.audioChunks.length > 0) {
+        console.log(`📊 Audio chunks available: ${this.audioChunks.length}`);
         // Send the most recent audio chunk (don't combine them)
         const latestChunk = this.audioChunks.pop(); // Get the latest chunk
         this.audioChunks = []; // Clear remaining chunks
-        if (latestChunk) {
+        if (latestChunk && latestChunk.size > 1000) { // Only send if chunk has meaningful data
           await this.sendAudioChunkForTranscription(latestChunk);
+        } else {
+          console.log('⚠️ Skipping small or empty audio chunk:', latestChunk?.size || 0, 'bytes');
         }
       }
     }, 3000);
@@ -78,6 +81,7 @@ export class DeepgramRealtimeTranscriber {
 
       if (error) {
         console.error('❌ Transcription request error:', error);
+        // Don't throw error, just log and continue
         return;
       }
 
@@ -98,11 +102,18 @@ export class DeepgramRealtimeTranscriber {
           
           // Send to summarizer
           this.sendToSummarizer(data.transcript);
+        } else {
+          console.log('🚫 Filtered likely hallucination:', data.transcript);
         }
+      } else if (data?.success && !data.transcript?.trim()) {
+        console.log('📭 No speech detected in this chunk');
+      } else {
+        console.log('⚠️ Unexpected response format:', data);
       }
 
     } catch (error) {
       console.error('❌ Error sending audio for transcription:', error);
+      // Don't throw, just log and continue
     }
   }
 
@@ -134,13 +145,19 @@ export class DeepgramRealtimeTranscriber {
         if (event.data.size > 0) {
           // Store audio chunks for HTTP transmission
           this.audioChunks.push(event.data);
-          console.log('🎵 Audio chunk received:', event.data.size, 'bytes');
+          console.log('🎵 Audio chunk received:', event.data.size, 'bytes', 'Total chunks:', this.audioChunks.length);
+        } else {
+          console.log('⚠️ Received empty audio chunk');
         }
       };
 
       this.mediaRecorder.onerror = (event) => {
         console.error('MediaRecorder error:', event);
         this.onError('Recording error occurred');
+      };
+
+      this.mediaRecorder.onstop = () => {
+        console.log('🛑 MediaRecorder stopped');
       };
 
       // Start recording with smaller chunks every 2 seconds for better quality
