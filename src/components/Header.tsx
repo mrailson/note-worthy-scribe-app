@@ -109,28 +109,13 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                     <MessageSquareWarning className="h-4 w-4 mr-2" />
                     Complaints System
                   </DropdownMenuItem>
-                  <DropdownMenuSub>
-                    <DropdownMenuSubTrigger className="cursor-pointer py-3">
-                      <Sparkles className="h-4 w-4 mr-2" />
-                      AI 4 PM Service
-                    </DropdownMenuSubTrigger>
-                    <DropdownMenuSubContent className="bg-background border border-border shadow-lg">
-                      <DropdownMenuItem 
-                        onClick={() => navigate('/ai-4-pm')}
-                        className="cursor-pointer py-3"
-                      >
-                        <Sparkles className="h-4 w-4 mr-2" />
-                        AI Assistant
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => navigate('/replywell-ai')}
-                        className="cursor-pointer py-3"
-                      >
-                        <Mail className="h-4 w-4 mr-2" />
-                        ReplyWell AI
-                      </DropdownMenuItem>
-                    </DropdownMenuSubContent>
-                  </DropdownMenuSub>
+                  <DropdownMenuItem 
+                    onClick={() => navigate('/ai-4-pm')}
+                    className="cursor-pointer py-3"
+                  >
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    AI Assistant
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
