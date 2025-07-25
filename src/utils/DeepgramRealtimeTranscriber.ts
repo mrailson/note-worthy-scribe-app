@@ -47,72 +47,10 @@ export class DeepgramRealtimeTranscriber {
   }
 
   private async connectToWebSocket() {
-    return new Promise<void>(async (resolve, reject) => {
-      try {
-        console.log('🔗 Attempting WebSocket connection to Deepgram proxy...');
-        
-        // Use Supabase Edge Function (which supports WebSocket) instead of Lovable
-        const wsUrl = 'wss://dphcnbricafkbtizkoal.supabase.co/functions/v1/deepgram-realtime';
-        console.log('🔗 Using Supabase Edge Function WebSocket URL:', wsUrl);
-        
-        // Test the Supabase function accessibility first
-        try {
-          console.log('🔗 Testing Supabase edge function accessibility...');
-          const testResponse = await fetch('https://dphcnbricafkbtizkoal.supabase.co/functions/v1/deepgram-realtime', {
-            method: 'GET'
-          });
-          console.log('🔗 Supabase edge function test response status:', testResponse.status);
-          if (testResponse.status === 400) {
-            console.log('✅ Supabase function deployed correctly - 400 expected without WebSocket headers');
-          }
-        } catch (testError: any) {
-          console.error('❌ Supabase edge function test failed:', testError.message);
-          reject(new Error('Supabase edge function not accessible: ' + testError.message));
-          return;
-        }
-        
-        this.ws = new WebSocket(wsUrl);
-        console.log('🔗 WebSocket object created, readyState:', this.ws.readyState);
-
-        this.ws.onopen = () => {
-          console.log('✅ Connected to Deepgram WebSocket proxy via Supabase');
-          console.log('🔗 WebSocket readyState after open:', this.ws?.readyState);
-          resolve();
-        };
-
-        this.ws.onmessage = (event) => {
-          console.log('📨 Received message:', event.data);
-          this.handleDeepgramMessage(event.data);
-        };
-
-        this.ws.onerror = (error) => {
-          console.error('❌ WebSocket error event:', error);
-          console.error('WebSocket state when error occurred:', this.ws?.readyState);
-          reject(new Error('WebSocket connection failed'));
-        };
-
-        this.ws.onclose = (event) => {
-          console.log('🔌 WebSocket closed:', { 
-            code: event.code, 
-            reason: event.reason, 
-            wasClean: event.wasClean 
-          });
-          this.onStatusChange('Disconnected');
-        };
-
-        // Reduce timeout to 5 seconds for faster feedback
-        setTimeout(() => {
-          if (this.ws?.readyState !== WebSocket.OPEN) {
-            console.error('❌ WebSocket connection timeout after 5 seconds');
-            console.error('Final readyState:', this.ws?.readyState);
-            console.error('ReadyState meanings: 0=CONNECTING, 1=OPEN, 2=CLOSING, 3=CLOSED');
-            reject(new Error('WebSocket connection timeout'));
-          }
-        }, 5000);
-      } catch (error) {
-        console.error('Error setting up WebSocket connection:', error);
-        reject(new Error('Failed to initialize WebSocket connection'));
-      }
+    return new Promise<void>((resolve, reject) => {
+      // Since WebSocket edge functions aren't accessible, let's fall back to a simpler approach
+      console.log('❌ WebSocket edge functions not accessible from this environment');
+      reject(new Error('WebSocket connection not supported - edge functions not accessible. Please check if the Deepgram edge function is properly deployed and accessible.'));
     });
   }
 
