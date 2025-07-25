@@ -873,7 +873,7 @@ export const MeetingRecorder = ({
                   <div className="space-y-3 mb-4">
                     <label className="text-sm font-medium">Recording Source:</label>
                     <Select value={recordingMode} onValueChange={(value: 'microphone' | 'computer-audio') => setRecordingMode(value)}>
-                      <SelectTrigger className="w-[30%] bg-background/50 border-border/50">
+                      <SelectTrigger className="w-[50%] bg-background/50 border-border/50">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="bg-background border border-border shadow-lg z-50">
