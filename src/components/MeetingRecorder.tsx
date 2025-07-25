@@ -1110,9 +1110,12 @@ export const MeetingRecorder = ({
                         <SelectItem value="computer-audio" className="flex items-center gap-2">
                           <div className="flex items-center gap-2">
                             <Headphones className="h-4 w-4" />
-                            <div>
+                            <div className="flex-1">
                               <div className="font-medium">Teams/Zoom Meeting</div>
                               <div className="text-xs text-muted-foreground">Capture computer audio from Teams/Zoom</div>
+                              <div className="text-xs text-red-600 font-medium mt-1">
+                                ⚠️ Feature in development - Release: 10th August 2025
+                              </div>
                             </div>
                           </div>
                         </SelectItem>
@@ -1120,15 +1123,15 @@ export const MeetingRecorder = ({
                     </Select>
                     
                     {recordingMode === 'computer-audio' && (
-                      <div className="p-3 bg-blue-50/50 border border-blue-200/50 rounded-lg dark:bg-blue-900/20 dark:border-blue-700/50">
+                      <div className="p-3 bg-red-50/50 border border-red-200/50 rounded-lg dark:bg-red-900/20 dark:border-red-700/50">
                         <div className="flex items-start gap-2">
-                          <Video className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                          <div className="text-xs text-blue-700 dark:text-blue-300">
-                            <strong>Teams/Zoom Mode:</strong> 
-                            <br />• First, you'll be asked to share your screen with audio
-                            <br />• If screen sharing fails, it will use your microphone
-                            <br />• For microphone mode: make sure Teams/Zoom audio plays through <strong>speakers</strong> loudly
-                            <br />• Avoid using headphones as this prevents audio capture
+                          <Video className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
+                          <div className="text-xs text-red-700 dark:text-red-300">
+                            <strong className="text-red-800 dark:text-red-200">🚧 Development Notice:</strong> 
+                            <br />• This feature is currently being developed
+                            <br />• Expected release: <strong>10th August 2025</strong>
+                            <br />• Please use <strong>Teams own recording service</strong> to record Teams meetings in the meantime
+                            <br />• You can still use microphone mode for general audio recording
                           </div>
                         </div>
                       </div>
@@ -1143,12 +1146,16 @@ export const MeetingRecorder = ({
                       <Button 
                         onClick={startRecording}
                         size="lg"
-                        className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 px-8 py-4 text-base font-semibold rounded-lg"
+                        disabled={recordingMode === 'computer-audio'}
+                        className={`${recordingMode === 'computer-audio' 
+                          ? 'bg-gray-400 cursor-not-allowed opacity-50' 
+                          : 'bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary'
+                        } text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 px-8 py-4 text-base font-semibold rounded-lg`}
                       >
                         {recordingMode === 'computer-audio' ? (
                           <>
                             <Headphones className="h-5 w-5 mr-2" />
-                            Start Recording Teams/Zoom
+                            Start Recording Teams/Zoom (Coming Soon)
                           </>
                         ) : (
                           <>
