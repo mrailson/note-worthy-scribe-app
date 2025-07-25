@@ -14,9 +14,12 @@ serve(async (req) => {
   try {
     console.log('📡 Deepgram HTTP transcription request received');
     
+    // Check for OpenAI API key first, fallback to Deepgram
+    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
     const deepgramApiKey = Deno.env.get('DEEPGRAM_API_KEY');
-    if (!deepgramApiKey) {
-      throw new Error('DEEPGRAM_API_KEY is not set');
+    
+    if (!openaiApiKey && !deepgramApiKey) {
+      throw new Error('Neither OPENAI_API_KEY nor DEEPGRAM_API_KEY is set');
     }
 
     // Get audio data from request
@@ -29,7 +32,44 @@ serve(async (req) => {
 
     console.log('🎵 Processing audio file:', audioFile.size, 'bytes', 'type:', audioFile.type);
 
-    // Send WebM directly to Deepgram without conversion
+    // Try OpenAI Whisper first if available (better for chunks)
+    if (openaiApiKey) {
+      console.log('🤖 Using OpenAI Whisper for transcription');
+      
+      const formData = new FormData();
+      formData.append('file', audioFile, 'audio.webm');
+      formData.append('model', 'whisper-1');
+      
+      const whisperResponse = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openaiApiKey}`,
+        },
+        body: formData,
+      });
+
+      if (!whisperResponse.ok) {
+        const errorText = await whisperResponse.text();
+        console.error('❌ OpenAI Whisper error:', whisperResponse.status, errorText);
+        throw new Error(`OpenAI Whisper error: ${whisperResponse.status}`);
+      }
+
+      const whisperResult = await whisperResponse.json();
+      console.log('✅ OpenAI Whisper transcription result received');
+
+      return new Response(JSON.stringify({
+        success: true,
+        transcript: whisperResult.text || '',
+        confidence: 1.0, // OpenAI doesn't provide confidence
+        words: [],
+        is_final: true
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Fallback to Deepgram
+    console.log('🎯 Using Deepgram for transcription');
     const deepgramResponse = await fetch(
       'https://api.deepgram.com/v1/listen?model=nova-2&smart_format=true&punctuate=true&diarize=false',
       {
