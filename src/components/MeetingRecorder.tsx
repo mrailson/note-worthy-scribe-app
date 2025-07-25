@@ -433,11 +433,31 @@ const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20 p-4">
-      <Tabs defaultValue="test" className="w-full max-w-6xl mx-auto">
-        <TabsList className="grid w-full grid-cols-2">
+      <Tabs defaultValue="recording" className="w-full max-w-6xl mx-auto">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="recording">Record Meeting</TabsTrigger>
           <TabsTrigger value="test">Test Meeting Recorder</TabsTrigger>
+          <TabsTrigger value="settings">Settings</TabsTrigger>
+          <TabsTrigger value="transcript">Live Transcript</TabsTrigger>
           <TabsTrigger value="history">Meeting History</TabsTrigger>
         </TabsList>
+
+        {/* Record Meeting Tab */}
+        <TabsContent value="recording" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Mic className="h-5 w-5" />
+                Record Meeting
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">Main recording functionality would go here</p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         {/* Test Recording Tab */}
         <TabsContent value="test" className="space-y-6">
@@ -621,6 +641,131 @@ const MeetingRecorder: React.FC<MeetingRecorderProps> = ({
             <CardContent>
               <div className="text-center py-8">
                 <p className="text-muted-foreground">Meeting history functionality would go here</p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Settings Tab */}
+        <TabsContent value="settings">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                Meeting Settings
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Meeting Title</label>
+                <Input placeholder="Enter meeting title" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Meeting Type</label>
+                <Select>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select meeting type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="general">General Meeting</SelectItem>
+                    <SelectItem value="standup">Daily Standup</SelectItem>
+                    <SelectItem value="review">Code Review</SelectItem>
+                    <SelectItem value="planning">Sprint Planning</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Recording Mode</label>
+                <Select value={recordingMode} onValueChange={(value: 'microphone' | 'computer-audio') => setRecordingMode(value)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="microphone">Microphone Only</SelectItem>
+                    <SelectItem value="computer-audio">Computer Audio + Microphone</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Live Transcript Tab */}
+        <TabsContent value="transcript">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Live Transcript
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="bg-muted p-4 rounded-lg min-h-[300px] max-h-[500px] overflow-y-auto">
+                {transcript ? (
+                  <pre className="whitespace-pre-wrap text-sm">{transcript}</pre>
+                ) : (
+                  <p className="text-muted-foreground">Start recording to see live transcript...</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Meeting History Tab */}
+        <TabsContent value="history">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Meeting History
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Search meetings..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Select value={filterType} onValueChange={setFilterType}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Filter by type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Meetings</SelectItem>
+                      <SelectItem value="general">General</SelectItem>
+                      <SelectItem value="standup">Standup</SelectItem>
+                      <SelectItem value="review">Review</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  {filteredMeetings.length > 0 ? (
+                    filteredMeetings.map((meeting) => (
+                      <div key={meeting.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div>
+                          <h3 className="font-medium">{meeting.title}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {formatDistanceToNow(new Date(meeting.created_at))} ago
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button variant="outline" size="sm">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-muted-foreground text-center py-8">No meetings found</p>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
