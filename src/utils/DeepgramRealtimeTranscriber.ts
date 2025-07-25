@@ -70,42 +70,50 @@ export class DeepgramRealtimeTranscriber {
     try {
       console.log('📤 Sending audio chunk for transcription:', audioBlob.size, 'bytes');
 
-      // Create form data
-      const formData = new FormData();
-      formData.append('audio', audioBlob, 'audio.webm');
+      // Convert blob to base64
+      const reader = new FileReader();
+      const base64Audio = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => {
+          const result = reader.result as string;
+          // Remove data URL prefix
+          const base64 = result.split(',')[1];
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(audioBlob);
+      });
 
-      // Send to our HTTP transcription edge function
-      const { data, error } = await supabase.functions.invoke('audio-transcription', {
-        body: formData,
+      // Send to speech-to-text edge function
+      const { data, error } = await supabase.functions.invoke('speech-to-text', {
+        body: { audio: base64Audio },
       });
 
       if (error) {
         console.error('❌ Transcription request error:', error);
-        // Don't throw error, just log and continue
         return;
       }
 
-      if (data?.success && data.transcript?.trim()) {
-        console.log('✅ Received transcription:', data.transcript);
+      if (data?.text?.trim()) {
+        console.log('✅ Received transcription:', data.text);
         
         const transcriptData: TranscriptData = {
-          text: data.transcript,
-          is_final: data.is_final || true,
-          confidence: data.confidence || 0,
-          words: data.words || [],
-          speaker: 'Speaker 1' // HTTP mode doesn't have real-time speaker detection
+          text: data.text,
+          is_final: true,
+          confidence: 1.0,
+          words: [],
+          speaker: 'Speaker 1'
         };
 
         // Filter out likely hallucinations
-        if (!this.isLikelyHallucination(data.transcript.toLowerCase())) {
+        if (!this.isLikelyHallucination(data.text.toLowerCase())) {
           this.onTranscription(transcriptData);
           
           // Send to summarizer
-          this.sendToSummarizer(data.transcript);
+          this.sendToSummarizer(data.text);
         } else {
-          console.log('🚫 Filtered likely hallucination:', data.transcript);
+          console.log('🚫 Filtered likely hallucination:', data.text);
         }
-      } else if (data?.success && !data.transcript?.trim()) {
+      } else if (data?.text !== undefined) {
         console.log('📭 No speech detected in this chunk');
       } else {
         console.log('⚠️ Unexpected response format:', data);
@@ -113,7 +121,6 @@ export class DeepgramRealtimeTranscriber {
 
     } catch (error) {
       console.error('❌ Error sending audio for transcription:', error);
-      // Don't throw, just log and continue
     }
   }
 
