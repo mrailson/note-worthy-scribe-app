@@ -37,7 +37,8 @@ import {
   Upload,
   Brain,
   Shield,
-  X
+  X,
+  Save
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -111,6 +112,10 @@ const ComplaintsSystem = () => {
   const [newParty, setNewParty] = useState({staffName: '', staffEmail: '', staffRole: ''});
   const [outcomeType, setOutcomeType] = useState('');
   const [outcomeSummary, setOutcomeSummary] = useState('');
+  const [existingOutcome, setExistingOutcome] = useState<any>(null);
+  const [outcomeLetter, setOutcomeLetter] = useState("");
+  const [showOutcomeLetter, setShowOutcomeLetter] = useState(false);
+  const [editingOutcome, setEditingOutcome] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState('');
   const [complianceChecks, setComplianceChecks] = useState<Array<{
     id: string;
@@ -341,18 +346,33 @@ const ComplaintsSystem = () => {
 
       if (letterError) throw letterError;
 
-      // Store the outcome in database
-      const { error: outcomeError } = await supabase
-        .from('complaint_outcomes')
-        .insert({
-          complaint_id: complaintId,
-          outcome_type: outcomeType,
-          outcome_summary: outcomeSummary,
-          outcome_letter: letterData.outcomeLetter,
-          decided_by: user?.id,
-        });
+      // Store or update the outcome in database
+      if (existingOutcome) {
+        const { error: updateError } = await supabase
+          .from('complaint_outcomes')
+          .update({
+            outcome_type: outcomeType,
+            outcome_summary: outcomeSummary,
+            outcome_letter: letterData.outcomeLetter,
+            decided_by: user?.id,
+            decided_at: new Date().toISOString()
+          })
+          .eq('id', existingOutcome.id);
 
-      if (outcomeError) throw outcomeError;
+        if (updateError) throw updateError;
+      } else {
+        const { error: insertError } = await supabase
+          .from('complaint_outcomes')
+          .insert({
+            complaint_id: complaintId,
+            outcome_type: outcomeType,
+            outcome_summary: outcomeSummary,
+            outcome_letter: letterData.outcomeLetter,
+            decided_by: user?.id,
+          });
+
+        if (insertError) throw insertError;
+      }
 
       // Update complaint status
       const { error: updateError } = await supabase
@@ -362,15 +382,39 @@ const ComplaintsSystem = () => {
 
       if (updateError) throw updateError;
 
+      setOutcomeLetter(letterData.outcomeLetter);
+      setShowOutcomeLetter(true);
       toast.success('Outcome letter generated and complaint closed');
-      setOutcomeType('');
-      setOutcomeSummary('');
-      setSelectedComplaint(null);
-      setShowDetails(false);
       fetchComplaints();
     } catch (error) {
       console.error('Error generating outcome letter:', error);
       toast.error('Failed to generate outcome letter');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleSaveOutcomeLetter = async () => {
+    if (!existingOutcome) return;
+
+    try {
+      setSubmitting(true);
+      const { error } = await supabase
+        .from('complaint_outcomes')
+        .update({
+          outcome_letter: outcomeLetter,
+          outcome_type: outcomeType,
+          outcome_summary: outcomeSummary
+        })
+        .eq('id', existingOutcome.id);
+
+      if (error) throw error;
+
+      toast.success('Outcome letter saved successfully');
+      setEditingOutcome(false);
+    } catch (error) {
+      console.error('Error saving outcome letter:', error);
+      toast.error('Failed to save outcome letter');
     } finally {
       setSubmitting(false);
     }
@@ -1589,12 +1633,73 @@ const ComplaintsSystem = () => {
                         />
                       </div>
 
+                      {/* Show existing outcome letter if it exists */}
+                      {existingOutcome && (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label>Generated Outcome Letter</Label>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setShowOutcomeLetter(!showOutcomeLetter)}
+                              >
+                                <Eye className="h-4 w-4 mr-1" />
+                                {showOutcomeLetter ? 'Hide' : 'View'} Letter
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setEditingOutcome(!editingOutcome)}
+                              >
+                                <Edit className="h-4 w-4 mr-1" />
+                                {editingOutcome ? 'Cancel' : 'Edit'}
+                              </Button>
+                            </div>
+                          </div>
+                          
+                          {showOutcomeLetter && (
+                            <div className="border rounded-lg p-4 bg-gray-50 max-h-60 overflow-y-auto">
+                              {editingOutcome ? (
+                                <div className="space-y-4">
+                                  <Textarea
+                                    value={outcomeLetter}
+                                    onChange={(e) => setOutcomeLetter(e.target.value)}
+                                    rows={12}
+                                    className="w-full"
+                                  />
+                                  <div className="flex gap-2">
+                                    <Button
+                                      size="sm"
+                                      onClick={handleSaveOutcomeLetter}
+                                      disabled={submitting}
+                                    >
+                                      <Save className="h-4 w-4 mr-1" />
+                                      {submitting ? 'Saving...' : 'Save Changes'}
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => setEditingOutcome(false)}
+                                    >
+                                      Cancel
+                                    </Button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <pre className="whitespace-pre-wrap text-sm">{outcomeLetter}</pre>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       <Button 
                         onClick={() => handleGenerateOutcomeLetter(selectedComplaint.id)}
                         disabled={submitting || !outcomeType || !outcomeSummary}
                       >
                         <FileText className="h-4 w-4 mr-2" />
-                        {submitting ? 'Generating...' : 'Generate Outcome Letter & Close Complaint'}
+                        {submitting ? 'Generating...' : existingOutcome ? 'Regenerate Outcome Letter' : 'Generate Outcome Letter & Close Complaint'}
                       </Button>
                     </CardContent>
                   </Card>

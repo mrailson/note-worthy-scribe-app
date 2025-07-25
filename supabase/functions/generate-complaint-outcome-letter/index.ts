@@ -32,15 +32,23 @@ serve(async (req) => {
     // Fetch complaint details
     const { data: complaint, error: complaintError } = await supabase
       .from('complaints')
-      .select(`
-        *,
-        practice_details!inner(practice_name, address, phone, email)
-      `)
+      .select('*')
       .eq('id', complaintId)
       .single();
 
     if (complaintError || !complaint) {
       throw new Error('Complaint not found');
+    }
+
+    // Get practice details if practice_id exists
+    let practiceDetails = null;
+    if (complaint.practice_id) {
+      const { data: practice } = await supabase
+        .from('practice_details')
+        .select('practice_name, address, phone, email')
+        .eq('id', complaint.practice_id)
+        .single();
+      practiceDetails = practice;
     }
 
     const systemPrompt = `You are a professional NHS complaints officer writing outcome letters. Generate a formal outcome letter for a patient complaint that:
@@ -72,16 +80,16 @@ You should contact the Ombudsman within one year of the events you want to compl
     const userPrompt = `Generate an outcome letter for this complaint:
 
 Reference: ${complaint.reference_number}
-Practice: ${complaint.practice_details.practice_name}
+Patient: ${complaint.patient_name}
 Original Complaint: ${complaint.complaint_description}
 Outcome: ${outcomeType}
 Outcome Summary: ${outcomeSummary}
 
 Practice Details:
-Name: ${complaint.practice_details.practice_name}
-Address: ${complaint.practice_details.address || 'Address not provided'}
-Phone: ${complaint.practice_details.phone || 'Phone not provided'}
-Email: ${complaint.practice_details.email || 'Email not provided'}
+Name: ${practiceDetails?.practice_name || 'NHS Practice'}
+Address: ${practiceDetails?.address || 'Address not provided'}
+Phone: ${practiceDetails?.phone || 'Phone not provided'}
+Email: ${practiceDetails?.email || 'Email not provided'}
 
 Include escalation information: ${escalationText}
 
