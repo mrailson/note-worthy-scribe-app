@@ -1131,7 +1131,7 @@ export const MeetingRecorder = ({
                             <br />• This feature is currently being developed
                             <br />• Expected release: <strong>10th August 2025</strong>
                             <br />• Please use <strong>Teams own recording service</strong> to record Teams meetings in the meantime
-                            <br />• You can still use microphone mode for general audio recording
+                            <br />• You can still use microphone mode for general audio recording (ie Face 2 Face or via conference phone etc)
                           </div>
                         </div>
                       </div>
