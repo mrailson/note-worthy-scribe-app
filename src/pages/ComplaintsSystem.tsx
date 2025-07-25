@@ -116,6 +116,8 @@ const ComplaintsSystem = () => {
   const [outcomeLetter, setOutcomeLetter] = useState("");
   const [showOutcomeLetter, setShowOutcomeLetter] = useState(false);
   const [editingOutcome, setEditingOutcome] = useState(false);
+  const [acknowledgementLetter, setAcknowledgementLetter] = useState("");
+  const [showAcknowledgementLetter, setShowAcknowledgementLetter] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState('');
   const [complianceChecks, setComplianceChecks] = useState<Array<{
     id: string;
@@ -1492,6 +1494,38 @@ const ComplaintsSystem = () => {
                     </CardContent>
                   </Card>
 
+                  {/* Acknowledgement Letter Section */}
+                  {acknowledgementLetter && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Mail className="h-5 w-5" />
+                            Acknowledgement Letter
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowAcknowledgementLetter(!showAcknowledgementLetter)}
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            {showAcknowledgementLetter ? 'Hide' : 'View'} Letter
+                          </Button>
+                        </CardTitle>
+                      </CardHeader>
+                      {showAcknowledgementLetter && (
+                        <CardContent>
+                          <div className="border rounded-lg p-4 bg-gray-50 max-h-60 overflow-y-auto">
+                            <pre className="whitespace-pre-wrap text-sm">{acknowledgementLetter}</pre>
+                          </div>
+                          <div className="mt-2 text-xs text-muted-foreground">
+                            This acknowledgement letter was sent to confirm receipt of the complaint and outline next steps.
+                          </div>
+                        </CardContent>
+                      )}
+                    </Card>
+                  )}
+
                   {/* AI Outcome Analysis */}
                   <Card>
                     <CardHeader>
@@ -1632,6 +1666,72 @@ const ComplaintsSystem = () => {
                           rows={4}
                         />
                       </div>
+
+                      {/* Show existing outcome letter if it exists */}
+                      {existingOutcome && outcomeLetter && (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label>Final Outcome Letter</Label>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setShowOutcomeLetter(!showOutcomeLetter)}
+                              >
+                                <Eye className="h-4 w-4 mr-1" />
+                                {showOutcomeLetter ? 'Hide' : 'View'} Letter
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setEditingOutcome(!editingOutcome)}
+                              >
+                                <Edit className="h-4 w-4 mr-1" />
+                                {editingOutcome ? 'Cancel' : 'Edit'}
+                              </Button>
+                            </div>
+                          </div>
+                          
+                          {showOutcomeLetter && (
+                            <div className="border rounded-lg p-4 bg-gray-50 max-h-60 overflow-y-auto">
+                              {editingOutcome ? (
+                                <div className="space-y-4">
+                                  <Textarea
+                                    value={outcomeLetter}
+                                    onChange={(e) => setOutcomeLetter(e.target.value)}
+                                    rows={12}
+                                    className="w-full"
+                                  />
+                                  <div className="flex gap-2">
+                                    <Button
+                                      size="sm"
+                                      onClick={handleSaveOutcomeLetter}
+                                      disabled={submitting}
+                                    >
+                                      <Save className="h-4 w-4 mr-1" />
+                                      {submitting ? 'Saving...' : 'Save Changes'}
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => setEditingOutcome(false)}
+                                    >
+                                      Cancel
+                                    </Button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div>
+                                  <pre className="whitespace-pre-wrap text-sm">{outcomeLetter}</pre>
+                                  <div className="mt-2 text-xs text-muted-foreground">
+                                    This is the final outcome letter that will be sent to the patient explaining the decision.
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
 
                       {/* Show existing outcome letter if it exists */}
                       {existingOutcome && (
