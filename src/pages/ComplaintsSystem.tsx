@@ -1367,10 +1367,6 @@ const ComplaintsSystem = () => {
                               </div>
                             )}
                             
-                            <Button size="sm" variant="outline">
-                              <Download className="h-4 w-4 mr-1" />
-                              Export
-                            </Button>
                           </div>
                         </div>
                       </CardContent>
