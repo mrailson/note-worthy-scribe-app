@@ -42,6 +42,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx";
 
 interface Complaint {
   id: string;
@@ -118,6 +119,14 @@ const ComplaintsSystem = () => {
   const [editingOutcome, setEditingOutcome] = useState(false);
   const [acknowledgementLetter, setAcknowledgementLetter] = useState("");
   const [showAcknowledgementLetter, setShowAcknowledgementLetter] = useState(false);
+  
+  // Audit log states
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [complianceAuditLogs, setComplianceAuditLogs] = useState<any[]>([]);
+  const [auditSearchTerm, setAuditSearchTerm] = useState("");
+  const [auditActionFilter, setAuditActionFilter] = useState("all");
+  const [auditLoading, setAuditLoading] = useState(false);
+  
   const [aiAnalysis, setAiAnalysis] = useState('');
   const [complianceChecks, setComplianceChecks] = useState<Array<{
     id: string;
@@ -422,6 +431,149 @@ const ComplaintsSystem = () => {
     }
   };
 
+  // Fetch audit logs for the selected complaint
+  const fetchAuditLogs = async (complaintId: string) => {
+    try {
+      setAuditLoading(true);
+      
+      // Fetch general audit logs
+      const { data: generalLogs, error: generalError } = await supabase
+        .from('complaint_audit_detailed')
+        .select(`
+          *,
+          profiles!inner(full_name)
+        `)
+        .eq('complaint_id', complaintId)
+        .order('created_at', { ascending: false });
+
+      if (generalError) throw generalError;
+
+      // Fetch compliance audit logs
+      const { data: complianceLogs, error: complianceError } = await supabase
+        .from('complaint_compliance_audit')
+        .select(`
+          *,
+          profiles!inner(full_name)
+        `)
+        .eq('complaint_id', complaintId)
+        .order('created_at', { ascending: false });
+
+      if (complianceError) throw complianceError;
+
+      setAuditLogs(generalLogs || []);
+      setComplianceAuditLogs(complianceLogs || []);
+    } catch (error) {
+      console.error('Error fetching audit logs:', error);
+      toast.error('Failed to fetch audit logs');
+    } finally {
+      setAuditLoading(false);
+    }
+  };
+
+  // Export audit logs to Word document
+  const exportAuditToWord = async () => {
+    try {
+      const logs = filteredAuditLogs;
+      
+      if (logs.length === 0) {
+        toast.error('No audit logs to export');
+        return;
+      }
+
+      // Create Word document
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children: [
+            new Paragraph({
+              text: `Complaint Audit Log - ${selectedComplaint?.reference_number || 'All Complaints'}`,
+              heading: HeadingLevel.HEADING_1,
+            }),
+            new Paragraph({
+              text: `Generated on: ${format(new Date(), 'dd/MM/yyyy HH:mm:ss')}`,
+              spacing: { after: 400 }
+            }),
+            ...logs.map(log => new Paragraph({
+              children: [
+                new TextRun({
+                  text: `${format(new Date(log.created_at), 'dd/MM/yyyy HH:mm:ss')} - `,
+                  bold: true
+                }),
+                new TextRun({
+                  text: `${log.action_type.replace('_', ' ').toUpperCase()} - `,
+                  color: getActionColor(log.action_type)
+                }),
+                new TextRun({
+                  text: `${log.profiles?.full_name || log.user_email} - `,
+                  italics: true
+                }),
+                new TextRun({
+                  text: log.action_description
+                })
+              ],
+              spacing: { after: 200 }
+            }))
+          ]
+        }]
+      });
+
+      // Generate and download
+      const buffer = await Packer.toBuffer(doc);
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `audit-log-${selectedComplaint?.reference_number || 'all'}-${format(new Date(), 'yyyy-MM-dd')}.docx`;
+      a.click();
+      URL.revokeObjectURL(url);
+      
+      toast.success('Audit log exported to Word successfully');
+    } catch (error) {
+      console.error('Error exporting audit log:', error);
+      toast.error('Failed to export audit log');
+    }
+  };
+
+  // Get action color for Word export
+  const getActionColor = (actionType: string) => {
+    switch (actionType) {
+      case 'create': return '00AA00';
+      case 'view': return '0066CC';
+      case 'edit': return 'FF6600';
+      case 'status_change': return 'CC0000';
+      case 'compliance_update': return '6600CC';
+      default: return '000000';
+    }
+  };
+
+  // Get badge variant for action types
+  const getActionBadgeVariant = (actionType: string) => {
+    switch (actionType) {
+      case 'create': return 'default';
+      case 'view': return 'secondary';
+      case 'edit': return 'outline';
+      case 'status_change': return 'destructive';
+      case 'compliance_update': return 'default';
+      default: return 'secondary';
+    }
+  };
+
+  // Filter audit logs based on search and action type
+  const filteredAuditLogs = [...auditLogs, ...complianceAuditLogs.map(log => ({
+    ...log,
+    action_type: 'compliance_update',
+    action_description: `${log.compliance_item} changed from ${log.previous_status ? 'completed' : 'pending'} to ${log.new_status ? 'completed' : 'pending'}`
+  }))].filter(log => {
+    const matchesSearch = 
+      log.action_description.toLowerCase().includes(auditSearchTerm.toLowerCase()) ||
+      (log.profiles?.full_name || log.user_email || '').toLowerCase().includes(auditSearchTerm.toLowerCase()) ||
+      log.action_type.toLowerCase().includes(auditSearchTerm.toLowerCase());
+    
+    const matchesAction = auditActionFilter === 'all' || log.action_type === auditActionFilter;
+    
+    return matchesSearch && matchesAction;
+  }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
   const addInvolvedParty = () => {
     if (!newParty.staffName || !newParty.staffEmail) {
       toast.error('Please provide staff name and email');
@@ -653,10 +805,11 @@ const ComplaintsSystem = () => {
         </div>
 
         <Tabs defaultValue="dashboard" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="view">View Complaints</TabsTrigger>
             <TabsTrigger value="new">New Complaint</TabsTrigger>
+            <TabsTrigger value="audit">Audit Log</TabsTrigger>
             <TabsTrigger value="reports">Reports</TabsTrigger>
             <TabsTrigger value="templates">Templates</TabsTrigger>
           </TabsList>
@@ -932,11 +1085,12 @@ const ComplaintsSystem = () => {
                             <Button 
                               size="sm" 
                               variant="outline"
-                              onClick={async () => {
-                                setSelectedComplaint(complaint);
-                                setShowDetails(true);
-                                await fetchComplianceData(complaint.id);
-                              }}
+                          onClick={async () => {
+                            setSelectedComplaint(complaint);
+                            setShowDetails(true);
+                            await fetchComplianceData(complaint.id);
+                            await fetchAuditLogs(complaint.id);
+                          }}
                             >
                               <Eye className="h-4 w-4 mr-1" />
                               Manage Workflow
@@ -1295,6 +1449,134 @@ const ComplaintsSystem = () => {
                     </Button>
                   </div>
                 </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Audit Log Tab */}
+          <TabsContent value="audit" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Complaint Audit Log</CardTitle>
+                <CardDescription>
+                  Comprehensive audit trail of all complaint activities, status changes, and compliance updates
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Search and Filter Controls */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="audit-search">Search Audit Log</Label>
+                    <div className="relative">
+                      <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="audit-search"
+                        placeholder="Search by action, user, or description..."
+                        value={auditSearchTerm}
+                        onChange={(e) => setAuditSearchTerm(e.target.value)}
+                        className="pl-8"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Action Type</Label>
+                    <Select value={auditActionFilter} onValueChange={setAuditActionFilter}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Filter by action type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Actions</SelectItem>
+                        <SelectItem value="create">Created</SelectItem>
+                        <SelectItem value="view">Viewed</SelectItem>
+                        <SelectItem value="edit">Edited</SelectItem>
+                        <SelectItem value="status_change">Status Changes</SelectItem>
+                        <SelectItem value="compliance_update">Compliance Updates</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-end">
+                    <Button 
+                      variant="outline"
+                      onClick={() => {
+                        setAuditSearchTerm("");
+                        setAuditActionFilter("all");
+                      }}
+                    >
+                      Clear Filters
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Export Button */}
+                <div className="flex justify-end">
+                  <Button 
+                    variant="outline"
+                    onClick={() => exportAuditToWord()}
+                    disabled={auditLoading}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Export to Word
+                  </Button>
+                </div>
+
+                {/* Audit Log Display */}
+                {auditLoading ? (
+                  <div className="text-center py-8">
+                    <div className="text-muted-foreground">Loading audit logs...</div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {filteredAuditLogs.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        No audit logs found. Select a complaint to view its audit trail.
+                      </div>
+                    ) : (
+                      filteredAuditLogs.map((log) => (
+                        <Card key={log.id} className="border-l-4 border-l-blue-500">
+                          <CardContent className="p-4">
+                            <div className="flex items-start justify-between">
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <Badge variant={getActionBadgeVariant(log.action_type)}>
+                                    {log.action_type.replace('_', ' ').toUpperCase()}
+                                  </Badge>
+                                  <span className="text-sm font-medium">
+                                    {log.profiles?.full_name || log.user_email}
+                                  </span>
+                                </div>
+                                <p className="text-sm text-muted-foreground">
+                                  {log.action_description}
+                                </p>
+                                {(log.old_values || log.new_values) && (
+                                  <div className="text-xs text-muted-foreground">
+                                    <details className="mt-2">
+                                      <summary className="cursor-pointer">View Details</summary>
+                                      <div className="mt-2 space-y-1">
+                                        {log.old_values && (
+                                          <div>
+                                            <strong>Previous:</strong> {JSON.stringify(log.old_values, null, 2)}
+                                          </div>
+                                        )}
+                                        {log.new_values && (
+                                          <div>
+                                            <strong>New:</strong> {JSON.stringify(log.new_values, null, 2)}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </details>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="text-right text-xs text-muted-foreground">
+                                {format(new Date(log.created_at), 'dd/MM/yyyy HH:mm:ss')}
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

@@ -207,6 +207,56 @@ export type Database = {
           },
         ]
       }
+      complaint_audit_detailed: {
+        Row: {
+          action_description: string
+          action_type: string
+          complaint_id: string | null
+          created_at: string
+          id: string
+          ip_address: string | null
+          new_values: Json | null
+          old_values: Json | null
+          user_agent: string | null
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action_description: string
+          action_type: string
+          complaint_id?: string | null
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          new_values?: Json | null
+          old_values?: Json | null
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action_description?: string
+          action_type?: string
+          complaint_id?: string | null
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          new_values?: Json | null
+          old_values?: Json | null
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_audit_detailed_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       complaint_audit_log: {
         Row: {
           action: string
@@ -238,6 +288,60 @@ export type Database = {
             columns: ["complaint_id"]
             isOneToOne: false
             referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      complaint_compliance_audit: {
+        Row: {
+          complaint_id: string | null
+          compliance_check_id: string | null
+          compliance_item: string
+          created_at: string
+          id: string
+          new_status: boolean
+          notes: string | null
+          previous_status: boolean
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          complaint_id?: string | null
+          compliance_check_id?: string | null
+          compliance_item: string
+          created_at?: string
+          id?: string
+          new_status: boolean
+          notes?: string | null
+          previous_status: boolean
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          complaint_id?: string | null
+          compliance_check_id?: string | null
+          compliance_item?: string
+          created_at?: string
+          id?: string
+          new_status?: boolean
+          notes?: string | null
+          previous_status?: boolean
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_compliance_audit_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaint_compliance_audit_compliance_check_id_fkey"
+            columns: ["compliance_check_id"]
+            isOneToOne: false
+            referencedRelation: "complaint_compliance_checks"
             referencedColumns: ["id"]
           },
         ]
@@ -1480,6 +1584,27 @@ export type Database = {
       }
       log_complaint_action: {
         Args: { p_complaint_id: string; p_action: string; p_details?: Json }
+        Returns: string
+      }
+      log_complaint_activity: {
+        Args: {
+          p_complaint_id: string
+          p_action_type: string
+          p_action_description: string
+          p_old_values?: Json
+          p_new_values?: Json
+        }
+        Returns: string
+      }
+      log_compliance_change: {
+        Args: {
+          p_complaint_id: string
+          p_compliance_check_id: string
+          p_compliance_item: string
+          p_previous_status: boolean
+          p_new_status: boolean
+          p_notes?: string
+        }
         Returns: string
       }
       log_security_event: {
