@@ -100,6 +100,7 @@ const ComplaintDetails = () => {
   const [complaintDocuments, setComplaintDocuments] = useState<any[]>([]);
   const [aiAnalysis, setAiAnalysis] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [showOutstandingOnly, setShowOutstandingOnly] = useState(false);
 
   // Define all functions before useEffect
   const fetchComplaintDetails = async () => {
@@ -816,25 +817,49 @@ const ComplaintDetails = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {complianceSummary && (
-                    <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-green-600">{complianceSummary.compliant_items}</div>
-                        <div className="text-sm text-muted-foreground">Completed</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-orange-600">{complianceSummary.total_items - complianceSummary.compliant_items}</div>
-                        <div className="text-sm text-muted-foreground">Outstanding</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-blue-600">{complianceSummary.total_items}</div>
-                        <div className="text-sm text-muted-foreground">Total Checks</div>
-                      </div>
-                    </div>
-                  )}
+                   {complianceSummary && (
+                     <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
+                       <div className="text-center">
+                         <div className="text-2xl font-bold text-green-600">{complianceSummary.compliant_items}</div>
+                         <div className="text-sm text-muted-foreground">Completed</div>
+                       </div>
+                       <div 
+                         className="text-center cursor-pointer hover:bg-gray-100 rounded-lg p-2 transition-colors"
+                         onClick={() => setShowOutstandingOnly(!showOutstandingOnly)}
+                         title="Click to filter outstanding items"
+                       >
+                         <div className={`text-2xl font-bold ${showOutstandingOnly ? 'text-blue-600' : 'text-orange-600'}`}>
+                           {complianceSummary.total_items - complianceSummary.compliant_items}
+                         </div>
+                         <div className="text-sm text-muted-foreground flex items-center justify-center gap-1">
+                           Outstanding
+                           {showOutstandingOnly && <Badge variant="outline" className="text-xs">Filtered</Badge>}
+                         </div>
+                       </div>
+                       <div className="text-center">
+                         <div className="text-2xl font-bold text-blue-600">{complianceSummary.total_items}</div>
+                         <div className="text-sm text-muted-foreground">Total Checks</div>
+                       </div>
+                     </div>
+                   )}
 
-                  <div className="space-y-2 max-h-60 overflow-y-auto">
-                    {complianceChecks.map((check) => (
+                   {showOutstandingOnly && (
+                     <div className="flex items-center justify-between p-2 bg-blue-50 rounded-lg mb-2">
+                       <span className="text-sm text-blue-800">Showing outstanding items only</span>
+                       <Button 
+                         variant="outline" 
+                         size="sm"
+                         onClick={() => setShowOutstandingOnly(false)}
+                       >
+                         Show All
+                       </Button>
+                     </div>
+                   )}
+
+                   <div className="space-y-2 max-h-60 overflow-y-auto">
+                     {complianceChecks
+                       .filter(check => showOutstandingOnly ? !check.is_compliant : true)
+                       .map((check) => (
                       <div 
                         key={check.id} 
                         className={`flex items-start justify-between p-3 border rounded-lg cursor-pointer transition-all hover:shadow-md hover:border-primary/50 ${
