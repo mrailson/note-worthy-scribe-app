@@ -724,6 +724,7 @@ export type Database = {
           response_due_date: string | null
           staff_mentioned: string[] | null
           status: Database["public"]["Enums"]["complaint_status"]
+          subcategory: string | null
           submitted_at: string | null
           updated_at: string | null
         }
@@ -754,6 +755,7 @@ export type Database = {
           response_due_date?: string | null
           staff_mentioned?: string[] | null
           status?: Database["public"]["Enums"]["complaint_status"]
+          subcategory?: string | null
           submitted_at?: string | null
           updated_at?: string | null
         }
@@ -784,6 +786,7 @@ export type Database = {
           response_due_date?: string | null
           staff_mentioned?: string[] | null
           status?: Database["public"]["Enums"]["complaint_status"]
+          subcategory?: string | null
           submitted_at?: string | null
           updated_at?: string | null
         }
