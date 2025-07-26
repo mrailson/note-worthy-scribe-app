@@ -1284,13 +1284,19 @@ const ComplaintsSystem = () => {
                             </CardDescription>
                           </div>
                           <div className="flex gap-2">
-                            <Badge className={getPriorityColor(complaint.priority)}>
-                              {getPriorityLabel(complaint.priority)}
-                            </Badge>
-                            <Badge className={getStatusColor(complaint.status)}>
-                              {getStatusIcon(complaint.status)}
-                              <span className="ml-1">{getStatusLabel(complaint.status)}</span>
-                            </Badge>
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs font-medium text-muted-foreground">Priority:</span>
+                              <Badge className={getPriorityColor(complaint.priority)}>
+                                {getPriorityLabel(complaint.priority)}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs font-medium text-muted-foreground">Status:</span>
+                              <Badge className={getStatusColor(complaint.status)}>
+                                {getStatusIcon(complaint.status)}
+                                <span className="ml-1">{getStatusLabel(complaint.status)}</span>
+                              </Badge>
+                            </div>
                           </div>
                         </div>
                       </CardHeader>
