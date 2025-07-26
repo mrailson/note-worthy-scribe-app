@@ -188,57 +188,76 @@ const ComplaintsSystem = () => {
   };
 
   const viewLetter = async (complaint: Complaint, type: 'acknowledgement' | 'outcome') => {
+    console.log('ViewLetter called for', complaint.reference_number, 'type:', type);
     setViewingLetterComplaint(complaint);
     setLetterType(type);
     
-    if (type === 'acknowledgement') {
-      const { data: acknowledgement } = await supabase
-        .from('complaint_acknowledgements')
-        .select('*')
-        .eq('complaint_id', complaint.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      
-      if (acknowledgement) {
-        setModalLetterContent(acknowledgement.acknowledgement_letter);
-        setShowLetterModal(true);
+    try {
+      if (type === 'acknowledgement') {
+        const { data: acknowledgement, error } = await supabase
+          .from('complaint_acknowledgements')
+          .select('*')
+          .eq('complaint_id', complaint.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        
+        console.log('Acknowledgement data:', { acknowledgement, error });
+        
+        if (acknowledgement) {
+          setModalLetterContent(acknowledgement.acknowledgement_letter);
+          setShowLetterModal(true);
+        } else {
+          toast.error('No acknowledgement letter found for this complaint');
+        }
       } else {
-        toast.error('No acknowledgement letter found for this complaint');
+        const { data: outcome, error } = await supabase
+          .from('complaint_outcomes')
+          .select('*')
+          .eq('complaint_id', complaint.id)
+          .maybeSingle();
+        
+        console.log('Outcome data:', { outcome, error });
+        
+        if (outcome) {
+          setModalLetterContent(outcome.outcome_letter);
+          setShowLetterModal(true);
+        } else {
+          toast.error('No outcome letter found for this complaint');
+        }
       }
-    } else {
-      const { data: outcome } = await supabase
-        .from('complaint_outcomes')
-        .select('*')
-        .eq('complaint_id', complaint.id)
-        .maybeSingle();
-      
-      if (outcome) {
-        setModalLetterContent(outcome.outcome_letter);
-        setShowLetterModal(true);
-      } else {
-        toast.error('No outcome letter found for this complaint');
-      }
+    } catch (error) {
+      console.error('Error fetching letter:', error);
+      toast.error('Failed to load letter');
     }
   };
 
   const checkLetterExists = async (complaintId: string, type: 'acknowledgement' | 'outcome'): Promise<boolean> => {
-    if (type === 'acknowledgement') {
-      const { data } = await supabase
-        .from('complaint_acknowledgements')
-        .select('id')
-        .eq('complaint_id', complaintId)
-        .limit(1)
-        .maybeSingle();
-      return !!data;
-    } else {
-      const { data } = await supabase
-        .from('complaint_outcomes')
-        .select('id')
-        .eq('complaint_id', complaintId)
-        .limit(1)
-        .maybeSingle();
-      return !!data;
+    try {
+      if (type === 'acknowledgement') {
+        const { data, error } = await supabase
+          .from('complaint_acknowledgements')
+          .select('id')
+          .eq('complaint_id', complaintId)
+          .limit(1)
+          .maybeSingle();
+        
+        console.log(`Acknowledgement check for ${complaintId}:`, { data, error });
+        return !!data;
+      } else {
+        const { data, error } = await supabase
+          .from('complaint_outcomes')
+          .select('id')
+          .eq('complaint_id', complaintId)
+          .limit(1)
+          .maybeSingle();
+        
+        console.log(`Outcome check for ${complaintId}:`, { data, error });
+        return !!data;
+      }
+    } catch (error) {
+      console.error(`Error checking ${type} letter for ${complaintId}:`, error);
+      return false;
     }
   };
   
@@ -319,6 +338,7 @@ const ComplaintsSystem = () => {
   }, [complaints]);
 
   const loadLettersStatus = async () => {
+    console.log('Loading letters status for', complaints.length, 'complaints');
     const status: Record<string, { hasAcknowledgement: boolean; hasOutcome: boolean }> = {};
     
     for (const complaint of complaints) {
@@ -331,8 +351,11 @@ const ComplaintsSystem = () => {
         hasAcknowledgement: hasAck,
         hasOutcome: hasOutcome
       };
+      
+      console.log(`Complaint ${complaint.reference_number}:`, { hasAck, hasOutcome });
     }
     
+    console.log('Final letters status:', status);
     setLettersStatus(status);
   };
 
@@ -1318,15 +1341,22 @@ const ComplaintsSystem = () => {
                               </Button>
                             )}
                             
-                            {lettersStatus[complaint.id]?.hasOutcome && (
+                            {lettersStatus[complaint.id]?.hasOutcome ? (
                               <Button 
                                 size="sm" 
                                 variant="outline"
-                                onClick={() => viewLetter(complaint, 'outcome')}
+                                onClick={() => {
+                                  console.log('Outcome button clicked for', complaint.reference_number);
+                                  viewLetter(complaint, 'outcome');
+                                }}
                               >
                                 <FileText className="h-4 w-4 mr-1" />
                                 View Outcome Letter
                               </Button>
+                            ) : (
+                              <div className="text-xs text-muted-foreground">
+                                No outcome letter available
+                              </div>
                             )}
                             
                             <Button size="sm" variant="outline">
