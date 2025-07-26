@@ -1393,7 +1393,7 @@ const ComplaintsSystem = () => {
                           }}
                             >
                               <Eye className="h-4 w-4 mr-1" />
-                              Manage Workflow
+                              View Details
                             </Button>
                             
                             {lettersStatus[complaint.id]?.hasAcknowledgement ? (
