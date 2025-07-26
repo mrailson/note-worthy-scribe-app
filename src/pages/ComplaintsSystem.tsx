@@ -1067,13 +1067,13 @@ const ComplaintsSystem = () => {
         </div>
 
         <Tabs defaultValue="dashboard" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="view">View Complaints</TabsTrigger>
             <TabsTrigger value="new">New Complaint</TabsTrigger>
             <TabsTrigger value="audit">Audit Log</TabsTrigger>
             <TabsTrigger value="reports">Reports</TabsTrigger>
-            <TabsTrigger value="templates">Templates</TabsTrigger>
+            
             <TabsTrigger value="settings">Practice & Signatures</TabsTrigger>
           </TabsList>
 
@@ -1940,27 +1940,6 @@ const ComplaintsSystem = () => {
             </Card>
           </TabsContent>
 
-          {/* Templates Tab */}
-          <TabsContent value="templates" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Response Templates</CardTitle>
-                <CardDescription>Manage standard response templates for acknowledgments and replies</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <Button>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create New Template
-                  </Button>
-                  
-                  <div className="text-muted-foreground">
-                    Template management functionality coming soon...
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
 
           {/* Practice & Signatures Tab */}
           <TabsContent value="settings">
