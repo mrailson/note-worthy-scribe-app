@@ -724,7 +724,6 @@ export type Database = {
           response_due_date: string | null
           staff_mentioned: string[] | null
           status: Database["public"]["Enums"]["complaint_status"]
-          subcategory: string | null
           submitted_at: string | null
           updated_at: string | null
         }
@@ -755,7 +754,6 @@ export type Database = {
           response_due_date?: string | null
           staff_mentioned?: string[] | null
           status?: Database["public"]["Enums"]["complaint_status"]
-          subcategory?: string | null
           submitted_at?: string | null
           updated_at?: string | null
         }
@@ -786,7 +784,6 @@ export type Database = {
           response_due_date?: string | null
           staff_mentioned?: string[] | null
           status?: Database["public"]["Enums"]["complaint_status"]
-          subcategory?: string | null
           submitted_at?: string | null
           updated_at?: string | null
         }
@@ -1733,16 +1730,6 @@ export type Database = {
         | "medication"
         | "referrals"
         | "other"
-        | "Appointments & Access"
-        | "Clinical Care & Treatment"
-        | "Communication Issues"
-        | "Staff Attitude & Behaviour"
-        | "Prescriptions"
-        | "Test Results & Follow-Up"
-        | "Administration"
-        | "Facilities & Environment"
-        | "Digital Services"
-        | "Confidentiality & Data"
       complaint_priority: "low" | "medium" | "high" | "urgent"
       complaint_status:
         | "draft"
@@ -1913,16 +1900,6 @@ export const Constants = {
         "medication",
         "referrals",
         "other",
-        "Appointments & Access",
-        "Clinical Care & Treatment",
-        "Communication Issues",
-        "Staff Attitude & Behaviour",
-        "Prescriptions",
-        "Test Results & Follow-Up",
-        "Administration",
-        "Facilities & Environment",
-        "Digital Services",
-        "Confidentiality & Data",
       ],
       complaint_priority: ["low", "medium", "high", "urgent"],
       complaint_status: [
