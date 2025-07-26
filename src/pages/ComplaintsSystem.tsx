@@ -211,11 +211,14 @@ const ComplaintsSystem = () => {
           toast.error('No acknowledgement letter found for this complaint');
         }
       } else {
-        const { data: outcome, error } = await supabase
+        const { data: outcomes, error } = await supabase
           .from('complaint_outcomes')
           .select('*')
           .eq('complaint_id', complaint.id)
-          .maybeSingle();
+          .order('created_at', { ascending: false })
+          .limit(1);
+        
+        const outcome = outcomes?.[0];
         
         console.log('Outcome data:', { outcome, error });
         
