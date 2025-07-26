@@ -42,14 +42,25 @@ serve(async (req) => {
 
     // Get practice details if practice_id exists
     let practiceDetails = null;
+    let signatureDetails = null;
+    
     if (complaint.practice_id) {
       const { data: practice } = await supabase
         .from('practice_details')
-        .select('practice_name, address, phone, email')
+        .select('practice_name, address, phone, email, logo_url, footer_text')
         .eq('id', complaint.practice_id)
         .single();
       practiceDetails = practice;
     }
+
+    // Get signature details for the user
+    const { data: signature } = await supabase
+      .from('gp_signature_settings')
+      .select('*')
+      .eq('user_id', complaint.created_by)
+      .eq('is_default', true)
+      .single();
+    signatureDetails = signature;
 
     const systemPrompt = `You are a professional NHS complaints officer writing acknowledgement letters. Generate a formal acknowledgement letter for a patient complaint that:
 
@@ -79,7 +90,16 @@ Address: ${practiceDetails?.address || 'Address not provided'}
 Phone: ${practiceDetails?.phone || 'Phone not provided'}
 Email: ${practiceDetails?.email || 'Email not provided'}
 
-Generate a professional acknowledgement letter addressing the specific concerns raised.`;
+Signature Details:
+${signatureDetails ? `
+Name: ${signatureDetails.gp_name}
+Title: ${signatureDetails.job_title || 'Complaints Manager'}
+Qualifications: ${signatureDetails.qualifications || ''}
+Practice: ${signatureDetails.practice_name || practiceDetails?.practice_name || 'NHS Practice'}
+GMC Number: ${signatureDetails.gmc_number || ''}
+` : ''}
+
+Generate a professional acknowledgement letter addressing the specific concerns raised. Include appropriate signature block at the end with the signature details provided.`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',

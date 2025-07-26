@@ -13,6 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { LoginForm } from "@/components/LoginForm";
 import { supabase } from "@/integrations/supabase/client";
 import { ComplaintImport } from "@/components/ComplaintImport";
+import { PracticeManager } from "@/components/PracticeManager";
 
 import { 
   AlertCircle, 
@@ -867,13 +868,14 @@ const ComplaintsSystem = () => {
         </div>
 
         <Tabs defaultValue="dashboard" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="view">View Complaints</TabsTrigger>
             <TabsTrigger value="new">New Complaint</TabsTrigger>
             <TabsTrigger value="audit">Audit Log</TabsTrigger>
             <TabsTrigger value="reports">Reports</TabsTrigger>
             <TabsTrigger value="templates">Templates</TabsTrigger>
+            <TabsTrigger value="settings">Practice & Signatures</TabsTrigger>
           </TabsList>
 
           {/* Dashboard Tab */}
@@ -1706,6 +1708,80 @@ const ComplaintsSystem = () => {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Practice & Signatures Tab */}
+          <TabsContent value="settings">
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Signature Settings for Complaint Letters
+                  </CardTitle>
+                  <CardDescription>
+                    Configure your signature details for acknowledgement and outcome letters
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-4">
+                    <p className="text-muted-foreground mb-4">
+                      Complaint letters will automatically include your signature from GP Scribe Settings.
+                    </p>
+                    <Button 
+                      onClick={() => window.open('/gp-scribe-settings', '_blank')}
+                      className="mb-4"
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      Configure GP Signature Settings
+                    </Button>
+                    <p className="text-xs text-muted-foreground">
+                      Opens in a new tab. Configure your name, title, qualifications, and practice details.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <PracticeManager />
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Building className="h-5 w-5" />
+                    Document Formatting
+                  </CardTitle>
+                  <CardDescription>
+                    Practice logos and footer details for complaint documents
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="p-4 border rounded-lg">
+                      <h4 className="font-medium mb-2">Automatic Integration</h4>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Your practice logos and footer details from the Practice Management section above will automatically be included in:
+                      </p>
+                      <ul className="text-sm text-muted-foreground space-y-1">
+                        <li>• Acknowledgement letters (practice logo and contact details)</li>
+                        <li>• Outcome letters (practice footer and signature)</li>
+                        <li>• Word document exports with proper formatting</li>
+                        <li>• PDF exports with logo placement</li>
+                      </ul>
+                    </div>
+                    
+                    <div className="p-4 border rounded-lg bg-accent/50">
+                      <h4 className="font-medium mb-2">Best Practices</h4>
+                      <ul className="text-sm text-muted-foreground space-y-1">
+                        <li>• Upload logos in PNG format with transparent backgrounds</li>
+                        <li>• Keep logo files under 1MB for best performance</li>
+                        <li>• Include complete contact details in practice settings</li>
+                        <li>• Set one practice as default for automatic selection</li>
+                      </ul>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
 

@@ -598,6 +598,68 @@ export type Database = {
           },
         ]
       }
+      complaint_signatures: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          is_default: boolean
+          job_title: string
+          name: string
+          phone: string | null
+          practice_id: string | null
+          qualifications: string | null
+          signature_image_url: string | null
+          signature_text: string | null
+          updated_at: string
+          use_for_acknowledgements: boolean
+          use_for_outcome_letters: boolean
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          is_default?: boolean
+          job_title: string
+          name: string
+          phone?: string | null
+          practice_id?: string | null
+          qualifications?: string | null
+          signature_image_url?: string | null
+          signature_text?: string | null
+          updated_at?: string
+          use_for_acknowledgements?: boolean
+          use_for_outcome_letters?: boolean
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          is_default?: boolean
+          job_title?: string
+          name?: string
+          phone?: string | null
+          practice_id?: string | null
+          qualifications?: string | null
+          signature_image_url?: string | null
+          signature_text?: string | null
+          updated_at?: string
+          use_for_acknowledgements?: boolean
+          use_for_outcome_letters?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_signatures_practice_id_fkey"
+            columns: ["practice_id"]
+            isOneToOne: false
+            referencedRelation: "practice_details"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       complaint_templates: {
         Row: {
           content: string
