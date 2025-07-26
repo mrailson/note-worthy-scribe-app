@@ -40,7 +40,9 @@ import {
   Shield,
   X,
   Save,
-  Tag
+  Tag,
+  History,
+  Scale
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -137,6 +139,7 @@ const ComplaintsSystem = () => {
     is_compliant: boolean;
     evidence: string | null;
     notes: string | null;
+    checked_at: string | null;
   }>>([]);
   const [complianceSummary, setComplianceSummary] = useState<{
     total_items: number;
@@ -146,6 +149,13 @@ const ComplaintsSystem = () => {
   } | null>(null);
   const [showImport, setShowImport] = useState(false);
   const [lettersStatus, setLettersStatus] = useState<Record<string, { hasAcknowledgement: boolean; hasOutcome: boolean; outcomeType?: string }>>({});
+  const [auditLogs, setAuditLogs] = useState<Array<{
+    id: string;
+    action_type: string;
+    action_description: string;
+    user_email: string | null;
+    created_at: string;
+  }>>([]);
 
   const [formData, setFormData] = useState<ComplaintFormData>({
     patient_name: "",
@@ -246,7 +256,6 @@ const ComplaintsSystem = () => {
 
   useEffect(() => {
     if (complaints.length > 0) {
-      console.log('Loading letters status for complaints:', complaints.map(c => c.id));
       loadLettersStatus();
     }
   }, [complaints]);
@@ -279,7 +288,6 @@ const ComplaintsSystem = () => {
       };
     }
     
-    console.log('Letters status loaded:', status);
     setLettersStatus(status);
   };
 
@@ -525,7 +533,19 @@ const ComplaintsSystem = () => {
   };
 
   const fetchAuditLogs = async (complaintId: string) => {
-    // This function is preserved from existing code
+    try {
+      const { data, error } = await supabase
+        .from('complaint_audit_detailed')
+        .select('*')
+        .eq('complaint_id', complaintId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setAuditLogs(data || []);
+    } catch (error) {
+      console.error('Error fetching audit logs:', error);
+      setAuditLogs([]);
+    }
   };
 
   const exportAuditToWord = async () => {
@@ -709,6 +729,98 @@ const ComplaintsSystem = () => {
   const getPriorityLabel = (priority: string) => {
     const option = priorityOptions.find(opt => opt.value === priority);
     return option?.label || priority;
+  };
+
+  const handleComplianceToggle = async (complianceId: string, isCompliant: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('complaint_compliance_checks')
+        .update({
+          is_compliant: isCompliant,
+          checked_by: user?.id,
+          checked_at: new Date().toISOString()
+        })
+        .eq('id', complianceId);
+
+      if (error) throw error;
+
+      // Update local state
+      setComplianceData(prev => 
+        prev.map(item => 
+          item.id === complianceId 
+            ? { ...item, is_compliant: isCompliant, checked_at: new Date().toISOString() }
+            : item
+        )
+      );
+
+      // Refresh compliance summary
+      if (selectedComplaint) {
+        await fetchComplianceData(selectedComplaint.id);
+      }
+
+      toast.success('Compliance status updated');
+    } catch (error) {
+      console.error('Error updating compliance:', error);
+      toast.error('Failed to update compliance status');
+    }
+  };
+
+  const handleComplianceToggle = async (complianceId: string, isCompliant: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('complaint_compliance_checks')
+        .update({
+          is_compliant: isCompliant,
+          checked_by: user?.id,
+          checked_at: new Date().toISOString()
+        })
+        .eq('id', complianceId);
+
+      if (error) throw error;
+
+      // Update local state
+      setComplianceData(prev => 
+        prev.map(item => 
+          item.id === complianceId 
+            ? { ...item, is_compliant: isCompliant, checked_at: new Date().toISOString() }
+            : item
+        )
+      );
+
+      // Refresh compliance summary
+      if (selectedComplaint) {
+        await fetchComplianceData(selectedComplaint.id);
+      }
+
+      toast.success('Compliance status updated');
+    } catch (error) {
+      console.error('Error updating compliance:', error);
+      toast.error('Failed to update compliance status');
+    }
+  };
+
+  const handleGenerateOutcome = async (complaintId: string) => {
+    try {
+      setSubmitting(true);
+      // Use the existing outcome letter function
+      await handleGenerateOutcomeLetter(complaintId);
+    } catch (error) {
+      console.error('Error generating outcome:', error);
+      toast.error('Failed to generate outcome');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+    try {
+      setSubmitting(true);
+      // Use the existing outcome letter function
+      await handleGenerateOutcomeLetter(complaintId);
+    } catch (error) {
+      console.error('Error generating outcome:', error);
+      toast.error('Failed to generate outcome');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const isOverdue = (complaint: Complaint) => {
@@ -1052,9 +1164,8 @@ const ComplaintsSystem = () => {
                                size="sm" 
                                variant="outline"
                                onClick={async () => {
-                                 console.log('Managing workflow for complaint:', complaint.id);
-                                 console.log('Letters status:', lettersStatus[complaint.id]);
                                  setSelectedComplaint(complaint);
+                                 setShowDetails(true);
                                  setShowDetails(true);
                                  await fetchComplianceData(complaint.id);
                                  await fetchAuditLogs(complaint.id);
@@ -1554,7 +1665,263 @@ const ComplaintsSystem = () => {
                   </CardContent>
                 </Card>
 
-                {/* Additional workflow management UI can be added here */}
+                {/* Workflow Management Tabs */}
+                <div className="space-y-6">
+                  <Tabs defaultValue="compliance" className="w-full">
+                    <TabsList className="grid w-full grid-cols-4">
+                      <TabsTrigger value="compliance">Compliance</TabsTrigger>
+                      <TabsTrigger value="letters">Letters</TabsTrigger>
+                      <TabsTrigger value="audit">Audit Log</TabsTrigger>
+                      <TabsTrigger value="outcome">Outcome</TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="compliance" className="space-y-4">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <CheckCircle className="h-5 w-5" />
+                            NHS Compliance Checklist
+                          </CardTitle>
+                          {complianceSummary && (
+                            <div className="flex items-center gap-4 text-sm">
+                              <span className="text-green-600 font-medium">
+                                {complianceSummary.compliant_items}/{complianceSummary.total_items} Items Complete
+                              </span>
+                              <span className="text-muted-foreground">
+                                {complianceSummary.compliance_percentage}% Compliant
+                              </span>
+                            </div>
+                          )}
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-3">
+                            {complianceData.map((item) => (
+                              <div key={item.id} className="flex items-start gap-3 p-3 border rounded-lg">
+                                <div className="mt-1">
+                                  <input
+                                    type="checkbox"
+                                    checked={item.is_compliant}
+                                    onChange={(e) => handleComplianceToggle(item.id, e.target.checked)}
+                                    className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                                  />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-start justify-between">
+                                    <div className="flex-1">
+                                      <p className="text-sm font-medium text-gray-900">{item.compliance_item}</p>
+                                      {item.notes && (
+                                        <p className="text-xs text-muted-foreground mt-1">{item.notes}</p>
+                                      )}
+                                    </div>
+                                    {item.checked_at && (
+                                      <span className="text-xs text-muted-foreground ml-2">
+                                        {format(new Date(item.checked_at), 'dd/MM/yy HH:mm')}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+
+                    <TabsContent value="letters" className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Card>
+                          <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                              <Mail className="h-5 w-5" />
+                              Acknowledgement Letter
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            {lettersStatus[selectedComplaint.id]?.hasAcknowledgement ? (
+                              <div className="space-y-3">
+                                <div className="flex items-center gap-2 text-green-600">
+                                  <CheckCircle className="h-4 w-4" />
+                                  <span className="text-sm font-medium">Generated</span>
+                                </div>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => {
+                                    setViewingLetterComplaint(selectedComplaint);
+                                    setLetterType('acknowledgement');
+                                    setModalLetterContent('');
+                                    setShowLetterModal(true);
+                                  }}
+                                >
+                                  <FileText className="h-4 w-4 mr-1" />
+                                  View Letter
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="space-y-3">
+                                <div className="flex items-center gap-2 text-yellow-600">
+                                  <Clock className="h-4 w-4" />
+                                  <span className="text-sm font-medium">Not Generated</span>
+                                </div>
+                                <Button 
+                                  size="sm" 
+                                  onClick={() => handleGenerateAcknowledgement(selectedComplaint.id)}
+                                  disabled={submitting || selectedComplaint.status !== 'submitted'}
+                                >
+                                  <Send className="h-4 w-4 mr-1" />
+                                  Generate Letter
+                                </Button>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+
+                        <Card>
+                          <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                              <FileText className="h-5 w-5" />
+                              Outcome Letter
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            {lettersStatus[selectedComplaint.id]?.hasOutcome ? (
+                              <div className="space-y-3">
+                                <div className="flex items-center gap-2 text-green-600">
+                                  <CheckCircle className="h-4 w-4" />
+                                  <span className="text-sm font-medium">
+                                    {lettersStatus[selectedComplaint.id].outcomeType === 'upheld' ? 'Upheld' :
+                                     lettersStatus[selectedComplaint.id].outcomeType === 'rejected' ? 'Not Upheld' : 
+                                     lettersStatus[selectedComplaint.id].outcomeType === 'partially_upheld' ? 'Partially Upheld' :
+                                     'Completed'}
+                                  </span>
+                                </div>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => {
+                                    setViewingLetterComplaint(selectedComplaint);
+                                    setLetterType('outcome');
+                                    setModalLetterContent('');
+                                    setShowLetterModal(true);
+                                  }}
+                                >
+                                  <FileText className="h-4 w-4 mr-1" />
+                                  View Letter
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="space-y-3">
+                                <div className="flex items-center gap-2 text-yellow-600">
+                                  <Clock className="h-4 w-4" />
+                                  <span className="text-sm font-medium">Not Generated</span>
+                                </div>
+                                <Button 
+                                  size="sm" 
+                                  onClick={() => handleGenerateOutcome(selectedComplaint.id)}
+                                  disabled={submitting}
+                                >
+                                  <Send className="h-4 w-4 mr-1" />
+                                  Generate Outcome
+                                </Button>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="audit" className="space-y-4">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <History className="h-5 w-5" />
+                            Audit Trail
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-3">
+                            {auditLogs.map((log) => (
+                              <div key={log.id} className="flex items-start gap-3 p-3 border rounded-lg">
+                                <div className="mt-1">
+                                  <div className="h-2 w-2 bg-primary rounded-full"></div>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-start justify-between">
+                                    <div className="flex-1">
+                                      <p className="text-sm font-medium text-gray-900">{log.action_type}</p>
+                                      <p className="text-sm text-muted-foreground">{log.action_description}</p>
+                                      {log.user_email && (
+                                        <p className="text-xs text-muted-foreground mt-1">By: {log.user_email}</p>
+                                      )}
+                                    </div>
+                                    <span className="text-xs text-muted-foreground ml-2">
+                                      {format(new Date(log.created_at), 'dd/MM/yy HH:mm')}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                            {auditLogs.length === 0 && (
+                              <p className="text-sm text-muted-foreground text-center py-4">No audit logs available</p>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+
+                    <TabsContent value="outcome" className="space-y-4">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <Scale className="h-5 w-5" />
+                            Complaint Outcome
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          {existingOutcome ? (
+                            <div className="space-y-4">
+                              <div className="p-4 bg-muted rounded-lg">
+                                <div className="grid grid-cols-2 gap-4 text-sm">
+                                  <div>
+                                    <strong>Outcome:</strong> 
+                                    <span className="ml-2">
+                                      {existingOutcome.outcome_type === 'upheld' ? 'Upheld' :
+                                       existingOutcome.outcome_type === 'rejected' ? 'Not Upheld' : 
+                                       existingOutcome.outcome_type === 'partially_upheld' ? 'Partially Upheld' : 
+                                       existingOutcome.outcome_type}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <strong>Decided:</strong> 
+                                    <span className="ml-2">
+                                      {format(new Date(existingOutcome.decided_at), 'dd/MM/yyyy')}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="mt-3">
+                                  <strong>Summary:</strong>
+                                  <p className="mt-1 text-sm text-muted-foreground">{existingOutcome.outcome_summary}</p>
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="space-y-4">
+                              <p className="text-sm text-muted-foreground">No outcome recorded for this complaint yet.</p>
+                              <Button 
+                                size="sm" 
+                                onClick={() => handleGenerateOutcome(selectedComplaint.id)}
+                                disabled={submitting}
+                              >
+                                <FileText className="h-4 w-4 mr-1" />
+                                Create Outcome
+                              </Button>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                  </Tabs>
+                </div>
               </div>
             </div>
           </div>
