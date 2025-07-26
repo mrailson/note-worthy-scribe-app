@@ -179,15 +179,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                     <Settings className="h-4 w-4 mr-2" />
                     User Settings
                   </DropdownMenuItem>
-                  {isAdmin && (
-                    <>
-                      <DropdownMenuItem 
-                        onClick={() => navigate('/user-management')}
-                        className="cursor-pointer py-3"
-                      >
-                        <Users className="h-4 w-4 mr-2" />
-                        User Management
-                      </DropdownMenuItem>
+                   {isAdmin && (
                       <DropdownMenuItem 
                         onClick={() => navigate('/admin')}
                         className="cursor-pointer py-3"
@@ -195,8 +187,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                         <Shield className="h-4 w-4 mr-2" />
                         System Admin
                       </DropdownMenuItem>
-                    </>
-                  )}
+                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
             )}

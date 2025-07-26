@@ -32,12 +32,16 @@ import {
 } from 'lucide-react';
 
 interface User {
-  id: string;
+  user_id: string;
   email: string;
   full_name: string;
   last_login: string | null;
-  created_at: string;
-  roles: { role: string; practice_name: string | null; practice_id: string | null }[];
+  practice_assignments: Array<{
+    practice_id: string;
+    practice_name: string;
+    role: string;
+    assigned_at: string;
+  }>;
 }
 
 interface Practice {
@@ -125,6 +129,11 @@ const SystemAdmin = () => {
   // User management state
   const [users, setUsers] = useState<User[]>([]);
   const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set());
+  const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string>('');
+  const [selectedPracticeId, setSelectedPracticeId] = useState<string>('');
+  const [selectedRole, setSelectedRole] = useState<string>('gp');
   
   // Practice management state
   const [practices, setPractices] = useState<Practice[]>([]);
@@ -200,23 +209,11 @@ const SystemAdmin = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const { data: profilesData, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const { data, error } = await supabase.rpc('get_users_with_practices');
 
       if (error) throw error;
-      
-      const usersWithData = profilesData?.map(profile => ({
-        id: profile.user_id,
-        email: profile.email,
-        full_name: profile.full_name,
-        last_login: profile.last_login,
-        created_at: profile.created_at,
-        roles: []
-      })) || [];
 
-      setUsers(usersWithData);
+      setUsers((data || []) as User[]);
     } catch (error) {
       console.error('Error fetching users:', error);
       toast.error("Failed to fetch users");
@@ -535,11 +532,11 @@ const SystemAdmin = () => {
     const { data: userRoles } = await supabase
       .from('user_roles')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', user.user_id)
       .single();
 
     setEditUserForm({
-      id: user.id,
+      id: user.user_id,
       email: user.email,
       name: user.full_name,
       newPassword: '',
@@ -686,6 +683,93 @@ const SystemAdmin = () => {
     }
   };
 
+  const toggleUserExpansion = (userId: string) => {
+    const newExpanded = new Set(expandedUsers);
+    if (newExpanded.has(userId)) {
+      newExpanded.delete(userId);
+    } else {
+      newExpanded.add(userId);
+    }
+    setExpandedUsers(newExpanded);
+  };
+
+  const assignUserToPractice = async () => {
+    if (!selectedUserId || !selectedPracticeId || !selectedRole) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const { error } = await supabase.rpc('assign_user_to_practice', {
+        p_user_id: selectedUserId,
+        p_practice_id: selectedPracticeId,
+        p_role: selectedRole as any
+      });
+
+      if (error) throw error;
+
+      toast.success("User assigned to practice successfully");
+      setIsAssignDialogOpen(false);
+      setSelectedUserId('');
+      setSelectedPracticeId('');
+      setSelectedRole('gp');
+      fetchUsers();
+    } catch (error) {
+      console.error('Error assigning user:', error);
+      toast.error("Failed to assign user to practice");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const removeUserFromPractice = async (userId: string, practiceId: string, role: string) => {
+    if (!confirm(`Are you sure you want to remove this user from this practice?`)) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const { error } = await supabase.rpc('remove_user_from_practice', {
+        p_user_id: userId,
+        p_practice_id: practiceId,
+        p_role: role as any
+      });
+
+      if (error) throw error;
+
+      toast.success("User removed from practice successfully");
+      fetchUsers();
+    } catch (error) {
+      console.error('Error removing user:', error);
+      toast.error("Failed to remove user from practice");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getRoleColor = (role: string) => {
+    switch (role) {
+      case 'system_admin': return 'destructive';
+      case 'practice_manager': return 'default';
+      case 'complaints_manager': return 'secondary';
+      case 'pcn_manager': return 'outline';
+      case 'gp': return 'secondary';
+      default: return 'outline';
+    }
+  };
+
+  const getRoleLabel = (role: string) => {
+    switch (role) {
+      case 'system_admin': return 'System Admin';
+      case 'practice_manager': return 'Practice Manager';
+      case 'complaints_manager': return 'Complaints Manager';
+      case 'pcn_manager': return 'PCN Manager';
+      case 'gp': return 'GP';
+      default: return role;
+    }
+  };
+
   if (!isAdmin) {
     return (
       <div className="container mx-auto p-6">
@@ -796,10 +880,15 @@ const SystemAdmin = () => {
                 className="w-64"
               />
             </div>
-            <Button onClick={() => setIsUserDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add User
-            </Button>
+            <div className="flex space-x-2">
+              <Button variant="outline" onClick={() => setIsAssignDialogOpen(true)}>
+                Assign User to Practice
+              </Button>
+              <Button onClick={() => setIsUserDialogOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add User
+              </Button>
+            </div>
           </div>
 
           <Card>
@@ -809,7 +898,7 @@ const SystemAdmin = () => {
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Last Login</TableHead>
-                  <TableHead>Roles</TableHead>
+                  <TableHead>Practice Assignments</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -820,39 +909,98 @@ const SystemAdmin = () => {
                     user.email.toLowerCase().includes(userSearchQuery.toLowerCase())
                   )
                   .map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell>{user.full_name}</TableCell>
-                      <TableCell>{user.email}</TableCell>
-                      <TableCell>
-                        {user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never'}
-                      </TableCell>
-                      <TableCell>
-                        {user.roles.map((role, index) => (
-                          <Badge key={index} variant="secondary" className="mr-1">
-                            {role.role}
-                          </Badge>
-                        ))}
-                      </TableCell>
-                       <TableCell>
-                         <div className="flex space-x-2">
-                           <Button 
-                             variant="ghost" 
-                             size="sm"
-                             onClick={() => handleEditUser(user)}
-                           >
-                             <Edit className="h-4 w-4" />
-                           </Button>
-                           <Button 
-                             variant="ghost" 
-                             size="sm"
-                             onClick={() => handleDeleteUser(user.id, user.email)}
-                             disabled={loading}
-                           >
-                             <Trash2 className="h-4 w-4 text-destructive" />
-                           </Button>
-                         </div>
-                       </TableCell>
-                    </TableRow>
+                    <>
+                      <TableRow key={user.user_id}>
+                        <TableCell className="font-medium">
+                          <Button
+                            variant="ghost"
+                            className="h-auto p-0 font-medium text-left"
+                            onClick={() => toggleUserExpansion(user.user_id)}
+                          >
+                            {user.full_name}
+                          </Button>
+                        </TableCell>
+                        <TableCell>{user.email}</TableCell>
+                        <TableCell>
+                          {user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never'}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {user.practice_assignments.slice(0, 2).map((assignment, index) => (
+                              <Badge key={index} variant={getRoleColor(assignment.role)} className="text-xs">
+                                {getRoleLabel(assignment.role)} - {assignment.practice_name}
+                              </Badge>
+                            ))}
+                            {user.practice_assignments.length > 2 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{user.practice_assignments.length - 2} more
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedUserId(user.user_id);
+                                setIsAssignDialogOpen(true);
+                              }}
+                            >
+                              Assign
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleEditUser(user)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleDeleteUser(user.user_id, user.email)}
+                              disabled={loading}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                      {expandedUsers.has(user.user_id) && user.practice_assignments.length > 0 && (
+                        <TableRow>
+                          <TableCell colSpan={5} className="bg-muted/30">
+                            <div className="p-4">
+                              <h4 className="font-medium mb-3">Practice Assignments:</h4>
+                              <div className="space-y-2">
+                                {user.practice_assignments.map((assignment, index) => (
+                                  <div key={index} className="flex items-center justify-between p-3 bg-card rounded border">
+                                    <div className="flex items-center space-x-3">
+                                      <Badge variant={getRoleColor(assignment.role)}>
+                                        {getRoleLabel(assignment.role)}
+                                      </Badge>
+                                      <span className="font-medium">{assignment.practice_name}</span>
+                                      <span className="text-sm text-muted-foreground">
+                                        Assigned: {new Date(assignment.assigned_at).toLocaleDateString()}
+                                      </span>
+                                    </div>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => removeUserFromPractice(user.user_id, assignment.practice_id, assignment.role)}
+                                      disabled={loading}
+                                    >
+                                      Remove
+                                    </Button>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </>
                   ))}
               </TableBody>
             </Table>
@@ -1987,6 +2135,75 @@ const SystemAdmin = () => {
             </Button>
             <Button onClick={handleUpdateUser} disabled={loading}>
               {loading ? 'Updating User...' : 'Update User'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Assign User to Practice Dialog */}
+      <Dialog open={isAssignDialogOpen} onOpenChange={setIsAssignDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Assign User to Practice</DialogTitle>
+            <DialogDescription>
+              Assign a user to a practice with a specific role
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="assign-user">User</Label>
+              <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select user" />
+                </SelectTrigger>
+                <SelectContent>
+                  {users.map((user) => (
+                    <SelectItem key={user.user_id} value={user.user_id}>
+                      {user.full_name} ({user.email})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label htmlFor="assign-practice">Practice</Label>
+              <Select value={selectedPracticeId} onValueChange={setSelectedPracticeId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select practice" />
+                </SelectTrigger>
+                <SelectContent>
+                  {practices.map((practice) => (
+                    <SelectItem key={practice.id} value={practice.id}>
+                      {practice.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label htmlFor="assign-role">Role</Label>
+              <Select value={selectedRole} onValueChange={setSelectedRole}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="gp">GP</SelectItem>
+                  <SelectItem value="practice_manager">Practice Manager</SelectItem>
+                  <SelectItem value="complaints_manager">Complaints Manager</SelectItem>
+                  <SelectItem value="pcn_manager">PCN Manager</SelectItem>
+                  <SelectItem value="system_admin">System Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAssignDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={assignUserToPractice} disabled={loading}>
+              {loading ? 'Assigning...' : 'Assign User'}
             </Button>
           </DialogFooter>
         </DialogContent>
