@@ -135,6 +135,53 @@ const ComplaintsSystem = () => {
       fetchAuditLogs(selectedComplaint.id);
     }
   }, [activeTab, selectedComplaint?.id]);
+
+  // Load acknowledgement and outcome letters when complaint is selected
+  useEffect(() => {
+    if (selectedComplaint?.id) {
+      loadComplaintLetters(selectedComplaint.id);
+    }
+  }, [selectedComplaint?.id]);
+
+  const loadComplaintLetters = async (complaintId: string) => {
+    try {
+      // Load existing acknowledgement letter if it exists
+      const { data: acknowledgement } = await supabase
+        .from('complaint_acknowledgements')
+        .select('*')
+        .eq('complaint_id', complaintId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      if (acknowledgement) {
+        setAcknowledgementLetter(acknowledgement.acknowledgement_letter);
+      } else {
+        setAcknowledgementLetter('');
+      }
+      
+      // Load existing outcome if it exists
+      const { data: outcome } = await supabase
+        .from('complaint_outcomes')
+        .select('*')
+        .eq('complaint_id', complaintId)
+        .maybeSingle();
+      
+      if (outcome) {
+        setExistingOutcome(outcome);
+        setOutcomeType(outcome.outcome_type);
+        setOutcomeSummary(outcome.outcome_summary);
+        setOutcomeLetter(outcome.outcome_letter);
+      } else {
+        setExistingOutcome(null);
+        setOutcomeType('');
+        setOutcomeSummary('');
+        setOutcomeLetter('');
+      }
+    } catch (error) {
+      console.error('Error loading complaint letters:', error);
+    }
+  };
   
   const [aiAnalysis, setAiAnalysis] = useState('');
   const [complianceChecks, setComplianceChecks] = useState<Array<{
@@ -309,6 +356,11 @@ const ComplaintsSystem = () => {
       });
 
       if (error) throw error;
+
+      // Set the acknowledgement letter in state to display it
+      if (data?.acknowledgementLetter) {
+        setAcknowledgementLetter(data.acknowledgementLetter);
+      }
 
       toast.success('Acknowledgement letter generated successfully');
       fetchComplaints(); // Refresh to show updated status
@@ -1932,8 +1984,61 @@ const ComplaintsSystem = () => {
                     </CardContent>
                   </Card>
 
-                  {/* Acknowledgement Letter Section */}
-                  {acknowledgementLetter && (
+                  {/* Generate Acknowledgement Letter */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Mail className="h-5 w-5" />
+                        Acknowledgement Letter
+                      </CardTitle>
+                      <CardDescription>
+                        Generate acknowledgement letter to confirm receipt of complaint
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {!acknowledgementLetter ? (
+                        <Button 
+                          onClick={() => handleGenerateAcknowledgement(selectedComplaint.id)}
+                          disabled={submitting}
+                        >
+                          <Mail className="h-4 w-4 mr-2" />
+                          {submitting ? 'Generating...' : 'Generate Acknowledgement Letter'}
+                        </Button>
+                      ) : (
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <Badge variant="default">Letter Generated</Badge>
+                            <div className="space-x-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setShowAcknowledgementLetter(!showAcknowledgementLetter)}
+                              >
+                                <Eye className="h-4 w-4 mr-1" />
+                                {showAcknowledgementLetter ? 'Hide' : 'View'} Letter
+                              </Button>
+                              <Button 
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleGenerateAcknowledgement(selectedComplaint.id)}
+                                disabled={submitting}
+                              >
+                                {submitting ? 'Regenerating...' : 'Regenerate Letter'}
+                              </Button>
+                            </div>
+                          </div>
+                          {showAcknowledgementLetter && (
+                            <div className="border rounded-lg p-4 bg-gray-50 max-h-96 overflow-y-auto">
+                              <pre className="whitespace-pre-wrap text-sm">{acknowledgementLetter}</pre>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Legacy Acknowledgement Letter Section - Remove this */}
+                  {false && acknowledgementLetter && (
                     <Card>
                       <CardHeader>
                         <CardTitle className="flex items-center justify-between">
