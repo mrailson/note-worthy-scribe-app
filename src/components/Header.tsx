@@ -9,7 +9,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
-import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning, Sparkles, Mail } from "lucide-react";
+import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning, Sparkles, Mail, Users } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -180,13 +180,22 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                     User Settings
                   </DropdownMenuItem>
                   {isAdmin && (
-                    <DropdownMenuItem 
-                      onClick={() => navigate('/admin')}
-                      className="cursor-pointer py-3"
-                    >
-                      <Shield className="h-4 w-4 mr-2" />
-                      System Admin
-                    </DropdownMenuItem>
+                    <>
+                      <DropdownMenuItem 
+                        onClick={() => navigate('/user-management')}
+                        className="cursor-pointer py-3"
+                      >
+                        <Users className="h-4 w-4 mr-2" />
+                        User Management
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => navigate('/admin')}
+                        className="cursor-pointer py-3"
+                      >
+                        <Shield className="h-4 w-4 mr-2" />
+                        System Admin
+                      </DropdownMenuItem>
+                    </>
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>

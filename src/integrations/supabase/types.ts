@@ -1558,6 +1558,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      assign_user_to_practice: {
+        Args: {
+          p_user_id: string
+          p_practice_id: string
+          p_role: Database["public"]["Enums"]["app_role"]
+          p_assigned_by?: string
+        }
+        Returns: string
+      }
       generate_complaint_reference: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -1604,6 +1613,20 @@ export type Database = {
         Args: { setting_name: string }
         Returns: string
       }
+      get_user_practice_assignments: {
+        Args: { p_user_id: string }
+        Returns: {
+          practice_id: string
+          practice_name: string
+          role: Database["public"]["Enums"]["app_role"]
+          assigned_at: string
+          assigned_by: string
+        }[]
+      }
+      get_user_practice_ids: {
+        Args: { p_user_id?: string }
+        Returns: string[]
+      }
       get_user_role_for_policy: {
         Args: { check_user_id?: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -1614,6 +1637,16 @@ export type Database = {
           role: Database["public"]["Enums"]["app_role"]
           practice_id: string
           practice_name: string
+        }[]
+      }
+      get_users_with_practices: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          user_id: string
+          email: string
+          full_name: string
+          last_login: string
+          practice_assignments: Json
         }[]
       }
       has_role: {
@@ -1689,6 +1722,14 @@ export type Database = {
       purge_expired_data: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      remove_user_from_practice: {
+        Args: {
+          p_user_id: string
+          p_practice_id: string
+          p_role?: Database["public"]["Enums"]["app_role"]
+        }
+        Returns: boolean
       }
       submit_external_response: {
         Args: { access_token_param: string; response_text_param: string }

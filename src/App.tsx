@@ -12,6 +12,7 @@ import ComplaintDetails from "./pages/ComplaintDetails";
 import ComplaintResponse from "./pages/ComplaintResponse";
 
 import AI4PMService from "./pages/AI4PMService";
+import UserManagement from "./pages/UserManagement";
 import NotFound from "./pages/NotFound";
 import { ResetPassword } from "./components/ResetPassword";
 
@@ -29,6 +30,7 @@ const App = () => (
       <Route path="/complaints" element={<ComplaintsSystem />} />
       <Route path="/complaints/:complaintId" element={<ComplaintDetails />} />
       <Route path="/complaint-response/:accessToken" element={<ComplaintResponse />} />
+      <Route path="/user-management" element={<UserManagement />} />
       
       <Route path="/ai-4-pm" element={<AI4PMService />} />
       <Route path="/reset-password" element={<ResetPassword />} />
