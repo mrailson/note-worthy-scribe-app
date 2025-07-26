@@ -901,7 +901,7 @@ const Index = () => {
               value="meeting-recorder" 
               className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium flex items-center gap-2"
             >
-              <Mic className="h-6 w-6" />
+              <Mic style={{ width: '24px', height: '24px', color: '#0066cc', marginRight: '8px' }} />
               Meeting Recorder
             </TabsTrigger>
             <TabsTrigger 
@@ -915,21 +915,21 @@ const Index = () => {
               value="examples" 
               className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium flex items-center gap-2"
             >
-              <FileText className="h-6 w-6" />
+              <FileText style={{ width: '24px', height: '24px', color: '#0066cc', marginRight: '8px' }} />
               Live Transcript
             </TabsTrigger>
             <TabsTrigger 
               value="settings" 
               className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium flex items-center gap-2"
             >
-              <Settings className="h-6 w-6" />
+              <Settings style={{ width: '24px', height: '24px', color: '#0066cc', marginRight: '8px' }} />
               Meeting Settings
             </TabsTrigger>
             <TabsTrigger 
               value="history" 
               className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium flex items-center gap-2"
             >
-              <Clock className="h-6 w-6" />
+              <Clock style={{ width: '24px', height: '24px', color: '#0066cc', marginRight: '8px' }} />
               Meeting History
             </TabsTrigger>
           </TabsList>
