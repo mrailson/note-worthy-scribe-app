@@ -33,6 +33,10 @@ interface PracticeStyle {
   practice_logo_url?: string;
   practice_address?: string;
   practice_footer?: string;
+  show_page_numbers?: boolean;
+  website?: string;
+  phone?: string;
+  email?: string;
 }
 
 export const ComplaintSignatureSettings = () => {
@@ -55,7 +59,11 @@ export const ComplaintSignatureSettings = () => {
     acknowledgement_template: 'nhs_standard',
     outcome_template: 'nhs_standard',
     practice_address: '',
-    practice_footer: ''
+    practice_footer: '',
+    show_page_numbers: true,
+    website: '',
+    phone: '',
+    email: ''
   });
 
   const [practices, setPractices] = useState<any[]>([]);
@@ -119,7 +127,11 @@ export const ComplaintSignatureSettings = () => {
           ...prev,
           practice_address: data.address || '',
           practice_footer: data.footer_text || '',
-          practice_logo_url: data.logo_url || ''
+          practice_logo_url: data.logo_url || '',
+          show_page_numbers: data.show_page_numbers ?? true,
+          website: data.website || '',
+          phone: data.phone || '',
+          email: data.email || ''
         }));
       }
     } catch (error: any) {
@@ -213,6 +225,10 @@ export const ComplaintSignatureSettings = () => {
             address: practiceStyle.practice_address,
             footer_text: practiceStyle.practice_footer,
             logo_url: practiceStyle.practice_logo_url,
+            show_page_numbers: practiceStyle.show_page_numbers,
+            website: practiceStyle.website,
+            phone: practiceStyle.phone,
+            email: practiceStyle.email,
             updated_at: new Date().toISOString()
           })
           .eq('id', signature.practice_id);
@@ -418,6 +434,51 @@ export const ComplaintSignatureSettings = () => {
                 placeholder="Additional footer information, website, registration details, etc."
                 rows={2}
               />
+            </div>
+
+            {/* Footer Options */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="show_page_numbers">Footer Settings</Label>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="show_page_numbers"
+                    checked={practiceStyle.show_page_numbers ?? true}
+                    onCheckedChange={(checked) => setPracticeStyle(prev => ({ ...prev, show_page_numbers: checked }))}
+                  />
+                  <Label htmlFor="show_page_numbers">Show Page Numbers</Label>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="practice_website">Practice Website</Label>
+                  <Input
+                    id="practice_website"
+                    value={practiceStyle.website || ''}
+                    onChange={(e) => setPracticeStyle(prev => ({ ...prev, website: e.target.value }))}
+                    placeholder="www.practicename.nhs.uk"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="practice_phone_footer">Practice Phone</Label>
+                  <Input
+                    id="practice_phone_footer"
+                    value={practiceStyle.phone || ''}
+                    onChange={(e) => setPracticeStyle(prev => ({ ...prev, phone: e.target.value }))}
+                    placeholder="01234 567890"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="practice_email_footer">Practice Email</Label>
+                  <Input
+                    id="practice_email_footer"
+                    value={practiceStyle.email || ''}
+                    onChange={(e) => setPracticeStyle(prev => ({ ...prev, email: e.target.value }))}
+                    placeholder="contact@practice.nhs.net"
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
