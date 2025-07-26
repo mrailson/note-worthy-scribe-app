@@ -6,130 +6,230 @@ interface FormattedLetterContentProps {
 }
 
 export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({ content }) => {
-  
   // Extract practice logo URL from HTML comment if present
   const logoUrlMatch = content.match(/<!--\s*logo_url:\s*(https?:\/\/[^\s\n]+)\s*-->/);
   const logoUrl = logoUrlMatch ? logoUrlMatch[1] : null;
   
   // Remove the logo metadata comment from content for parsing
   const cleanContent = content.replace(/<!--\s*logo_url:.*?-->\s*\n*/g, '');
-  const formattedContent = parseLetterContent(cleanContent);
   
-  // Check if content contains practice header information
-  const hasLetterhead = content.includes('Medical Practice') || content.includes('Medical Centre');
+  // Parse content into sections
+  const lines = cleanContent.split('\n').filter(line => line.trim());
   
-  const renderFormattedContent = (content: FormattedContent[]): JSX.Element[] => {
-    const elements: JSX.Element[] = [];
-    let currentParagraph: JSX.Element[] = [];
-    let paragraphKey = 0;
-    let isHeaderSection = true;
-
-    content.forEach((item, index) => {
-      if (item.type === 'text' && item.content === '\n') {
-        // End current paragraph
-        if (currentParagraph.length > 0) {
-          const paragraphContent = currentParagraph.map(el => {
-            if (React.isValidElement(el)) {
-              const props = el.props as any;
-              return typeof props.children === 'string' ? props.children : '';
-            }
-            return '';
-          }).join('');
-          
-          // Check if this is a header/letterhead line
-          const isHeaderLine = isHeaderSection && (
-            paragraphContent.includes('Medical Practice') ||
-            paragraphContent.includes('Medical Centre') ||
-            paragraphContent.includes('Tel:') ||
-            paragraphContent.includes('Email:') ||
-            paragraphContent.includes('Private & Confidential') ||
-            /^\d{1,2}\s+(January|February|March|April|May|June|July|August|September|October|November|December)/.test(paragraphContent)
-          );
-
-          elements.push(
-            <p key={paragraphKey} className={`mb-4 leading-relaxed ${
-              isHeaderLine 
-                ? 'text-center font-semibold text-lg text-primary' 
-                : 'text-sm'
-            }`}>
-              {currentParagraph}
-            </p>
-          );
-          currentParagraph = [];
-          paragraphKey++;
-          
-          // Stop treating as header after date line
-          if (paragraphContent.includes('202')) {
-            isHeaderSection = false;
-          }
-        } else {
-          // Empty line for spacing
-          elements.push(<br key={`br-${index}`} />);
-        }
-      } else if (item.type === 'bold') {
-        currentParagraph.push(
-          <strong key={`bold-${index}`} className="font-bold text-gray-900">
-            {item.content}
-          </strong>
-        );
-      } else if (item.type === 'text') {
-        const text = item.content.replace('\n', '');
-        if (text) {
-          currentParagraph.push(
-            <span key={`text-${index}`}>{text}</span>
-          );
-        }
-      }
-    });
-
-    // Add any remaining paragraph
-    if (currentParagraph.length > 0) {
-      elements.push(
-        <p key={paragraphKey} className="mb-4 leading-relaxed text-sm">
-          {currentParagraph}
-        </p>
-      );
+  // Extract different sections
+  let headerLines: string[] = [];
+  let dateSection = '';
+  let addresseeSection: string[] = [];
+  let bodyLines: string[] = [];
+  let signatureSection: string[] = [];
+  
+  let currentSection = 'header';
+  let bodyStarted = false;
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    
+    // Skip empty lines
+    if (!line) continue;
+    
+    // Detect date (starts with day number and contains month/year)
+    if (/^\*?\*?\d{1,2}[\s]*([A-Z][a-z]+|\w+)[\s]*\d{4}\*?\*?/.test(line)) {
+      dateSection = line.replace(/\*\*/g, '');
+      currentSection = 'addressee';
+      continue;
     }
+    
+    // Detect private/confidential
+    if (line.toLowerCase().includes('private') && line.toLowerCase().includes('confidential')) {
+      currentSection = 'addressee';
+      continue;
+    }
+    
+    // Detect addressee (patient name, address)
+    if (currentSection === 'addressee' && !bodyStarted) {
+      if (line.toLowerCase().includes('dear ') || line.includes('Re:')) {
+        bodyStarted = true;
+        currentSection = 'body';
+        bodyLines.push(line);
+      } else {
+        addresseeSection.push(line);
+      }
+      continue;
+    }
+    
+    // Detect signature section (starts with "Yours sincerely" or similar)
+    if (line.toLowerCase().includes('yours sincerely') || 
+        line.toLowerCase().includes('yours faithfully') ||
+        line.toLowerCase().includes('kind regards')) {
+      currentSection = 'signature';
+      signatureSection.push(line);
+      continue;
+    }
+    
+    // Assign to appropriate section
+    if (currentSection === 'header' && !bodyStarted) {
+      headerLines.push(line);
+    } else if (currentSection === 'body') {
+      bodyLines.push(line);
+    } else if (currentSection === 'signature') {
+      signatureSection.push(line);
+    }
+  }
 
-    return elements;
+  const formatTextWithBold = (text: string) => {
+    const parts = text.split(/(\*\*.*?\*\*)/);
+    return parts.map((part, index) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={index} className="font-bold">{part.slice(2, -2)}</strong>;
+      }
+      return part;
+    });
   };
 
   return (
-    <div className="max-w-4xl mx-auto bg-white">
-      {/* Practice Logo and Letterhead */}
-      {hasLetterhead && (
-        <div className="border-b border-gray-200 pb-6 mb-6">
-          <div className="flex items-center justify-between">
-            {logoUrl && (
-              <div className="flex-shrink-0">
+    <div className="max-w-4xl mx-auto bg-white shadow-lg">
+      {/* Practice Letterhead */}
+      <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-8">
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            {headerLines.length > 0 && (
+              <div className="space-y-1">
+                <h1 className="text-2xl font-bold">{headerLines[0].replace(/\*\*/g, '')}</h1>
+                {headerLines.slice(1).map((line, index) => (
+                  <p key={index} className="text-blue-100 text-sm">
+                    {line.replace(/\*\*/g, '')}
+                  </p>
+                ))}
+              </div>
+            )}
+          </div>
+          
+          {logoUrl && (
+            <div className="flex-shrink-0 ml-6">
+              <div className="bg-white p-3 rounded-lg shadow-md">
                 <img 
                   src={logoUrl} 
                   alt="Practice Logo" 
                   className="h-16 w-auto object-contain"
                   onError={(e) => {
-                    // Hide image if it fails to load
+                    console.error('Logo failed to load:', logoUrl);
                     e.currentTarget.style.display = 'none';
                   }}
                 />
               </div>
-            )}
-            <div className={`${logoUrl ? 'flex-1 ml-6' : 'w-full'} text-right`}>
-              <div className="text-sm text-gray-600">
-                NHS Complaint Letter
-              </div>
             </div>
-          </div>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Letter Content */}
-      <div className="font-serif text-base leading-relaxed space-y-4">
-        {renderFormattedContent(formattedContent)}
+      <div className="p-8 space-y-6">
+        {/* Date */}
+        {dateSection && (
+          <div className="text-right">
+            <p className="text-lg font-semibold text-gray-700">{dateSection}</p>
+          </div>
+        )}
+
+        {/* Private & Confidential */}
+        <div className="text-center">
+          <p className="text-sm font-semibold text-red-600 uppercase tracking-wide">
+            Private & Confidential
+          </p>
+        </div>
+
+        {/* Addressee */}
+        {addresseeSection.length > 0 && (
+          <div className="space-y-1">
+            {addresseeSection.map((line, index) => (
+              <p key={index} className="text-gray-800">
+                {formatTextWithBold(line)}
+              </p>
+            ))}
+          </div>
+        )}
+
+        {/* Body Content */}
+        <div className="space-y-4 text-gray-800 leading-relaxed">
+          {bodyLines.map((line, index) => {
+            const trimmedLine = line.trim();
+            
+            // Handle "Dear" line specially
+            if (trimmedLine.toLowerCase().startsWith('dear ')) {
+              return (
+                <p key={index} className="text-lg font-medium mb-6">
+                  {formatTextWithBold(trimmedLine)}
+                </p>
+              );
+            }
+            
+            // Handle "Re:" line specially
+            if (trimmedLine.toLowerCase().startsWith('re:')) {
+              return (
+                <div key={index} className="bg-gray-50 p-4 rounded-lg border-l-4 border-blue-500 mb-6">
+                  <p className="font-semibold text-gray-900">
+                    {formatTextWithBold(trimmedLine)}
+                  </p>
+                </div>
+              );
+            }
+            
+            // Regular paragraph
+            return (
+              <p key={index} className="mb-4 text-justify">
+                {formatTextWithBold(trimmedLine)}
+              </p>
+            );
+          })}
+        </div>
+
+        {/* Signature Section */}
+        {signatureSection.length > 0 && (
+          <div className="mt-8 pt-6 border-t border-gray-200">
+            <div className="space-y-3">
+              {signatureSection.map((line, index) => {
+                const trimmedLine = line.trim();
+                
+                // Handle closing line
+                if (trimmedLine.toLowerCase().includes('yours sincerely') || 
+                    trimmedLine.toLowerCase().includes('yours faithfully') ||
+                    trimmedLine.toLowerCase().includes('kind regards')) {
+                  return (
+                    <p key={index} className="text-gray-800 mb-4">
+                      {formatTextWithBold(trimmedLine)}
+                    </p>
+                  );
+                }
+                
+                // Handle signature name (usually in italics or bold)
+                if (trimmedLine.includes('*') || index === 1) {
+                  return (
+                    <div key={index} className="mt-6">
+                      <p className="text-xl font-bold text-blue-800 mb-1">
+                        {trimmedLine.replace(/\*/g, '')}
+                      </p>
+                    </div>
+                  );
+                }
+                
+                // Handle title, qualifications, practice name, etc.
+                return (
+                  <p key={index} className="text-gray-600 text-sm leading-relaxed">
+                    {formatTextWithBold(trimmedLine)}
+                  </p>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Footer */}
-      <div className="mt-8 pt-4 border-t border-gray-200 text-xs text-gray-500 text-center">
-        This letter was generated by the NHS Complaints Management System
+      <div className="bg-gray-50 px-8 py-4 border-t border-gray-200">
+        <div className="text-center text-xs text-gray-500">
+          <p>This letter was generated by the NHS Complaints Management System</p>
+          <p className="mt-1">Oak Lane Medical Practice - Committed to Excellence in Patient Care</p>
+        </div>
       </div>
     </div>
   );
