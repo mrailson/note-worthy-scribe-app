@@ -72,7 +72,13 @@ serve(async (req) => {
 6. Provides contact information for queries
 7. Is empathetic, professional, and clear
 
-Format as a formal letter with appropriate NHS letterhead styling.`;
+IMPORTANT FORMATTING REQUIREMENTS:
+- Start directly with the date, do NOT include any practice headers, letterhead references, or "---NHS Practice" at the top
+- Do NOT include any blank lines at the beginning of the letter
+- Begin immediately with the date in format "DD Month YYYY"
+- Follow with "Private & Confidential" and then the patient details
+
+Format as a clean formal letter without any header formatting or separators.`;
 
     const escalationText = outcomeType === 'rejected' || outcomeType === 'partially_upheld' 
       ? `If you remain dissatisfied with our response, you have the right to take your complaint to the Parliamentary and Health Service Ombudsman. They provide a free service for people who have a complaint about NHS care that cannot be resolved locally.
