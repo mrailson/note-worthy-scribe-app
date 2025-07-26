@@ -42,7 +42,8 @@ import {
   Brain,
   Shield,
   X,
-  Save
+  Save,
+  Copy
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -132,6 +133,10 @@ const ComplaintsSystem = () => {
   const [letterType, setLetterType] = useState<'acknowledgement' | 'outcome'>('acknowledgement');
   const [modalLetterContent, setModalLetterContent] = useState("");
   
+  // Edit letter states
+  const [isEditingLetter, setIsEditingLetter] = useState(false);
+  const [editedLetterContent, setEditedLetterContent] = useState("");
+  
   // Success modal states
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [newComplaintRef, setNewComplaintRef] = useState("");
@@ -220,6 +225,8 @@ const ComplaintsSystem = () => {
         
         if (acknowledgement) {
           setModalLetterContent(acknowledgement.acknowledgement_letter);
+          setEditedLetterContent(acknowledgement.acknowledgement_letter);
+          setIsEditingLetter(false);
           setShowLetterModal(true);
         } else {
           toast.error('No acknowledgement letter found for this complaint');
@@ -240,6 +247,8 @@ const ComplaintsSystem = () => {
           console.log('Outcome letter content:', outcome.outcome_letter);
           console.log('Setting modal content and showing modal');
           setModalLetterContent(outcome.outcome_letter);
+          setEditedLetterContent(outcome.outcome_letter);
+          setIsEditingLetter(false);
           setShowLetterModal(true);
           console.log('Modal state after setting:', { 
             showLetterModal: true, 
@@ -2651,6 +2660,8 @@ const ComplaintsSystem = () => {
                     setShowLetterModal(false);
                     setViewingLetterComplaint(null);
                     setModalLetterContent('');
+                    setIsEditingLetter(false);
+                    setEditedLetterContent('');
                   }}
                 >
                   <X className="h-4 w-4" />
@@ -2658,45 +2669,98 @@ const ComplaintsSystem = () => {
               </div>
               <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
                 <div className="border rounded-lg p-8 bg-white shadow-sm">
-                  <FormattedLetterContent content={modalLetterContent} />
+                  {isEditingLetter ? (
+                    <div className="space-y-4">
+                      <Label htmlFor="edit-letter">Edit Letter Content</Label>
+                      <Textarea
+                        id="edit-letter"
+                        value={editedLetterContent}
+                        onChange={(e) => setEditedLetterContent(e.target.value)}
+                        className="min-h-[500px] font-mono text-sm"
+                        placeholder="Edit the letter content..."
+                      />
+                    </div>
+                  ) : (
+                    <FormattedLetterContent content={modalLetterContent} />
+                  )}
                 </div>
-                <div className="mt-6 flex justify-end gap-3">
-                  <Button 
-                    variant="outline"
-                    onClick={() => {
-                      navigator.clipboard.writeText(modalLetterContent);
-                      toast.success('Letter copied to clipboard');
-                    }}
-                  >
-                    Copy to Clipboard
-                  </Button>
-                  <Button 
-                    variant="outline"
-                    onClick={async () => {
-                      try {
-                        const doc = createLetterDocument(
-                          modalLetterContent,
-                          letterType,
-                          viewingLetterComplaint.reference_number
-                        );
-                        
-                        const blob = await Packer.toBlob(doc);
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `${letterType}-letter-${viewingLetterComplaint.reference_number}.docx`;
-                        a.click();
-                        URL.revokeObjectURL(url);
-                        toast.success('Letter downloaded successfully');
-                      } catch (error) {
-                        console.error('Error generating DOCX:', error);
-                        toast.error('Failed to generate document');
-                      }
-                    }}
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Download DOCX
-                  </Button>
+                <div className="mt-6 flex justify-between">
+                  <div className="flex gap-3">
+                    {isEditingLetter ? (
+                      <>
+                        <Button 
+                          onClick={() => {
+                            setModalLetterContent(editedLetterContent);
+                            setIsEditingLetter(false);
+                            toast.success('Letter updated successfully');
+                          }}
+                        >
+                          <Save className="h-4 w-4 mr-2" />
+                          Save Changes
+                        </Button>
+                        <Button 
+                          variant="outline"
+                          onClick={() => {
+                            setEditedLetterContent(modalLetterContent);
+                            setIsEditingLetter(false);
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                      </>
+                    ) : (
+                      <Button 
+                        variant="outline"
+                        onClick={() => {
+                          setEditedLetterContent(modalLetterContent);
+                          setIsEditingLetter(true);
+                        }}
+                      >
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit Letter
+                      </Button>
+                    )}
+                  </div>
+                  <div className="flex gap-3">
+                    <Button 
+                      variant="outline"
+                      onClick={() => {
+                        navigator.clipboard.writeText(isEditingLetter ? editedLetterContent : modalLetterContent);
+                        toast.success('Letter copied to clipboard');
+                      }}
+                    >
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copy to Clipboard
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      onClick={async () => {
+                        try {
+                          const contentToDownload = isEditingLetter ? editedLetterContent : modalLetterContent;
+                          const doc = createLetterDocument(
+                            contentToDownload,
+                            letterType,
+                            viewingLetterComplaint.reference_number
+                          );
+                          
+                          const blob = await Packer.toBlob(doc);
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = `${letterType}-letter-${viewingLetterComplaint.reference_number}.docx`;
+                          a.click();
+                          URL.revokeObjectURL(url);
+                          toast.success('Letter downloaded successfully');
+                        } catch (error) {
+                          console.error('Error generating DOCX:', error);
+                          toast.error('Failed to generate document');
+                        }
+                      }}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Download DOCX
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
