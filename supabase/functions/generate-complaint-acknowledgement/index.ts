@@ -144,7 +144,12 @@ Generate a professional acknowledgement letter addressing the specific concerns 
     }
 
     const data = await response.json();
-    const acknowledgementLetter = data.choices[0].message.content;
+    let acknowledgementLetter = data.choices[0].message.content;
+    
+    // Add practice logo information as metadata if available
+    if (practiceDetails?.logo_url) {
+      acknowledgementLetter = `<!-- logo_url: ${practiceDetails.logo_url} -->\n\n${acknowledgementLetter}`;
+    }
 
     // Store the acknowledgement in the database
     const { error: insertError } = await supabase
