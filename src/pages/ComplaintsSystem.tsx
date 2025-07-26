@@ -1355,7 +1355,7 @@ const ComplaintsSystem = () => {
                             {complaint.location_service && (
                               <div className="flex items-center gap-2">
                                 <MapPin className="h-4 w-4 text-muted-foreground" />
-                                <span><strong>Location:</strong> {complaint.location_service}</span>
+                                <span><strong>Practice:</strong> {complaint.location_service}</span>
                               </div>
                             )}
                             {complaint.response_due_date && (
