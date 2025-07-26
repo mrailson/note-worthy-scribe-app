@@ -1073,7 +1073,7 @@ const ComplaintsSystem = () => {
             <TabsTrigger value="new">New Complaint</TabsTrigger>
             <TabsTrigger value="reports">Reports</TabsTrigger>
             
-            <TabsTrigger value="settings">Practice & Signatures</TabsTrigger>
+            <TabsTrigger value="settings">Signature Settings</TabsTrigger>
           </TabsList>
 
           {/* Dashboard Tab */}
