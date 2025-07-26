@@ -1067,11 +1067,10 @@ const ComplaintsSystem = () => {
         </div>
 
         <Tabs defaultValue="dashboard" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="view">View Complaints</TabsTrigger>
             <TabsTrigger value="new">New Complaint</TabsTrigger>
-            <TabsTrigger value="audit">Audit Log</TabsTrigger>
             <TabsTrigger value="reports">Reports</TabsTrigger>
             
             <TabsTrigger value="settings">Practice & Signatures</TabsTrigger>
@@ -1791,127 +1790,6 @@ const ComplaintsSystem = () => {
             </Card>
           </TabsContent>
 
-          {/* Audit Log Tab */}
-          <TabsContent value="audit" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Complaint Audit Log</CardTitle>
-                <CardDescription>
-                  Comprehensive audit trail of all complaint activities, status changes, and compliance updates
-                  {selectedComplaint && (
-                    <div className="mt-2 text-sm">
-                      Currently viewing logs for: <strong>{selectedComplaint.reference_number}</strong>
-                    </div>
-                  )}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Search and Filter Controls */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="audit-search">Search Audit Log</Label>
-                    <div className="relative">
-                      <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="audit-search"
-                        placeholder="Search by action, user, or description..."
-                        value={auditSearchTerm}
-                        onChange={(e) => setAuditSearchTerm(e.target.value)}
-                        className="pl-8"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Action Type</Label>
-                    <Select value={auditActionFilter} onValueChange={setAuditActionFilter}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Filter by action type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Actions</SelectItem>
-                        <SelectItem value="create">Created</SelectItem>
-                        <SelectItem value="view">Viewed</SelectItem>
-                        <SelectItem value="edit">Edited</SelectItem>
-                        <SelectItem value="status_change">Status Changes</SelectItem>
-                        <SelectItem value="compliance_update">Compliance Updates</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex items-end">
-                    <Button 
-                      variant="outline"
-                      onClick={() => {
-                        setAuditSearchTerm("");
-                        setAuditActionFilter("all");
-                      }}
-                    >
-                      Clear Filters
-                    </Button>
-                  </div>
-                </div>
-
-
-                {/* Audit Log Display */}
-                {auditLoading ? (
-                  <div className="text-center py-8">
-                    <div className="text-muted-foreground">Loading audit logs...</div>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {filteredAuditLogs.length === 0 ? (
-                      <div className="text-center py-8 text-muted-foreground">
-                        No audit logs found. Select a complaint to view its audit trail.
-                      </div>
-                    ) : (
-                      filteredAuditLogs.map((log) => (
-                        <Card key={log.id} className="border-l-4 border-l-blue-500">
-                          <CardContent className="p-4">
-                            <div className="flex items-start justify-between">
-                              <div className="space-y-1">
-                                <div className="flex items-center gap-2">
-                                  <Badge variant={getActionBadgeVariant(log.action_type)}>
-                                    {log.action_type.replace('_', ' ').toUpperCase()}
-                                  </Badge>
-                                  <span className="text-sm font-medium">
-                                    {log.profiles?.full_name || log.user_email}
-                                  </span>
-                                </div>
-                                <p className="text-sm text-muted-foreground">
-                                  {log.action_description}
-                                </p>
-                                {(log.old_values || log.new_values) && (
-                                  <div className="text-xs text-muted-foreground">
-                                    <details className="mt-2">
-                                      <summary className="cursor-pointer">View Details</summary>
-                                      <div className="mt-2 space-y-1">
-                                        {log.old_values && (
-                                          <div>
-                                            <strong>Previous:</strong> {JSON.stringify(log.old_values, null, 2)}
-                                          </div>
-                                        )}
-                                        {log.new_values && (
-                                          <div>
-                                            <strong>New:</strong> {JSON.stringify(log.new_values, null, 2)}
-                                          </div>
-                                        )}
-                                      </div>
-                                    </details>
-                                  </div>
-                                )}
-                              </div>
-                              <div className="text-right text-xs text-muted-foreground">
-                                {format(new Date(log.created_at), 'dd/MM/yyyy HH:mm:ss')}
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
 
           {/* Reports Tab */}
           <TabsContent value="reports" className="space-y-6">
