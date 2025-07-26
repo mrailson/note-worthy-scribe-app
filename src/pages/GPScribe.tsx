@@ -902,7 +902,7 @@ const Index = () => {
               className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium flex items-center gap-2"
             >
               <img src={microphoneIcon} alt="Microphone" className="h-4 w-4" />
-              Meeting Recorder
+              Test Meeting Recorder
             </TabsTrigger>
             <TabsTrigger 
               value="examples" 
