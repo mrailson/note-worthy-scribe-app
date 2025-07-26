@@ -78,6 +78,13 @@ export const ComplaintSignatureSettings = () => {
     }
   }, [user]);
 
+  // Load practice style when signature.practice_id changes
+  useEffect(() => {
+    if (signature.practice_id) {
+      loadPracticeStyle(signature.practice_id);
+    }
+  }, [signature.practice_id]);
+
   const loadSignatureSettings = async () => {
     try {
       const { data, error } = await supabase
