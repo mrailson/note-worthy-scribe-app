@@ -78,7 +78,7 @@ IMPORTANT FORMATTING REQUIREMENTS:
 - Begin immediately with the date in format "DD Month YYYY"
 - Follow with "Private & Confidential" and then the patient details
 - End with the signature block - do NOT include "*Signature*" or any signature placeholders
-- Include a blank line before the signature block, then list the signatory details directly
+- Include a blank line before the signature block, then "Yours sincerely," followed by two blank lines, then list the signatory details directly
 
 Format as a clean formal letter without any header formatting or separators.`;
 
