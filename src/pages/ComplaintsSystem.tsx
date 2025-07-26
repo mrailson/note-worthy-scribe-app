@@ -246,6 +246,7 @@ const ComplaintsSystem = () => {
 
   useEffect(() => {
     if (complaints.length > 0) {
+      console.log('Loading letters status for complaints:', complaints.map(c => c.id));
       loadLettersStatus();
     }
   }, [complaints]);
@@ -278,6 +279,7 @@ const ComplaintsSystem = () => {
       };
     }
     
+    console.log('Letters status loaded:', status);
     setLettersStatus(status);
   };
 
@@ -1045,20 +1047,22 @@ const ComplaintsSystem = () => {
                             )}
                           </div>
                           
-                          <div className="flex flex-wrap gap-2 pt-2">
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={async () => {
-                                setSelectedComplaint(complaint);
-                                setShowDetails(true);
-                                await fetchComplianceData(complaint.id);
-                                await fetchAuditLogs(complaint.id);
-                              }}
-                            >
-                              <Eye className="h-4 w-4 mr-1" />
-                              Manage Workflow
-                            </Button>
+                           <div className="flex flex-wrap gap-2 pt-2">
+                             <Button 
+                               size="sm" 
+                               variant="outline"
+                               onClick={async () => {
+                                 console.log('Managing workflow for complaint:', complaint.id);
+                                 console.log('Letters status:', lettersStatus[complaint.id]);
+                                 setSelectedComplaint(complaint);
+                                 setShowDetails(true);
+                                 await fetchComplianceData(complaint.id);
+                                 await fetchAuditLogs(complaint.id);
+                               }}
+                             >
+                               <Eye className="h-4 w-4 mr-1" />
+                               Manage Workflow
+                             </Button>
                             
                             {lettersStatus[complaint.id]?.hasAcknowledgement ? (
                               <Button 
