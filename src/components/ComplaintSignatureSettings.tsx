@@ -189,12 +189,18 @@ export const ComplaintSignatureSettings = () => {
   };
 
   const saveSignatureSettings = async () => {
+    console.log('saveSignatureSettings called');
+    console.log('signature:', signature);
+    console.log('practiceStyle:', practiceStyle);
+    
     if (!signature.name || !signature.job_title || !signature.email) {
+      console.log('Validation failed - missing required fields');
       toast.error('Please fill in all required fields');
       return;
     }
 
     if (!user?.id) {
+      console.log('User not authenticated');
       toast.error('User not authenticated');
       return;
     }
