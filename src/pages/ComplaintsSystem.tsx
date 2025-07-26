@@ -1145,6 +1145,17 @@ const ComplaintsSystem = () => {
                         {isOverdue(complaint) && (
                           <Badge variant="destructive">Overdue</Badge>
                         )}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedComplaint(complaint);
+                            setShowDetails(true);
+                          }}
+                        >
+                          <Eye className="h-4 w-4 mr-1" />
+                          View Details
+                        </Button>
                       </div>
                     </div>
                   ))}
