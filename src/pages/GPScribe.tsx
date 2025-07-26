@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import microphoneIcon from "@/assets/microphone-icon.png";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Mic, MicOff, Wifi, WifiOff, Brain, Copy, Download, Mail, Save, Play, Pause, FileText, ChevronDown, ChevronUp, Lightbulb, AlertTriangle, BookOpen, Shield, BarChart3, Edit, Check, X, Send, Settings, Languages, Volume2, VolumeX, Clock } from "lucide-react";
+import { Mic, MicOff, Wifi, WifiOff, Brain, Copy, Download, Mail, Save, Play, Pause, FileText, ChevronDown, ChevronUp, Lightbulb, AlertTriangle, BookOpen, Shield, BarChart3, Edit, Check, X, Send, Settings, Languages, Volume2, VolumeX } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 import { RealtimeTranscriber, TranscriptData } from "@/utils/RealtimeTranscriber";
@@ -898,39 +897,28 @@ const Index = () => {
         <Tabs defaultValue="consultation" className="w-full">
           <TabsList className="grid w-full grid-cols-5 bg-muted/50 p-1 rounded-xl border border-border/50">
             <TabsTrigger 
-              value="meeting-recorder" 
-              className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium flex items-center gap-2"
-            >
-              <Mic style={{ width: '24px', height: '24px', color: '#0066cc', marginRight: '8px' }} />
-              Meeting Recorder
-            </TabsTrigger>
-            <TabsTrigger 
               value="consultation" 
-              className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium flex items-center gap-2"
+              className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium"
             >
-              <img src={microphoneIcon} alt="Microphone" className="h-6 w-6" />
-              Test Meeting Recorder
+              Consultation
             </TabsTrigger>
             <TabsTrigger 
               value="examples" 
-              className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium flex items-center gap-2"
+              className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium"
             >
-              <FileText style={{ width: '24px', height: '24px', color: '#0066cc', marginRight: '8px' }} />
-              Live Transcript
+              Examples
             </TabsTrigger>
             <TabsTrigger 
               value="settings" 
-              className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium flex items-center gap-2"
+              className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium"
             >
-              <Settings style={{ width: '24px', height: '24px', color: '#0066cc', marginRight: '8px' }} />
-              Meeting Settings
+              Settings
             </TabsTrigger>
             <TabsTrigger 
               value="history" 
-              className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium flex items-center gap-2"
+              className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium"
             >
-              <Clock style={{ width: '24px', height: '24px', color: '#0066cc', marginRight: '8px' }} />
-              Meeting History
+              History
             </TabsTrigger>
           </TabsList>
 

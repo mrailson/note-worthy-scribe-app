@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Header } from '@/components/Header';
-import microphoneIcon from "@/assets/microphone-icon.png";
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -1213,20 +1212,20 @@ Always provide practical, actionable advice that follows NHS guidelines and best
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="ai-service" className="flex items-center gap-2">
-              <img src={microphoneIcon} alt="Microphone" className="h-4 w-4" />
-              Meeting Recorder
+              <MessageSquare className="h-4 w-4" />
+              AI Service
             </TabsTrigger>
             <TabsTrigger value="pm-genie" className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              Live Transcript
+              <Bot className="h-4 w-4" />
+              Chat with PM Genie
             </TabsTrigger>
             <TabsTrigger value="previous-searches" className="flex items-center gap-2">
-              <Settings className="h-4 w-4" />
-              Meeting Settings
+              <History className="h-4 w-4" />
+              Previous Searches
             </TabsTrigger>
             <TabsTrigger value="ai-settings" className="flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              Meeting History
+              <Settings className="h-4 w-4" />
+              AI Settings
             </TabsTrigger>
             <TabsTrigger value="what-can-ai-do" className="flex items-center gap-2">
               <HelpCircle className="h-4 w-4" />
