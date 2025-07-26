@@ -78,12 +78,8 @@ const ComplaintDetails = () => {
   const { user } = useAuth();
   const { complaintId } = useParams();
   const navigate = useNavigate();
-
-  // Early return for authentication check - before any useState hooks
-  if (!user) {
-    return <LoginForm />;
-  }
   
+  // All state hooks must be called before any conditional returns
   const [complaint, setComplaint] = useState<Complaint | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("workflow");
@@ -105,17 +101,9 @@ const ComplaintDetails = () => {
   const [aiAnalysis, setAiAnalysis] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  // Fetch complaint details
-  useEffect(() => {
-    if (complaintId) {
-      fetchComplaintDetails();
-      fetchComplianceData();
-      fetchAuditLogs();
-      fetchComplaintDocuments();
-    }
-  }, [complaintId]);
-
+  // Define all functions before useEffect
   const fetchComplaintDetails = async () => {
+    if (!user || !complaintId) return;
     try {
       setLoading(true);
       const { data, error } = await supabase
@@ -161,6 +149,7 @@ const ComplaintDetails = () => {
   };
 
   const fetchComplianceData = async () => {
+    if (!user || !complaintId) return;
     try {
       const { data: checks, error: checksError } = await supabase
         .from('complaint_compliance_checks')
@@ -185,6 +174,7 @@ const ComplaintDetails = () => {
   };
 
   const fetchComplaintDocuments = async () => {
+    if (!user || !complaintId) return;
     try {
       const { data, error } = await supabase
         .from('complaint_documents')
@@ -200,6 +190,7 @@ const ComplaintDetails = () => {
   };
 
   const fetchAuditLogs = async () => {
+    if (!user || !complaintId) return;
     try {
       const { data: logs, error } = await supabase
         .from('complaint_audit_detailed')
@@ -222,6 +213,23 @@ const ComplaintDetails = () => {
       console.error('Error fetching audit logs:', error);
     }
   };
+
+  // useEffect hook - must be called before conditional returns
+  useEffect(() => {
+    if (user && complaintId) {
+      fetchComplaintDetails();
+      fetchComplianceData();
+      fetchAuditLogs();
+      fetchComplaintDocuments();
+    }
+  }, [user, complaintId]);
+
+  // Conditional return AFTER all hooks are called
+  if (!user) {
+    return <LoginForm />;
+  }
+
+
 
   const getCategoryLabel = (category: string) => {
     const categoryOptions = [
