@@ -8,6 +8,7 @@ import MeetingSummary from "./pages/MeetingSummary";
 import Settings from "./pages/Settings";
 import SystemAdmin from "./pages/SystemAdmin";
 import ComplaintsSystem from "./pages/ComplaintsSystem";
+import ComplaintDetails from "./pages/ComplaintDetails";
 import ComplaintResponse from "./pages/ComplaintResponse";
 
 import AI4PMService from "./pages/AI4PMService";
@@ -26,6 +27,7 @@ const App = () => (
       <Route path="/settings" element={<Settings />} />
       <Route path="/admin" element={<SystemAdmin />} />
       <Route path="/complaints" element={<ComplaintsSystem />} />
+      <Route path="/complaints/:complaintId" element={<ComplaintDetails />} />
       <Route path="/complaint-response/:accessToken" element={<ComplaintResponse />} />
       
       <Route path="/ai-4-pm" element={<AI4PMService />} />

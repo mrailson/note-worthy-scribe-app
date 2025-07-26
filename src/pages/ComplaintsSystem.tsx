@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -97,6 +98,7 @@ interface ComplaintFormData {
 
 const ComplaintsSystem = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1385,11 +1387,8 @@ const ComplaintsSystem = () => {
                             <Button 
                               size="sm" 
                               variant="outline"
-                          onClick={async () => {
-                            setSelectedComplaint(complaint);
-                            setShowDetails(true);
-                            await fetchComplianceData(complaint.id);
-                            await fetchAuditLogs(complaint.id);
+                          onClick={() => {
+                            navigate(`/complaints/${complaint.id}`);
                           }}
                             >
                               <Eye className="h-4 w-4 mr-1" />
