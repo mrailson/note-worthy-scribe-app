@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Mic, MicOff, Wifi, WifiOff, Brain, Copy, Download, Mail, Save, Play, Pause, FileText, ChevronDown, ChevronUp, Lightbulb, AlertTriangle, BookOpen, Shield, BarChart3, Edit, Check, X, Send, Settings, Languages, Volume2, VolumeX } from "lucide-react";
+import { Mic, MicOff, Wifi, WifiOff, Brain, Copy, Download, Mail, Save, Play, Pause, FileText, ChevronDown, ChevronUp, Lightbulb, AlertTriangle, BookOpen, Shield, BarChart3, Edit, Check, X, Send, Settings, Languages, Volume2, VolumeX, Clock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 import { RealtimeTranscriber, TranscriptData } from "@/utils/RealtimeTranscriber";
@@ -898,27 +898,31 @@ const Index = () => {
           <TabsList className="grid w-full grid-cols-5 bg-muted/50 p-1 rounded-xl border border-border/50">
             <TabsTrigger 
               value="consultation" 
-              className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium"
+              className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium flex items-center gap-2"
             >
-              Consultation
+              <Mic className="h-4 w-4" />
+              Meeting Recorder
             </TabsTrigger>
             <TabsTrigger 
               value="examples" 
-              className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium"
+              className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium flex items-center gap-2"
             >
-              Examples
+              <FileText className="h-4 w-4" />
+              Live Transcript
             </TabsTrigger>
             <TabsTrigger 
               value="settings" 
-              className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium"
+              className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium flex items-center gap-2"
             >
-              Settings
+              <Settings className="h-4 w-4" />
+              Meeting Settings
             </TabsTrigger>
             <TabsTrigger 
               value="history" 
-              className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium"
+              className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium flex items-center gap-2"
             >
-              History
+              <Clock className="h-4 w-4" />
+              Meeting History
             </TabsTrigger>
           </TabsList>
 
