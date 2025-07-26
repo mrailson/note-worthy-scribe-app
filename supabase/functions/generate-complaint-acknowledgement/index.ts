@@ -40,20 +40,31 @@ serve(async (req) => {
       throw new Error('Complaint not found');
     }
 
+    console.log('Complaint data:', {
+      id: complaint.id,
+      practice_id: complaint.practice_id,
+      patient_name: complaint.patient_name
+    });
+
     // Get practice details if practice_id exists
     let practiceDetails = null;
     let signatureDetails = null;
     
     if (complaint.practice_id) {
+      console.log('Fetching practice details for practice_id:', complaint.practice_id);
       const { data: practice } = await supabase
         .from('practice_details')
         .select('practice_name, address, phone, email, logo_url, footer_text, website, show_page_numbers')
         .eq('id', complaint.practice_id)
         .single();
       practiceDetails = practice;
+      console.log('Retrieved practice details:', practiceDetails);
+    } else {
+      console.log('No practice_id found on complaint');
     }
 
     // Get signature details for the user who created the complaint
+    console.log('Fetching signature details for user:', complaint.created_by);
     const { data: signature } = await supabase
       .from('complaint_signatures')
       .select('*')
@@ -61,6 +72,7 @@ serve(async (req) => {
       .eq('use_for_acknowledgements', true)
       .single();
     signatureDetails = signature;
+    console.log('Retrieved signature details:', signatureDetails);
 
     const systemPrompt = `You are a professional NHS complaints officer writing acknowledgement letters. Generate a formal acknowledgement letter for a patient complaint that:
 
