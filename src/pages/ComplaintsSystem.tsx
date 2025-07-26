@@ -120,6 +120,10 @@ const ComplaintsSystem = () => {
   const [editingOutcome, setEditingOutcome] = useState(false);
   const [acknowledgementLetter, setAcknowledgementLetter] = useState("");
   const [showAcknowledgementLetter, setShowAcknowledgementLetter] = useState(false);
+  const [viewingLetterComplaint, setViewingLetterComplaint] = useState<Complaint | null>(null);
+  const [showLetterModal, setShowLetterModal] = useState(false);
+  const [letterType, setLetterType] = useState<'acknowledgement' | 'outcome'>('acknowledgement');
+  const [modalLetterContent, setModalLetterContent] = useState("");
   
   // Audit log states
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
@@ -182,6 +186,61 @@ const ComplaintsSystem = () => {
       console.error('Error loading complaint letters:', error);
     }
   };
+
+  const viewLetter = async (complaint: Complaint, type: 'acknowledgement' | 'outcome') => {
+    setViewingLetterComplaint(complaint);
+    setLetterType(type);
+    
+    if (type === 'acknowledgement') {
+      const { data: acknowledgement } = await supabase
+        .from('complaint_acknowledgements')
+        .select('*')
+        .eq('complaint_id', complaint.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      if (acknowledgement) {
+        setModalLetterContent(acknowledgement.acknowledgement_letter);
+        setShowLetterModal(true);
+      } else {
+        toast.error('No acknowledgement letter found for this complaint');
+      }
+    } else {
+      const { data: outcome } = await supabase
+        .from('complaint_outcomes')
+        .select('*')
+        .eq('complaint_id', complaint.id)
+        .maybeSingle();
+      
+      if (outcome) {
+        setModalLetterContent(outcome.outcome_letter);
+        setShowLetterModal(true);
+      } else {
+        toast.error('No outcome letter found for this complaint');
+      }
+    }
+  };
+
+  const checkLetterExists = async (complaintId: string, type: 'acknowledgement' | 'outcome'): Promise<boolean> => {
+    if (type === 'acknowledgement') {
+      const { data } = await supabase
+        .from('complaint_acknowledgements')
+        .select('id')
+        .eq('complaint_id', complaintId)
+        .limit(1)
+        .maybeSingle();
+      return !!data;
+    } else {
+      const { data } = await supabase
+        .from('complaint_outcomes')
+        .select('id')
+        .eq('complaint_id', complaintId)
+        .limit(1)
+        .maybeSingle();
+      return !!data;
+    }
+  };
   
   const [aiAnalysis, setAiAnalysis] = useState('');
   const [complianceChecks, setComplianceChecks] = useState<Array<{
@@ -198,6 +257,7 @@ const ComplaintsSystem = () => {
     outstanding_items: string[];
   } | null>(null);
   const [showImport, setShowImport] = useState(false);
+  const [lettersStatus, setLettersStatus] = useState<Record<string, { hasAcknowledgement: boolean; hasOutcome: boolean }>>({});
 
   const [formData, setFormData] = useState<ComplaintFormData>({
     patient_name: "",
@@ -251,6 +311,30 @@ const ComplaintsSystem = () => {
       fetchComplaints();
     }
   }, [user]);
+
+  useEffect(() => {
+    if (complaints.length > 0) {
+      loadLettersStatus();
+    }
+  }, [complaints]);
+
+  const loadLettersStatus = async () => {
+    const status: Record<string, { hasAcknowledgement: boolean; hasOutcome: boolean }> = {};
+    
+    for (const complaint of complaints) {
+      const [hasAck, hasOutcome] = await Promise.all([
+        checkLetterExists(complaint.id, 'acknowledgement'),
+        checkLetterExists(complaint.id, 'outcome')
+      ]);
+      
+      status[complaint.id] = {
+        hasAcknowledgement: hasAck,
+        hasOutcome: hasOutcome
+      };
+    }
+    
+    setLettersStatus(status);
+  };
 
   const fetchComplaints = async () => {
     try {
@@ -364,6 +448,7 @@ const ComplaintsSystem = () => {
 
       toast.success('Acknowledgement letter generated successfully');
       fetchComplaints(); // Refresh to show updated status
+      loadLettersStatus(); // Refresh letters status
     } catch (error) {
       console.error('Error generating acknowledgement:', error);
       toast.error('Failed to generate acknowledgement letter');
@@ -1197,7 +1282,7 @@ const ComplaintsSystem = () => {
                             </div>
                           )}
                           
-                          <div className="flex gap-2 pt-2">
+                          <div className="flex flex-wrap gap-2 pt-2">
                             <Button 
                               size="sm" 
                               variant="outline"
@@ -1211,15 +1296,39 @@ const ComplaintsSystem = () => {
                               <Eye className="h-4 w-4 mr-1" />
                               Manage Workflow
                             </Button>
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => handleGenerateAcknowledgement(complaint.id)}
-                              disabled={submitting || complaint.status !== 'submitted'}
-                            >
-                              <Send className="h-4 w-4 mr-1" />
-                              Generate Acknowledgement
-                            </Button>
+                            
+                            {lettersStatus[complaint.id]?.hasAcknowledgement ? (
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => viewLetter(complaint, 'acknowledgement')}
+                              >
+                                <Mail className="h-4 w-4 mr-1" />
+                                View Acknowledgement
+                              </Button>
+                            ) : (
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => handleGenerateAcknowledgement(complaint.id)}
+                                disabled={submitting || complaint.status !== 'submitted'}
+                              >
+                                <Send className="h-4 w-4 mr-1" />
+                                Generate Acknowledgement
+                              </Button>
+                            )}
+                            
+                            {lettersStatus[complaint.id]?.hasOutcome && (
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => viewLetter(complaint, 'outcome')}
+                              >
+                                <FileText className="h-4 w-4 mr-1" />
+                                View Outcome Letter
+                              </Button>
+                            )}
+                            
                             <Button size="sm" variant="outline">
                               <Download className="h-4 w-4 mr-1" />
                               Export
@@ -2531,8 +2640,67 @@ const ComplaintsSystem = () => {
           />
         )}
       </div>
-    </div>
-  );
-};
+        {/* Letter Viewing Modal */}
+        {showLetterModal && viewingLetterComplaint && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+              <div className="flex items-center justify-between p-6 border-b">
+                <div>
+                  <h2 className="text-xl font-semibold">
+                    {letterType === 'acknowledgement' ? 'Acknowledgement Letter' : 'Outcome Letter'}
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    {viewingLetterComplaint.reference_number} - {viewingLetterComplaint.complaint_title}
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setShowLetterModal(false);
+                    setViewingLetterComplaint(null);
+                    setModalLetterContent('');
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+                <div className="border rounded-lg p-6 bg-gray-50">
+                  <pre className="whitespace-pre-wrap text-sm font-mono">{modalLetterContent}</pre>
+                </div>
+                <div className="mt-4 flex justify-end gap-2">
+                  <Button 
+                    variant="outline"
+                    onClick={() => {
+                      navigator.clipboard.writeText(modalLetterContent);
+                      toast.success('Letter copied to clipboard');
+                    }}
+                  >
+                    Copy to Clipboard
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    onClick={() => {
+                      const blob = new Blob([modalLetterContent], { type: 'text/plain' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `${letterType}-letter-${viewingLetterComplaint.reference_number}.txt`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Download
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
 export default ComplaintsSystem;
