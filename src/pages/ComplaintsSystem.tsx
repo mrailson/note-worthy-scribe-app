@@ -15,6 +15,7 @@ import { LoginForm } from "@/components/LoginForm";
 import { supabase } from "@/integrations/supabase/client";
 import { ComplaintImport } from "@/components/ComplaintImport";
 import { PracticeManager } from "@/components/PracticeManager";
+import { ComplaintSignatureSettings } from "@/components/ComplaintSignatureSettings";
 
 import { 
   AlertCircle, 
@@ -1964,32 +1965,18 @@ const ComplaintsSystem = () => {
           {/* Practice & Signatures Tab */}
           <TabsContent value="settings">
             <div className="space-y-6">
-              <Card>
+               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <FileText className="h-5 w-5" />
                     Signature Settings for Complaint Letters
                   </CardTitle>
                   <CardDescription>
-                    Configure your signature details for acknowledgement and outcome letters
+                    Configure your signature details, practice branding, and letter templates for acknowledgement and outcome letters
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-center py-4">
-                    <p className="text-muted-foreground mb-4">
-                      Complaint letters will automatically include your signature from GP Scribe Settings.
-                    </p>
-                    <Button 
-                      onClick={() => window.open('/gp-scribe-settings', '_blank')}
-                      className="mb-4"
-                    >
-                      <FileText className="h-4 w-4 mr-2" />
-                      Configure GP Signature Settings
-                    </Button>
-                    <p className="text-xs text-muted-foreground">
-                      Opens in a new tab. Configure your name, title, qualifications, and practice details.
-                    </p>
-                  </div>
+                  <ComplaintSignatureSettings />
                 </CardContent>
               </Card>
 
