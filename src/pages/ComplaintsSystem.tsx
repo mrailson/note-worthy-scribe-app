@@ -1775,17 +1775,6 @@ const ComplaintsSystem = () => {
                   </div>
                 </div>
 
-                {/* Export Button */}
-                <div className="flex justify-end">
-                  <Button 
-                    variant="outline"
-                    onClick={() => exportAuditToWord()}
-                    disabled={auditLoading}
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Export to Word
-                  </Button>
-                </div>
 
                 {/* Audit Log Display */}
                 {auditLoading ? (
