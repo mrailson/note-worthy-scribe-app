@@ -1733,6 +1733,16 @@ export type Database = {
         | "medication"
         | "referrals"
         | "other"
+        | "Appointments & Access"
+        | "Clinical Care & Treatment"
+        | "Communication Issues"
+        | "Staff Attitude & Behaviour"
+        | "Prescriptions"
+        | "Test Results & Follow-Up"
+        | "Administration"
+        | "Facilities & Environment"
+        | "Digital Services"
+        | "Confidentiality & Data"
       complaint_priority: "low" | "medium" | "high" | "urgent"
       complaint_status:
         | "draft"
@@ -1903,6 +1913,16 @@ export const Constants = {
         "medication",
         "referrals",
         "other",
+        "Appointments & Access",
+        "Clinical Care & Treatment",
+        "Communication Issues",
+        "Staff Attitude & Behaviour",
+        "Prescriptions",
+        "Test Results & Follow-Up",
+        "Administration",
+        "Facilities & Environment",
+        "Digital Services",
+        "Confidentiality & Data",
       ],
       complaint_priority: ["low", "medium", "high", "urgent"],
       complaint_status: [
