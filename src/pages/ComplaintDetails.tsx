@@ -54,6 +54,7 @@ interface Complaint {
   complaint_title: string;
   complaint_description: string;
   category: string;
+  subcategory: string | null;
   location_service: string | null;
   staff_mentioned: string[] | null;
   status: string;
@@ -70,6 +71,7 @@ interface Complaint {
   created_at: string;
   updated_at: string;
   practice_id: string | null;
+  data_retention_date: string | null;
 }
 
 const ComplaintDetails = () => {
@@ -94,6 +96,7 @@ const ComplaintDetails = () => {
   const [complianceSummary, setComplianceSummary] = useState<any>(null);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [complianceAuditLogs, setComplianceAuditLogs] = useState<any[]>([]);
+  const [complaintDocuments, setComplaintDocuments] = useState<any[]>([]);
   const [aiAnalysis, setAiAnalysis] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -107,6 +110,7 @@ const ComplaintDetails = () => {
       fetchComplaintDetails();
       fetchComplianceData();
       fetchAuditLogs();
+      fetchComplaintDocuments();
     }
   }, [complaintId]);
 
@@ -176,6 +180,21 @@ const ComplaintDetails = () => {
       }
     } catch (error) {
       console.error('Error fetching compliance data:', error);
+    }
+  };
+
+  const fetchComplaintDocuments = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('complaint_documents')
+        .select('*')
+        .eq('complaint_id', complaintId)
+        .order('uploaded_at', { ascending: false });
+
+      if (error) throw error;
+      setComplaintDocuments(data || []);
+    } catch (error) {
+      console.error('Error fetching complaint documents:', error);
     }
   };
 
@@ -467,9 +486,77 @@ const ComplaintDetails = () => {
 
             {/* Details Tab */}
             <TabsContent value="details" className="space-y-6">
+              {/* Important Dates */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Patient Information</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5" />
+                    Important Dates
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="font-medium">Complaint Received</Label>
+                      <p className="text-sm text-muted-foreground">
+                        {complaint.created_at ? format(new Date(complaint.created_at), 'dd/MM/yyyy HH:mm') : 'Not recorded'}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="font-medium">Incident Date</Label>
+                      <p className="text-sm text-muted-foreground">
+                        {format(new Date(complaint.incident_date), 'dd/MM/yyyy')}
+                      </p>
+                    </div>
+                    {complaint.submitted_at && (
+                      <div>
+                        <Label className="font-medium">Submitted Date</Label>
+                        <p className="text-sm text-muted-foreground">
+                          {format(new Date(complaint.submitted_at), 'dd/MM/yyyy HH:mm')}
+                        </p>
+                      </div>
+                    )}
+                    {complaint.acknowledged_at && (
+                      <div>
+                        <Label className="font-medium">Acknowledged Date</Label>
+                        <p className="text-sm text-muted-foreground">
+                          {format(new Date(complaint.acknowledged_at), 'dd/MM/yyyy HH:mm')}
+                        </p>
+                      </div>
+                    )}
+                    {complaint.response_due_date && (
+                      <div>
+                        <Label className="font-medium">Response Due Date</Label>
+                        <p className="text-sm text-muted-foreground">
+                          {format(new Date(complaint.response_due_date), 'dd/MM/yyyy')}
+                        </p>
+                      </div>
+                    )}
+                    {complaint.closed_at && (
+                      <div>
+                        <Label className="font-medium">Closed Date</Label>
+                        <p className="text-sm text-muted-foreground">
+                          {format(new Date(complaint.closed_at), 'dd/MM/yyyy HH:mm')}
+                        </p>
+                      </div>
+                    )}
+                    <div>
+                      <Label className="font-medium">Last Updated</Label>
+                      <p className="text-sm text-muted-foreground">
+                        {complaint.updated_at ? format(new Date(complaint.updated_at), 'dd/MM/yyyy HH:mm') : 'Not recorded'}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Patient Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <User className="h-5 w-5" />
+                    Patient Information
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
@@ -485,48 +572,94 @@ const ComplaintDetails = () => {
                     )}
                     {complaint.patient_contact_phone && (
                       <div>
-                        <Label className="font-medium">Phone</Label>
-                        <p className="text-sm text-muted-foreground">{complaint.patient_contact_phone}</p>
+                        <Label className="font-medium">Phone Number</Label>
+                        <p className="text-sm text-muted-foreground">
+                          <a href={`tel:${complaint.patient_contact_phone}`} className="hover:underline">
+                            {complaint.patient_contact_phone}
+                          </a>
+                        </p>
                       </div>
                     )}
                     {complaint.patient_contact_email && (
                       <div>
-                        <Label className="font-medium">Email</Label>
-                        <p className="text-sm text-muted-foreground">{complaint.patient_contact_email}</p>
+                        <Label className="font-medium">Email Address</Label>
+                        <p className="text-sm text-muted-foreground">
+                          <a href={`mailto:${complaint.patient_contact_email}`} className="hover:underline">
+                            {complaint.patient_contact_email}
+                          </a>
+                        </p>
                       </div>
                     )}
                   </div>
                   {complaint.patient_address && (
                     <div>
                       <Label className="font-medium">Address</Label>
-                      <p className="text-sm text-muted-foreground">{complaint.patient_address}</p>
+                      <p className="text-sm text-muted-foreground whitespace-pre-line">{complaint.patient_address}</p>
+                    </div>
+                  )}
+                  <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+                    <div>
+                      <Label className="font-medium">Complaint Made On Behalf</Label>
+                      <p className="text-sm text-muted-foreground">
+                        {complaint.complaint_on_behalf ? 'Yes' : 'No'}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="font-medium">Consent Given</Label>
+                      <p className="text-sm text-muted-foreground">
+                        {complaint.consent_given ? 'Yes' : 'No'}
+                      </p>
+                    </div>
+                  </div>
+                  {complaint.consent_details && (
+                    <div>
+                      <Label className="font-medium">Consent Details</Label>
+                      <p className="text-sm text-muted-foreground mt-1">{complaint.consent_details}</p>
                     </div>
                   )}
                 </CardContent>
               </Card>
 
+              {/* Complaint Information */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Complaint Information</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Complaint Information
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
+                      <Label className="font-medium">Reference Number</Label>
+                      <p className="text-sm text-muted-foreground font-mono">{complaint.reference_number}</p>
+                    </div>
+                    <div>
                       <Label className="font-medium">Category</Label>
                       <p className="text-sm text-muted-foreground">{getCategoryLabel(complaint.category)}</p>
                     </div>
+                    {complaint.subcategory && (
+                      <div>
+                        <Label className="font-medium">Subcategory</Label>
+                        <p className="text-sm text-muted-foreground">{complaint.subcategory}</p>
+                      </div>
+                    )}
                     <div>
                       <Label className="font-medium">Priority</Label>
-                      <p className="text-sm text-muted-foreground">{getPriorityLabel(complaint.priority)}</p>
+                      <Badge variant={complaint.priority === 'urgent' ? 'destructive' : complaint.priority === 'high' ? 'default' : 'secondary'}>
+                        {getPriorityLabel(complaint.priority)}
+                      </Badge>
                     </div>
                     <div>
                       <Label className="font-medium">Status</Label>
-                      <p className="text-sm text-muted-foreground">{getStatusLabel(complaint.status)}</p>
+                      <Badge variant={complaint.status === 'closed' ? 'default' : complaint.status === 'submitted' ? 'secondary' : 'outline'}>
+                        {getStatusLabel(complaint.status)}
+                      </Badge>
                     </div>
-                    <div>
-                      <Label className="font-medium">Incident Date</Label>
-                      <p className="text-sm text-muted-foreground">{format(new Date(complaint.incident_date), 'dd/MM/yyyy')}</p>
-                    </div>
+                  </div>
+                  <div>
+                    <Label className="font-medium">Complaint Title</Label>
+                    <p className="text-sm text-muted-foreground mt-1">{complaint.complaint_title}</p>
                   </div>
                   {complaint.location_service && (
                     <div>
@@ -537,12 +670,120 @@ const ComplaintDetails = () => {
                   {complaint.staff_mentioned && complaint.staff_mentioned.length > 0 && (
                     <div>
                       <Label className="font-medium">Staff Mentioned</Label>
-                      <p className="text-sm text-muted-foreground">{complaint.staff_mentioned.join(', ')}</p>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {complaint.staff_mentioned.map((staff, index) => (
+                          <Badge key={index} variant="outline" className="text-xs">
+                            {staff}
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
                   )}
                   <div>
-                    <Label className="font-medium">Description</Label>
-                    <p className="text-sm text-muted-foreground mt-1">{complaint.complaint_description}</p>
+                    <Label className="font-medium">Complaint Description</Label>
+                    <div className="mt-1 p-3 bg-gray-50 rounded-lg border">
+                      <p className="text-sm text-foreground whitespace-pre-line">{complaint.complaint_description}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Original Complaint Files */}
+              {complaintDocuments.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Upload className="h-5 w-5" />
+                      Original Complaint Files
+                    </CardTitle>
+                    <CardDescription>
+                      Files and documents submitted with the original complaint
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {complaintDocuments.map((doc) => (
+                        <div key={doc.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
+                          <div className="flex items-center gap-3">
+                            <FileText className="h-5 w-5 text-muted-foreground" />
+                            <div>
+                              <p className="font-medium text-sm">{doc.file_name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {doc.file_type && `${doc.file_type} • `}
+                                {doc.file_size && `${(doc.file_size / 1024).toFixed(1)} KB • `}
+                                Uploaded: {format(new Date(doc.uploaded_at), 'dd/MM/yyyy HH:mm')}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                // Download file logic
+                                const { data } = supabase.storage
+                                  .from('communication-files')
+                                  .getPublicUrl(doc.file_path);
+                                window.open(data.publicUrl, '_blank');
+                              }}
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                // View file logic
+                                const { data } = supabase.storage
+                                  .from('communication-files')
+                                  .getPublicUrl(doc.file_path);
+                                window.open(data.publicUrl, '_blank');
+                              }}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Administrative Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Shield className="h-5 w-5" />
+                    Administrative Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4">
+                    {complaint.assigned_to && (
+                      <div>
+                        <Label className="font-medium">Assigned To</Label>
+                        <p className="text-sm text-muted-foreground">{complaint.assigned_to}</p>
+                      </div>
+                    )}
+                    {complaint.practice_id && (
+                      <div>
+                        <Label className="font-medium">Practice ID</Label>
+                        <p className="text-sm text-muted-foreground font-mono">{complaint.practice_id}</p>
+                      </div>
+                    )}
+                    <div>
+                      <Label className="font-medium">Created By</Label>
+                      <p className="text-sm text-muted-foreground font-mono">{complaint.created_by}</p>
+                    </div>
+                    {complaint.data_retention_date && (
+                      <div>
+                        <Label className="font-medium">Data Retention Until</Label>
+                        <p className="text-sm text-muted-foreground">
+                          {format(new Date(complaint.data_retention_date), 'dd/MM/yyyy')}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
