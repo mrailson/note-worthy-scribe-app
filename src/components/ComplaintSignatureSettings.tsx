@@ -195,7 +195,14 @@ export const ComplaintSignatureSettings = () => {
     
     if (!signature.name || !signature.job_title || !signature.email) {
       console.log('Validation failed - missing required fields');
-      toast.error('Please fill in all required fields');
+      
+      // Create specific error message for missing fields
+      const missingFields = [];
+      if (!signature.name) missingFields.push('Full Name');
+      if (!signature.job_title) missingFields.push('Job Title');
+      if (!signature.email) missingFields.push('Email');
+      
+      toast.error(`Please fill in the following required fields: ${missingFields.join(', ')}`);
       return;
     }
 
