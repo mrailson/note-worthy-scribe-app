@@ -44,6 +44,8 @@ import {
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx";
+import { FormattedLetterContent } from "@/components/FormattedLetterContent";
+import { createLetterDocument } from "@/utils/letterFormatter";
 
 interface Complaint {
   id: string;
@@ -2713,10 +2715,10 @@ const ComplaintsSystem = () => {
                 </Button>
               </div>
               <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
-                <div className="border rounded-lg p-6 bg-gray-50">
-                  <pre className="whitespace-pre-wrap text-sm font-mono">{modalLetterContent}</pre>
+                <div className="border rounded-lg p-8 bg-white shadow-sm">
+                  <FormattedLetterContent content={modalLetterContent} />
                 </div>
-                <div className="mt-4 flex justify-end gap-2">
+                <div className="mt-6 flex justify-end gap-3">
                   <Button 
                     variant="outline"
                     onClick={() => {
@@ -2728,18 +2730,30 @@ const ComplaintsSystem = () => {
                   </Button>
                   <Button 
                     variant="outline"
-                    onClick={() => {
-                      const blob = new Blob([modalLetterContent], { type: 'text/plain' });
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement('a');
-                      a.href = url;
-                      a.download = `${letterType}-letter-${viewingLetterComplaint.reference_number}.txt`;
-                      a.click();
-                      URL.revokeObjectURL(url);
+                    onClick={async () => {
+                      try {
+                        const doc = createLetterDocument(
+                          modalLetterContent,
+                          letterType,
+                          viewingLetterComplaint.reference_number
+                        );
+                        
+                        const blob = await Packer.toBlob(doc);
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `${letterType}-letter-${viewingLetterComplaint.reference_number}.docx`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        toast.success('Letter downloaded successfully');
+                      } catch (error) {
+                        console.error('Error generating DOCX:', error);
+                        toast.error('Failed to generate document');
+                      }
                     }}
                   >
                     <Download className="h-4 w-4 mr-2" />
-                    Download
+                    Download DOCX
                   </Button>
                 </div>
               </div>

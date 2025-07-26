@@ -111,6 +111,9 @@ export default {
 			animationDelay: {
 				'200': '200ms',
 				'400': '400ms'
+			},
+			fontFamily: {
+				'nhs': ['Inter', 'Arial', 'sans-serif'],
 			}
 		}
 	},
