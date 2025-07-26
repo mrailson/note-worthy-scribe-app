@@ -435,30 +435,41 @@ const ComplaintsSystem = () => {
   const fetchAuditLogs = async (complaintId: string) => {
     try {
       setAuditLoading(true);
+      console.log('Fetching audit logs for complaint:', complaintId);
       
       // Fetch general audit logs
       const { data: generalLogs, error: generalError } = await supabase
         .from('complaint_audit_detailed')
         .select(`
           *,
-          profiles!inner(full_name)
+          profiles(full_name)
         `)
         .eq('complaint_id', complaintId)
         .order('created_at', { ascending: false });
 
-      if (generalError) throw generalError;
+      if (generalError) {
+        console.error('Error fetching general audit logs:', generalError);
+        throw generalError;
+      }
+
+      console.log('General audit logs fetched:', generalLogs?.length || 0);
 
       // Fetch compliance audit logs
       const { data: complianceLogs, error: complianceError } = await supabase
         .from('complaint_compliance_audit')
         .select(`
           *,
-          profiles!inner(full_name)
+          profiles(full_name)
         `)
         .eq('complaint_id', complaintId)
         .order('created_at', { ascending: false });
 
-      if (complianceError) throw complianceError;
+      if (complianceError) {
+        console.error('Error fetching compliance audit logs:', complianceError);
+        throw complianceError;
+      }
+
+      console.log('Compliance audit logs fetched:', complianceLogs?.length || 0);
 
       setAuditLogs(generalLogs || []);
       setComplianceAuditLogs(complianceLogs || []);
@@ -627,6 +638,38 @@ const ComplaintsSystem = () => {
 
   const updateComplianceCheck = async (checkId: string, isCompliant: boolean, evidence?: string) => {
     try {
+      // Get the current check details for logging
+      const currentCheck = complianceChecks.find(check => check.id === checkId);
+      if (!currentCheck) {
+        console.error('Compliance check not found');
+        return;
+      }
+
+      console.log('Updating compliance check:', {
+        checkId,
+        currentStatus: currentCheck.is_compliant,
+        newStatus: isCompliant,
+        selectedComplaint: selectedComplaint?.id
+      });
+
+      // Log the compliance change BEFORE updating
+      if (selectedComplaint) {
+        const { error: logError } = await supabase.rpc('log_compliance_change', {
+          p_complaint_id: selectedComplaint.id,
+          p_compliance_check_id: checkId,
+          p_compliance_item: currentCheck.compliance_item,
+          p_previous_status: currentCheck.is_compliant,
+          p_new_status: isCompliant
+        });
+
+        if (logError) {
+          console.error('Error logging compliance change:', logError);
+        } else {
+          console.log('Compliance change logged successfully');
+        }
+      }
+
+      // Update the compliance check
       const { error } = await supabase
         .from('complaint_compliance_checks')
         .update({ 
@@ -639,10 +682,21 @@ const ComplaintsSystem = () => {
 
       if (error) throw error;
 
-      // Refresh compliance data
+      // Update local state immediately
+      setComplianceChecks(prev => 
+        prev.map(check => 
+          check.id === checkId 
+            ? { ...check, is_compliant: isCompliant }
+            : check
+        )
+      );
+
+      // Refresh compliance data and audit logs
       if (selectedComplaint) {
         await fetchComplianceData(selectedComplaint.id);
+        await fetchAuditLogs(selectedComplaint.id);
       }
+      
       toast.success('Compliance check updated');
     } catch (error) {
       console.error('Error updating compliance check:', error);
@@ -1460,6 +1514,11 @@ const ComplaintsSystem = () => {
                 <CardTitle>Complaint Audit Log</CardTitle>
                 <CardDescription>
                   Comprehensive audit trail of all complaint activities, status changes, and compliance updates
+                  {selectedComplaint && (
+                    <div className="mt-2 text-sm">
+                      Currently viewing logs for: <strong>{selectedComplaint.reference_number}</strong>
+                    </div>
+                  )}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
