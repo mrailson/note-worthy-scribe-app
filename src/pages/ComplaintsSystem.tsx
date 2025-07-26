@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Header } from "@/components/Header";
 import { useAuth } from "@/contexts/AuthContext";
 import { LoginForm } from "@/components/LoginForm";
@@ -130,6 +131,13 @@ const ComplaintsSystem = () => {
   const [showLetterModal, setShowLetterModal] = useState(false);
   const [letterType, setLetterType] = useState<'acknowledgement' | 'outcome'>('acknowledgement');
   const [modalLetterContent, setModalLetterContent] = useState("");
+  
+  // Success modal states
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [newComplaintRef, setNewComplaintRef] = useState("");
+  
+  // Tab state
+  const [currentTab, setCurrentTab] = useState("dashboard");
   
   // Audit log states
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
@@ -445,7 +453,9 @@ const ComplaintsSystem = () => {
 
       if (error) throw error;
 
-      toast.success(`Complaint submitted successfully. Reference: ${data.reference_number}`);
+      // Show success modal and store reference
+      setNewComplaintRef(data.reference_number);
+      setShowSuccessModal(true);
 
       // Reset form
       setFormData({
@@ -1066,7 +1076,7 @@ const ComplaintsSystem = () => {
           <p className="text-muted-foreground">Secure, NHS-compliant complaint management with full audit trail</p>
         </div>
 
-        <Tabs defaultValue="dashboard" className="space-y-6">
+        <Tabs value={currentTab} onValueChange={setCurrentTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="view">View Complaints</TabsTrigger>
@@ -2582,10 +2592,39 @@ const ComplaintsSystem = () => {
           <ComplaintImport
             onDataExtracted={handleImportData}
             onClose={() => setShowImport(false)}
-          />
-        )}
-      </div>
-        {/* Letter Viewing Modal */}
+           />
+         )}
+         
+         {/* Success Modal */}
+         <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
+           <DialogContent className="sm:max-w-md">
+             <DialogHeader>
+               <DialogTitle className="flex items-center gap-2">
+                 <CheckCircle className="h-5 w-5 text-green-600" />
+                 New Complaint Created
+               </DialogTitle>
+               <DialogDescription>
+                 Your complaint has been successfully submitted and assigned reference number:
+               </DialogDescription>
+             </DialogHeader>
+             <div className="flex flex-col items-center space-y-4 py-4">
+               <div className="text-2xl font-bold text-primary">
+                 {newComplaintRef}
+               </div>
+               <Button 
+                 onClick={() => {
+                   setShowSuccessModal(false);
+                   setCurrentTab("dashboard");
+                 }}
+                 className="w-full"
+               >
+                 Go to Dashboard
+               </Button>
+             </div>
+           </DialogContent>
+         </Dialog>
+       </div>
+         {/* Letter Viewing Modal */}
         {(() => {
           console.log('Modal render check:', { 
             showLetterModal, 
