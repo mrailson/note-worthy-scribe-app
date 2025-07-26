@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import microphoneIcon from "@/assets/microphone-icon.png";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -900,7 +901,7 @@ const Index = () => {
               value="consultation" 
               className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium flex items-center gap-2"
             >
-              <Mic className="h-4 w-4" />
+              <img src={microphoneIcon} alt="Microphone" className="h-4 w-4" />
               Meeting Recorder
             </TabsTrigger>
             <TabsTrigger 
