@@ -14,7 +14,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { LoginForm } from "@/components/LoginForm";
 import { supabase } from "@/integrations/supabase/client";
 import { ComplaintImport } from "@/components/ComplaintImport";
-import { PracticeManager } from "@/components/PracticeManager";
+
 import { ComplaintSignatureSettings } from "@/components/ComplaintSignatureSettings";
 
 import { 
@@ -1980,7 +1980,7 @@ const ComplaintsSystem = () => {
                 </CardContent>
               </Card>
 
-              <PracticeManager />
+              
               
               <Card>
                 <CardHeader>

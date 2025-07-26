@@ -165,29 +165,43 @@ export const ComplaintSignatureSettings = () => {
       return;
     }
 
+    if (!user?.id) {
+      toast.error('User not authenticated');
+      return;
+    }
+
     setIsLoading(true);
     try {
       const signatureData = {
         ...signature,
-        user_id: user?.id,
+        user_id: user.id,
         updated_at: new Date().toISOString()
       };
+
+      // Remove the id from signatureData for insert/update operations
+      const { id, ...dataForOperation } = signatureData;
 
       if (signature.id) {
         const { error } = await supabase
           .from('complaint_signatures')
-          .update(signatureData)
+          .update(dataForOperation)
           .eq('id', signature.id);
 
-        if (error) throw error;
+        if (error) {
+          console.error('Update error:', error);
+          throw error;
+        }
       } else {
         const { data, error } = await supabase
           .from('complaint_signatures')
-          .insert([signatureData])
+          .insert([dataForOperation])
           .select()
           .single();
 
-        if (error) throw error;
+        if (error) {
+          console.error('Insert error:', error);
+          throw error;
+        }
         setSignature(data);
       }
 
@@ -203,11 +217,15 @@ export const ComplaintSignatureSettings = () => {
           })
           .eq('id', signature.practice_id);
 
-        if (practiceError) throw practiceError;
+        if (practiceError) {
+          console.error('Practice update error:', practiceError);
+          throw practiceError;
+        }
       }
 
       toast.success('Signature settings saved successfully');
     } catch (error: any) {
+      console.error('Error saving signature settings:', error);
       toast.error(`Error saving settings: ${error.message}`);
     } finally {
       setIsLoading(false);
