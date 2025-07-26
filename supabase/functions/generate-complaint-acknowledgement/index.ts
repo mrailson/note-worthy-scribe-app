@@ -47,18 +47,18 @@ serve(async (req) => {
     if (complaint.practice_id) {
       const { data: practice } = await supabase
         .from('practice_details')
-        .select('practice_name, address, phone, email, logo_url, footer_text')
+        .select('practice_name, address, phone, email, logo_url, footer_text, website, show_page_numbers')
         .eq('id', complaint.practice_id)
         .single();
       practiceDetails = practice;
     }
 
-    // Get signature details for the user
+    // Get signature details for the user who created the complaint
     const { data: signature } = await supabase
-      .from('gp_signature_settings')
+      .from('complaint_signatures')
       .select('*')
       .eq('user_id', complaint.created_by)
-      .eq('is_default', true)
+      .eq('use_for_acknowledgements', true)
       .single();
     signatureDetails = signature;
 
@@ -72,7 +72,14 @@ serve(async (req) => {
 6. Provides contact information for queries
 7. Is empathetic and professional
 
-Format as a formal letter with appropriate NHS letterhead styling.`;
+IMPORTANT FORMATTING REQUIREMENTS:
+- Start directly with the date, do NOT include any practice headers or letterhead
+- Use the practice branding and footer information provided
+- Include practice contact details in the footer if available
+- Format as a clean, professional NHS letter
+- Include appropriate signature block with all provided signature details
+
+Format as a formal letter with NHS styling.`;
 
     const currentDate = new Date().toLocaleDateString('en-GB', {
       day: 'numeric',
@@ -93,14 +100,26 @@ Date: ${currentDate}
 
 Signature Details:
 ${signatureDetails ? `
-Name: ${signatureDetails.gp_name}
-Title: ${signatureDetails.job_title || 'Complaints Manager'}
+Name: ${signatureDetails.name}
+Title: ${signatureDetails.job_title}
 Qualifications: ${signatureDetails.qualifications || ''}
-Practice: ${signatureDetails.practice_name || practiceDetails?.practice_name || 'NHS Practice'}
-GMC Number: ${signatureDetails.gmc_number || ''}
+Email: ${signatureDetails.email}
+Phone: ${signatureDetails.phone || ''}
+Signature Text: ${signatureDetails.signature_text || ''}
 ` : ''}
 
-Generate a professional acknowledgement letter addressing the specific concerns raised. Include the date at the top of the letter as "${currentDate}". Include appropriate signature block at the end with the signature details provided.`;
+Practice Details:
+${practiceDetails ? `
+Practice Name: ${practiceDetails.practice_name}
+Address: ${practiceDetails.address || ''}
+Phone: ${practiceDetails.phone || ''}
+Email: ${practiceDetails.email || ''}
+Website: ${practiceDetails.website || ''}
+Footer Text: ${practiceDetails.footer_text || ''}
+Show Page Numbers: ${practiceDetails.show_page_numbers ? 'Yes' : 'No'}
+` : ''}
+
+Generate a professional acknowledgement letter addressing the specific concerns raised. Include the date at the top of the letter as "${currentDate}". Use the practice and signature details provided to create appropriate headers and signature blocks.`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',

@@ -47,18 +47,18 @@ serve(async (req) => {
     if (complaint.practice_id) {
       const { data: practice } = await supabase
         .from('practice_details')
-        .select('practice_name, address, phone, email, logo_url, footer_text')
+        .select('practice_name, address, phone, email, logo_url, footer_text, website, show_page_numbers')
         .eq('id', complaint.practice_id)
         .single();
       practiceDetails = practice;
     }
 
-    // Get signature details for the user
+    // Get signature details for the user who created the complaint
     const { data: signature } = await supabase
-      .from('gp_signature_settings')
+      .from('complaint_signatures')
       .select('*')
       .eq('user_id', complaint.created_by)
-      .eq('is_default', true)
+      .eq('use_for_outcome_letters', true)
       .single();
     signatureDetails = signature;
 
@@ -77,10 +77,12 @@ IMPORTANT FORMATTING REQUIREMENTS:
 - Do NOT include any blank lines at the beginning of the letter
 - Begin immediately with the date in format "DD Month YYYY"
 - Follow with "Private & Confidential" and then the patient details
+- Use practice branding and footer information provided
+- Include practice contact details appropriately
 - End with the signature block - do NOT include "*Signature*" or any signature placeholders
 - Include a blank line before the signature block, then "Yours sincerely," followed by two blank lines, then list the signatory details directly
 
-Format as a clean formal letter without any header formatting or separators.`;
+Format as a clean formal letter incorporating the configured practice and signature settings.`;
 
     const escalationText = outcomeType === 'rejected' || outcomeType === 'partially_upheld' 
       ? `If you remain dissatisfied with our response, you have the right to take your complaint to the Parliamentary and Health Service Ombudsman. They provide a free service for people who have a complaint about NHS care that cannot be resolved locally.
@@ -113,16 +115,28 @@ Date: ${currentDate}
 
 Signature Details:
 ${signatureDetails ? `
-Name: ${signatureDetails.gp_name}
-Title: ${signatureDetails.job_title || 'Complaints Manager'}
+Name: ${signatureDetails.name}
+Title: ${signatureDetails.job_title}
 Qualifications: ${signatureDetails.qualifications || ''}
-Practice: ${signatureDetails.practice_name || practiceDetails?.practice_name || 'NHS Practice'}
-GMC Number: ${signatureDetails.gmc_number || ''}
+Email: ${signatureDetails.email}
+Phone: ${signatureDetails.phone || ''}
+Signature Text: ${signatureDetails.signature_text || ''}
+` : ''}
+
+Practice Details:
+${practiceDetails ? `
+Practice Name: ${practiceDetails.practice_name}
+Address: ${practiceDetails.address || ''}
+Phone: ${practiceDetails.phone || ''}
+Email: ${practiceDetails.email || ''}
+Website: ${practiceDetails.website || ''}
+Footer Text: ${practiceDetails.footer_text || ''}
+Show Page Numbers: ${practiceDetails.show_page_numbers ? 'Yes' : 'No'}
 ` : ''}
 
 Include escalation information: ${escalationText}
 
-Generate a professional outcome letter that clearly explains the decision and next steps. Include the date at the top of the letter as "${currentDate}". Include appropriate signature block at the end with the signature details provided.`;
+Generate a professional outcome letter that clearly explains the decision and next steps. Include the date at the top of the letter as "${currentDate}". Use the practice and signature details provided to create appropriate formatting and signature blocks.`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
