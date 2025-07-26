@@ -74,6 +74,12 @@ serve(async (req) => {
 
 Format as a formal letter with appropriate NHS letterhead styling.`;
 
+    const currentDate = new Date().toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+
     const userPrompt = `Generate an acknowledgement letter for this complaint:
 
 Reference: ${complaint.reference_number}
@@ -83,12 +89,7 @@ Description: ${complaint.complaint_description}
 Category: ${complaint.category}
 Incident Date: ${complaint.incident_date}
 Location/Service: ${complaint.location_service || 'Not specified'}
-
-Practice Details:
-Name: ${practiceDetails?.practice_name || 'NHS Practice'}
-Address: ${practiceDetails?.address || 'Address not provided'}
-Phone: ${practiceDetails?.phone || 'Phone not provided'}
-Email: ${practiceDetails?.email || 'Email not provided'}
+Date: ${currentDate}
 
 Signature Details:
 ${signatureDetails ? `
@@ -99,7 +100,7 @@ Practice: ${signatureDetails.practice_name || practiceDetails?.practice_name || 
 GMC Number: ${signatureDetails.gmc_number || ''}
 ` : ''}
 
-Generate a professional acknowledgement letter addressing the specific concerns raised. Include appropriate signature block at the end with the signature details provided.`;
+Generate a professional acknowledgement letter addressing the specific concerns raised. Include the date at the top of the letter as "${currentDate}". Include appropriate signature block at the end with the signature details provided.`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
