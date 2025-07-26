@@ -1510,7 +1510,7 @@ const ComplaintsSystem = () => {
                       setAcknowledgementLetter('');
                       setOutcomeLetter('');
                       setShowOutcomeLetter(false);
-                      setViewLetterComplaint(null);
+                      setViewingLetterComplaint(null);
                       setModalLetterContent('');
                       setShowLetterModal(false);
                       setComplianceData([]);
