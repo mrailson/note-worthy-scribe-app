@@ -169,12 +169,8 @@ CRITICAL: Never include personal email addresses or direct contact details in th
     const data = await response.json();
     let outcomeLetter = data.choices[0].message.content;
     
-    // Add practice logo information as metadata if available
-    if (practiceDetails?.logo_url) {
-      outcomeLetter = `<!-- logo_url: ${practiceDetails.logo_url} -->\n\n${outcomeLetter}`;
-    }
-
-    return new Response(JSON.stringify({ 
+    
+    return new Response(JSON.stringify({
       outcomeLetter,
       usage: data.usage 
     }), {

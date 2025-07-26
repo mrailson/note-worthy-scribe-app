@@ -164,11 +164,6 @@ CRITICAL: Never include personal email addresses or direct contact details in th
     const data = await response.json();
     let acknowledgementLetter = data.choices[0].message.content;
     
-    // Add practice logo information as metadata if available
-    if (practiceDetails?.logo_url) {
-      acknowledgementLetter = `<!-- logo_url: ${practiceDetails.logo_url} -->\n\n${acknowledgementLetter}`;
-    }
-
     // Store the acknowledgement in the database
     const { error: insertError } = await supabase
       .from('complaint_acknowledgements')
