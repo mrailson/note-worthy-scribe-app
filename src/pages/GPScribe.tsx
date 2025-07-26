@@ -901,35 +901,35 @@ const Index = () => {
               value="meeting-recorder" 
               className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium flex items-center gap-2"
             >
-              <Mic className="h-4 w-4" />
+              <Mic className="h-6 w-6" />
               Meeting Recorder
             </TabsTrigger>
             <TabsTrigger 
               value="consultation" 
               className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium flex items-center gap-2"
             >
-              <img src={microphoneIcon} alt="Microphone" className="h-4 w-4" />
+              <img src={microphoneIcon} alt="Microphone" className="h-6 w-6" />
               Test Meeting Recorder
             </TabsTrigger>
             <TabsTrigger 
               value="examples" 
               className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium flex items-center gap-2"
             >
-              <FileText className="h-4 w-4" />
+              <FileText className="h-6 w-6" />
               Live Transcript
             </TabsTrigger>
             <TabsTrigger 
               value="settings" 
               className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium flex items-center gap-2"
             >
-              <Settings className="h-4 w-4" />
+              <Settings className="h-6 w-6" />
               Meeting Settings
             </TabsTrigger>
             <TabsTrigger 
               value="history" 
               className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium flex items-center gap-2"
             >
-              <Clock className="h-4 w-4" />
+              <Clock className="h-6 w-6" />
               Meeting History
             </TabsTrigger>
           </TabsList>
