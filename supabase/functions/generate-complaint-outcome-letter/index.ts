@@ -110,6 +110,7 @@ You should contact the Ombudsman within one year of the events you want to compl
 
 Reference: ${complaint.reference_number}
 Patient: ${complaint.patient_name}
+Patient Address: ${complaint.patient_address || 'Not provided'}
 Original Complaint: ${complaint.complaint_description}
 Outcome: ${outcomeType}
 Outcome Summary: ${outcomeSummary}
@@ -136,9 +137,11 @@ Show Page Numbers: ${practiceDetails.show_page_numbers ? 'Yes' : 'No'}
 
 Include escalation information: ${escalationText}
 
-Generate a professional outcome letter that clearly explains the decision and next steps. Include the date at the top of the letter as "${currentDate}". Use the practice and signature details provided to create appropriate formatting and signature blocks.
+Generate a professional outcome letter that clearly explains the decision and next steps. Include the date at the top of the letter as "${currentDate}". 
 
-CRITICAL: Never include personal email addresses or direct contact details in the signature. Only use the practice email (${practiceDetails?.email || 'info@practice.nhs.uk'}) and practice phone number for contact information.`;
+IMPORTANT: If patient address is provided, include it in the letter header after "Private & Confidential". Use the practice and signature details provided to create appropriate formatting and signature blocks. If practice phone number is available, include it in the practice contact details.
+
+CRITICAL: Never include personal email addresses or direct contact details in the signature. Only use the practice email (${practiceDetails?.email || 'info@practice.nhs.uk'}) and practice phone number (${practiceDetails?.phone || ''}) for contact information.`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',

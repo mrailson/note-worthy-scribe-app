@@ -93,6 +93,7 @@ Format as a formal letter with NHS styling.`;
 
 Reference: ${complaint.reference_number}
 Patient: ${complaint.patient_name}
+Patient Address: ${complaint.patient_address || 'Not provided'}
 Complaint Title: ${complaint.complaint_title}
 Description: ${complaint.complaint_description}
 Category: ${complaint.category}
@@ -119,9 +120,11 @@ Footer Text: ${practiceDetails.footer_text || ''}
 Show Page Numbers: ${practiceDetails.show_page_numbers ? 'Yes' : 'No'}
 ` : ''}
 
-Generate a professional acknowledgement letter addressing the specific concerns raised. Include the date at the top of the letter as "${currentDate}". Use the practice and signature details provided to create appropriate headers and signature blocks.
+Generate a professional acknowledgement letter addressing the specific concerns raised. Include the date at the top of the letter as "${currentDate}". 
 
-CRITICAL: Never include personal email addresses or direct contact details in the signature. Only use the practice email (${practiceDetails?.email || 'info@practice.nhs.uk'}) and practice phone number for contact information.`;
+IMPORTANT: If patient address is provided, include it in the letter header after "Private & Confidential". Use the practice and signature details provided to create appropriate headers and signature blocks. If practice phone number is available, include it in the practice contact details.
+
+CRITICAL: Never include personal email addresses or direct contact details in the signature. Only use the practice email (${practiceDetails?.email || 'info@practice.nhs.uk'}) and practice phone number (${practiceDetails?.phone || ''}) for contact information.`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
