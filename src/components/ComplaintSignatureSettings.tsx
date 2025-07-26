@@ -96,17 +96,26 @@ export const ComplaintSignatureSettings = () => {
 
   const loadPractices = async () => {
     try {
-      // Get user's assigned practices
-      const { data: userPractices, error: practicesError } = await supabase.rpc(
-        'get_user_practice_assignments',
-        { p_user_id: user?.id }
-      );
+      // Get user's practice details directly
+      const { data: userPractices, error: practicesError } = await supabase
+        .from('practice_details')
+        .select('id, practice_name')
+        .eq('user_id', user?.id);
 
       if (!practicesError && userPractices) {
-        setPractices(userPractices);
+        // Transform the data to match expected format
+        const formattedPractices = userPractices.map(p => ({
+          practice_id: p.id,
+          practice_name: p.practice_name
+        }));
         
-        // Load practice style settings if user has practices
-        if (userPractices.length > 0 && signature.practice_id) {
+        setPractices(formattedPractices);
+        
+        // Auto-select the first practice if available and none is selected
+        if (formattedPractices.length > 0 && !signature.practice_id) {
+          setSignature(prev => ({ ...prev, practice_id: formattedPractices[0].practice_id }));
+          loadPracticeStyle(formattedPractices[0].practice_id);
+        } else if (signature.practice_id) {
           loadPracticeStyle(signature.practice_id);
         }
       }
