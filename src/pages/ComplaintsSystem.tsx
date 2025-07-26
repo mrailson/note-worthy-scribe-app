@@ -167,59 +167,59 @@ const ComplaintsSystem = () => {
   });
 
   const categoryOptions = [
-    { value: "appointments_access", label: "Appointments & Access" },
-    { value: "clinical_care_treatment", label: "Clinical Care & Treatment" },
-    { value: "communication_issues", label: "Communication Issues" },
-    { value: "staff_attitude_behaviour", label: "Staff Attitude & Behaviour" },
-    { value: "prescriptions", label: "Prescriptions" },
-    { value: "test_results_followup", label: "Test Results & Follow-Up" },
-    { value: "administration", label: "Administration" },
-    { value: "facilities_environment", label: "Facilities & Environment" },
-    { value: "digital_services", label: "Digital Services" },
-    { value: "confidentiality_data", label: "Confidentiality & Data" },
+    { value: "Appointments & Access", label: "Appointments & Access" },
+    { value: "Clinical Care & Treatment", label: "Clinical Care & Treatment" },
+    { value: "Communication Issues", label: "Communication Issues" },
+    { value: "Staff Attitude & Behaviour", label: "Staff Attitude & Behaviour" },
+    { value: "Prescriptions", label: "Prescriptions" },
+    { value: "Test Results & Follow-Up", label: "Test Results & Follow-Up" },
+    { value: "Administration", label: "Administration" },
+    { value: "Facilities & Environment", label: "Facilities & Environment" },
+    { value: "Digital Services", label: "Digital Services" },
+    { value: "Confidentiality & Data", label: "Confidentiality & Data" },
   ];
 
   const subcategoryOptions: Record<string, { value: string; label: string; severity: string }[]> = {
-    appointments_access: [
-      { value: "booking_issues", label: "Booking Issues", severity: "medium" },
-      { value: "waiting_times", label: "Waiting Times", severity: "high" },
-      { value: "urgent_care_access", label: "Urgent Care Access", severity: "high" },
+    "Appointments & Access": [
+      { value: "Booking Issues", label: "Booking Issues", severity: "medium" },
+      { value: "Waiting Times", label: "Waiting Times", severity: "high" },
+      { value: "Urgent Care Access", label: "Urgent Care Access", severity: "high" },
     ],
-    clinical_care_treatment: [
-      { value: "misdiagnosis", label: "Misdiagnosis", severity: "high" },
-      { value: "delayed_referral", label: "Delayed Referral", severity: "high" },
-      { value: "treatment_concern", label: "Treatment Concern", severity: "high" },
+    "Clinical Care & Treatment": [
+      { value: "Misdiagnosis", label: "Misdiagnosis", severity: "high" },
+      { value: "Delayed Referral", label: "Delayed Referral", severity: "high" },
+      { value: "Treatment Concern", label: "Treatment Concern", severity: "high" },
     ],
-    communication_issues: [
-      { value: "poor_explanation", label: "Poor Explanation", severity: "medium" },
-      { value: "lack_of_updates", label: "Lack of Updates", severity: "medium" },
+    "Communication Issues": [
+      { value: "Poor Explanation", label: "Poor Explanation", severity: "medium" },
+      { value: "Lack of Updates", label: "Lack of Updates", severity: "medium" },
     ],
-    staff_attitude_behaviour: [
-      { value: "rude_behaviour", label: "Rude Behaviour", severity: "medium" },
-      { value: "lack_of_empathy", label: "Lack of Empathy", severity: "medium" },
+    "Staff Attitude & Behaviour": [
+      { value: "Rude Behaviour", label: "Rude Behaviour", severity: "medium" },
+      { value: "Lack of Empathy", label: "Lack of Empathy", severity: "medium" },
     ],
-    prescriptions: [
-      { value: "delay_in_issue", label: "Delay in Issue", severity: "medium" },
-      { value: "medication_error", label: "Medication Error", severity: "high" },
+    "Prescriptions": [
+      { value: "Delay in Issue", label: "Delay in Issue", severity: "medium" },
+      { value: "Medication Error", label: "Medication Error", severity: "high" },
     ],
-    test_results_followup: [
-      { value: "result_delays", label: "Result Delays", severity: "medium" },
-      { value: "no_followup", label: "No Follow-Up", severity: "high" },
+    "Test Results & Follow-Up": [
+      { value: "Result Delays", label: "Result Delays", severity: "medium" },
+      { value: "No Follow-Up", label: "No Follow-Up", severity: "high" },
     ],
-    administration: [
-      { value: "record_errors", label: "Record Errors", severity: "high" },
-      { value: "referral_letter_issues", label: "Referral Letter Issues", severity: "medium" },
+    "Administration": [
+      { value: "Record Errors", label: "Record Errors", severity: "high" },
+      { value: "Referral Letter Issues", label: "Referral Letter Issues", severity: "medium" },
     ],
-    facilities_environment: [
-      { value: "cleanliness", label: "Cleanliness", severity: "low" },
-      { value: "accessibility", label: "Accessibility", severity: "medium" },
+    "Facilities & Environment": [
+      { value: "Cleanliness", label: "Cleanliness", severity: "low" },
+      { value: "Accessibility", label: "Accessibility", severity: "medium" },
     ],
-    digital_services: [
-      { value: "online_booking_issues", label: "Online Booking Issues", severity: "medium" },
-      { value: "access_to_records", label: "Access to Records", severity: "medium" },
+    "Digital Services": [
+      { value: "Online Booking Issues", label: "Online Booking Issues", severity: "medium" },
+      { value: "Access to Records", label: "Access to Records", severity: "medium" },
     ],
-    confidentiality_data: [
-      { value: "breach_of_data", label: "Breach of Data", severity: "high" },
+    "Confidentiality & Data": [
+      { value: "Breach of Data", label: "Breach of Data", severity: "high" },
     ],
   };
 
