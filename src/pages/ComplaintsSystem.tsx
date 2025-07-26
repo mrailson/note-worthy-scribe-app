@@ -104,6 +104,7 @@ const ComplaintsSystem = () => {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedPriority, setSelectedPriority] = useState("all");
+  const [selectedOutcome, setSelectedOutcome] = useState("all");
   const [dashboardFilter, setDashboardFilter] = useState("all");
   
   // Pagination states
@@ -1003,6 +1004,19 @@ const ComplaintsSystem = () => {
     const matchesCategory = selectedCategory === 'all' || complaint.category === selectedCategory;
     const matchesStatus = selectedStatus === 'all' || complaint.status === selectedStatus;
     const matchesPriority = selectedPriority === 'all' || complaint.priority === selectedPriority;
+    
+    // Check outcome match
+    let matchesOutcome = true;
+    if (selectedOutcome !== 'all') {
+      const hasOutcome = lettersStatus[complaint.id]?.hasOutcome;
+      const outcomeType = lettersStatus[complaint.id]?.outcomeType;
+      
+      if (selectedOutcome === 'in_progress') {
+        matchesOutcome = !hasOutcome;
+      } else {
+        matchesOutcome = hasOutcome && outcomeType === selectedOutcome;
+      }
+    }
 
     // Apply dashboard filter
     let matchesDashboardFilter = true;
@@ -1015,7 +1029,7 @@ const ComplaintsSystem = () => {
         new Date(complaint.closed_at || '').getMonth() === new Date().getMonth();
     }
 
-    return matchesSearch && matchesCategory && matchesStatus && matchesPriority && matchesDashboardFilter;
+    return matchesSearch && matchesCategory && matchesStatus && matchesPriority && matchesOutcome && matchesDashboardFilter;
   });
 
   // Pagination logic
@@ -1026,7 +1040,7 @@ const ComplaintsSystem = () => {
   // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, selectedCategory, selectedStatus, selectedPriority, dashboardFilter]);
+  }, [searchTerm, selectedCategory, selectedStatus, selectedPriority, selectedOutcome, dashboardFilter]);
 
   if (!user) {
     return (
@@ -1205,6 +1219,21 @@ const ComplaintsSystem = () => {
                       </SelectContent>
                     </Select>
                   </div>
+                  <div className="space-y-2">
+                    <Label>Outcome</Label>
+                    <Select value={selectedOutcome} onValueChange={setSelectedOutcome}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="All outcomes" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All outcomes</SelectItem>
+                        <SelectItem value="in_progress">In Progress</SelectItem>
+                        <SelectItem value="upheld">Upheld</SelectItem>
+                        <SelectItem value="rejected">Rejected</SelectItem>
+                        <SelectItem value="partially_upheld">Partially Upheld</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div className="flex items-end">
                       <Button 
                         variant="outline" 
@@ -1213,6 +1242,7 @@ const ComplaintsSystem = () => {
                           setSelectedCategory("all");
                           setSelectedStatus("all");
                           setSelectedPriority("all");
+                          setSelectedOutcome("all");
                           setDashboardFilter("all");
                         }}
                       >
