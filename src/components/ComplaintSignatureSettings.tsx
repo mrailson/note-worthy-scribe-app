@@ -68,6 +68,7 @@ export const ComplaintSignatureSettings = () => {
 
   const [practices, setPractices] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
 
   useEffect(() => {
@@ -240,6 +241,8 @@ export const ComplaintSignatureSettings = () => {
       }
 
       toast.success('Signature settings saved successfully');
+      setIsSaved(true);
+      setTimeout(() => setIsSaved(false), 2000);
     } catch (error: any) {
       console.error('Error saving signature settings:', error);
       toast.error(`Error saving settings: ${error.message}`);
@@ -520,9 +523,9 @@ export const ComplaintSignatureSettings = () => {
       )}
 
       <div className="flex justify-end">
-        <Button onClick={saveSignatureSettings} disabled={isLoading}>
+        <Button onClick={saveSignatureSettings} disabled={isLoading || isSaved}>
           <Save className="h-4 w-4 mr-2" />
-          {isLoading ? 'Saving...' : 'Save Signature Settings'}
+          {isLoading ? 'Saving...' : isSaved ? 'Saved' : 'Save Signature Settings'}
         </Button>
       </div>
     </div>
