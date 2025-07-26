@@ -78,6 +78,11 @@ const ComplaintDetails = () => {
   const { user } = useAuth();
   const { complaintId } = useParams();
   const navigate = useNavigate();
+
+  // Early return for authentication check - before any useState hooks
+  if (!user) {
+    return <LoginForm />;
+  }
   
   const [complaint, setComplaint] = useState<Complaint | null>(null);
   const [loading, setLoading] = useState(true);
@@ -99,10 +104,6 @@ const ComplaintDetails = () => {
   const [complaintDocuments, setComplaintDocuments] = useState<any[]>([]);
   const [aiAnalysis, setAiAnalysis] = useState("");
   const [submitting, setSubmitting] = useState(false);
-
-  if (!user) {
-    return <LoginForm />;
-  }
 
   // Fetch complaint details
   useEffect(() => {
