@@ -78,6 +78,8 @@ IMPORTANT FORMATTING REQUIREMENTS:
 - Include practice contact details in the footer if available
 - Format as a clean, professional NHS letter
 - Include appropriate signature block with all provided signature details
+- NEVER include personal email addresses or phone numbers in contact details
+- Only use practice-wide email and phone numbers
 
 Format as a formal letter with NHS styling.`;
 
@@ -103,8 +105,6 @@ ${signatureDetails ? `
 Name: ${signatureDetails.name}
 Title: ${signatureDetails.job_title}
 Qualifications: ${signatureDetails.qualifications || ''}
-Email: ${signatureDetails.email}
-Phone: ${signatureDetails.phone || ''}
 Signature Text: ${signatureDetails.signature_text || ''}
 ` : ''}
 
@@ -119,7 +119,9 @@ Footer Text: ${practiceDetails.footer_text || ''}
 Show Page Numbers: ${practiceDetails.show_page_numbers ? 'Yes' : 'No'}
 ` : ''}
 
-Generate a professional acknowledgement letter addressing the specific concerns raised. Include the date at the top of the letter as "${currentDate}". Use the practice and signature details provided to create appropriate headers and signature blocks.`;
+Generate a professional acknowledgement letter addressing the specific concerns raised. Include the date at the top of the letter as "${currentDate}". Use the practice and signature details provided to create appropriate headers and signature blocks.
+
+CRITICAL: Never include personal email addresses or direct contact details in the signature. Only use the practice email (${practiceDetails?.email || 'info@practice.nhs.uk'}) and practice phone number for contact information.`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',

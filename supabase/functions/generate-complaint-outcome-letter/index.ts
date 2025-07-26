@@ -81,6 +81,8 @@ IMPORTANT FORMATTING REQUIREMENTS:
 - Include practice contact details appropriately
 - End with the signature block - do NOT include "*Signature*" or any signature placeholders
 - Include a blank line before the signature block, then "Yours sincerely," followed by two blank lines, then list the signatory details directly
+- NEVER include personal email addresses or phone numbers in contact details
+- Only use practice-wide email and phone numbers
 
 Format as a clean formal letter incorporating the configured practice and signature settings.`;
 
@@ -118,8 +120,6 @@ ${signatureDetails ? `
 Name: ${signatureDetails.name}
 Title: ${signatureDetails.job_title}
 Qualifications: ${signatureDetails.qualifications || ''}
-Email: ${signatureDetails.email}
-Phone: ${signatureDetails.phone || ''}
 Signature Text: ${signatureDetails.signature_text || ''}
 ` : ''}
 
@@ -136,7 +136,9 @@ Show Page Numbers: ${practiceDetails.show_page_numbers ? 'Yes' : 'No'}
 
 Include escalation information: ${escalationText}
 
-Generate a professional outcome letter that clearly explains the decision and next steps. Include the date at the top of the letter as "${currentDate}". Use the practice and signature details provided to create appropriate formatting and signature blocks.`;
+Generate a professional outcome letter that clearly explains the decision and next steps. Include the date at the top of the letter as "${currentDate}". Use the practice and signature details provided to create appropriate formatting and signature blocks.
+
+CRITICAL: Never include personal email addresses or direct contact details in the signature. Only use the practice email (${practiceDetails?.email || 'info@practice.nhs.uk'}) and practice phone number for contact information.`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -161,7 +163,12 @@ Generate a professional outcome letter that clearly explains the decision and ne
     }
 
     const data = await response.json();
-    const outcomeLetter = data.choices[0].message.content;
+    let outcomeLetter = data.choices[0].message.content;
+    
+    // Add practice logo information as metadata if available
+    if (practiceDetails?.logo_url) {
+      outcomeLetter = `<!-- logo_url: ${practiceDetails.logo_url} -->\n\n${outcomeLetter}`;
+    }
 
     return new Response(JSON.stringify({ 
       outcomeLetter,
