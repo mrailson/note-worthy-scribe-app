@@ -1973,6 +1973,7 @@ const ComplaintsSystem = () => {
 
                   {/* Workflow Tab */}
                   <TabsContent value="workflow" className="space-y-6">
+                    {/* Workflow content starts here */}
 
                   {/* Generate Acknowledgement Letter */}
                   <Card>
