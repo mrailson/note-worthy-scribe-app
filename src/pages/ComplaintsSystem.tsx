@@ -126,6 +126,14 @@ const ComplaintsSystem = () => {
   const [auditSearchTerm, setAuditSearchTerm] = useState("");
   const [auditActionFilter, setAuditActionFilter] = useState("all");
   const [auditLoading, setAuditLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('workflow');
+
+  // Fetch audit logs when audit tab is selected
+  useEffect(() => {
+    if (activeTab === 'audit' && selectedComplaint?.id) {
+      fetchAuditLogs(selectedComplaint.id);
+    }
+  }, [activeTab, selectedComplaint?.id]);
   
   const [aiAnalysis, setAiAnalysis] = useState('');
   const [complianceChecks, setComplianceChecks] = useState<Array<{
@@ -1719,38 +1727,51 @@ const ComplaintsSystem = () => {
                        setAiAnalysis('');
                        setComplianceChecks([]);
                        setComplianceSummary(null);
+                       setActiveTab('workflow');
+                       setAuditLogs([]);
+                       setComplianceAuditLogs([]);
                      }}
                   >
                     Close
                   </Button>
                 </div>
 
-                <div className="space-y-6">
-                  {/* Complaint Details */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <FileText className="h-5 w-5" />
-                        {selectedComplaint.reference_number} - {selectedComplaint.complaint_title}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div><strong>Patient:</strong> {selectedComplaint.patient_name}</div>
-                        <div><strong>Category:</strong> {getCategoryLabel(selectedComplaint.category)}</div>
-                        <div><strong>Priority:</strong> {getPriorityLabel(selectedComplaint.priority)}</div>
-                        <div><strong>Status:</strong> {getStatusLabel(selectedComplaint.status)}</div>
-                        <div><strong>Incident Date:</strong> {format(new Date(selectedComplaint.incident_date), 'dd/MM/yyyy')}</div>
-                        {selectedComplaint.response_due_date && (
-                          <div><strong>Due Date:</strong> {format(new Date(selectedComplaint.response_due_date), 'dd/MM/yyyy')}</div>
-                        )}
-                      </div>
-                      <div className="mt-4">
-                        <strong>Description:</strong>
-                        <p className="mt-1 text-sm text-muted-foreground">{selectedComplaint.complaint_description}</p>
-                      </div>
-                    </CardContent>
-                  </Card>
+                {/* Complaint Header */}
+                <Card className="mb-6">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <FileText className="h-5 w-5" />
+                      {selectedComplaint.reference_number} - {selectedComplaint.complaint_title}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div><strong>Patient:</strong> {selectedComplaint.patient_name}</div>
+                      <div><strong>Category:</strong> {getCategoryLabel(selectedComplaint.category)}</div>
+                      <div><strong>Priority:</strong> {getPriorityLabel(selectedComplaint.priority)}</div>
+                      <div><strong>Status:</strong> {getStatusLabel(selectedComplaint.status)}</div>
+                      <div><strong>Incident Date:</strong> {format(new Date(selectedComplaint.incident_date), 'dd/MM/yyyy')}</div>
+                      {selectedComplaint.response_due_date && (
+                        <div><strong>Due Date:</strong> {format(new Date(selectedComplaint.response_due_date), 'dd/MM/yyyy')}</div>
+                      )}
+                    </div>
+                    <div className="mt-4">
+                      <strong>Description:</strong>
+                      <p className="mt-1 text-sm text-muted-foreground">{selectedComplaint.complaint_description}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Complaint Workflow Tabs */}
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="workflow">Workflow</TabsTrigger>
+                    <TabsTrigger value="compliance">Compliance</TabsTrigger>
+                    <TabsTrigger value="audit">Audit Log</TabsTrigger>
+                  </TabsList>
+
+                  {/* Workflow Tab */}
+                  <TabsContent value="workflow" className="space-y-6">
 
                   {/* NHS Compliance Tracking */}
                   <Card>
@@ -2144,7 +2165,178 @@ const ComplaintsSystem = () => {
                       </Button>
                     </CardContent>
                   </Card>
-                </div>
+                  </TabsContent>
+
+                  {/* Compliance Tab */}
+                  <TabsContent value="compliance" className="space-y-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <CheckCircle className="h-5 w-5" />
+                          NHS Compliance Checklist
+                          {complianceSummary && (
+                            <Badge variant={complianceSummary.compliance_percentage >= 100 ? "default" : "secondary"}>
+                              {complianceSummary.compliance_percentage}% Complete
+                            </Badge>
+                          )}
+                        </CardTitle>
+                        <CardDescription>
+                          Ensure your complaint handling meets NHS England standards and CQC requirements
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        {complianceSummary && (
+                          <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                            <div className="text-sm text-muted-foreground">
+                              <strong>Progress:</strong> {complianceSummary.compliant_items} of {complianceSummary.total_items} items completed
+                              {complianceSummary.outstanding_items && complianceSummary.outstanding_items.length > 0 && (
+                                <div className="mt-2">
+                                  <strong>Outstanding items:</strong>
+                                  <ul className="list-disc list-inside mt-1">
+                                    {complianceSummary.outstanding_items.slice(0, 3).map((item, index) => (
+                                      <li key={index} className="text-xs">{item}</li>
+                                    ))}
+                                    {complianceSummary.outstanding_items.length > 3 && (
+                                      <li className="text-xs">...and {complianceSummary.outstanding_items.length - 3} more</li>
+                                    )}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="space-y-3">
+                          {complianceChecks.map((check) => (
+                            <div key={check.id} className="border rounded-lg p-3 hover:bg-gray-50 transition-colors">
+                              <div className="flex items-start gap-3">
+                                <div className="flex items-center gap-3 flex-1">
+                                  <input
+                                    type="checkbox"
+                                    checked={check.is_compliant}
+                                    onChange={(e) => {
+                                      e.stopPropagation();
+                                      updateComplianceCheck(check.id, e.target.checked);
+                                    }}
+                                    className="rounded pointer-events-none"
+                                    tabIndex={-1}
+                                  />
+                                  <span className={`text-sm font-medium ${
+                                    check.is_compliant ? 'line-through text-muted-foreground' : 'text-foreground'
+                                  }`}>
+                                    {check.compliance_item}
+                                  </span>
+                                  {check.is_compliant && (
+                                    <Badge variant="default" className="ml-auto">
+                                      <CheckCircle className="h-3 w-3 mr-1" />
+                                      Complete
+                                    </Badge>
+                                  )}
+                                </div>
+                                {check.notes && (
+                                  <p className="text-xs text-muted-foreground mt-1 ml-6">{check.notes}</p>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                          <p className="text-sm text-blue-800">
+                            <strong>CQC/ICB Compliance:</strong> This checklist ensures your complaint handling follows NHS England procedures, 
+                            CQC regulations, and demonstrates good governance for inspection purposes.
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
+                  {/* Audit Log Tab */}
+                  <TabsContent value="audit" className="space-y-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Complaint Audit Log</CardTitle>
+                        <CardDescription>
+                          Complete audit trail for this complaint: {selectedComplaint.reference_number}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        {/* Search and filters */}
+                        <div className="flex gap-4">
+                          <div className="flex-1">
+                            <Input
+                              placeholder="Search audit logs..."
+                              value={auditSearchTerm}
+                              onChange={(e) => setAuditSearchTerm(e.target.value)}
+                            />
+                          </div>
+                          <Button
+                            variant="outline"
+                            onClick={() => exportAuditToWord()}
+                            disabled={auditLoading}
+                          >
+                            <Download className="h-4 w-4 mr-2" />
+                            Export to Word
+                          </Button>
+                        </div>
+
+                        {/* Audit logs display */}
+                        {auditLoading ? (
+                          <div className="text-center py-8">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                            <p className="mt-2 text-muted-foreground">Loading audit logs...</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-3 max-h-96 overflow-y-auto">
+                            {filteredAuditLogs.length === 0 ? (
+                              <div className="text-center py-8 text-muted-foreground">
+                                <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                                <p>No audit logs found for this complaint</p>
+                              </div>
+                            ) : (
+                              filteredAuditLogs.map((log) => (
+                                <div key={`${log.id}-${log.created_at}`} className="border rounded-lg p-3 bg-gray-50">
+                                  <div className="flex items-start justify-between">
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <Badge variant={
+                                          log.action_type === 'create' ? 'default' :
+                                          log.action_type === 'status_change' ? 'secondary' :
+                                          log.action_type === 'compliance_change' ? 'outline' :
+                                          'secondary'
+                                        }>
+                                          {log.action_type?.replace('_', ' ').toUpperCase() || 'ACTION'}
+                                        </Badge>
+                                        <span className="text-sm font-medium">
+                                          {log.profiles?.full_name || log.user_email || 'System User'}
+                                        </span>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mb-2">
+                                        {log.action_description || log.compliance_item}
+                                      </p>
+                                      {(log.old_values || log.new_values) && (
+                                        <div className="text-xs text-muted-foreground">
+                                          {log.old_values && <div>Previous: {JSON.stringify(log.old_values)}</div>}
+                                          {log.new_values && <div>New: {JSON.stringify(log.new_values)}</div>}
+                                          {log.previous_status !== undefined && log.new_status !== undefined && (
+                                            <div>Changed from {log.previous_status ? 'Complete' : 'Incomplete'} to {log.new_status ? 'Complete' : 'Incomplete'}</div>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div className="text-xs text-muted-foreground text-right">
+                                      {format(new Date(log.created_at), 'dd/MM/yyyy HH:mm')}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                </Tabs>
               </div>
             </div>
           </div>
