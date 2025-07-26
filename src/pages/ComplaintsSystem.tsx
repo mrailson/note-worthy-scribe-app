@@ -288,7 +288,7 @@ const ComplaintsSystem = () => {
     outstanding_items: string[];
   } | null>(null);
   const [showImport, setShowImport] = useState(false);
-  const [lettersStatus, setLettersStatus] = useState<Record<string, { hasAcknowledgement: boolean; hasOutcome: boolean }>>({});
+  const [lettersStatus, setLettersStatus] = useState<Record<string, { hasAcknowledgement: boolean; hasOutcome: boolean; outcomeType?: string }>>({});
 
   const [formData, setFormData] = useState<ComplaintFormData>({
     patient_name: "",
@@ -351,7 +351,7 @@ const ComplaintsSystem = () => {
 
   const loadLettersStatus = async () => {
     console.log('Loading letters status for', complaints.length, 'complaints');
-    const status: Record<string, { hasAcknowledgement: boolean; hasOutcome: boolean }> = {};
+    const status: Record<string, { hasAcknowledgement: boolean; hasOutcome: boolean; outcomeType?: string }> = {};
     
     for (const complaint of complaints) {
       const [hasAck, hasOutcome] = await Promise.all([
@@ -359,12 +359,24 @@ const ComplaintsSystem = () => {
         checkLetterExists(complaint.id, 'outcome')
       ]);
       
+      let outcomeType: string | undefined;
+      if (hasOutcome) {
+        const { data: outcomeData } = await supabase
+          .from('complaint_outcomes')
+          .select('outcome_type')
+          .eq('complaint_id', complaint.id)
+          .maybeSingle();
+        
+        outcomeType = outcomeData?.outcome_type;
+      }
+      
       status[complaint.id] = {
         hasAcknowledgement: hasAck,
-        hasOutcome: hasOutcome
+        hasOutcome: hasOutcome,
+        outcomeType: outcomeType
       };
       
-      console.log(`Complaint ${complaint.reference_number}:`, { hasAck, hasOutcome });
+      console.log(`Complaint ${complaint.reference_number}:`, { hasAck, hasOutcome, outcomeType });
     }
     
     console.log('Final letters status:', status);
@@ -1312,6 +1324,23 @@ const ComplaintsSystem = () => {
                               <span><strong>Staff mentioned:</strong> {complaint.staff_mentioned.join(', ')}</span>
                             </div>
                           )}
+                          
+                          {/* Outcome Status */}
+                          <div className="flex items-center gap-2 text-sm">
+                            <span><strong>Outcome Status:</strong></span>
+                            {lettersStatus[complaint.id]?.hasOutcome ? (
+                              <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
+                                {lettersStatus[complaint.id]?.outcomeType ? 
+                                  lettersStatus[complaint.id].outcomeType.charAt(0).toUpperCase() + 
+                                  lettersStatus[complaint.id].outcomeType.slice(1).replace('_', ' ') 
+                                  : 'Completed'}
+                              </span>
+                            ) : (
+                              <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">
+                                In Progress
+                              </span>
+                            )}
+                          </div>
                           
                           <div className="flex flex-wrap gap-2 pt-2">
                             <Button 
