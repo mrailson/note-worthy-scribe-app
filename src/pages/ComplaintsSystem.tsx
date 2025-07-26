@@ -322,8 +322,24 @@ const ComplaintsSystem = () => {
       const { data, error } = await supabase
         .from('complaints')
         .insert({
-          ...formData,
+          patient_name: formData.patient_name,
+          patient_dob: formData.patient_dob,
+          patient_contact_phone: formData.patient_contact_phone,
+          patient_contact_email: formData.patient_contact_email,
+          patient_address: formData.patient_address,
+          incident_date: formData.incident_date,
+          complaint_title: formData.complaint_title,
+          complaint_description: formData.complaint_description,
+          category: formData.category as any,
+          subcategory: formData.subcategory,
+          location_service: formData.location_service,
+          staff_mentioned: formData.staff_mentioned ? [formData.staff_mentioned] : null,
+          priority: formData.priority as any,
+          consent_given: formData.consent_given,
+          complaint_on_behalf: formData.complaint_on_behalf,
+          consent_details: formData.consent_details,
           created_by: user.id,
+          reference_number: '',
           status: 'submitted'
         })
         .select()
@@ -513,7 +529,7 @@ const ComplaintsSystem = () => {
   if (!user) {
     return (
       <div className="min-h-screen bg-background">
-        <Header />
+        <Header onNewMeeting={() => {}} />
         <div className="container mx-auto py-8">
           <div className="max-w-md mx-auto">
             <LoginForm />
@@ -525,7 +541,7 @@ const ComplaintsSystem = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      <Header onNewMeeting={() => {}} />
       <div className="container mx-auto py-8 px-4">
         <Tabs defaultValue="complaints" className="w-full">
           <TabsList className="grid w-full grid-cols-4">
@@ -1175,7 +1191,7 @@ const ComplaintsSystem = () => {
           </TabsContent>
 
           <TabsContent value="import" className="space-y-6">
-            <ComplaintImport onImport={(data) => {
+            <ComplaintImport onDataExtracted={(data) => {
               setFormData(prev => ({
                 ...prev,
                 patient_name: data.patient_name || prev.patient_name,
@@ -1188,7 +1204,7 @@ const ComplaintsSystem = () => {
                 complaint_description: data.complaint_description || prev.complaint_description,
                 category: data.category || prev.category,
                 location_service: data.location_service || prev.location_service,
-                staff_mentioned: data.staff_mentioned || prev.staff_mentioned,
+                staff_mentioned: Array.isArray(data.staff_mentioned) ? data.staff_mentioned.join(', ') : data.staff_mentioned || prev.staff_mentioned,
                 priority: data.priority || prev.priority,
                 consent_given: data.consent_given !== undefined ? data.consent_given : prev.consent_given,
                 complaint_on_behalf: data.complaint_on_behalf !== undefined ? data.complaint_on_behalf : prev.complaint_on_behalf,
@@ -1434,7 +1450,8 @@ const ComplaintsSystem = () => {
                       try {
                         const doc = createLetterDocument(
                           modalLetterContent,
-                          `${letterType}-${viewingLetterComplaint.reference_number}`
+                          letterType,
+                          viewingLetterComplaint.reference_number
                         );
                         const blob = await Packer.toBlob(doc);
                         const url = URL.createObjectURL(blob);
