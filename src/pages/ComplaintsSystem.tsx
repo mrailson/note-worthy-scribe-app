@@ -310,17 +310,17 @@ const ComplaintsSystem = () => {
   });
 
   const categoryOptions = [
+    { value: "Administration", label: "Administration" },
     { value: "Appointments & Access", label: "Appointments & Access" },
     { value: "Clinical Care & Treatment", label: "Clinical Care & Treatment" },
     { value: "Communication Issues", label: "Communication Issues" },
-    { value: "Staff Attitude & Behaviour", label: "Staff Attitude & Behaviour" },
-    { value: "Prescriptions", label: "Prescriptions" },
-    { value: "Test Results & Follow-Up", label: "Test Results & Follow-Up" },
-    { value: "Administration", label: "Administration" },
-    { value: "Facilities & Environment", label: "Facilities & Environment" },
-    { value: "Digital Services", label: "Digital Services" },
     { value: "Confidentiality & Data", label: "Confidentiality & Data" },
+    { value: "Digital Services", label: "Digital Services" },
+    { value: "Facilities & Environment", label: "Facilities & Environment" },
     { value: "other", label: "Other" },
+    { value: "Prescriptions", label: "Prescriptions" },
+    { value: "Staff Attitude & Behaviour", label: "Staff Attitude & Behaviour" },
+    { value: "Test Results & Follow-Up", label: "Test Results & Follow-Up" },
   ];
 
   const statusOptions = [
