@@ -899,8 +899,9 @@ const Index = () => {
           <TabsList className="grid w-full grid-cols-5 bg-muted/50 p-1 rounded-xl border border-border/50">
             <TabsTrigger 
               value="meeting-recorder" 
-              className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium"
+              className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium flex items-center gap-2"
             >
+              <Mic className="h-4 w-4" />
               Meeting Recorder
             </TabsTrigger>
             <TabsTrigger 
