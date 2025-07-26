@@ -88,6 +88,12 @@ Website: www.ombudsman.org.uk
 You should contact the Ombudsman within one year of the events you want to complain about, or within one year of when you first became aware of the problem.`
       : '';
 
+    const currentDate = new Date().toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+
     const userPrompt = `Generate an outcome letter for this complaint:
 
 Reference: ${complaint.reference_number}
@@ -95,12 +101,7 @@ Patient: ${complaint.patient_name}
 Original Complaint: ${complaint.complaint_description}
 Outcome: ${outcomeType}
 Outcome Summary: ${outcomeSummary}
-
-Practice Details:
-Name: ${practiceDetails?.practice_name || 'NHS Practice'}
-Address: ${practiceDetails?.address || 'Address not provided'}
-Phone: ${practiceDetails?.phone || 'Phone not provided'}
-Email: ${practiceDetails?.email || 'Email not provided'}
+Date: ${currentDate}
 
 Signature Details:
 ${signatureDetails ? `
@@ -113,7 +114,7 @@ GMC Number: ${signatureDetails.gmc_number || ''}
 
 Include escalation information: ${escalationText}
 
-Generate a professional outcome letter that clearly explains the decision and next steps. Include appropriate signature block at the end with the signature details provided.`;
+Generate a professional outcome letter that clearly explains the decision and next steps. Include the date at the top of the letter as "${currentDate}". Include appropriate signature block at the end with the signature details provided.`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
