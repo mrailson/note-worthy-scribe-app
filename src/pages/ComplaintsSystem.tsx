@@ -87,6 +87,7 @@ interface ComplaintFormData {
   complaint_title: string;
   complaint_description: string;
   category: string;
+  subcategory: string;
   location_service: string;
   staff_mentioned: string;
   priority: string;
@@ -301,6 +302,7 @@ const ComplaintsSystem = () => {
     complaint_title: "",
     complaint_description: "",
     category: "",
+    subcategory: "",
     location_service: "",
     staff_mentioned: "",
     priority: "medium",
@@ -310,17 +312,61 @@ const ComplaintsSystem = () => {
   });
 
   const categoryOptions = [
-    { value: "clinical_care", label: "Clinical Care" },
-    { value: "staff_attitude", label: "Staff Attitude" },
-    { value: "appointment_system", label: "Appointment System" },
-    { value: "communication", label: "Communication" },
-    { value: "facilities", label: "Facilities" },
-    { value: "billing", label: "Billing" },
-    { value: "waiting_times", label: "Waiting Times" },
-    { value: "medication", label: "Medication" },
-    { value: "referrals", label: "Referrals" },
-    { value: "other", label: "Other" },
+    { value: "appointments_access", label: "Appointments & Access" },
+    { value: "clinical_care_treatment", label: "Clinical Care & Treatment" },
+    { value: "communication_issues", label: "Communication Issues" },
+    { value: "staff_attitude_behaviour", label: "Staff Attitude & Behaviour" },
+    { value: "prescriptions", label: "Prescriptions" },
+    { value: "test_results_followup", label: "Test Results & Follow-Up" },
+    { value: "administration", label: "Administration" },
+    { value: "facilities_environment", label: "Facilities & Environment" },
+    { value: "digital_services", label: "Digital Services" },
+    { value: "confidentiality_data", label: "Confidentiality & Data" },
   ];
+
+  const subcategoryOptions: Record<string, { value: string; label: string; severity: string }[]> = {
+    appointments_access: [
+      { value: "booking_issues", label: "Booking Issues", severity: "medium" },
+      { value: "waiting_times", label: "Waiting Times", severity: "high" },
+      { value: "urgent_care_access", label: "Urgent Care Access", severity: "high" },
+    ],
+    clinical_care_treatment: [
+      { value: "misdiagnosis", label: "Misdiagnosis", severity: "high" },
+      { value: "delayed_referral", label: "Delayed Referral", severity: "high" },
+      { value: "treatment_concern", label: "Treatment Concern", severity: "high" },
+    ],
+    communication_issues: [
+      { value: "poor_explanation", label: "Poor Explanation", severity: "medium" },
+      { value: "lack_of_updates", label: "Lack of Updates", severity: "medium" },
+    ],
+    staff_attitude_behaviour: [
+      { value: "rude_behaviour", label: "Rude Behaviour", severity: "medium" },
+      { value: "lack_of_empathy", label: "Lack of Empathy", severity: "medium" },
+    ],
+    prescriptions: [
+      { value: "delay_in_issue", label: "Delay in Issue", severity: "medium" },
+      { value: "medication_error", label: "Medication Error", severity: "high" },
+    ],
+    test_results_followup: [
+      { value: "result_delays", label: "Result Delays", severity: "medium" },
+      { value: "no_followup", label: "No Follow-Up", severity: "high" },
+    ],
+    administration: [
+      { value: "record_errors", label: "Record Errors", severity: "high" },
+      { value: "referral_letter_issues", label: "Referral Letter Issues", severity: "medium" },
+    ],
+    facilities_environment: [
+      { value: "cleanliness", label: "Cleanliness", severity: "low" },
+      { value: "accessibility", label: "Accessibility", severity: "medium" },
+    ],
+    digital_services: [
+      { value: "online_booking_issues", label: "Online Booking Issues", severity: "medium" },
+      { value: "access_to_records", label: "Access to Records", severity: "medium" },
+    ],
+    confidentiality_data: [
+      { value: "breach_of_data", label: "Breach of Data", severity: "high" },
+    ],
+  };
 
   const statusOptions = [
     { value: "draft", label: "Draft" },
@@ -454,6 +500,7 @@ const ComplaintsSystem = () => {
         complaint_title: "",
         complaint_description: "",
         category: "",
+        subcategory: "",
         location_service: "",
         staff_mentioned: "",
         priority: "medium",
@@ -1616,7 +1663,10 @@ const ComplaintsSystem = () => {
                         <Label>Category *</Label>
                         <Select 
                           value={formData.category} 
-                          onValueChange={(value) => handleInputChange('category', value)}
+                          onValueChange={(value) => {
+                            handleInputChange('category', value);
+                            handleInputChange('subcategory', ''); // Reset subcategory when category changes
+                          }}
                           required
                         >
                           <SelectTrigger>
@@ -1631,7 +1681,30 @@ const ComplaintsSystem = () => {
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="space-y-2">
+                      
+                      {formData.category && (
+                        <div className="space-y-2">
+                          <Label>Subcategory *</Label>
+                          <Select 
+                            value={formData.subcategory} 
+                            onValueChange={(value) => handleInputChange('subcategory', value)}
+                            required
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select subcategory" />
+                            </SelectTrigger>
+                            <SelectContent className="z-50 bg-background">
+                              {subcategoryOptions[formData.category]?.map(option => (
+                                <SelectItem key={option.value} value={option.value}>
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                      
+                       <div className="space-y-2">
                         <Label>Priority</Label>
                         <Select 
                           value={formData.priority} 
@@ -1762,8 +1835,9 @@ const ComplaintsSystem = () => {
                         incident_date: "",
                         complaint_title: "",
                         complaint_description: "",
-                        category: "",
-                        location_service: "",
+                         category: "",
+                         subcategory: "",
+                         location_service: "",
                         staff_mentioned: "",
                         priority: "medium",
                         consent_given: false,
