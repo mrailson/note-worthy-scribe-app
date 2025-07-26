@@ -1229,7 +1229,7 @@ const ComplaintsSystem = () => {
                         <SelectItem value="all">All outcomes</SelectItem>
                         <SelectItem value="in_progress">In Progress</SelectItem>
                         <SelectItem value="upheld">Upheld</SelectItem>
-                        <SelectItem value="rejected">Rejected</SelectItem>
+                        <SelectItem value="rejected">Not Upheld</SelectItem>
                         <SelectItem value="partially_upheld">Partially Upheld</SelectItem>
                       </SelectContent>
                     </Select>
@@ -1368,8 +1368,9 @@ const ComplaintsSystem = () => {
                             {lettersStatus[complaint.id]?.hasOutcome ? (
                               <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
                                 {lettersStatus[complaint.id]?.outcomeType ? 
-                                  lettersStatus[complaint.id].outcomeType.charAt(0).toUpperCase() + 
-                                  lettersStatus[complaint.id].outcomeType.slice(1).replace('_', ' ') 
+                                  (lettersStatus[complaint.id].outcomeType === 'rejected' ? 'Not Upheld' :
+                                   lettersStatus[complaint.id].outcomeType.charAt(0).toUpperCase() + 
+                                   lettersStatus[complaint.id].outcomeType.slice(1).replace('_', ' '))
                                   : 'Completed'}
                               </span>
                             ) : (
