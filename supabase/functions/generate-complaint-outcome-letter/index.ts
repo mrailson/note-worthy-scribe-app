@@ -78,7 +78,8 @@ IMPORTANT FORMATTING REQUIREMENTS:
 - Begin immediately with the date in format "DD Month YYYY"
 - Follow with "Private & Confidential" and then the patient details
 - Use practice branding and footer information provided
-- Include practice contact details appropriately
+- DO NOT include practice details in a footer format with dashes (---)
+- Include practice contact details naturally within the letter content or signature area only
 - End with the signature block - do NOT include "*Signature*" or any signature placeholders
 - Include a blank line before the signature block, then "Yours sincerely," followed by two blank lines, then list the signatory details directly
 - NEVER include personal email addresses or phone numbers in contact details
