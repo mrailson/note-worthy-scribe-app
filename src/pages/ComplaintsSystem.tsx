@@ -220,9 +220,16 @@ const ComplaintsSystem = () => {
         console.log('Outcome data:', { outcome, error });
         
         if (outcome) {
+          console.log('Outcome letter content:', outcome.outcome_letter);
+          console.log('Setting modal content and showing modal');
           setModalLetterContent(outcome.outcome_letter);
           setShowLetterModal(true);
+          console.log('Modal state after setting:', { 
+            showLetterModal: true, 
+            modalLetterContent: outcome.outcome_letter?.substring(0, 100) + '...' 
+          });
         } else {
+          console.log('No outcome found, showing error toast');
           toast.error('No outcome letter found for this complaint');
         }
       }
@@ -2671,7 +2678,14 @@ const ComplaintsSystem = () => {
         )}
       </div>
         {/* Letter Viewing Modal */}
-        {showLetterModal && viewingLetterComplaint && (
+        {(() => {
+          console.log('Modal render check:', { 
+            showLetterModal, 
+            viewingLetterComplaint: !!viewingLetterComplaint,
+            modalLetterContent: modalLetterContent?.substring(0, 50) + '...' 
+          });
+          return showLetterModal && viewingLetterComplaint;
+        })() && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
               <div className="flex items-center justify-between p-6 border-b">
