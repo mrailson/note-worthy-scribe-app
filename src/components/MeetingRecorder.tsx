@@ -28,6 +28,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 import { BrowserSpeechTranscriber, TranscriptData as BrowserTranscriptData } from '@/utils/BrowserSpeechTranscriber';
+import { DualStreamRecorder } from '@/utils/DualStreamRecorder';
 
 interface TranscriptData {
   text: string;
@@ -96,6 +97,7 @@ export const MeetingRecorder = ({
   const micAudioStreamRef = useRef<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const dualStreamRecorderRef = useRef<DualStreamRecorder | null>(null);
 
   // Browser compatibility check
   const checkBrowserSupport = () => {
@@ -430,6 +432,48 @@ export const MeetingRecorder = ({
       } else {
         throw new Error(`Computer audio setup failed: ${error.message}. Try using microphone mode instead.`);
       }
+    }
+  };
+
+  // Dual-stream recording for testing mode
+  const startDualStreamRecording = async () => {
+    addDebugLog('🎙️ Starting dual-stream recording (mic + speaker)...');
+    
+    try {
+      dualStreamRecorderRef.current = new DualStreamRecorder({
+        onTranscript: (transcript) => {
+          addDebugLog(`📝 Dual-stream transcript: ${transcript.substring(0, 100)}...`);
+          
+          // Update the main transcript
+          setTranscript(transcript);
+          onTranscriptUpdate(transcript);
+          
+          // Update word count
+          const words = transcript.split(' ').filter(word => word.length > 0);
+          setWordCount(words.length);
+          onWordCountUpdate(words.length);
+          
+          // Update speaker count (estimate from dual streams)
+          setSpeakerCount(2); // Mic + Speaker = 2 sources
+        },
+        onStatusChange: (status) => {
+          setConnectionStatus(status);
+          addDebugLog(`🔄 Dual-stream status: ${status}`);
+        },
+        onError: (error) => {
+          addDebugLog(`❌ Dual-stream error: ${error}`);
+          setConnectionStatus("Error");
+          toast.error(`Dual-stream error: ${error}`);
+        },
+        chunkDuration: 5 // Process every 5 seconds
+      });
+      
+      await dualStreamRecorderRef.current.startRecording();
+      addDebugLog('✅ Dual-stream recording started successfully');
+      
+    } catch (error: any) {
+      addDebugLog(`❌ Dual-stream setup failed: ${error.message}`);
+      throw error;
     }
   };
 
@@ -1017,7 +1061,18 @@ export const MeetingRecorder = ({
 
   const startRecording = async () => {
     try {
-      const modeText = recordingMode === 'computer-audio' ? 'computer audio for Teams/Zoom' : 'microphone';
+      let modeText = '';
+      switch (recordingMode) {
+        case 'computer-audio':
+          modeText = 'computer audio for Teams/Zoom';
+          break;
+        case 'testing':
+          modeText = 'dual-stream (microphone + speaker)';
+          break;
+        default:
+          modeText = 'microphone';
+      }
+      
       addDebugLog(`🚀 Starting recording with ${modeText}...`);
       console.log(`Starting recording with ${modeText}...`);
       
@@ -1028,6 +1083,8 @@ export const MeetingRecorder = ({
       // Choose transcription method based on recording mode
       if (recordingMode === 'computer-audio') {
         await startComputerAudioTranscription();
+      } else if (recordingMode === 'testing') {
+        await startDualStreamRecording();
       } else {
         await startMicrophoneTranscription();
       }
@@ -1052,9 +1109,17 @@ export const MeetingRecorder = ({
         });
       }, 1000);
 
-      const successMessage = recordingMode === 'computer-audio' ? 
-        'Recording started with computer audio for Teams/Zoom!' : 
-        'Recording started with microphone!';
+      let successMessage = '';
+      switch (recordingMode) {
+        case 'computer-audio':
+          successMessage = 'Recording started with computer audio for Teams/Zoom!';
+          break;
+        case 'testing':
+          successMessage = 'Dual-stream recording started! Recording both mic and speaker audio.';
+          break;
+        default:
+          successMessage = 'Recording started with microphone!';
+      }
       toast.success(successMessage);
     } catch (error: any) {
       console.error('Failed to start recording:', error);
@@ -1091,6 +1156,13 @@ export const MeetingRecorder = ({
     if (browserTranscriberRef.current) {
       browserTranscriberRef.current.stopTranscription();
       browserTranscriberRef.current = null;
+    }
+    
+    // Stop dual-stream recorder
+    if (dualStreamRecorderRef.current) {
+      await dualStreamRecorderRef.current.stopRecording();
+      dualStreamRecorderRef.current = null;
+      addDebugLog('✅ Dual-stream recording stopped');
     }
     
     // Stop enhanced audio capture
