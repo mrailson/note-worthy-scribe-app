@@ -108,6 +108,13 @@ const ComplaintDetails = () => {
   const [aiAnalysis, setAiAnalysis] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [showOutstandingOnly, setShowOutstandingOnly] = useState(false);
+  
+  // Investigation workflow state
+  const [investigationMethod, setInvestigationMethod] = useState("");
+  const [selectedStaff, setSelectedStaff] = useState<Array<{name: string; email: string; role: string; suggested: boolean; type: string}>>([]);
+  const [additionalStaff, setAdditionalStaff] = useState({name: '', email: '', role: ''});
+  const [inputRequests, setInputRequests] = useState<Array<{id: string; staffName: string; staffEmail: string; status: string; sentAt: string; responseReceived: boolean}>>([]);
+  const [workflowSettings, setWorkflowSettings] = useState<any>(null);
 
   // Define all functions before useEffect
   const fetchComplaintDetails = async () => {
@@ -487,6 +494,170 @@ const ComplaintDetails = () => {
     setEditedAcknowledgementContent(acknowledgementLetter);
     setIsEditingAcknowledgement(false);
     setShowAcknowledgementModal(true);
+  };
+
+  // Investigation workflow functions
+  const handleInvestigationMethodChange = (method: string) => {
+    setInvestigationMethod(method);
+    
+    // Auto-populate suggested staff based on complaint details
+    if (method === "input-required") {
+      const suggestions: Array<{name: string; email: string; role: string; suggested: boolean; type: string}> = [];
+      
+      // Add mentioned staff
+      if (complaint?.staff_mentioned) {
+        complaint.staff_mentioned.forEach(staff => {
+          suggestions.push({
+            name: staff,
+            email: '', // Would need to be filled in
+            role: 'Various',
+            suggested: true,
+            type: 'mentioned'
+          });
+        });
+      }
+      
+      // Add category-based suggestions
+      if (complaint?.category === 'Appointments & Access') {
+        suggestions.push({
+          name: 'Reception Team',
+          email: '',
+          role: 'Reception',
+          suggested: true,
+          type: 'category-based'
+        });
+      }
+      
+      if (complaint?.category === 'Clinical Care & Treatment') {
+        suggestions.push({
+          name: 'Treating Clinician',
+          email: '',
+          role: 'Clinician',
+          suggested: true,
+          type: 'category-based'
+        });
+      }
+      
+      setSelectedStaff(suggestions);
+    } else {
+      setSelectedStaff([]);
+    }
+  };
+
+  const handleStaffSelection = (index: number, selected: boolean) => {
+    setSelectedStaff(prev => 
+      prev.map((staff, i) => 
+        i === index ? { ...staff, selected } : staff
+      )
+    );
+  };
+
+  const handleAddAdditionalStaff = () => {
+    if (additionalStaff.name && additionalStaff.email) {
+      setSelectedStaff(prev => [...prev, {
+        name: additionalStaff.name,
+        email: additionalStaff.email,
+        role: additionalStaff.role || 'Staff Member',
+        suggested: false,
+        type: 'additional'
+      }]);
+      setAdditionalStaff({name: '', email: '', role: ''});
+    }
+  };
+
+  const handleRemoveStaff = (index: number) => {
+    setSelectedStaff(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSendInputRequests = async () => {
+    if (selectedStaff.length === 0) {
+      toast.error("Please select staff members to request input from");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      // Create involved parties records
+      const newInputRequests = [];
+      
+      for (const staff of selectedStaff) {
+        const { data, error } = await supabase
+          .from('complaint_involved_parties')
+          .insert({
+            complaint_id: complaint?.id,
+            staff_name: staff.name,
+            staff_email: staff.email,
+            staff_role: staff.role,
+            response_requested_at: new Date().toISOString()
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        newInputRequests.push({
+          id: data.id,
+          staffName: staff.name,
+          staffEmail: staff.email,
+          status: 'Sent',
+          sentAt: new Date().toISOString(),
+          responseReceived: false
+        });
+
+        // Send email notification (this would typically be done via an edge function)
+        try {
+          await supabase.functions.invoke('send-complaint-notifications', {
+            body: {
+              complaintId: complaint?.id,
+              staffEmail: staff.email,
+              staffName: staff.name,
+              accessToken: data.access_token
+            }
+          });
+        } catch (emailError) {
+          console.error('Error sending email to:', staff.email, emailError);
+        }
+      }
+
+      setInputRequests(prev => [...prev, ...newInputRequests]);
+      toast.success(`Input requests sent to ${selectedStaff.length} staff members`);
+      
+    } catch (error) {
+      console.error('Error sending input requests:', error);
+      toast.error("Failed to send input requests");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleSaveWorkflowSettings = async () => {
+    setSubmitting(true);
+    try {
+      const settings = {
+        investigation_method: investigationMethod,
+        selected_staff: selectedStaff,
+        input_requests: inputRequests
+      };
+
+      // Save to complaint record or a separate workflow settings table
+      const { error } = await supabase
+        .from('complaints')
+        .update({
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', complaint?.id);
+
+      if (error) throw error;
+
+      setWorkflowSettings(settings);
+      toast.success("Workflow settings saved");
+      
+    } catch (error) {
+      console.error('Error saving workflow settings:', error);
+      toast.error("Failed to save workflow settings");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (loading) {
@@ -1064,6 +1235,8 @@ const ComplaintDetails = () => {
                             id="direct-investigation"
                             name="investigation-method"
                             className="rounded"
+                            checked={investigationMethod === "direct-investigation"}
+                            onChange={() => handleInvestigationMethodChange("direct-investigation")}
                           />
                           <Label htmlFor="direct-investigation" className="text-sm cursor-pointer">
                             Direct Investigation - I will investigate this complaint directly
@@ -1075,6 +1248,8 @@ const ComplaintDetails = () => {
                             id="input-required"
                             name="investigation-method"
                             className="rounded"
+                            checked={investigationMethod === "input-required"}
+                            onChange={() => handleInvestigationMethodChange("input-required")}
                           />
                           <Label htmlFor="input-required" className="text-sm cursor-pointer">
                             Input Required - Request responses from involved parties
@@ -1084,107 +1259,142 @@ const ComplaintDetails = () => {
                     </div>
 
                     {/* Suggested Staff Input Section */}
-                    <div className="space-y-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                      <div className="flex items-center gap-2">
-                        <Users className="h-4 w-4 text-blue-600" />
-                        <Label className="text-sm font-medium text-blue-900">System Suggestions</Label>
-                      </div>
-                      <p className="text-sm text-blue-800">
-                        Based on the complaint details, the following staff may need to provide input:
-                      </p>
-                      <div className="space-y-2">
-                        {/* Dynamic suggestions based on complaint content */}
-                        {complaint.staff_mentioned && complaint.staff_mentioned.length > 0 && (
-                          <div className="space-y-1">
-                            <Label className="text-xs font-medium text-blue-900">Mentioned Staff:</Label>
-                            {complaint.staff_mentioned.map((staff, index) => (
+                    {investigationMethod === "input-required" && (
+                      <div className="space-y-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <div className="flex items-center gap-2">
+                          <Users className="h-4 w-4 text-blue-600" />
+                          <Label className="text-sm font-medium text-blue-900">Staff Selection</Label>
+                        </div>
+                        <p className="text-sm text-blue-800">
+                          Select staff members who need to provide input for the investigation:
+                        </p>
+                        
+                        {selectedStaff.length > 0 && (
+                          <div className="space-y-2">
+                            {selectedStaff.map((staff, index) => (
                               <div key={index} className="flex items-center justify-between p-2 bg-white rounded border">
                                 <div className="flex items-center space-x-2">
-                                  <input type="checkbox" className="rounded" defaultChecked />
-                                  <span className="text-sm">{staff}</span>
-                                  <Badge variant="outline" className="text-xs">Mentioned</Badge>
+                                  <input 
+                                    type="checkbox" 
+                                    className="rounded" 
+                                    defaultChecked={staff.suggested}
+                                    onChange={(e) => handleStaffSelection(index, e.target.checked)}
+                                  />
+                                  <div className="flex flex-col">
+                                    <span className="text-sm font-medium">{staff.name}</span>
+                                    {staff.email && <span className="text-xs text-muted-foreground">{staff.email}</span>}
+                                  </div>
+                                  <Badge variant="outline" className="text-xs">
+                                    {staff.type === 'mentioned' ? 'Mentioned' : 
+                                     staff.type === 'category-based' ? 'Suggested' : 'Added'}
+                                  </Badge>
                                 </div>
-                                <Button variant="ghost" size="sm" className="text-xs">
-                                  Override
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  onClick={() => handleRemoveStaff(index)}
+                                  className="text-xs text-red-600 hover:text-red-700"
+                                >
+                                  Remove
                                 </Button>
                               </div>
                             ))}
                           </div>
                         )}
                         
-                        {/* Category-based suggestions */}
-                        {complaint.category === 'Appointments & Access' && (
-                          <div className="flex items-center justify-between p-2 bg-white rounded border">
-                            <div className="flex items-center space-x-2">
-                              <input type="checkbox" className="rounded" defaultChecked />
-                              <span className="text-sm">Reception Team</span>
-                              <Badge variant="outline" className="text-xs">Suggested</Badge>
-                            </div>
-                            <Button variant="ghost" size="sm" className="text-xs">
-                              Override
+                        {/* Add Additional Staff */}
+                        <div className="pt-2 space-y-2">
+                          <Label className="text-xs font-medium text-blue-900">Add Additional Staff:</Label>
+                          <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+                            <Input
+                              placeholder="Staff name"
+                              value={additionalStaff.name}
+                              onChange={(e) => setAdditionalStaff(prev => ({...prev, name: e.target.value}))}
+                              className="text-sm"
+                            />
+                            <Input
+                              type="email"
+                              placeholder="Email address"
+                              value={additionalStaff.email}
+                              onChange={(e) => setAdditionalStaff(prev => ({...prev, email: e.target.value}))}
+                              className="text-sm"
+                            />
+                            <Input
+                              placeholder="Role (optional)"
+                              value={additionalStaff.role}
+                              onChange={(e) => setAdditionalStaff(prev => ({...prev, role: e.target.value}))}
+                              className="text-sm"
+                            />
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={handleAddAdditionalStaff}
+                              disabled={!additionalStaff.name || !additionalStaff.email}
+                            >
+                              <Plus className="h-4 w-4 mr-1" />
+                              Add
                             </Button>
                           </div>
-                        )}
-                        
-                        {complaint.category === 'Clinical Care & Treatment' && (
-                          <div className="space-y-1">
-                            <div className="flex items-center justify-between p-2 bg-white rounded border">
-                              <div className="flex items-center space-x-2">
-                                <input type="checkbox" className="rounded" defaultChecked />
-                                <span className="text-sm">Treating Clinician</span>
-                                <Badge variant="outline" className="text-xs">Suggested</Badge>
-                              </div>
-                              <Button variant="ghost" size="sm" className="text-xs">
-                                Override
-                              </Button>
-                            </div>
-                            <div className="flex items-center justify-between p-2 bg-white rounded border">
-                              <div className="flex items-center space-x-2">
-                                <input type="checkbox" className="rounded" />
-                                <span className="text-sm">Practice Nurse</span>
-                                <Badge variant="outline" className="text-xs">Optional</Badge>
-                              </div>
-                              <Button variant="ghost" size="sm" className="text-xs">
-                                Override
-                              </Button>
-                            </div>
-                          </div>
-                        )}
+                        </div>
                       </div>
-                      
-                      <div className="pt-2">
-                        <Button variant="outline" size="sm" className="w-full">
-                          <Plus className="h-4 w-4 mr-2" />
-                          Add Additional Staff
-                        </Button>
-                      </div>
-                    </div>
+                    )}
 
                     {/* Input Tracking Section */}
                     <div className="space-y-3">
                       <Label className="text-sm font-medium">Input Status Tracking</Label>
                       <div className="space-y-2">
                         <div className="text-sm text-muted-foreground">
-                          Once staff are selected, emails will be sent with complaint details and tracked here:
+                          Track the status of input requests sent to staff members:
                         </div>
                         
-                        {/* Sample tracking items - would be populated dynamically */}
                         <div className="space-y-2 p-3 bg-gray-50 rounded border">
-                          <div className="text-sm text-muted-foreground text-center py-4">
-                            No staff input requests sent yet. Select investigation method and staff members above.
-                          </div>
+                          {inputRequests.length === 0 ? (
+                            <div className="text-sm text-muted-foreground text-center py-4">
+                              {investigationMethod === "input-required" 
+                                ? "No staff input requests sent yet. Select staff members and click 'Send Input Requests'."
+                                : "No staff input requests sent yet. Select investigation method and staff members above."
+                              }
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              {inputRequests.map((request) => (
+                                <div key={request.id} className="flex items-center justify-between p-2 bg-white rounded border">
+                                  <div className="flex flex-col">
+                                    <span className="text-sm font-medium">{request.staffName}</span>
+                                    <span className="text-xs text-muted-foreground">{request.staffEmail}</span>
+                                    <span className="text-xs text-muted-foreground">
+                                      Sent: {format(new Date(request.sentAt), 'dd/MM/yyyy HH:mm')}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Badge variant={request.responseReceived ? "default" : "secondary"}>
+                                      {request.responseReceived ? "Response Received" : "Awaiting Response"}
+                                    </Badge>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
 
                     <div className="flex gap-2 pt-4">
-                      <Button className="flex-1">
+                      <Button 
+                        className="flex-1"
+                        onClick={handleSendInputRequests}
+                        disabled={submitting || investigationMethod !== "input-required" || selectedStaff.length === 0}
+                      >
                         <Send className="h-4 w-4 mr-2" />
-                        Send Input Requests
+                        {submitting ? 'Sending...' : 'Send Input Requests'}
                       </Button>
-                      <Button variant="outline">
+                      <Button 
+                        variant="outline"
+                        onClick={handleSaveWorkflowSettings}
+                        disabled={submitting || !investigationMethod}
+                      >
                         <Save className="h-4 w-4 mr-2" />
-                        Save Settings
+                        {submitting ? 'Saving...' : 'Save Settings'}
                       </Button>
                     </div>
                   </CardContent>
