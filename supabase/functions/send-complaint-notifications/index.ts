@@ -1,6 +1,8 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { Resend } from "npm:resend@2.0.0";
+
+const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -27,6 +29,8 @@ serve(async (req) => {
     if (!complaintId || !involvedParties?.length) {
       throw new Error('Complaint ID and involved parties are required');
     }
+
+    console.log('Processing request for complaint:', complaintId, 'with', involvedParties.length, 'parties');
 
     // Initialize Supabase client
     const supabase = createClient(
@@ -82,62 +86,85 @@ serve(async (req) => {
       });
     }
 
-    // Send emails using EmailJS service
-    const emailJsServiceId = Deno.env.get('EMAILJS_SERVICE_ID');
-    const emailJsTemplateId = Deno.env.get('EMAILJS_TEMPLATE_ID');
-    const emailJsPublicKey = Deno.env.get('EMAILJS_PUBLIC_KEY');
-    const emailJsPrivateKey = Deno.env.get('EMAILJS_PRIVATE_KEY');
+    console.log('Created', involvedPartiesData.length, 'involved party records');
 
-    if (!emailJsServiceId || !emailJsTemplateId || !emailJsPublicKey || !emailJsPrivateKey) {
-      throw new Error('EmailJS configuration not complete');
-    }
-
-    const baseUrl = Deno.env.get('SUPABASE_URL')?.replace('//', '//').replace('.supabase.co', '.supabase.co') || 'https://dphcnbricafkbtizkoal.supabase.co';
-    
+    // Send emails using Resend
+    const baseUrl = Deno.env.get('SUPABASE_URL')?.replace('.supabase.co', '.lovableproject.com') || 'https://91f61816-7ac8-43e0-a21d-31572f57dcab.lovableproject.com';
     const emailResults = [];
 
     for (const party of involvedPartiesData) {
-      const responseUrl = `${baseUrl.replace('.supabase.co', '.lovableproject.com')}/complaint-response/${party.accessToken}`;
+      const responseUrl = `${baseUrl}/complaint-response/${party.accessToken}`;
       
-      const emailData = {
-        service_id: emailJsServiceId,
-        template_id: emailJsTemplateId,
-        user_id: emailJsPublicKey,
-        accessToken: emailJsPrivateKey,
-        template_params: {
-          to_email: party.staffEmail,
-          to_name: party.staffName,
-          staff_role: party.staffRole,
-          complaint_reference: complaint.reference_number,
-          complaint_title: complaint.complaint_title,
-          complaint_description: complaint.complaint_description,
-          incident_date: complaint.incident_date,
-          practice_name: practiceDetails?.practice_name || 'Medical Practice',
-          response_url: responseUrl,
-          from_name: practiceDetails?.practice_name || 'Medical Practice',
-          reply_to: practiceDetails?.email || 'noreply@practice.nhs.uk',
-        },
-      };
+      const emailHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #1f2937; border-bottom: 2px solid #3b82f6; padding-bottom: 10px;">
+            Complaint Input Request - ${complaint.reference_number}
+          </h2>
+          
+          <p>Dear ${party.staffName},</p>
+          
+          <p>You have been requested to provide input for the following complaint investigation:</p>
+          
+          <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <h3 style="margin: 0 0 10px 0; color: #1f2937;">Complaint Details</h3>
+            <p><strong>Reference:</strong> ${complaint.reference_number}</p>
+            <p><strong>Title:</strong> ${complaint.complaint_title}</p>
+            <p><strong>Patient:</strong> ${complaint.patient_name}</p>
+            <p><strong>Incident Date:</strong> ${new Date(complaint.incident_date).toLocaleDateString('en-GB')}</p>
+            <p><strong>Your Role:</strong> ${party.staffRole}</p>
+          </div>
+          
+          <div style="background-color: #fef3c7; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <h3 style="margin: 0 0 10px 0; color: #92400e;">Complaint Description</h3>
+            <p style="white-space: pre-wrap;">${complaint.complaint_description}</p>
+          </div>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${responseUrl}" 
+               style="background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">
+              Provide Your Response
+            </a>
+          </div>
+          
+          <div style="border-top: 1px solid #e5e7eb; padding-top: 20px; margin-top: 30px;">
+            <p style="font-size: 14px; color: #6b7280;">
+              <strong>Important:</strong> Please review the complaint details carefully and provide your input within 5 working days. 
+              Your response will be used as part of the investigation process.
+            </p>
+            <p style="font-size: 12px; color: #9ca3af;">
+              This email was sent from ${practiceDetails?.practice_name || 'Medical Practice'} complaint management system.
+            </p>
+          </div>
+        </div>
+      `;
 
       try {
-        const emailResponse = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(emailData),
+        const emailResponse = await resend.emails.send({
+          from: `${practiceDetails?.practice_name || 'Medical Practice'} <complaints@resend.dev>`,
+          to: [party.staffEmail],
+          subject: `Complaint Input Request - ${complaint.reference_number}`,
+          html: emailHtml,
         });
 
-        if (emailResponse.ok) {
-          emailResults.push({ email: party.staffEmail, status: 'sent', responseUrl });
-        } else {
-          const errorText = await emailResponse.text();
-          emailResults.push({ email: party.staffEmail, status: 'failed', error: errorText });
-        }
+        console.log('Email sent successfully to:', party.staffEmail, emailResponse);
+        emailResults.push({ 
+          email: party.staffEmail, 
+          status: 'sent', 
+          responseUrl,
+          emailId: emailResponse.data?.id 
+        });
+        
       } catch (emailError) {
-        emailResults.push({ email: party.staffEmail, status: 'failed', error: emailError.message });
+        console.error('Email sending failed for:', party.staffEmail, emailError);
+        emailResults.push({ 
+          email: party.staffEmail, 
+          status: 'failed', 
+          error: emailError.message 
+        });
       }
     }
+
+    console.log('Email sending completed. Results:', emailResults);
 
     return new Response(JSON.stringify({ 
       success: true,
@@ -146,6 +173,7 @@ serve(async (req) => {
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
+    
   } catch (error) {
     console.error('Error in send-complaint-notifications function:', error);
     return new Response(JSON.stringify({ 
