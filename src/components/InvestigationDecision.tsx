@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { AlertCircle, CheckCircle, XCircle, Scale, Save, Edit } from 'lucide-react';
+import { SpeechToText } from '@/components/SpeechToText';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -251,40 +252,79 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
 
             <div>
               <Label htmlFor="decision-reasoning">Decision Reasoning *</Label>
-              <Textarea
-                id="decision-reasoning"
-                placeholder="Explain the reasoning behind this decision based on the investigation findings..."
-                value={decisionReasoning}
-                onChange={(e) => setDecisionReasoning(e.target.value)}
-                disabled={disabled || saving}
-                rows={5}
-              />
+              <div className="space-y-2">
+                <Textarea
+                  id="decision-reasoning"
+                  placeholder="Explain the reasoning behind this decision based on the investigation findings..."
+                  value={decisionReasoning}
+                  onChange={(e) => setDecisionReasoning(e.target.value)}
+                  disabled={disabled || saving}
+                  rows={5}
+                />
+                {!disabled && (
+                  <div className="flex justify-start">
+                    <SpeechToText
+                      onTranscription={(text) => {
+                        setDecisionReasoning(prev => prev + (prev ? '\n\n' : '') + text);
+                      }}
+                      size="sm"
+                      className="text-sm"
+                    />
+                  </div>
+                )}
+              </div>
             </div>
 
             {(decisionType === 'uphold' || decisionType === 'partially_uphold') && (
               <div>
                 <Label htmlFor="corrective-actions">Corrective Actions</Label>
-                <Textarea
-                  id="corrective-actions"
-                  placeholder="What actions will be taken to address the issues identified..."
-                  value={correctiveActions}
-                  onChange={(e) => setCorrectiveActions(e.target.value)}
-                  disabled={disabled || saving}
-                  rows={4}
-                />
+                <div className="space-y-2">
+                  <Textarea
+                    id="corrective-actions"
+                    placeholder="What actions will be taken to address the issues identified..."
+                    value={correctiveActions}
+                    onChange={(e) => setCorrectiveActions(e.target.value)}
+                    disabled={disabled || saving}
+                    rows={4}
+                  />
+                  {!disabled && (
+                    <div className="flex justify-start">
+                      <SpeechToText
+                        onTranscription={(text) => {
+                          setCorrectiveActions(prev => prev + (prev ? '\n\n' : '') + text);
+                        }}
+                        size="sm"
+                        className="text-sm"
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
             <div>
               <Label htmlFor="lessons-learned">Lessons Learned</Label>
-              <Textarea
-                id="lessons-learned"
-                placeholder="What can be learned from this complaint to prevent similar issues..."
-                value={lessonsLearned}
-                onChange={(e) => setLessonsLearned(e.target.value)}
-                disabled={disabled || saving}
-                rows={3}
-              />
+              <div className="space-y-2">
+                <Textarea
+                  id="lessons-learned"
+                  placeholder="What can be learned from this complaint to prevent similar issues..."
+                  value={lessonsLearned}
+                  onChange={(e) => setLessonsLearned(e.target.value)}
+                  disabled={disabled || saving}
+                  rows={3}
+                />
+                {!disabled && (
+                  <div className="flex justify-start">
+                    <SpeechToText
+                      onTranscription={(text) => {
+                        setLessonsLearned(prev => prev + (prev ? '\n\n' : '') + text);
+                      }}
+                      size="sm"
+                      className="text-sm"
+                    />
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="flex gap-2">

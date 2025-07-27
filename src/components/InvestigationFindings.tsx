@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Search, Save, Edit, CheckCircle } from 'lucide-react';
+import { SpeechToText } from '@/components/SpeechToText';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -189,38 +190,77 @@ export function InvestigationFindings({ complaintId, disabled = false }: Investi
           <div className="space-y-4">
             <div>
               <Label htmlFor="investigation-summary">Investigation Summary *</Label>
-              <Textarea
-                id="investigation-summary"
-                placeholder="Provide a brief summary of how the investigation was conducted..."
-                value={investigationSummary}
-                onChange={(e) => setInvestigationSummary(e.target.value)}
-                disabled={disabled || saving}
-                rows={3}
-              />
+              <div className="space-y-2">
+                <Textarea
+                  id="investigation-summary"
+                  placeholder="Provide a brief summary of how the investigation was conducted..."
+                  value={investigationSummary}
+                  onChange={(e) => setInvestigationSummary(e.target.value)}
+                  disabled={disabled || saving}
+                  rows={3}
+                />
+                {!disabled && (
+                  <div className="flex justify-start">
+                    <SpeechToText
+                      onTranscription={(text) => {
+                        setInvestigationSummary(prev => prev + (prev ? '\n\n' : '') + text);
+                      }}
+                      size="sm"
+                      className="text-sm"
+                    />
+                  </div>
+                )}
+              </div>
             </div>
 
             <div>
               <Label htmlFor="evidence-notes">Evidence Notes</Label>
-              <Textarea
-                id="evidence-notes"
-                placeholder="Notes about evidence reviewed, sources consulted, etc..."
-                value={evidenceNotes}
-                onChange={(e) => setEvidenceNotes(e.target.value)}
-                disabled={disabled || saving}
-                rows={3}
-              />
+              <div className="space-y-2">
+                <Textarea
+                  id="evidence-notes"
+                  placeholder="Notes about evidence reviewed, sources consulted, etc..."
+                  value={evidenceNotes}
+                  onChange={(e) => setEvidenceNotes(e.target.value)}
+                  disabled={disabled || saving}
+                  rows={3}
+                />
+                {!disabled && (
+                  <div className="flex justify-start">
+                    <SpeechToText
+                      onTranscription={(text) => {
+                        setEvidenceNotes(prev => prev + (prev ? '\n\n' : '') + text);
+                      }}
+                      size="sm"
+                      className="text-sm"
+                    />
+                  </div>
+                )}
+              </div>
             </div>
 
             <div>
               <Label htmlFor="findings-text">Detailed Findings *</Label>
-              <Textarea
-                id="findings-text"
-                placeholder="Detail the key findings from your investigation..."
-                value={findingsText}
-                onChange={(e) => setFindingsText(e.target.value)}
-                disabled={disabled || saving}
-                rows={6}
-              />
+              <div className="space-y-2">
+                <Textarea
+                  id="findings-text"
+                  placeholder="Detail the key findings from your investigation..."
+                  value={findingsText}
+                  onChange={(e) => setFindingsText(e.target.value)}
+                  disabled={disabled || saving}
+                  rows={6}
+                />
+                {!disabled && (
+                  <div className="flex justify-start">
+                    <SpeechToText
+                      onTranscription={(text) => {
+                        setFindingsText(prev => prev + (prev ? '\n\n' : '') + text);
+                      }}
+                      size="sm"
+                      className="text-sm"
+                    />
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="flex gap-2">
