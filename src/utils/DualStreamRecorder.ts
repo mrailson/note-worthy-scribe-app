@@ -113,15 +113,14 @@ export class DualStreamRecorder {
       throw new Error('Audio streams not available');
     }
 
-    // Try different audio formats for better OpenAI compatibility
+    // Use the most compatible audio format
+    let mimeType = 'audio/webm;codecs=opus'; // Default fallback
     const supportedMimeTypes = [
       'audio/wav',
-      'audio/mpeg',
-      'audio/mp4',
-      'audio/webm;codecs=opus'
+      'audio/webm;codecs=opus',
+      'audio/webm'
     ];
     
-    let mimeType = 'audio/webm;codecs=opus'; // fallback
     for (const type of supportedMimeTypes) {
       if (MediaRecorder.isTypeSupported(type)) {
         mimeType = type;
@@ -213,6 +212,8 @@ export class DualStreamRecorder {
       this.audioChunks = []; // Clear processed chunks
       
       // Call edge function to transcribe
+      console.log(`Sending ${chunksToProcess.length} chunks to transcription service`);
+      
       const response = await fetch('https://dphcnbricafkbtizkoal.functions.supabase.co/dual-stream-transcription', {
         method: 'POST',
         headers: {
@@ -223,19 +224,26 @@ export class DualStreamRecorder {
         })
       });
 
+      console.log(`Transcription response status: ${response.status} ${response.statusText}`);
+
       if (!response.ok) {
-        throw new Error(`Transcription request failed: ${response.statusText}`);
+        const errorText = await response.text();
+        console.error(`Transcription request failed: ${response.status} ${response.statusText}`, errorText);
+        throw new Error(`Transcription request failed: ${response.status} ${response.statusText} - ${errorText}`);
       }
 
       const result = await response.json();
       
       if (result.error) {
+        console.error('Transcription service error:', result.error);
         throw new Error(result.error);
       }
 
       if (result.transcript && result.transcript.trim()) {
         this.config.onTranscript?.(result.transcript);
         this.config.onStatusChange?.(`Processed ${result.processedChunks}/${result.totalChunks} chunks`);
+      } else {
+        console.log('No transcript returned from service');
       }
       
     } catch (error) {

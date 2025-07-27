@@ -75,20 +75,18 @@ async function transcribeAudio(audioBase64: string, stream: string): Promise<str
       bytes[i] = binaryString.charCodeAt(i);
     }
     
+    console.log(`Converting ${stream} audio: ${bytes.length} bytes`);
+    
     // Create form data with proper file format
     const formData = new FormData();
     
-    // Determine the best MIME type and extension for OpenAI Whisper
-    const mimeType = 'audio/wav'; // WAV is most compatible with Whisper
-    const extension = 'wav';
-    
-    // Create blob with compatible audio MIME type
+    // OpenAI supports WebM, so use the actual format we're recording in
     const audioBlob = new Blob([bytes], { 
-      type: mimeType 
+      type: 'audio/webm' 
     });
     
-    // Add the audio file to form data with proper extension
-    formData.append('file', audioBlob, `${stream}-audio.${extension}`);
+    // Add the audio file to form data with webm extension
+    formData.append('file', audioBlob, `${stream}-audio.webm`);
     formData.append('model', 'whisper-1');
     formData.append('language', 'en');
     formData.append('response_format', 'json');
