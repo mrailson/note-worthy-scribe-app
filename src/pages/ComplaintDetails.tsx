@@ -38,12 +38,16 @@ import {
   Shield,
   X,
   Save,
-  ArrowLeft
+  ArrowLeft,
+  Search
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { createLetterDocument } from "@/utils/letterFormatter";
 import { Document, Packer } from "docx";
+import { InvestigationEvidence } from "@/components/InvestigationEvidence";
+import { InvestigationFindings } from "@/components/InvestigationFindings";
+import { InvestigationDecision } from "@/components/InvestigationDecision";
 
 interface Complaint {
   id: string;
@@ -1281,6 +1285,25 @@ const ComplaintDetails = () => {
                         </div>
                       </div>
                     </div>
+
+                    {/* Direct Investigation Section */}
+                    {investigationMethod === "direct-investigation" && (
+                      <div className="space-y-6 p-4 bg-green-50 rounded-lg border border-green-200">
+                        <div className="flex items-center gap-2 mb-4">
+                          <Search className="h-4 w-4 text-green-600" />
+                          <Label className="text-sm font-medium text-green-900">Direct Investigation</Label>
+                        </div>
+                        <p className="text-sm text-green-800 mb-4">
+                          Conduct your investigation directly using the tools below to gather evidence, document findings, and make decisions.
+                        </p>
+
+                        <div className="space-y-6">
+                          <InvestigationEvidence complaintId={complaint.id} disabled={submitting} />
+                          <InvestigationFindings complaintId={complaint.id} disabled={submitting} />
+                          <InvestigationDecision complaintId={complaint.id} disabled={submitting} />
+                        </div>
+                      </div>
+                    )}
 
                     {/* Suggested Staff Input Section */}
                     {investigationMethod === "input-required" && (

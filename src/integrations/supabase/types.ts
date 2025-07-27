@@ -431,6 +431,161 @@ export type Database = {
           },
         ]
       }
+      complaint_investigation_decisions: {
+        Row: {
+          complaint_id: string
+          corrective_actions: string | null
+          created_at: string
+          decided_at: string
+          decided_by: string
+          decision_reasoning: string
+          decision_type: string
+          id: string
+          lessons_learned: string | null
+          updated_at: string
+        }
+        Insert: {
+          complaint_id: string
+          corrective_actions?: string | null
+          created_at?: string
+          decided_at?: string
+          decided_by: string
+          decision_reasoning: string
+          decision_type: string
+          id?: string
+          lessons_learned?: string | null
+          updated_at?: string
+        }
+        Update: {
+          complaint_id?: string
+          corrective_actions?: string | null
+          created_at?: string
+          decided_at?: string
+          decided_by?: string
+          decision_reasoning?: string
+          decision_type?: string
+          id?: string
+          lessons_learned?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      complaint_investigation_evidence: {
+        Row: {
+          complaint_id: string
+          description: string | null
+          evidence_type: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          file_type: string | null
+          id: string
+          uploaded_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          complaint_id: string
+          description?: string | null
+          evidence_type: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          uploaded_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          complaint_id?: string
+          description?: string | null
+          evidence_type?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          uploaded_at?: string
+          uploaded_by?: string
+        }
+        Relationships: []
+      }
+      complaint_investigation_findings: {
+        Row: {
+          complaint_id: string
+          created_at: string
+          evidence_notes: string | null
+          findings_text: string
+          id: string
+          investigated_by: string
+          investigation_date: string
+          investigation_summary: string
+          updated_at: string
+        }
+        Insert: {
+          complaint_id: string
+          created_at?: string
+          evidence_notes?: string | null
+          findings_text: string
+          id?: string
+          investigated_by: string
+          investigation_date?: string
+          investigation_summary: string
+          updated_at?: string
+        }
+        Update: {
+          complaint_id?: string
+          created_at?: string
+          evidence_notes?: string | null
+          findings_text?: string
+          id?: string
+          investigated_by?: string
+          investigation_date?: string
+          investigation_summary?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      complaint_investigation_transcripts: {
+        Row: {
+          audio_file_id: string | null
+          complaint_id: string
+          created_at: string
+          id: string
+          transcribed_at: string
+          transcribed_by: string
+          transcript_text: string
+          transcription_confidence: number | null
+        }
+        Insert: {
+          audio_file_id?: string | null
+          complaint_id: string
+          created_at?: string
+          id?: string
+          transcribed_at?: string
+          transcribed_by: string
+          transcript_text: string
+          transcription_confidence?: number | null
+        }
+        Update: {
+          audio_file_id?: string | null
+          complaint_id?: string
+          created_at?: string
+          id?: string
+          transcribed_at?: string
+          transcribed_by?: string
+          transcript_text?: string
+          transcription_confidence?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_investigation_transcripts_audio_file_id_fkey"
+            columns: ["audio_file_id"]
+            isOneToOne: false
+            referencedRelation: "complaint_investigation_evidence"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       complaint_involved_parties: {
         Row: {
           access_token: string | null

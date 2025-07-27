@@ -1,0 +1,245 @@
+import React, { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Search, Save, Edit, CheckCircle } from 'lucide-react';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+
+interface InvestigationFindingsProps {
+  complaintId: string;
+  disabled?: boolean;
+}
+
+interface InvestigationFinding {
+  id: string;
+  investigation_summary: string;
+  evidence_notes: string | null;
+  findings_text: string;
+  investigation_date: string;
+  investigated_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export function InvestigationFindings({ complaintId, disabled = false }: InvestigationFindingsProps) {
+  const [findings, setFindings] = useState<InvestigationFinding | null>(null);
+  const [investigationSummary, setInvestigationSummary] = useState('');
+  const [evidenceNotes, setEvidenceNotes] = useState('');
+  const [findingsText, setFindingsText] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [editing, setEditing] = useState(false);
+
+  useEffect(() => {
+    fetchInvestigationFindings();
+  }, [complaintId]);
+
+  const fetchInvestigationFindings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('complaint_investigation_findings')
+        .select('*')
+        .eq('complaint_id', complaintId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (data) {
+        setFindings(data);
+        setInvestigationSummary(data.investigation_summary);
+        setEvidenceNotes(data.evidence_notes || '');
+        setFindingsText(data.findings_text);
+        setEditing(false);
+      } else {
+        setEditing(true);
+      }
+    } catch (error) {
+      console.error('Error fetching investigation findings:', error);
+      toast.error('Failed to load investigation findings');
+    }
+  };
+
+  const saveInvestigationFindings = async () => {
+    if (!investigationSummary.trim() || !findingsText.trim()) {
+      toast.error('Please provide both investigation summary and findings');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const user = await supabase.auth.getUser();
+      if (!user.data.user) {
+        throw new Error('User not authenticated');
+      }
+
+      if (findings) {
+        // Update existing findings
+        const { data, error } = await supabase
+          .from('complaint_investigation_findings')
+          .update({
+            investigation_summary: investigationSummary,
+            evidence_notes: evidenceNotes || null,
+            findings_text: findingsText,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', findings.id)
+          .select()
+          .single();
+
+        if (error) throw error;
+        setFindings(data);
+      } else {
+        // Create new findings
+        const { data, error } = await supabase
+          .from('complaint_investigation_findings')
+          .insert({
+            complaint_id: complaintId,
+            investigation_summary: investigationSummary,
+            evidence_notes: evidenceNotes || null,
+            findings_text: findingsText,
+            investigated_by: user.data.user.id
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+        setFindings(data);
+      }
+
+      setEditing(false);
+      toast.success('Investigation findings saved successfully');
+    } catch (error) {
+      console.error('Error saving investigation findings:', error);
+      toast.error('Failed to save investigation findings');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleEdit = () => {
+    setEditing(true);
+  };
+
+  const handleCancel = () => {
+    if (findings) {
+      setInvestigationSummary(findings.investigation_summary);
+      setEvidenceNotes(findings.evidence_notes || '');
+      setFindingsText(findings.findings_text);
+      setEditing(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <Search className="h-5 w-5" />
+            Investigation Findings
+          </CardTitle>
+          {findings && !editing && !disabled && (
+            <Button variant="outline" size="sm" onClick={handleEdit}>
+              <Edit className="h-4 w-4 mr-2" />
+              Edit
+            </Button>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {!editing && findings ? (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 mb-4">
+              <Badge variant="secondary" className="flex items-center gap-1">
+                <CheckCircle className="h-3 w-3" />
+                Investigation Complete
+              </Badge>
+              <span className="text-sm text-muted-foreground">
+                {new Date(findings.investigation_date).toLocaleDateString()}
+              </span>
+            </div>
+
+            <div>
+              <Label className="text-sm font-medium">Investigation Summary</Label>
+              <div className="mt-1 p-3 bg-gray-50 rounded-md text-sm whitespace-pre-wrap">
+                {findings.investigation_summary}
+              </div>
+            </div>
+
+            {findings.evidence_notes && (
+              <div>
+                <Label className="text-sm font-medium">Evidence Notes</Label>
+                <div className="mt-1 p-3 bg-gray-50 rounded-md text-sm whitespace-pre-wrap">
+                  {findings.evidence_notes}
+                </div>
+              </div>
+            )}
+
+            <div>
+              <Label className="text-sm font-medium">Detailed Findings</Label>
+              <div className="mt-1 p-3 bg-gray-50 rounded-md text-sm whitespace-pre-wrap">
+                {findings.findings_text}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="investigation-summary">Investigation Summary *</Label>
+              <Textarea
+                id="investigation-summary"
+                placeholder="Provide a brief summary of how the investigation was conducted..."
+                value={investigationSummary}
+                onChange={(e) => setInvestigationSummary(e.target.value)}
+                disabled={disabled || saving}
+                rows={3}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="evidence-notes">Evidence Notes</Label>
+              <Textarea
+                id="evidence-notes"
+                placeholder="Notes about evidence reviewed, sources consulted, etc..."
+                value={evidenceNotes}
+                onChange={(e) => setEvidenceNotes(e.target.value)}
+                disabled={disabled || saving}
+                rows={3}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="findings-text">Detailed Findings *</Label>
+              <Textarea
+                id="findings-text"
+                placeholder="Detail the key findings from your investigation..."
+                value={findingsText}
+                onChange={(e) => setFindingsText(e.target.value)}
+                disabled={disabled || saving}
+                rows={6}
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                onClick={saveInvestigationFindings}
+                disabled={disabled || saving || !investigationSummary.trim() || !findingsText.trim()}
+              >
+                <Save className="h-4 w-4 mr-2" />
+                {saving ? 'Saving...' : 'Save Findings'}
+              </Button>
+              {findings && (
+                <Button variant="outline" onClick={handleCancel} disabled={saving}>
+                  Cancel
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
