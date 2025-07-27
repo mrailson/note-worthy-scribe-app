@@ -28,7 +28,6 @@ interface InvestigationFinding {
 export function InvestigationFindings({ complaintId, disabled = false }: InvestigationFindingsProps) {
   const [findings, setFindings] = useState<InvestigationFinding | null>(null);
   const [investigationSummary, setInvestigationSummary] = useState('');
-  const [evidenceNotes, setEvidenceNotes] = useState('');
   const [findingsText, setFindingsText] = useState('');
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -52,7 +51,6 @@ export function InvestigationFindings({ complaintId, disabled = false }: Investi
       if (data) {
         setFindings(data);
         setInvestigationSummary(data.investigation_summary);
-        setEvidenceNotes(data.evidence_notes || '');
         setFindingsText(data.findings_text);
         setEditing(false);
       } else {
@@ -83,7 +81,6 @@ export function InvestigationFindings({ complaintId, disabled = false }: Investi
           .from('complaint_investigation_findings')
           .update({
             investigation_summary: investigationSummary,
-            evidence_notes: evidenceNotes || null,
             findings_text: findingsText,
             updated_at: new Date().toISOString()
           })
@@ -100,7 +97,6 @@ export function InvestigationFindings({ complaintId, disabled = false }: Investi
           .insert({
             complaint_id: complaintId,
             investigation_summary: investigationSummary,
-            evidence_notes: evidenceNotes || null,
             findings_text: findingsText,
             investigated_by: user.data.user.id
           })
@@ -128,7 +124,6 @@ export function InvestigationFindings({ complaintId, disabled = false }: Investi
   const handleCancel = () => {
     if (findings) {
       setInvestigationSummary(findings.investigation_summary);
-      setEvidenceNotes(findings.evidence_notes || '');
       setFindingsText(findings.findings_text);
       setEditing(false);
     }
@@ -170,14 +165,6 @@ export function InvestigationFindings({ complaintId, disabled = false }: Investi
               </div>
             </div>
 
-            {findings.evidence_notes && (
-              <div>
-                <Label className="text-sm font-medium">Evidence Notes</Label>
-                <div className="mt-1 p-3 bg-gray-50 rounded-md text-sm whitespace-pre-wrap">
-                  {findings.evidence_notes}
-                </div>
-              </div>
-            )}
 
             <div>
               <Label className="text-sm font-medium">Detailed Findings</Label>
@@ -205,32 +192,6 @@ export function InvestigationFindings({ complaintId, disabled = false }: Investi
                     <SpeechToText
                       onTranscription={(text) => {
                         setInvestigationSummary(prev => prev + (prev ? '\n\n' : '') + text);
-                      }}
-                      size="sm"
-                      className="text-sm"
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="evidence-notes">Evidence Notes</Label>
-              <div className="relative">
-                <Textarea
-                  id="evidence-notes"
-                  placeholder="Notes about evidence reviewed, sources consulted, etc..."
-                  value={evidenceNotes}
-                  onChange={(e) => setEvidenceNotes(e.target.value)}
-                  disabled={disabled || saving}
-                  rows={3}
-                  className="pl-12"
-                />
-                {!disabled && (
-                  <div className="absolute top-2 left-2">
-                    <SpeechToText
-                      onTranscription={(text) => {
-                        setEvidenceNotes(prev => prev + (prev ? '\n\n' : '') + text);
                       }}
                       size="sm"
                       className="text-sm"
