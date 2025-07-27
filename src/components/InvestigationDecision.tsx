@@ -371,6 +371,19 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
     }
   };
 
+  const mapDecisionTypeToOutcomeType = (decisionType: string) => {
+    switch (decisionType) {
+      case 'uphold':
+        return 'upheld';
+      case 'reject':
+        return 'not_upheld';
+      case 'partially_uphold':
+        return 'partially_upheld';
+      default:
+        return decisionType;
+    }
+  };
+
   const saveOutcomeLetterToDatabase = async (letterContent: string, isGenerated = false) => {
     try {
       const user = await supabase.auth.getUser();
@@ -397,7 +410,7 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
           .from('complaint_outcomes')
           .insert({
             complaint_id: complaintId,
-            outcome_type: decision.decision_type,
+            outcome_type: mapDecisionTypeToOutcomeType(decision.decision_type),
             outcome_summary: decision.decision_reasoning,
             outcome_letter: letterContent,
             decided_by: user.data.user.id
