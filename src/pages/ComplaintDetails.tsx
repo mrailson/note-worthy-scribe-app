@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Header } from "@/components/Header";
 import { useAuth } from "@/contexts/AuthContext";
 import { LoginForm } from "@/components/LoginForm";
@@ -41,6 +42,8 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { createLetterDocument } from "@/utils/letterFormatter";
+import { Document, Packer } from "docx";
 
 interface Complaint {
   id: string;
@@ -93,6 +96,7 @@ const ComplaintDetails = () => {
   const [editingOutcome, setEditingOutcome] = useState(false);
   const [acknowledgementLetter, setAcknowledgementLetter] = useState("");
   const [showAcknowledgementLetter, setShowAcknowledgementLetter] = useState(false);
+  const [showAcknowledgementModal, setShowAcknowledgementModal] = useState(false);
   const [complianceChecks, setComplianceChecks] = useState<any[]>([]);
   const [complianceSummary, setComplianceSummary] = useState<any>(null);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
@@ -400,6 +404,30 @@ const ComplaintDetails = () => {
       toast.error("Failed to save outcome letter");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleDownloadAcknowledgementLetter = async () => {
+    if (!acknowledgementLetter || !complaint) return;
+    
+    try {
+      const doc = createLetterDocument(acknowledgementLetter, 'acknowledgement', complaint.reference_number);
+      const buffer = await Packer.toBlob(doc);
+      
+      // Create download link
+      const url = window.URL.createObjectURL(buffer);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Acknowledgement_Letter_${complaint.reference_number}.docx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      toast.success("Acknowledgement letter downloaded successfully");
+    } catch (error) {
+      console.error('Error downloading acknowledgement letter:', error);
+      toast.error("Failed to download acknowledgement letter");
     }
   };
 
@@ -829,10 +857,10 @@ const ComplaintDetails = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => setShowAcknowledgementLetter(!showAcknowledgementLetter)}
+                            onClick={() => setShowAcknowledgementModal(true)}
                           >
                             <Eye className="h-4 w-4 mr-1" />
-                            {showAcknowledgementLetter ? 'Hide' : 'View'} Letter
+                            View Letter
                           </Button>
                           <Button 
                             variant="outline"
@@ -844,11 +872,6 @@ const ComplaintDetails = () => {
                           </Button>
                         </div>
                       </div>
-                      {showAcknowledgementLetter && (
-                        <div className="border rounded-lg p-4 bg-gray-50 max-h-96 overflow-y-auto">
-                          <pre className="whitespace-pre-wrap text-sm">{acknowledgementLetter}</pre>
-                        </div>
-                      )}
                     </div>
                   )}
                 </CardContent>
@@ -1215,6 +1238,54 @@ const ComplaintDetails = () => {
           </Tabs>
         </div>
       </div>
+
+      {/* Acknowledgement Letter Modal */}
+      <Dialog open={showAcknowledgementModal} onOpenChange={setShowAcknowledgementModal}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5" />
+              Acknowledgement Letter - {complaint?.reference_number}
+            </DialogTitle>
+            <DialogDescription>
+              View, download, or regenerate the acknowledgement letter for this complaint
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex flex-col gap-4 max-h-[60vh]">
+            {/* Action buttons */}
+            <div className="flex gap-2 justify-end border-b pb-4">
+              <Button
+                variant="outline"
+                onClick={handleDownloadAcknowledgementLetter}
+                className="flex items-center gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Download DOCX
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={() => {
+                  setShowAcknowledgementModal(false);
+                  handleGenerateAcknowledgement(complaint.id);
+                }}
+                disabled={submitting}
+              >
+                {submitting ? 'Regenerating...' : 'Regenerate Letter'}
+              </Button>
+            </div>
+            
+            {/* Letter content */}
+            <div className="flex-1 overflow-y-auto border rounded-lg p-6 bg-white">
+              <div className="prose prose-sm max-w-none">
+                <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">
+                  {acknowledgementLetter}
+                </pre>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
