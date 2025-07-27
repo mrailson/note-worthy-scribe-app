@@ -122,17 +122,31 @@ serve(async (req) => {
         accessToken: emailJsPrivateKey,
         template_params: {
           to_email: party.staffEmail,
-          to_name: party.staffName,
-          staff_role: party.staffRole,
-          complaint_reference: complaint.reference_number,
-          complaint_title: complaint.complaint_title,
-          complaint_description: complaint.complaint_description,
-          patient_name: complaint.patient_name,
-          incident_date: new Date(complaint.incident_date).toLocaleDateString('en-GB'),
-          practice_name: practiceDetails?.practice_name || 'Medical Practice',
-          response_url: responseUrl,
-          from_name: practiceDetails?.practice_name || 'Medical Practice',
-          reply_to: practiceDetails?.email || 'noreply@practice.nhs.uk',
+          subject: `Complaint Input Request - ${complaint.reference_number}`,
+          message: `Dear ${party.staffName},
+
+You have been requested to provide input for the following complaint investigation:
+
+COMPLAINT DETAILS:
+Reference: ${complaint.reference_number}
+Title: ${complaint.complaint_title}
+Patient: ${complaint.patient_name}
+Incident Date: ${new Date(complaint.incident_date).toLocaleDateString('en-GB')}
+Your Role: ${party.staffRole}
+
+COMPLAINT DESCRIPTION:
+${complaint.complaint_description}
+
+Please review the complaint details carefully and provide your response using the link below:
+
+Response Link: ${responseUrl}
+
+IMPORTANT: Please provide your input within 5 working days. Your response will be used as part of the investigation process.
+
+This email was sent from ${practiceDetails?.practice_name || 'Medical Practice'} complaint management system.
+
+Best regards,
+${practiceDetails?.practice_name || 'Medical Practice'} Complaints Team`,
         },
       };
 
