@@ -45,18 +45,48 @@ export class DualStreamRecorder {
 
       this.config.onStatusChange?.('Setting up speaker capture...');
       
-      // Get speaker/system audio stream using getDisplayMedia
-      // This captures the system audio along with screen sharing
-      this.speakerStream = await navigator.mediaDevices.getDisplayMedia({
-        video: false,
-        audio: {
-          sampleRate: 16000,
-          channelCount: 1,
-          echoCancellation: false,
-          noiseSuppression: false,
-          autoGainControl: false
-        }
-      });
+      try {
+        // Try to get speaker/system audio stream using getDisplayMedia
+        // Note: Most browsers require video=true for getDisplayMedia
+        this.speakerStream = await navigator.mediaDevices.getDisplayMedia({
+          video: {
+            width: { ideal: 1 },
+            height: { ideal: 1 }
+          },
+          audio: {
+            sampleRate: 16000,
+            channelCount: 1,
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false
+          }
+        });
+
+        // Remove video tracks since we only need audio
+        const videoTracks = this.speakerStream.getVideoTracks();
+        videoTracks.forEach(track => {
+          track.stop();
+          this.speakerStream!.removeTrack(track);
+        });
+        
+        this.config.onStatusChange?.('✅ Screen audio capture enabled - will record system audio');
+      } catch (screenError) {
+        console.warn('Screen capture failed, using fallback:', screenError);
+        this.config.onStatusChange?.('⚠️ Screen capture not available, using microphone-only mode for testing');
+        
+        // Fallback: Use a second microphone stream as "speaker" for testing
+        this.speakerStream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            sampleRate: 16000,
+            channelCount: 1,
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false
+          }
+        });
+        
+        this.config.onStatusChange?.('📱 Using dual microphone mode for testing');
+      }
 
       // Set up media recorders
       this.setupRecorders();
