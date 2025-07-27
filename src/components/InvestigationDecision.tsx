@@ -252,7 +252,7 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
 
             <div>
               <Label htmlFor="decision-reasoning">Decision Reasoning *</Label>
-              <div className="space-y-2">
+              <div className="relative">
                 <Textarea
                   id="decision-reasoning"
                   placeholder="Explain the reasoning behind this decision based on the investigation findings..."
@@ -260,9 +260,10 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
                   onChange={(e) => setDecisionReasoning(e.target.value)}
                   disabled={disabled || saving}
                   rows={5}
+                  className="pr-12"
                 />
                 {!disabled && (
-                  <div className="flex justify-start">
+                  <div className="absolute top-2 right-2">
                     <SpeechToText
                       onTranscription={(text) => {
                         setDecisionReasoning(prev => prev + (prev ? '\n\n' : '') + text);
@@ -278,7 +279,7 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
             {(decisionType === 'uphold' || decisionType === 'partially_uphold') && (
               <div>
                 <Label htmlFor="corrective-actions">Corrective Actions</Label>
-                <div className="space-y-2">
+                <div className="relative">
                   <Textarea
                     id="corrective-actions"
                     placeholder="What actions will be taken to address the issues identified..."
@@ -286,9 +287,10 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
                     onChange={(e) => setCorrectiveActions(e.target.value)}
                     disabled={disabled || saving}
                     rows={4}
+                    className="pr-12"
                   />
                   {!disabled && (
-                    <div className="flex justify-start">
+                    <div className="absolute top-2 right-2">
                       <SpeechToText
                         onTranscription={(text) => {
                           setCorrectiveActions(prev => prev + (prev ? '\n\n' : '') + text);
@@ -304,7 +306,7 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
 
             <div>
               <Label htmlFor="lessons-learned">Lessons Learned</Label>
-              <div className="space-y-2">
+              <div className="relative">
                 <Textarea
                   id="lessons-learned"
                   placeholder="What can be learned from this complaint to prevent similar issues..."
@@ -312,9 +314,10 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
                   onChange={(e) => setLessonsLearned(e.target.value)}
                   disabled={disabled || saving}
                   rows={3}
+                  className="pr-12"
                 />
                 {!disabled && (
-                  <div className="flex justify-start">
+                  <div className="absolute top-2 right-2">
                     <SpeechToText
                       onTranscription={(text) => {
                         setLessonsLearned(prev => prev + (prev ? '\n\n' : '') + text);

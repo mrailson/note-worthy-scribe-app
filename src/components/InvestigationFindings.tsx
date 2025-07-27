@@ -190,7 +190,7 @@ export function InvestigationFindings({ complaintId, disabled = false }: Investi
           <div className="space-y-4">
             <div>
               <Label htmlFor="investigation-summary">Investigation Summary *</Label>
-              <div className="space-y-2">
+              <div className="relative">
                 <Textarea
                   id="investigation-summary"
                   placeholder="Provide a brief summary of how the investigation was conducted..."
@@ -198,9 +198,10 @@ export function InvestigationFindings({ complaintId, disabled = false }: Investi
                   onChange={(e) => setInvestigationSummary(e.target.value)}
                   disabled={disabled || saving}
                   rows={3}
+                  className="pr-12"
                 />
                 {!disabled && (
-                  <div className="flex justify-start">
+                  <div className="absolute top-2 right-2">
                     <SpeechToText
                       onTranscription={(text) => {
                         setInvestigationSummary(prev => prev + (prev ? '\n\n' : '') + text);
@@ -215,7 +216,7 @@ export function InvestigationFindings({ complaintId, disabled = false }: Investi
 
             <div>
               <Label htmlFor="evidence-notes">Evidence Notes</Label>
-              <div className="space-y-2">
+              <div className="relative">
                 <Textarea
                   id="evidence-notes"
                   placeholder="Notes about evidence reviewed, sources consulted, etc..."
@@ -223,9 +224,10 @@ export function InvestigationFindings({ complaintId, disabled = false }: Investi
                   onChange={(e) => setEvidenceNotes(e.target.value)}
                   disabled={disabled || saving}
                   rows={3}
+                  className="pr-12"
                 />
                 {!disabled && (
-                  <div className="flex justify-start">
+                  <div className="absolute top-2 right-2">
                     <SpeechToText
                       onTranscription={(text) => {
                         setEvidenceNotes(prev => prev + (prev ? '\n\n' : '') + text);
@@ -240,7 +242,7 @@ export function InvestigationFindings({ complaintId, disabled = false }: Investi
 
             <div>
               <Label htmlFor="findings-text">Detailed Findings *</Label>
-              <div className="space-y-2">
+              <div className="relative">
                 <Textarea
                   id="findings-text"
                   placeholder="Detail the key findings from your investigation..."
@@ -248,9 +250,10 @@ export function InvestigationFindings({ complaintId, disabled = false }: Investi
                   onChange={(e) => setFindingsText(e.target.value)}
                   disabled={disabled || saving}
                   rows={6}
+                  className="pr-12"
                 />
                 {!disabled && (
-                  <div className="flex justify-start">
+                  <div className="absolute top-2 right-2">
                     <SpeechToText
                       onTranscription={(text) => {
                         setFindingsText(prev => prev + (prev ? '\n\n' : '') + text);
