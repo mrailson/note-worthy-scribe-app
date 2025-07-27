@@ -115,31 +115,80 @@ serve(async (req) => {
       
       console.log('Sending email to:', party.staffEmail, 'with response URL:', responseUrl);
       
-      // Create the email message content
-      const messageContent = `Dear ${party.staffName},
+      // Create the professional HTML email content
+      const messageContent = `
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
+  <div style="border-bottom: 3px solid #2563eb; padding-bottom: 20px; margin-bottom: 30px;">
+    <h1 style="color: #1f2937; margin: 0; font-size: 24px;">Complaint Input Request</h1>
+    <p style="color: #6b7280; margin: 5px 0 0 0; font-size: 16px;">${practiceDetails?.practice_name || 'Medical Practice'}</p>
+  </div>
 
-You have been requested to provide input for the following complaint investigation:
+  <p style="font-size: 16px; color: #374151; margin-bottom: 20px;">Dear <strong>${party.staffName}</strong>,</p>
+  
+  <p style="font-size: 16px; color: #374151; line-height: 1.5; margin-bottom: 25px;">
+    You have been requested to provide input for the following complaint investigation:
+  </p>
 
-COMPLAINT DETAILS:
-Reference: ${complaint.reference_number}
-Title: ${complaint.complaint_title}
-Patient: ${complaint.patient_name}
-Incident Date: ${new Date(complaint.incident_date).toLocaleDateString('en-GB')}
-Your Role: ${party.staffRole}
+  <div style="background-color: #f8fafc; border-left: 4px solid #2563eb; padding: 20px; margin: 25px 0;">
+    <h2 style="color: #1f2937; font-size: 18px; margin: 0 0 15px 0; font-weight: bold;">📋 Complaint Details</h2>
+    <table style="width: 100%; border-collapse: collapse;">
+      <tr style="border-bottom: 1px solid #e5e7eb;">
+        <td style="padding: 8px 0; font-weight: bold; color: #374151; width: 35%;">Reference:</td>
+        <td style="padding: 8px 0; color: #1f2937; font-family: monospace; background-color: #fef3c7; padding: 4px 8px; border-radius: 3px; font-weight: bold;">${complaint.reference_number}</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #e5e7eb;">
+        <td style="padding: 8px 0; font-weight: bold; color: #374151;">Title:</td>
+        <td style="padding: 8px 0; color: #1f2937;">${complaint.complaint_title}</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #e5e7eb;">
+        <td style="padding: 8px 0; font-weight: bold; color: #374151;">Patient:</td>
+        <td style="padding: 8px 0; color: #1f2937;">${complaint.patient_name}</td>
+      </tr>
+      <tr style="border-bottom: 1px solid #e5e7eb;">
+        <td style="padding: 8px 0; font-weight: bold; color: #374151;">Incident Date:</td>
+        <td style="padding: 8px 0; color: #1f2937;">${new Date(complaint.incident_date).toLocaleDateString('en-GB')}</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; font-weight: bold; color: #374151;">Your Role:</td>
+        <td style="padding: 8px 0; color: #1f2937; background-color: #dbeafe; padding: 4px 8px; border-radius: 3px; font-weight: bold;">${party.staffRole}</td>
+      </tr>
+    </table>
+  </div>
 
-COMPLAINT DESCRIPTION:
-${complaint.complaint_description}
+  <div style="background-color: #fef9e7; border-left: 4px solid #f59e0b; padding: 20px; margin: 25px 0;">
+    <h2 style="color: #92400e; font-size: 18px; margin: 0 0 15px 0; font-weight: bold;">📝 Complaint Description</h2>
+    <div style="background-color: #ffffff; padding: 15px; border-radius: 6px; border: 1px solid #fbbf24;">
+      <p style="color: #374151; line-height: 1.6; margin: 0; white-space: pre-wrap;">${complaint.complaint_description}</p>
+    </div>
+  </div>
 
-Please review the complaint details carefully and provide your response using the link below:
+  <div style="text-align: center; margin: 30px 0;">
+    <a href="${responseUrl}" 
+       style="background-color: #2563eb; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold; font-size: 16px; box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);">
+      🔗 Provide Your Response
+    </a>
+  </div>
 
-Response Link: ${responseUrl}
+  <div style="background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 20px; margin: 25px 0;">
+    <h3 style="color: #dc2626; font-size: 16px; margin: 0 0 10px 0; font-weight: bold;">⚠️ Important Information</h3>
+    <ul style="color: #374151; line-height: 1.5; margin: 0; padding-left: 20px;">
+      <li>Please review the complaint details carefully</li>
+      <li><strong>Response deadline: 5 working days</strong></li>
+      <li>Your response will be used as part of the investigation process</li>
+      <li>All information will be handled confidentially</li>
+    </ul>
+  </div>
 
-IMPORTANT: Please provide your input within 5 working days. Your response will be used as part of the investigation process.
-
-This email was sent from ${practiceDetails?.practice_name || 'Medical Practice'} complaint management system.
-
-Best regards,
-${practiceDetails?.practice_name || 'Medical Practice'} Complaints Team`;
+  <div style="border-top: 2px solid #e5e7eb; padding-top: 20px; margin-top: 40px; text-align: center;">
+    <p style="color: #6b7280; font-size: 14px; margin: 0;">
+      This email was sent from <strong>${practiceDetails?.practice_name || 'Medical Practice'}</strong> complaint management system.
+    </p>
+    <p style="color: #6b7280; font-size: 14px; margin: 10px 0 0 0;">
+      <strong>Best regards,</strong><br>
+      ${practiceDetails?.practice_name || 'Medical Practice'} Complaints Team
+    </p>
+  </div>
+</div>`;
 
       const emailData = {
         service_id: emailJsServiceId,
