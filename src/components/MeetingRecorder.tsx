@@ -1497,6 +1497,7 @@ export const MeetingRecorder = ({
                             <div className="flex-1">
                               <div className="font-medium">Teams/Zoom Meeting</div>
                               <div className="text-xs text-muted-foreground">Capture computer audio from Teams/Zoom</div>
+                              <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">💡 You can also record through the smartphone version and transcripts will be saved here</div>
                             </div>
                           </div>
                         </SelectItem>
