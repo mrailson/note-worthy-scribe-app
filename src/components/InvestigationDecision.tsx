@@ -260,10 +260,10 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
                   onChange={(e) => setDecisionReasoning(e.target.value)}
                   disabled={disabled || saving}
                   rows={5}
-                  className="pr-12"
+                  className="pl-12"
                 />
                 {!disabled && (
-                  <div className="absolute top-2 right-2">
+                  <div className="absolute top-2 left-2">
                     <SpeechToText
                       onTranscription={(text) => {
                         setDecisionReasoning(prev => prev + (prev ? '\n\n' : '') + text);
@@ -287,10 +287,10 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
                     onChange={(e) => setCorrectiveActions(e.target.value)}
                     disabled={disabled || saving}
                     rows={4}
-                    className="pr-12"
+                    className="pl-12"
                   />
                   {!disabled && (
-                    <div className="absolute top-2 right-2">
+                    <div className="absolute top-2 left-2">
                       <SpeechToText
                         onTranscription={(text) => {
                           setCorrectiveActions(prev => prev + (prev ? '\n\n' : '') + text);
@@ -314,10 +314,10 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
                   onChange={(e) => setLessonsLearned(e.target.value)}
                   disabled={disabled || saving}
                   rows={3}
-                  className="pr-12"
+                  className="pl-12"
                 />
                 {!disabled && (
-                  <div className="absolute top-2 right-2">
+                  <div className="absolute top-2 left-2">
                     <SpeechToText
                       onTranscription={(text) => {
                         setLessonsLearned(prev => prev + (prev ? '\n\n' : '') + text);

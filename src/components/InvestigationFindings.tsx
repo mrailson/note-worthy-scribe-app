@@ -198,10 +198,10 @@ export function InvestigationFindings({ complaintId, disabled = false }: Investi
                   onChange={(e) => setInvestigationSummary(e.target.value)}
                   disabled={disabled || saving}
                   rows={3}
-                  className="pr-12"
+                  className="pl-12"
                 />
                 {!disabled && (
-                  <div className="absolute top-2 right-2">
+                  <div className="absolute top-2 left-2">
                     <SpeechToText
                       onTranscription={(text) => {
                         setInvestigationSummary(prev => prev + (prev ? '\n\n' : '') + text);
@@ -224,10 +224,10 @@ export function InvestigationFindings({ complaintId, disabled = false }: Investi
                   onChange={(e) => setEvidenceNotes(e.target.value)}
                   disabled={disabled || saving}
                   rows={3}
-                  className="pr-12"
+                  className="pl-12"
                 />
                 {!disabled && (
-                  <div className="absolute top-2 right-2">
+                  <div className="absolute top-2 left-2">
                     <SpeechToText
                       onTranscription={(text) => {
                         setEvidenceNotes(prev => prev + (prev ? '\n\n' : '') + text);
@@ -250,10 +250,10 @@ export function InvestigationFindings({ complaintId, disabled = false }: Investi
                   onChange={(e) => setFindingsText(e.target.value)}
                   disabled={disabled || saving}
                   rows={6}
-                  className="pr-12"
+                  className="pl-12"
                 />
                 {!disabled && (
-                  <div className="absolute top-2 right-2">
+                  <div className="absolute top-2 left-2">
                     <SpeechToText
                       onTranscription={(text) => {
                         setFindingsText(prev => prev + (prev ? '\n\n' : '') + text);
