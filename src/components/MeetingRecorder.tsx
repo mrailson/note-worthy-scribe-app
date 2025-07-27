@@ -65,7 +65,7 @@ export const MeetingRecorder = ({
   const [liveSummary, setLiveSummary] = useState<string>("");
   const [debugLog, setDebugLog] = useState<string[]>([]);
   const [testTranscripts, setTestTranscripts] = useState<string[]>([]);
-  const [recordingMode, setRecordingMode] = useState<'microphone' | 'computer-audio'>('microphone');
+  const [recordingMode, setRecordingMode] = useState<'microphone' | 'computer-audio' | 'testing'>('microphone');
   
   
   // Meeting history state
@@ -1477,7 +1477,7 @@ export const MeetingRecorder = ({
                 {!isRecording && (
                   <div className="space-y-3 mb-4 flex flex-col items-center">
                     <label className="text-sm font-medium">Recording Source:</label>
-                    <Select value={recordingMode} onValueChange={(value: 'microphone' | 'computer-audio') => setRecordingMode(value)}>
+                    <Select value={recordingMode} onValueChange={(value: 'microphone' | 'computer-audio' | 'testing') => setRecordingMode(value)}>
                       <SelectTrigger className="w-[50%] bg-background/50 border-border/50">
                         <SelectValue />
                       </SelectTrigger>
@@ -1497,6 +1497,15 @@ export const MeetingRecorder = ({
                             <div className="flex-1">
                               <div className="font-medium">Teams/Zoom Meeting</div>
                               <div className="text-xs text-muted-foreground">Capture computer audio from Teams/Zoom</div>
+                            </div>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="testing" className="flex items-center gap-2">
+                          <div className="flex items-center gap-2">
+                            <Mic className="h-4 w-4" />
+                            <div>
+                              <div className="font-medium">Just for Testing</div>
+                              <div className="text-xs text-muted-foreground">Test microphone recording functionality</div>
                             </div>
                           </div>
                         </SelectItem>
