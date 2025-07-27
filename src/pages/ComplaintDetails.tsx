@@ -147,6 +147,7 @@ const ComplaintDetails = () => {
         .maybeSingle();
 
       if (ackData) {
+        console.log('Acknowledgement data:', ackData);
         setAcknowledgementLetter(ackData.acknowledgement_letter);
         setAcknowledgementDate(ackData.created_at);
       }
@@ -911,7 +912,7 @@ const ComplaintDetails = () => {
                       <div className="flex items-center justify-between">
                         <div className="flex flex-col gap-2">
                           <Badge variant="default">Letter Generated</Badge>
-                          {acknowledgementDate && complaint?.submitted_at && (
+                          {acknowledgementDate && complaint?.submitted_at ? (
                             <div className="text-sm text-muted-foreground">
                               Generated: {format(new Date(acknowledgementDate), 'dd/MM/yyyy HH:mm')}
                               <br />
@@ -926,6 +927,11 @@ const ComplaintDetails = () => {
                                   : ' ⚠ Exceeded 3-day target'
                                 }
                               </span>
+                            </div>
+                          ) : (
+                            <div className="text-xs text-muted-foreground">
+                              Debug: ackDate={acknowledgementDate ? 'exists' : 'missing'}, 
+                              submittedAt={complaint?.submitted_at ? 'exists' : 'missing'}
                             </div>
                           )}
                         </div>
