@@ -1042,6 +1042,155 @@ const ComplaintDetails = () => {
                 </CardContent>
               </Card>
 
+              {/* Investigation Workflow */}
+              {acknowledgementLetter && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Brain className="h-5 w-5" />
+                      Investigation Workflow
+                    </CardTitle>
+                    <CardDescription>
+                      Determine how the complaint will be investigated and who needs to provide input
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-3">
+                      <Label className="text-sm font-medium">Investigation Method</Label>
+                      <div className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="radio"
+                            id="direct-investigation"
+                            name="investigation-method"
+                            className="rounded"
+                          />
+                          <Label htmlFor="direct-investigation" className="text-sm cursor-pointer">
+                            Direct Investigation - I will investigate this complaint directly
+                          </Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="radio"
+                            id="input-required"
+                            name="investigation-method"
+                            className="rounded"
+                          />
+                          <Label htmlFor="input-required" className="text-sm cursor-pointer">
+                            Input Required - Request responses from involved parties
+                          </Label>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Suggested Staff Input Section */}
+                    <div className="space-y-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4 text-blue-600" />
+                        <Label className="text-sm font-medium text-blue-900">System Suggestions</Label>
+                      </div>
+                      <p className="text-sm text-blue-800">
+                        Based on the complaint details, the following staff may need to provide input:
+                      </p>
+                      <div className="space-y-2">
+                        {/* Dynamic suggestions based on complaint content */}
+                        {complaint.staff_mentioned && complaint.staff_mentioned.length > 0 && (
+                          <div className="space-y-1">
+                            <Label className="text-xs font-medium text-blue-900">Mentioned Staff:</Label>
+                            {complaint.staff_mentioned.map((staff, index) => (
+                              <div key={index} className="flex items-center justify-between p-2 bg-white rounded border">
+                                <div className="flex items-center space-x-2">
+                                  <input type="checkbox" className="rounded" defaultChecked />
+                                  <span className="text-sm">{staff}</span>
+                                  <Badge variant="outline" className="text-xs">Mentioned</Badge>
+                                </div>
+                                <Button variant="ghost" size="sm" className="text-xs">
+                                  Override
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {/* Category-based suggestions */}
+                        {complaint.category === 'Appointments & Access' && (
+                          <div className="flex items-center justify-between p-2 bg-white rounded border">
+                            <div className="flex items-center space-x-2">
+                              <input type="checkbox" className="rounded" defaultChecked />
+                              <span className="text-sm">Reception Team</span>
+                              <Badge variant="outline" className="text-xs">Suggested</Badge>
+                            </div>
+                            <Button variant="ghost" size="sm" className="text-xs">
+                              Override
+                            </Button>
+                          </div>
+                        )}
+                        
+                        {complaint.category === 'Clinical Care & Treatment' && (
+                          <div className="space-y-1">
+                            <div className="flex items-center justify-between p-2 bg-white rounded border">
+                              <div className="flex items-center space-x-2">
+                                <input type="checkbox" className="rounded" defaultChecked />
+                                <span className="text-sm">Treating Clinician</span>
+                                <Badge variant="outline" className="text-xs">Suggested</Badge>
+                              </div>
+                              <Button variant="ghost" size="sm" className="text-xs">
+                                Override
+                              </Button>
+                            </div>
+                            <div className="flex items-center justify-between p-2 bg-white rounded border">
+                              <div className="flex items-center space-x-2">
+                                <input type="checkbox" className="rounded" />
+                                <span className="text-sm">Practice Nurse</span>
+                                <Badge variant="outline" className="text-xs">Optional</Badge>
+                              </div>
+                              <Button variant="ghost" size="sm" className="text-xs">
+                                Override
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="pt-2">
+                        <Button variant="outline" size="sm" className="w-full">
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Additional Staff
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Input Tracking Section */}
+                    <div className="space-y-3">
+                      <Label className="text-sm font-medium">Input Status Tracking</Label>
+                      <div className="space-y-2">
+                        <div className="text-sm text-muted-foreground">
+                          Once staff are selected, emails will be sent with complaint details and tracked here:
+                        </div>
+                        
+                        {/* Sample tracking items - would be populated dynamically */}
+                        <div className="space-y-2 p-3 bg-gray-50 rounded border">
+                          <div className="text-sm text-muted-foreground text-center py-4">
+                            No staff input requests sent yet. Select investigation method and staff members above.
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 pt-4">
+                      <Button className="flex-1">
+                        <Send className="h-4 w-4 mr-2" />
+                        Send Input Requests
+                      </Button>
+                      <Button variant="outline">
+                        <Save className="h-4 w-4 mr-2" />
+                        Save Settings
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* AI Outcome Analysis */}
               <Card>
                 <CardHeader>
