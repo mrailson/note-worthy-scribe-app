@@ -138,6 +138,14 @@ export class DualStreamRecorder {
 
   private async processAudioChunk(blob: Blob, stream: 'microphone' | 'speaker'): Promise<void> {
     try {
+      // Skip empty or very small blobs (less than 1KB)
+      if (blob.size < 1024) {
+        console.log(`Skipping small ${stream} audio chunk: ${blob.size} bytes`);
+        return;
+      }
+
+      console.log(`Processing ${stream} audio chunk: ${blob.size} bytes`);
+      
       // Convert blob to base64
       const arrayBuffer = await blob.arrayBuffer();
       const uint8Array = new Uint8Array(arrayBuffer);

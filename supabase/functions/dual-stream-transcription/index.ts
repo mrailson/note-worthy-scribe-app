@@ -68,20 +68,29 @@ async function transcribeAudio(audioBase64: string, stream: string): Promise<str
   }
 
   try {
-    // Convert base64 to blob
+    // Convert base64 to proper binary data
     const binaryString = atob(audioBase64);
     const bytes = new Uint8Array(binaryString.length);
     for (let i = 0; i < binaryString.length; i++) {
       bytes[i] = binaryString.charCodeAt(i);
     }
     
+    // Create form data with proper file format
     const formData = new FormData();
-    const blob = new Blob([bytes], { type: 'audio/webm' });
-    formData.append('file', blob, `${stream}-audio.webm`);
+    
+    // Create blob with proper WebM audio MIME type
+    const audioBlob = new Blob([bytes], { 
+      type: 'audio/webm' 
+    });
+    
+    // Add the audio file to form data with .webm extension
+    formData.append('file', audioBlob, `${stream}-audio.webm`);
     formData.append('model', 'whisper-1');
     formData.append('language', 'en');
     formData.append('response_format', 'json');
     formData.append('temperature', '0.1');
+
+    console.log(`Transcribing ${stream} audio chunk (${bytes.length} bytes)`);
 
     const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
@@ -92,12 +101,15 @@ async function transcribeAudio(audioBase64: string, stream: string): Promise<str
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`OpenAI API error: ${error}`);
+      const errorText = await response.text();
+      console.error(`OpenAI API error for ${stream}:`, errorText);
+      throw new Error(`OpenAI API error: ${errorText}`);
     }
 
     const result = await response.json();
+    console.log(`${stream} transcription result:`, result.text || 'No text returned');
     return result.text || '';
+    
   } catch (error) {
     console.error(`Transcription error for ${stream}:`, error);
     throw error;
@@ -153,8 +165,33 @@ serve(async (req) => {
 
     console.log(`Processing ${audioChunks.length} audio chunks`);
     
-    // Process all audio chunks in parallel
-    const transcriptionPromises = audioChunks.map(async (chunk: AudioChunk) => {
+    // Filter out chunks that are too small or potentially malformed
+    const validChunks = audioChunks.filter(chunk => {
+      if (!chunk.audio || chunk.audio.length < 100) {
+        console.log(`Skipping invalid ${chunk.stream} chunk: too small or empty`);
+        return false;
+      }
+      return true;
+    });
+    
+    console.log(`Valid chunks after filtering: ${validChunks.length}/${audioChunks.length}`);
+    
+    if (validChunks.length === 0) {
+      console.log('No valid chunks to process');
+      return new Response(
+        JSON.stringify({ 
+          transcript: '',
+          processedChunks: 0,
+          totalChunks: audioChunks.length
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+    
+    // Process all valid audio chunks in parallel
+    const transcriptionPromises = validChunks.map(async (chunk: AudioChunk) => {
       const text = await transcribeAudio(chunk.audio, chunk.stream);
       return {
         text,
