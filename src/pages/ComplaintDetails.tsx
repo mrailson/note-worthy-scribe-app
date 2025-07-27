@@ -575,56 +575,57 @@ const ComplaintDetails = () => {
       return;
     }
 
+    // Check if requests have already been sent
+    if (inputRequests.length > 0) {
+      toast.error("Input requests have already been sent. Check the tracking section below.");
+      return;
+    }
+
     setSubmitting(true);
     try {
-      // Create involved parties records
-      const newInputRequests = [];
-      
-      for (const staff of selectedStaff) {
-        const { data, error } = await supabase
-          .from('complaint_involved_parties')
-          .insert({
-            complaint_id: complaint?.id,
-            staff_name: staff.name,
-            staff_email: staff.email,
-            staff_role: staff.role,
-            response_requested_at: new Date().toISOString()
-          })
-          .select()
-          .single();
-
-        if (error) throw error;
-
-        newInputRequests.push({
-          id: data.id,
+      // Prepare the data for the edge function
+      const involvedParties = selectedStaff
+        .filter(staff => staff.email) // Only include staff with email addresses
+        .map(staff => ({
           staffName: staff.name,
           staffEmail: staff.email,
-          status: 'Sent',
-          sentAt: new Date().toISOString(),
-          responseReceived: false
-        });
+          staffRole: staff.role
+        }));
 
-        // Send email notification (this would typically be done via an edge function)
-        try {
-          await supabase.functions.invoke('send-complaint-notifications', {
-            body: {
-              complaintId: complaint?.id,
-              staffEmail: staff.email,
-              staffName: staff.name,
-              accessToken: data.access_token
-            }
-          });
-        } catch (emailError) {
-          console.error('Error sending email to:', staff.email, emailError);
-        }
+      if (involvedParties.length === 0) {
+        toast.error("Please ensure all selected staff have email addresses");
+        return;
       }
 
-      setInputRequests(prev => [...prev, ...newInputRequests]);
-      toast.success(`Input requests sent to ${selectedStaff.length} staff members`);
+      // Call the edge function with the correct data structure
+      const { data, error } = await supabase.functions.invoke('send-complaint-notifications', {
+        body: {
+          complaintId: complaint?.id,
+          involvedParties: involvedParties
+        }
+      });
+
+      if (error) throw error;
+
+      // Update local state with sent requests
+      const newInputRequests = involvedParties.map(party => ({
+        id: Math.random().toString(36).substr(2, 9), // temporary ID
+        staffName: party.staffName,
+        staffEmail: party.staffEmail,
+        status: 'Sent',
+        sentAt: new Date().toISOString(),
+        responseReceived: false
+      }));
+
+      setInputRequests(newInputRequests);
+      toast.success(`Input requests sent to ${involvedParties.length} staff members`);
+      
+      // Log the activity
+      console.log('Email results:', data?.emailResults);
       
     } catch (error) {
       console.error('Error sending input requests:', error);
-      toast.error("Failed to send input requests");
+      toast.error("Failed to send input requests: " + error.message);
     } finally {
       setSubmitting(false);
     }
@@ -1383,10 +1384,10 @@ const ComplaintDetails = () => {
                       <Button 
                         className="flex-1"
                         onClick={handleSendInputRequests}
-                        disabled={submitting || investigationMethod !== "input-required" || selectedStaff.length === 0}
+                        disabled={submitting || investigationMethod !== "input-required" || selectedStaff.length === 0 || inputRequests.length > 0}
                       >
                         <Send className="h-4 w-4 mr-2" />
-                        {submitting ? 'Sending...' : 'Send Input Requests'}
+                        {inputRequests.length > 0 ? 'Requests Already Sent' : submitting ? 'Sending...' : 'Send Input Requests'}
                       </Button>
                       <Button 
                         variant="outline"

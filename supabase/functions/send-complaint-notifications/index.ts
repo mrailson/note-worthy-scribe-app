@@ -37,15 +37,23 @@ serve(async (req) => {
     // Fetch complaint details
     const { data: complaint, error: complaintError } = await supabase
       .from('complaints')
-      .select(`
-        *,
-        practice_details!inner(practice_name, address, phone, email)
-      `)
+      .select('*')
       .eq('id', complaintId)
       .single();
 
     if (complaintError || !complaint) {
       throw new Error('Complaint not found');
+    }
+
+    // Fetch practice details separately if practice_id exists
+    let practiceDetails = null;
+    if (complaint.practice_id) {
+      const { data: practice } = await supabase
+        .from('practice_details')
+        .select('practice_name, address, phone, email')
+        .eq('id', complaint.practice_id)
+        .single();
+      practiceDetails = practice;
     }
 
     // Insert involved parties and get their access tokens
@@ -104,10 +112,10 @@ serve(async (req) => {
           complaint_title: complaint.complaint_title,
           complaint_description: complaint.complaint_description,
           incident_date: complaint.incident_date,
-          practice_name: complaint.practice_details.practice_name,
+          practice_name: practiceDetails?.practice_name || 'Medical Practice',
           response_url: responseUrl,
-          from_name: complaint.practice_details.practice_name,
-          reply_to: complaint.practice_details.email || 'noreply@practice.nhs.uk',
+          from_name: practiceDetails?.practice_name || 'Medical Practice',
+          reply_to: practiceDetails?.email || 'noreply@practice.nhs.uk',
         },
       };
 
