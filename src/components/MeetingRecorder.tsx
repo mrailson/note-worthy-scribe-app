@@ -1497,7 +1497,6 @@ export const MeetingRecorder = ({
                             <div className="flex-1">
                               <div className="font-medium">Teams/Zoom Meeting</div>
                               <div className="text-xs text-muted-foreground">Capture computer audio from Teams/Zoom</div>
-                              <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">💡 You can also record through the smartphone version and transcripts will be saved here</div>
                             </div>
                           </div>
                         </SelectItem>
@@ -1512,8 +1511,8 @@ export const MeetingRecorder = ({
                             <strong className="text-red-800 dark:text-red-200">🚧 Development Notice:</strong> 
                             <br />• This feature is currently being developed
                             <br />• Expected release: <strong>10th August 2025</strong>
-                            <br />• Please use <strong>Teams own recording service</strong> to record Teams meetings in the meantime
-                            <br />• You can still use microphone mode for general audio recording (ie Face 2 Face or via conference phone etc)
+                             <br />• You can record through the smartphone version and transcripts will be saved here
+                             <br />• You can still use microphone mode for general audio recording (ie Face 2 Face or via conference phone etc)
                           </div>
                         </div>
                       </div>
