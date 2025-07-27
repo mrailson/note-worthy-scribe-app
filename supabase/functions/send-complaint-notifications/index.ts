@@ -115,15 +115,8 @@ serve(async (req) => {
       
       console.log('Sending email to:', party.staffEmail, 'with response URL:', responseUrl);
       
-      const emailData = {
-        service_id: emailJsServiceId,
-        template_id: emailJsTemplateId,
-        user_id: emailJsPublicKey,
-        accessToken: emailJsPrivateKey,
-        template_params: {
-          to_email: party.staffEmail,
-          subject: `Complaint Input Request - ${complaint.reference_number}`,
-          message: `Dear ${party.staffName},
+      // Create the email message content
+      const messageContent = `Dear ${party.staffName},
 
 You have been requested to provide input for the following complaint investigation:
 
@@ -146,11 +139,27 @@ IMPORTANT: Please provide your input within 5 working days. Your response will b
 This email was sent from ${practiceDetails?.practice_name || 'Medical Practice'} complaint management system.
 
 Best regards,
-${practiceDetails?.practice_name || 'Medical Practice'} Complaints Team`,
+${practiceDetails?.practice_name || 'Medical Practice'} Complaints Team`;
+
+      const emailData = {
+        service_id: emailJsServiceId,
+        template_id: emailJsTemplateId,
+        user_id: emailJsPublicKey,
+        accessToken: emailJsPrivateKey,
+        template_params: {
+          to_email: party.staffEmail,
+          subject: `Complaint Input Request - ${complaint.reference_number}`,
+          message: messageContent,
         },
       };
 
-      console.log('Email template params:', emailData.template_params);
+      console.log('Email data being sent to EmailJS:');
+      console.log('- Service ID:', emailJsServiceId);
+      console.log('- Template ID:', emailJsTemplateId);
+      console.log('- To Email:', party.staffEmail);
+      console.log('- Subject:', emailData.template_params.subject);
+      console.log('- Message Length:', emailData.template_params.message.length);
+      console.log('- Message Preview:', emailData.template_params.message.substring(0, 100) + '...');
 
       try {
         const emailResponse = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
@@ -162,15 +171,19 @@ ${practiceDetails?.practice_name || 'Medical Practice'} Complaints Team`,
         });
 
         const responseText = await emailResponse.text();
-        console.log('EmailJS Response:', emailResponse.status, responseText);
+        console.log('EmailJS Response Status:', emailResponse.status);
+        console.log('EmailJS Response Body:', responseText);
+        console.log('EmailJS Response Headers:', Object.fromEntries(emailResponse.headers.entries()));
 
         if (emailResponse.ok) {
+          console.log('✅ Email sent successfully to:', party.staffEmail);
           emailResults.push({ email: party.staffEmail, status: 'sent', responseUrl });
         } else {
+          console.log('❌ Email failed to send to:', party.staffEmail);
           emailResults.push({ email: party.staffEmail, status: 'failed', error: responseText });
         }
       } catch (emailError) {
-        console.error('Email sending error:', emailError);
+        console.error('Email sending error for', party.staffEmail, ':', emailError);
         emailResults.push({ email: party.staffEmail, status: 'failed', error: emailError.message });
       }
     }
