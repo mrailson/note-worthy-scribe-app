@@ -97,6 +97,8 @@ const ComplaintDetails = () => {
   const [acknowledgementLetter, setAcknowledgementLetter] = useState("");
   const [showAcknowledgementLetter, setShowAcknowledgementLetter] = useState(false);
   const [showAcknowledgementModal, setShowAcknowledgementModal] = useState(false);
+  const [isEditingAcknowledgement, setIsEditingAcknowledgement] = useState(false);
+  const [editedAcknowledgementContent, setEditedAcknowledgementContent] = useState("");
   const [complianceChecks, setComplianceChecks] = useState<any[]>([]);
   const [complianceSummary, setComplianceSummary] = useState<any>(null);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
@@ -429,6 +431,38 @@ const ComplaintDetails = () => {
       console.error('Error downloading acknowledgement letter:', error);
       toast.error("Failed to download acknowledgement letter");
     }
+  };
+
+  const handleSaveAcknowledgementLetter = async () => {
+    if (!complaint || !editedAcknowledgementContent.trim()) return;
+    
+    setSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from('complaint_acknowledgements')
+        .update({ 
+          acknowledgement_letter: editedAcknowledgementContent,
+          sent_at: new Date().toISOString()
+        })
+        .eq('complaint_id', complaint.id);
+
+      if (error) throw error;
+
+      setAcknowledgementLetter(editedAcknowledgementContent);
+      setIsEditingAcknowledgement(false);
+      toast.success("Acknowledgement letter updated successfully");
+    } catch (error) {
+      console.error('Error saving acknowledgement letter:', error);
+      toast.error("Failed to save acknowledgement letter");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleOpenAcknowledgementModal = () => {
+    setEditedAcknowledgementContent(acknowledgementLetter);
+    setIsEditingAcknowledgement(false);
+    setShowAcknowledgementModal(true);
   };
 
   if (loading) {
@@ -857,7 +891,7 @@ const ComplaintDetails = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => setShowAcknowledgementModal(true)}
+                            onClick={handleOpenAcknowledgementModal}
                           >
                             <Eye className="h-4 w-4 mr-1" />
                             View Letter
@@ -1248,40 +1282,85 @@ const ComplaintDetails = () => {
               Acknowledgement Letter - {complaint?.reference_number}
             </DialogTitle>
             <DialogDescription>
-              View, download, or regenerate the acknowledgement letter for this complaint
+              View, edit, download, or regenerate the acknowledgement letter for this complaint
             </DialogDescription>
           </DialogHeader>
           
           <div className="flex flex-col gap-4 max-h-[60vh]">
             {/* Action buttons */}
             <div className="flex gap-2 justify-end border-b pb-4">
-              <Button
-                variant="outline"
-                onClick={handleDownloadAcknowledgementLetter}
-                className="flex items-center gap-2"
-              >
-                <Download className="h-4 w-4" />
-                Download DOCX
-              </Button>
-              <Button 
-                variant="outline"
-                onClick={() => {
-                  setShowAcknowledgementModal(false);
-                  handleGenerateAcknowledgement(complaint.id);
-                }}
-                disabled={submitting}
-              >
-                {submitting ? 'Regenerating...' : 'Regenerate Letter'}
-              </Button>
+              {!isEditingAcknowledgement ? (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsEditingAcknowledgement(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <Edit className="h-4 w-4" />
+                    Edit Letter
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleDownloadAcknowledgementLetter}
+                    className="flex items-center gap-2"
+                  >
+                    <Download className="h-4 w-4" />
+                    Download DOCX
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    onClick={() => {
+                      setShowAcknowledgementModal(false);
+                      handleGenerateAcknowledgement(complaint.id);
+                    }}
+                    disabled={submitting}
+                  >
+                    {submitting ? 'Regenerating...' : 'Regenerate Letter'}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setIsEditingAcknowledgement(false);
+                      setEditedAcknowledgementContent(acknowledgementLetter);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleSaveAcknowledgementLetter}
+                    disabled={submitting || !editedAcknowledgementContent.trim()}
+                    className="flex items-center gap-2"
+                  >
+                    <Save className="h-4 w-4" />
+                    {submitting ? 'Saving...' : 'Save Letter'}
+                  </Button>
+                </>
+              )}
             </div>
             
             {/* Letter content */}
-            <div className="flex-1 overflow-y-auto border rounded-lg p-6 bg-white">
-              <div className="prose prose-sm max-w-none">
-                <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">
-                  {acknowledgementLetter}
-                </pre>
-              </div>
+            <div className="flex-1 overflow-y-auto border rounded-lg bg-white">
+              {!isEditingAcknowledgement ? (
+                <div className="p-6">
+                  <div className="prose prose-sm max-w-none">
+                    <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">
+                      {acknowledgementLetter}
+                    </pre>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-4">
+                  <Textarea
+                    value={editedAcknowledgementContent}
+                    onChange={(e) => setEditedAcknowledgementContent(e.target.value)}
+                    className="min-h-[400px] font-mono text-sm resize-none border-0 focus:ring-0 p-2"
+                    placeholder="Edit the acknowledgement letter content..."
+                  />
+                </div>
+              )}
             </div>
           </div>
         </DialogContent>
