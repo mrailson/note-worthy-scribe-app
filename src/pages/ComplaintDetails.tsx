@@ -136,12 +136,14 @@ const ComplaintDetails = () => {
         setOutcomeLetter(outcomeData.outcome_letter || "");
       }
 
-      // Fetch acknowledgement letter
+      // Fetch acknowledgement letter (get the most recent one)
       const { data: ackData } = await supabase
         .from('complaint_acknowledgements')
         .select('acknowledgement_letter')
         .eq('complaint_id', complaintId)
-        .single();
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
       if (ackData) {
         setAcknowledgementLetter(ackData.acknowledgement_letter);
