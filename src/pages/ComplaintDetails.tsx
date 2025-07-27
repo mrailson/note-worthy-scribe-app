@@ -912,17 +912,17 @@ const ComplaintDetails = () => {
                       <div className="flex items-center justify-between">
                         <div className="flex flex-col gap-2">
                           <Badge variant="default">Letter Generated</Badge>
-                          {acknowledgementDate && complaint?.submitted_at ? (
+                          {acknowledgementDate && (complaint?.submitted_at || complaint?.created_at) ? (
                             <div className="text-sm text-muted-foreground">
                               Generated: {format(new Date(acknowledgementDate), 'dd/MM/yyyy HH:mm')}
                               <br />
                               <span className={`font-medium ${
-                                calculateWorkingDays(complaint.submitted_at, acknowledgementDate) <= 3 
+                                calculateWorkingDays(complaint.submitted_at || complaint.created_at, acknowledgementDate) <= 3 
                                   ? 'text-green-600' 
                                   : 'text-red-600'
                               }`}>
-                                {calculateWorkingDays(complaint.submitted_at, acknowledgementDate)} working day{calculateWorkingDays(complaint.submitted_at, acknowledgementDate) !== 1 ? 's' : ''} after complaint received
-                                {calculateWorkingDays(complaint.submitted_at, acknowledgementDate) <= 3 
+                                {calculateWorkingDays(complaint.submitted_at || complaint.created_at, acknowledgementDate)} working day{calculateWorkingDays(complaint.submitted_at || complaint.created_at, acknowledgementDate) !== 1 ? 's' : ''} after complaint {complaint.submitted_at ? 'submitted' : 'received'}
+                                {calculateWorkingDays(complaint.submitted_at || complaint.created_at, acknowledgementDate) <= 3 
                                   ? ' ✓ Within target' 
                                   : ' ⚠ Exceeded 3-day target'
                                 }
@@ -931,7 +931,8 @@ const ComplaintDetails = () => {
                           ) : (
                             <div className="text-xs text-muted-foreground">
                               Debug: ackDate={acknowledgementDate ? 'exists' : 'missing'}, 
-                              submittedAt={complaint?.submitted_at ? 'exists' : 'missing'}
+                              submittedAt={complaint?.submitted_at ? 'exists' : 'missing'},
+                              createdAt={complaint?.created_at ? 'exists' : 'missing'}
                             </div>
                           )}
                         </div>
