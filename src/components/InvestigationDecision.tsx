@@ -283,11 +283,11 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
   const getDecisionLabel = (type: string) => {
     switch (type) {
       case 'uphold':
-        return 'Uphold';
+        return 'Upheld';
       case 'reject':
-        return 'Reject';
+        return 'Not Upheld';
       case 'partially_uphold':
-        return 'Partially Uphold';
+        return 'Partially Upheld';
       default:
         return type;
     }
@@ -378,9 +378,9 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
                       <SelectValue placeholder="Select decision type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="uphold">Uphold - Complaint is justified</SelectItem>
-                      <SelectItem value="reject">Reject - Complaint is not justified</SelectItem>
-                      <SelectItem value="partially_uphold">Partially Uphold - Some aspects are justified</SelectItem>
+                      <SelectItem value="uphold">Upheld</SelectItem>
+                      <SelectItem value="reject">Not Upheld</SelectItem>
+                      <SelectItem value="partially_uphold">Partially Upheld</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
