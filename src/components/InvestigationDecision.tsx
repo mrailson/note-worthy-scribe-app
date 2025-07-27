@@ -146,6 +146,54 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
     }
   };
 
+  const markAllCompliant = async () => {
+    try {
+      const user = await supabase.auth.getUser();
+      if (!user.data.user) {
+        throw new Error('User not authenticated');
+      }
+
+      // Get all non-compliant items
+      const nonCompliantChecks = complianceChecks.filter(check => !check.is_compliant);
+
+      if (nonCompliantChecks.length === 0) {
+        toast.success("All items are already completed");
+        return;
+      }
+
+      // Update each item individually
+      for (const check of nonCompliantChecks) {
+        const { error } = await supabase
+          .from('complaint_compliance_checks')
+          .update({
+            is_compliant: true,
+            checked_at: new Date().toISOString(),
+            checked_by: user.data.user.id
+          })
+          .eq('id', check.id);
+
+        if (error) throw error;
+      }
+
+      // Update local state
+      setComplianceChecks(prev => 
+        prev.map(check => ({
+          ...check,
+          is_compliant: true,
+          checked_at: new Date().toISOString()
+        }))
+      );
+
+      // Refresh compliance summary
+      fetchComplianceChecks();
+      
+      toast.success(`Marked ${nonCompliantChecks.length} items as completed`);
+    } catch (error) {
+      console.error('Error marking all items as compliant:', error);
+      toast.error("Failed to mark all items as completed");
+    }
+  };
+
   const saveInvestigationDecision = async () => {
     if (!decisionType || !decisionReasoning.trim()) {
       toast.error('Please provide both decision type and reasoning');
@@ -278,7 +326,9 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="decision">Decision</TabsTrigger>
-            <TabsTrigger value="compliance">Compliance Review</TabsTrigger>
+            <TabsTrigger value="compliance">
+              Compliance Review{complianceSummary?.compliance_percentage === 100 ? ' (Completed)' : ''}
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="decision" className="space-y-4 mt-4">
@@ -440,12 +490,25 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
                   <ClipboardCheck className="h-5 w-5" />
                   <h3 className="text-lg font-medium">NHS Compliance Checklist</h3>
                 </div>
-                {complianceSummary && (
-                  <Badge variant="outline" className="text-sm">
-                    {complianceSummary.compliant_items} / {complianceSummary.total_items} Complete
-                    ({complianceSummary.compliance_percentage}%)
-                  </Badge>
-                )}
+                <div className="flex items-center gap-2">
+                  {complianceSummary && (
+                    <Badge variant="outline" className="text-sm">
+                      {complianceSummary.compliant_items} / {complianceSummary.total_items} Complete
+                      ({complianceSummary.compliance_percentage}%)
+                    </Badge>
+                  )}
+                  {!disabled && complianceChecks.length > 0 && complianceSummary?.compliance_percentage !== 100 && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={markAllCompliant}
+                      className="text-sm"
+                    >
+                      <CheckCircle className="h-4 w-4 mr-1" />
+                      Mark All Completed
+                    </Button>
+                  )}
+                </div>
               </div>
 
               {complianceSummary && (
