@@ -1167,8 +1167,7 @@ const ComplaintsSystem = () => {
                           size="sm"
                           variant="outline"
                           onClick={() => {
-                            setSelectedComplaint(complaint);
-                            setShowDetails(true);
+                            navigate(`/complaints/${complaint.id}`);
                           }}
                         >
                           <Eye className="h-4 w-4 mr-1" />
