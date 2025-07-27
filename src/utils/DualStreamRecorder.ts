@@ -3,6 +3,7 @@ export interface AudioChunk {
   stream: 'microphone' | 'speaker';
   timestamp: number;
   sequence: number;
+  mimeType?: string; // Original MIME type from the blob
 }
 
 export interface DualStreamConfig {
@@ -162,27 +163,27 @@ export class DualStreamRecorder {
         return;
       }
 
-      console.log(`Processing ${stream} audio chunk: ${blob.size} bytes`);
+      console.log(`Processing ${stream} audio chunk: ${blob.size} bytes, type: ${blob.type}`);
       
-      // Convert blob to base64
+      // Convert the entire blob to base64 while preserving the WebM format
       const arrayBuffer = await blob.arrayBuffer();
       const uint8Array = new Uint8Array(arrayBuffer);
       
-      let binary = '';
+      // Convert to base64 in chunks to avoid memory issues
+      let base64Audio = '';
       const chunkSize = 0x8000; // 32KB chunks
       for (let i = 0; i < uint8Array.length; i += chunkSize) {
         const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
-        binary += String.fromCharCode.apply(null, Array.from(chunk));
+        base64Audio += btoa(String.fromCharCode.apply(null, Array.from(chunk)));
       }
       
-      const base64Audio = btoa(binary);
-      
-      // Add to chunks array
+      // Store the original MIME type so we can recreate the blob properly
       const audioChunk: AudioChunk = {
         audio: base64Audio,
         stream,
         timestamp: Date.now(),
-        sequence: this.sequenceCounter++
+        sequence: this.sequenceCounter++,
+        mimeType: blob.type // Add the original MIME type
       };
       
       this.audioChunks.push(audioChunk);

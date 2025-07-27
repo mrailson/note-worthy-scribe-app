@@ -11,6 +11,7 @@ interface AudioChunk {
   stream: 'microphone' | 'speaker';
   timestamp: number;
   sequence: number;
+  mimeType?: string; // Original MIME type
 }
 
 interface TranscriptionResult {
@@ -60,7 +61,7 @@ function cleanupTranscript(text: string): string {
 }
 
 // Transcribe audio using OpenAI Whisper
-async function transcribeAudio(audioBase64: string, stream: string): Promise<string> {
+async function transcribeAudio(audioBase64: string, stream: string, chunk: AudioChunk): Promise<string> {
   const openAIKey = Deno.env.get('OPENAI_API_KEY');
   
   if (!openAIKey) {
@@ -80,13 +81,24 @@ async function transcribeAudio(audioBase64: string, stream: string): Promise<str
     // Create form data with proper file format
     const formData = new FormData();
     
-    // OpenAI supports WebM, so use the actual format we're recording in
+    // Use the original MIME type from the browser if available, otherwise default to WebM
+    const mimeType = chunk.mimeType || 'audio/webm';
+    console.log(`Using MIME type: ${mimeType} for ${stream}`);
+    
+    // Determine file extension based on MIME type
+    let extension = 'webm';
+    if (mimeType.includes('wav')) extension = 'wav';
+    else if (mimeType.includes('mp3') || mimeType.includes('mpeg')) extension = 'mp3';
+    else if (mimeType.includes('mp4')) extension = 'mp4';
+    else if (mimeType.includes('ogg')) extension = 'ogg';
+    
+    // Create blob with the original MIME type to preserve format
     const audioBlob = new Blob([bytes], { 
-      type: 'audio/webm' 
+      type: mimeType 
     });
     
-    // Add the audio file to form data with webm extension
-    formData.append('file', audioBlob, `${stream}-audio.webm`);
+    // Add the audio file to form data with correct extension
+    formData.append('file', audioBlob, `${stream}-audio.${extension}`);
     formData.append('model', 'whisper-1');
     formData.append('language', 'en');
     formData.append('response_format', 'json');
@@ -194,7 +206,7 @@ serve(async (req) => {
     
     // Process all valid audio chunks in parallel
     const transcriptionPromises = validChunks.map(async (chunk: AudioChunk) => {
-      const text = await transcribeAudio(chunk.audio, chunk.stream);
+      const text = await transcribeAudio(chunk.audio, chunk.stream, chunk);
       return {
         text,
         stream: chunk.stream,
