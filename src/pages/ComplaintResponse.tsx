@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, MapPin, User, CheckCircle, AlertCircle } from 'lucide-react';
+import { Calendar, MapPin, CheckCircle, AlertCircle, Mail } from 'lucide-react';
 import { toast } from 'sonner';
+import { SpeechToText } from '@/components/SpeechToText';
 
 interface ComplaintDetails {
   complaint_id: string;
@@ -142,6 +143,14 @@ export default function ComplaintResponse() {
             </p>
           </div>
 
+          <Alert className="border-blue-200 bg-blue-50">
+            <Mail className="h-4 w-4 text-blue-600" />
+            <AlertDescription className="text-blue-800">
+              <strong>Important:</strong> For specific details about staff members, patients, or other identifiable information, 
+              please refer to the email notification you received from the system.
+            </AlertDescription>
+          </Alert>
+
           {complaint.response_submitted && (
             <Alert className="border-green-200 bg-green-50">
               <CheckCircle className="h-4 w-4 text-green-600" />
@@ -176,16 +185,9 @@ export default function ComplaintResponse() {
                   <span>Incident Date: {new Date(complaint.incident_date).toLocaleDateString()}</span>
                 </div>
 
-                {complaint.location_service && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <MapPin className="h-4 w-4" />
-                    <span>Location: {complaint.location_service}</span>
-                  </div>
-                )}
-
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <User className="h-4 w-4" />
-                  <span>Your Role: {complaint.staff_role}</span>
+                  <MapPin className="h-4 w-4" />
+                  <span>Service Area: {complaint.location_service ? 'Specified in email' : 'Not specified'}</span>
                 </div>
               </div>
             </CardContent>
@@ -200,14 +202,27 @@ export default function ComplaintResponse() {
                 <p className="text-sm text-muted-foreground mb-2">
                   Please provide your response to this complaint. Include any relevant information about the incident and any actions taken.
                 </p>
-                <Textarea
-                  placeholder="Enter your response here..."
-                  value={response}
-                  onChange={(e) => setResponse(e.target.value)}
-                  rows={10}
-                  disabled={complaint.response_submitted}
-                  className="min-h-[200px]"
-                />
+                <div className="space-y-3">
+                  <Textarea
+                    placeholder="Enter your response here..."
+                    value={response}
+                    onChange={(e) => setResponse(e.target.value)}
+                    rows={10}
+                    disabled={complaint.response_submitted}
+                    className="min-h-[200px]"
+                  />
+                  {!complaint.response_submitted && (
+                    <div className="flex justify-start">
+                      <SpeechToText
+                        onTranscription={(text) => {
+                          setResponse(prev => prev + (prev ? '\n\n' : '') + text);
+                        }}
+                        size="sm"
+                        className="text-sm"
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
 
               {!complaint.response_submitted && (
