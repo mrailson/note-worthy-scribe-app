@@ -35,7 +35,7 @@ export class DualStreamRecorder {
       // Get microphone stream
       this.micStream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          sampleRate: 16000,
+          sampleRate: 12000,
           channelCount: 1,
           echoCancellation: true,
           noiseSuppression: true,
@@ -54,7 +54,7 @@ export class DualStreamRecorder {
             height: { ideal: 1 }
           },
           audio: {
-            sampleRate: 16000,
+            sampleRate: 12000,
             channelCount: 1,
             echoCancellation: false,
             noiseSuppression: false,
@@ -77,7 +77,7 @@ export class DualStreamRecorder {
         // Fallback: Use a second microphone stream as "speaker" for testing
         this.speakerStream = await navigator.mediaDevices.getUserMedia({
           audio: {
-            sampleRate: 16000,
+            sampleRate: 12000,
             channelCount: 1,
             echoCancellation: false,
             noiseSuppression: false,
@@ -113,9 +113,27 @@ export class DualStreamRecorder {
       throw new Error('Audio streams not available');
     }
 
+    // Try different audio formats for better OpenAI compatibility
+    const supportedMimeTypes = [
+      'audio/wav',
+      'audio/mpeg',
+      'audio/mp4',
+      'audio/webm;codecs=opus'
+    ];
+    
+    let mimeType = 'audio/webm;codecs=opus'; // fallback
+    for (const type of supportedMimeTypes) {
+      if (MediaRecorder.isTypeSupported(type)) {
+        mimeType = type;
+        console.log(`Using mime type: ${mimeType}`);
+        break;
+      }
+    }
+
     // Microphone recorder
     this.micRecorder = new MediaRecorder(this.micStream, {
-      mimeType: 'audio/webm;codecs=opus'
+      mimeType,
+      audioBitsPerSecond: 16000
     });
 
     this.micRecorder.ondataavailable = (event) => {
@@ -126,7 +144,8 @@ export class DualStreamRecorder {
 
     // Speaker recorder
     this.speakerRecorder = new MediaRecorder(this.speakerStream, {
-      mimeType: 'audio/webm;codecs=opus'
+      mimeType,
+      audioBitsPerSecond: 16000
     });
 
     this.speakerRecorder.ondataavailable = (event) => {
