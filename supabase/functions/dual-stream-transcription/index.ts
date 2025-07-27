@@ -81,24 +81,16 @@ async function transcribeAudio(audioBase64: string, stream: string, chunk: Audio
     // Create form data with proper file format
     const formData = new FormData();
     
-    // Use the original MIME type from the browser if available, otherwise default to WebM
-    const mimeType = chunk.mimeType || 'audio/webm';
-    console.log(`Using MIME type: ${mimeType} for ${stream}`);
+    // OpenAI is picky about WebM format, so let's use a simple audio/webm without codecs
+    console.log(`Original MIME type: ${chunk.mimeType || 'unknown'} for ${stream}`);
     
-    // Determine file extension based on MIME type
-    let extension = 'webm';
-    if (mimeType.includes('wav')) extension = 'wav';
-    else if (mimeType.includes('mp3') || mimeType.includes('mpeg')) extension = 'mp3';
-    else if (mimeType.includes('mp4')) extension = 'mp4';
-    else if (mimeType.includes('ogg')) extension = 'ogg';
-    
-    // Create blob with the original MIME type to preserve format
+    // Create blob with simple audio/webm MIME type (OpenAI supports this)
     const audioBlob = new Blob([bytes], { 
-      type: mimeType 
+      type: 'audio/webm' 
     });
     
-    // Add the audio file to form data with correct extension
-    formData.append('file', audioBlob, `${stream}-audio.${extension}`);
+    // Always use .webm extension since OpenAI supports it
+    formData.append('file', audioBlob, `${stream}-audio.webm`);
     formData.append('model', 'whisper-1');
     formData.append('language', 'en');
     formData.append('response_format', 'json');
