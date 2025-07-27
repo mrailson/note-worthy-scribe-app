@@ -612,6 +612,47 @@ const ComplaintDetails = () => {
                         </p>
                       </div>
                     )}
+                    
+                    {/* Acknowledgment Deadline */}
+                    {(complaint.submitted_at || complaint.created_at) && (
+                      <div>
+                        <Label className="font-medium">Acknowledgment Deadline</Label>
+                        <p className="text-sm text-muted-foreground">
+                          {(() => {
+                            const baseDate = complaint.submitted_at || complaint.created_at;
+                            const deadline = new Date(baseDate);
+                            let workingDaysAdded = 0;
+                            
+                            while (workingDaysAdded < 3) {
+                              deadline.setDate(deadline.getDate() + 1);
+                              const dayOfWeek = deadline.getDay();
+                              if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+                                workingDaysAdded++;
+                              }
+                            }
+                            
+                            const now = new Date();
+                            const daysLeft = calculateWorkingDays(now.toISOString(), deadline.toISOString());
+                            const isOverdue = now > deadline;
+                            const isUrgent = daysLeft <= 7 && !isOverdue;
+                            
+                            return (
+                              <>
+                                {format(deadline, 'dd/MM/yyyy')}
+                                {complaint.status !== 'closed' && complaint.status !== 'resolved' && !complaint.acknowledged_at && (
+                                  <span className={`ml-2 text-xs font-medium ${
+                                    isOverdue ? 'text-red-600' : isUrgent ? 'text-red-600' : 'text-green-600'
+                                  }`}>
+                                    {isOverdue ? '⚠ Overdue' : `(${daysLeft} days left)`}
+                                  </span>
+                                )}
+                              </>
+                            );
+                          })()}
+                        </p>
+                      </div>
+                    )}
+                    
                     {complaint.acknowledged_at && (
                       <div>
                         <Label className="font-medium">Acknowledged Date</Label>
@@ -620,6 +661,47 @@ const ComplaintDetails = () => {
                         </p>
                       </div>
                     )}
+                    
+                    {/* Investigation & Outcome Letter Deadline */}
+                    {(complaint.submitted_at || complaint.created_at) && (
+                      <div>
+                        <Label className="font-medium">Investigation & Outcome Deadline</Label>
+                        <p className="text-sm text-muted-foreground">
+                          {(() => {
+                            const baseDate = complaint.submitted_at || complaint.created_at;
+                            const deadline = new Date(baseDate);
+                            let workingDaysAdded = 0;
+                            
+                            while (workingDaysAdded < 20) {
+                              deadline.setDate(deadline.getDate() + 1);
+                              const dayOfWeek = deadline.getDay();
+                              if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+                                workingDaysAdded++;
+                              }
+                            }
+                            
+                            const now = new Date();
+                            const daysLeft = calculateWorkingDays(now.toISOString(), deadline.toISOString());
+                            const isOverdue = now > deadline;
+                            const isUrgent = daysLeft <= 7 && !isOverdue;
+                            
+                            return (
+                              <>
+                                {format(deadline, 'dd/MM/yyyy')}
+                                {complaint.status !== 'closed' && complaint.status !== 'resolved' && !outcomeLetter && (
+                                  <span className={`ml-2 text-xs font-medium ${
+                                    isOverdue ? 'text-red-600' : isUrgent ? 'text-red-600' : 'text-green-600'
+                                  }`}>
+                                    {isOverdue ? '⚠ Overdue' : `(${daysLeft} days left)`}
+                                  </span>
+                                )}
+                              </>
+                            );
+                          })()}
+                        </p>
+                      </div>
+                    )}
+                    
                     {complaint.response_due_date && (
                       <div>
                         <Label className="font-medium">Response Due Date</Label>
