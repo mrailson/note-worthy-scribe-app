@@ -631,6 +631,29 @@ const ComplaintDetails = () => {
     }
   };
 
+  const handleClearInputRequests = async () => {
+    setSubmitting(true);
+    try {
+      // Clear any existing complaint_involved_parties records for this complaint
+      const { error } = await supabase
+        .from('complaint_involved_parties')
+        .delete()
+        .eq('complaint_id', complaint?.id);
+
+      if (error) throw error;
+
+      // Clear local state
+      setInputRequests([]);
+      toast.success("Input requests cleared. You can now send new requests.");
+      
+    } catch (error) {
+      console.error('Error clearing input requests:', error);
+      toast.error("Failed to clear input requests");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleSaveWorkflowSettings = async () => {
     setSubmitting(true);
     try {
@@ -1389,6 +1412,17 @@ const ComplaintDetails = () => {
                         <Send className="h-4 w-4 mr-2" />
                         {inputRequests.length > 0 ? 'Requests Already Sent' : submitting ? 'Sending...' : 'Send Input Requests'}
                       </Button>
+                      {inputRequests.length > 0 && (
+                        <Button 
+                          variant="destructive"
+                          size="sm"
+                          onClick={handleClearInputRequests}
+                          disabled={submitting}
+                        >
+                          <X className="h-4 w-4 mr-1" />
+                          Clear Requests
+                        </Button>
+                      )}
                       <Button 
                         variant="outline"
                         onClick={handleSaveWorkflowSettings}
