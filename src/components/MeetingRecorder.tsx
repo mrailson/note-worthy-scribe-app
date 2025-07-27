@@ -118,6 +118,15 @@ export const MeetingRecorder = ({
   const screenStreamRef = useRef<MediaStream | null>(null);
   const enhancedAudioCaptureRef = useRef<any>(null);
 
+  
+  // Force microphone mode on iOS devices
+  useEffect(() => {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    if (isIOS && recordingMode !== 'microphone') {
+      setRecordingMode('microphone');
+    }
+  }, [recordingMode]);
+
   // Auto-save meeting data to localStorage
   const autoSaveMeeting = () => {
     if (isRecording && transcript && duration > 5) {
@@ -327,6 +336,13 @@ export const MeetingRecorder = ({
   const startMicrophoneTranscription = async () => {
     addDebugLog('🎤 Starting microphone speech recognition...');
     
+    // Detect iOS to prevent file picker dialogs
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    
+    if (isIOS) {
+      addDebugLog('📱 iOS detected - using Web Speech Recognition only');
+    }
+    
     const transcriber = new BrowserSpeechTranscriber(
       handleBrowserTranscript,
       handleTranscriptionError,
@@ -375,6 +391,24 @@ export const MeetingRecorder = ({
         
       } catch (screenError) {
         addDebugLog(`❌ Screen share failed: ${screenError.message}`);
+        
+        // Detect iOS to prevent file picker dialogs
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        
+        if (isIOS) {
+          addDebugLog('📱 iOS detected - falling back to Web Speech Recognition');
+          // Use browser speech recognition instead of getUserMedia on iOS
+          const transcriber = new BrowserSpeechTranscriber(
+            handleBrowserTranscript,
+            handleTranscriptionError,
+            handleStatusChange,
+            handleLiveSummary
+          );
+          await transcriber.startTranscription();
+          browserTranscriberRef.current = transcriber;
+          return; // Exit early, don't request microphone access
+        }
+        
         addDebugLog('🎤 Using enhanced microphone with custom audio processing...');
         
         // Fallback to microphone with custom audio processing
@@ -1491,18 +1525,19 @@ export const MeetingRecorder = ({
                             </div>
                           </div>
                         </SelectItem>
-                        <SelectItem value="computer-audio" className="flex items-center gap-2">
-                          <div className="flex items-center gap-2">
-                            <Headphones className="h-4 w-4" />
-                            <div className="flex-1">
-                              <div className="font-medium">Teams/Zoom Meeting</div>
-                              <div className="text-xs text-muted-foreground">Capture computer audio from Teams/Zoom</div>
+                        {!/iPad|iPhone|iPod/.test(navigator.userAgent) && (
+                          <SelectItem value="computer-audio" className="flex items-center gap-2">
+                            <div className="flex items-center gap-2">
+                              <Headphones className="h-4 w-4" />
+                              <div className="flex-1">
+                                <div className="font-medium">Teams/Zoom Meeting</div>
+                                <div className="text-xs text-muted-foreground">Capture computer audio from Teams/Zoom</div>
+                              </div>
                             </div>
-                          </div>
-                        </SelectItem>
+                          </SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
-                    
                     {recordingMode === 'computer-audio' && (
                       <div className="p-3 bg-red-50/50 border border-red-200/50 rounded-lg dark:bg-red-900/20 dark:border-red-700/50">
                         <div className="flex items-start gap-2">
