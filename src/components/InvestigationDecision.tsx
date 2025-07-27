@@ -6,8 +6,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
-import { AlertCircle, CheckCircle, XCircle, Scale, Save, Edit, ClipboardCheck } from 'lucide-react';
+import { AlertCircle, CheckCircle, XCircle, Scale, Save, Edit, ClipboardCheck, FileText } from 'lucide-react';
 import { SpeechToText } from '@/components/SpeechToText';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -50,6 +51,9 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
   const [complianceChecks, setComplianceChecks] = useState<ComplianceCheck[]>([]);
   const [complianceSummary, setComplianceSummary] = useState<any>(null);
   const [activeTab, setActiveTab] = useState('decision');
+  const [generatingOutcomeLetter, setGeneratingOutcomeLetter] = useState(false);
+  const [outcomeLetter, setOutcomeLetter] = useState<string>('');
+  const [showOutcomeLetter, setShowOutcomeLetter] = useState(false);
 
   useEffect(() => {
     fetchInvestigationDecision();
@@ -306,6 +310,36 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
     }
   };
 
+  const generateOutcomeLetter = async () => {
+    if (!decision) return;
+
+    setGeneratingOutcomeLetter(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-complaint-outcome-letter', {
+        body: {
+          complaintId,
+          outcomeType: decision.decision_type,
+          outcomeSummary: decision.decision_reasoning
+        }
+      });
+
+      if (error) throw error;
+
+      if (data && data.outcomeLetter) {
+        setOutcomeLetter(data.outcomeLetter);
+        setShowOutcomeLetter(true);
+        toast.success('Outcome letter generated successfully');
+      } else {
+        throw new Error('No outcome letter generated');
+      }
+    } catch (error) {
+      console.error('Error generating outcome letter:', error);
+      toast.error('Failed to generate outcome letter');
+    } finally {
+      setGeneratingOutcomeLetter(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -368,6 +402,18 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
                     </div>
                   </div>
                 )}
+                
+                {/* Create Outcome Letter Button */}
+                <div className="pt-4 border-t">
+                  <Button 
+                    onClick={generateOutcomeLetter}
+                    disabled={disabled || generatingOutcomeLetter}
+                    className="w-full"
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    {generatingOutcomeLetter ? 'Generating Letter...' : 'Create Outcome Letter'}
+                  </Button>
+                </div>
               </div>
             ) : (
               <div className="space-y-4">
@@ -593,6 +639,31 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
           </TabsContent>
         </Tabs>
       </CardContent>
+
+      {/* Outcome Letter Dialog */}
+      <Dialog open={showOutcomeLetter} onOpenChange={setShowOutcomeLetter}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Generated Outcome Letter</DialogTitle>
+          </DialogHeader>
+          <div className="mt-4">
+            <pre className="whitespace-pre-wrap text-sm font-mono bg-gray-50 p-4 rounded-lg border">
+              {outcomeLetter}
+            </pre>
+          </div>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={() => setShowOutcomeLetter(false)}>
+              Close
+            </Button>
+            <Button onClick={() => {
+              navigator.clipboard.writeText(outcomeLetter);
+              toast.success('Letter copied to clipboard');
+            }}>
+              Copy to Clipboard
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
