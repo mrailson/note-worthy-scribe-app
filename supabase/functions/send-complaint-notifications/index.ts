@@ -106,7 +106,7 @@ serve(async (req) => {
       throw new Error('EmailJS configuration not complete - missing required secrets');
     }
 
-    const baseUrl = Deno.env.get('SUPABASE_URL')?.replace('.supabase.co', '.lovableproject.com') || 'https://91f61816-7ac8-43e0-a21d-31572f57dcab.lovableproject.com';
+    const baseUrl = 'https://notewell.dialai.co.uk';
     
     const emailResults = [];
 
