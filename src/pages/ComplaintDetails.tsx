@@ -95,6 +95,7 @@ const ComplaintDetails = () => {
   const [showOutcomeLetter, setShowOutcomeLetter] = useState(false);
   const [editingOutcome, setEditingOutcome] = useState(false);
   const [acknowledgementLetter, setAcknowledgementLetter] = useState("");
+  const [acknowledgementDate, setAcknowledgementDate] = useState<string | null>(null);
   const [showAcknowledgementLetter, setShowAcknowledgementLetter] = useState(false);
   const [showAcknowledgementModal, setShowAcknowledgementModal] = useState(false);
   const [isEditingAcknowledgement, setIsEditingAcknowledgement] = useState(false);
@@ -139,7 +140,7 @@ const ComplaintDetails = () => {
       // Fetch acknowledgement letter (get the most recent one)
       const { data: ackData } = await supabase
         .from('complaint_acknowledgements')
-        .select('acknowledgement_letter')
+        .select('acknowledgement_letter, created_at, sent_at')
         .eq('complaint_id', complaintId)
         .order('created_at', { ascending: false })
         .limit(1)
@@ -147,6 +148,7 @@ const ComplaintDetails = () => {
 
       if (ackData) {
         setAcknowledgementLetter(ackData.acknowledgement_letter);
+        setAcknowledgementDate(ackData.created_at);
       }
 
     } catch (error) {
@@ -459,6 +461,25 @@ const ComplaintDetails = () => {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const calculateWorkingDays = (startDate: string, endDate: string): number => {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    let workingDays = 0;
+    const current = new Date(start);
+    
+    while (current <= end) {
+      const dayOfWeek = current.getDay();
+      // 0 = Sunday, 6 = Saturday
+      if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+        workingDays++;
+      }
+      current.setDate(current.getDate() + 1);
+    }
+    
+    return workingDays;
   };
 
   const handleOpenAcknowledgementModal = () => {
@@ -888,7 +909,26 @@ const ComplaintDetails = () => {
                   ) : (
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
-                        <Badge variant="default">Letter Generated</Badge>
+                        <div className="flex flex-col gap-2">
+                          <Badge variant="default">Letter Generated</Badge>
+                          {acknowledgementDate && complaint?.submitted_at && (
+                            <div className="text-sm text-muted-foreground">
+                              Generated: {format(new Date(acknowledgementDate), 'dd/MM/yyyy HH:mm')}
+                              <br />
+                              <span className={`font-medium ${
+                                calculateWorkingDays(complaint.submitted_at, acknowledgementDate) <= 3 
+                                  ? 'text-green-600' 
+                                  : 'text-red-600'
+                              }`}>
+                                {calculateWorkingDays(complaint.submitted_at, acknowledgementDate)} working day{calculateWorkingDays(complaint.submitted_at, acknowledgementDate) !== 1 ? 's' : ''} after complaint received
+                                {calculateWorkingDays(complaint.submitted_at, acknowledgementDate) <= 3 
+                                  ? ' ✓ Within target' 
+                                  : ' ⚠ Exceeded 3-day target'
+                                }
+                              </span>
+                            </div>
+                          )}
+                        </div>
                         <div className="space-x-2">
                           <Button
                             variant="outline"
