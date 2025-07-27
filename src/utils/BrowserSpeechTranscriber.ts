@@ -20,16 +20,10 @@ export class BrowserSpeechTranscriber {
 
   async startTranscription() {
     try {
-      console.log('🔍 BrowserSpeechTranscriber: Starting transcription...');
-      console.log('🌐 User agent:', navigator.userAgent);
-      console.log('📱 Is iOS:', /iPad|iPhone|iPod/.test(navigator.userAgent));
-      
       // Check if browser supports speech recognition
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      console.log('🎙️ SpeechRecognition available:', !!SpeechRecognition);
       
       if (!SpeechRecognition) {
-        console.error('❌ Speech recognition not supported in this browser');
         throw new Error('Speech recognition not supported in this browser');
       }
 
@@ -40,13 +34,11 @@ export class BrowserSpeechTranscriber {
       this.recognition.continuous = true;
       this.recognition.interimResults = true;
       this.recognition.lang = 'en-US';
-      
-      console.log('⚙️ Speech recognition configured');
 
       this.recognition.onstart = () => {
         this.isRecording = true;
         this.onStatusChange('Recording');
-        console.log('✅ Speech recognition started successfully');
+        console.log('✅ Speech recognition started');
       };
 
       this.recognition.onresult = (event) => {
@@ -116,9 +108,7 @@ export class BrowserSpeechTranscriber {
         }
       };
 
-      console.log('🎬 About to call recognition.start()...');
       this.recognition.start();
-      console.log('🎯 recognition.start() called successfully');
 
     } catch (error) {
       console.error('Error starting speech recognition:', error);

@@ -22,44 +22,18 @@ export const SpeechToText: React.FC<SpeechToTextProps> = ({
 
   const startRecording = useCallback(async () => {
     try {
-      // Detect iOS for optimized settings
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-      
-      // Force microphone access directly, prevent file picker
-      const audioConstraints = {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
-          sampleRate: isIOS ? 44100 : 16000,
+          sampleRate: 16000,
           channelCount: 1,
           echoCancellation: true,
           noiseSuppression: true,
-          autoGainControl: true,
-          ...(isIOS && {
-            latency: 0,
-            volume: 1.0,
-            deviceId: 'default' // Force default microphone
-          })
-        },
-        video: false // Explicitly disable video to prevent camera picker
-      };
-
-      // Request microphone permission explicitly
-      const stream = await navigator.mediaDevices.getUserMedia(audioConstraints);
-
-      // Choose appropriate MIME type for iOS
-      let mimeType = 'audio/webm;codecs=opus';
-      if (isIOS) {
-        if (MediaRecorder.isTypeSupported('audio/mp4')) {
-          mimeType = 'audio/mp4';
-        } else if (MediaRecorder.isTypeSupported('audio/wav')) {
-          mimeType = 'audio/wav';
-        } else if (MediaRecorder.isTypeSupported('audio/webm')) {
-          mimeType = 'audio/webm';
+          autoGainControl: true
         }
-      }
+      });
 
       const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: mimeType,
-        audioBitsPerSecond: isIOS ? 128000 : 64000 // Higher quality for iOS
+        mimeType: 'audio/webm;codecs=opus'
       });
 
       mediaRecorderRef.current = mediaRecorder;

@@ -22,7 +22,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { MeetingSettings } from "@/components/MeetingSettings";
 import { MeetingHistoryList } from "@/components/MeetingHistoryList";
 import { NotewellAIAnimation } from "@/components/NotewellAIAnimation";
-import { IOSRecordingInterface } from "@/components/IOSRecordingInterface";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -67,7 +66,6 @@ export const MeetingRecorder = ({
   const [debugLog, setDebugLog] = useState<string[]>([]);
   const [testTranscripts, setTestTranscripts] = useState<string[]>([]);
   const [recordingMode, setRecordingMode] = useState<'microphone' | 'computer-audio'>('microphone');
-  const [isIOSDevice, setIsIOSDevice] = useState(false);
   
   
   // Meeting history state
@@ -119,35 +117,6 @@ export const MeetingRecorder = ({
   const browserTranscriberRef = useRef<BrowserSpeechTranscriber | null>(null);
   const screenStreamRef = useRef<MediaStream | null>(null);
   const enhancedAudioCaptureRef = useRef<any>(null);
-
-  
-  
-  // Detect iOS device
-  useEffect(() => {
-    const userAgent = navigator.userAgent.toLowerCase();
-    const isIOS = /ipad|iphone|ipod/.test(userAgent) || 
-                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); // iPad on iOS 13+
-    setIsIOSDevice(isIOS);
-    console.log('🍎 iOS device detection:', isIOS);
-    console.log('📱 User agent:', navigator.userAgent);
-    console.log('🖥️ Platform:', navigator.platform);
-    console.log('👆 Max touch points:', navigator.maxTouchPoints);
-    
-    if (isIOS) {
-      console.log('📱 Using iOS-specific recording interface');
-      toast.info('iOS detected: Using iOS-optimized recording interface');
-    } else {
-      console.log('💻 Using standard recording interface');
-    }
-  }, []);
-
-  // Force microphone mode on iOS devices
-  useEffect(() => {
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    if (isIOS && recordingMode !== 'microphone') {
-      setRecordingMode('microphone');
-    }
-  }, [recordingMode]);
 
   // Auto-save meeting data to localStorage
   const autoSaveMeeting = () => {
@@ -356,27 +325,8 @@ export const MeetingRecorder = ({
   };
   // Browser speech transcription with microphone
   const startMicrophoneTranscription = async () => {
-    console.log('🎤 Starting microphone speech recognition...');
     addDebugLog('🎤 Starting microphone speech recognition...');
     
-    // Detect iOS to prevent file picker dialogs
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    console.log('📱 iOS detection in microphone function:', isIOS);
-    
-    if (isIOS) {
-      console.log('📱 iOS detected - Web Speech Recognition also triggers permission on iOS');
-      console.log('⚠️ iOS Safari requires microphone permission for Web Speech Recognition');
-      addDebugLog('📱 iOS detected - Web Speech Recognition triggers permission dialog');
-      addDebugLog('💡 Alternative: Use manual recording with speech-to-text API');
-      
-      // For now, set up the transcriber but warn user
-      toast.error('iOS requires microphone permission for speech recognition. Please allow microphone access when prompted, or use the speech-to-text button instead.');
-    } else {
-      console.log('💻 Non-iOS device - using standard speech recognition');
-      addDebugLog('💻 Non-iOS device - using standard speech recognition');
-    }
-    
-    console.log('🔧 Creating BrowserSpeechTranscriber...');
     const transcriber = new BrowserSpeechTranscriber(
       handleBrowserTranscript,
       handleTranscriptionError,
@@ -384,12 +334,11 @@ export const MeetingRecorder = ({
       handleLiveSummary
     );
 
-    console.log('▶️ Starting transcription...');
     await transcriber.startTranscription();
     browserTranscriberRef.current = transcriber;
     
-    console.log('✅ Microphone speech recognition started successfully');
     addDebugLog('✅ Microphone speech recognition started successfully');
+    console.log('Recording started with microphone speech recognition');
   };
 
   // Computer audio transcription for Teams/Zoom meetings using enhanced audio processing
@@ -426,24 +375,6 @@ export const MeetingRecorder = ({
         
       } catch (screenError) {
         addDebugLog(`❌ Screen share failed: ${screenError.message}`);
-        
-        // Detect iOS to prevent file picker dialogs
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-        
-        if (isIOS) {
-          addDebugLog('📱 iOS detected - falling back to Web Speech Recognition');
-          // Use browser speech recognition instead of getUserMedia on iOS
-          const transcriber = new BrowserSpeechTranscriber(
-            handleBrowserTranscript,
-            handleTranscriptionError,
-            handleStatusChange,
-            handleLiveSummary
-          );
-          await transcriber.startTranscription();
-          browserTranscriberRef.current = transcriber;
-          return; // Exit early, don't request microphone access
-        }
-        
         addDebugLog('🎤 Using enhanced microphone with custom audio processing...');
         
         // Fallback to microphone with custom audio processing
@@ -1086,12 +1017,6 @@ export const MeetingRecorder = ({
 
   const startRecording = async () => {
     try {
-      // Detect iOS device
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-      console.log('🍎 iOS detected:', isIOS);
-      console.log('📱 User agent:', navigator.userAgent);
-      console.log('🎙️ Recording mode:', recordingMode);
-      
       const modeText = recordingMode === 'computer-audio' ? 'computer audio for Teams/Zoom' : 'microphone';
       addDebugLog(`🚀 Starting recording with ${modeText}...`);
       console.log(`Starting recording with ${modeText}...`);
@@ -1102,10 +1027,8 @@ export const MeetingRecorder = ({
       
       // Choose transcription method based on recording mode
       if (recordingMode === 'computer-audio') {
-        console.log('🖥️ Using computer audio transcription');
         await startComputerAudioTranscription();
       } else {
-        console.log('🎤 Using microphone transcription');
         await startMicrophoneTranscription();
       }
       
@@ -1512,15 +1435,6 @@ export const MeetingRecorder = ({
 
         {/* Meeting Recorder Tab - ONLY recording controls */}
         <TabsContent value="recorder" className="space-y-6 mt-6">
-          {isIOSDevice ? (
-            /* iOS-Specific Recording Interface */
-            <IOSRecordingInterface
-              onTranscriptUpdate={onTranscriptUpdate}
-              onDurationUpdate={onDurationUpdate}
-              onWordCountUpdate={onWordCountUpdate}
-            />
-          ) : (
-            /* Standard Recording Interface for Non-iOS Devices */
           <div className="space-y-4">
             {/* Compact Stats Dashboard */}
             <Card className="bg-gradient-to-br from-background to-muted/30">
@@ -1577,19 +1491,18 @@ export const MeetingRecorder = ({
                             </div>
                           </div>
                         </SelectItem>
-                        {!/iPad|iPhone|iPod/.test(navigator.userAgent) && (
-                          <SelectItem value="computer-audio" className="flex items-center gap-2">
-                            <div className="flex items-center gap-2">
-                              <Headphones className="h-4 w-4" />
-                              <div className="flex-1">
-                                <div className="font-medium">Teams/Zoom Meeting</div>
-                                <div className="text-xs text-muted-foreground">Capture computer audio from Teams/Zoom</div>
-                              </div>
+                        <SelectItem value="computer-audio" className="flex items-center gap-2">
+                          <div className="flex items-center gap-2">
+                            <Headphones className="h-4 w-4" />
+                            <div className="flex-1">
+                              <div className="font-medium">Teams/Zoom Meeting</div>
+                              <div className="text-xs text-muted-foreground">Capture computer audio from Teams/Zoom</div>
                             </div>
-                          </SelectItem>
-                        )}
+                          </div>
+                        </SelectItem>
                       </SelectContent>
                     </Select>
+                    
                     {recordingMode === 'computer-audio' && (
                       <div className="p-3 bg-red-50/50 border border-red-200/50 rounded-lg dark:bg-red-900/20 dark:border-red-700/50">
                         <div className="flex items-start gap-2">
@@ -1714,7 +1627,6 @@ export const MeetingRecorder = ({
               </CardContent>
             </Card>
           </div>
-          )}
         </TabsContent>
 
 
