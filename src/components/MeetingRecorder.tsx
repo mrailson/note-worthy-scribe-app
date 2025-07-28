@@ -68,7 +68,7 @@ export const MeetingRecorder = ({
   const [liveSummary, setLiveSummary] = useState<string>("");
   const [debugLog, setDebugLog] = useState<string[]>([]);
   const [testTranscripts, setTestTranscripts] = useState<string[]>([]);
-  const [recordingMode, setRecordingMode] = useState<'microphone' | 'computer-audio' | 'testing' | 'ai-realtime' | 'hybrid'>('microphone');
+  const [recordingMode, setRecordingMode] = useState<'microphone' | 'computer-audio' | 'testing' | 'ai-realtime' | 'hybrid'>('hybrid');
   
   
   // Meeting history state
@@ -224,15 +224,6 @@ export const MeetingRecorder = ({
       const speakers = new Set(newTranscripts.map(t => t.speaker));
       setSpeakerCount(speakers.size);
       
-      // Update word count for both final AND partial transcripts to give early feedback
-      const allTranscripts = newTranscripts;
-      const combinedText = allTranscripts
-        .map(t => t.text)
-        .join(' ');
-      const words = combinedText.split(' ').filter(word => word.length > 0);
-      setWordCount(words.length);
-      onWordCountUpdate(words.length);
-      
       // Update main transcript if this is final
       if (transcriptData.isFinal) {
         const finalTranscripts = newTranscripts.filter(t => t.isFinal);
@@ -242,24 +233,11 @@ export const MeetingRecorder = ({
         
         setTranscript(fullTranscript);
         onTranscriptUpdate(fullTranscript);
-      } else {
-        // For partial transcripts, show a preview in the main transcript area
-        const finalTranscripts = newTranscripts.filter(t => t.isFinal);
-        const partialTranscripts = newTranscripts.filter(t => !t.isFinal);
         
-        let previewTranscript = finalTranscripts
-          .map(t => `${t.speaker}: ${t.text}`)
-          .join('\n');
-        
-        if (partialTranscripts.length > 0) {
-          const partialText = partialTranscripts
-            .map(t => `${t.speaker}: ${t.text}...`)
-            .join('\n');
-          previewTranscript = previewTranscript + (previewTranscript ? '\n' : '') + partialText;
-        }
-        
-        setTranscript(previewTranscript);
-        onTranscriptUpdate(previewTranscript);
+        // Update word count
+        const words = fullTranscript.split(' ').filter(word => word.length > 0);
+        setWordCount(words.length);
+        onWordCountUpdate(words.length);
       }
       
       return newTranscripts;
@@ -663,45 +641,125 @@ export const MeetingRecorder = ({
   };
 
   const startOpenAIRealtimeRecording = async () => {
-    addDebugLog('🎤 Starting OpenAI Realtime API recording...');
+    addDebugLog('🎤 Starting advanced dual audio capture (system + microphone)...');
     
     try {
-      openAIRealtimeRecorderRef.current = new OpenAIRealtimeRecorder({
-        onTranscript: (transcript, isFinal) => {
-          console.log('📝 OpenAI Realtime transcript:', transcript, 'Final:', isFinal);
-          
-          const transcriptData: TranscriptData = {
-            text: transcript,
-            speaker: 'Speaker',
-            timestamp: Date.now(),
-            isFinal: isFinal
-          };
-          
-          handleTranscript(transcriptData);
-          addDebugLog(`📝 Transcript: "${transcript}" (${isFinal ? 'Final' : 'Partial'})`);
-        },
-        onStatusChange: (status) => {
-          console.log('📊 OpenAI Realtime Status:', status);
-          setConnectionStatus(status);
-          addDebugLog(`📊 Status: ${status}`);
-        },
-        onError: (error) => {
-          console.error('❌ OpenAI Realtime Error:', error);
-          addDebugLog(`❌ Error: ${error}`);
-          toast.error(`OpenAI Realtime Error: ${error}`);
-        }
+      // Check browser support first
+      console.log('Browser check:', {
+        hasMediaDevices: !!navigator.mediaDevices,
+        hasGetDisplayMedia: !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia),
+        hasGetUserMedia: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia),
+        userAgent: navigator.userAgent
       });
 
-      await openAIRealtimeRecorderRef.current.startRecording();
-      console.log('✅ OpenAI Realtime recording started successfully');
-      addDebugLog('✅ OpenAI Realtime recording started successfully');
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+        throw new Error('Your browser does not support screen capture. Please use Chrome, Edge, or Firefox.');
+      }
+
+      // Step 1: Try getting display media with different approaches
+      addDebugLog('📺 Requesting screen capture with audio...');
+      let displayStream;
       
-    } catch (error) {
-      console.error('❌ Failed to start OpenAI Realtime recording:', error);
-      addDebugLog(`❌ Failed to start OpenAI Realtime recording: ${error.message}`);
-      toast.error(`Failed to start OpenAI Realtime recording: ${error.message}`);
-      throw error;
-    }
+      try {
+        // First try: audio-only capture (preferred)
+        console.log('Attempting audio-only screen capture...');
+        displayStream = await navigator.mediaDevices.getDisplayMedia({
+          video: false,
+          audio: true
+        });
+        addDebugLog('✅ Audio-only screen capture successful');
+      } catch (audioOnlyError) {
+        console.log('Audio-only failed:', audioOnlyError.message);
+        addDebugLog('⚠️ Audio-only failed, trying video+audio approach...');
+        
+        try {
+          // Second try: video+audio, then extract audio
+          console.log('Attempting video+audio screen capture...');
+          displayStream = await navigator.mediaDevices.getDisplayMedia({
+            video: true,
+            audio: true
+          });
+          
+          // Remove video tracks, keep only audio
+          const videoTracks = displayStream.getVideoTracks();
+          videoTracks.forEach(track => {
+            track.stop();
+            displayStream.removeTrack(track);
+          });
+          addDebugLog('✅ Video+audio capture successful, video tracks removed');
+        } catch (videoAudioError) {
+          console.log('Video+audio failed:', videoAudioError.message);
+          throw new Error(`Screen capture not supported: ${videoAudioError.message}`);
+        }
+      }
+
+      // Check if we got audio tracks
+      const audioTracks = displayStream.getAudioTracks();
+      if (audioTracks.length === 0) {
+        throw new Error('No audio tracks found in screen capture. Please ensure you share a tab/window with audio.');
+      }
+      
+      console.log('Display stream audio tracks:', audioTracks.length);
+      addDebugLog(`📺 Got ${audioTracks.length} audio track(s) from screen capture`);
+      // Step 2: Get microphone audio with simpler constraints
+      addDebugLog('🎤 Requesting microphone access...');
+      const micStream = await navigator.mediaDevices.getUserMedia({
+        audio: true // Use simple constraints for better compatibility
+      });
+      
+      const micAudioTracks = micStream.getAudioTracks();
+      console.log('Microphone audio tracks:', micAudioTracks.length);
+      addDebugLog(`🎤 Got ${micAudioTracks.length} microphone track(s)`);
+
+      // Step 3: Combine both streams and add audio level monitoring
+      addDebugLog('🔀 Combining audio streams...');
+      const combinedStream = new MediaStream([
+        ...displayStream.getAudioTracks(),
+        ...micStream.getAudioTracks()
+      ]);
+      
+      console.log('Combined stream tracks:', combinedStream.getTracks().length);
+      addDebugLog(`🔀 Combined stream has ${combinedStream.getTracks().length} total tracks`);
+      
+      // Add audio level monitoring to check if we're getting audio
+      const audioContext = new AudioContext();
+      const analyser = audioContext.createAnalyser();
+      const source = audioContext.createMediaStreamSource(combinedStream);
+      source.connect(analyser);
+      
+      analyser.fftSize = 256;
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+      
+      // Monitor audio levels
+      const monitorAudio = () => {
+        analyser.getByteFrequencyData(dataArray);
+        const average = dataArray.reduce((a, b) => a + b) / bufferLength;
+        
+        if (average > 5) { // If there's some audio activity
+          console.log(`Audio level detected: ${average.toFixed(1)}`);
+          addDebugLog(`🔊 Audio activity: ${average.toFixed(1)}`);
+        }
+      };
+      
+      // Check audio levels every 2 seconds
+      const audioMonitor = setInterval(monitorAudio, 2000);
+      
+      // Store cleanup function
+      const originalCleanup = () => {
+        clearInterval(audioMonitor);
+        audioContext.close();
+        displayStream.getTracks().forEach(track => {
+          track.stop();
+          addDebugLog(`🔇 Stopped display track: ${track.kind}`);
+        });
+        micStream.getTracks().forEach(track => {
+          track.stop();
+          addDebugLog(`🔇 Stopped mic track: ${track.kind}`);
+        });
+        combinedStream.getTracks().forEach(track => {
+          track.stop();
+        });
   };
 
   // Function to start Hybrid recording (Browser + AI)
@@ -741,6 +799,18 @@ export const MeetingRecorder = ({
       throw error;
     }
   };
+      
+      // Debug: Check if tracks are active and have audio
+      combinedStream.getTracks().forEach((track, index) => {
+        console.log(`Track ${index}:`, {
+          kind: track.kind,
+          enabled: track.enabled,
+          readyState: track.readyState,
+          muted: track.muted,
+          label: track.label
+        });
+        addDebugLog(`🎵 Track ${index}: ${track.kind} - ${track.readyState} - ${track.enabled ? 'enabled' : 'disabled'}`);
+      });
 
       // Step 4: Set up MediaRecorder with simple, compatible settings
       let mimeType = 'audio/webm';
@@ -857,6 +927,17 @@ export const MeetingRecorder = ({
       
       mediaRecorder.start(5000); // Capture data every 5 seconds for more responsive feedback
       addDebugLog('🎯 Advanced dual audio recording started');
+
+      // Store references for cleanup
+      micAudioStreamRef.current = combinedStream;
+      mediaRecorderRef.current = mediaRecorder;
+      
+      // Store cleanup function
+      (mediaRecorder as any).cleanup = originalCleanup;
+
+    } catch (error) {
+      console.error('Dual audio capture error details:', {
+        name: error.name,
         message: error.message,
         stack: error.stack
       });
@@ -1177,13 +1258,6 @@ export const MeetingRecorder = ({
       await dualStreamRecorderRef.current.stopRecording();
       dualStreamRecorderRef.current = null;
       addDebugLog('✅ Dual-stream recording stopped');
-    }
-
-    // Stop OpenAI Realtime recorder
-    if (openAIRealtimeRecorderRef.current) {
-      await openAIRealtimeRecorderRef.current.stopRecording();
-      openAIRealtimeRecorderRef.current = null;
-      addDebugLog('✅ OpenAI Realtime recording stopped');
     }
 
     // Stop hybrid transcriber
@@ -1591,6 +1665,15 @@ export const MeetingRecorder = ({
                             </div>
                           </div>
                         </SelectItem>
+                        <SelectItem value="hybrid" className="flex items-center gap-2">
+                          <div className="flex items-center gap-2">
+                            <Mic className="h-4 w-4 text-blue-600" />
+                            <div>
+                              <div className="font-medium">Hybrid (Browser + AI)</div>
+                              <div className="text-xs text-muted-foreground">Browser mic + AI speaker audio</div>
+                            </div>
+                          </div>
+                        </SelectItem>
                         <SelectItem value="microphone" className="flex items-center gap-2">
                           <div className="flex items-center gap-2">
                             <Mic className="h-4 w-4" />
@@ -1606,6 +1689,15 @@ export const MeetingRecorder = ({
                             <div className="flex-1">
                               <div className="font-medium">Teams/Zoom Meeting</div>
                               <div className="text-xs text-muted-foreground">Capture computer audio from Teams/Zoom</div>
+                            </div>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="testing" className="flex items-center gap-2">
+                          <div className="flex items-center gap-2">
+                            <Mic className="h-4 w-4" />
+                            <div>
+                              <div className="font-medium">Just for Testing</div>
+                              <div className="text-xs text-muted-foreground">Test microphone recording functionality</div>
                             </div>
                           </div>
                         </SelectItem>
@@ -1708,6 +1800,31 @@ export const MeetingRecorder = ({
                 )}
 
 
+                {/* Ticker Tape Test Transcript */}
+                {testTranscripts.length > 0 && (
+                  <Card className="mt-4 bg-gradient-to-br from-green-50/50 to-green-100/50 border-green-200/50 dark:from-green-900/20 dark:to-green-800/20 dark:border-green-700/50">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium flex items-center gap-2">
+                        <Waves className="h-4 w-4" />
+                        Live Transcript Ticker
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <div className="overflow-hidden">
+                        <div className="animate-scroll space-y-1">
+                          {testTranscripts.map((transcript, index) => (
+                            <div 
+                              key={index} 
+                              className="text-xs font-mono p-1 bg-background/50 rounded border border-border/30 whitespace-nowrap"
+                            >
+                              {transcript}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
               </CardContent>
             </Card>
           </div>
