@@ -20,10 +20,29 @@ export class BrowserSpeechTranscriber {
 
   async startTranscription() {
     try {
+      // Check for iOS/iPhone specifically
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
+      
+      console.log('🔍 Device detection:', { 
+        isIOS, 
+        isSafari, 
+        userAgent: navigator.userAgent.substring(0, 100) 
+      });
+      
       // Check if browser supports speech recognition
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       
+      console.log('🎤 Speech API check:', { 
+        SpeechRecognition: !!SpeechRecognition,
+        webkitSpeechRecognition: !!(window as any).webkitSpeechRecognition,
+        SpeechRecognitionStandard: !!window.SpeechRecognition
+      });
+      
       if (!SpeechRecognition) {
+        if (isIOS) {
+          throw new Error('Speech recognition is not supported on iPhone/Safari. Please use your SmartPhone Notewell Version or Teams own recording service to record Teams meetings in the meantime');
+        }
         throw new Error('Speech recognition not supported in this browser');
       }
 
