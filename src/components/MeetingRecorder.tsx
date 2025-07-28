@@ -1692,15 +1692,6 @@ export const MeetingRecorder = ({
                             </div>
                           </div>
                         </SelectItem>
-                        <SelectItem value="testing" className="flex items-center gap-2">
-                          <div className="flex items-center gap-2">
-                            <Mic className="h-4 w-4" />
-                            <div>
-                              <div className="font-medium">Just for Testing</div>
-                              <div className="text-xs text-muted-foreground">Test microphone recording functionality</div>
-                            </div>
-                          </div>
-                        </SelectItem>
                       </SelectContent>
                     </Select>
                     
