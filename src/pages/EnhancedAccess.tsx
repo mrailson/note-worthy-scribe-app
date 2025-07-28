@@ -777,106 +777,6 @@ const EnhancedAccess = () => {
                         </div>
                       </div>
 
-                      {/* £5 Per Patient Funding */}
-                      <div className="bg-gradient-to-r from-purple-600 to-purple-700 text-white p-6 rounded-lg">
-                        <div className="flex justify-between items-start mb-4">
-                          <div>
-                            <h3 className="text-2xl font-bold mb-2">£5 Per Patient Funding Allocation</h3>
-                            <p className="text-purple-100">June 2025 Distribution (1/12th of Annual Rate)</p>
-                          </div>
-                          <div className="bg-white text-purple-600 px-3 py-2 rounded font-semibold text-sm">
-                            BLUE PCN
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <div className="space-y-4">
-                          <h4 className="text-xl font-semibold text-purple-600">Practice Allocations</h4>
-                          <div className="bg-purple-50 p-4 rounded-lg">
-                            <div className="grid grid-cols-3 gap-4 font-semibold border-b pb-2 mb-4">
-                              <span>Practice</span>
-                              <span>PCN Adjusted List</span>
-                              <span>Monthly Funding</span>
-                            </div>
-                            <div className="space-y-3">
-                              <div className="grid grid-cols-3 gap-4">
-                                <span>Brook Medical Centre</span>
-                                <span>7,020.60</span>
-                                <span className="font-bold">£2,925.25</span>
-                              </div>
-                              <div className="grid grid-cols-3 gap-4">
-                                <span>Bugbrooke Surgery</span>
-                                <span>9,606.18</span>
-                                <span className="font-bold">£4,002.58</span>
-                              </div>
-                              <div className="grid grid-cols-3 gap-4">
-                                <span>County Surgery</span>
-                                <span>4,390.30</span>
-                                <span className="font-bold">£1,829.29</span>
-                              </div>
-                              <div className="grid grid-cols-3 gap-4">
-                                <span>Park Avenue</span>
-                                <span>16,178.32</span>
-                                <span className="font-bold">£6,740.97</span>
-                              </div>
-                              <div className="grid grid-cols-3 gap-4">
-                                <span>Rushden Medical Centre</span>
-                                <span>9,279.35</span>
-                                <span className="font-bold">£3,866.40</span>
-                              </div>
-                              <div className="grid grid-cols-3 gap-4">
-                                <span>The Crescent</span>
-                                <span>7,383.32</span>
-                                <span className="font-bold">£3,076.38</span>
-                              </div>
-                              <div className="grid grid-cols-3 gap-4 border-t pt-2 font-bold">
-                                <span>PCN Total</span>
-                                <span>53,858.07</span>
-                                <span>£22,440.86</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="space-y-4">
-                          <h4 className="text-xl font-semibold text-purple-600">Funding Distribution</h4>
-                          <div className="bg-purple-50 p-4 rounded-lg">
-                            <h5 className="font-semibold mb-3">Percentage of Total PCN Funding</h5>
-                            <div className="space-y-2">
-                              <div className="flex justify-between">
-                                <span>Brook: 13.0%</span>
-                                <span>Bugbrooke: 17.8%</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span>County: 8.2%</span>
-                                <span>Park Avenue: 30.0%</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span>Rushden: 17.2%</span>
-                                <span>Crescent: 13.7%</span>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="bg-purple-50 p-4 rounded-lg">
-                            <h5 className="font-semibold mb-3">Calculation Method</h5>
-                            <ul className="space-y-2 text-sm">
-                              <li>• <strong>Annual Rate:</strong> £5.00 per weighted patient</li>
-                              <li>• <strong>Monthly Rate:</strong> £0.42 per weighted patient (1/12th)</li>
-                              <li>• <strong>Distribution:</strong> Based on PCN Adjusted List Sizes from January 2025</li>
-                              <li>• <strong>Calculation:</strong> PCN Adjusted List × £0.42 per patient</li>
-                            </ul>
-                          </div>
-
-                          <div className="bg-purple-100 p-4 rounded-lg border-2 border-purple-300">
-                            <p className="text-sm font-medium">
-                              <strong>BOTTOM LINE:</strong> Monthly £5 per patient funding totals £22,440.86, 
-                              with Park Avenue receiving the largest share (30%) based on weighted list size
-                            </p>
-                          </div>
-                        </div>
-                      </div>
 
                       {/* Recommendations & Action Points */}
                       <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 rounded-lg">
@@ -1217,24 +1117,104 @@ const EnhancedAccess = () => {
                           
                           <TabsContent value="june-2025" className="space-y-4">
                             <div className="space-y-4 h-[75vh] overflow-hidden">
-                              <div className="bg-gradient-to-r from-green-600 to-green-700 text-white p-4 rounded-lg">
+                              <div className="bg-gradient-to-r from-purple-600 to-purple-700 text-white p-4 rounded-lg">
                                 <div className="flex justify-between items-start">
                                   <div>
-                                    <h3 className="text-lg font-bold mb-1">June 2025 Practice Splits</h3>
-                                    <p className="text-green-100 text-sm">Monthly Allocation Breakdown by Practice</p>
+                                    <h3 className="text-lg font-bold mb-1">£5 Per Patient Funding Allocation</h3>
+                                    <p className="text-purple-100 text-sm">June 2025 Distribution (1/12th of Annual Rate)</p>
                                   </div>
-                                  <div className="bg-white text-green-600 px-2 py-1 rounded font-semibold text-xs">
+                                  <div className="bg-white text-purple-600 px-2 py-1 rounded font-semibold text-xs">
                                     BLUE PCN
                                   </div>
                                 </div>
                               </div>
 
-                              <div className="text-center py-8 text-muted-foreground">
-                                <div className="h-12 w-12 mx-auto mb-4 opacity-50 bg-green-100 rounded-full flex items-center justify-center">
-                                  <span className="text-green-600 font-bold">£</span>
+                              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                <div className="space-y-3">
+                                  <h4 className="text-lg font-semibold text-purple-600">Practice Allocations</h4>
+                                  <div className="bg-purple-50 p-3 rounded-lg">
+                                    <div className="grid grid-cols-3 gap-2 font-semibold border-b pb-1 mb-2 text-xs">
+                                      <span>Practice</span>
+                                      <span>PCN Adjusted List</span>
+                                      <span>Monthly Funding</span>
+                                    </div>
+                                    <div className="space-y-1">
+                                      <div className="grid grid-cols-3 gap-2 text-xs">
+                                        <span>Brook Medical Centre</span>
+                                        <span>7,020.60</span>
+                                        <span className="font-bold">£2,925.25</span>
+                                      </div>
+                                      <div className="grid grid-cols-3 gap-2 text-xs">
+                                        <span>Bugbrooke Surgery</span>
+                                        <span>9,606.18</span>
+                                        <span className="font-bold">£4,002.58</span>
+                                      </div>
+                                      <div className="grid grid-cols-3 gap-2 text-xs">
+                                        <span>County Surgery</span>
+                                        <span>4,390.30</span>
+                                        <span className="font-bold">£1,829.29</span>
+                                      </div>
+                                      <div className="grid grid-cols-3 gap-2 text-xs">
+                                        <span>Park Avenue</span>
+                                        <span>16,178.32</span>
+                                        <span className="font-bold">£6,740.97</span>
+                                      </div>
+                                      <div className="grid grid-cols-3 gap-2 text-xs">
+                                        <span>Rushden Medical Centre</span>
+                                        <span>9,279.35</span>
+                                        <span className="font-bold">£3,866.40</span>
+                                      </div>
+                                      <div className="grid grid-cols-3 gap-2 text-xs">
+                                        <span>The Crescent</span>
+                                        <span>7,383.32</span>
+                                        <span className="font-bold">£3,076.38</span>
+                                      </div>
+                                      <div className="grid grid-cols-3 gap-2 border-t pt-1 font-bold text-xs">
+                                        <span>PCN Total</span>
+                                        <span>53,858.07</span>
+                                        <span>£22,440.86</span>
+                                      </div>
+                                    </div>
+                                  </div>
                                 </div>
-                                <h3 className="font-medium mb-2">Practice Splits Data Coming Soon</h3>
-                                <p className="text-sm">Detailed practice allocation data for June 2025 will be available here</p>
+
+                                <div className="space-y-3">
+                                  <h4 className="text-lg font-semibold text-purple-600">Funding Distribution</h4>
+                                  <div className="bg-purple-50 p-3 rounded-lg">
+                                    <h5 className="font-semibold mb-2 text-sm">Percentage of Total PCN Funding</h5>
+                                    <div className="space-y-1 text-xs">
+                                      <div className="flex justify-between">
+                                        <span>Brook: 13.0%</span>
+                                        <span>Bugbrooke: 17.8%</span>
+                                      </div>
+                                      <div className="flex justify-between">
+                                        <span>County: 8.2%</span>
+                                        <span>Park Avenue: 30.0%</span>
+                                      </div>
+                                      <div className="flex justify-between">
+                                        <span>Rushden: 17.2%</span>
+                                        <span>Crescent: 13.7%</span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div className="bg-purple-50 p-3 rounded-lg">
+                                    <h5 className="font-semibold mb-2 text-sm">Calculation Method</h5>
+                                    <ul className="space-y-1 text-xs">
+                                      <li>• <strong>Annual Rate:</strong> £5.00 per weighted patient</li>
+                                      <li>• <strong>Monthly Rate:</strong> £0.42 per weighted patient (1/12th)</li>
+                                      <li>• <strong>Distribution:</strong> Based on PCN Adjusted List Sizes from January 2025</li>
+                                      <li>• <strong>Calculation:</strong> PCN Adjusted List × £0.42 per patient</li>
+                                    </ul>
+                                  </div>
+
+                                  <div className="bg-purple-100 p-3 rounded-lg border-2 border-purple-300">
+                                    <p className="text-xs font-medium">
+                                      <strong>BOTTOM LINE:</strong> Monthly £5 per patient funding totals £22,440.86, 
+                                      with Park Avenue receiving the largest share (30%) based on weighted list size
+                                    </p>
+                                  </div>
+                                </div>
                               </div>
                             </div>
                           </TabsContent>
