@@ -24,7 +24,7 @@ export class SpeakerOnlyRecorder {
       this.config.onStatusChange?.('Connecting to OpenAI for speaker audio...');
       
       // Connect to our edge function WebSocket proxy
-      this.ws = new WebSocket('wss://dphcnbricafkbtizkoal.functions.supabase.co/realtime-transcription');
+      this.ws = new WebSocket('wss://dphcnbricafkbtizkoal.functions.supabase.co/openai-realtime-session');
       
       this.setupWebSocketHandlers();
       
