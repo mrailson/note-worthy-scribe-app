@@ -198,6 +198,7 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange }: ShiftAssign
     switch (role?.toLowerCase()) {
       case 'doctor':
       case 'dr':
+      case 'gp':
         return <Activity className="h-3 w-3" />;
       case 'phlebotomist':
         return <Droplets className="h-3 w-3" />;
@@ -209,7 +210,7 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange }: ShiftAssign
   };
 
   const formatStaffName = (name: string, role: string) => {
-    const isDoctor = role?.toLowerCase() === 'doctor' || role?.toLowerCase() === 'dr';
+    const isDoctor = role?.toLowerCase() === 'doctor' || role?.toLowerCase() === 'dr' || role?.toLowerCase() === 'gp';
     return isDoctor ? `Dr ${name}` : name;
   };
 
