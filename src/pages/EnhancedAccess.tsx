@@ -6,8 +6,10 @@ import { Header } from "@/components/Header";
 import { StaffManagement } from "@/components/StaffManagement";
 import { ShiftAssignment } from "@/components/ShiftAssignment";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { Calendar, Clock, MapPin, Users, AlertTriangle, CheckCircle, Settings, Activity, Droplets, UserCheck } from "lucide-react";
-import { format, startOfWeek, addDays } from "date-fns";
+import { format, startOfWeek, addDays, startOfMonth, endOfMonth, eachDayOfInterval, addMonths } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 
 interface ComplianceStats {
@@ -18,17 +20,20 @@ interface ComplianceStats {
 
 const EnhancedAccess = () => {
   const [currentWeek, setCurrentWeek] = useState(new Date());
+  const [isMonthlyView, setIsMonthlyView] = useState(false);
   const [complianceStats, setComplianceStats] = useState<ComplianceStats>({ total: 0, compliant: 0, percentage: 0 });
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [weeklyAssignments, setWeeklyAssignments] = useState<any[]>([]);
   const [shiftTemplates, setShiftTemplates] = useState<any[]>([]);
 
   const weekStart = startOfWeek(currentWeek, { weekStartsOn: 1 });
+  const monthStart = startOfMonth(currentWeek);
+  const monthEnd = endOfMonth(currentWeek);
 
   useEffect(() => {
     calculateComplianceStats();
     fetchWeeklyData();
-  }, [currentWeek, refreshTrigger]);
+  }, [currentWeek, refreshTrigger, isMonthlyView]);
 
   const calculateComplianceStats = async () => {
     try {
@@ -69,8 +74,8 @@ const EnhancedAccess = () => {
 
   const fetchWeeklyData = async () => {
     try {
-      const startDate = format(weekStart, 'yyyy-MM-dd');
-      const endDate = format(addDays(weekStart, 6), 'yyyy-MM-dd');
+      const startDate = isMonthlyView ? format(monthStart, 'yyyy-MM-dd') : format(weekStart, 'yyyy-MM-dd');
+      const endDate = isMonthlyView ? format(monthEnd, 'yyyy-MM-dd') : format(addDays(weekStart, 6), 'yyyy-MM-dd');
 
       // Get shift templates
       const { data: templates, error: templatesError } = await supabase
@@ -81,7 +86,7 @@ const EnhancedAccess = () => {
 
       if (templatesError) throw templatesError;
 
-      // Get assignments for current week
+      // Get assignments for current period
       const { data: assignments, error: assignmentsError } = await supabase
         .from('staff_assignments')
         .select(`
@@ -97,7 +102,7 @@ const EnhancedAccess = () => {
       setShiftTemplates(templates || []);
       setWeeklyAssignments(assignments || []);
     } catch (error) {
-      console.error('Error fetching weekly data:', error);
+      console.error('Error fetching data:', error);
     }
   };
 
@@ -122,8 +127,13 @@ const EnhancedAccess = () => {
   };
 
   const navigateWeek = (direction: 'prev' | 'next') => {
-    const newWeek = addDays(currentWeek, direction === 'next' ? 7 : -7);
-    setCurrentWeek(newWeek);
+    if (isMonthlyView) {
+      const newMonth = addMonths(currentWeek, direction === 'next' ? 1 : -1);
+      setCurrentWeek(newMonth);
+    } else {
+      const newWeek = addDays(currentWeek, direction === 'next' ? 7 : -7);
+      setCurrentWeek(newWeek);
+    }
   };
 
   const handleAssignmentChange = () => {
@@ -182,125 +192,201 @@ const EnhancedAccess = () => {
           </TabsList>
           
           <TabsContent value="overview" className="space-y-6 mt-6">
-            {/* Current Week View */}
+            {/* View Toggle */}
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2">
                     <Calendar className="h-5 w-5" />
-                    This Week - {format(weekStart, "MMM d, yyyy")}
+                    {isMonthlyView ? `${format(currentWeek, "MMMM yyyy")}` : `This Week - ${format(weekStart, "MMM d, yyyy")}`}
                   </CardTitle>
-                  <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" onClick={() => navigateWeek('prev')}>
-                      Previous
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => navigateWeek('next')}>
-                      Next
-                    </Button>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center space-x-2">
+                      <Label htmlFor="view-toggle" className="text-sm">Weekly</Label>
+                      <Switch
+                        id="view-toggle"
+                        checked={isMonthlyView}
+                        onCheckedChange={setIsMonthlyView}
+                      />
+                      <Label htmlFor="view-toggle" className="text-sm">Monthly</Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" onClick={() => navigateWeek('prev')}>
+                        {isMonthlyView ? 'Previous Month' : 'Previous'}
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => navigateWeek('next')}>
+                        {isMonthlyView ? 'Next Month' : 'Next'}
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-7 gap-3">
-                  {Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)).map((day, index) => {
-                    const dayOfWeek = index + 1; // 1=Monday, 2=Tuesday, etc.
-                    const shifts = getShiftsForDay(dayOfWeek);
-                    const isSunday = index === 6;
-                    
-                    if (isSunday) {
+                {isMonthlyView ? (
+                  <div className="grid grid-cols-7 gap-2">
+                    {/* Month header */}
+                    {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
+                      <div key={day} className="p-2 text-center font-medium text-sm text-muted-foreground">
+                        {day}
+                      </div>
+                    ))}
+                    {/* Month days */}
+                    {eachDayOfInterval({ start: monthStart, end: monthEnd }).map((day) => {
+                      const dayOfWeek = (day.getDay() === 0 ? 7 : day.getDay()); // Convert Sunday from 0 to 7
+                      const shifts = getShiftsForDay(dayOfWeek);
+                      const isSunday = dayOfWeek === 7;
+                      
+                      const hasAssignments = !isSunday && shifts.some(shift => {
+                        const shiftAssignments = weeklyAssignments.filter(a => 
+                          a.shift_template_id === shift.id && 
+                          a.assignment_date === format(day, 'yyyy-MM-dd')
+                        );
+                        return shiftAssignments.length > 0;
+                      });
+                      
+                      const allAssigned = !isSunday && shifts.length > 0 && shifts.every(shift => {
+                        const shiftAssignments = weeklyAssignments.filter(a => 
+                          a.shift_template_id === shift.id && 
+                          a.assignment_date === format(day, 'yyyy-MM-dd')
+                        );
+                        return shiftAssignments.length > 0;
+                      });
+
                       return (
-                        <div key={day.toISOString()} className="p-3 border border-border/50 rounded-lg bg-muted/30">
-                          <div className="text-center">
-                            <h3 className="font-medium text-muted-foreground text-sm">{format(day, "EEE")}</h3>
-                            <p className="text-xs text-muted-foreground mt-1">{format(day, "MMM d")}</p>
-                            <p className="text-xs text-muted-foreground mt-2">No service</p>
+                        <div 
+                          key={day.toISOString()} 
+                          className={`p-2 border rounded text-center min-h-[60px] ${
+                            isSunday 
+                              ? "border-border/50 bg-muted/30"
+                              : allAssigned 
+                              ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20" 
+                              : hasAssignments
+                              ? "border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-900/20"
+                              : "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20"
+                          }`}
+                        >
+                          <div className="text-sm font-medium">{format(day, "d")}</div>
+                          {isSunday ? (
+                            <div className="text-xs text-muted-foreground mt-1">No service</div>
+                          ) : shifts.length > 0 ? (
+                            <div className="flex justify-center mt-1">
+                              {allAssigned ? (
+                                <CheckCircle className="h-3 w-3 text-green-600" />
+                              ) : hasAssignments ? (
+                                <AlertTriangle className="h-3 w-3 text-yellow-600" />
+                              ) : (
+                                <AlertTriangle className="h-3 w-3 text-red-600" />
+                              )}
+                            </div>
+                          ) : (
+                            <div className="text-xs text-muted-foreground mt-1">No shifts</div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-7 gap-3">
+                    {Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)).map((day, index) => {
+                      const dayOfWeek = index + 1; // 1=Monday, 2=Tuesday, etc.
+                      const shifts = getShiftsForDay(dayOfWeek);
+                      const isSunday = index === 6;
+                      
+                      if (isSunday) {
+                        return (
+                          <div key={day.toISOString()} className="p-3 border border-border/50 rounded-lg bg-muted/30">
+                            <div className="text-center">
+                              <h3 className="font-medium text-muted-foreground text-sm">{format(day, "EEE")}</h3>
+                              <p className="text-xs text-muted-foreground mt-1">{format(day, "MMM d")}</p>
+                              <p className="text-xs text-muted-foreground mt-2">No service</p>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      const hasAssignments = shifts.some(shift => {
+                        const shiftAssignments = weeklyAssignments.filter(a => 
+                          a.shift_template_id === shift.id && 
+                          a.assignment_date === format(day, 'yyyy-MM-dd')
+                        );
+                        return shiftAssignments.length > 0;
+                      });
+                      
+                      const allAssigned = shifts.length > 0 && shifts.every(shift => {
+                        const shiftAssignments = weeklyAssignments.filter(a => 
+                          a.shift_template_id === shift.id && 
+                          a.assignment_date === format(day, 'yyyy-MM-dd')
+                        );
+                        return shiftAssignments.length > 0;
+                      });
+                      
+                      return (
+                        <div 
+                          key={day.toISOString()} 
+                          className={`p-3 border rounded-lg text-center ${
+                            allAssigned 
+                              ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20" 
+                              : hasAssignments
+                              ? "border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-900/20"
+                              : "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20"
+                          }`}
+                        >
+                          <h3 className="font-medium text-sm">{format(day, "EEE")}</h3>
+                          <p className="text-xs text-muted-foreground mb-2">{format(day, "MMM d")}</p>
+                          
+                          <div className="space-y-1">
+                            {shifts.length === 0 ? (
+                              <p className="text-xs text-muted-foreground">No shifts</p>
+                            ) : (
+                              shifts.map((shift) => {
+                                const shiftAssignments = weeklyAssignments.filter(a => 
+                                  a.shift_template_id === shift.id && 
+                                  a.assignment_date === format(day, 'yyyy-MM-dd')
+                                );
+                                
+                                return (
+                                  <div key={shift.id} className="text-xs">
+                                    <div className="font-medium">{shift.start_time}-{shift.end_time}</div>
+                                    <div className="text-muted-foreground">{getLocationDisplay(shift.location)}</div>
+                                    {shiftAssignments.length > 0 ? (
+                                      <div className="space-y-1 mt-1">
+                                         {shiftAssignments.map((assignment, idx) => (
+                                           <Badge key={assignment.id} variant="secondary" className="text-xs flex items-center gap-1">
+                                             {getRoleIcon(assignment.staff_member?.role)}
+                                             {formatStaffName(assignment.staff_member?.name || 'Assigned', assignment.staff_member?.role || '')}
+                                           </Badge>
+                                         ))}
+                                        {shiftAssignments.length > 1 && (
+                                          <div className="text-xs text-muted-foreground">
+                                            ({shiftAssignments.length} staff assigned)
+                                          </div>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <Badge variant="destructive" className="text-xs mt-1">
+                                        No {shift.required_role}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                );
+                              })
+                            )}
+                          </div>
+                          
+                          <div className="flex justify-center mt-2">
+                            {allAssigned ? (
+                              <CheckCircle className="h-3 w-3 text-green-600" />
+                            ) : hasAssignments ? (
+                              <AlertTriangle className="h-3 w-3 text-yellow-600" />
+                            ) : (
+                              <AlertTriangle className="h-3 w-3 text-red-600" />
+                            )}
                           </div>
                         </div>
                       );
-                    }
-
-                    const hasAssignments = shifts.some(shift => {
-                      const shiftAssignments = weeklyAssignments.filter(a => 
-                        a.shift_template_id === shift.id && 
-                        a.assignment_date === format(day, 'yyyy-MM-dd')
-                      );
-                      return shiftAssignments.length > 0;
-                    });
-                    
-                    const allAssigned = shifts.length > 0 && shifts.every(shift => {
-                      const shiftAssignments = weeklyAssignments.filter(a => 
-                        a.shift_template_id === shift.id && 
-                        a.assignment_date === format(day, 'yyyy-MM-dd')
-                      );
-                      return shiftAssignments.length > 0;
-                    });
-                    
-                    return (
-                      <div 
-                        key={day.toISOString()} 
-                        className={`p-3 border rounded-lg text-center ${
-                          allAssigned 
-                            ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20" 
-                            : hasAssignments
-                            ? "border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-900/20"
-                            : "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20"
-                        }`}
-                      >
-                        <h3 className="font-medium text-sm">{format(day, "EEE")}</h3>
-                        <p className="text-xs text-muted-foreground mb-2">{format(day, "MMM d")}</p>
-                        
-                        <div className="space-y-1">
-                          {shifts.length === 0 ? (
-                            <p className="text-xs text-muted-foreground">No shifts</p>
-                          ) : (
-                            shifts.map((shift) => {
-                              const shiftAssignments = weeklyAssignments.filter(a => 
-                                a.shift_template_id === shift.id && 
-                                a.assignment_date === format(day, 'yyyy-MM-dd')
-                              );
-                              
-                              return (
-                                <div key={shift.id} className="text-xs">
-                                  <div className="font-medium">{shift.start_time}-{shift.end_time}</div>
-                                  <div className="text-muted-foreground">{getLocationDisplay(shift.location)}</div>
-                                  {shiftAssignments.length > 0 ? (
-                                    <div className="space-y-1 mt-1">
-                                       {shiftAssignments.map((assignment, idx) => (
-                                         <Badge key={assignment.id} variant="secondary" className="text-xs flex items-center gap-1">
-                                           {getRoleIcon(assignment.staff_member?.role)}
-                                           {formatStaffName(assignment.staff_member?.name || 'Assigned', assignment.staff_member?.role || '')}
-                                         </Badge>
-                                       ))}
-                                      {shiftAssignments.length > 1 && (
-                                        <div className="text-xs text-muted-foreground">
-                                          ({shiftAssignments.length} staff assigned)
-                                        </div>
-                                      )}
-                                    </div>
-                                  ) : (
-                                    <Badge variant="destructive" className="text-xs mt-1">
-                                      No {shift.required_role}
-                                    </Badge>
-                                  )}
-                                </div>
-                              );
-                            })
-                          )}
-                        </div>
-                        
-                        <div className="flex justify-center mt-2">
-                          {allAssigned ? (
-                            <CheckCircle className="h-3 w-3 text-green-600" />
-                          ) : hasAssignments ? (
-                            <AlertTriangle className="h-3 w-3 text-yellow-600" />
-                          ) : (
-                            <AlertTriangle className="h-3 w-3 text-red-600" />
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                    })}
+                  </div>
+                )}
               </CardContent>
             </Card>
             
@@ -376,21 +462,41 @@ const EnhancedAccess = () => {
           </TabsContent>
           
           <TabsContent value="schedule" className="space-y-6 mt-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Button variant="outline" size="sm" onClick={() => navigateWeek('prev')}>
-                Previous Week
-              </Button>
-              <span className="text-sm font-medium px-3">
-                Week of {format(weekStart, "MMM d, yyyy")}
-              </span>
-              <Button variant="outline" size="sm" onClick={() => navigateWeek('next')}>
-                Next Week
-              </Button>
-            </div>
-            <ShiftAssignment 
-              currentWeek={currentWeek} 
-              onAssignmentChange={handleAssignmentChange}
-            />
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5" />
+                    {isMonthlyView ? `${format(currentWeek, "MMMM yyyy")} Schedule` : `Week of ${format(weekStart, "MMM d, yyyy")}`}
+                  </CardTitle>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center space-x-2">
+                      <Label htmlFor="schedule-view-toggle" className="text-sm">Weekly</Label>
+                      <Switch
+                        id="schedule-view-toggle"
+                        checked={isMonthlyView}
+                        onCheckedChange={setIsMonthlyView}
+                      />
+                      <Label htmlFor="schedule-view-toggle" className="text-sm">Monthly</Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" onClick={() => navigateWeek('prev')}>
+                        {isMonthlyView ? 'Previous Month' : 'Previous Week'}
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => navigateWeek('next')}>
+                        {isMonthlyView ? 'Next Month' : 'Next Week'}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <ShiftAssignment 
+                  currentWeek={currentWeek} 
+                  onAssignmentChange={handleAssignmentChange}
+                />
+              </CardContent>
+            </Card>
           </TabsContent>
           
           <TabsContent value="staff" className="space-y-6 mt-6">
