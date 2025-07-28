@@ -1511,7 +1511,7 @@ export const MeetingRecorder = ({
                             <strong className="text-red-800 dark:text-red-200">🚧 Development Notice:</strong> 
                             <br />• This feature is currently being developed
                             <br />• Expected release: <strong>10th August 2025</strong>
-                            <br />• Please use <strong>Teams own recording service</strong> to record Teams meetings in the meantime
+                            <br />• Please use your <strong>SmartPhone Notewell Version</strong> or <strong>Teams own recording service</strong> to record Teams meetings in the meantime
                             <br />• You can still use microphone mode for general audio recording (ie Face 2 Face or via conference phone etc)
                           </div>
                         </div>
