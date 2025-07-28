@@ -10,6 +10,12 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Calendar, Clock, MapPin, Users, AlertTriangle, CheckCircle, Settings, Activity, Droplets, UserCheck } from "lucide-react";
 import { format, startOfWeek, addDays, startOfMonth, endOfMonth, eachDayOfInterval, addMonths } from "date-fns";
+
+const formatDateWithOrdinal = (date: Date) => {
+  const day = date.getDate();
+  const ordinal = day <= 0 ? day : day < 20 ? ["th", "st", "nd", "rd", "th", "th", "th", "th", "th", "th"][day % 10] || "th" : ["th", "st", "nd", "rd"][day % 10] || "th";
+  return `${day}${ordinal} ${format(date, "MMMM yyyy")}`;
+};
 import { supabase } from "@/integrations/supabase/client";
 
 interface ComplianceStats {
@@ -198,7 +204,7 @@ const EnhancedAccess = () => {
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2">
                     <Calendar className="h-5 w-5" />
-                    {isMonthlyView ? `${format(currentWeek, "MMMM yyyy")}` : `This Week - ${format(weekStart, "MMM d, yyyy")}`}
+                    {isMonthlyView ? `${format(currentWeek, "MMMM yyyy")}` : `This Week - ${formatDateWithOrdinal(weekStart)}`}
                   </CardTitle>
                   <div className="flex items-center gap-4">
                     <div className="flex items-center space-x-2">
@@ -297,7 +303,7 @@ const EnhancedAccess = () => {
                           <div key={day.toISOString()} className="p-3 border border-border/50 rounded-lg bg-muted/30">
                             <div className="text-center">
                               <h3 className="font-medium text-muted-foreground text-sm">{format(day, "EEE")}</h3>
-                              <p className="text-xs text-muted-foreground mt-1">{format(day, "MMM d")}</p>
+                              <p className="text-xs text-muted-foreground mt-1">{formatDateWithOrdinal(day)}</p>
                               <p className="text-xs text-muted-foreground mt-2">No service</p>
                             </div>
                           </div>
@@ -332,7 +338,7 @@ const EnhancedAccess = () => {
                           }`}
                         >
                           <h3 className="font-medium text-sm">{format(day, "EEE")}</h3>
-                          <p className="text-xs text-muted-foreground mb-2">{format(day, "MMM d")}</p>
+                          <p className="text-xs text-muted-foreground mb-2">{formatDateWithOrdinal(day)}</p>
                           
                           <div className="space-y-1">
                             {shifts.length === 0 ? (

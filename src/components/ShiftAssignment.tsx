@@ -9,6 +9,12 @@ import { Users, Calendar, MapPin, Clock, UserPlus, Activity, Droplets, UserCheck
 import { toast } from "sonner";
 import { format, addDays, startOfWeek } from "date-fns";
 
+const formatDateWithOrdinal = (date: Date) => {
+  const day = date.getDate();
+  const ordinal = day <= 0 ? day : day < 20 ? ["th", "st", "nd", "rd", "th", "th", "th", "th", "th", "th"][day % 10] || "th" : ["th", "st", "nd", "rd"][day % 10] || "th";
+  return `${format(date, "EEEE")}, ${day}${ordinal} ${format(date, "MMMM yyyy")}`;
+};
+
 interface StaffMember {
   id: string;
   name: string;
@@ -326,7 +332,7 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange }: ShiftAssign
               <div>
                 <h4 className="font-medium">{selectedShift.name}</h4>
                 <p className="text-sm text-muted-foreground">
-                  {format(selectedDate, "EEEE, MMM d, yyyy")} • {selectedShift.start_time} - {selectedShift.end_time}
+                  {formatDateWithOrdinal(selectedDate)} • {selectedShift.start_time} - {selectedShift.end_time}
                 </p>
                 <p className="text-sm text-muted-foreground">
                   {getLocationDisplay(selectedShift.location)}
