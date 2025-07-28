@@ -1016,9 +1016,6 @@ const EnhancedAccess = () => {
                                 <span>247.25 hrs</span>
                               </div>
                             </div>
-                            <p className="text-xs text-gray-600 italic">
-                              (GP F2F & Remote + Covid & Phlebotomy)
-                            </p>
                           </div>
 
                           <div className="space-y-3">
