@@ -6,7 +6,7 @@ import { Header } from "@/components/Header";
 import { StaffManagement } from "@/components/StaffManagement";
 import { ShiftAssignment } from "@/components/ShiftAssignment";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Clock, MapPin, Users, AlertTriangle, CheckCircle, Settings } from "lucide-react";
+import { Calendar, Clock, MapPin, Users, AlertTriangle, CheckCircle, Settings, Stethoscope, Droplets, UserCheck } from "lucide-react";
 import { format, startOfWeek, addDays } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -130,6 +130,20 @@ const EnhancedAccess = () => {
     setRefreshTrigger(prev => prev + 1);
   };
 
+  const getRoleIcon = (role: string) => {
+    switch (role?.toLowerCase()) {
+      case 'doctor':
+      case 'dr':
+        return <Stethoscope className="h-3 w-3" />;
+      case 'phlebotomist':
+        return <Droplets className="h-3 w-3" />;
+      case 'receptionist':
+        return <UserCheck className="h-3 w-3" />;
+      default:
+        return <Users className="h-3 w-3" />;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Add Header component */}
@@ -245,11 +259,12 @@ const EnhancedAccess = () => {
                                   <div className="text-muted-foreground">{getLocationDisplay(shift.location)}</div>
                                   {shiftAssignments.length > 0 ? (
                                     <div className="space-y-1 mt-1">
-                                      {shiftAssignments.map((assignment, idx) => (
-                                        <Badge key={assignment.id} variant="secondary" className="text-xs">
-                                          {assignment.staff_member?.name || 'Assigned'}
-                                        </Badge>
-                                      ))}
+                                       {shiftAssignments.map((assignment, idx) => (
+                                         <Badge key={assignment.id} variant="secondary" className="text-xs flex items-center gap-1">
+                                           {getRoleIcon(assignment.staff_member?.role)}
+                                           {assignment.staff_member?.name || 'Assigned'}
+                                         </Badge>
+                                       ))}
                                       {shiftAssignments.length > 1 && (
                                         <div className="text-xs text-muted-foreground">
                                           ({shiftAssignments.length} staff assigned)
