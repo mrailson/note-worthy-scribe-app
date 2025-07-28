@@ -1804,31 +1804,6 @@ export const MeetingRecorder = ({
                 )}
 
 
-                {/* Ticker Tape Test Transcript */}
-                {testTranscripts.length > 0 && (
-                  <Card className="mt-4 bg-gradient-to-br from-green-50/50 to-green-100/50 border-green-200/50 dark:from-green-900/20 dark:to-green-800/20 dark:border-green-700/50">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-sm font-medium flex items-center gap-2">
-                        <Waves className="h-4 w-4" />
-                        Live Transcript Ticker
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                      <div className="overflow-hidden">
-                        <div className="animate-scroll space-y-1">
-                          {testTranscripts.map((transcript, index) => (
-                            <div 
-                              key={index} 
-                              className="text-xs font-mono p-1 bg-background/50 rounded border border-border/30 whitespace-nowrap"
-                            >
-                              {transcript}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
               </CardContent>
             </Card>
           </div>
