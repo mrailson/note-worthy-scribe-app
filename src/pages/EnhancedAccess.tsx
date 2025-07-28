@@ -600,7 +600,15 @@ const EnhancedAccess = () => {
                   </TabsList>
 
                   {/* June 2025 Report */}
-                  <TabsContent value="june-2025" className="space-y-6">
+                  <TabsContent value="june-2025" className="space-y-4">
+                    <Tabs defaultValue="performance" className="w-full">
+                      <TabsList className="grid w-full grid-cols-5 mb-4">
+                        <TabsTrigger value="performance">Performance</TabsTrigger>
+                        <TabsTrigger value="service">Service Delivery</TabsTrigger>
+                        <TabsTrigger value="financial">Financial</TabsTrigger>
+                        <TabsTrigger value="funding">Funding</TabsTrigger>
+                        <TabsTrigger value="actions">Actions</TabsTrigger>
+                      </TabsList>
                     <div className="space-y-6">
                       <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 rounded-lg">
                         <div className="flex justify-between items-start mb-4">
