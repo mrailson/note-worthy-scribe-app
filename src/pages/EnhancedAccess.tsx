@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Calendar, Clock, MapPin, Users, AlertTriangle, CheckCircle, Settings, Activity, Droplets, UserCheck } from "lucide-react";
-import { format, startOfWeek, addDays, startOfMonth, endOfMonth, eachDayOfInterval, addMonths } from "date-fns";
+import { format, startOfWeek, addDays, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, getDay } from "date-fns";
 
 const formatDateWithOrdinal = (date: Date) => {
   const day = date.getDate();
@@ -236,11 +236,22 @@ const EnhancedAccess = () => {
                         {day}
                       </div>
                     ))}
+                    {/* Add empty cells for days before month starts */}
+                    {(() => {
+                      const firstDayOfMonth = startOfMonth(currentWeek);
+                      const startDay = getDay(firstDayOfMonth); // 0 = Sunday, 1 = Monday, etc.
+                      const mondayStart = startDay === 0 ? 6 : startDay - 1; // Convert to Monday = 0
+                      
+                      return Array.from({ length: mondayStart }, (_, i) => (
+                        <div key={`empty-${i}`} className="p-2 min-h-[60px]"></div>
+                      ));
+                    })()}
                     {/* Month days */}
                     {eachDayOfInterval({ start: monthStart, end: monthEnd }).map((day) => {
-                      const dayOfWeek = (day.getDay() === 0 ? 7 : day.getDay()); // Convert Sunday from 0 to 7
-                      const shifts = getShiftsForDay(dayOfWeek);
-                      const isSunday = dayOfWeek === 7;
+                      const dayOfWeek = getDay(day); // 0 = Sunday, 1 = Monday, etc.
+                      const adjustedDayOfWeek = dayOfWeek === 0 ? 7 : dayOfWeek; // Convert Sunday to 7
+                      const shifts = getShiftsForDay(adjustedDayOfWeek);
+                      const isSunday = dayOfWeek === 0;
                       
                       const hasAssignments = !isSunday && shifts.some(shift => {
                         const shiftAssignments = weeklyAssignments.filter(a => 
