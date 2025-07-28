@@ -182,11 +182,6 @@ const EnhancedAccess = () => {
               <h1 className="text-3xl font-bold text-foreground">Enhanced Access Services</h1>
               <p className="text-muted-foreground mt-1">Manage staffing and compliance for extended GP services</p>
             </div>
-            <div className="flex items-center gap-4">
-              <Badge variant={complianceStats.percentage >= 80 ? "default" : "destructive"} className="text-sm">
-                {complianceStats.compliant}/{complianceStats.total} Compliant ({complianceStats.percentage}%)
-              </Badge>
-            </div>
           </div>
         </div>
       </div>
