@@ -599,209 +599,376 @@ const EnhancedAccess = () => {
 
                   {/* June 2025 Report */}
                   <TabsContent value="june-2025" className="space-y-6">
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {/* Key Metrics Card */}
-                      <Card className="md:col-span-2 lg:col-span-3">
-                        <CardHeader>
-                          <CardTitle className="flex items-center gap-2">
-                            <TrendingUp className="h-5 w-5 text-blue-600" />
-                            June 2025 - Key Performance Metrics
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="grid md:grid-cols-4 gap-4">
-                            <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 p-4 rounded-lg">
-                              <div className="text-2xl font-bold text-blue-600">95%</div>
-                              <div className="text-sm text-blue-700 dark:text-blue-300">Service Coverage</div>
-                            </div>
-                            <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 p-4 rounded-lg">
-                              <div className="text-2xl font-bold text-green-600">1,247</div>
-                              <div className="text-sm text-green-700 dark:text-green-300">Patient Consultations</div>
-                            </div>
-                            <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 p-4 rounded-lg">
-                              <div className="text-2xl font-bold text-purple-600">8.7</div>
-                              <div className="text-sm text-purple-700 dark:text-purple-300">Avg. Patient Rating</div>
-                            </div>
-                            <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 p-4 rounded-lg">
-                              <div className="text-2xl font-bold text-orange-600">12.3</div>
-                              <div className="text-sm text-orange-700 dark:text-orange-300">Avg. Wait Time (min)</div>
-                            </div>
+                    <div className="space-y-6">
+                      <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 rounded-lg">
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <h3 className="text-2xl font-bold mb-2">Blue PCN Enhanced Access: June 2025</h3>
+                            <p className="text-blue-100">Monthly Board Review</p>
                           </div>
-                        </CardContent>
-                      </Card>
+                          <div className="bg-white text-blue-600 px-3 py-2 rounded font-semibold text-sm">
+                            BLUE PCN
+                          </div>
+                        </div>
+                      </div>
 
-                      {/* Service Delivery Overview */}
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="text-lg">Service Delivery</CardTitle>
-                        </CardHeader>
-                        <CardContent>
+                      {/* Performance Summary */}
+                      <div className="space-y-4">
+                        <h4 className="text-xl font-semibold text-blue-600">Performance Summary</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="bg-blue-50 p-6 rounded-lg text-center">
+                            <h5 className="text-blue-600 font-medium mb-2">Required Hours</h5>
+                            <div className="text-3xl font-bold text-gray-800">237.25</div>
+                            <p className="text-gray-600">monthly target</p>
+                          </div>
+                          <div className="bg-green-50 p-6 rounded-lg text-center">
+                            <h5 className="text-green-600 font-medium mb-2">Delivered Hours</h5>
+                            <div className="text-3xl font-bold text-gray-800">264.00</div>
+                            <p className="text-green-600 font-semibold">111% of target</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Key Metrics */}
+                      <div className="space-y-4">
+                        <h4 className="text-xl font-semibold text-blue-600">Key Metrics</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="text-center p-4 border rounded-lg">
+                            <h6 className="text-gray-600 mb-2">Weekly Requirement</h6>
+                            <div className="text-2xl font-bold">54.75 hrs</div>
+                          </div>
+                          <div className="text-center p-4 border rounded-lg">
+                            <h6 className="text-gray-600 mb-2">Population Served</h6>
+                            <div className="text-2xl font-bold">54,726</div>
+                          </div>
+                          <div className="text-center p-4 border rounded-lg">
+                            <h6 className="text-gray-600 mb-2">Highest Utilization</h6>
+                            <div className="text-2xl font-bold">100%</div>
+                            <p className="text-sm text-gray-600">(The Crescent & Rushden)</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Service Delivery */}
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                          <h4 className="text-xl font-semibold text-blue-600">Service Hours by Location</h4>
                           <div className="space-y-3">
-                            <div className="flex justify-between items-center">
-                              <span className="text-sm">Morning Slots</span>
-                              <Badge variant="secondary">89% Filled</Badge>
+                            <div className="flex justify-between items-center p-3 bg-blue-50 rounded">
+                              <span className="font-medium">Kings Heath Hub</span>
+                              <span className="font-bold">146 hrs</span>
                             </div>
-                            <div className="flex justify-between items-center">
-                              <span className="text-sm">Evening Slots</span>
-                              <Badge variant="secondary">92% Filled</Badge>
+                            <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                              <span>Brook</span>
+                              <span className="font-bold">44.5 hrs</span>
                             </div>
-                            <div className="flex justify-between items-center">
-                              <span className="text-sm">Weekend Slots</span>
-                              <Badge variant="secondary">87% Filled</Badge>
+                            <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                              <span>Bugbrooke</span>
+                              <span className="font-bold">35.5 hrs</span>
                             </div>
-                            <div className="flex justify-between items-center">
-                              <span className="text-sm">Remote Consultations</span>
-                              <Badge variant="secondary">34% of Total</Badge>
+                            <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                              <span>County</span>
+                              <span className="font-bold">18 hrs</span>
+                            </div>
+                            <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                              <span>The Crescent</span>
+                              <span className="font-bold">18 hrs</span>
+                            </div>
+                            <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                              <span>Rushden</span>
+                              <span className="font-bold">2 hrs</span>
                             </div>
                           </div>
-                        </CardContent>
-                      </Card>
+                          <p className="text-sm text-gray-600 italic">
+                            (GP F2F & Remote + Covid & Phlebotomy)
+                          </p>
+                        </div>
 
-                      {/* Staff Performance */}
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="text-lg">Staff Performance</CardTitle>
-                        </CardHeader>
-                        <CardContent>
+                        <div className="space-y-4">
+                          <div className="bg-blue-50 p-4 rounded-lg">
+                            <h5 className="font-semibold text-blue-600 mb-3">Service Types</h5>
+                            <ul className="space-y-2 text-sm">
+                              <li>• Face-to-Face GP appointments (Kings Heath Hub)</li>
+                              <li>• Remote GP Phone Calls (Park Avenue)</li>
+                              <li>• Phlebotomy Service (Park Avenue)</li>
+                              <li>• 15-min appointments (Bugbrooke)</li>
+                              <li>• 5-min appointments (Brook, County)</li>
+                              <li>• GP Remote Phone Calls (The Crescent)</li>
+                            </ul>
+                          </div>
+
+                          <div className="bg-green-50 p-4 rounded-lg">
+                            <h5 className="font-semibold text-green-600 mb-3">Utilization Rates</h5>
+                            <ul className="space-y-2 text-sm">
+                              <li>• The Crescent: <strong>100%</strong></li>
+                              <li>• Rushden: <strong>100%</strong></li>
+                              <li>• County Spoke: <strong>98.0%</strong></li>
+                              <li>• Brook Spoke: <strong>89.0%</strong></li>
+                              <li>• Kings Heath Hub: <strong>84.4%</strong></li>
+                              <li>• Bugbrooke: <strong>64.5%</strong></li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Financial Analysis */}
+                      <div className="bg-gradient-to-r from-green-600 to-green-700 text-white p-6 rounded-lg">
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <h3 className="text-2xl font-bold mb-2">Income & Expenditure Analysis</h3>
+                            <p className="text-green-100">Enhanced Access - June 2025</p>
+                          </div>
+                          <div className="bg-white text-green-600 px-3 py-2 rounded font-semibold text-sm">
+                            BLUE PCN
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                          <h4 className="text-xl font-semibold text-green-600">Income Breakdown</h4>
                           <div className="space-y-3">
-                            <div className="flex justify-between items-center">
-                              <span className="text-sm">GP Utilization</span>
-                              <Badge variant="default">94%</Badge>
+                            <div className="flex justify-between items-center p-3 bg-green-50 rounded">
+                              <span>Enhanced Access</span>
+                              <span className="font-bold">£37,821.84</span>
                             </div>
-                            <div className="flex justify-between items-center">
-                              <span className="text-sm">Staff Satisfaction</span>
-                              <Badge variant="default">8.2/10</Badge>
+                            <div className="flex justify-between items-center p-3 bg-green-50 rounded">
+                              <span>Phlebotomy Service</span>
+                              <span className="font-bold">£280.00</span>
                             </div>
-                            <div className="flex justify-between items-center">
-                              <span className="text-sm">Training Hours</span>
-                              <Badge variant="secondary">142 hrs</Badge>
-                            </div>
-                            <div className="flex justify-between items-center">
-                              <span className="text-sm">Sick Leave Rate</span>
-                              <Badge variant="outline">2.1%</Badge>
+                            <div className="flex justify-between items-center p-3 bg-green-100 rounded border-2 border-green-300">
+                              <span className="font-semibold">Total Income</span>
+                              <span className="font-bold text-lg">£38,101.84</span>
                             </div>
                           </div>
-                        </CardContent>
-                      </Card>
 
-                      {/* Financial Summary */}
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="text-lg">Financial Summary</CardTitle>
-                        </CardHeader>
-                        <CardContent>
+                          <div className="bg-green-50 p-4 rounded-lg">
+                            <h5 className="font-semibold text-green-600 mb-2">Income Distribution</h5>
+                            <div className="w-full bg-green-200 rounded-full h-4 mb-2">
+                              <div className="bg-green-600 h-4 rounded-full" style={{width: '99.3%'}}></div>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span>EA: 99.3%</span>
+                              <span>Phlebotomy: 0.7%</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-4">
+                          <h4 className="text-xl font-semibold text-red-600">Expenditure Analysis</h4>
                           <div className="space-y-3">
-                            <div className="flex justify-between items-center">
-                              <span className="text-sm">Total Revenue</span>
-                              <span className="font-semibold">£47,320</span>
+                            <div className="flex justify-between items-center p-3 bg-red-50 rounded">
+                              <span>GP Remote (all in costs)</span>
+                              <span className="font-bold">£4,224.00</span>
                             </div>
-                            <div className="flex justify-between items-center">
-                              <span className="text-sm">Operating Costs</span>
-                              <span className="font-semibold">£31,890</span>
+                            <div className="flex justify-between items-center p-3 bg-red-50 rounded">
+                              <span>GP On-site (Kings Heath Hub) - 4 Saturdays</span>
+                              <span className="font-bold">£5,250.00</span>
                             </div>
-                            <div className="flex justify-between items-center">
-                              <span className="text-sm">Net Margin</span>
-                              <Badge variant="default">32.6%</Badge>
+                            <div className="flex justify-between items-center p-3 bg-red-50 rounded">
+                              <span>Receptionist - Saturday Kings Heath Hub</span>
+                              <span className="font-bold">£857.00</span>
                             </div>
-                            <div className="flex justify-between items-center">
-                              <span className="text-sm">Cost per Consultation</span>
-                              <span className="font-semibold">£25.56</span>
+                            <div className="flex justify-between items-center p-3 bg-red-50 rounded">
+                              <span>MMC Service Fee and Management</span>
+                              <span className="font-bold">£1,600.00</span>
+                            </div>
+                            <div className="flex justify-between items-center p-3 bg-red-100 rounded border-2 border-red-300">
+                              <span className="font-semibold">Total Expenditure</span>
+                              <span className="font-bold text-lg">£11,931.00</span>
                             </div>
                           </div>
-                        </CardContent>
-                      </Card>
+                        </div>
+                      </div>
 
-                      {/* Quality Indicators */}
-                      <Card className="md:col-span-2 lg:col-span-3">
-                        <CardHeader>
-                          <CardTitle className="text-lg">Quality Indicators & Compliance</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="grid md:grid-cols-2 gap-6">
-                            <div className="space-y-4">
-                              <h4 className="font-semibold text-sm text-muted-foreground">Clinical Quality</h4>
-                              <div className="space-y-3">
-                                <div className="flex justify-between items-center">
-                                  <span className="text-sm">Same-day Availability</span>
-                                  <Badge variant="default">91%</Badge>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                  <span className="text-sm">48hr Follow-up Rate</span>
-                                  <Badge variant="default">97%</Badge>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                  <span className="text-sm">Prescription Accuracy</span>
-                                  <Badge variant="default">99.2%</Badge>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                  <span className="text-sm">Patient Safety Incidents</span>
-                                  <Badge variant="outline">0</Badge>
-                                </div>
+                      <div className="bg-blue-50 p-6 rounded-lg">
+                        <h4 className="text-xl font-semibold text-blue-600 mb-4">Financial Summary</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                          <div className="text-center">
+                            <h6 className="text-gray-600 mb-2">Total Income</h6>
+                            <div className="text-2xl font-bold text-green-600">£38,101.84</div>
+                          </div>
+                          <div className="text-center">
+                            <h6 className="text-gray-600 mb-2">Total Expenditure</h6>
+                            <div className="text-2xl font-bold text-red-600">£11,931.00</div>
+                          </div>
+                          <div className="text-center">
+                            <h6 className="text-gray-600 mb-2">Net Position before £5 per-patient payment to Practices</h6>
+                            <div className="text-3xl font-bold text-green-600">£26,170.84</div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* £5 Per Patient Funding */}
+                      <div className="bg-gradient-to-r from-purple-600 to-purple-700 text-white p-6 rounded-lg">
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <h3 className="text-2xl font-bold mb-2">£5 Per Patient Funding Allocation</h3>
+                            <p className="text-purple-100">June 2025 Distribution (1/12th of Annual Rate)</p>
+                          </div>
+                          <div className="bg-white text-purple-600 px-3 py-2 rounded font-semibold text-sm">
+                            BLUE PCN
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                          <h4 className="text-xl font-semibold text-purple-600">Practice Allocations</h4>
+                          <div className="bg-purple-50 p-4 rounded-lg">
+                            <div className="grid grid-cols-3 gap-4 font-semibold border-b pb-2 mb-4">
+                              <span>Practice</span>
+                              <span>PCN Adjusted List</span>
+                              <span>Monthly Funding</span>
+                            </div>
+                            <div className="space-y-3">
+                              <div className="grid grid-cols-3 gap-4">
+                                <span>Brook Medical Centre</span>
+                                <span>7,020.60</span>
+                                <span className="font-bold">£2,925.25</span>
+                              </div>
+                              <div className="grid grid-cols-3 gap-4">
+                                <span>Bugbrooke Surgery</span>
+                                <span>9,606.18</span>
+                                <span className="font-bold">£4,002.58</span>
+                              </div>
+                              <div className="grid grid-cols-3 gap-4">
+                                <span>County Surgery</span>
+                                <span>4,390.30</span>
+                                <span className="font-bold">£1,829.29</span>
+                              </div>
+                              <div className="grid grid-cols-3 gap-4">
+                                <span>Park Avenue</span>
+                                <span>16,178.32</span>
+                                <span className="font-bold">£6,740.97</span>
+                              </div>
+                              <div className="grid grid-cols-3 gap-4">
+                                <span>Rushden Medical Centre</span>
+                                <span>9,279.35</span>
+                                <span className="font-bold">£3,866.40</span>
+                              </div>
+                              <div className="grid grid-cols-3 gap-4">
+                                <span>The Crescent</span>
+                                <span>7,383.32</span>
+                                <span className="font-bold">£3,076.38</span>
+                              </div>
+                              <div className="grid grid-cols-3 gap-4 border-t pt-2 font-bold">
+                                <span>PCN Total</span>
+                                <span>53,858.07</span>
+                                <span>£22,440.86</span>
                               </div>
                             </div>
-                            <div className="space-y-4">
-                              <h4 className="font-semibold text-sm text-muted-foreground">Regulatory Compliance</h4>
-                              <div className="space-y-3">
-                                <div className="flex justify-between items-center">
-                                  <span className="text-sm">CQC Standards Met</span>
-                                  <Badge variant="default">100%</Badge>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                  <span className="text-sm">Data Protection Compliance</span>
-                                  <Badge variant="default">100%</Badge>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                  <span className="text-sm">Staff Training Compliance</span>
-                                  <Badge variant="default">96%</Badge>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                  <span className="text-sm">Documentation Complete</span>
-                                  <Badge variant="default">98%</Badge>
-                                </div>
-                              </div>
-                            </div>
                           </div>
-                        </CardContent>
-                      </Card>
+                        </div>
 
-                      {/* Key Achievements */}
-                      <Card className="md:col-span-2 lg:col-span-3">
-                        <CardHeader>
-                          <CardTitle className="text-lg">Key Achievements & Highlights</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="grid md:grid-cols-2 gap-4">
+                        <div className="space-y-4">
+                          <h4 className="text-xl font-semibold text-purple-600">Funding Distribution</h4>
+                          <div className="bg-purple-50 p-4 rounded-lg">
+                            <h5 className="font-semibold mb-3">Percentage of Total PCN Funding</h5>
                             <div className="space-y-2">
-                              <div className="flex items-start gap-2">
-                                <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                                <span className="text-sm">Achieved 95% service coverage across all time slots</span>
+                              <div className="flex justify-between">
+                                <span>Brook: 13.0%</span>
+                                <span>Bugbrooke: 17.8%</span>
                               </div>
-                              <div className="flex items-start gap-2">
-                                <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                                <span className="text-sm">Reduced average wait times by 18% compared to May</span>
+                              <div className="flex justify-between">
+                                <span>County: 8.2%</span>
+                                <span>Park Avenue: 30.0%</span>
                               </div>
-                              <div className="flex items-start gap-2">
-                                <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                                <span className="text-sm">Implemented new remote consultation platform</span>
-                              </div>
-                            </div>
-                            <div className="space-y-2">
-                              <div className="flex items-start gap-2">
-                                <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                                <span className="text-sm">Zero patient safety incidents reported</span>
-                              </div>
-                              <div className="flex items-start gap-2">
-                                <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                                <span className="text-sm">Exceeded patient satisfaction targets</span>
-                              </div>
-                              <div className="flex items-start gap-2">
-                                <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                                <span className="text-sm">Successfully completed CQC compliance audit</span>
+                              <div className="flex justify-between">
+                                <span>Rushden: 17.2%</span>
+                                <span>Crescent: 13.7%</span>
                               </div>
                             </div>
                           </div>
-                        </CardContent>
-                      </Card>
+
+                          <div className="bg-purple-50 p-4 rounded-lg">
+                            <h5 className="font-semibold mb-3">Calculation Method</h5>
+                            <ul className="space-y-2 text-sm">
+                              <li>• <strong>Annual Rate:</strong> £5.00 per weighted patient</li>
+                              <li>• <strong>Monthly Rate:</strong> £0.42 per weighted patient (1/12th)</li>
+                              <li>• <strong>Distribution:</strong> Based on PCN Adjusted List Sizes from January 2025</li>
+                              <li>• <strong>Calculation:</strong> PCN Adjusted List × £0.42 per patient</li>
+                            </ul>
+                          </div>
+
+                          <div className="bg-purple-100 p-4 rounded-lg border-2 border-purple-300">
+                            <p className="text-sm font-medium">
+                              <strong>BOTTOM LINE:</strong> Monthly £5 per patient funding totals £22,440.86, 
+                              with Park Avenue receiving the largest share (30%) based on weighted list size
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Recommendations & Action Points */}
+                      <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 rounded-lg">
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <h3 className="text-2xl font-bold mb-2">Recommendations & Action Points</h3>
+                            <p className="text-blue-100">June 2025</p>
+                          </div>
+                          <div className="bg-white text-blue-600 px-3 py-2 rounded font-semibold text-sm">
+                            BLUE PCN
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                          <h4 className="text-xl font-semibold text-blue-600">Operational Improvements</h4>
+                          
+                          <div className="bg-green-50 p-4 rounded-lg border-l-4 border-green-500">
+                            <h5 className="font-semibold text-green-700 mb-2">Excellent Performance Across Top Spokes</h5>
+                            <p className="text-sm text-green-600">
+                              Three spokes achieving 100% utilization (The Crescent, Rushden) and County at 98% - continue current approach
+                            </p>
+                          </div>
+
+                          <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
+                            <h5 className="font-semibold text-blue-700 mb-2">Launch of new online Enhanced Access Rota system</h5>
+                            <p className="text-sm text-blue-600">Issue Feedback - Due Mid August</p>
+                          </div>
+
+                          <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
+                            <h5 className="font-semibold text-blue-700 mb-2">Verify Spoke Appointment Compliance</h5>
+                            <div className="text-sm text-blue-600 space-y-1">
+                              <p>Ensure all Spoke practices adhere to Enhanced Access requirements:</p>
+                              <ul className="list-disc ml-4 space-y-1">
+                                <li>Appointments must be additional to core GMS services</li>
+                                <li>Services primarily delivered outside core hours (6:30pm-8pm weekdays, weekends)</li>
+                                <li>Appropriate clinical governance and record-keeping in place</li>
+                                <li>Public-facing communications clearly identifying EA services</li>
+                                <li>Regular utilization reporting to PCN</li>
+                              </ul>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-4">
+                          <h4 className="text-xl font-semibold text-red-600">Financial & Compliance</h4>
+                          
+                          <div className="bg-red-50 p-4 rounded-lg border-l-4 border-red-500">
+                            <h5 className="font-semibold text-red-700 mb-2">GP Locum Pension Compliance</h5>
+                            <p className="text-sm text-red-600">
+                              Ensure 14.38% pension on 90% of hourly rate is properly applied
+                            </p>
+                          </div>
+
+                          <div className="bg-yellow-50 p-4 rounded-lg border-l-4 border-yellow-500">
+                            <h5 className="font-semibold text-yellow-700 mb-2">Review Appointment Utilization</h5>
+                            <p className="text-sm text-yellow-600">
+                              Overall booking rate: 78.2% - continue optimizing scheduling and availability
+                            </p>
+                          </div>
+
+                          <div className="bg-orange-50 p-4 rounded-lg border-l-4 border-orange-500">
+                            <h5 className="font-semibold text-orange-700 mb-2">DNA Rate Analysis</h5>
+                            <p className="text-sm text-orange-600">
+                              Low DNA rates overall - implement reminder systems at all locations
+                            </p>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </TabsContent>
 
