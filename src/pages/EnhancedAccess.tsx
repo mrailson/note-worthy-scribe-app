@@ -144,6 +144,11 @@ const EnhancedAccess = () => {
     }
   };
 
+  const formatStaffName = (name: string, role: string) => {
+    const isDoctor = role?.toLowerCase() === 'doctor' || role?.toLowerCase() === 'dr';
+    return isDoctor ? `Dr ${name}` : name;
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Add Header component */}
@@ -262,7 +267,7 @@ const EnhancedAccess = () => {
                                        {shiftAssignments.map((assignment, idx) => (
                                          <Badge key={assignment.id} variant="secondary" className="text-xs flex items-center gap-1">
                                            {getRoleIcon(assignment.staff_member?.role)}
-                                           {assignment.staff_member?.name || 'Assigned'}
+                                           {formatStaffName(assignment.staff_member?.name || 'Assigned', assignment.staff_member?.role || '')}
                                          </Badge>
                                        ))}
                                       {shiftAssignments.length > 1 && (

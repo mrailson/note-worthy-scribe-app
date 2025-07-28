@@ -208,6 +208,11 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange }: ShiftAssign
     }
   };
 
+  const formatStaffName = (name: string, role: string) => {
+    const isDoctor = role?.toLowerCase() === 'doctor' || role?.toLowerCase() === 'dr';
+    return isDoctor ? `Dr ${name}` : name;
+  };
+
   return (
     <>
       <Card>
@@ -272,10 +277,10 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange }: ShiftAssign
                           <div className="space-y-1">
                              {shiftAssignments.map((assignment, idx) => (
                                <div key={assignment.id} className="flex items-center justify-between">
-                                 <Badge variant="secondary" className="text-xs flex items-center gap-1">
-                                   {getRoleIcon(assignment.staff_member.role)}
-                                   {assignment.staff_member.name}
-                                 </Badge>
+                                  <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                                    {getRoleIcon(assignment.staff_member.role)}
+                                    {formatStaffName(assignment.staff_member.name, assignment.staff_member.role)}
+                                  </Badge>
                                </div>
                              ))}
                             {canAddMore && (
