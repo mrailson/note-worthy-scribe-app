@@ -28,6 +28,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 import { BrowserSpeechTranscriber, TranscriptData as BrowserTranscriptData } from '@/utils/BrowserSpeechTranscriber';
+import { iPhoneWhisperTranscriber, TranscriptData as iPhoneTranscriptData } from '@/utils/iPhoneWhisperTranscriber';
 
 interface TranscriptData {
   text: string;
@@ -121,6 +122,7 @@ export const MeetingRecorder = ({
   };
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const browserTranscriberRef = useRef<BrowserSpeechTranscriber | null>(null);
+  const iPhoneTranscriberRef = useRef<iPhoneWhisperTranscriber | null>(null);
   const screenStreamRef = useRef<MediaStream | null>(null);
   const enhancedAudioCaptureRef = useRef<any>(null);
 
@@ -330,6 +332,25 @@ export const MeetingRecorder = ({
     }
   };
 
+  // iPhone-optimized transcription using Whisper AI
+  const startIPhoneWhisperTranscription = async () => {
+    try {
+      addDebugLog('📱 Starting iPhone Whisper transcription...');
+      iPhoneTranscriberRef.current = new iPhoneWhisperTranscriber(
+        handleBrowserTranscript, // Same handler works for both
+        handleTranscriptionError,
+        handleStatusChange
+      );
+      
+      await iPhoneTranscriberRef.current.startTranscription();
+      addDebugLog('✅ iPhone Whisper transcription started');
+    } catch (error) {
+      addDebugLog(`❌ Failed to start iPhone transcription: ${error}`);
+      console.error('Failed to start iPhone transcription:', error);
+      throw error;
+    }
+  };
+
   // Browser speech transcription with microphone (fallback)
   const startBrowserMicrophoneTranscription = async () => {
     addDebugLog('🎤 Starting microphone speech recognition...');
@@ -350,8 +371,15 @@ export const MeetingRecorder = ({
 
   // Smart transcription method that chooses the best option for the device
   const startMicrophoneTranscription = async () => {
-    // Always use browser speech recognition for all devices
-    await startBrowserMicrophoneTranscription();
+    const browserSupport = checkBrowserSupport();
+    
+    if (browserSupport.isIOS) {
+      // Use iPhone Whisper transcription for iOS devices
+      await startIPhoneWhisperTranscription();
+    } else {
+      // Use browser speech recognition for desktop
+      await startBrowserMicrophoneTranscription();
+    }
   };
 
   // Computer audio transcription for Teams/Zoom meetings using enhanced audio processing
@@ -1024,6 +1052,10 @@ export const MeetingRecorder = ({
         browserTranscriberRef.current.stopTranscription();
       }
       
+      if (iPhoneTranscriberRef.current) {
+        iPhoneTranscriberRef.current.stopTranscription();
+      }
+      
       // Clear timer
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
@@ -1118,6 +1150,12 @@ export const MeetingRecorder = ({
     if (browserTranscriberRef.current) {
       browserTranscriberRef.current.stopTranscription();
       browserTranscriberRef.current = null;
+    }
+    
+    // Stop iPhone transcriber
+    if (iPhoneTranscriberRef.current) {
+      iPhoneTranscriberRef.current.stopTranscription();
+      iPhoneTranscriberRef.current = null;
     }
     
     // Stop enhanced audio capture
