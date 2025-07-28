@@ -166,6 +166,13 @@ export class OpenAIRealtimeRecorder {
         }
         
         const inputData = e.inputBuffer.getChannelData(0);
+        
+        // Check if we have actual audio data
+        const hasAudio = inputData.some(sample => Math.abs(sample) > 0.001);
+        if (hasAudio) {
+          console.log('🎤 Microphone audio detected, level:', Math.max(...inputData.map(Math.abs)).toFixed(4));
+        }
+        
         const encodedAudio = this.encodeAudioForAPI(new Float32Array(inputData));
         
         // Send ONLY microphone audio to OpenAI for transcription
