@@ -985,7 +985,7 @@ const EnhancedAccess = () => {
                       <TabsContent value="service" className="space-y-4">
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-[75vh] overflow-hidden">
                           <div className="space-y-3">
-                            <h4 className="text-lg font-semibold text-blue-600">Service Hours by Location</h4>
+                            <h4 className="text-lg font-semibold text-blue-600">EA Service Delivery by Location</h4>
                             <div className="space-y-2">
                               <div className="flex justify-between items-center p-2 rounded text-sm bg-blue-50 font-medium">
                                 <span>EA Kings Heath Hub - GP Face 2 Face & Remote 15 Min appointments (Inc. Phlebotomy)</span>
