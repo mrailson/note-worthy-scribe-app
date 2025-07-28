@@ -66,7 +66,7 @@ export const MeetingRecorder = ({
   const [liveSummary, setLiveSummary] = useState<string>("");
   const [debugLog, setDebugLog] = useState<string[]>([]);
   const [testTranscripts, setTestTranscripts] = useState<string[]>([]);
-  const [recordingMode, setRecordingMode] = useState<'microphone' | 'computer-audio' | 'testing'>('microphone');
+  const [recordingMode, setRecordingMode] = useState<'microphone' | 'computer-audio' | 'testing' | 'ai-realtime'>('ai-realtime');
   
   
   // Meeting history state
@@ -1063,6 +1063,9 @@ export const MeetingRecorder = ({
     try {
       let modeText = '';
       switch (recordingMode) {
+        case 'ai-realtime':
+          modeText = 'AI Realtime (OpenAI PCM 24kHz)';
+          break;
         case 'computer-audio':
           modeText = 'computer audio for Teams/Zoom';
           break;
@@ -1081,7 +1084,9 @@ export const MeetingRecorder = ({
       setTestTranscripts([]);
       
       // Choose transcription method based on recording mode
-      if (recordingMode === 'computer-audio') {
+      if (recordingMode === 'ai-realtime') {
+        await startOpenAIRealtimeRecording();
+      } else if (recordingMode === 'computer-audio') {
         await startComputerAudioTranscription();
       } else if (recordingMode === 'testing') {
         await startDualStreamRecording();
@@ -1111,6 +1116,9 @@ export const MeetingRecorder = ({
 
       let successMessage = '';
       switch (recordingMode) {
+        case 'ai-realtime':
+          successMessage = 'AI Realtime recording started with OpenAI API!';
+          break;
         case 'computer-audio':
           successMessage = 'Recording started with computer audio for Teams/Zoom!';
           break;
@@ -1549,11 +1557,20 @@ export const MeetingRecorder = ({
                 {!isRecording && (
                   <div className="space-y-3 mb-4 flex flex-col items-center">
                     <label className="text-sm font-medium">Recording Source:</label>
-                    <Select value={recordingMode} onValueChange={(value: 'microphone' | 'computer-audio' | 'testing') => setRecordingMode(value)}>
+                    <Select value={recordingMode} onValueChange={(value: 'microphone' | 'computer-audio' | 'testing' | 'ai-realtime') => setRecordingMode(value)}>
                       <SelectTrigger className="w-[50%] bg-background/50 border-border/50">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="bg-background border border-border shadow-lg z-50">
+                        <SelectItem value="ai-realtime" className="flex items-center gap-2">
+                          <div className="flex items-center gap-2">
+                            <Mic className="h-4 w-4 text-green-600" />
+                            <div>
+                              <div className="font-medium">AI Realtime</div>
+                              <div className="text-xs text-muted-foreground">OpenAI Realtime API with 24kHz PCM audio</div>
+                            </div>
+                          </div>
+                        </SelectItem>
                         <SelectItem value="microphone" className="flex items-center gap-2">
                           <div className="flex items-center gap-2">
                             <Mic className="h-4 w-4" />
