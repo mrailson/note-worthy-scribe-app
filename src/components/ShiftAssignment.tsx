@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { supabase } from "@/integrations/supabase/client";
 import { Users, Calendar, MapPin, Clock, UserPlus, Activity, Droplets, UserCheck } from "lucide-react";
 import { toast } from "sonner";
-import { format, addDays, startOfWeek, startOfMonth, endOfMonth, eachDayOfInterval } from "date-fns";
+import { format, addDays, startOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, getDay } from "date-fns";
 
 const formatDateWithOrdinal = (date: Date) => {
   const day = date.getDate();
@@ -250,11 +250,22 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
                   {day}
                 </div>
               ))}
+              {/* Add empty cells for days before month starts */}
+              {(() => {
+                const firstDayOfMonth = startOfMonth(currentWeek);
+                const startDay = getDay(firstDayOfMonth); // 0 = Sunday, 1 = Monday, etc.
+                const mondayStart = startDay === 0 ? 6 : startDay - 1; // Convert to Monday = 0
+                
+                return Array.from({ length: mondayStart }, (_, i) => (
+                  <div key={`empty-${i}`} className="p-2 min-h-[60px]"></div>
+                ));
+              })()}
               {/* Month days */}
               {eachDayOfInterval({ start: monthStart, end: monthEnd }).map((day) => {
-                const dayOfWeek = (day.getDay() === 0 ? 7 : day.getDay()); // Convert Sunday from 0 to 7
-                const shifts = getShiftsForDay(dayOfWeek);
-                const isSunday = dayOfWeek === 7;
+                const dayOfWeek = getDay(day); // 0 = Sunday, 1 = Monday, etc.
+                const adjustedDayOfWeek = dayOfWeek === 0 ? 7 : dayOfWeek; // Convert Sunday to 7
+                const shifts = getShiftsForDay(adjustedDayOfWeek);
+                const isSunday = dayOfWeek === 0;
                 
                 const hasAssignments = !isSunday && shifts.some(shift => {
                   const shiftAssignments = assignments.filter(a => 
