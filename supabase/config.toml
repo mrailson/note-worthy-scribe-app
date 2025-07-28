@@ -3,9 +3,6 @@ project_id = "dphcnbricafkbtizkoal"
 [functions.assemblyai-transcription]
 verify_jwt = false
 
-[functions.dual-stream-transcription]
-verify_jwt = false
-
 [functions.generate-meeting-minutes]
 verify_jwt = false
 

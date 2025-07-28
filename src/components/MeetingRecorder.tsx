@@ -24,13 +24,10 @@ import { MeetingHistoryList } from "@/components/MeetingHistoryList";
 import { NotewellAIAnimation } from "@/components/NotewellAIAnimation";
 
 import { supabase } from "@/integrations/supabase/client";
-import { OpenAIRealtimeRecorder } from '../utils/OpenAIRealtimeRecorder';
-import { HybridTranscriber } from '../utils/HybridTranscriber';
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 import { BrowserSpeechTranscriber, TranscriptData as BrowserTranscriptData } from '@/utils/BrowserSpeechTranscriber';
-import { DualStreamRecorder } from '@/utils/DualStreamRecorder';
 
 interface TranscriptData {
   text: string;
@@ -68,7 +65,7 @@ export const MeetingRecorder = ({
   const [liveSummary, setLiveSummary] = useState<string>("");
   const [debugLog, setDebugLog] = useState<string[]>([]);
   const [testTranscripts, setTestTranscripts] = useState<string[]>([]);
-  const [recordingMode, setRecordingMode] = useState<'microphone' | 'computer-audio' | 'testing' | 'ai-realtime' | 'hybrid'>('hybrid');
+  const [recordingMode, setRecordingMode] = useState<'microphone' | 'computer-audio'>('microphone');
   
   
   // Meeting history state
@@ -99,9 +96,6 @@ export const MeetingRecorder = ({
   const micAudioStreamRef = useRef<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const dualStreamRecorderRef = useRef<DualStreamRecorder | null>(null);
-  const openAIRealtimeRecorderRef = useRef<OpenAIRealtimeRecorder | null>(null);
-  const hybridTranscriberRef = useRef<InstanceType<typeof HybridTranscriber> | null>(null);
 
   // Browser compatibility check
   const checkBrowserSupport = () => {
@@ -439,48 +433,6 @@ export const MeetingRecorder = ({
     }
   };
 
-  // Dual-stream recording for testing mode
-  const startDualStreamRecording = async () => {
-    addDebugLog('🎙️ Starting dual-stream recording (mic + speaker)...');
-    
-    try {
-      dualStreamRecorderRef.current = new DualStreamRecorder({
-        onTranscript: (transcript) => {
-          addDebugLog(`📝 Dual-stream transcript: ${transcript.substring(0, 100)}...`);
-          
-          // Update the main transcript
-          setTranscript(transcript);
-          onTranscriptUpdate(transcript);
-          
-          // Update word count
-          const words = transcript.split(' ').filter(word => word.length > 0);
-          setWordCount(words.length);
-          onWordCountUpdate(words.length);
-          
-          // Update speaker count (estimate from dual streams)
-          setSpeakerCount(2); // Mic + Speaker = 2 sources
-        },
-        onStatusChange: (status) => {
-          setConnectionStatus(status);
-          addDebugLog(`🔄 Dual-stream status: ${status}`);
-        },
-        onError: (error) => {
-          addDebugLog(`❌ Dual-stream error: ${error}`);
-          setConnectionStatus("Error");
-          toast.error(`Dual-stream error: ${error}`);
-        },
-        chunkDuration: 5 // Process every 5 seconds
-      });
-      
-      await dualStreamRecorderRef.current.startRecording();
-      addDebugLog('✅ Dual-stream recording started successfully');
-      
-    } catch (error: any) {
-      addDebugLog(`❌ Dual-stream setup failed: ${error.message}`);
-      throw error;
-    }
-  };
-
   // Custom audio processing for better speaker audio capture
   const startCustomAudioProcessing = async (stream: MediaStream) => {
     addDebugLog('🔧 Starting custom audio processing...');
@@ -640,7 +592,7 @@ export const MeetingRecorder = ({
     return btoa(binary);
   };
 
-  const startOpenAIRealtimeRecording = async () => {
+  const startTestMode = async () => {
     addDebugLog('🎤 Starting advanced dual audio capture (system + microphone)...');
     
     try {
@@ -760,45 +712,7 @@ export const MeetingRecorder = ({
         combinedStream.getTracks().forEach(track => {
           track.stop();
         });
-  };
-
-  // Function to start Hybrid recording (Browser + AI)
-  const startHybridRecording = async () => {
-    try {
-      console.log('🎯 Starting Hybrid Recording...');
-      addDebugLog('🎯 Starting Hybrid Recording...');
-      
-      hybridTranscriberRef.current = new HybridTranscriber({
-        onTranscript: (data) => {
-          console.log('📝 Hybrid Transcript received:', data);
-          // We'll handle individual transcripts but mainly use combined
-        },
-        onCombinedTranscript: (combinedTranscript) => {
-          console.log('📝 Combined transcript updated:', combinedTranscript.length);
-          setTranscript(combinedTranscript);
-        },
-        onStatusChange: (status) => {
-          console.log('📊 Hybrid Status:', status);
-          addDebugLog(`📊 Hybrid Status: ${status}`);
-        },
-        onError: (error) => {
-          console.error('❌ Hybrid Error:', error);
-          addDebugLog(`❌ Hybrid Error: ${error}`);
-          toast.error(`Hybrid Error: ${error}`);
-        }
-      });
-
-      await hybridTranscriberRef.current.startTranscription();
-      console.log('✅ Hybrid recording started successfully');
-      addDebugLog('✅ Hybrid recording started successfully');
-      
-    } catch (error) {
-      console.error('❌ Failed to start Hybrid recording:', error);
-      addDebugLog(`❌ Failed to start Hybrid recording: ${error.message}`);
-      toast.error(`Failed to start Hybrid recording: ${error.message}`);
-      throw error;
-    }
-  };
+      };
       
       // Debug: Check if tracks are active and have audio
       combinedStream.getTracks().forEach((track, index) => {
@@ -1021,7 +935,7 @@ export const MeetingRecorder = ({
       
       // Choose recording method based on mode
       if (recordingMode === 'computer-audio') {
-        await startDualStreamRecording(); // Use our new advanced dual audio function
+        await startTestMode(); // Use our new advanced dual audio function
       } else {
         await startMicrophoneTranscription();
       }
@@ -1056,43 +970,6 @@ export const MeetingRecorder = ({
       toast.error(error.message || 'Failed to start test recording');
       setIsRecording(false);
       setConnectionStatus("Error");
-    }
-  };
-
-  // Function to start Hybrid recording (Browser + AI)
-  const startHybridRecording = async () => {
-    try {
-      console.log('🎯 Starting Hybrid Recording...');
-      addDebugLog('🎯 Starting Hybrid Recording...');
-      
-      hybridTranscriberRef.current = new HybridTranscriber({
-        onTranscript: (data) => {
-          console.log('📝 Hybrid Transcript received:', data);
-        },
-        onCombinedTranscript: (combinedTranscript) => {
-          console.log('📝 Combined transcript updated:', combinedTranscript.length);
-          setTranscript(combinedTranscript);
-        },
-        onStatusChange: (status) => {
-          console.log('📊 Hybrid Status:', status);
-          addDebugLog(`📊 Hybrid Status: ${status}`);
-        },
-        onError: (error) => {
-          console.error('❌ Hybrid Error:', error);
-          addDebugLog(`❌ Hybrid Error: ${error}`);
-          toast.error(`Hybrid Error: ${error}`);
-        }
-      });
-
-      await hybridTranscriberRef.current.startTranscription();
-      console.log('✅ Hybrid recording started successfully');
-      addDebugLog('✅ Hybrid recording started successfully');
-      
-    } catch (error) {
-      console.error('❌ Failed to start Hybrid recording:', error);
-      addDebugLog(`❌ Failed to start Hybrid recording: ${error.message}`);
-      toast.error(`Failed to start Hybrid recording: ${error.message}`);
-      throw error;
     }
   };
 
@@ -1140,24 +1017,7 @@ export const MeetingRecorder = ({
 
   const startRecording = async () => {
     try {
-      let modeText = '';
-      switch (recordingMode) {
-        case 'ai-realtime':
-          modeText = 'AI Realtime Dual Audio (mic + speaker with 24kHz PCM)';
-          break;
-        case 'hybrid':
-          modeText = 'Hybrid (Browser mic + AI speaker audio)';
-          break;
-        case 'computer-audio':
-          modeText = 'computer audio for Teams/Zoom';
-          break;
-        case 'testing':
-          modeText = 'dual-stream (microphone + speaker)';
-          break;
-        default:
-          modeText = 'microphone';
-      }
-      
+      const modeText = recordingMode === 'computer-audio' ? 'computer audio for Teams/Zoom' : 'microphone';
       addDebugLog(`🚀 Starting recording with ${modeText}...`);
       console.log(`Starting recording with ${modeText}...`);
       
@@ -1166,14 +1026,8 @@ export const MeetingRecorder = ({
       setTestTranscripts([]);
       
       // Choose transcription method based on recording mode
-      if (recordingMode === 'ai-realtime') {
-        await startOpenAIRealtimeRecording();
-      } else if (recordingMode === 'hybrid') {
-        await startHybridRecording();
-      } else if (recordingMode === 'computer-audio') {
+      if (recordingMode === 'computer-audio') {
         await startComputerAudioTranscription();
-      } else if (recordingMode === 'testing') {
-        await startDualStreamRecording();
       } else {
         await startMicrophoneTranscription();
       }
@@ -1198,23 +1052,9 @@ export const MeetingRecorder = ({
         });
       }, 1000);
 
-      let successMessage = '';
-      switch (recordingMode) {
-        case 'ai-realtime':
-          successMessage = 'AI Realtime recording started! Capturing both mic and speaker audio with OpenAI API.';
-          break;
-        case 'hybrid':
-          successMessage = 'Hybrid recording started! Using browser mic + AI speaker audio.';
-          break;
-        case 'computer-audio':
-          successMessage = 'Recording started with computer audio for Teams/Zoom!';
-          break;
-        case 'testing':
-          successMessage = 'Dual-stream recording started! Recording both mic and speaker audio.';
-          break;
-        default:
-          successMessage = 'Recording started with microphone!';
-      }
+      const successMessage = recordingMode === 'computer-audio' ? 
+        'Recording started with computer audio for Teams/Zoom!' : 
+        'Recording started with microphone!';
       toast.success(successMessage);
     } catch (error: any) {
       console.error('Failed to start recording:', error);
@@ -1251,20 +1091,6 @@ export const MeetingRecorder = ({
     if (browserTranscriberRef.current) {
       browserTranscriberRef.current.stopTranscription();
       browserTranscriberRef.current = null;
-    }
-    
-    // Stop dual-stream recorder
-    if (dualStreamRecorderRef.current) {
-      await dualStreamRecorderRef.current.stopRecording();
-      dualStreamRecorderRef.current = null;
-      addDebugLog('✅ Dual-stream recording stopped');
-    }
-
-    // Stop hybrid transcriber
-    if (hybridTranscriberRef.current) {
-      await hybridTranscriberRef.current.stopTranscription();
-      hybridTranscriberRef.current = null;
-      addDebugLog('✅ Hybrid transcription stopped');
     }
     
     // Stop enhanced audio capture
@@ -1651,29 +1477,11 @@ export const MeetingRecorder = ({
                 {!isRecording && (
                   <div className="space-y-3 mb-4 flex flex-col items-center">
                     <label className="text-sm font-medium">Recording Source:</label>
-                    <Select value={recordingMode} onValueChange={(value: 'microphone' | 'computer-audio' | 'testing' | 'ai-realtime' | 'hybrid') => setRecordingMode(value)}>
+                    <Select value={recordingMode} onValueChange={(value: 'microphone' | 'computer-audio') => setRecordingMode(value)}>
                       <SelectTrigger className="w-[50%] bg-background/50 border-border/50">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="bg-background border border-border shadow-lg z-50">
-                        <SelectItem value="ai-realtime" className="flex items-center gap-2">
-                          <div className="flex items-center gap-2">
-                            <Mic className="h-4 w-4 text-green-600" />
-                            <div>
-                              <div className="font-medium">AI Realtime (Dual Audio)</div>
-                              <div className="text-xs text-muted-foreground">Microphone + Speaker audio with OpenAI 24kHz PCM</div>
-                            </div>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="hybrid" className="flex items-center gap-2">
-                          <div className="flex items-center gap-2">
-                            <Mic className="h-4 w-4 text-blue-600" />
-                            <div>
-                              <div className="font-medium">Hybrid (Browser + AI)</div>
-                              <div className="text-xs text-muted-foreground">Browser mic + AI speaker audio</div>
-                            </div>
-                          </div>
-                        </SelectItem>
                         <SelectItem value="microphone" className="flex items-center gap-2">
                           <div className="flex items-center gap-2">
                             <Mic className="h-4 w-4" />
@@ -1692,15 +1500,6 @@ export const MeetingRecorder = ({
                             </div>
                           </div>
                         </SelectItem>
-                        <SelectItem value="testing" className="flex items-center gap-2">
-                          <div className="flex items-center gap-2">
-                            <Mic className="h-4 w-4" />
-                            <div>
-                              <div className="font-medium">Just for Testing</div>
-                              <div className="text-xs text-muted-foreground">Test microphone recording functionality</div>
-                            </div>
-                          </div>
-                        </SelectItem>
                       </SelectContent>
                     </Select>
                     
@@ -1712,8 +1511,8 @@ export const MeetingRecorder = ({
                             <strong className="text-red-800 dark:text-red-200">🚧 Development Notice:</strong> 
                             <br />• This feature is currently being developed
                             <br />• Expected release: <strong>10th August 2025</strong>
-                             <br />• You can record through the smartphone version and transcripts will be saved here
-                             <br />• You can still use microphone mode for general audio recording (ie Face 2 Face or via conference phone etc)
+                            <br />• Please use <strong>Teams own recording service</strong> to record Teams meetings in the meantime
+                            <br />• You can still use microphone mode for general audio recording (ie Face 2 Face or via conference phone etc)
                           </div>
                         </div>
                       </div>
