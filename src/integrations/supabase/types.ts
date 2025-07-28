@@ -1511,6 +1511,45 @@ export type Database = {
         }
         Relationships: []
       }
+      shift_templates: {
+        Row: {
+          created_at: string
+          day_of_week: number
+          end_time: string
+          id: string
+          is_active: boolean
+          location: Database["public"]["Enums"]["work_location"]
+          name: string
+          required_role: Database["public"]["Enums"]["staff_role"]
+          start_time: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          day_of_week: number
+          end_time: string
+          id?: string
+          is_active?: boolean
+          location: Database["public"]["Enums"]["work_location"]
+          name: string
+          required_role: Database["public"]["Enums"]["staff_role"]
+          start_time: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          day_of_week?: number
+          end_time?: string
+          id?: string
+          is_active?: boolean
+          location?: Database["public"]["Enums"]["work_location"]
+          name?: string
+          required_role?: Database["public"]["Enums"]["staff_role"]
+          start_time?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       specialist_services: {
         Row: {
           address: string | null
@@ -1559,6 +1598,152 @@ export type Database = {
           specialty_type?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      staff_assignments: {
+        Row: {
+          assigned_by: string | null
+          assignment_date: string
+          created_at: string
+          end_time: string
+          hours_worked: number | null
+          id: string
+          location: Database["public"]["Enums"]["work_location"]
+          notes: string | null
+          shift_template_id: string | null
+          staff_member_id: string | null
+          start_time: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_by?: string | null
+          assignment_date: string
+          created_at?: string
+          end_time: string
+          hours_worked?: number | null
+          id?: string
+          location: Database["public"]["Enums"]["work_location"]
+          notes?: string | null
+          shift_template_id?: string | null
+          staff_member_id?: string | null
+          start_time: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_by?: string | null
+          assignment_date?: string
+          created_at?: string
+          end_time?: string
+          hours_worked?: number | null
+          id?: string
+          location?: Database["public"]["Enums"]["work_location"]
+          notes?: string | null
+          shift_template_id?: string | null
+          staff_member_id?: string | null
+          start_time?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_assignments_shift_template_id_fkey"
+            columns: ["shift_template_id"]
+            isOneToOne: false
+            referencedRelation: "shift_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_assignments_staff_member_id_fkey"
+            columns: ["staff_member_id"]
+            isOneToOne: false
+            referencedRelation: "staff_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff_hours_summary: {
+        Row: {
+          id: string
+          month: number
+          staff_member_id: string | null
+          total_hours: number
+          total_shifts: number
+          updated_at: string
+          week_number: number
+          year: number
+        }
+        Insert: {
+          id?: string
+          month: number
+          staff_member_id?: string | null
+          total_hours?: number
+          total_shifts?: number
+          updated_at?: string
+          week_number: number
+          year: number
+        }
+        Update: {
+          id?: string
+          month?: number
+          staff_member_id?: string | null
+          total_hours?: number
+          total_shifts?: number
+          updated_at?: string
+          week_number?: number
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_hours_summary_staff_member_id_fkey"
+            columns: ["staff_member_id"]
+            isOneToOne: false
+            referencedRelation: "staff_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff_members: {
+        Row: {
+          created_at: string
+          email: string
+          hourly_rate: number | null
+          id: string
+          is_active: boolean
+          name: string
+          notes: string | null
+          phone: string | null
+          role: Database["public"]["Enums"]["staff_role"]
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          hourly_rate?: number | null
+          id?: string
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          phone?: string | null
+          role: Database["public"]["Enums"]["staff_role"]
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          hourly_rate?: number | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          role?: Database["public"]["Enums"]["staff_role"]
+          updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -2016,6 +2201,14 @@ export type Database = {
         | "response_sent"
         | "closed"
         | "escalated"
+      staff_role:
+        | "gp"
+        | "phlebotomist"
+        | "hca"
+        | "nurse"
+        | "paramedic"
+        | "receptionist"
+      work_location: "remote" | "kings_heath" | "various_practices"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2205,6 +2398,15 @@ export const Constants = {
         "closed",
         "escalated",
       ],
+      staff_role: [
+        "gp",
+        "phlebotomist",
+        "hca",
+        "nurse",
+        "paramedic",
+        "receptionist",
+      ],
+      work_location: ["remote", "kings_heath", "various_practices"],
     },
   },
 } as const
