@@ -36,7 +36,7 @@ export class DualStreamRecorder {
       // Get microphone stream
       this.micStream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          sampleRate: 12000,
+          sampleRate: 16000,
           channelCount: 1,
           echoCancellation: true,
           noiseSuppression: true,
@@ -55,7 +55,7 @@ export class DualStreamRecorder {
             height: { ideal: 1 }
           },
           audio: {
-            sampleRate: 12000,
+            sampleRate: 16000,
             channelCount: 1,
             echoCancellation: false,
             noiseSuppression: false,
@@ -78,7 +78,7 @@ export class DualStreamRecorder {
         // Fallback: Use a second microphone stream as "speaker" for testing
         this.speakerStream = await navigator.mediaDevices.getUserMedia({
           audio: {
-            sampleRate: 12000,
+            sampleRate: 16000,
             channelCount: 1,
             echoCancellation: false,
             noiseSuppression: false,
@@ -114,10 +114,11 @@ export class DualStreamRecorder {
       throw new Error('Audio streams not available');
     }
 
-    // Use the most compatible audio format
+    // Prefer MP3 format for better compatibility, fallback to WebM
     let mimeType = 'audio/webm;codecs=opus'; // Default fallback
     const supportedMimeTypes = [
-      'audio/wav',
+      'audio/mpeg',
+      'audio/mp4',
       'audio/webm;codecs=opus',
       'audio/webm'
     ];
@@ -130,11 +131,13 @@ export class DualStreamRecorder {
       }
     }
 
-    // Microphone recorder
-    this.micRecorder = new MediaRecorder(this.micStream, {
+    const recorderOptions = {
       mimeType,
-      audioBitsPerSecond: 16000
-    });
+      audioBitsPerSecond: 128000 // 128kbps for good quality mono audio
+    };
+
+    // Microphone recorder
+    this.micRecorder = new MediaRecorder(this.micStream, recorderOptions);
 
     this.micRecorder.ondataavailable = (event) => {
       if (event.data.size > 0) {
@@ -143,10 +146,7 @@ export class DualStreamRecorder {
     };
 
     // Speaker recorder
-    this.speakerRecorder = new MediaRecorder(this.speakerStream, {
-      mimeType,
-      audioBitsPerSecond: 16000
-    });
+    this.speakerRecorder = new MediaRecorder(this.speakerStream, recorderOptions);
 
     this.speakerRecorder.ondataavailable = (event) => {
       if (event.data.size > 0) {
