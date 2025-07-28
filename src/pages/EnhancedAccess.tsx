@@ -983,8 +983,65 @@ const EnhancedAccess = () => {
                       </TabsContent>
 
                       <TabsContent value="service" className="space-y-4">
-                        <div className="text-center py-8 text-muted-foreground">
-                          <p>Service Delivery content coming soon</p>
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-[75vh] overflow-hidden">
+                          <div className="space-y-3">
+                            <h4 className="text-lg font-semibold text-blue-600">Service Hours by Location</h4>
+                            <div className="space-y-2">
+                              <div className="flex justify-between items-center p-2 rounded text-sm bg-blue-50 font-medium">
+                                <span>Kings Heath Hub</span>
+                                <span className="font-bold">146 hrs</span>
+                              </div>
+                              <div className="flex justify-between items-center p-2 rounded text-sm bg-gray-50">
+                                <span>Brook</span>
+                                <span className="font-bold">44.5 hrs</span>
+                              </div>
+                              <div className="flex justify-between items-center p-2 rounded text-sm bg-gray-50">
+                                <span>Bugbrooke</span>
+                                <span className="font-bold">35.5 hrs</span>
+                              </div>
+                              <div className="flex justify-between items-center p-2 rounded text-sm bg-gray-50">
+                                <span>County</span>
+                                <span className="font-bold">18 hrs</span>
+                              </div>
+                              <div className="flex justify-between items-center p-2 rounded text-sm bg-gray-50">
+                                <span>The Crescent</span>
+                                <span className="font-bold">18 hrs</span>
+                              </div>
+                              <div className="flex justify-between items-center p-2 rounded text-sm bg-gray-50">
+                                <span>Rushden</span>
+                                <span className="font-bold">2 hrs</span>
+                              </div>
+                            </div>
+                            <p className="text-xs text-gray-600 italic">
+                              (GP F2F & Remote + Covid & Phlebotomy)
+                            </p>
+                          </div>
+
+                          <div className="space-y-3">
+                            <div className="bg-blue-50 p-3 rounded-lg">
+                              <h5 className="font-semibold text-blue-600 mb-2 text-sm">Service Types</h5>
+                              <ul className="space-y-1 text-xs">
+                                <li>• Face-to-Face GP appointments (Kings Heath Hub)</li>
+                                <li>• Remote GP Phone Calls (Park Avenue)</li>
+                                <li>• Phlebotomy Service (Park Avenue)</li>
+                                <li>• 15-min appointments (Bugbrooke)</li>
+                                <li>• 5-min appointments (Brook, County)</li>
+                                <li>• GP Remote Phone Calls (The Crescent)</li>
+                              </ul>
+                            </div>
+
+                            <div className="bg-green-50 p-3 rounded-lg">
+                              <h5 className="font-semibold text-green-600 mb-2 text-sm">Utilization Rates</h5>
+                              <ul className="space-y-1 text-xs">
+                                <li>• The Crescent: <strong>100%</strong></li>
+                                <li>• Rushden: <strong>100%</strong></li>
+                                <li>• County Spoke: <strong>98.0%</strong></li>
+                                <li>• Brook Spoke: <strong>89.0%</strong></li>
+                                <li>• Kings Heath Hub: <strong>84.4%</strong></li>
+                                <li>• Bugbrooke: <strong>64.5%</strong></li>
+                              </ul>
+                            </div>
+                          </div>
                         </div>
                       </TabsContent>
 
