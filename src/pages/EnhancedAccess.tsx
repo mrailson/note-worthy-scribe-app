@@ -609,7 +609,8 @@ const EnhancedAccess = () => {
                         <TabsTrigger value="funding">Funding</TabsTrigger>
                         <TabsTrigger value="actions">Actions</TabsTrigger>
                       </TabsList>
-                    <div className="space-y-6">
+
+                      <TabsContent value="performance" className="space-y-4">
                       <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 rounded-lg">
                         <div className="flex justify-between items-start mb-4">
                           <div>
@@ -979,7 +980,32 @@ const EnhancedAccess = () => {
                           </div>
                         </div>
                       </div>
-                    </div>
+                      </TabsContent>
+
+                      <TabsContent value="service" className="space-y-4">
+                        <div className="text-center py-8 text-muted-foreground">
+                          <p>Service Delivery content coming soon</p>
+                        </div>
+                      </TabsContent>
+
+                      <TabsContent value="financial" className="space-y-4">
+                        <div className="text-center py-8 text-muted-foreground">
+                          <p>Financial content coming soon</p>
+                        </div>
+                      </TabsContent>
+
+                      <TabsContent value="funding" className="space-y-4">
+                        <div className="text-center py-8 text-muted-foreground">
+                          <p>Funding content coming soon</p>
+                        </div>
+                      </TabsContent>
+
+                      <TabsContent value="actions" className="space-y-4">
+                        <div className="text-center py-8 text-muted-foreground">
+                          <p>Actions content coming soon</p>
+                        </div>
+                      </TabsContent>
+                    </Tabs>
                   </TabsContent>
 
                   {/* Placeholder content for other months */}
