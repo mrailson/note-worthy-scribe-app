@@ -20,11 +20,14 @@ const EnhancedAccess = () => {
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const [complianceStats, setComplianceStats] = useState<ComplianceStats>({ total: 0, compliant: 0, percentage: 0 });
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [weeklyAssignments, setWeeklyAssignments] = useState<any[]>([]);
+  const [shiftTemplates, setShiftTemplates] = useState<any[]>([]);
 
   const weekStart = startOfWeek(currentWeek, { weekStartsOn: 1 });
 
   useEffect(() => {
     calculateComplianceStats();
+    fetchWeeklyData();
   }, [currentWeek, refreshTrigger]);
 
   const calculateComplianceStats = async () => {
@@ -62,6 +65,60 @@ const EnhancedAccess = () => {
     } catch (error) {
       console.error('Error calculating compliance stats:', error);
     }
+  };
+
+  const fetchWeeklyData = async () => {
+    try {
+      const startDate = format(weekStart, 'yyyy-MM-dd');
+      const endDate = format(addDays(weekStart, 6), 'yyyy-MM-dd');
+
+      // Get shift templates
+      const { data: templates, error: templatesError } = await supabase
+        .from('shift_templates')
+        .select('*')
+        .eq('is_active', true)
+        .order('day_of_week');
+
+      if (templatesError) throw templatesError;
+
+      // Get assignments for current week
+      const { data: assignments, error: assignmentsError } = await supabase
+        .from('staff_assignments')
+        .select(`
+          *,
+          staff_member:staff_members(name, role),
+          shift_template:shift_templates(name, required_role)
+        `)
+        .gte('assignment_date', startDate)
+        .lte('assignment_date', endDate);
+
+      if (assignmentsError) throw assignmentsError;
+
+      setShiftTemplates(templates || []);
+      setWeeklyAssignments(assignments || []);
+    } catch (error) {
+      console.error('Error fetching weekly data:', error);
+    }
+  };
+
+  const getAssignmentForDay = (day: Date, shiftTemplate: any) => {
+    return weeklyAssignments.find(a => 
+      a.shift_template_id === shiftTemplate.id && 
+      a.assignment_date === format(day, 'yyyy-MM-dd')
+    );
+  };
+
+  const getShiftsForDay = (dayOfWeek: number) => {
+    return shiftTemplates.filter(st => st.day_of_week === dayOfWeek);
+  };
+
+  const getLocationDisplay = (location: string) => {
+    const locationMap = {
+      remote: 'Remote',
+      kings_heath: 'Kings Heath',
+      various_practices: 'Various Practices'
+    };
+    return locationMap[location as keyof typeof locationMap] || location;
   };
 
   const navigateWeek = (direction: 'prev' | 'next') => {
@@ -105,6 +162,101 @@ const EnhancedAccess = () => {
           </TabsList>
           
           <TabsContent value="overview" className="space-y-6 mt-6">
+            {/* Current Week View */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5" />
+                    This Week - {format(weekStart, "MMM d, yyyy")}
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={() => navigateWeek('prev')}>
+                      Previous
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => navigateWeek('next')}>
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-7 gap-3">
+                  {Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)).map((day, index) => {
+                    const dayOfWeek = index + 1; // 1=Monday, 2=Tuesday, etc.
+                    const shifts = getShiftsForDay(dayOfWeek);
+                    const isSunday = index === 6;
+                    
+                    if (isSunday) {
+                      return (
+                        <div key={day.toISOString()} className="p-3 border border-border/50 rounded-lg bg-muted/30">
+                          <div className="text-center">
+                            <h3 className="font-medium text-muted-foreground text-sm">{format(day, "EEE")}</h3>
+                            <p className="text-xs text-muted-foreground mt-1">{format(day, "MMM d")}</p>
+                            <p className="text-xs text-muted-foreground mt-2">No service</p>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    const hasAssignments = shifts.some(shift => getAssignmentForDay(day, shift));
+                    const allAssigned = shifts.length > 0 && shifts.every(shift => getAssignmentForDay(day, shift));
+                    
+                    return (
+                      <div 
+                        key={day.toISOString()} 
+                        className={`p-3 border rounded-lg text-center ${
+                          allAssigned 
+                            ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20" 
+                            : hasAssignments
+                            ? "border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-900/20"
+                            : "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20"
+                        }`}
+                      >
+                        <h3 className="font-medium text-sm">{format(day, "EEE")}</h3>
+                        <p className="text-xs text-muted-foreground mb-2">{format(day, "MMM d")}</p>
+                        
+                        <div className="space-y-1">
+                          {shifts.length === 0 ? (
+                            <p className="text-xs text-muted-foreground">No shifts</p>
+                          ) : (
+                            shifts.map((shift) => {
+                              const assignment = getAssignmentForDay(day, shift);
+                              return (
+                                <div key={shift.id} className="text-xs">
+                                  <div className="font-medium">{shift.start_time}-{shift.end_time}</div>
+                                  <div className="text-muted-foreground">{getLocationDisplay(shift.location)}</div>
+                                  {assignment ? (
+                                    <Badge variant="secondary" className="text-xs mt-1">
+                                      {assignment.staff_member?.name || 'Assigned'}
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="destructive" className="text-xs mt-1">
+                                      No {shift.required_role}
+                                    </Badge>
+                                  )}
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
+                        
+                        <div className="flex justify-center mt-2">
+                          {allAssigned ? (
+                            <CheckCircle className="h-3 w-3 text-green-600" />
+                          ) : hasAssignments ? (
+                            <AlertTriangle className="h-3 w-3 text-yellow-600" />
+                          ) : (
+                            <AlertTriangle className="h-3 w-3 text-red-600" />
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+            
             {/* Core Hours Info */}
             <Card>
               <CardHeader>
