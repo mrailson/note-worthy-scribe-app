@@ -42,7 +42,7 @@ export class OpenAIRealtimeRecorder {
         };
       });
       
-      this.config.onStatusChange?.('Setting up microphone...');
+      this.config.onStatusChange?.('Setting up microphone and speaker audio...');
       
       // Set up audio recording
       await this.setupAudioRecording();
@@ -120,8 +120,10 @@ export class OpenAIRealtimeRecorder {
 
   private async setupAudioRecording(): Promise<void> {
     try {
-      // Get microphone stream with 24kHz sample rate
-      this.stream = await navigator.mediaDevices.getUserMedia({
+      console.log('🎤 Setting up dual audio recording (mic + speaker)...');
+      
+      // Get microphone stream
+      const micStream = await navigator.mediaDevices.getUserMedia({
         audio: {
           sampleRate: 24000,
           channelCount: 1,
@@ -131,13 +133,51 @@ export class OpenAIRealtimeRecorder {
         }
       });
 
-      // Create audio context
-      this.audioContext = new AudioContext({
-        sampleRate: 24000,
-      });
+      // Get display media (speaker audio)
+      let displayStream: MediaStream | null = null;
+      try {
+        displayStream = await navigator.mediaDevices.getDisplayMedia({
+          video: false,
+          audio: {
+            sampleRate: 24000,
+            channelCount: 1,
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false
+          }
+        });
+        console.log('🔊 Speaker audio captured successfully');
+      } catch (error) {
+        console.warn('⚠️ Could not capture speaker audio, using microphone only:', error);
+      }
 
-      // Create audio processing pipeline
-      this.source = this.audioContext.createMediaStreamSource(this.stream);
+      // Create audio context
+      this.audioContext = new AudioContext({ sampleRate: 24000 });
+      
+      // Create sources
+      const micSource = this.audioContext.createMediaStreamSource(micStream);
+      let speakerSource: MediaStreamAudioSourceNode | null = null;
+      
+      if (displayStream && displayStream.getAudioTracks().length > 0) {
+        speakerSource = this.audioContext.createMediaStreamSource(displayStream);
+      }
+
+      // Create a mixer node
+      const mixer = this.audioContext.createGain();
+      mixer.gain.value = 1.0;
+
+      // Connect microphone to mixer
+      micSource.connect(mixer);
+      
+      // Connect speaker to mixer if available
+      if (speakerSource) {
+        speakerSource.connect(mixer);
+        console.log('✅ Both mic and speaker audio connected to mixer');
+      } else {
+        console.log('✅ Microphone only connected to mixer');
+      }
+
+      // Create script processor for audio data
       this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
       
       this.processor.onaudioprocess = (e) => {
@@ -157,13 +197,23 @@ export class OpenAIRealtimeRecorder {
         this.ws.send(JSON.stringify(audioMessage));
       };
 
-      this.source.connect(this.processor);
+      // Connect mixer to processor and destination
+      mixer.connect(this.processor);
       this.processor.connect(this.audioContext.destination);
-      
-      console.log('Audio recording setup complete');
+
+      // Store streams for cleanup
+      this.stream = micStream;
+      if (displayStream) {
+        // Add display stream tracks to our main stream for cleanup
+        displayStream.getAudioTracks().forEach(track => {
+          this.stream?.addTrack(track);
+        });
+      }
+
+      console.log('✅ Dual audio recording setup complete');
       
     } catch (error) {
-      console.error('Error setting up audio recording:', error);
+      console.error('❌ Error setting up dual audio recording:', error);
       throw error;
     }
   }

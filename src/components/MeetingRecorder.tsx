@@ -1064,7 +1064,7 @@ export const MeetingRecorder = ({
       let modeText = '';
       switch (recordingMode) {
         case 'ai-realtime':
-          modeText = 'AI Realtime (OpenAI PCM 24kHz)';
+          modeText = 'AI Realtime Dual Audio (mic + speaker with 24kHz PCM)';
           break;
         case 'computer-audio':
           modeText = 'computer audio for Teams/Zoom';
@@ -1117,7 +1117,7 @@ export const MeetingRecorder = ({
       let successMessage = '';
       switch (recordingMode) {
         case 'ai-realtime':
-          successMessage = 'AI Realtime recording started with OpenAI API!';
+          successMessage = 'AI Realtime recording started! Capturing both mic and speaker audio with OpenAI API.';
           break;
         case 'computer-audio':
           successMessage = 'Recording started with computer audio for Teams/Zoom!';
@@ -1566,8 +1566,8 @@ export const MeetingRecorder = ({
                           <div className="flex items-center gap-2">
                             <Mic className="h-4 w-4 text-green-600" />
                             <div>
-                              <div className="font-medium">AI Realtime</div>
-                              <div className="text-xs text-muted-foreground">OpenAI Realtime API with 24kHz PCM audio</div>
+                              <div className="font-medium">AI Realtime (Dual Audio)</div>
+                              <div className="text-xs text-muted-foreground">Microphone + Speaker audio with OpenAI 24kHz PCM</div>
                             </div>
                           </div>
                         </SelectItem>
