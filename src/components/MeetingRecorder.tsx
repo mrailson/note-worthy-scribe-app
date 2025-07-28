@@ -1538,8 +1538,8 @@ export const MeetingRecorder = ({
             {/* Compact Recording Controls */}
             <Card className="shadow-lg">
               <CardContent className="pt-4 pb-4">
-                {/* Recording Mode Selection */}
-                {!isRecording && (
+                {/* Recording Mode Selection - Hidden on iPhone */}
+                {!isRecording && !checkBrowserSupport().isIOS && (
                   <div className="space-y-3 mb-4 flex flex-col items-center">
                     <label className="text-sm font-medium">Recording Source:</label>
                     <Select value={recordingMode} onValueChange={(value: 'microphone' | 'computer-audio') => setRecordingMode(value)}>
@@ -1664,26 +1664,19 @@ export const MeetingRecorder = ({
                 )}
 
 
-                {/* Ticker Tape Test Transcript */}
+                {/* Live Transcript Display - Shows Last Sentence */}
                 {testTranscripts.length > 0 && (
                   <Card className="mt-4 bg-gradient-to-br from-green-50/50 to-green-100/50 border-green-200/50 dark:from-green-900/20 dark:to-green-800/20 dark:border-green-700/50">
                     <CardHeader className="pb-2">
                       <CardTitle className="text-sm font-medium flex items-center gap-2">
                         <Waves className="h-4 w-4" />
-                        Live Transcript Ticker
+                        Live Transcript
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="pt-0">
-                      <div className="overflow-hidden">
-                        <div className="animate-scroll space-y-1">
-                          {testTranscripts.map((transcript, index) => (
-                            <div 
-                              key={index} 
-                              className="text-xs font-mono p-1 bg-background/50 rounded border border-border/30 whitespace-nowrap"
-                            >
-                              {transcript}
-                            </div>
-                          ))}
+                      <div className="p-2 bg-background/50 rounded border border-border/30">
+                        <div className="text-xs font-mono">
+                          {testTranscripts[testTranscripts.length - 1]}
                         </div>
                       </div>
                     </CardContent>
