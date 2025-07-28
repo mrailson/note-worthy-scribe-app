@@ -613,10 +613,7 @@ const EnhancedAccess = () => {
                       <TabsContent value="overview" className="space-y-4">
                        <h4 className="text-lg font-semibold text-blue-600">Blue PCN - Enhanced Access Overview - June 2025</h4>
 
-                      {/* Performance Summary */}
-                      <div className="space-y-4">
-                        <h4 className="text-xl font-semibold text-blue-600">Performance Summary</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="bg-blue-50 p-6 rounded-lg text-center">
                             <h5 className="text-blue-600 font-medium mb-2">Required Hours</h5>
                             <div className="text-3xl font-bold text-gray-800">237.25</div>
@@ -627,8 +624,8 @@ const EnhancedAccess = () => {
                             <div className="text-3xl font-bold text-gray-800">247.25</div>
                             <p className="text-green-600 font-semibold">104% of target</p>
                           </div>
-                        </div>
-                      </div>
+                         </div>
+                       </TabsContent>
 
                       {/* Key Metrics */}
                       <div className="space-y-4">
