@@ -224,6 +224,15 @@ export const MeetingRecorder = ({
       const speakers = new Set(newTranscripts.map(t => t.speaker));
       setSpeakerCount(speakers.size);
       
+      // Update word count for both final AND partial transcripts to give early feedback
+      const allTranscripts = newTranscripts;
+      const combinedText = allTranscripts
+        .map(t => t.text)
+        .join(' ');
+      const words = combinedText.split(' ').filter(word => word.length > 0);
+      setWordCount(words.length);
+      onWordCountUpdate(words.length);
+      
       // Update main transcript if this is final
       if (transcriptData.isFinal) {
         const finalTranscripts = newTranscripts.filter(t => t.isFinal);
@@ -233,11 +242,24 @@ export const MeetingRecorder = ({
         
         setTranscript(fullTranscript);
         onTranscriptUpdate(fullTranscript);
+      } else {
+        // For partial transcripts, show a preview in the main transcript area
+        const finalTranscripts = newTranscripts.filter(t => t.isFinal);
+        const partialTranscripts = newTranscripts.filter(t => !t.isFinal);
         
-        // Update word count
-        const words = fullTranscript.split(' ').filter(word => word.length > 0);
-        setWordCount(words.length);
-        onWordCountUpdate(words.length);
+        let previewTranscript = finalTranscripts
+          .map(t => `${t.speaker}: ${t.text}`)
+          .join('\n');
+        
+        if (partialTranscripts.length > 0) {
+          const partialText = partialTranscripts
+            .map(t => `${t.speaker}: ${t.text}...`)
+            .join('\n');
+          previewTranscript = previewTranscript + (previewTranscript ? '\n' : '') + partialText;
+        }
+        
+        setTranscript(previewTranscript);
+        onTranscriptUpdate(previewTranscript);
       }
       
       return newTranscripts;
