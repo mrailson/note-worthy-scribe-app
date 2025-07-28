@@ -28,7 +28,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 import { BrowserSpeechTranscriber, TranscriptData as BrowserTranscriptData } from '@/utils/BrowserSpeechTranscriber';
-import { MobileRealtimeTranscriber, TranscriptData as MobileTranscriptData } from '@/utils/MobileRealtimeTranscriber';
 
 interface TranscriptData {
   text: string;
@@ -122,7 +121,6 @@ export const MeetingRecorder = ({
   };
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const browserTranscriberRef = useRef<BrowserSpeechTranscriber | null>(null);
-  const mobileTranscriberRef = useRef<MobileRealtimeTranscriber | null>(null);
   const screenStreamRef = useRef<MediaStream | null>(null);
   const enhancedAudioCaptureRef = useRef<any>(null);
 
@@ -331,25 +329,6 @@ export const MeetingRecorder = ({
       console.error('Error processing audio chunk:', error);
     }
   };
-  // Mobile-optimized transcription for iOS/iPhone
-  const startMobileRealtimeTranscription = async () => {
-    try {
-      addDebugLog('📱 Starting mobile-optimized realtime transcription...');
-      mobileTranscriberRef.current = new MobileRealtimeTranscriber(
-        handleBrowserTranscript,
-        handleTranscriptionError,
-        handleStatusChange
-      );
-      
-      await mobileTranscriberRef.current.startTranscription();
-      addDebugLog('✅ Mobile realtime transcription started');
-    } catch (error) {
-      addDebugLog(`❌ Failed to start mobile transcription: ${error}`);
-      console.error('Failed to start mobile transcription:', error);
-      // Fallback to browser speech transcription
-      await startBrowserMicrophoneTranscription();
-    }
-  };
 
   // Browser speech transcription with microphone (fallback)
   const startBrowserMicrophoneTranscription = async () => {
@@ -371,15 +350,8 @@ export const MeetingRecorder = ({
 
   // Smart transcription method that chooses the best option for the device
   const startMicrophoneTranscription = async () => {
-    const browserSupport = checkBrowserSupport();
-    
-    if (browserSupport.isIOS || browserSupport.isMobile) {
-      // Use mobile-optimized OpenAI Realtime for iOS/mobile devices
-      await startMobileRealtimeTranscription();
-    } else {
-      // Use browser speech recognition for desktop
-      await startBrowserMicrophoneTranscription();
-    }
+    // Always use browser speech recognition for all devices
+    await startBrowserMicrophoneTranscription();
   };
 
   // Computer audio transcription for Teams/Zoom meetings using enhanced audio processing
