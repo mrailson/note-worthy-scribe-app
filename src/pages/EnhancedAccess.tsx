@@ -989,14 +989,197 @@ const EnhancedAccess = () => {
                       </TabsContent>
 
                       <TabsContent value="financial" className="space-y-4">
-                        <div className="text-center py-8 text-muted-foreground">
-                          <p>Financial content coming soon</p>
+                        <div className="space-y-4 h-[75vh] overflow-hidden">
+                          <div className="bg-gradient-to-r from-green-600 to-green-700 text-white p-4 rounded-lg">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <h3 className="text-lg font-bold mb-1">Income & Expenditure Analysis</h3>
+                                <p className="text-green-100 text-sm">Enhanced Access - June 2025</p>
+                              </div>
+                              <div className="bg-white text-green-600 px-2 py-1 rounded font-semibold text-xs">
+                                BLUE PCN
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                            <div className="space-y-3">
+                              <h4 className="text-lg font-semibold text-green-600">Income Breakdown</h4>
+                              <div className="space-y-2">
+                                <div className="flex justify-between items-center p-2 bg-green-50 rounded text-sm">
+                                  <span>Enhanced Access</span>
+                                  <span className="font-bold">£37,821.84</span>
+                                </div>
+                                <div className="flex justify-between items-center p-2 bg-green-50 rounded text-sm">
+                                  <span>Phlebotomy Service</span>
+                                  <span className="font-bold">£280.00</span>
+                                </div>
+                                <div className="flex justify-between items-center p-2 bg-green-100 rounded border-2 border-green-300 text-sm">
+                                  <span className="font-semibold">Total Income</span>
+                                  <span className="font-bold">£38,101.84</span>
+                                </div>
+                              </div>
+
+                              <div className="bg-green-50 p-3 rounded-lg">
+                                <h5 className="font-semibold text-green-600 mb-2 text-sm">Income Distribution</h5>
+                                <div className="w-full bg-green-200 rounded-full h-4 mb-2">
+                                  <div className="bg-green-600 h-4 rounded-full" style={{width: '99.3%'}}></div>
+                                </div>
+                                <div className="flex justify-between text-xs">
+                                  <span>EA: 99.3%</span>
+                                  <span>Phlebotomy: 0.7%</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="space-y-3">
+                              <h4 className="text-lg font-semibold text-red-600">Expenditure Analysis</h4>
+                              <div className="space-y-2">
+                                <div className="flex justify-between items-center p-2 bg-red-50 rounded text-xs">
+                                  <span>GP Remote (all in costs)</span>
+                                  <span className="font-bold">£4,224.00</span>
+                                </div>
+                                <div className="flex justify-between items-center p-2 bg-red-50 rounded text-xs">
+                                  <span>GP On-site (Kings Heath Hub) - 4 Saturdays</span>
+                                  <span className="font-bold">£5,250.00</span>
+                                </div>
+                                <div className="flex justify-between items-center p-2 bg-red-50 rounded text-xs">
+                                  <span>Receptionist - Saturday Kings Heath Hub</span>
+                                  <span className="font-bold">£857.00</span>
+                                </div>
+                                <div className="flex justify-between items-center p-2 bg-red-50 rounded text-xs">
+                                  <span>MMC Service Fee and Management</span>
+                                  <span className="font-bold">£1,600.00</span>
+                                </div>
+                                <div className="flex justify-between items-center p-2 bg-red-100 rounded border-2 border-red-300 text-sm">
+                                  <span className="font-semibold">Total Expenditure</span>
+                                  <span className="font-bold">£11,931.00</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="bg-blue-50 p-4 rounded-lg">
+                            <h4 className="text-lg font-semibold text-blue-600 mb-3">Financial Summary</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                              <div className="text-center">
+                                <h6 className="text-gray-600 mb-1 text-xs">Total Income</h6>
+                                <div className="text-lg font-bold text-green-600">£38,101.84</div>
+                              </div>
+                              <div className="text-center">
+                                <h6 className="text-gray-600 mb-1 text-xs">Total Expenditure</h6>
+                                <div className="text-lg font-bold text-red-600">£11,931.00</div>
+                              </div>
+                              <div className="text-center">
+                                <h6 className="text-gray-600 mb-1 text-xs">Net Position before £5 per-patient payment to Practices</h6>
+                                <div className="text-xl font-bold text-green-600">£26,170.84</div>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </TabsContent>
 
                       <TabsContent value="funding" className="space-y-4">
-                        <div className="text-center py-8 text-muted-foreground">
-                          <p>Funding content coming soon</p>
+                        <div className="space-y-4 h-[75vh] overflow-hidden">
+                          <div className="bg-gradient-to-r from-purple-600 to-purple-700 text-white p-4 rounded-lg">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <h3 className="text-lg font-bold mb-1">£5 Per Patient Funding Allocation</h3>
+                                <p className="text-purple-100 text-sm">June 2025 Distribution (1/12th of Annual Rate)</p>
+                              </div>
+                              <div className="bg-white text-purple-600 px-2 py-1 rounded font-semibold text-xs">
+                                BLUE PCN
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                            <div className="space-y-3">
+                              <h4 className="text-lg font-semibold text-purple-600">Practice Allocations</h4>
+                              <div className="bg-purple-50 p-3 rounded-lg">
+                                <div className="grid grid-cols-3 gap-2 font-semibold border-b pb-1 mb-2 text-xs">
+                                  <span>Practice</span>
+                                  <span>PCN Adjusted List</span>
+                                  <span>Monthly Funding</span>
+                                </div>
+                                <div className="space-y-1">
+                                  <div className="grid grid-cols-3 gap-2 text-xs">
+                                    <span>Brook Medical Centre</span>
+                                    <span>7,020.60</span>
+                                    <span className="font-bold">£2,925.25</span>
+                                  </div>
+                                  <div className="grid grid-cols-3 gap-2 text-xs">
+                                    <span>Bugbrooke Surgery</span>
+                                    <span>9,606.18</span>
+                                    <span className="font-bold">£4,002.58</span>
+                                  </div>
+                                  <div className="grid grid-cols-3 gap-2 text-xs">
+                                    <span>County Surgery</span>
+                                    <span>4,390.30</span>
+                                    <span className="font-bold">£1,829.29</span>
+                                  </div>
+                                  <div className="grid grid-cols-3 gap-2 text-xs">
+                                    <span>Park Avenue</span>
+                                    <span>16,178.32</span>
+                                    <span className="font-bold">£6,740.97</span>
+                                  </div>
+                                  <div className="grid grid-cols-3 gap-2 text-xs">
+                                    <span>Rushden Medical Centre</span>
+                                    <span>9,279.35</span>
+                                    <span className="font-bold">£3,866.40</span>
+                                  </div>
+                                  <div className="grid grid-cols-3 gap-2 text-xs">
+                                    <span>The Crescent</span>
+                                    <span>7,383.32</span>
+                                    <span className="font-bold">£3,076.38</span>
+                                  </div>
+                                  <div className="grid grid-cols-3 gap-2 border-t pt-1 font-bold text-xs">
+                                    <span>PCN Total</span>
+                                    <span>53,858.07</span>
+                                    <span>£22,440.86</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="space-y-3">
+                              <h4 className="text-lg font-semibold text-purple-600">Funding Distribution</h4>
+                              <div className="bg-purple-50 p-3 rounded-lg">
+                                <h5 className="font-semibold mb-2 text-sm">Percentage of Total PCN Funding</h5>
+                                <div className="space-y-1 text-xs">
+                                  <div className="flex justify-between">
+                                    <span>Brook: 13.0%</span>
+                                    <span>Bugbrooke: 17.8%</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span>County: 8.2%</span>
+                                    <span>Park Avenue: 30.0%</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span>Rushden: 17.2%</span>
+                                    <span>Crescent: 13.7%</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="bg-purple-50 p-3 rounded-lg">
+                                <h5 className="font-semibold mb-2 text-sm">Calculation Method</h5>
+                                <ul className="space-y-1 text-xs">
+                                  <li>• <strong>Annual Rate:</strong> £5.00 per weighted patient</li>
+                                  <li>• <strong>Monthly Rate:</strong> £0.42 per weighted patient (1/12th)</li>
+                                  <li>• <strong>Distribution:</strong> Based on PCN Adjusted List Sizes from January 2025</li>
+                                  <li>• <strong>Calculation:</strong> PCN Adjusted List × £0.42 per patient</li>
+                                </ul>
+                              </div>
+
+                              <div className="bg-purple-100 p-3 rounded-lg border-2 border-purple-300">
+                                <p className="text-xs font-medium">
+                                  <strong>BOTTOM LINE:</strong> Monthly £5 per patient funding totals £22,440.86, 
+                                  with Park Avenue receiving the largest share (30%) based on weighted list size
+                                </p>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </TabsContent>
 
