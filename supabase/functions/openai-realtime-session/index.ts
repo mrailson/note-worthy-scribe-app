@@ -30,10 +30,10 @@ serve(async (req) => {
     // Upgrade the connection to WebSocket
     const { socket, response } = Deno.upgradeWebSocket(req);
     
-    // Connect to OpenAI Realtime API with auth in URL parameters
-    const openAIWS = new WebSocket(`wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01&authorization=Bearer%20${encodeURIComponent(openAIKey)}`);
+    // Connect to OpenAI Realtime API
+    const openAIWS = new WebSocket('wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01');
     
-    let sessionConfigured = false;
+    let sessionCreated = false;
     
     openAIWS.onopen = () => {
       console.log('Connected to OpenAI Realtime API');
@@ -43,9 +43,9 @@ serve(async (req) => {
       const data = JSON.parse(event.data);
       console.log('OpenAI message type:', data.type);
       
-      // Configure session after connection is established
-      if (data.type === 'session.created' && !sessionConfigured) {
-        sessionConfigured = true;
+      // Send session configuration after session is created
+      if (data.type === 'session.created' && !sessionCreated) {
+        sessionCreated = true;
         console.log('Session created, sending configuration...');
         
         const sessionConfig = {
@@ -95,6 +95,16 @@ serve(async (req) => {
     // Handle messages from client
     socket.onopen = () => {
       console.log('Client WebSocket connected');
+      
+      // Send authentication to OpenAI
+      openAIWS.addEventListener('open', () => {
+        const authMessage = {
+          type: 'authorization',
+          authorization: `Bearer ${openAIKey}`
+        };
+        openAIWS.send(JSON.stringify(authMessage));
+        console.log('Authentication sent to OpenAI');
+      });
     };
     
     socket.onmessage = (event) => {

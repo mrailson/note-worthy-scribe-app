@@ -42,7 +42,7 @@ export class OpenAIRealtimeRecorder {
         };
       });
       
-      this.config.onStatusChange?.('Setting up microphone audio...');
+      this.config.onStatusChange?.('Setting up microphone and speaker audio...');
       
       // Set up audio recording
       await this.setupAudioRecording();
@@ -120,10 +120,9 @@ export class OpenAIRealtimeRecorder {
 
   private async setupAudioRecording(): Promise<void> {
     try {
-      console.log('🎤 Setting up microphone audio for transcription...');
+      console.log('🎤 Setting up dual audio recording (mic + speaker)...');
       
-      // Get microphone stream - this is what we'll send to OpenAI for transcription
-      console.log('📱 Requesting microphone permission...');
+      // Get microphone stream
       const micStream = await navigator.mediaDevices.getUserMedia({
         audio: {
           sampleRate: 24000,
@@ -133,21 +132,10 @@ export class OpenAIRealtimeRecorder {
           autoGainControl: true
         }
       });
-      
-      console.log('✅ Microphone permission granted');
-      console.log('🎤 Microphone tracks:', micStream.getAudioTracks().map(track => ({
-        id: track.id,
-        kind: track.kind,
-        label: track.label,
-        enabled: track.enabled,
-        muted: track.muted,
-        readyState: track.readyState
-      })));
 
-      // Also get display media for monitoring/recording (optional)
+      // Get display media (speaker audio)
       let displayStream: MediaStream | null = null;
       try {
-        console.log('🔊 Requesting speaker audio...');
         displayStream = await navigator.mediaDevices.getDisplayMedia({
           video: false,
           audio: {
@@ -158,22 +146,39 @@ export class OpenAIRealtimeRecorder {
             autoGainControl: false
           }
         });
-        console.log('🔊 Speaker audio captured for monitoring');
+        console.log('🔊 Speaker audio captured successfully');
       } catch (error) {
-        console.warn('⚠️ Could not capture speaker audio:', error);
+        console.warn('⚠️ Could not capture speaker audio, using microphone only:', error);
       }
 
       // Create audio context
       this.audioContext = new AudioContext({ sampleRate: 24000 });
-      console.log('🎵 Audio context created, state:', this.audioContext.state);
       
-      // Create microphone source - this is what gets transcribed
+      // Create sources
       const micSource = this.audioContext.createMediaStreamSource(micStream);
-      console.log('🎤 Microphone source created');
+      let speakerSource: MediaStreamAudioSourceNode | null = null;
       
-      // Create script processor ONLY for microphone audio
+      if (displayStream && displayStream.getAudioTracks().length > 0) {
+        speakerSource = this.audioContext.createMediaStreamSource(displayStream);
+      }
+
+      // Create a mixer node
+      const mixer = this.audioContext.createGain();
+      mixer.gain.value = 1.0;
+
+      // Connect microphone to mixer
+      micSource.connect(mixer);
+      
+      // Connect speaker to mixer if available
+      if (speakerSource) {
+        speakerSource.connect(mixer);
+        console.log('✅ Both mic and speaker audio connected to mixer');
+      } else {
+        console.log('✅ Microphone only connected to mixer');
+      }
+
+      // Create script processor for audio data
       this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
-      console.log('⚙️ Audio processor created');
       
       this.processor.onaudioprocess = (e) => {
         if (!this.sessionReady || !this.ws || this.ws.readyState !== WebSocket.OPEN) {
@@ -181,16 +186,9 @@ export class OpenAIRealtimeRecorder {
         }
         
         const inputData = e.inputBuffer.getChannelData(0);
-        
-        // Check if we have actual audio data
-        const maxLevel = Math.max(...inputData.map(Math.abs));
-        if (maxLevel > 0.001) {
-          console.log('🎤 Microphone audio detected, level:', maxLevel.toFixed(4));
-        }
-        
         const encodedAudio = this.encodeAudioForAPI(new Float32Array(inputData));
         
-        // Send ONLY microphone audio to OpenAI for transcription
+        // Send audio to OpenAI Realtime API
         const audioMessage = {
           type: 'input_audio_buffer.append',
           audio: encodedAudio
@@ -199,11 +197,9 @@ export class OpenAIRealtimeRecorder {
         this.ws.send(JSON.stringify(audioMessage));
       };
 
-      // Connect ONLY microphone to processor for transcription
-      console.log('🔌 Connecting microphone to audio processor...');
-      micSource.connect(this.processor);
+      // Connect mixer to processor and destination
+      mixer.connect(this.processor);
       this.processor.connect(this.audioContext.destination);
-      console.log('✅ Microphone connected to processor');
 
       // Store streams for cleanup
       this.stream = micStream;
@@ -214,25 +210,10 @@ export class OpenAIRealtimeRecorder {
         });
       }
 
-      console.log('✅ Microphone audio setup complete for transcription');
-      
-      // Test microphone by checking if tracks are active
-      const micTracks = micStream.getAudioTracks();
-      if (micTracks.length === 0) {
-        throw new Error('No microphone tracks available');
-      }
-      
-      micTracks.forEach((track, index) => {
-        console.log(`🎤 Mic track ${index}:`, {
-          enabled: track.enabled,
-          muted: track.muted,
-          readyState: track.readyState,
-          label: track.label
-        });
-      });
+      console.log('✅ Dual audio recording setup complete');
       
     } catch (error) {
-      console.error('❌ Error setting up microphone audio:', error);
+      console.error('❌ Error setting up dual audio recording:', error);
       throw error;
     }
   }

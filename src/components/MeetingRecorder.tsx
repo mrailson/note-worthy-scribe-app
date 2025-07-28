@@ -68,7 +68,7 @@ export const MeetingRecorder = ({
   const [liveSummary, setLiveSummary] = useState<string>("");
   const [debugLog, setDebugLog] = useState<string[]>([]);
   const [testTranscripts, setTestTranscripts] = useState<string[]>([]);
-  const [recordingMode, setRecordingMode] = useState<'microphone' | 'computer-audio' | 'testing' | 'ai-realtime' | 'hybrid'>('ai-realtime');
+  const [recordingMode, setRecordingMode] = useState<'microphone' | 'computer-audio' | 'testing' | 'ai-realtime' | 'hybrid'>('hybrid');
   
   
   // Meeting history state
@@ -1660,17 +1660,17 @@ export const MeetingRecorder = ({
                           <div className="flex items-center gap-2">
                             <Mic className="h-4 w-4 text-green-600" />
                             <div>
-                              <div className="font-medium">AI Realtime (Dual Audio) - RECOMMENDED</div>
+                              <div className="font-medium">AI Realtime (Dual Audio)</div>
                               <div className="text-xs text-muted-foreground">Microphone + Speaker audio with OpenAI 24kHz PCM</div>
                             </div>
                           </div>
                         </SelectItem>
                         <SelectItem value="hybrid" className="flex items-center gap-2">
                           <div className="flex items-center gap-2">
-                            <Mic className="h-4 w-4 text-orange-600" />
+                            <Mic className="h-4 w-4 text-blue-600" />
                             <div>
-                              <div className="font-medium">Hybrid (Experimental)</div>
-                              <div className="text-xs text-muted-foreground">Browser mic + AI speaker audio - may have connection issues</div>
+                              <div className="font-medium">Hybrid (Browser + AI)</div>
+                              <div className="text-xs text-muted-foreground">Browser mic + AI speaker audio</div>
                             </div>
                           </div>
                         </SelectItem>

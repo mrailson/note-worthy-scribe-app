@@ -1,4 +1,4 @@
-import { OpenAIRealtimeRecorder } from './OpenAIRealtimeRecorder';
+import { DualOpenAITranscriber, DualOpenAIConfig } from './DualOpenAITranscriber';
 
 // Re-export for backward compatibility with existing hybrid implementation
 export type HybridTranscriptData = {
@@ -16,43 +16,40 @@ export type HybridTranscriberConfig = {
 };
 
 export class HybridTranscriber {
-  private openAIRecorder: OpenAIRealtimeRecorder;
+  private dualTranscriber: DualOpenAITranscriber;
 
   constructor(config: HybridTranscriberConfig = {}) {
-    // Use the working OpenAI Realtime Recorder that captures both mic and speaker
-    this.openAIRecorder = new OpenAIRealtimeRecorder({
-      onTranscript: (transcript, isFinal) => {
-        // Since OpenAI captures both, we'll label it as combined
+    // Adapt the config to work with DualOpenAITranscriber
+    const adaptedConfig: DualOpenAIConfig = {
+      onTranscript: (transcript, isFinal, source) => {
         config.onTranscript?.({
           text: transcript,
           isFinal,
-          source: 'microphone', // Default to microphone as primary source
+          source,
           timestamp: Date.now()
         });
-        
-        if (isFinal) {
-          config.onCombinedTranscript?.(transcript);
-        }
       },
       onStatusChange: config.onStatusChange,
-      onError: config.onError
-    });
+      onError: config.onError,
+      onCombinedTranscript: config.onCombinedTranscript
+    };
+
+    this.dualTranscriber = new DualOpenAITranscriber(adaptedConfig);
   }
 
   async startTranscription(): Promise<void> {
-    return this.openAIRecorder.startRecording();
+    return this.dualTranscriber.startRecording();
   }
 
   async stopTranscription(): Promise<void> {
-    return this.openAIRecorder.stopRecording();
+    return this.dualTranscriber.stopRecording();
   }
 
   getTranscriptionStatus(): boolean {
-    return this.openAIRecorder.getRecordingStatus();
+    return this.dualTranscriber.getRecordingStatus();
   }
 
   getCombinedTranscript(): string {
-    // The OpenAI recorder handles the combined transcript internally
-    return '';
+    return this.dualTranscriber.getCombinedTranscript();
   }
 }
