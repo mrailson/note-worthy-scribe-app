@@ -76,21 +76,24 @@ async function transcribeAudio(audioBase64: string, stream: string, chunk: Audio
       bytes[i] = binaryString.charCodeAt(i);
     }
     
-    console.log(`Converting ${stream} audio: ${bytes.length} bytes`);
+    console.log(`Converting ${stream} audio: ${bytes.length} bytes, original MIME: ${chunk.mimeType || 'unknown'}`);
+    
+    // Check if audio data is too small to be valid
+    if (bytes.length < 1000) {
+      console.log(`Skipping ${stream} audio: too small (${bytes.length} bytes)`);
+      return '';
+    }
     
     // Create form data with proper file format
     const formData = new FormData();
     
-    // OpenAI is picky about WebM format, so let's use a simple audio/webm without codecs
-    console.log(`Original MIME type: ${chunk.mimeType || 'unknown'} for ${stream}`);
-    
-    // Create blob with simple audio/webm MIME type (OpenAI supports this)
+    // Try different audio formats that OpenAI accepts
+    // Start with MP3 as it's most universally supported
     const audioBlob = new Blob([bytes], { 
-      type: 'audio/webm' 
+      type: 'audio/mpeg' 
     });
     
-    // Always use .webm extension since OpenAI supports it
-    formData.append('file', audioBlob, `${stream}-audio.webm`);
+    formData.append('file', audioBlob, `${stream}-audio.mp3`);
     formData.append('model', 'whisper-1');
     formData.append('language', 'en');
     formData.append('response_format', 'json');
