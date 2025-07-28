@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, Calendar, MapPin, Clock, UserPlus } from "lucide-react";
+import { Users, Calendar, MapPin, Clock, UserPlus, Stethoscope, Droplets, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import { format, addDays, startOfWeek } from "date-fns";
 
@@ -194,6 +194,20 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange }: ShiftAssign
     return staffMembers.filter(staff => staff.role === requiredRole);
   };
 
+  const getRoleIcon = (role: string) => {
+    switch (role?.toLowerCase()) {
+      case 'doctor':
+      case 'dr':
+        return <Stethoscope className="h-3 w-3" />;
+      case 'phlebotomist':
+        return <Droplets className="h-3 w-3" />;
+      case 'receptionist':
+        return <UserCheck className="h-3 w-3" />;
+      default:
+        return <Users className="h-3 w-3" />;
+    }
+  };
+
   return (
     <>
       <Card>
@@ -256,13 +270,14 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange }: ShiftAssign
                         
                         {hasAssignments ? (
                           <div className="space-y-1">
-                            {shiftAssignments.map((assignment, idx) => (
-                              <div key={assignment.id} className="flex items-center justify-between">
-                                <Badge variant="secondary" className="text-xs">
-                                  {assignment.staff_member.name}
-                                </Badge>
-                              </div>
-                            ))}
+                             {shiftAssignments.map((assignment, idx) => (
+                               <div key={assignment.id} className="flex items-center justify-between">
+                                 <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                                   {getRoleIcon(assignment.staff_member.role)}
+                                   {assignment.staff_member.name}
+                                 </Badge>
+                               </div>
+                             ))}
                             {canAddMore && (
                               <Button 
                                 size="sm" 
