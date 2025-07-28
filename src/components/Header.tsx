@@ -23,14 +23,6 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [isAdmin, setIsAdmin] = useState(false);
-  const [moduleAccess, setModuleAccess] = useState({
-    meeting_notes_access: true,
-    gp_scribe_access: false,
-    complaints_manager_access: false,
-    complaints_admin_access: false,
-    replywell_access: false,
-    ai_4_pm_access: false
-  });
   
   const isHomePage = location.pathname === '/';
   const isGPScribePage = location.pathname === '/gp-scribe';
@@ -41,62 +33,16 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
   useEffect(() => {
     const checkUserPermissions = async () => {
       if (!user) {
-        console.log('No user found in Header');
         return;
       }
-      
-      console.log('Checking permissions for user:', user.id);
       
       try {
         // Check admin access
         const { data: adminData, error: adminError } = await supabase
           .rpc('is_system_admin', { _user_id: user.id });
         
-        console.log('Admin check result:', { adminData, adminError });
-        
         if (!adminError) {
           setIsAdmin(adminData);
-        }
-
-        // Get user module access from user_roles table - handle multiple roles
-        const { data: roleData, error: roleError } = await supabase
-          .from('user_roles')
-          .select('meeting_notes_access, gp_scribe_access, complaints_manager_access, complaints_admin_access, replywell_access, ai_4_pm_access')
-          .eq('user_id', user.id);
-
-        console.log('Role data result:', { roleData, roleError });
-
-        if (!roleError && roleData && roleData.length > 0) {
-          // If user has multiple roles, combine all permissions (OR logic)
-          const combinedAccess = roleData.reduce((acc, role) => ({
-            meeting_notes_access: acc.meeting_notes_access || role.meeting_notes_access || false,
-            gp_scribe_access: acc.gp_scribe_access || role.gp_scribe_access || false,
-            complaints_manager_access: acc.complaints_manager_access || role.complaints_manager_access || false,
-            complaints_admin_access: acc.complaints_admin_access || role.complaints_admin_access || false,
-            replywell_access: acc.replywell_access || role.replywell_access || false,
-            ai_4_pm_access: acc.ai_4_pm_access || role.ai_4_pm_access || false
-          }), {
-            meeting_notes_access: false,
-            gp_scribe_access: false,
-            complaints_manager_access: false,
-            complaints_admin_access: false,
-            replywell_access: false,
-            ai_4_pm_access: false
-          });
-
-          console.log('Combined module access:', combinedAccess);
-          setModuleAccess(combinedAccess);
-        } else {
-          // No roles found, set default access
-          console.log('No roles found, setting default access');
-          setModuleAccess({
-            meeting_notes_access: true,
-            gp_scribe_access: false,
-            complaints_manager_access: false,
-            complaints_admin_access: false,
-            replywell_access: false,
-            ai_4_pm_access: false
-          });
         }
       } catch (error) {
         console.error('Error checking user permissions:', error);
