@@ -101,7 +101,7 @@ export const MeetingRecorder = ({
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const dualStreamRecorderRef = useRef<DualStreamRecorder | null>(null);
   const openAIRealtimeRecorderRef = useRef<OpenAIRealtimeRecorder | null>(null);
-  const hybridTranscriberRef = useRef<HybridTranscriber | null>(null);
+  const hybridTranscriberRef = useRef<InstanceType<typeof HybridTranscriber> | null>(null);
 
   // Browser compatibility check
   const checkBrowserSupport = () => {
