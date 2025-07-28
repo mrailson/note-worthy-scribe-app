@@ -590,14 +590,6 @@ const EnhancedAccess = () => {
                     <TabsTrigger value="august-2025" className="text-xs">Aug 2025</TabsTrigger>
                     <TabsTrigger value="september-2025" className="text-xs">Sep 2025</TabsTrigger>
                   </TabsList>
-                  <TabsList className="grid w-full grid-cols-6 gap-1 mb-6">
-                    <TabsTrigger value="october-2025" className="text-xs">Oct 2025</TabsTrigger>
-                    <TabsTrigger value="november-2025" className="text-xs">Nov 2025</TabsTrigger>
-                    <TabsTrigger value="december-2025" className="text-xs">Dec 2025</TabsTrigger>
-                    <TabsTrigger value="january-2026" className="text-xs">Jan 2026</TabsTrigger>
-                    <TabsTrigger value="february-2026" className="text-xs">Feb 2026</TabsTrigger>
-                    <TabsTrigger value="march-2026" className="text-xs">Mar 2026</TabsTrigger>
-                  </TabsList>
 
                   {/* June 2025 Report */}
                   <TabsContent value="june-2025" className="space-y-4">
