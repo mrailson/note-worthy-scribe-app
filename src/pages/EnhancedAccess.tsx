@@ -988,28 +988,32 @@ const EnhancedAccess = () => {
                             <h4 className="text-lg font-semibold text-blue-600">Service Hours by Location</h4>
                             <div className="space-y-2">
                               <div className="flex justify-between items-center p-2 rounded text-sm bg-blue-50 font-medium">
-                                <span>Kings Heath Hub</span>
-                                <span className="font-bold">146 hrs</span>
+                                <span>EA Kings Heath Hub - GP Face 2 Face & Remote 15 Min appointments (Inc. Covid & Phlebotomy)</span>
+                                <span className="font-bold">72.5 hrs</span>
                               </div>
                               <div className="flex justify-between items-center p-2 rounded text-sm bg-gray-50">
-                                <span>Brook</span>
-                                <span className="font-bold">44.5 hrs</span>
+                                <span>Brook Spoke EA - 5 Min appointments</span>
+                                <span className="font-bold">66 hrs</span>
                               </div>
                               <div className="flex justify-between items-center p-2 rounded text-sm bg-gray-50">
-                                <span>Bugbrooke</span>
-                                <span className="font-bold">35.5 hrs</span>
+                                <span>Bugbrooke Spoke EA - 15 min appointments</span>
+                                <span className="font-bold">51.75 hrs</span>
                               </div>
                               <div className="flex justify-between items-center p-2 rounded text-sm bg-gray-50">
-                                <span>County</span>
-                                <span className="font-bold">18 hrs</span>
+                                <span>County Spoke EA - 5 Min appointments</span>
+                                <span className="font-bold">45 hrs</span>
                               </div>
                               <div className="flex justify-between items-center p-2 rounded text-sm bg-gray-50">
-                                <span>The Crescent</span>
-                                <span className="font-bold">18 hrs</span>
+                                <span>Crescent Spoke - 15 Min Appointments</span>
+                                <span className="font-bold">12 hrs</span>
                               </div>
                               <div className="flex justify-between items-center p-2 rounded text-sm bg-gray-50">
-                                <span>Rushden</span>
-                                <span className="font-bold">2 hrs</span>
+                                <span>Rushden Spoke EA - 5 Min Appointments</span>
+                                <span className="font-bold">0 hrs</span>
+                              </div>
+                              <div className="flex justify-between items-center p-2 rounded text-sm bg-blue-100 border-2 border-blue-300 font-bold">
+                                <span>Blue PCN EA Hub and Spoke Appointment Totals</span>
+                                <span>247.25 hrs</span>
                               </div>
                             </div>
                             <p className="text-xs text-gray-600 italic">
