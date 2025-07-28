@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { supabase } from "@/integrations/supabase/client";
 import { Users, Calendar, MapPin, Clock, UserPlus, Activity, Droplets, UserCheck } from "lucide-react";
 import { toast } from "sonner";
-import { format, addDays, startOfWeek } from "date-fns";
+import { format, addDays, startOfWeek, startOfMonth, endOfMonth, eachDayOfInterval } from "date-fns";
 
 const formatDateWithOrdinal = (date: Date) => {
   const day = date.getDate();
@@ -59,9 +59,10 @@ interface StaffAssignment {
 interface ShiftAssignmentProps {
   currentWeek: Date;
   onAssignmentChange: () => void;
+  isMonthlyView?: boolean;
 }
 
-export const ShiftAssignment = ({ currentWeek, onAssignmentChange }: ShiftAssignmentProps) => {
+export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView = false }: ShiftAssignmentProps) => {
   const [shiftTemplates, setShiftTemplates] = useState<ShiftTemplate[]>([]);
   const [staffMembers, setStaffMembers] = useState<StaffMember[]>([]);
   const [assignments, setAssignments] = useState<StaffAssignment[]>([]);
@@ -71,6 +72,8 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange }: ShiftAssign
   const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
 
   const weekStart = startOfWeek(currentWeek, { weekStartsOn: 1 });
+  const monthStart = startOfMonth(currentWeek);
+  const monthEnd = endOfMonth(currentWeek);
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
   useEffect(() => {
@@ -111,8 +114,8 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange }: ShiftAssign
 
   const fetchAssignments = async () => {
     try {
-      const startDate = format(weekStart, 'yyyy-MM-dd');
-      const endDate = format(addDays(weekStart, 6), 'yyyy-MM-dd');
+      const startDate = isMonthlyView ? format(monthStart, 'yyyy-MM-dd') : format(weekStart, 'yyyy-MM-dd');
+      const endDate = isMonthlyView ? format(monthEnd, 'yyyy-MM-dd') : format(addDays(weekStart, 6), 'yyyy-MM-dd');
 
       const { data, error } = await supabase
         .from('staff_assignments')
@@ -232,99 +235,178 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange }: ShiftAssign
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
-            Shift Assignments - Week of {formatDateWithOrdinal(weekStart)}
+            {isMonthlyView 
+              ? `${format(currentWeek, "MMMM yyyy")} Shift Assignments`
+              : `Shift Assignments - Week of ${formatDateWithOrdinal(weekStart)}`
+            }
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-7 gap-4">
-            {weekDays.map((day, index) => {
-              const dayOfWeek = index + 1; // 1=Monday, 2=Tuesday, etc.
-              const shifts = getShiftsForDay(dayOfWeek);
-              const isSunday = index === 6;
-              
-              if (isSunday) {
-                return (
-                  <div key={day.toISOString()} className="p-4 border border-border/50 rounded-lg bg-muted/30">
-                    <div className="text-center">
-                      <h3 className="font-medium text-muted-foreground">{format(day, "EEE")}</h3>
-                      <p className="text-xs text-muted-foreground mt-1">{formatShortDateWithOrdinal(day)}</p>
-                      <p className="text-xs text-muted-foreground mt-2">No service</p>
-                    </div>
-                  </div>
-                );
-              }
+          {isMonthlyView ? (
+            <div className="grid grid-cols-7 gap-2">
+              {/* Month header */}
+              {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
+                <div key={day} className="p-2 text-center font-medium text-sm text-muted-foreground">
+                  {day}
+                </div>
+              ))}
+              {/* Month days */}
+              {eachDayOfInterval({ start: monthStart, end: monthEnd }).map((day) => {
+                const dayOfWeek = (day.getDay() === 0 ? 7 : day.getDay()); // Convert Sunday from 0 to 7
+                const shifts = getShiftsForDay(dayOfWeek);
+                const isSunday = dayOfWeek === 7;
+                
+                const hasAssignments = !isSunday && shifts.some(shift => {
+                  const shiftAssignments = assignments.filter(a => 
+                    a.shift_template_id === shift.id && 
+                    a.assignment_date === format(day, 'yyyy-MM-dd')
+                  );
+                  return shiftAssignments.length > 0;
+                });
+                
+                const allAssigned = !isSunday && shifts.length > 0 && shifts.every(shift => {
+                  const shiftAssignments = assignments.filter(a => 
+                    a.shift_template_id === shift.id && 
+                    a.assignment_date === format(day, 'yyyy-MM-dd')
+                  );
+                  return shiftAssignments.length > 0;
+                });
 
-              return (
-                <div key={day.toISOString()} className="border border-border rounded-lg p-3 space-y-2">
-                  <div className="text-center">
-                    <h3 className="font-medium">{format(day, "EEE")}</h3>
-                    <p className="text-xs text-muted-foreground">{formatShortDateWithOrdinal(day)}</p>
-                  </div>
-                  
-                  {shifts.map((shift) => {
-                    const shiftAssignments = getAssignmentsForDay(day, shift);
-                    const hasAssignments = shiftAssignments.length > 0;
-                    const availableStaff = getAvailableStaff(shift.required_role, day, shift);
-                    const canAddMore = availableStaff.length > 0;
-                    
-                    return (
-                      <div 
-                        key={shift.id}
-                        className={`p-2 rounded border text-xs space-y-1 ${
-                          hasAssignments 
-                            ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20" 
-                            : "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20"
-                        }`}
-                      >
-                        <div className="font-medium">{shift.name}</div>
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {shift.start_time} - {shift.end_time}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <MapPin className="h-3 w-3" />
-                          {getLocationDisplay(shift.location)}
-                        </div>
-                        
-                        {hasAssignments ? (
-                          <div className="space-y-1">
-                             {shiftAssignments.map((assignment, idx) => (
-                               <div key={assignment.id} className="flex items-center justify-between">
-                                  <Badge variant="secondary" className="text-xs flex items-center gap-1">
-                                    {getRoleIcon(assignment.staff_member.role)}
-                                    {formatStaffName(assignment.staff_member.name, assignment.staff_member.role)}
-                                  </Badge>
-                               </div>
-                             ))}
-                            {canAddMore && (
-                              <Button 
-                                size="sm" 
-                                variant="outline" 
-                                className="w-full text-xs h-6 mt-1"
-                                onClick={() => openAssignDialog(shift, day)}
-                              >
-                                <UserPlus className="h-3 w-3 mr-1" />
-                                Add Another
-                              </Button>
-                            )}
-                          </div>
-                        ) : (
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            className="w-full text-xs h-6"
-                            onClick={() => openAssignDialog(shift, day)}
-                          >
-                            Assign {shift.required_role.toUpperCase()}
-                          </Button>
+                return (
+                  <div 
+                    key={day.toISOString()} 
+                    className={`p-2 border rounded text-center min-h-[60px] cursor-pointer hover:bg-muted/20 ${
+                      isSunday 
+                        ? "border-border/50 bg-muted/30"
+                        : allAssigned 
+                        ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20" 
+                        : hasAssignments
+                        ? "border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-900/20"
+                        : "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20"
+                    }`}
+                  >
+                    <div className="text-sm font-medium">{format(day, "d")}</div>
+                    {isSunday ? (
+                      <div className="text-xs text-muted-foreground mt-1">No service</div>
+                    ) : shifts.length > 0 ? (
+                      <div className="mt-1 space-y-1">
+                        {shifts.slice(0, 2).map(shift => {
+                          const shiftAssignments = assignments.filter(a => 
+                            a.shift_template_id === shift.id && 
+                            a.assignment_date === format(day, 'yyyy-MM-dd')
+                          );
+                          return (
+                            <div key={shift.id} className="text-xs">
+                              {shiftAssignments.length > 0 ? (
+                                <div className="text-green-600 font-medium">✓ {shift.start_time}</div>
+                              ) : (
+                                <div className="text-red-600">✗ {shift.start_time}</div>
+                              )}
+                            </div>
+                          );
+                        })}
+                        {shifts.length > 2 && (
+                          <div className="text-xs text-muted-foreground">+{shifts.length - 2} more</div>
                         )}
                       </div>
-                    );
-                  })}
-                </div>
-              );
-            })}
-          </div>
+                    ) : (
+                      <div className="text-xs text-muted-foreground mt-1">No shifts</div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="grid grid-cols-7 gap-4">
+              {weekDays.map((day, index) => {
+                const dayOfWeek = index + 1; // 1=Monday, 2=Tuesday, etc.
+                const shifts = getShiftsForDay(dayOfWeek);
+                const isSunday = index === 6;
+                
+                if (isSunday) {
+                  return (
+                    <div key={day.toISOString()} className="p-4 border border-border/50 rounded-lg bg-muted/30">
+                      <div className="text-center">
+                        <h3 className="font-medium text-muted-foreground">{format(day, "EEE")}</h3>
+                        <p className="text-xs text-muted-foreground mt-1">{formatShortDateWithOrdinal(day)}</p>
+                        <p className="text-xs text-muted-foreground mt-2">No service</p>
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div key={day.toISOString()} className="border border-border rounded-lg p-3 space-y-2">
+                    <div className="text-center">
+                      <h3 className="font-medium">{format(day, "EEE")}</h3>
+                      <p className="text-xs text-muted-foreground">{formatShortDateWithOrdinal(day)}</p>
+                    </div>
+                    
+                    {shifts.map((shift) => {
+                      const shiftAssignments = getAssignmentsForDay(day, shift);
+                      const hasAssignments = shiftAssignments.length > 0;
+                      const availableStaff = getAvailableStaff(shift.required_role, day, shift);
+                      const canAddMore = availableStaff.length > 0;
+                      
+                      return (
+                        <div 
+                          key={shift.id}
+                          className={`p-2 rounded border text-xs space-y-1 ${
+                            hasAssignments 
+                              ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20" 
+                              : "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20"
+                          }`}
+                        >
+                          <div className="font-medium">{shift.name}</div>
+                          <div className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {shift.start_time} - {shift.end_time}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <MapPin className="h-3 w-3" />
+                            {getLocationDisplay(shift.location)}
+                          </div>
+                          
+                          {hasAssignments ? (
+                            <div className="space-y-1">
+                               {shiftAssignments.map((assignment, idx) => (
+                                 <div key={assignment.id} className="flex items-center justify-between">
+                                    <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                                      {getRoleIcon(assignment.staff_member.role)}
+                                      {formatStaffName(assignment.staff_member.name, assignment.staff_member.role)}
+                                    </Badge>
+                                 </div>
+                               ))}
+                              {canAddMore && (
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  className="w-full text-xs h-6 mt-1"
+                                  onClick={() => openAssignDialog(shift, day)}
+                                >
+                                  <UserPlus className="h-3 w-3 mr-1" />
+                                  Add Another
+                                </Button>
+                              )}
+                            </div>
+                          ) : (
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="w-full text-xs h-6"
+                              onClick={() => openAssignDialog(shift, day)}
+                            >
+                              Assign {shift.required_role.toUpperCase()}
+                            </Button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
 

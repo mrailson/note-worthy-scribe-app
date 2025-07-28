@@ -473,7 +473,7 @@ const EnhancedAccess = () => {
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2">
                     <Calendar className="h-5 w-5" />
-                    {isMonthlyView ? `${format(currentWeek, "MMMM yyyy")} Schedule` : `Week of ${format(weekStart, "MMM d, yyyy")}`}
+                    {isMonthlyView ? `${format(currentWeek, "MMMM yyyy")} Schedule` : `Week of ${formatDateWithOrdinal(weekStart)}`}
                   </CardTitle>
                   <div className="flex items-center gap-4">
                     <div className="flex items-center space-x-2">
@@ -500,6 +500,7 @@ const EnhancedAccess = () => {
                 <ShiftAssignment 
                   currentWeek={currentWeek} 
                   onAssignmentChange={handleAssignmentChange}
+                  isMonthlyView={isMonthlyView}
                 />
               </CardContent>
             </Card>
