@@ -4,9 +4,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'X-Content-Type-Options': 'nosniff',
-  'X-Frame-Options': 'DENY',
-  'X-XSS-Protection': '1; mode=block',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 };
 
 serve(async (req) => {
@@ -15,45 +13,128 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const openAIKey = Deno.env.get('OPENAI_API_KEY');
+  if (!openAIKey) {
+    return new Response(
+      JSON.stringify({ error: 'OpenAI API key not configured' }),
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+  }
+
   try {
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-    if (!OPENAI_API_KEY) {
-      throw new Error('OPENAI_API_KEY is not set');
-    }
-
-    console.log('Creating OpenAI realtime session...');
-
-    // Request an ephemeral token from OpenAI
-    const response = await fetch("https://api.openai.com/v1/realtime/sessions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${OPENAI_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-realtime-preview-2024-12-17",
-        voice: "alloy",
-        instructions: "You are a meeting transcription assistant. Only transcribe speech that you actually hear. Do not generate or hallucinate any text if no speech is present."
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('OpenAI API error:', response.status, errorText);
-      throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
-    }
-
-    const data = await response.json();
-    console.log("OpenAI session created:", data);
-
-    return new Response(JSON.stringify(data), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    console.log('Creating WebSocket connection to OpenAI Realtime API...');
+    
+    // Upgrade the connection to WebSocket
+    const { socket, response } = Deno.upgradeWebSocket(req);
+    
+    // Connect to OpenAI Realtime API
+    const openAIWS = new WebSocket('wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01');
+    
+    let sessionCreated = false;
+    
+    openAIWS.onopen = () => {
+      console.log('Connected to OpenAI Realtime API');
+    };
+    
+    openAIWS.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      console.log('OpenAI message type:', data.type);
+      
+      // Send session configuration after session is created
+      if (data.type === 'session.created' && !sessionCreated) {
+        sessionCreated = true;
+        console.log('Session created, sending configuration...');
+        
+        const sessionConfig = {
+          event_id: `event_${Date.now()}`,
+          type: 'session.update',
+          session: {
+            modalities: ['text', 'audio'],
+            instructions: 'You are a helpful assistant for meeting transcription. Transcribe the audio clearly and format it properly with speaker labels.',
+            voice: 'alloy',
+            input_audio_format: 'pcm16',
+            output_audio_format: 'pcm16',
+            input_audio_transcription: {
+              model: 'whisper-1'
+            },
+            turn_detection: {
+              type: 'server_vad',
+              threshold: 0.5,
+              prefix_padding_ms: 300,
+              silence_duration_ms: 1000
+            },
+            temperature: 0.3,
+            max_response_output_tokens: 'inf'
+          }
+        };
+        
+        openAIWS.send(JSON.stringify(sessionConfig));
+        console.log('Session configuration sent');
+      }
+      
+      // Forward all messages to client
+      socket.send(event.data);
+    };
+    
+    openAIWS.onerror = (error) => {
+      console.error('OpenAI WebSocket error:', error);
+      socket.send(JSON.stringify({ 
+        type: 'error', 
+        error: 'OpenAI connection error' 
+      }));
+    };
+    
+    openAIWS.onclose = (event) => {
+      console.log('OpenAI WebSocket closed:', event.code, event.reason);
+      socket.close(event.code, event.reason);
+    };
+    
+    // Handle messages from client
+    socket.onopen = () => {
+      console.log('Client WebSocket connected');
+      
+      // Send authentication to OpenAI
+      openAIWS.addEventListener('open', () => {
+        const authMessage = {
+          type: 'authorization',
+          authorization: `Bearer ${openAIKey}`
+        };
+        openAIWS.send(JSON.stringify(authMessage));
+        console.log('Authentication sent to OpenAI');
+      });
+    };
+    
+    socket.onmessage = (event) => {
+      console.log('Client message received, forwarding to OpenAI');
+      // Forward client messages to OpenAI
+      if (openAIWS.readyState === WebSocket.OPEN) {
+        openAIWS.send(event.data);
+      }
+    };
+    
+    socket.onclose = () => {
+      console.log('Client WebSocket disconnected');
+      openAIWS.close();
+    };
+    
+    socket.onerror = (error) => {
+      console.error('Client WebSocket error:', error);
+      openAIWS.close();
+    };
+    
+    return response;
+    
   } catch (error) {
-    console.error("Error creating session:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    console.error('Error in realtime session:', error);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
   }
 });

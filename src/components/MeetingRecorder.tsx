@@ -636,7 +636,7 @@ export const MeetingRecorder = ({
     return btoa(binary);
   };
 
-  const startTestMode = async () => {
+  const startOpenAIRealtimeRecording = async () => {
     addDebugLog('🎤 Starting advanced dual audio capture (system + microphone)...');
     
     try {
@@ -979,7 +979,7 @@ export const MeetingRecorder = ({
       
       // Choose recording method based on mode
       if (recordingMode === 'computer-audio') {
-        await startTestMode(); // Use our new advanced dual audio function
+        await startDualStreamRecording(); // Use our new advanced dual audio function
       } else {
         await startMicrophoneTranscription();
       }
