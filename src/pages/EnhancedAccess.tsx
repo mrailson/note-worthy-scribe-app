@@ -988,7 +988,7 @@ const EnhancedAccess = () => {
                             <h4 className="text-lg font-semibold text-blue-600">Service Hours by Location</h4>
                             <div className="space-y-2">
                               <div className="flex justify-between items-center p-2 rounded text-sm bg-blue-50 font-medium">
-                                <span>EA Kings Heath Hub - GP Face 2 Face & Remote 15 Min appointments (Inc. Covid & Phlebotomy)</span>
+                                <span>EA Kings Heath Hub - GP Face 2 Face & Remote 15 Min appointments (Inc. Phlebotomy)</span>
                                 <span className="font-bold">72.5 hrs</span>
                               </div>
                               <div className="flex justify-between items-center p-2 rounded text-sm bg-gray-50">
