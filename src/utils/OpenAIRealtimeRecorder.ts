@@ -120,9 +120,9 @@ export class OpenAIRealtimeRecorder {
 
   private async setupAudioRecording(): Promise<void> {
     try {
-      console.log('🎤 Setting up dual audio recording (mic + speaker)...');
+      console.log('🎤 Setting up microphone audio for transcription...');
       
-      // Get microphone stream
+      // Get microphone stream - this is what we'll send to OpenAI for transcription
       const micStream = await navigator.mediaDevices.getUserMedia({
         audio: {
           sampleRate: 24000,
@@ -133,7 +133,7 @@ export class OpenAIRealtimeRecorder {
         }
       });
 
-      // Get display media (speaker audio)
+      // Also get display media for monitoring/recording (optional)
       let displayStream: MediaStream | null = null;
       try {
         displayStream = await navigator.mediaDevices.getDisplayMedia({
@@ -146,38 +146,18 @@ export class OpenAIRealtimeRecorder {
             autoGainControl: false
           }
         });
-        console.log('🔊 Speaker audio captured successfully');
+        console.log('🔊 Speaker audio captured for monitoring');
       } catch (error) {
-        console.warn('⚠️ Could not capture speaker audio, using microphone only:', error);
+        console.warn('⚠️ Could not capture speaker audio:', error);
       }
 
       // Create audio context
       this.audioContext = new AudioContext({ sampleRate: 24000 });
       
-      // Create sources
+      // Create microphone source - this is what gets transcribed
       const micSource = this.audioContext.createMediaStreamSource(micStream);
-      let speakerSource: MediaStreamAudioSourceNode | null = null;
       
-      if (displayStream && displayStream.getAudioTracks().length > 0) {
-        speakerSource = this.audioContext.createMediaStreamSource(displayStream);
-      }
-
-      // Create a mixer node
-      const mixer = this.audioContext.createGain();
-      mixer.gain.value = 1.0;
-
-      // Connect microphone to mixer
-      micSource.connect(mixer);
-      
-      // Connect speaker to mixer if available
-      if (speakerSource) {
-        speakerSource.connect(mixer);
-        console.log('✅ Both mic and speaker audio connected to mixer');
-      } else {
-        console.log('✅ Microphone only connected to mixer');
-      }
-
-      // Create script processor for audio data
+      // Create script processor ONLY for microphone audio
       this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
       
       this.processor.onaudioprocess = (e) => {
@@ -188,7 +168,7 @@ export class OpenAIRealtimeRecorder {
         const inputData = e.inputBuffer.getChannelData(0);
         const encodedAudio = this.encodeAudioForAPI(new Float32Array(inputData));
         
-        // Send audio to OpenAI Realtime API
+        // Send ONLY microphone audio to OpenAI for transcription
         const audioMessage = {
           type: 'input_audio_buffer.append',
           audio: encodedAudio
@@ -197,8 +177,8 @@ export class OpenAIRealtimeRecorder {
         this.ws.send(JSON.stringify(audioMessage));
       };
 
-      // Connect mixer to processor and destination
-      mixer.connect(this.processor);
+      // Connect ONLY microphone to processor for transcription
+      micSource.connect(this.processor);
       this.processor.connect(this.audioContext.destination);
 
       // Store streams for cleanup
@@ -210,10 +190,10 @@ export class OpenAIRealtimeRecorder {
         });
       }
 
-      console.log('✅ Dual audio recording setup complete');
+      console.log('✅ Microphone audio setup complete for transcription');
       
     } catch (error) {
-      console.error('❌ Error setting up dual audio recording:', error);
+      console.error('❌ Error setting up microphone audio:', error);
       throw error;
     }
   }
