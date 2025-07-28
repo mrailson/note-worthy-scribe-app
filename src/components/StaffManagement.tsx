@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { Users, Plus, Edit, Trash2, Clock, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
+import { getWeek } from "date-fns";
 
 interface StaffMember {
   id: string;
@@ -68,7 +69,7 @@ export const StaffManagement = () => {
 
   const fetchHoursSummary = async () => {
     try {
-      const currentWeek = new Date().getWeek();
+      const currentWeek = getWeek(new Date());
       const currentMonth = new Date().getMonth() + 1;
       const currentYear = new Date().getFullYear();
 
@@ -396,19 +397,4 @@ export const StaffManagement = () => {
       </CardContent>
     </Card>
   );
-};
-
-// Add week number method to Date prototype for convenience
-declare global {
-  interface Date {
-    getWeek(): number;
-  }
-}
-
-Date.prototype.getWeek = function() {
-  const d = new Date(Date.UTC(this.getFullYear(), this.getMonth(), this.getDate()));
-  const dayNum = d.getUTCDay() || 7;
-  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
 };
