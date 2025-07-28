@@ -625,7 +625,6 @@ const EnhancedAccess = () => {
                             <p className="text-green-600 font-semibold">104% of target</p>
                           </div>
                          </div>
-                       </TabsContent>
 
                       {/* Key Metrics */}
                       <div className="space-y-4">
@@ -965,9 +964,9 @@ const EnhancedAccess = () => {
                               Low DNA rates overall - implement reminder systems at all locations
                             </p>
                           </div>
-                        </div>
-                      </div>
-                      </TabsContent>
+                         </div>
+                       </div>
+                       </TabsContent>
 
                       <TabsContent value="service" className="space-y-4">
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-[75vh] overflow-hidden">
