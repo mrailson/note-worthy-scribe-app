@@ -569,19 +569,16 @@ const EnhancedAccess = () => {
           
           <TabsContent value="reports" className="space-y-6 mt-6">
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5" />
-                  Monthly Reports (April 2025 - March 2026)
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
+              <CardContent className="pt-6">
                 <Tabs defaultValue="june-2025" className="w-full">
-                  <TabsList className="grid w-full grid-cols-3 gap-1 mb-6">
-                    <TabsTrigger value="april-2025" className="text-xs">Apr 2025</TabsTrigger>
-                    <TabsTrigger value="may-2025" className="text-xs">May 2025</TabsTrigger>
-                    <TabsTrigger value="june-2025" className="text-xs">Jun 2025</TabsTrigger>
-                  </TabsList>
+                  <div className="flex items-center gap-4 mb-6">
+                    <BarChart3 className="h-5 w-5" />
+                    <TabsList className="grid grid-cols-3 gap-1">
+                      <TabsTrigger value="april-2025" className="text-xs">Apr 2025</TabsTrigger>
+                      <TabsTrigger value="may-2025" className="text-xs">May 2025</TabsTrigger>
+                      <TabsTrigger value="june-2025" className="text-xs">Jun 2025</TabsTrigger>
+                    </TabsList>
+                  </div>
 
                   {/* June 2025 Report */}
                   <TabsContent value="june-2025" className="space-y-4">
