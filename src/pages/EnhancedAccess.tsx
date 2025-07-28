@@ -1106,8 +1106,9 @@ const EnhancedAccess = () => {
 
                       <TabsContent value="funding" className="space-y-4">
                         <Tabs defaultValue="q1-25-26" className="w-full">
-                          <TabsList className="grid w-full grid-cols-1 mb-4">
+                          <TabsList className="grid w-full grid-cols-2 mb-4">
                             <TabsTrigger value="q1-25-26">April 2025 - June 2025 (Q1 25/26)</TabsTrigger>
+                            <TabsTrigger value="june-2025">June 2025 Practice Splits</TabsTrigger>
                           </TabsList>
                           
                           <TabsContent value="q1-25-26" className="space-y-4">
@@ -1210,6 +1211,30 @@ const EnhancedAccess = () => {
                                     </p>
                                   </div>
                                 </div>
+                              </div>
+                            </div>
+                          </TabsContent>
+                          
+                          <TabsContent value="june-2025" className="space-y-4">
+                            <div className="space-y-4 h-[75vh] overflow-hidden">
+                              <div className="bg-gradient-to-r from-green-600 to-green-700 text-white p-4 rounded-lg">
+                                <div className="flex justify-between items-start">
+                                  <div>
+                                    <h3 className="text-lg font-bold mb-1">June 2025 Practice Splits</h3>
+                                    <p className="text-green-100 text-sm">Monthly Allocation Breakdown by Practice</p>
+                                  </div>
+                                  <div className="bg-white text-green-600 px-2 py-1 rounded font-semibold text-xs">
+                                    BLUE PCN
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="text-center py-8 text-muted-foreground">
+                                <div className="h-12 w-12 mx-auto mb-4 opacity-50 bg-green-100 rounded-full flex items-center justify-center">
+                                  <span className="text-green-600 font-bold">£</span>
+                                </div>
+                                <h3 className="font-medium mb-2">Practice Splits Data Coming Soon</h3>
+                                <p className="text-sm">Detailed practice allocation data for June 2025 will be available here</p>
                               </div>
                             </div>
                           </TabsContent>
