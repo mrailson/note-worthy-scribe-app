@@ -857,17 +857,6 @@ export const MeetingRecorder = ({
       
       mediaRecorder.start(5000); // Capture data every 5 seconds for more responsive feedback
       addDebugLog('🎯 Advanced dual audio recording started');
-
-      // Store references for cleanup
-      micAudioStreamRef.current = combinedStream;
-      mediaRecorderRef.current = mediaRecorder;
-      
-      // Store cleanup function
-      (mediaRecorder as any).cleanup = originalCleanup;
-
-    } catch (error) {
-      console.error('Dual audio capture error details:', {
-        name: error.name,
         message: error.message,
         stack: error.stack
       });
