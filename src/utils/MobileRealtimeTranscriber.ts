@@ -92,9 +92,8 @@ export class MobileRealtimeTranscriber {
   private async connectToOpenAI() {
     return new Promise<void>((resolve, reject) => {
       try {
-        // Connect through our secure edge function
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${window.location.host}/functions/v1/realtime-transcription`;
+        // Connect through our secure edge function  
+        const wsUrl = `wss://dphcnbricafkbtizkoal.functions.supabase.co/realtime-transcription`;
         
         this.ws = new WebSocket(wsUrl);
 
