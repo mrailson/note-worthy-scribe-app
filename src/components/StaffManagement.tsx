@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { Users, Plus, Edit, Trash2, Clock, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
@@ -21,6 +22,7 @@ interface StaffMember {
   role: 'gp' | 'phlebotomist' | 'hca' | 'nurse' | 'paramedic' | 'receptionist';
   hourly_rate?: number;
   is_active: boolean;
+  notes?: string;
 }
 
 interface HoursSummary {
@@ -44,6 +46,7 @@ export const StaffManagement = () => {
     phone: '',
     role: 'gp' as 'gp' | 'phlebotomist' | 'hca' | 'nurse' | 'paramedic' | 'receptionist',
     hourly_rate: '',
+    notes: '',
   });
 
   useEffect(() => {
@@ -107,6 +110,7 @@ export const StaffManagement = () => {
         phone: formData.phone || null,
         role: formData.role,
         hourly_rate: formData.hourly_rate ? parseFloat(formData.hourly_rate) : null,
+        notes: formData.notes || null,
         is_active: true,
       };
 
@@ -129,7 +133,7 @@ export const StaffManagement = () => {
 
       setIsAddDialogOpen(false);
       setEditingStaff(null);
-      setFormData({ name: '', email: '', phone: '', role: 'gp', hourly_rate: '' });
+      setFormData({ name: '', email: '', phone: '', role: 'gp', hourly_rate: '', notes: '' });
       fetchStaffMembers();
     } catch (error) {
       toast.error('Failed to save staff member');
@@ -145,6 +149,7 @@ export const StaffManagement = () => {
       phone: staff.phone || '',
       role: staff.role,
       hourly_rate: staff.hourly_rate?.toString() || '',
+      notes: staff.notes || '',
     });
     setIsAddDialogOpen(true);
   };
@@ -195,7 +200,7 @@ export const StaffManagement = () => {
             <DialogTrigger asChild>
               <Button onClick={() => {
                 setEditingStaff(null);
-                setFormData({ name: '', email: '', phone: '', role: 'gp', hourly_rate: '' });
+                setFormData({ name: '', email: '', phone: '', role: 'gp', hourly_rate: '', notes: '' });
               }}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Staff
@@ -261,6 +266,16 @@ export const StaffManagement = () => {
                     placeholder="0.00"
                   />
                 </div>
+                <div>
+                  <Label htmlFor="notes">Notes/Details (Optional)</Label>
+                  <Textarea
+                    id="notes"
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    placeholder="e.g., Can only work Wednesdays, preferred location, etc."
+                    rows={3}
+                  />
+                </div>
                 <div className="flex justify-end gap-2">
                   <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                     Cancel
@@ -290,6 +305,7 @@ export const StaffManagement = () => {
                   <TableHead>Email</TableHead>
                   <TableHead>Phone</TableHead>
                   <TableHead>Rate</TableHead>
+                  <TableHead>Notes</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -303,6 +319,11 @@ export const StaffManagement = () => {
                     <TableCell>{staff.email}</TableCell>
                     <TableCell>{staff.phone || '-'}</TableCell>
                     <TableCell>{staff.hourly_rate ? `£${staff.hourly_rate}` : '-'}</TableCell>
+                    <TableCell className="max-w-xs">
+                      <div className="text-sm text-muted-foreground truncate" title={staff.notes || ''}>
+                        {staff.notes || '-'}
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
                         <Button size="sm" variant="outline" onClick={() => handleEdit(staff)}>
@@ -317,7 +338,7 @@ export const StaffManagement = () => {
                 ))}
                 {staffMembers.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground py-4">
+                    <TableCell colSpan={7} className="text-center text-muted-foreground py-4">
                       No staff members found. Add your first staff member to get started.
                     </TableCell>
                   </TableRow>
