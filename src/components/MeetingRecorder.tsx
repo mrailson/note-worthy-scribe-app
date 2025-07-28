@@ -28,6 +28,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 import { BrowserSpeechTranscriber, TranscriptData as BrowserTranscriptData } from '@/utils/BrowserSpeechTranscriber';
+import { MobileRealtimeTranscriber, TranscriptData as MobileTranscriptData } from '@/utils/MobileRealtimeTranscriber';
 
 interface TranscriptData {
   text: string;
@@ -102,6 +103,9 @@ export const MeetingRecorder = ({
     const isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
     const isEdge = /Edg/.test(navigator.userAgent);
     const isFirefox = /Firefox/.test(navigator.userAgent);
+    const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     
     const hasDisplayMedia = navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia;
     const hasUserMedia = navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
@@ -110,11 +114,15 @@ export const MeetingRecorder = ({
     return {
       isSupported: hasDisplayMedia && hasUserMedia && hasMediaRecorder,
       isRecommendedBrowser: isChrome || isEdge || isFirefox,
-      browserName: isChrome ? 'Chrome' : isEdge ? 'Edge' : isFirefox ? 'Firefox' : 'Unknown'
+      browserName: isChrome ? 'Chrome' : isEdge ? 'Edge' : isFirefox ? 'Firefox' : isSafari ? 'Safari' : 'Unknown',
+      isSafari,
+      isIOS,
+      isMobile
     };
   };
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const browserTranscriberRef = useRef<BrowserSpeechTranscriber | null>(null);
+  const mobileTranscriberRef = useRef<MobileRealtimeTranscriber | null>(null);
   const screenStreamRef = useRef<MediaStream | null>(null);
   const enhancedAudioCaptureRef = useRef<any>(null);
 
@@ -323,8 +331,28 @@ export const MeetingRecorder = ({
       console.error('Error processing audio chunk:', error);
     }
   };
-  // Browser speech transcription with microphone
-  const startMicrophoneTranscription = async () => {
+  // Mobile-optimized transcription for iOS/iPhone
+  const startMobileRealtimeTranscription = async () => {
+    try {
+      addDebugLog('📱 Starting mobile-optimized realtime transcription...');
+      mobileTranscriberRef.current = new MobileRealtimeTranscriber(
+        handleBrowserTranscript,
+        handleTranscriptionError,
+        handleStatusChange
+      );
+      
+      await mobileTranscriberRef.current.startTranscription();
+      addDebugLog('✅ Mobile realtime transcription started');
+    } catch (error) {
+      addDebugLog(`❌ Failed to start mobile transcription: ${error}`);
+      console.error('Failed to start mobile transcription:', error);
+      // Fallback to browser speech transcription
+      await startBrowserMicrophoneTranscription();
+    }
+  };
+
+  // Browser speech transcription with microphone (fallback)
+  const startBrowserMicrophoneTranscription = async () => {
     addDebugLog('🎤 Starting microphone speech recognition...');
     
     const transcriber = new BrowserSpeechTranscriber(
@@ -339,6 +367,19 @@ export const MeetingRecorder = ({
     
     addDebugLog('✅ Microphone speech recognition started successfully');
     console.log('Recording started with microphone speech recognition');
+  };
+
+  // Smart transcription method that chooses the best option for the device
+  const startMicrophoneTranscription = async () => {
+    const browserSupport = checkBrowserSupport();
+    
+    if (browserSupport.isIOS || browserSupport.isMobile) {
+      // Use mobile-optimized OpenAI Realtime for iOS/mobile devices
+      await startMobileRealtimeTranscription();
+    } else {
+      // Use browser speech recognition for desktop
+      await startBrowserMicrophoneTranscription();
+    }
   };
 
   // Computer audio transcription for Teams/Zoom meetings using enhanced audio processing
@@ -726,24 +767,38 @@ export const MeetingRecorder = ({
         addDebugLog(`🎵 Track ${index}: ${track.kind} - ${track.readyState} - ${track.enabled ? 'enabled' : 'disabled'}`);
       });
 
-      // Step 4: Set up MediaRecorder with simple, compatible settings
+      // Step 4: Set up MediaRecorder with iOS/mobile-optimized settings
+      const browserSupport = checkBrowserSupport();
       let mimeType = 'audio/webm';
       let bitrate = 128000;
       
-      // Check what's actually supported
-      if (!MediaRecorder.isTypeSupported(mimeType)) {
-        if (MediaRecorder.isTypeSupported('audio/mp4')) {
-          mimeType = 'audio/mp4';
-          addDebugLog('⚠️ Using MP4 format for compatibility');
-        } else if (MediaRecorder.isTypeSupported('audio/ogg')) {
-          mimeType = 'audio/ogg';
-          addDebugLog('⚠️ Using OGG format for compatibility');
-        } else {
-          // Use default, let browser decide
-          mimeType = '';
-          bitrate = undefined;
-          addDebugLog('⚠️ Using browser default audio format');
+      // iOS/Safari optimization - prefer formats that work better on mobile
+      if (browserSupport.isIOS || browserSupport.isSafari) {
+        // iOS Safari prefers mp4 format
+        const iosFormats = ['audio/mp4', 'audio/mp4;codecs=mp4a.40.2', 'audio/aac'];
+        for (const format of iosFormats) {
+          if (MediaRecorder.isTypeSupported(format)) {
+            mimeType = format;
+            addDebugLog(`📱 iOS optimized format: ${format}`);
+            break;
+          }
         }
+      } else {
+        // Standard desktop browser formats
+        const standardFormats = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'];
+        for (const format of standardFormats) {
+          if (MediaRecorder.isTypeSupported(format)) {
+            mimeType = format;
+            break;
+          }
+        }
+      }
+      
+      // Fallback to default if nothing is supported
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = '';
+        bitrate = undefined;
+        addDebugLog('⚠️ Using browser default audio format');
       }
       
       console.log('Using MediaRecorder with:', { mimeType, bitrate });
