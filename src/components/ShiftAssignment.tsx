@@ -60,9 +60,10 @@ interface ShiftAssignmentProps {
   currentWeek: Date;
   onAssignmentChange: () => void;
   isMonthlyView?: boolean;
+  isDetailedView?: boolean;
 }
 
-export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView = false }: ShiftAssignmentProps) => {
+export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView = false, isDetailedView = false }: ShiftAssignmentProps) => {
   const [shiftTemplates, setShiftTemplates] = useState<ShiftTemplate[]>([]);
   const [staffMembers, setStaffMembers] = useState<StaffMember[]>([]);
   const [assignments, setAssignments] = useState<StaffAssignment[]>([]);
@@ -243,7 +244,7 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
         </CardHeader>
         <CardContent>
           {isMonthlyView ? (
-            <div className="grid grid-cols-7 gap-2">
+            <div className={`grid grid-cols-7 gap-2 ${isDetailedView ? '' : ''}`}>
               {/* Month header */}
               {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
                 <div key={day} className="p-2 text-center font-medium text-sm text-muted-foreground">
@@ -286,7 +287,9 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
                 return (
                   <div 
                     key={day.toISOString()} 
-                    className={`p-2 border rounded text-center min-h-[60px] cursor-pointer hover:bg-muted/20 ${
+                    className={`p-2 border rounded text-center cursor-pointer hover:bg-muted/20 ${
+                      isDetailedView ? 'min-h-[140px]' : 'min-h-[60px]'
+                    } ${
                       isSunday 
                         ? "border-border/50 bg-muted/30"
                         : allAssigned 
@@ -299,6 +302,31 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
                     <div className="text-sm font-medium">{format(day, "d")}</div>
                     {isSunday ? (
                       <div className="text-xs text-muted-foreground mt-1">No service</div>
+                    ) : isDetailedView ? (
+                      <div className="mt-1 space-y-1 text-left">
+                        {shifts.map(shift => {
+                          const shiftAssignments = assignments.filter(a => 
+                            a.shift_template_id === shift.id && 
+                            a.assignment_date === format(day, 'yyyy-MM-dd')
+                          );
+                          return (
+                            <div key={shift.id} className="text-xs border-b border-border/30 pb-1 last:border-b-0">
+                              <div className="font-medium text-xs text-center">{shift.start_time}-{shift.end_time}</div>
+                              <div className="text-center text-muted-foreground text-xs">{getLocationDisplay(shift.location)}</div>
+                              {shiftAssignments.length > 0 ? (
+                                shiftAssignments.map(assignment => (
+                                  <div key={assignment.id} className="text-green-600 text-center truncate flex items-center justify-center gap-1">
+                                    {getRoleIcon(assignment.staff_member.role)}
+                                    <span>{formatStaffName(assignment.staff_member.name, assignment.staff_member.role)}</span>
+                                  </div>
+                                ))
+                              ) : (
+                                <div className="text-red-600 text-center">Unassigned</div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
                     ) : shifts.length > 0 ? (
                       <div className="mt-1 space-y-1">
                         {shifts.slice(0, 2).map(shift => {

@@ -27,6 +27,7 @@ interface ComplianceStats {
 const EnhancedAccess = () => {
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const [isMonthlyView, setIsMonthlyView] = useState(false);
+  const [isDetailedView, setIsDetailedView] = useState(false);
   const [complianceStats, setComplianceStats] = useState<ComplianceStats>({ total: 0, compliant: 0, percentage: 0 });
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [weeklyAssignments, setWeeklyAssignments] = useState<any[]>([]);
@@ -216,6 +217,17 @@ const EnhancedAccess = () => {
                       />
                       <Label htmlFor="view-toggle" className="text-sm">Monthly</Label>
                     </div>
+                    {isMonthlyView && (
+                      <div className="flex items-center space-x-2">
+                        <Label htmlFor="detail-toggle" className="text-sm">Summary</Label>
+                        <Switch
+                          id="detail-toggle"
+                          checked={isDetailedView}
+                          onCheckedChange={setIsDetailedView}
+                        />
+                        <Label htmlFor="detail-toggle" className="text-sm">Detailed</Label>
+                      </div>
+                    )}
                     <div className="flex items-center gap-2">
                       <Button variant="outline" size="sm" onClick={() => navigateWeek('prev')}>
                         {isMonthlyView ? 'Previous Month' : 'Previous'}
@@ -228,8 +240,8 @@ const EnhancedAccess = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                {isMonthlyView ? (
-                  <div className="grid grid-cols-7 gap-2">
+                 {isMonthlyView ? (
+                  <div className={`grid grid-cols-7 gap-2 ${isDetailedView ? '' : ''}`}>
                     {/* Month header */}
                     {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
                       <div key={day} className="p-2 text-center font-medium text-sm text-muted-foreground">
@@ -272,7 +284,9 @@ const EnhancedAccess = () => {
                       return (
                         <div 
                           key={day.toISOString()} 
-                          className={`p-2 border rounded text-center min-h-[60px] ${
+                          className={`p-2 border rounded text-center ${
+                            isDetailedView ? 'min-h-[120px]' : 'min-h-[60px]'
+                          } ${
                             isSunday 
                               ? "border-border/50 bg-muted/30"
                               : allAssigned 
@@ -285,6 +299,29 @@ const EnhancedAccess = () => {
                           <div className="text-sm font-medium">{format(day, "d")}</div>
                           {isSunday ? (
                             <div className="text-xs text-muted-foreground mt-1">No service</div>
+                          ) : isDetailedView ? (
+                            <div className="mt-1 space-y-1">
+                              {shifts.map(shift => {
+                                const shiftAssignments = weeklyAssignments.filter(a => 
+                                  a.shift_template_id === shift.id && 
+                                  a.assignment_date === format(day, 'yyyy-MM-dd')
+                                );
+                                return (
+                                  <div key={shift.id} className="text-xs">
+                                    <div className="font-medium text-xs">{shift.start_time}</div>
+                                    {shiftAssignments.length > 0 ? (
+                                      shiftAssignments.map(assignment => (
+                                        <div key={assignment.id} className="text-green-600 truncate">
+                                          {formatStaffName(assignment.staff_member.name, assignment.staff_member.role)}
+                                        </div>
+                                      ))
+                                    ) : (
+                                      <div className="text-red-600">Unassigned</div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
                           ) : shifts.length > 0 ? (
                             <div className="flex justify-center mt-1">
                               {allAssigned ? (
@@ -496,6 +533,17 @@ const EnhancedAccess = () => {
                       />
                       <Label htmlFor="schedule-view-toggle" className="text-sm">Monthly</Label>
                     </div>
+                    {isMonthlyView && (
+                      <div className="flex items-center space-x-2">
+                        <Label htmlFor="schedule-detail-toggle" className="text-sm">Summary</Label>
+                        <Switch
+                          id="schedule-detail-toggle"
+                          checked={isDetailedView}
+                          onCheckedChange={setIsDetailedView}
+                        />
+                        <Label htmlFor="schedule-detail-toggle" className="text-sm">Detailed</Label>
+                      </div>
+                    )}
                     <div className="flex items-center gap-2">
                       <Button variant="outline" size="sm" onClick={() => navigateWeek('prev')}>
                         {isMonthlyView ? 'Previous Month' : 'Previous Week'}
@@ -512,6 +560,7 @@ const EnhancedAccess = () => {
                   currentWeek={currentWeek} 
                   onAssignmentChange={handleAssignmentChange}
                   isMonthlyView={isMonthlyView}
+                  isDetailedView={isDetailedView}
                 />
               </CardContent>
             </Card>
