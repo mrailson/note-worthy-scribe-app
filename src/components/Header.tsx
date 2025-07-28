@@ -9,7 +9,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
-import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning, Sparkles, Mail, Users } from "lucide-react";
+import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning, Sparkles, Mail, Users, Clock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,7 +19,7 @@ interface HeaderProps {
 }
 
 export const Header = ({ onNewMeeting }: HeaderProps) => {
-  const { user, signOut } = useAuth();
+  const { user, signOut, hasModuleAccess } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [isAdmin, setIsAdmin] = useState(false);
@@ -145,43 +145,52 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                   align="end" 
                   className="bg-background border border-border shadow-lg z-50 w-48"
                 >
-                  {moduleAccess.meeting_notes_access && (
-                    <DropdownMenuItem 
-                      onClick={() => navigate('/')}
-                      className="cursor-pointer py-3"
-                    >
-                      <FileText className="h-4 w-4 mr-2" />
-                      Meeting Notes
-                    </DropdownMenuItem>
-                  )}
-                  {moduleAccess.gp_scribe_access && (
-                    <DropdownMenuItem 
-                      onClick={() => navigate('/gp-scribe')}
-                      className="cursor-pointer py-3"
-                    >
-                      <Stethoscope className="h-4 w-4 mr-2" />
-                      GP Scribe
-                    </DropdownMenuItem>
-                  )}
-                  {(moduleAccess.complaints_manager_access || moduleAccess.complaints_admin_access) && (
-                    <DropdownMenuItem 
-                      onClick={() => navigate('/complaints')}
-                      className="cursor-pointer py-3"
-                    >
-                      <MessageSquareWarning className="h-4 w-4 mr-2" />
-                      Complaints System
-                    </DropdownMenuItem>
-                  )}
-                  {moduleAccess.ai_4_pm_access && (
-                    <DropdownMenuItem 
-                      onClick={() => navigate('/ai-4-pm')}
-                      className="cursor-pointer py-3"
-                    >
-                      <Sparkles className="h-4 w-4 mr-2" />
-                      AI Assistant
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
+                   {hasModuleAccess('meeting_recorder') && (
+                     <DropdownMenuItem 
+                       onClick={() => navigate('/')}
+                       className="cursor-pointer py-3"
+                     >
+                       <FileText className="h-4 w-4 mr-2" />
+                       Meeting Notes
+                     </DropdownMenuItem>
+                   )}
+                   {hasModuleAccess('gp_scribe') && (
+                     <DropdownMenuItem 
+                       onClick={() => navigate('/gp-scribe')}
+                       className="cursor-pointer py-3"
+                     >
+                       <Stethoscope className="h-4 w-4 mr-2" />
+                       GP Scribe
+                     </DropdownMenuItem>
+                   )}
+                   {hasModuleAccess('complaints_system') && (
+                     <DropdownMenuItem 
+                       onClick={() => navigate('/complaints')}
+                       className="cursor-pointer py-3"
+                     >
+                       <MessageSquareWarning className="h-4 w-4 mr-2" />
+                       Complaints System
+                     </DropdownMenuItem>
+                   )}
+                   {hasModuleAccess('ai_4_pm') && (
+                     <DropdownMenuItem 
+                       onClick={() => navigate('/ai-4-pm')}
+                       className="cursor-pointer py-3"
+                     >
+                       <Sparkles className="h-4 w-4 mr-2" />
+                       AI Assistant
+                     </DropdownMenuItem>
+                   )}
+                   {hasModuleAccess('enhanced_access') && (
+                     <DropdownMenuItem 
+                       onClick={() => navigate('/enhanced-access')}
+                       className="cursor-pointer py-3"
+                     >
+                       <Clock className="h-4 w-4 mr-2" />
+                       Enhanced Access
+                     </DropdownMenuItem>
+                   )}
+                 </DropdownMenuContent>
               </DropdownMenu>
             )}
             

@@ -1610,6 +1610,39 @@ export type Database = {
         }
         Relationships: []
       }
+      user_modules: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          granted_at: string
+          granted_by: string | null
+          id: string
+          module: Database["public"]["Enums"]["app_module"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          module: Database["public"]["Enums"]["app_module"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          module?: Database["public"]["Enums"]["app_module"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           ai_4_pm_access: boolean | null
@@ -1768,6 +1801,14 @@ export type Database = {
         Args: { setting_name: string }
         Returns: string
       }
+      get_user_modules: {
+        Args: { p_user_id?: string }
+        Returns: {
+          module: Database["public"]["Enums"]["app_module"]
+          granted_at: string
+          granted_by: string
+        }[]
+      }
       get_user_practice_assignments: {
         Args: { p_user_id: string }
         Returns: {
@@ -1803,6 +1844,14 @@ export type Database = {
           last_login: string
           practice_assignments: Json
         }[]
+      }
+      grant_user_module: {
+        Args: {
+          p_user_id: string
+          p_module: Database["public"]["Enums"]["app_module"]
+          p_granted_by?: string
+        }
+        Returns: string
       }
       has_role: {
         Args: {
@@ -1886,8 +1935,22 @@ export type Database = {
         }
         Returns: boolean
       }
+      revoke_user_module: {
+        Args: {
+          p_user_id: string
+          p_module: Database["public"]["Enums"]["app_module"]
+        }
+        Returns: boolean
+      }
       submit_external_response: {
         Args: { access_token_param: string; response_text_param: string }
+        Returns: boolean
+      }
+      user_has_module_access: {
+        Args: {
+          p_user_id: string
+          p_module: Database["public"]["Enums"]["app_module"]
+        }
         Returns: boolean
       }
       validate_nhs_email: {
@@ -1896,6 +1959,12 @@ export type Database = {
       }
     }
     Enums: {
+      app_module:
+        | "gp_scribe"
+        | "meeting_recorder"
+        | "complaints_system"
+        | "ai_4_pm"
+        | "enhanced_access"
       app_role:
         | "system_admin"
         | "practice_manager"
@@ -2074,6 +2143,13 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_module: [
+        "gp_scribe",
+        "meeting_recorder",
+        "complaints_system",
+        "ai_4_pm",
+        "enhanced_access",
+      ],
       app_role: [
         "system_admin",
         "practice_manager",

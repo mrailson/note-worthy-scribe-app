@@ -9,10 +9,12 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  userModules: string[];
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: any }>;
   updatePassword: (newPassword: string) => Promise<{ error: any }>;
+  hasModuleAccess: (module: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -29,10 +31,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [userModules, setUserModules] = useState<string[]>([]);
   
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useIsMobile();
+
+  // Function to fetch user modules
+  const fetchUserModules = async (userId: string) => {
+    try {
+      const { data, error } = await supabase.rpc('get_user_modules', { p_user_id: userId });
+      if (error) {
+        console.error('Error fetching user modules:', error);
+        return;
+      }
+      const modules = data?.map((item: any) => item.module) || [];
+      setUserModules(modules);
+    } catch (error) {
+      console.error('Error fetching user modules:', error);
+    }
+  };
+
+  // Function to check if user has access to a specific module
+  const hasModuleAccess = (module: string) => {
+    return userModules.includes(module);
+  };
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -41,6 +64,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+        
+        // Fetch user modules when user logs in
+        if (session?.user) {
+          setTimeout(() => {
+            fetchUserModules(session.user.id);
+          }, 0);
+        } else {
+          setUserModules([]);
+        }
       }
     );
 
@@ -49,6 +81,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      // Also fetch modules for existing session
+      if (session?.user) {
+        setTimeout(() => {
+          fetchUserModules(session.user.id);
+        }, 0);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -122,10 +160,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     user,
     session,
     loading,
+    userModules,
     signIn,
     signOut,
     resetPassword,
     updatePassword,
+    hasModuleAccess,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
