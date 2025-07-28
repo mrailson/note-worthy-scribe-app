@@ -21,6 +21,8 @@ interface StaffMember {
   phone?: string;
   role: 'gp' | 'phlebotomist' | 'hca' | 'nurse' | 'paramedic' | 'receptionist';
   hourly_rate?: number;
+  gp_onsite_rate?: number;
+  gp_remote_rate?: number;
   is_active: boolean;
   notes?: string;
 }
@@ -46,6 +48,8 @@ export const StaffManagement = () => {
     phone: '',
     role: 'gp' as 'gp' | 'phlebotomist' | 'hca' | 'nurse' | 'paramedic' | 'receptionist',
     hourly_rate: '',
+    gp_onsite_rate: '',
+    gp_remote_rate: '',
     notes: '',
   });
 
@@ -110,6 +114,8 @@ export const StaffManagement = () => {
         phone: formData.phone || null,
         role: formData.role,
         hourly_rate: formData.hourly_rate ? parseFloat(formData.hourly_rate) : null,
+        gp_onsite_rate: formData.gp_onsite_rate ? parseFloat(formData.gp_onsite_rate) : null,
+        gp_remote_rate: formData.gp_remote_rate ? parseFloat(formData.gp_remote_rate) : null,
         notes: formData.notes || null,
         is_active: true,
       };
@@ -133,7 +139,7 @@ export const StaffManagement = () => {
 
       setIsAddDialogOpen(false);
       setEditingStaff(null);
-      setFormData({ name: '', email: '', phone: '', role: 'gp', hourly_rate: '', notes: '' });
+      setFormData({ name: '', email: '', phone: '', role: 'gp', hourly_rate: '', gp_onsite_rate: '', gp_remote_rate: '', notes: '' });
       fetchStaffMembers();
     } catch (error) {
       toast.error('Failed to save staff member');
@@ -149,6 +155,8 @@ export const StaffManagement = () => {
       phone: staff.phone || '',
       role: staff.role,
       hourly_rate: staff.hourly_rate?.toString() || '',
+      gp_onsite_rate: staff.gp_onsite_rate?.toString() || '',
+      gp_remote_rate: staff.gp_remote_rate?.toString() || '',
       notes: staff.notes || '',
     });
     setIsAddDialogOpen(true);
@@ -200,7 +208,7 @@ export const StaffManagement = () => {
             <DialogTrigger asChild>
               <Button onClick={() => {
                 setEditingStaff(null);
-                setFormData({ name: '', email: '', phone: '', role: 'gp', hourly_rate: '', notes: '' });
+                setFormData({ name: '', email: '', phone: '', role: 'gp', hourly_rate: '', gp_onsite_rate: '', gp_remote_rate: '', notes: '' });
               }}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Staff
@@ -267,6 +275,28 @@ export const StaffManagement = () => {
                   />
                 </div>
                 <div>
+                  <Label htmlFor="gp_onsite_rate">On Site Rate for GP (Optional)</Label>
+                  <Input
+                    id="gp_onsite_rate"
+                    type="number"
+                    step="0.01"
+                    value={formData.gp_onsite_rate}
+                    onChange={(e) => setFormData({ ...formData, gp_onsite_rate: e.target.value })}
+                    placeholder="0.00"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="gp_remote_rate">Remote Rate for GP (Optional)</Label>
+                  <Input
+                    id="gp_remote_rate"
+                    type="number"
+                    step="0.01"
+                    value={formData.gp_remote_rate}
+                    onChange={(e) => setFormData({ ...formData, gp_remote_rate: e.target.value })}
+                    placeholder="0.00"
+                  />
+                </div>
+                <div>
                   <Label htmlFor="notes">Notes/Details (Optional)</Label>
                   <Textarea
                     id="notes"
@@ -305,6 +335,8 @@ export const StaffManagement = () => {
                   <TableHead>Email</TableHead>
                   <TableHead>Phone</TableHead>
                   <TableHead>Rate</TableHead>
+                  <TableHead>GP On-Site</TableHead>
+                  <TableHead>GP Remote</TableHead>
                   <TableHead>Notes</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -319,6 +351,8 @@ export const StaffManagement = () => {
                     <TableCell>{staff.email}</TableCell>
                     <TableCell>{staff.phone || '-'}</TableCell>
                     <TableCell>{staff.hourly_rate ? `£${staff.hourly_rate}` : '-'}</TableCell>
+                    <TableCell>{staff.gp_onsite_rate ? `£${staff.gp_onsite_rate}` : '-'}</TableCell>
+                    <TableCell>{staff.gp_remote_rate ? `£${staff.gp_remote_rate}` : '-'}</TableCell>
                     <TableCell className="max-w-xs">
                       <div className="text-sm text-muted-foreground truncate" title={staff.notes || ''}>
                         {staff.notes || '-'}
@@ -338,7 +372,7 @@ export const StaffManagement = () => {
                 ))}
                 {staffMembers.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground py-4">
+                    <TableCell colSpan={9} className="text-center text-muted-foreground py-4">
                       No staff members found. Add your first staff member to get started.
                     </TableCell>
                   </TableRow>
