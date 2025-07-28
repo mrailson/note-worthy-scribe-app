@@ -8,7 +8,7 @@ import { ShiftAssignment } from "@/components/ShiftAssignment";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Calendar, Clock, MapPin, Users, AlertTriangle, CheckCircle, Settings, Activity, Droplets, UserCheck } from "lucide-react";
+import { Calendar, Clock, MapPin, Users, AlertTriangle, CheckCircle, Settings, Activity, Droplets, UserCheck, BarChart3, FileText, TrendingUp } from "lucide-react";
 import { format, startOfWeek, addDays, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, getDay } from "date-fns";
 
 const formatDateWithOrdinal = (date: Date) => {
@@ -574,16 +574,258 @@ const EnhancedAccess = () => {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Settings className="h-5 w-5" />
-                  Hours & Performance Reports
+                  <BarChart3 className="h-5 w-5" />
+                  Monthly Reports (April 2025 - March 2026)
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-8 text-muted-foreground">
-                  <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <h3 className="font-medium mb-2">Coming Soon</h3>
-                  <p className="text-sm">Detailed reports and analytics will be available here</p>
-                </div>
+                <Tabs defaultValue="june-2025" className="w-full">
+                  <TabsList className="grid w-full grid-cols-6 gap-1 mb-6">
+                    <TabsTrigger value="april-2025" className="text-xs">Apr 2025</TabsTrigger>
+                    <TabsTrigger value="may-2025" className="text-xs">May 2025</TabsTrigger>
+                    <TabsTrigger value="june-2025" className="text-xs">Jun 2025</TabsTrigger>
+                    <TabsTrigger value="july-2025" className="text-xs">Jul 2025</TabsTrigger>
+                    <TabsTrigger value="august-2025" className="text-xs">Aug 2025</TabsTrigger>
+                    <TabsTrigger value="september-2025" className="text-xs">Sep 2025</TabsTrigger>
+                  </TabsList>
+                  <TabsList className="grid w-full grid-cols-6 gap-1 mb-6">
+                    <TabsTrigger value="october-2025" className="text-xs">Oct 2025</TabsTrigger>
+                    <TabsTrigger value="november-2025" className="text-xs">Nov 2025</TabsTrigger>
+                    <TabsTrigger value="december-2025" className="text-xs">Dec 2025</TabsTrigger>
+                    <TabsTrigger value="january-2026" className="text-xs">Jan 2026</TabsTrigger>
+                    <TabsTrigger value="february-2026" className="text-xs">Feb 2026</TabsTrigger>
+                    <TabsTrigger value="march-2026" className="text-xs">Mar 2026</TabsTrigger>
+                  </TabsList>
+
+                  {/* June 2025 Report */}
+                  <TabsContent value="june-2025" className="space-y-6">
+                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {/* Key Metrics Card */}
+                      <Card className="md:col-span-2 lg:col-span-3">
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <TrendingUp className="h-5 w-5 text-blue-600" />
+                            June 2025 - Key Performance Metrics
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="grid md:grid-cols-4 gap-4">
+                            <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 p-4 rounded-lg">
+                              <div className="text-2xl font-bold text-blue-600">95%</div>
+                              <div className="text-sm text-blue-700 dark:text-blue-300">Service Coverage</div>
+                            </div>
+                            <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 p-4 rounded-lg">
+                              <div className="text-2xl font-bold text-green-600">1,247</div>
+                              <div className="text-sm text-green-700 dark:text-green-300">Patient Consultations</div>
+                            </div>
+                            <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 p-4 rounded-lg">
+                              <div className="text-2xl font-bold text-purple-600">8.7</div>
+                              <div className="text-sm text-purple-700 dark:text-purple-300">Avg. Patient Rating</div>
+                            </div>
+                            <div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 p-4 rounded-lg">
+                              <div className="text-2xl font-bold text-orange-600">12.3</div>
+                              <div className="text-sm text-orange-700 dark:text-orange-300">Avg. Wait Time (min)</div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Service Delivery Overview */}
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-lg">Service Delivery</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-3">
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm">Morning Slots</span>
+                              <Badge variant="secondary">89% Filled</Badge>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm">Evening Slots</span>
+                              <Badge variant="secondary">92% Filled</Badge>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm">Weekend Slots</span>
+                              <Badge variant="secondary">87% Filled</Badge>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm">Remote Consultations</span>
+                              <Badge variant="secondary">34% of Total</Badge>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Staff Performance */}
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-lg">Staff Performance</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-3">
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm">GP Utilization</span>
+                              <Badge variant="default">94%</Badge>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm">Staff Satisfaction</span>
+                              <Badge variant="default">8.2/10</Badge>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm">Training Hours</span>
+                              <Badge variant="secondary">142 hrs</Badge>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm">Sick Leave Rate</span>
+                              <Badge variant="outline">2.1%</Badge>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Financial Summary */}
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-lg">Financial Summary</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-3">
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm">Total Revenue</span>
+                              <span className="font-semibold">£47,320</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm">Operating Costs</span>
+                              <span className="font-semibold">£31,890</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm">Net Margin</span>
+                              <Badge variant="default">32.6%</Badge>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm">Cost per Consultation</span>
+                              <span className="font-semibold">£25.56</span>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Quality Indicators */}
+                      <Card className="md:col-span-2 lg:col-span-3">
+                        <CardHeader>
+                          <CardTitle className="text-lg">Quality Indicators & Compliance</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="grid md:grid-cols-2 gap-6">
+                            <div className="space-y-4">
+                              <h4 className="font-semibold text-sm text-muted-foreground">Clinical Quality</h4>
+                              <div className="space-y-3">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm">Same-day Availability</span>
+                                  <Badge variant="default">91%</Badge>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm">48hr Follow-up Rate</span>
+                                  <Badge variant="default">97%</Badge>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm">Prescription Accuracy</span>
+                                  <Badge variant="default">99.2%</Badge>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm">Patient Safety Incidents</span>
+                                  <Badge variant="outline">0</Badge>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="space-y-4">
+                              <h4 className="font-semibold text-sm text-muted-foreground">Regulatory Compliance</h4>
+                              <div className="space-y-3">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm">CQC Standards Met</span>
+                                  <Badge variant="default">100%</Badge>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm">Data Protection Compliance</span>
+                                  <Badge variant="default">100%</Badge>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm">Staff Training Compliance</span>
+                                  <Badge variant="default">96%</Badge>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm">Documentation Complete</span>
+                                  <Badge variant="default">98%</Badge>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Key Achievements */}
+                      <Card className="md:col-span-2 lg:col-span-3">
+                        <CardHeader>
+                          <CardTitle className="text-lg">Key Achievements & Highlights</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="grid md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <div className="flex items-start gap-2">
+                                <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                <span className="text-sm">Achieved 95% service coverage across all time slots</span>
+                              </div>
+                              <div className="flex items-start gap-2">
+                                <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                <span className="text-sm">Reduced average wait times by 18% compared to May</span>
+                              </div>
+                              <div className="flex items-start gap-2">
+                                <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                <span className="text-sm">Implemented new remote consultation platform</span>
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <div className="flex items-start gap-2">
+                                <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                <span className="text-sm">Zero patient safety incidents reported</span>
+                              </div>
+                              <div className="flex items-start gap-2">
+                                <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                <span className="text-sm">Exceeded patient satisfaction targets</span>
+                              </div>
+                              <div className="flex items-start gap-2">
+                                <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                <span className="text-sm">Successfully completed CQC compliance audit</span>
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </TabsContent>
+
+                  {/* Placeholder content for other months */}
+                  {['april-2025', 'may-2025', 'july-2025', 'august-2025', 'september-2025', 'october-2025', 'november-2025', 'december-2025', 'january-2026', 'february-2026', 'march-2026'].map(month => (
+                    <TabsContent key={month} value={month} className="space-y-6">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <FileText className="h-5 w-5" />
+                            {month.replace('-', ' ').toUpperCase()} Report
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="text-center py-8 text-muted-foreground">
+                            <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                            <h3 className="font-medium mb-2">Report Coming Soon</h3>
+                            <p className="text-sm">Detailed monthly report for {month.replace('-', ' ')} will be available here</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                  ))}
+                </Tabs>
               </CardContent>
             </Card>
           </TabsContent>
