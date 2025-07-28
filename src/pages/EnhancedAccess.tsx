@@ -634,8 +634,8 @@ const EnhancedAccess = () => {
                           </div>
                           <div className="bg-green-50 p-6 rounded-lg text-center">
                             <h5 className="text-green-600 font-medium mb-2">Delivered Hours</h5>
-                            <div className="text-3xl font-bold text-gray-800">264.00</div>
-                            <p className="text-green-600 font-semibold">111% of target</p>
+                            <div className="text-3xl font-bold text-gray-800">247.25</div>
+                            <p className="text-green-600 font-semibold">104% of target</p>
                           </div>
                         </div>
                       </div>
