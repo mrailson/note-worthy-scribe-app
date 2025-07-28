@@ -28,6 +28,8 @@ const EnhancedAccess = () => {
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const [isMonthlyView, setIsMonthlyView] = useState(false);
   const [isDetailedView, setIsDetailedView] = useState(false);
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const slides = ['Performance', 'Service Delivery', 'Financial', 'Funding', 'Actions'];
   const [complianceStats, setComplianceStats] = useState<ComplianceStats>({ total: 0, compliant: 0, percentage: 0 });
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [weeklyAssignments, setWeeklyAssignments] = useState<any[]>([]);
