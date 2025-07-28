@@ -15,6 +15,12 @@ const formatDateWithOrdinal = (date: Date) => {
   return `${format(date, "EEEE")}, ${day}${ordinal} ${format(date, "MMMM yyyy")}`;
 };
 
+const formatShortDateWithOrdinal = (date: Date) => {
+  const day = date.getDate();
+  const ordinal = day <= 0 ? day : day < 20 ? ["th", "st", "nd", "rd", "th", "th", "th", "th", "th", "th"][day % 10] || "th" : ["th", "st", "nd", "rd"][day % 10] || "th";
+  return `${day}${ordinal} ${format(date, "MMM")}`;
+};
+
 interface StaffMember {
   id: string;
   name: string;
@@ -226,7 +232,7 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange }: ShiftAssign
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
-            Shift Assignments - Week of {format(weekStart, "MMM d, yyyy")}
+            Shift Assignments - Week of {formatDateWithOrdinal(weekStart)}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -241,7 +247,7 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange }: ShiftAssign
                   <div key={day.toISOString()} className="p-4 border border-border/50 rounded-lg bg-muted/30">
                     <div className="text-center">
                       <h3 className="font-medium text-muted-foreground">{format(day, "EEE")}</h3>
-                      <p className="text-xs text-muted-foreground mt-1">{format(day, "MMM d")}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{formatShortDateWithOrdinal(day)}</p>
                       <p className="text-xs text-muted-foreground mt-2">No service</p>
                     </div>
                   </div>
@@ -252,7 +258,7 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange }: ShiftAssign
                 <div key={day.toISOString()} className="border border-border rounded-lg p-3 space-y-2">
                   <div className="text-center">
                     <h3 className="font-medium">{format(day, "EEE")}</h3>
-                    <p className="text-xs text-muted-foreground">{format(day, "MMM d")}</p>
+                    <p className="text-xs text-muted-foreground">{formatShortDateWithOrdinal(day)}</p>
                   </div>
                   
                   {shifts.map((shift) => {
