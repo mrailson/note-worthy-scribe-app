@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, Calendar, MapPin, Clock } from "lucide-react";
+import { Users, Calendar, MapPin, Clock, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { format, addDays, startOfWeek } from "date-fns";
 
@@ -138,9 +138,7 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange }: ShiftAssign
 
       const { error } = await supabase
         .from('staff_assignments')
-        .upsert([assignmentData], {
-          onConflict: 'shift_template_id,assignment_date'
-        });
+        .insert([assignmentData]);
 
       if (error) throw error;
 
@@ -157,10 +155,18 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange }: ShiftAssign
     }
   };
 
-  const getAssignmentForDay = (day: Date, shiftTemplate: ShiftTemplate) => {
-    return assignments.find(a => 
+  const getAssignmentsForDay = (day: Date, shiftTemplate: ShiftTemplate) => {
+    return assignments.filter(a => 
       a.shift_template_id === shiftTemplate.id && 
       a.assignment_date === format(day, 'yyyy-MM-dd')
+    );
+  };
+
+  const getAvailableStaff = (requiredRole: string, day: Date, shiftTemplate: ShiftTemplate) => {
+    const assignedStaffIds = getAssignmentsForDay(day, shiftTemplate).map(a => a.staff_member_id);
+    return staffMembers.filter(staff => 
+      staff.role === requiredRole && 
+      !assignedStaffIds.includes(staff.id)
     );
   };
 
@@ -224,14 +230,16 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange }: ShiftAssign
                   </div>
                   
                   {shifts.map((shift) => {
-                    const assignment = getAssignmentForDay(day, shift);
-                    const isAssigned = !!assignment;
+                    const shiftAssignments = getAssignmentsForDay(day, shift);
+                    const hasAssignments = shiftAssignments.length > 0;
+                    const availableStaff = getAvailableStaff(shift.required_role, day, shift);
+                    const canAddMore = availableStaff.length > 0;
                     
                     return (
                       <div 
                         key={shift.id}
                         className={`p-2 rounded border text-xs space-y-1 ${
-                          isAssigned 
+                          hasAssignments 
                             ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20" 
                             : "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20"
                         }`}
@@ -246,14 +254,26 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange }: ShiftAssign
                           {getLocationDisplay(shift.location)}
                         </div>
                         
-                        {isAssigned ? (
+                        {hasAssignments ? (
                           <div className="space-y-1">
-                            <Badge variant="secondary" className="text-xs">
-                              {assignment.staff_member.name}
-                            </Badge>
-                            <div className="text-xs text-muted-foreground">
-                              {assignment.staff_member.role}
-                            </div>
+                            {shiftAssignments.map((assignment, idx) => (
+                              <div key={assignment.id} className="flex items-center justify-between">
+                                <Badge variant="secondary" className="text-xs">
+                                  {assignment.staff_member.name}
+                                </Badge>
+                              </div>
+                            ))}
+                            {canAddMore && (
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="w-full text-xs h-6 mt-1"
+                                onClick={() => openAssignDialog(shift, day)}
+                              >
+                                <UserPlus className="h-3 w-3 mr-1" />
+                                Add Another
+                              </Button>
+                            )}
                           </div>
                         ) : (
                           <Button 
@@ -299,13 +319,18 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange }: ShiftAssign
                     <SelectValue placeholder="Choose staff member..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {getEligibleStaff(selectedShift.required_role).map((staff) => (
+                    {getAvailableStaff(selectedShift.required_role, selectedDate, selectedShift).map((staff) => (
                       <SelectItem key={staff.id} value={staff.id}>
                         {staff.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                {getAvailableStaff(selectedShift.required_role, selectedDate, selectedShift).length === 0 && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    All available {selectedShift.required_role} staff are already assigned to this shift.
+                  </p>
+                )}
               </div>
               
               <div className="flex justify-end gap-2">

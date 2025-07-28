@@ -199,8 +199,21 @@ const EnhancedAccess = () => {
                       );
                     }
 
-                    const hasAssignments = shifts.some(shift => getAssignmentForDay(day, shift));
-                    const allAssigned = shifts.length > 0 && shifts.every(shift => getAssignmentForDay(day, shift));
+                    const hasAssignments = shifts.some(shift => {
+                      const shiftAssignments = weeklyAssignments.filter(a => 
+                        a.shift_template_id === shift.id && 
+                        a.assignment_date === format(day, 'yyyy-MM-dd')
+                      );
+                      return shiftAssignments.length > 0;
+                    });
+                    
+                    const allAssigned = shifts.length > 0 && shifts.every(shift => {
+                      const shiftAssignments = weeklyAssignments.filter(a => 
+                        a.shift_template_id === shift.id && 
+                        a.assignment_date === format(day, 'yyyy-MM-dd')
+                      );
+                      return shiftAssignments.length > 0;
+                    });
                     
                     return (
                       <div 
@@ -221,15 +234,28 @@ const EnhancedAccess = () => {
                             <p className="text-xs text-muted-foreground">No shifts</p>
                           ) : (
                             shifts.map((shift) => {
-                              const assignment = getAssignmentForDay(day, shift);
+                              const shiftAssignments = weeklyAssignments.filter(a => 
+                                a.shift_template_id === shift.id && 
+                                a.assignment_date === format(day, 'yyyy-MM-dd')
+                              );
+                              
                               return (
                                 <div key={shift.id} className="text-xs">
                                   <div className="font-medium">{shift.start_time}-{shift.end_time}</div>
                                   <div className="text-muted-foreground">{getLocationDisplay(shift.location)}</div>
-                                  {assignment ? (
-                                    <Badge variant="secondary" className="text-xs mt-1">
-                                      {assignment.staff_member?.name || 'Assigned'}
-                                    </Badge>
+                                  {shiftAssignments.length > 0 ? (
+                                    <div className="space-y-1 mt-1">
+                                      {shiftAssignments.map((assignment, idx) => (
+                                        <Badge key={assignment.id} variant="secondary" className="text-xs">
+                                          {assignment.staff_member?.name || 'Assigned'}
+                                        </Badge>
+                                      ))}
+                                      {shiftAssignments.length > 1 && (
+                                        <div className="text-xs text-muted-foreground">
+                                          ({shiftAssignments.length} staff assigned)
+                                        </div>
+                                      )}
+                                    </div>
                                   ) : (
                                     <Badge variant="destructive" className="text-xs mt-1">
                                       No {shift.required_role}
