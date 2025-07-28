@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Header } from "@/components/Header";
 import { Calendar, Clock, MapPin, Users, AlertTriangle, CheckCircle } from "lucide-react";
 import { format, startOfWeek, addDays, isSameDay } from "date-fns";
 
@@ -55,7 +56,10 @@ const EnhancedAccess = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
+      {/* Add Header component */}
+      <Header onNewMeeting={() => {}} />
+      
+      {/* Page Header */}
       <div className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
