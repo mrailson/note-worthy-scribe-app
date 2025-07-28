@@ -611,17 +611,7 @@ const EnhancedAccess = () => {
                       </TabsList>
 
                       <TabsContent value="overview" className="space-y-4">
-                      <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 rounded-lg">
-                        <div className="flex justify-between items-start mb-4">
-                          <div>
-                            <h3 className="text-2xl font-bold mb-2">Blue PCN Enhanced Access: June 2025</h3>
-                            <p className="text-blue-100">Monthly Board Review</p>
-                          </div>
-                          <div className="bg-white text-blue-600 px-3 py-2 rounded font-semibold text-sm">
-                            BLUE PCN
-                          </div>
-                        </div>
-                      </div>
+                       <h4 className="text-lg font-semibold text-blue-600">Blue PCN - Enhanced Access Overview - June 2025</h4>
 
                       {/* Performance Summary */}
                       <div className="space-y-4">
