@@ -6,7 +6,7 @@ import { Header } from "@/components/Header";
 import { StaffManagement } from "@/components/StaffManagement";
 import { ShiftAssignment } from "@/components/ShiftAssignment";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Clock, MapPin, Users, AlertTriangle, CheckCircle, Settings, Stethoscope, Droplets, UserCheck } from "lucide-react";
+import { Calendar, Clock, MapPin, Users, AlertTriangle, CheckCircle, Settings, Activity, Droplets, UserCheck } from "lucide-react";
 import { format, startOfWeek, addDays } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -134,7 +134,7 @@ const EnhancedAccess = () => {
     switch (role?.toLowerCase()) {
       case 'doctor':
       case 'dr':
-        return <Stethoscope className="h-3 w-3" />;
+        return <Activity className="h-3 w-3" />;
       case 'phlebotomist':
         return <Droplets className="h-3 w-3" />;
       case 'receptionist':

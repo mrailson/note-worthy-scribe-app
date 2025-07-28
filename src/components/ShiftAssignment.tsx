@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, Calendar, MapPin, Clock, UserPlus, Stethoscope, Droplets, UserCheck } from "lucide-react";
+import { Users, Calendar, MapPin, Clock, UserPlus, Activity, Droplets, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import { format, addDays, startOfWeek } from "date-fns";
 
@@ -198,7 +198,7 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange }: ShiftAssign
     switch (role?.toLowerCase()) {
       case 'doctor':
       case 'dr':
-        return <Stethoscope className="h-3 w-3" />;
+        return <Activity className="h-3 w-3" />;
       case 'phlebotomist':
         return <Droplets className="h-3 w-3" />;
       case 'receptionist':
