@@ -641,102 +641,45 @@ export const MeetingRecorder = ({
   };
 
   const startOpenAIRealtimeRecording = async () => {
-    addDebugLog('🎤 Starting advanced dual audio capture (system + microphone)...');
+    console.log('🚀 Starting OpenAI Realtime recording (mic + speaker with 24kHz PCM)...');
+    addDebugLog('🚀 Starting OpenAI Realtime recording (mic + speaker with 24kHz PCM)...');
     
     try {
-      // Check browser support first
-      console.log('Browser check:', {
-        hasMediaDevices: !!navigator.mediaDevices,
-        hasGetDisplayMedia: !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia),
-        hasGetUserMedia: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia),
-        userAgent: navigator.userAgent
-      });
-
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
-        throw new Error('Your browser does not support screen capture. Please use Chrome, Edge, or Firefox.');
-      }
-
-      // Step 1: Try getting display media with different approaches
-      addDebugLog('📺 Requesting screen capture with audio...');
-      let displayStream;
+      // Import the OpenAI Realtime Recorder
+      const { OpenAIRealtimeRecorder } = await import('../utils/OpenAIRealtimeRecorder');
       
-      try {
-        // First try: audio-only capture (preferred)
-        console.log('Attempting audio-only screen capture...');
-        displayStream = await navigator.mediaDevices.getDisplayMedia({
-          video: false,
-          audio: true
-        });
-        addDebugLog('✅ Audio-only screen capture successful');
-      } catch (audioOnlyError) {
-        console.log('Audio-only failed:', audioOnlyError.message);
-        addDebugLog('⚠️ Audio-only failed, trying video+audio approach...');
-        
-        try {
-          // Second try: video+audio, then extract audio
-          console.log('Attempting video+audio screen capture...');
-          displayStream = await navigator.mediaDevices.getDisplayMedia({
-            video: true,
-            audio: true
-          });
-          
-          // Remove video tracks, keep only audio
-          const videoTracks = displayStream.getVideoTracks();
-          videoTracks.forEach(track => {
-            track.stop();
-            displayStream.removeTrack(track);
-          });
-          addDebugLog('✅ Video+audio capture successful, video tracks removed');
-        } catch (videoAudioError) {
-          console.log('Video+audio failed:', videoAudioError.message);
-          throw new Error(`Screen capture not supported: ${videoAudioError.message}`);
+      openAIRealtimeRecorderRef.current = new OpenAIRealtimeRecorder({
+        onTranscript: (transcript, isFinal) => {
+          console.log('🎤 OpenAI Realtime transcript:', { transcript, isFinal });
+          if (isFinal) {
+            setTranscript(prev => prev + ' ' + transcript);
+            addDebugLog(`🎤 Transcript: "${transcript}"`);
+          }
+        },
+        onStatusChange: (status) => {
+          console.log('📊 OpenAI Realtime Status:', status);
+          addDebugLog(`📊 Status: ${status}`);
+        },
+        onError: (error) => {
+          console.error('❌ OpenAI Realtime Error:', error);
+          addDebugLog(`❌ Error: ${error}`);
+          toast.error(`OpenAI Realtime Error: ${error}`);
         }
-      }
-
-      // Check if we got audio tracks
-      const audioTracks = displayStream.getAudioTracks();
-      if (audioTracks.length === 0) {
-        throw new Error('No audio tracks found in screen capture. Please ensure you share a tab/window with audio.');
-      }
-      
-      console.log('Display stream audio tracks:', audioTracks.length);
-      addDebugLog(`📺 Got ${audioTracks.length} audio track(s) from screen capture`);
-      // Step 2: Get microphone audio with simpler constraints
-      addDebugLog('🎤 Requesting microphone access...');
-      const micStream = await navigator.mediaDevices.getUserMedia({
-        audio: true // Use simple constraints for better compatibility
       });
       
-      const micAudioTracks = micStream.getAudioTracks();
-      console.log('Microphone audio tracks:', micAudioTracks.length);
-      addDebugLog(`🎤 Got ${micAudioTracks.length} microphone track(s)`);
-
-      // Step 3: Combine both streams and add audio level monitoring
-      addDebugLog('🔀 Combining audio streams...');
-      const combinedStream = new MediaStream([
-        ...displayStream.getAudioTracks(),
-        ...micStream.getAudioTracks()
-      ]);
+      await openAIRealtimeRecorderRef.current.startRecording();
       
-      console.log('Combined stream tracks:', combinedStream.getTracks().length);
-      addDebugLog(`🔀 Combined stream has ${combinedStream.getTracks().length} total tracks`);
+      setIsRecording(true);
+      addDebugLog('✅ OpenAI Realtime recording started successfully');
       
-      // Add audio level monitoring to check if we're getting audio
-      const audioContext = new AudioContext();
-      const analyser = audioContext.createAnalyser();
-      const source = audioContext.createMediaStreamSource(combinedStream);
-      source.connect(analyser);
-      
-      analyser.fftSize = 256;
-      const bufferLength = analyser.frequencyBinCount;
-      const dataArray = new Uint8Array(bufferLength);
-      
-      // Monitor audio levels
-      const monitorAudio = () => {
-        analyser.getByteFrequencyData(dataArray);
-        const average = dataArray.reduce((a, b) => a + b) / bufferLength;
-        
-        if (average > 5) { // If there's some audio activity
+    } catch (error) {
+      console.error('Failed to start OpenAI Realtime recording:', error);
+      addDebugLog(`❌ Failed to start OpenAI Realtime recording: ${error.message}`);
+      toast.error(`Failed to start OpenAI Realtime recording: ${error.message}`);
+      throw error;
+    }
+  };
+  // Function to start Hybrid recording (Browser + AI)
           console.log(`Audio level detected: ${average.toFixed(1)}`);
           addDebugLog(`🔊 Audio activity: ${average.toFixed(1)}`);
         }
@@ -1265,6 +1208,13 @@ export const MeetingRecorder = ({
       await hybridTranscriberRef.current.stopTranscription();
       hybridTranscriberRef.current = null;
       addDebugLog('✅ Hybrid transcription stopped');
+    }
+    
+    // Stop OpenAI Realtime Recorder
+    if (openAIRealtimeRecorderRef.current) {
+      await openAIRealtimeRecorderRef.current.stopRecording();
+      openAIRealtimeRecorderRef.current = null;
+      addDebugLog('✅ OpenAI Realtime recording stopped');
     }
     
     // Stop enhanced audio capture
