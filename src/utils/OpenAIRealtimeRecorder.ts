@@ -122,55 +122,17 @@ export class OpenAIRealtimeRecorder {
     try {
       console.log('🎤 Setting up microphone audio for transcription...');
       
-      // First, check if mediaDevices is available
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error('Media devices not supported in this browser');
-      }
-      
-      // List available devices for debugging
-      try {
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const audioInputs = devices.filter(device => device.kind === 'audioinput');
-        console.log('🎤 Available audio input devices:', audioInputs.map(device => ({
-          deviceId: device.deviceId,
-          label: device.label || 'Unknown device',
-          groupId: device.groupId
-        })));
-        
-        if (audioInputs.length === 0) {
-          throw new Error('No microphone devices found');
-        }
-      } catch (error) {
-        console.warn('Could not enumerate devices:', error);
-      }
-      
-      // Get microphone stream with fallback options
+      // Get microphone stream - this is what we'll send to OpenAI for transcription
       console.log('📱 Requesting microphone permission...');
-      
-      let micStream: MediaStream;
-      try {
-        // Try with specific constraints first
-        micStream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            sampleRate: 24000,
-            channelCount: 1,
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true
-          }
-        });
-      } catch (error) {
-        console.warn('Failed with specific constraints, trying basic audio:', error);
-        // Fallback to basic audio constraints
-        try {
-          micStream = await navigator.mediaDevices.getUserMedia({
-            audio: true
-          });
-        } catch (basicError) {
-          console.error('Failed to get any audio input:', basicError);
-          throw new Error(`Microphone access failed: ${basicError.message}. Please check your browser permissions and ensure a microphone is connected.`);
+      const micStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          sampleRate: 24000,
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
         }
-      }
+      });
       
       console.log('✅ Microphone permission granted');
       console.log('🎤 Microphone tracks:', micStream.getAudioTracks().map(track => ({
