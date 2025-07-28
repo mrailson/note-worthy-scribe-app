@@ -60,6 +60,45 @@ function cleanupTranscript(text: string): string {
   return cleaned;
 }
 
+// Convert WebM audio chunk to WAV format
+function convertToWav(audioBytes: Uint8Array): Uint8Array {
+  // Simple WAV header for 16kHz mono audio
+  const sampleRate = 16000;
+  const numChannels = 1;
+  const bitsPerSample = 16;
+  const byteRate = sampleRate * numChannels * bitsPerSample / 8;
+  const blockAlign = numChannels * bitsPerSample / 8;
+  const dataSize = audioBytes.length;
+  const fileSize = 36 + dataSize;
+
+  const wav = new Uint8Array(44 + dataSize);
+  const view = new DataView(wav.buffer);
+
+  // RIFF header
+  wav.set(new TextEncoder().encode('RIFF'), 0);
+  view.setUint32(4, fileSize, true);
+  wav.set(new TextEncoder().encode('WAVE'), 8);
+
+  // fmt chunk
+  wav.set(new TextEncoder().encode('fmt '), 12);
+  view.setUint32(16, 16, true); // fmt chunk size
+  view.setUint16(20, 1, true); // PCM format
+  view.setUint16(22, numChannels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, byteRate, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, bitsPerSample, true);
+
+  // data chunk
+  wav.set(new TextEncoder().encode('data'), 36);
+  view.setUint32(40, dataSize, true);
+  
+  // Copy audio data (assuming it's already PCM data)
+  wav.set(audioBytes, 44);
+
+  return wav;
+}
+
 // Transcribe audio using Deepgram
 async function transcribeAudio(audioBase64: string, stream: string, chunk: AudioChunk): Promise<string> {
   const deepgramKey = Deno.env.get('DEEPGRAM_API_KEY');
@@ -84,16 +123,19 @@ async function transcribeAudio(audioBase64: string, stream: string, chunk: Audio
       return '';
     }
     
-    console.log(`Transcribing ${stream} audio chunk (${bytes.length} bytes) with Deepgram`);
+    // Convert to WAV format for better compatibility
+    const wavBytes = convertToWav(bytes);
+    
+    console.log(`Transcribing ${stream} audio chunk (${wavBytes.length} bytes WAV) with Deepgram`);
 
-    // Deepgram accepts WebM directly
-    const response = await fetch('https://api.deepgram.com/v1/listen?model=nova-2&smart_format=true', {
+    // Send WAV data to Deepgram
+    const response = await fetch('https://api.deepgram.com/v1/listen?model=nova-2&smart_format=true&language=en', {
       method: 'POST',
       headers: {
         'Authorization': `Token ${deepgramKey}`,
-        'Content-Type': 'audio/webm',
+        'Content-Type': 'audio/wav',
       },
-      body: bytes,
+      body: wavBytes,
     });
 
     if (!response.ok) {
