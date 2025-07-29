@@ -1008,13 +1008,6 @@ const EnhancedAccess = () => {
                           <div className="space-y-4">
                             <h4 className="text-xl font-semibold text-blue-600">Operational Improvements</h4>
                             
-                            <div className="bg-green-50 p-4 rounded-lg border-l-4 border-green-500">
-                              <h5 className="font-semibold text-green-700 mb-2">Excellent Performance Across Top Spokes</h5>
-                              <p className="text-sm text-green-600">
-                                Three spokes achieving 100% utilization (The Crescent, Rushden) and County at 98% - continue current approach
-                              </p>
-                            </div>
-
                             <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
                               <h5 className="font-semibold text-blue-700 mb-2">Launch of new online Enhanced Access Rota system</h5>
                               <p className="text-sm text-blue-600">Issue Feedback - Due Mid August</p>
