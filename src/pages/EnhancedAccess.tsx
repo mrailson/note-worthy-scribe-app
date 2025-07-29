@@ -573,9 +573,7 @@ const EnhancedAccess = () => {
                 <Tabs defaultValue="june-2025" className="w-full">
                   <div className="flex items-center gap-4 mb-6">
                     <BarChart3 className="h-5 w-5" />
-                    <TabsList className="grid grid-cols-3 gap-1">
-                      <TabsTrigger value="april-2025" className="text-xs">Apr 2025</TabsTrigger>
-                      <TabsTrigger value="may-2025" className="text-xs">May 2025</TabsTrigger>
+                    <TabsList className="grid grid-cols-1 gap-1">
                       <TabsTrigger value="june-2025" className="text-xs">Jun 2025</TabsTrigger>
                     </TabsList>
                   </div>
