@@ -914,7 +914,7 @@ const EnhancedAccess = () => {
                       </TabsContent>
 
                       <TabsContent value="financial" className="space-y-4">
-                        <div className="space-y-4 h-[75vh] overflow-hidden">
+                        <div className="space-y-4 h-[75vh] overflow-y-auto">{/* Changed from overflow-hidden to overflow-y-auto */}
                           <div className="bg-gradient-to-r from-green-600 to-green-700 text-white p-4 rounded-lg">
                             <div className="flex justify-between items-start">
                               <div>
