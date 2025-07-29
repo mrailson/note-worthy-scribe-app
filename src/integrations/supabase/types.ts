@@ -83,6 +83,51 @@ export type Database = {
         }
         Relationships: []
       }
+      bank_holidays_closed_days: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          date: string
+          hours_to_replace: number | null
+          id: string
+          is_replacement_required: boolean
+          name: string
+          notes: string | null
+          replacement_completed: boolean
+          replacement_deadline: string | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          date: string
+          hours_to_replace?: number | null
+          id?: string
+          is_replacement_required?: boolean
+          name: string
+          notes?: string | null
+          replacement_completed?: boolean
+          replacement_deadline?: string | null
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          hours_to_replace?: number | null
+          id?: string
+          is_replacement_required?: boolean
+          name?: string
+          notes?: string | null
+          replacement_completed?: boolean
+          replacement_deadline?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       communication_files: {
         Row: {
           communication_id: string
@@ -1480,6 +1525,88 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      replacement_shifts: {
+        Row: {
+          assigned_at: string | null
+          assigned_to: string | null
+          assignment_date: string
+          bank_holiday_id: string
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          end_time: string
+          hours: number
+          id: string
+          location: string
+          notes: string | null
+          required_role: string
+          shift_template_id: string | null
+          start_time: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_to?: string | null
+          assignment_date: string
+          bank_holiday_id: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          end_time: string
+          hours: number
+          id?: string
+          location: string
+          notes?: string | null
+          required_role: string
+          shift_template_id?: string | null
+          start_time: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_to?: string | null
+          assignment_date?: string
+          bank_holiday_id?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          end_time?: string
+          hours?: number
+          id?: string
+          location?: string
+          notes?: string | null
+          required_role?: string
+          shift_template_id?: string | null
+          start_time?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "replacement_shifts_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "staff_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replacement_shifts_bank_holiday_id_fkey"
+            columns: ["bank_holiday_id"]
+            isOneToOne: false
+            referencedRelation: "bank_holidays_closed_days"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replacement_shifts_shift_template_id_fkey"
+            columns: ["shift_template_id"]
+            isOneToOne: false
+            referencedRelation: "shift_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       security_settings: {
         Row: {

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Header } from "@/components/Header";
 import { StaffManagement } from "@/components/StaffManagement";
 import { ShiftAssignment } from "@/components/ShiftAssignment";
+import { BankHolidayManager } from "@/components/BankHolidayManager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -188,10 +189,11 @@ const EnhancedAccess = () => {
 
       <div className="container mx-auto px-4 py-2">
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="schedule">Rota Management</TabsTrigger>
-            <TabsTrigger value="staff">Staff Management</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-5">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="schedule">Rota Management</TabsTrigger>
+              <TabsTrigger value="staff">Staff Management</TabsTrigger>
+              <TabsTrigger value="holidays">Bank Holidays</TabsTrigger>
             <TabsTrigger 
               value="reports" 
               onClick={() => {
@@ -1087,6 +1089,10 @@ const EnhancedAccess = () => {
                 </Tabs>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="holidays" className="space-y-6 mt-6">
+            <BankHolidayManager />
           </TabsContent>
         </Tabs>
       </div>
