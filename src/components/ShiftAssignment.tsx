@@ -87,7 +87,7 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
     fetchStaffMembers();
     fetchAssignments();
     fetchBankHolidays();
-  }, [currentWeek]);
+  }, [currentWeek, isMonthlyView]);
 
   const fetchBankHolidays = async () => {
     try {
