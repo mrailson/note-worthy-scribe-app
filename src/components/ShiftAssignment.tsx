@@ -311,7 +311,7 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
 
     const hoursByRole = {
       GP: 0,
-      HCA: 0,
+      Phlebotomist: 0,
       total: 0
     };
 
@@ -329,8 +329,8 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
       // Categorize the role
       if (role === 'doctor' || role === 'dr' || role === 'gp') {
         hoursByRole.GP += hours;
-      } else if (role === 'hca' || role === 'health care assistant' || role === 'healthcare assistant') {
-        hoursByRole.HCA += hours;
+      } else if (role === 'phlebotomist') {
+        hoursByRole.Phlebotomist += hours;
       }
       
       hoursByRole.total += hours;
@@ -596,10 +596,10 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
                     </Card>
                     <Card>
                       <CardContent className="p-4">
-                        <div className="text-2xl font-bold text-blue-600">{monthlyHours.HCA.toFixed(1)}h</div>
-                        <div className="text-sm text-muted-foreground">HCA Hours</div>
+                        <div className="text-2xl font-bold text-blue-600">{monthlyHours.Phlebotomist.toFixed(1)}h</div>
+                        <div className="text-sm text-muted-foreground">Phlebotomist Hours</div>
                         <div className="text-xs text-muted-foreground mt-1">
-                          {monthlyHours.total > 0 ? `${((monthlyHours.HCA / monthlyHours.total) * 100).toFixed(1)}% of total` : '0% of total'}
+                          {monthlyHours.total > 0 ? `${((monthlyHours.Phlebotomist / monthlyHours.total) * 100).toFixed(1)}% of total` : '0% of total'}
                         </div>
                       </CardContent>
                     </Card>
