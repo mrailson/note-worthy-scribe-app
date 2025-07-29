@@ -598,8 +598,8 @@ const EnhancedAccess = () => {
                 <ShiftAssignment 
                   currentWeek={currentWeek} 
                   onAssignmentChange={handleAssignmentChange}
-                  isMonthlyView={isMonthlyView}
-                  isDetailedView={isDetailedView}
+                  isMonthlyView={false}
+                  isDetailedView={false}
                 />
               </CardContent>
             </Card>
