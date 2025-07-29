@@ -463,14 +463,18 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
                             <div className="space-y-1">
                                {shiftAssignments.map((assignment, idx) => (
                                  <div key={assignment.id} className="flex items-center justify-between">
-                                   <DropdownMenu>
-                                     <DropdownMenuTrigger asChild>
-                                       <Badge variant="secondary" className="text-xs flex items-center gap-1 cursor-pointer hover:bg-secondary/80">
-                                         {getRoleIcon(assignment.staff_member.role)}
-                                         {formatStaffName(assignment.staff_member.name, assignment.staff_member.role)}
-                                         <MoreVertical className="h-3 w-3 ml-1" />
-                                       </Badge>
-                                     </DropdownMenuTrigger>
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button 
+                                          variant="secondary" 
+                                          size="sm"
+                                          className="h-auto px-2 py-1 text-xs flex items-center gap-1 cursor-pointer hover:bg-secondary/80"
+                                        >
+                                          {getRoleIcon(assignment.staff_member.role)}
+                                          {formatStaffName(assignment.staff_member.name, assignment.staff_member.role)}
+                                          <MoreVertical className="h-3 w-3 ml-1" />
+                                        </Button>
+                                      </DropdownMenuTrigger>
                                       <DropdownMenuContent align="end" side="bottom" className="z-50">
                                         <DropdownMenuItem onClick={() => openSwapDialog(assignment)}>
                                           <RefreshCw className="h-3 w-3 mr-2" />
