@@ -523,11 +523,20 @@ const EnhancedAccess = () => {
             <div className="grid md:grid-cols-3 gap-4">
               <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium">This Week</CardTitle>
+                  <CardTitle className="text-sm font-medium">Required Hours</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{complianceStats.compliant}/{complianceStats.total}</div>
-                  <p className="text-xs text-muted-foreground">Shifts Assigned</p>
+                  <div className="text-2xl font-bold">237.25</div>
+                  <p className="text-xs text-muted-foreground">Monthly Target</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium">Weekly Requirement</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">54.75</div>
+                  <p className="text-xs text-muted-foreground">hrs</p>
                 </CardContent>
               </Card>
               <Card>
