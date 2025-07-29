@@ -306,6 +306,41 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
     return isDoctor ? `Dr ${name}` : name;
   };
 
+  const calculateMonthlyHours = () => {
+    if (!isMonthlyView || assignments.length === 0) return null;
+
+    const hoursByRole = {
+      GP: 0,
+      HCA: 0,
+      total: 0
+    };
+
+    assignments.forEach(assignment => {
+      const role = assignment.staff_member.role.toLowerCase();
+      
+      // Skip receptionist roles
+      if (role === 'receptionist') return;
+
+      // Calculate hours for this assignment
+      const startTime = new Date(`2000-01-01T${assignment.start_time}`);
+      const endTime = new Date(`2000-01-01T${assignment.end_time}`);
+      const hours = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+
+      // Categorize the role
+      if (role === 'doctor' || role === 'dr' || role === 'gp') {
+        hoursByRole.GP += hours;
+      } else if (role === 'hca' || role === 'health care assistant' || role === 'healthcare assistant') {
+        hoursByRole.HCA += hours;
+      }
+      
+      hoursByRole.total += hours;
+    });
+
+    return hoursByRole;
+  };
+
+  const monthlyHours = calculateMonthlyHours();
+
   const handleCopyPreviousWeek = async () => {
     setIsCopyingPreviousWeek(true);
     
@@ -418,121 +453,161 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
         </CardHeader>
         <CardContent>
           {isMonthlyView ? (
-            <div className={`grid grid-cols-7 gap-2 ${isDetailedView ? '' : ''}`}>
-              {/* Month header */}
-              {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
-                <div key={day} className="p-2 text-center font-medium text-sm text-muted-foreground">
-                  {day}
-                </div>
-              ))}
-              {/* Add empty cells for days before month starts */}
-              {(() => {
-                const firstDayOfMonth = startOfMonth(currentWeek);
-                const startDay = getDay(firstDayOfMonth); // 0 = Sunday, 1 = Monday, etc.
-                const mondayStart = startDay === 0 ? 6 : startDay - 1; // Convert to Monday = 0
-                
-                return Array.from({ length: mondayStart }, (_, i) => (
-                  <div key={`empty-${i}`} className="p-2 min-h-[60px]"></div>
-                ));
-              })()}
-              {/* Month days */}
-              {eachDayOfInterval({ start: monthStart, end: monthEnd }).map((day) => {
-                const dayOfWeek = getDay(day); // 0 = Sunday, 1 = Monday, etc.
-                const adjustedDayOfWeek = dayOfWeek === 0 ? 7 : dayOfWeek; // Convert Sunday to 7
-                const shifts = getShiftsForDay(adjustedDayOfWeek);
-                const isSunday = dayOfWeek === 0;
-                const isBankHoliday = bankHolidays.has(format(day, 'yyyy-MM-dd'));
-                const isClosedDay = isSunday || isBankHoliday;
-                
-                const hasAssignments = !isClosedDay && shifts.some(shift => {
-                  const shiftAssignments = assignments.filter(a => 
-                    a.shift_template_id === shift.id && 
-                    a.assignment_date === format(day, 'yyyy-MM-dd')
-                  );
-                  return shiftAssignments.length > 0;
-                });
-                
-                const allAssigned = !isClosedDay && shifts.length > 0 && shifts.every(shift => {
-                  const shiftAssignments = assignments.filter(a => 
-                    a.shift_template_id === shift.id && 
-                    a.assignment_date === format(day, 'yyyy-MM-dd')
-                  );
-                  return shiftAssignments.length > 0;
-                });
-
-                return (
-                  <div 
-                    key={day.toISOString()} 
-                    className={`p-2 border rounded text-center cursor-pointer hover:bg-muted/20 ${
-                      isDetailedView ? 'min-h-[140px]' : 'min-h-[60px]'
-                     } ${
-                       isClosedDay 
-                         ? "border-border/50 bg-muted/30"
-                         : allAssigned 
-                         ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20" 
-                         : hasAssignments
-                         ? "border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-900/20"
-                         : "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20"
-                     }`}
-                   >
-                     <div className="text-sm font-medium">{format(day, "d")}</div>
-                     {isClosedDay ? (
-                       <div className="text-xs text-muted-foreground mt-1">
-                         {isBankHoliday ? 'Bank Holiday' : 'No service'}
-                       </div>
-                    ) : isDetailedView ? (
-                      <div className="mt-1 space-y-1 text-left">
-                        {shifts.map(shift => {
-                          const shiftAssignments = assignments.filter(a => 
-                            a.shift_template_id === shift.id && 
-                            a.assignment_date === format(day, 'yyyy-MM-dd')
-                          );
-                          return (
-                            <div key={shift.id} className="text-xs border-b border-border/30 pb-1 last:border-b-0">
-                              <div className="font-medium text-xs text-center">{shift.start_time}-{shift.end_time}</div>
-                              <div className="text-center text-muted-foreground text-xs">{getLocationDisplay(shift.location)}</div>
-                              {shiftAssignments.length > 0 ? (
-                                shiftAssignments.map(assignment => (
-                                  <div key={assignment.id} className="text-green-600 text-center truncate flex items-center justify-center gap-1">
-                                    {getRoleIcon(assignment.staff_member.role)}
-                                    <span>{formatStaffName(assignment.staff_member.name, assignment.staff_member.role)}</span>
-                                  </div>
-                                ))
-                              ) : (
-                                <div className="text-red-600 text-center">Unassigned</div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ) : shifts.length > 0 ? (
-                      <div className="mt-1 space-y-1">
-                        {shifts.slice(0, 2).map(shift => {
-                          const shiftAssignments = assignments.filter(a => 
-                            a.shift_template_id === shift.id && 
-                            a.assignment_date === format(day, 'yyyy-MM-dd')
-                          );
-                          return (
-                            <div key={shift.id} className="text-xs">
-                              {shiftAssignments.length > 0 ? (
-                                <div className="text-green-600 font-medium">✓ {shift.start_time}</div>
-                              ) : (
-                                <div className="text-red-600">✗ {shift.start_time}</div>
-                              )}
-                            </div>
-                          );
-                        })}
-                        {shifts.length > 2 && (
-                          <div className="text-xs text-muted-foreground">+{shifts.length - 2} more</div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="text-xs text-muted-foreground mt-1">No shifts</div>
-                    )}
+            <>
+              <div className={`grid grid-cols-7 gap-2 ${isDetailedView ? '' : ''}`}>
+                {/* Month header */}
+                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
+                  <div key={day} className="p-2 text-center font-medium text-sm text-muted-foreground">
+                    {day}
                   </div>
-                );
-              })}
-            </div>
+                ))}
+                {/* Add empty cells for days before month starts */}
+                {(() => {
+                  const firstDayOfMonth = startOfMonth(currentWeek);
+                  const startDay = getDay(firstDayOfMonth); // 0 = Sunday, 1 = Monday, etc.
+                  const mondayStart = startDay === 0 ? 6 : startDay - 1; // Convert to Monday = 0
+                  
+                  return Array.from({ length: mondayStart }, (_, i) => (
+                    <div key={`empty-${i}`} className="p-2 min-h-[60px]"></div>
+                  ));
+                })()}
+                {/* Month days */}
+                {eachDayOfInterval({ start: monthStart, end: monthEnd }).map((day) => {
+                  const dayOfWeek = getDay(day); // 0 = Sunday, 1 = Monday, etc.
+                  const adjustedDayOfWeek = dayOfWeek === 0 ? 7 : dayOfWeek; // Convert Sunday to 7
+                  const shifts = getShiftsForDay(adjustedDayOfWeek);
+                  const isSunday = dayOfWeek === 0;
+                  const isBankHoliday = bankHolidays.has(format(day, 'yyyy-MM-dd'));
+                  const isClosedDay = isSunday || isBankHoliday;
+                  
+                  const hasAssignments = !isClosedDay && shifts.some(shift => {
+                    const shiftAssignments = assignments.filter(a => 
+                      a.shift_template_id === shift.id && 
+                      a.assignment_date === format(day, 'yyyy-MM-dd')
+                    );
+                    return shiftAssignments.length > 0;
+                  });
+                  
+                  const allAssigned = !isClosedDay && shifts.length > 0 && shifts.every(shift => {
+                    const shiftAssignments = assignments.filter(a => 
+                      a.shift_template_id === shift.id && 
+                      a.assignment_date === format(day, 'yyyy-MM-dd')
+                    );
+                    return shiftAssignments.length > 0;
+                  });
+
+                  return (
+                    <div 
+                      key={day.toISOString()} 
+                      className={`p-2 border rounded text-center cursor-pointer hover:bg-muted/20 ${
+                        isDetailedView ? 'min-h-[140px]' : 'min-h-[60px]'
+                       } ${
+                         isClosedDay 
+                           ? "border-border/50 bg-muted/30"
+                           : allAssigned 
+                           ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20" 
+                           : hasAssignments
+                           ? "border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-900/20"
+                           : "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20"
+                       }`}
+                     >
+                       <div className="text-sm font-medium">{format(day, "d")}</div>
+                       {isClosedDay ? (
+                         <div className="text-xs text-muted-foreground mt-1">
+                           {isBankHoliday ? 'Bank Holiday' : 'No service'}
+                         </div>
+                      ) : isDetailedView ? (
+                        <div className="mt-1 space-y-1 text-left">
+                          {shifts.map(shift => {
+                            const shiftAssignments = assignments.filter(a => 
+                              a.shift_template_id === shift.id && 
+                              a.assignment_date === format(day, 'yyyy-MM-dd')
+                            );
+                            return (
+                              <div key={shift.id} className="text-xs border-b border-border/30 pb-1 last:border-b-0">
+                                <div className="font-medium text-xs text-center">{shift.start_time}-{shift.end_time}</div>
+                                <div className="text-center text-muted-foreground text-xs">{getLocationDisplay(shift.location)}</div>
+                                {shiftAssignments.length > 0 ? (
+                                  shiftAssignments.map(assignment => (
+                                    <div key={assignment.id} className="text-green-600 text-center truncate flex items-center justify-center gap-1">
+                                      {getRoleIcon(assignment.staff_member.role)}
+                                      <span>{formatStaffName(assignment.staff_member.name, assignment.staff_member.role)}</span>
+                                    </div>
+                                  ))
+                                ) : (
+                                  <div className="text-red-600 text-center">Unassigned</div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : shifts.length > 0 ? (
+                        <div className="mt-1 space-y-1">
+                          {shifts.slice(0, 2).map(shift => {
+                            const shiftAssignments = assignments.filter(a => 
+                              a.shift_template_id === shift.id && 
+                              a.assignment_date === format(day, 'yyyy-MM-dd')
+                            );
+                            return (
+                              <div key={shift.id} className="text-xs">
+                                {shiftAssignments.length > 0 ? (
+                                  <div className="text-green-600 font-medium">✓ {shift.start_time}</div>
+                                ) : (
+                                  <div className="text-red-600">✗ {shift.start_time}</div>
+                                )}
+                              </div>
+                            );
+                          })}
+                          {shifts.length > 2 && (
+                            <div className="text-xs text-muted-foreground">+{shifts.length - 2} more</div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="text-xs text-muted-foreground mt-1">No shifts</div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              
+              {/* Monthly Hours Summary */}
+              {monthlyHours && (
+                <div className="mt-6 pt-6 border-t border-border">
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <Clock className="h-5 w-5" />
+                    Monthly Hours Summary - {format(currentWeek, "MMMM yyyy")}
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="text-2xl font-bold text-primary">{monthlyHours.total.toFixed(1)}h</div>
+                        <div className="text-sm text-muted-foreground">Total Hours</div>
+                        <div className="text-xs text-muted-foreground mt-1">(Excluding Receptionist)</div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="text-2xl font-bold text-green-600">{monthlyHours.GP.toFixed(1)}h</div>
+                        <div className="text-sm text-muted-foreground">GP Hours</div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {monthlyHours.total > 0 ? `${((monthlyHours.GP / monthlyHours.total) * 100).toFixed(1)}% of total` : '0% of total'}
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="text-2xl font-bold text-blue-600">{monthlyHours.HCA.toFixed(1)}h</div>
+                        <div className="text-sm text-muted-foreground">HCA Hours</div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {monthlyHours.total > 0 ? `${((monthlyHours.HCA / monthlyHours.total) * 100).toFixed(1)}% of total` : '0% of total'}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+              )}
+            </>
+            
           ) : (
             <div className="grid grid-cols-7 gap-4">
               {weekDays.map((day, index) => {
