@@ -471,7 +471,7 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
                                          <MoreVertical className="h-3 w-3 ml-1" />
                                        </Badge>
                                      </DropdownMenuTrigger>
-                                      <DropdownMenuContent align="end" className="z-50">
+                                      <DropdownMenuContent align="end" side="bottom" className="z-50">
                                         <DropdownMenuItem onClick={() => openSwapDialog(assignment)}>
                                           <RefreshCw className="h-3 w-3 mr-2" />
                                           Swap Staff Member
