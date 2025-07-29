@@ -684,7 +684,7 @@ const EnhancedAccess = () => {
                                 <li>• Rushden: <strong>100%</strong></li>
                                 <li>• County Spoke: <strong>98.0%</strong></li>
                                 <li>• Brook Spoke: <strong>89.0%</strong></li>
-                                <li>• Kings Heath Hub: <strong>84.4%</strong></li>
+                                <li>• Kings Heath Hub: <strong>87%</strong></li>
                                 <li>• Bugbrooke: <strong>85.5%</strong></li>
                               </ul>
                             </div>
