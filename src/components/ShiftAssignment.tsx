@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, Calendar, MapPin, Clock, UserPlus, Activity, Droplets, UserCheck, Plus, MoreVertical, UserX, RefreshCw, Copy } from "lucide-react";
+import { Users, Calendar, MapPin, Clock, UserPlus, Activity, Droplets, UserCheck, Plus, MoreVertical, UserX, RefreshCw, Copy, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { format, addDays, startOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, getDay } from "date-fns";
 
@@ -211,6 +211,24 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
       onAssignmentChange();
     } catch (error) {
       toast.error('Failed to remove staff member');
+      console.error('Error:', error);
+    }
+  };
+
+  const handleCancelShift = async (assignmentId: string) => {
+    try {
+      const { error } = await supabase
+        .from('staff_assignments')
+        .update({ status: 'cancelled_late_notice' })
+        .eq('id', assignmentId);
+
+      if (error) throw error;
+
+      toast.success('Shift marked as cancelled with late notice');
+      fetchAssignments();
+      onAssignmentChange();
+    } catch (error) {
+      toast.error('Failed to update shift status');
       console.error('Error:', error);
     }
   };
@@ -487,6 +505,14 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
                     );
                     return shiftAssignments.length > 0;
                   });
+
+                  const hasCancelledShifts = !isClosedDay && shifts.some(shift => {
+                    const shiftAssignments = assignments.filter(a => 
+                      a.shift_template_id === shift.id && 
+                      a.assignment_date === format(day, 'yyyy-MM-dd')
+                    );
+                    return shiftAssignments.some(a => a.status === 'cancelled_late_notice');
+                  });
                   
                   const allAssigned = !isClosedDay && shifts.length > 0 && shifts.every(shift => {
                     const shiftAssignments = assignments.filter(a => 
@@ -504,6 +530,8 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
                        } ${
                          isClosedDay 
                            ? "border-border/50 bg-muted/30"
+                           : hasCancelledShifts
+                           ? "border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-900/20"
                            : allAssigned 
                            ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20" 
                            : hasAssignments
@@ -527,13 +555,18 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
                               <div key={shift.id} className="text-xs border-b border-border/30 pb-1 last:border-b-0">
                                 <div className="font-medium text-xs text-center">{shift.start_time}-{shift.end_time}</div>
                                 <div className="text-center text-muted-foreground text-xs">{getLocationDisplay(shift.location)}</div>
-                                {shiftAssignments.length > 0 ? (
-                                  shiftAssignments.map(assignment => (
-                                    <div key={assignment.id} className="text-green-600 text-center truncate flex items-center justify-center gap-1">
-                                      {getRoleIcon(assignment.staff_member.role)}
-                                      <span>{formatStaffName(assignment.staff_member.name, assignment.staff_member.role)}</span>
-                                    </div>
-                                  ))
+                                 {shiftAssignments.length > 0 ? (
+                                   shiftAssignments.map(assignment => (
+                                     <div key={assignment.id} className={`text-center truncate flex items-center justify-center gap-1 ${
+                                       assignment.status === 'cancelled_late_notice' 
+                                         ? 'text-orange-600' 
+                                         : 'text-green-600'
+                                     }`}>
+                                       {getRoleIcon(assignment.staff_member.role)}
+                                       <span>{formatStaffName(assignment.staff_member.name, assignment.staff_member.role)}</span>
+                                       {assignment.status === 'cancelled_late_notice' && <AlertTriangle className="h-3 w-3" />}
+                                     </div>
+                                   ))
                                 ) : (
                                   <div className="text-red-600 text-center">Unassigned</div>
                                 )}
@@ -644,15 +677,17 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
                       const availableStaff = getAvailableStaff(shift.required_role, day, shift);
                       const canAddMore = availableStaff.length > 0;
                       
-                      return (
-                        <div 
-                          key={shift.id}
-                          className={`p-2 rounded border text-xs space-y-1 ${
-                            hasAssignments 
-                              ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20" 
-                              : "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20"
-                          }`}
-                        >
+                       return (
+                         <div 
+                           key={shift.id}
+                           className={`p-2 rounded border text-xs space-y-1 ${
+                             hasAssignments 
+                               ? shiftAssignments.some(a => a.status === 'cancelled_late_notice')
+                                 ? "border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-900/20"
+                                 : "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20"
+                               : "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20"
+                           }`}
+                         >
                           <div className="font-medium">{shift.name}</div>
                           <div className="flex items-center gap-1">
                             <Clock className="h-3 w-3" />
@@ -679,19 +714,26 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
                                           <MoreVertical className="h-3 w-3 ml-1" />
                                         </Button>
                                       </DropdownMenuTrigger>
-                                      <DropdownMenuContent align="end" side="bottom" className="z-50">
-                                        <DropdownMenuItem onClick={() => openSwapDialog(assignment)}>
-                                          <RefreshCw className="h-3 w-3 mr-2" />
-                                          Swap Staff Member
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem 
-                                          onClick={() => handleRemoveStaff(assignment.id)}
-                                          className="text-destructive"
-                                        >
-                                          <UserX className="h-3 w-3 mr-2" />
-                                          Remove
-                                        </DropdownMenuItem>
-                                      </DropdownMenuContent>
+                                       <DropdownMenuContent align="end" side="bottom" className="z-50 bg-background border border-border shadow-lg">
+                                         <DropdownMenuItem onClick={() => openSwapDialog(assignment)}>
+                                           <RefreshCw className="h-3 w-3 mr-2" />
+                                           Swap Staff Member
+                                         </DropdownMenuItem>
+                                         <DropdownMenuItem 
+                                           onClick={() => handleCancelShift(assignment.id)}
+                                           className="text-orange-600 focus:text-orange-600"
+                                         >
+                                           <AlertTriangle className="h-3 w-3 mr-2" />
+                                           Late Notice Cancelled by GP
+                                         </DropdownMenuItem>
+                                         <DropdownMenuItem 
+                                           onClick={() => handleRemoveStaff(assignment.id)}
+                                           className="text-destructive"
+                                         >
+                                           <UserX className="h-3 w-3 mr-2" />
+                                           Remove
+                                         </DropdownMenuItem>
+                                       </DropdownMenuContent>
                                    </DropdownMenu>
                                  </div>
                                ))}
