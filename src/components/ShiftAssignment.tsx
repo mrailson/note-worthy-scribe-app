@@ -471,19 +471,19 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
                                          <MoreVertical className="h-3 w-3 ml-1" />
                                        </Badge>
                                      </DropdownMenuTrigger>
-                                     <DropdownMenuContent align="end">
-                                       <DropdownMenuItem onClick={() => openSwapDialog(assignment)}>
-                                         <RefreshCw className="h-3 w-3 mr-2" />
-                                         Swap Staff Member
-                                       </DropdownMenuItem>
-                                       <DropdownMenuItem 
-                                         onClick={() => handleRemoveStaff(assignment.id)}
-                                         className="text-destructive"
-                                       >
-                                         <UserX className="h-3 w-3 mr-2" />
-                                         Remove
-                                       </DropdownMenuItem>
-                                     </DropdownMenuContent>
+                                      <DropdownMenuContent align="end" className="z-50">
+                                        <DropdownMenuItem onClick={() => openSwapDialog(assignment)}>
+                                          <RefreshCw className="h-3 w-3 mr-2" />
+                                          Swap Staff Member
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem 
+                                          onClick={() => handleRemoveStaff(assignment.id)}
+                                          className="text-destructive"
+                                        >
+                                          <UserX className="h-3 w-3 mr-2" />
+                                          Remove
+                                        </DropdownMenuItem>
+                                      </DropdownMenuContent>
                                    </DropdownMenu>
                                  </div>
                                ))}
