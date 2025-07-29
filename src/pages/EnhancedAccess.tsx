@@ -915,18 +915,6 @@ const EnhancedAccess = () => {
 
                       <TabsContent value="financial" className="space-y-4">
                         <div className="space-y-4 h-[75vh] overflow-y-auto">{/* Changed from overflow-hidden to overflow-y-auto */}
-                          <div className="bg-gradient-to-r from-green-600 to-green-700 text-white p-4 rounded-lg">
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <h3 className="text-lg font-bold mb-1">Income & Expenditure Analysis</h3>
-                                <p className="text-green-100 text-sm">Enhanced Access - June 2025</p>
-                              </div>
-                              <div className="bg-white text-green-600 px-2 py-1 rounded font-semibold text-xs">
-                                BLUE PCN
-                              </div>
-                            </div>
-                          </div>
-
                           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                             <div className="space-y-3">
                               <h4 className="text-lg font-semibold text-green-600">Income Breakdown</h4>
