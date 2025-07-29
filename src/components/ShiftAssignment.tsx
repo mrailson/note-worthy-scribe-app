@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, Calendar, MapPin, Clock, UserPlus, Activity, Droplets, UserCheck, Plus, MoreVertical, UserX, RefreshCw } from "lucide-react";
+import { Users, Calendar, MapPin, Clock, UserPlus, Activity, Droplets, UserCheck, Plus, MoreVertical, UserX, RefreshCw, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { format, addDays, startOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, getDay } from "date-fns";
 
@@ -74,6 +74,7 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
   const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
   const [isSwapDialogOpen, setIsSwapDialogOpen] = useState(false);
   const [assignmentToSwap, setAssignmentToSwap] = useState<StaffAssignment | null>(null);
+  const [isCopyingPreviousWeek, setIsCopyingPreviousWeek] = useState(false);
 
   const weekStart = startOfWeek(currentWeek, { weekStartsOn: 1 });
   const monthStart = startOfMonth(currentWeek);
@@ -283,17 +284,115 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
     return isDoctor ? `Dr ${name}` : name;
   };
 
+  const handleCopyPreviousWeek = async () => {
+    setIsCopyingPreviousWeek(true);
+    
+    try {
+      const previousWeekStart = addDays(weekStart, -7);
+      const previousWeekEnd = addDays(weekStart, -1);
+      
+      // Fetch previous week's assignments
+      const { data: previousAssignments, error: fetchError } = await supabase
+        .from('staff_assignments')
+        .select(`
+          *,
+          staff_member:staff_members(name, role),
+          shift_template:shift_templates(name, required_role)
+        `)
+        .gte('assignment_date', format(previousWeekStart, 'yyyy-MM-dd'))
+        .lte('assignment_date', format(previousWeekEnd, 'yyyy-MM-dd'));
+
+      if (fetchError) throw fetchError;
+
+      if (!previousAssignments || previousAssignments.length === 0) {
+        toast.error('No assignments found for the previous week');
+        return;
+      }
+
+      // Create new assignments for current week
+      const newAssignments = previousAssignments.map(assignment => {
+        const previousDate = new Date(assignment.assignment_date);
+        const dayOfWeek = getDay(previousDate);
+        const adjustedDayOfWeek = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Convert to 0=Monday, 6=Sunday
+        const newDate = addDays(weekStart, adjustedDayOfWeek);
+        
+        return {
+          shift_template_id: assignment.shift_template_id,
+          staff_member_id: assignment.staff_member_id,
+          assignment_date: format(newDate, 'yyyy-MM-dd'),
+          start_time: assignment.start_time,
+          end_time: assignment.end_time,
+          location: assignment.location,
+          status: 'scheduled',
+        };
+      });
+
+      // Check for existing assignments to avoid duplicates
+      const { data: existingAssignments, error: existingError } = await supabase
+        .from('staff_assignments')
+        .select('shift_template_id, assignment_date')
+        .gte('assignment_date', format(weekStart, 'yyyy-MM-dd'))
+        .lte('assignment_date', format(addDays(weekStart, 6), 'yyyy-MM-dd'));
+
+      if (existingError) throw existingError;
+
+      // Filter out assignments that already exist
+      const existingKeys = new Set(
+        existingAssignments?.map(a => `${a.shift_template_id}-${a.assignment_date}`) || []
+      );
+      
+      const filteredNewAssignments = newAssignments.filter(assignment => 
+        !existingKeys.has(`${assignment.shift_template_id}-${assignment.assignment_date}`)
+      );
+
+      if (filteredNewAssignments.length === 0) {
+        toast.error('All shifts for this week are already assigned');
+        return;
+      }
+
+      // Insert new assignments
+      const { error: insertError } = await supabase
+        .from('staff_assignments')
+        .insert(filteredNewAssignments);
+
+      if (insertError) throw insertError;
+
+      toast.success(`Copied ${filteredNewAssignments.length} assignments from previous week`);
+      fetchAssignments();
+      onAssignmentChange();
+    } catch (error) {
+      toast.error('Failed to copy previous week assignments');
+      console.error('Error:', error);
+    } finally {
+      setIsCopyingPreviousWeek(false);
+    }
+  };
+
   return (
     <>
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            {isMonthlyView 
-              ? `${format(currentWeek, "MMMM yyyy")} Shift Assignments`
-              : `Shift Assignments - Week of ${formatDateWithOrdinal(weekStart)}`
-            }
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              {isMonthlyView 
+                ? `${format(currentWeek, "MMMM yyyy")} Shift Assignments`
+                : `Shift Assignments - Week of ${formatDateWithOrdinal(weekStart)}`
+              }
+            </CardTitle>
+            {!isMonthlyView && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCopyPreviousWeek}
+                disabled={isCopyingPreviousWeek}
+                className="flex items-center gap-2"
+              >
+                <Copy className="h-4 w-4" />
+                {isCopyingPreviousWeek ? 'Copying...' : 'Copy Previous Week'}
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {isMonthlyView ? (
