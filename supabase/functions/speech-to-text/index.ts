@@ -95,8 +95,8 @@ serve(async (req) => {
     filteredText = filteredText.replace(/\s+/g, ' ').trim();
     
     // Only return text if it contains English letters and meaningful content
-    const hasEnglishContent = /[a-zA-Z]{2,}/.test(filteredText);
-    const finalText = hasEnglishContent ? filteredText : '';
+    const hasEnglishContent = /[a-zA-Z]/.test(filteredText);
+    const finalText = hasEnglishContent && filteredText.length > 0 ? filteredText : '';
     
     console.log('✅ Filtered transcription:', finalText);
 
