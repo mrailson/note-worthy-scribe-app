@@ -724,7 +724,10 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
                                            className="text-orange-600 focus:text-orange-600"
                                          >
                                            <AlertTriangle className="h-3 w-3 mr-2" />
-                                           Late Notice Cancelled by GP
+                                           {['doctor', 'dr', 'gp'].includes(assignment.staff_member.role.toLowerCase()) 
+                                             ? 'Late Notice Cancelled by GP'
+                                             : 'Late Notice Cancelled'
+                                           }
                                          </DropdownMenuItem>
                                          <DropdownMenuItem 
                                            onClick={() => handleRemoveStaff(assignment.id)}
