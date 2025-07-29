@@ -759,19 +759,19 @@ const EnhancedAccess = () => {
                         </div>
                       </div>
 
-                      <div className="bg-blue-50 p-6 rounded-lg">
-                        <h4 className="text-xl font-semibold text-blue-600 mb-4">Financial Summary</h4>
+                      <div className="bg-blue-50 p-8 rounded-lg">
+                        <h4 className="text-xl font-semibold text-blue-600 mb-6">Financial Summary</h4>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                           <div className="text-center">
-                            <h6 className="text-gray-600 mb-2">Total Income</h6>
+                            <h6 className="text-gray-600 mb-3">Total Income</h6>
                             <div className="text-2xl font-bold text-green-600">£38,101.84</div>
                           </div>
                           <div className="text-center">
-                            <h6 className="text-gray-600 mb-2">Total Expenditure</h6>
+                            <h6 className="text-gray-600 mb-3">Total Expenditure</h6>
                             <div className="text-2xl font-bold text-red-600">£11,931.00</div>
                           </div>
                           <div className="text-center">
-                            <h6 className="text-gray-600 mb-2">Net Position before £5 per-patient payment to Practices</h6>
+                            <h6 className="text-gray-600 mb-3">Net Position before £5 per-patient payment to Practices</h6>
                             <div className="text-3xl font-bold text-green-600">£26,170.84</div>
                           </div>
                         </div>
@@ -984,19 +984,19 @@ const EnhancedAccess = () => {
                             </div>
                           </div>
 
-                          <div className="bg-blue-50 p-4 rounded-lg">
-                            <h4 className="text-lg font-semibold text-blue-600 mb-3">Financial Summary</h4>
+                          <div className="bg-blue-50 p-6 rounded-lg">
+                            <h4 className="text-lg font-semibold text-blue-600 mb-4">Financial Summary</h4>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                               <div className="text-center">
-                                <h6 className="text-gray-600 mb-1 text-xs">Total Income</h6>
+                                <h6 className="text-gray-600 mb-2 text-xs">Total Income</h6>
                                 <div className="text-lg font-bold text-green-600">£38,101.84</div>
                               </div>
                               <div className="text-center">
-                                <h6 className="text-gray-600 mb-1 text-xs">Total Expenditure</h6>
+                                <h6 className="text-gray-600 mb-2 text-xs">Total Expenditure</h6>
                                 <div className="text-lg font-bold text-red-600">£11,931.00</div>
                               </div>
                               <div className="text-center">
-                                <h6 className="text-gray-600 mb-1 text-xs">Net Position before £5 per-patient payment to Practices</h6>
+                                <h6 className="text-gray-600 mb-2 text-xs">Net Position before £5 per-patient payment to Practices</h6>
                                 <div className="text-xl font-bold text-green-600">£26,170.84</div>
                               </div>
                             </div>
