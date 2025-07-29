@@ -25,6 +25,7 @@ const App = () => (
       <Route path="/gp-scribe" element={<GPScribe />} />
       <Route path="/gp-scribe/settings" element={<GPScribeSettings />} />
       <Route path="/meetings" element={<MeetingHistory />} />
+      <Route path="/meeting-history" element={<MeetingHistory />} />
       <Route path="/meeting-summary" element={<MeetingSummary />} />
       <Route path="/settings" element={<Settings />} />
       <Route path="/admin" element={<SystemAdmin />} />
