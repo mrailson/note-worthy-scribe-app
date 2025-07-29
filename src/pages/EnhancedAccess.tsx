@@ -192,7 +192,17 @@ const EnhancedAccess = () => {
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="schedule">Schedule</TabsTrigger>
             <TabsTrigger value="staff">Staff Management</TabsTrigger>
-            <TabsTrigger value="reports">Reports</TabsTrigger>
+            <TabsTrigger 
+              value="reports" 
+              onClick={() => {
+                setTimeout(() => {
+                  const headerHeight = 120; // Approximate height of header + page title
+                  window.scrollTo({ top: headerHeight, behavior: 'smooth' });
+                }, 100);
+              }}
+            >
+              Reports
+            </TabsTrigger>
           </TabsList>
           
           <TabsContent value="overview" className="space-y-6 mt-6">
@@ -580,12 +590,7 @@ const EnhancedAccess = () => {
                           <span className="text-sm font-medium">Jun 2025</span>
                         </div>
                         <TabsList className="grid grid-cols-5">
-                          <TabsTrigger 
-                            value="overview" 
-                            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                          >
-                            Overview
-                          </TabsTrigger>
+                          <TabsTrigger value="overview">Overview</TabsTrigger>
                           <TabsTrigger value="service">Service Delivery</TabsTrigger>
                           <TabsTrigger value="financial">Financial</TabsTrigger>
                           <TabsTrigger value="funding">Practice Splits</TabsTrigger>
