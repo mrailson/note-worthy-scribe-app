@@ -35,6 +35,7 @@ const EnhancedAccess = () => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [weeklyAssignments, setWeeklyAssignments] = useState<any[]>([]);
   const [shiftTemplates, setShiftTemplates] = useState<any[]>([]);
+  const [bankHolidays, setBankHolidays] = useState<Set<string>>(new Set());
 
   const weekStart = startOfWeek(currentWeek, { weekStartsOn: 1 });
   const monthStart = startOfMonth(currentWeek);
@@ -43,7 +44,28 @@ const EnhancedAccess = () => {
   useEffect(() => {
     calculateComplianceStats();
     fetchWeeklyData();
+    fetchBankHolidays();
   }, [currentWeek, refreshTrigger, isMonthlyView]);
+
+  const fetchBankHolidays = async () => {
+    try {
+      const startDate = isMonthlyView ? format(monthStart, 'yyyy-MM-dd') : format(weekStart, 'yyyy-MM-dd');
+      const endDate = isMonthlyView ? format(monthEnd, 'yyyy-MM-dd') : format(addDays(weekStart, 6), 'yyyy-MM-dd');
+
+      const { data, error } = await supabase
+        .from('bank_holidays_closed_days')
+        .select('date')
+        .gte('date', startDate)
+        .lte('date', endDate);
+
+      if (error) throw error;
+      
+      const holidayDates = new Set(data?.map(h => h.date) || []);
+      setBankHolidays(holidayDates);
+    } catch (error) {
+      console.error('Error fetching bank holidays:', error);
+    }
+  };
 
   const calculateComplianceStats = async () => {
     try {
@@ -273,8 +295,10 @@ const EnhancedAccess = () => {
                       const adjustedDayOfWeek = dayOfWeek === 0 ? 7 : dayOfWeek; // Convert Sunday to 7
                       const shifts = getShiftsForDay(adjustedDayOfWeek);
                       const isSunday = dayOfWeek === 0;
+                      const isBankHoliday = bankHolidays.has(format(day, 'yyyy-MM-dd'));
+                      const isClosedDay = isSunday || isBankHoliday;
                       
-                      const hasAssignments = !isSunday && shifts.some(shift => {
+                      const hasAssignments = !isClosedDay && shifts.some(shift => {
                         const shiftAssignments = weeklyAssignments.filter(a => 
                           a.shift_template_id === shift.id && 
                           a.assignment_date === format(day, 'yyyy-MM-dd')
@@ -282,7 +306,7 @@ const EnhancedAccess = () => {
                         return shiftAssignments.length > 0;
                       });
                       
-                      const allAssigned = !isSunday && shifts.length > 0 && shifts.every(shift => {
+                      const allAssigned = !isClosedDay && shifts.length > 0 && shifts.every(shift => {
                         const shiftAssignments = weeklyAssignments.filter(a => 
                           a.shift_template_id === shift.id && 
                           a.assignment_date === format(day, 'yyyy-MM-dd')
@@ -293,21 +317,23 @@ const EnhancedAccess = () => {
                       return (
                         <div 
                           key={day.toISOString()} 
-                          className={`p-2 border rounded text-center ${
-                            isDetailedView ? 'min-h-[120px]' : 'min-h-[60px]'
-                          } ${
-                            isSunday 
-                              ? "border-border/50 bg-muted/30"
-                              : allAssigned 
-                              ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20" 
-                              : hasAssignments
-                              ? "border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-900/20"
-                              : "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20"
-                          }`}
-                        >
-                          <div className="text-sm font-medium">{format(day, "d")}</div>
-                          {isSunday ? (
-                            <div className="text-xs text-muted-foreground mt-1">No service</div>
+                           className={`p-2 border rounded text-center ${
+                             isDetailedView ? 'min-h-[120px]' : 'min-h-[60px]'
+                           } ${
+                             isClosedDay 
+                               ? "border-border/50 bg-muted/30"
+                               : allAssigned 
+                               ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20" 
+                               : hasAssignments
+                               ? "border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-900/20"
+                               : "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20"
+                           }`}
+                         >
+                           <div className="text-sm font-medium">{format(day, "d")}</div>
+                           {isClosedDay ? (
+                             <div className="text-xs text-muted-foreground mt-1">
+                               {isBankHoliday ? 'Bank Holiday' : 'No service'}
+                             </div>
                           ) : isDetailedView ? (
                             <div className="mt-1 space-y-1">
                               {shifts.map(shift => {
@@ -354,14 +380,18 @@ const EnhancedAccess = () => {
                       const dayOfWeek = index + 1; // 1=Monday, 2=Tuesday, etc.
                       const shifts = getShiftsForDay(dayOfWeek);
                       const isSunday = index === 6;
+                      const isBankHoliday = bankHolidays.has(format(day, 'yyyy-MM-dd'));
+                      const isClosedDay = isSunday || isBankHoliday;
                       
-                      if (isSunday) {
+                      if (isClosedDay) {
                         return (
                           <div key={day.toISOString()} className="p-3 border border-border/50 rounded-lg bg-muted/30">
                             <div className="text-center">
                               <h3 className="font-medium text-muted-foreground text-sm">{format(day, "EEE")}</h3>
                               <p className="text-xs text-muted-foreground mt-1">{formatDateWithOrdinal(day)}</p>
-                              <p className="text-xs text-muted-foreground mt-2">No service</p>
+                              <p className="text-xs text-muted-foreground mt-2">
+                                {isBankHoliday ? 'Bank Holiday' : 'No service'}
+                              </p>
                             </div>
                           </div>
                         );
