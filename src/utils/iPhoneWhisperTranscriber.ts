@@ -154,7 +154,7 @@ export class iPhoneWhisperTranscriber {
           text: data.text.trim(),
           is_final: true,
           confidence: 0.9,
-          speaker: 'Speaker 1'
+          speaker: 'Speaker'
         };
 
         console.log('✅ iPhone transcription:', data.text);

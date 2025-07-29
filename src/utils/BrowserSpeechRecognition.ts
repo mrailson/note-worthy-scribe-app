@@ -9,7 +9,7 @@ interface TranscriptData {
 export class BrowserSpeechRecognition {
   private recognition: any = null;
   private isListening = false;
-  private currentSpeaker = 'Speaker 1';
+  private currentSpeaker = 'Speaker';
 
   constructor(
     private onTranscript: (transcript: TranscriptData) => void,

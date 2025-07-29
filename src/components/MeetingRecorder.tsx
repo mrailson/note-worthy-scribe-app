@@ -249,7 +249,7 @@ export const MeetingRecorder = ({
   const handleBrowserTranscript = (data: BrowserTranscriptData) => {
     const transcriptData: TranscriptData = {
       text: data.text,
-      speaker: data.speaker || 'Speaker 1',
+      speaker: data.speaker || 'Speaker',
       confidence: data.confidence,
       timestamp: new Date().toISOString(),
       isFinal: data.is_final

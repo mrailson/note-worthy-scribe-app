@@ -85,7 +85,7 @@ export class WebSpeechTranscriber {
               text: transcript,
               is_final: result.isFinal,
               confidence: result[0].confidence || 0.85,
-              speaker: 'Speaker 1'
+              speaker: 'Speaker'
             };
 
             // Enhanced filtering for better quality

@@ -346,7 +346,7 @@ const Index = () => {
     let targetLanguage: string;
     
     // Better speaker detection
-    if (speakerName.includes('doctor') || speakerName.includes('gp') || speakerName.includes('physician') || speakerName === 'speaker 1') {
+    if (speakerName.includes('doctor') || speakerName.includes('gp') || speakerName.includes('physician') || speakerName === 'speaker') {
       detectedSpeaker = 'GP';
       sourceLanguage = 'en';
       targetLanguage = translationLanguage;

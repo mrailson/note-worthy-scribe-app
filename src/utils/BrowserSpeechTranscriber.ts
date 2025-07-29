@@ -74,7 +74,7 @@ export class BrowserSpeechTranscriber {
                 text: transcript,
                 is_final: true, // Always mark as final since we're only processing finals
                 confidence: result[0].confidence || 0.9,
-                speaker: 'Speaker 1'
+                speaker: 'Speaker'
               };
 
               // Filter out likely hallucinations
