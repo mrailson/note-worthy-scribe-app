@@ -190,7 +190,7 @@ const EnhancedAccess = () => {
         <Tabs defaultValue="overview" className="w-full">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="schedule">Schedule</TabsTrigger>
+            <TabsTrigger value="schedule">Rota Management</TabsTrigger>
             <TabsTrigger value="staff">Staff Management</TabsTrigger>
             <TabsTrigger 
               value="reports" 
