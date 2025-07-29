@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, Calendar, MapPin, Clock, UserPlus, Activity, Droplets, UserCheck, Plus } from "lucide-react";
+import { Users, Calendar, MapPin, Clock, UserPlus, Activity, Droplets, UserCheck, Plus, MoreVertical, UserX, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { format, addDays, startOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, getDay } from "date-fns";
 
@@ -71,6 +72,8 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedStaff, setSelectedStaff] = useState<string>('');
   const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
+  const [isSwapDialogOpen, setIsSwapDialogOpen] = useState(false);
+  const [assignmentToSwap, setAssignmentToSwap] = useState<StaffAssignment | null>(null);
 
   const weekStart = startOfWeek(currentWeek, { weekStartsOn: 1 });
   const monthStart = startOfMonth(currentWeek);
@@ -169,6 +172,56 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
       toast.error('Failed to assign staff');
       console.error('Error:', error);
     }
+  };
+
+  const handleRemoveStaff = async (assignmentId: string) => {
+    try {
+      const { error } = await supabase
+        .from('staff_assignments')
+        .delete()
+        .eq('id', assignmentId);
+
+      if (error) throw error;
+
+      toast.success('Staff member removed from shift');
+      fetchAssignments();
+      onAssignmentChange();
+    } catch (error) {
+      toast.error('Failed to remove staff member');
+      console.error('Error:', error);
+    }
+  };
+
+  const handleSwapStaff = async () => {
+    if (!assignmentToSwap || !selectedStaff) {
+      toast.error('Please select a staff member to swap with');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('staff_assignments')
+        .update({ staff_member_id: selectedStaff })
+        .eq('id', assignmentToSwap.id);
+
+      if (error) throw error;
+
+      toast.success('Staff member swapped successfully');
+      setIsSwapDialogOpen(false);
+      setAssignmentToSwap(null);
+      setSelectedStaff('');
+      fetchAssignments();
+      onAssignmentChange();
+    } catch (error) {
+      toast.error('Failed to swap staff member');
+      console.error('Error:', error);
+    }
+  };
+
+  const openSwapDialog = (assignment: StaffAssignment) => {
+    setAssignmentToSwap(assignment);
+    setSelectedStaff('');
+    setIsSwapDialogOpen(true);
   };
 
   const getAssignmentsForDay = (day: Date, shiftTemplate: ShiftTemplate) => {
@@ -410,10 +463,28 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
                             <div className="space-y-1">
                                {shiftAssignments.map((assignment, idx) => (
                                  <div key={assignment.id} className="flex items-center justify-between">
-                                    <Badge variant="secondary" className="text-xs flex items-center gap-1">
-                                      {getRoleIcon(assignment.staff_member.role)}
-                                      {formatStaffName(assignment.staff_member.name, assignment.staff_member.role)}
-                                    </Badge>
+                                   <DropdownMenu>
+                                     <DropdownMenuTrigger asChild>
+                                       <Badge variant="secondary" className="text-xs flex items-center gap-1 cursor-pointer hover:bg-secondary/80">
+                                         {getRoleIcon(assignment.staff_member.role)}
+                                         {formatStaffName(assignment.staff_member.name, assignment.staff_member.role)}
+                                         <MoreVertical className="h-3 w-3 ml-1" />
+                                       </Badge>
+                                     </DropdownMenuTrigger>
+                                     <DropdownMenuContent align="end">
+                                       <DropdownMenuItem onClick={() => openSwapDialog(assignment)}>
+                                         <RefreshCw className="h-3 w-3 mr-2" />
+                                         Swap Staff Member
+                                       </DropdownMenuItem>
+                                       <DropdownMenuItem 
+                                         onClick={() => handleRemoveStaff(assignment.id)}
+                                         className="text-destructive"
+                                       >
+                                         <UserX className="h-3 w-3 mr-2" />
+                                         Remove
+                                       </DropdownMenuItem>
+                                     </DropdownMenuContent>
+                                   </DropdownMenu>
                                  </div>
                                ))}
                               {canAddMore && (
@@ -492,6 +563,57 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
                 </Button>
                 <Button onClick={handleAssignStaff}>
                   Assign Staff
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isSwapDialogOpen} onOpenChange={setIsSwapDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Swap Staff Member</DialogTitle>
+          </DialogHeader>
+          {assignmentToSwap && (
+            <div className="space-y-4">
+              <div>
+                <h4 className="font-medium">Current Assignment</h4>
+                <p className="text-sm text-muted-foreground">
+                  {formatStaffName(assignmentToSwap.staff_member.name, assignmentToSwap.staff_member.role)} - {assignmentToSwap.shift_template.name}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {format(new Date(assignmentToSwap.assignment_date), 'EEEE, MMMM do, yyyy')} • {assignmentToSwap.start_time} - {assignmentToSwap.end_time}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {getLocationDisplay(assignmentToSwap.location)}
+                </p>
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium">Swap with {assignmentToSwap.shift_template.required_role.toUpperCase()}</label>
+                <Select value={selectedStaff} onValueChange={setSelectedStaff}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose replacement staff member..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {getEligibleStaff(assignmentToSwap.shift_template.required_role)
+                      .filter(staff => staff.id !== assignmentToSwap.staff_member_id)
+                      .map((staff) => (
+                        <SelectItem key={staff.id} value={staff.id}>
+                          {formatStaffName(staff.name, staff.role)}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setIsSwapDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleSwapStaff} disabled={!selectedStaff}>
+                  Swap Staff
                 </Button>
               </div>
             </div>
