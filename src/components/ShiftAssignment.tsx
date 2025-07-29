@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, Calendar, MapPin, Clock, UserPlus, Activity, Droplets, UserCheck } from "lucide-react";
+import { Users, Calendar, MapPin, Clock, UserPlus, Activity, Droplets, UserCheck, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { format, addDays, startOfWeek, startOfMonth, endOfMonth, eachDayOfInterval, getDay } from "date-fns";
 
@@ -423,8 +423,7 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
                                   className="w-full text-xs h-6 mt-1"
                                   onClick={() => openAssignDialog(shift, day)}
                                 >
-                                  <UserPlus className="h-3 w-3 mr-1" />
-                                  Add Another
+                                  <Plus className="h-3 w-3" />
                                 </Button>
                               )}
                             </div>
