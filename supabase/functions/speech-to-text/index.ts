@@ -65,8 +65,12 @@ serve(async (req) => {
     const result = await response.json();
     console.log('✅ Transcription successful:', result.text);
 
+    // Remove the prompt text that sometimes appears in transcription results
+    let cleanText = result.text || '';
+    cleanText = cleanText.replace(/Please transcribe only clear English speech and ignore background noise, music, or unclear audio\.?/gi, '').trim();
+    
     return new Response(JSON.stringify({ 
-      text: result.text || '' 
+      text: cleanText 
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
