@@ -1148,19 +1148,6 @@ const EnhancedAccess = () => {
                       </TabsContent>
 
                       <TabsContent value="actions" className="space-y-4">
-                        {/* Recommendations & Action Points */}
-                        <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 rounded-lg">
-                          <div className="flex justify-between items-start mb-4">
-                            <div>
-                              <h3 className="text-2xl font-bold mb-2">Recommendations & Action Points</h3>
-                              <p className="text-blue-100">June 2025</p>
-                            </div>
-                            <div className="bg-white text-blue-600 px-3 py-2 rounded font-semibold text-sm">
-                              BLUE PCN
-                            </div>
-                          </div>
-                        </div>
-
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                           <div className="space-y-4">
                             <h4 className="text-xl font-semibold text-blue-600">Operational Improvements</h4>
