@@ -67,7 +67,10 @@ serve(async (req) => {
 
     // Remove the prompt text that sometimes appears in transcription results
     let cleanText = result.text || '';
-    cleanText = cleanText.replace(/Please transcribe only clear English speech and ignore background noise, music, or unclear audio\.?/gi, '').trim();
+    // Remove various forms of the prompt text that might appear
+    cleanText = cleanText.replace(/Please transcribe only clear English speech and ignore background noise[,\s]*music[,\s]*or unclear audio\.?\s*/gi, '');
+    cleanText = cleanText.replace(/This is a professional meeting or consultation recording in English\.?\s*/gi, '');
+    cleanText = cleanText.trim();
     
     return new Response(JSON.stringify({ 
       text: cleanText 
