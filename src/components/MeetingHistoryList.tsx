@@ -12,7 +12,9 @@ import {
   MessageSquare,
   CheckCircle,
   AlertCircle,
-  Edit
+  Edit,
+  FileTextIcon,
+  Copy
 } from "lucide-react";
 import {
   AlertDialog,
@@ -48,6 +50,7 @@ interface MeetingHistoryListProps {
   meetings: Meeting[];
   onEdit: (meetingId: string) => void;
   onViewSummary: (meetingId: string) => void;
+  onViewTranscript: (meetingId: string) => void;
   onDelete: (meetingId: string) => void;
   loading: boolean;
   // Multi-select props
@@ -60,6 +63,7 @@ export const MeetingHistoryList = ({
   meetings, 
   onEdit, 
   onViewSummary,
+  onViewTranscript,
   onDelete, 
   loading,
   isSelectMode = false,
@@ -243,6 +247,16 @@ export const MeetingHistoryList = ({
                 >
                   <Eye className="h-4 w-4" />
                   <span>View Meeting Notes</span>
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onViewTranscript(meeting.id)}
+                  className="flex items-center justify-center gap-2 flex-1 sm:flex-none touch-manipulation min-h-[44px]"
+                >
+                  <FileTextIcon className="h-4 w-4" />
+                  <span>View Transcript</span>
                 </Button>
                 
                 <Button

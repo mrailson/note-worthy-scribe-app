@@ -1377,6 +1377,10 @@ export const MeetingRecorder = ({
     navigate(`/meeting-summary`, { state: { id: meetingId } });
   };
 
+  const handleViewTranscript = (meetingId: string) => {
+    navigate('/meeting-history', { state: { viewTranscript: meetingId } });
+  };
+
   const handleDeleteMeeting = async (meetingId: string) => {
     try {
       // Delete transcripts first
@@ -1912,6 +1916,7 @@ export const MeetingRecorder = ({
                 meetings={filteredMeetings}
                 onEdit={handleEditMeeting}
                 onViewSummary={handleViewSummary}
+                onViewTranscript={handleViewTranscript}
                 onDelete={handleDeleteMeeting}
                 loading={loadingHistory}
                 isSelectMode={isSelectMode}

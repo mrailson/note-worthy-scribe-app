@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Plus, Clock, FileText, Trash2, Edit, Edit2, Mail, RefreshCw, Square, CheckSquare, ChevronDown } from "lucide-react";
+import { Plus, Clock, FileText, Trash2, Edit, Edit2, Mail, RefreshCw, Square, CheckSquare, ChevronDown, Copy } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -89,6 +89,10 @@ const MeetingHistory = () => {
   const [meetingTranscript, setMeetingTranscript] = useState("");
   const [meetingSummary, setMeetingSummary] = useState("");
   const [isGeneratingNotes, setIsGeneratingNotes] = useState(false);
+  
+  // Transcript view state
+  const [transcriptDialogOpen, setTranscriptDialogOpen] = useState(false);
+  const [viewingTranscript, setViewingTranscript] = useState("");
 
   const handleNewMeeting = () => {
     navigate("/");
@@ -185,6 +189,34 @@ const MeetingHistory = () => {
       console.log("Meeting notes emailed successfully");
     } catch (error: any) {
       console.error("Error emailing notes:", error.message);
+    }
+  };
+
+  const handleViewTranscript = async (meetingId: string) => {
+    try {
+      // Fetch transcript for the specific meeting
+      const { data: transcripts, error: transcriptError } = await supabase
+        .from('meeting_transcripts')
+        .select('*')
+        .eq('meeting_id', meetingId)
+        .order('timestamp_seconds', { ascending: true });
+
+      if (transcriptError) throw transcriptError;
+
+      const fullTranscript = transcripts?.map(t => t.content).join(' ') || '';
+      setViewingTranscript(fullTranscript);
+      setTranscriptDialogOpen(true);
+    } catch (error: any) {
+      console.error("Error loading transcript:", error.message);
+    }
+  };
+
+  const copyTranscriptToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(viewingTranscript);
+      console.log("Transcript copied to clipboard");
+    } catch (error) {
+      console.error("Failed to copy transcript:", error);
     }
   };
 
@@ -878,6 +910,7 @@ const MeetingHistory = () => {
             meetings={filteredMeetings}
             onEdit={handleMeetingEdit}
             onViewSummary={handleViewMeetingSummary}
+            onViewTranscript={handleViewTranscript}
             onDelete={handleMeetingDelete}
             loading={loading}
             isSelectMode={isSelectMode}
@@ -885,6 +918,50 @@ const MeetingHistory = () => {
             onSelectMeeting={handleSelectMeeting}
           />
         )}
+
+        {/* Transcript View Dialog */}
+        <Dialog open={transcriptDialogOpen} onOpenChange={setTranscriptDialogOpen}>
+          <DialogContent className="mx-4 max-w-4xl max-h-[80vh]">
+            <DialogHeader>
+              <DialogTitle>Meeting Transcript</DialogTitle>
+              <DialogDescription>
+                View and copy the transcript from this meeting.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4 py-4">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">
+                  {viewingTranscript.split(' ').length} words
+                </span>
+                <Button
+                  onClick={copyTranscriptToClipboard}
+                  variant="outline"
+                  size="sm"
+                  className="touch-manipulation min-h-[44px]"
+                >
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy Transcript
+                </Button>
+              </div>
+              
+              <div className="border rounded-lg p-4 bg-muted/50 max-h-[50vh] overflow-y-auto">
+                <pre className="whitespace-pre-wrap text-sm font-mono">
+                  {viewingTranscript || "No transcript available for this meeting."}
+                </pre>
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button 
+                onClick={() => setTranscriptDialogOpen(false)}
+                className="touch-manipulation min-h-[44px]"
+              >
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Edit Meeting Dialog */}
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
