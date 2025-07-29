@@ -763,15 +763,15 @@ const EnhancedAccess = () => {
                         <h4 className="text-xl font-semibold text-blue-600 mb-6">Financial Summary</h4>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                           <div className="text-center">
-                            <h6 className="text-gray-600 mb-3">Total Income</h6>
+                            <h6 className="text-gray-700 mb-3 font-medium">Total Income</h6>
                             <div className="text-2xl font-bold text-green-600">£38,101.84</div>
                           </div>
                           <div className="text-center">
-                            <h6 className="text-gray-600 mb-3">Total Expenditure</h6>
+                            <h6 className="text-gray-700 mb-3 font-medium">Total Expenditure</h6>
                             <div className="text-2xl font-bold text-red-600">£11,931.00</div>
                           </div>
                           <div className="text-center">
-                            <h6 className="text-gray-600 mb-3">Net Position before £5 per-patient payment to Practices</h6>
+                            <h6 className="text-gray-700 mb-3 font-medium">Net Position before £5 per-patient payment to Practices</h6>
                             <div className="text-3xl font-bold text-green-600">£26,170.84</div>
                           </div>
                         </div>
@@ -988,15 +988,15 @@ const EnhancedAccess = () => {
                             <h4 className="text-lg font-semibold text-blue-600 mb-4">Financial Summary</h4>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                               <div className="text-center">
-                                <h6 className="text-gray-600 mb-2 text-xs">Total Income</h6>
+                                <h6 className="text-gray-700 mb-2 text-xs font-medium">Total Income</h6>
                                 <div className="text-lg font-bold text-green-600">£38,101.84</div>
                               </div>
                               <div className="text-center">
-                                <h6 className="text-gray-600 mb-2 text-xs">Total Expenditure</h6>
+                                <h6 className="text-gray-700 mb-2 text-xs font-medium">Total Expenditure</h6>
                                 <div className="text-lg font-bold text-red-600">£11,931.00</div>
                               </div>
                               <div className="text-center">
-                                <h6 className="text-gray-600 mb-2 text-xs">Net Position before £5 per-patient payment to Practices</h6>
+                                <h6 className="text-gray-700 mb-2 text-xs font-medium">Net Position before £5 per-patient payment to Practices</h6>
                                 <div className="text-xl font-bold text-green-600">£26,170.84</div>
                               </div>
                             </div>
