@@ -571,23 +571,22 @@ const EnhancedAccess = () => {
             <Card>
               <CardContent className="pt-6">
                 <Tabs defaultValue="june-2025" className="w-full">
-                  <div className="flex items-center gap-4 mb-6">
-                    <BarChart3 className="h-5 w-5" />
-                    <TabsList className="grid grid-cols-1 gap-1">
-                      <TabsTrigger value="june-2025" className="text-xs">Jun 2025</TabsTrigger>
-                    </TabsList>
-                  </div>
-
                   {/* June 2025 Report */}
                   <TabsContent value="june-2025" className="space-y-4">
                     <Tabs defaultValue="overview" className="w-full">
-                      <TabsList className="grid w-full grid-cols-5 mb-4">
-                        <TabsTrigger value="overview">Overview</TabsTrigger>
-                        <TabsTrigger value="service">Service Delivery</TabsTrigger>
-                        <TabsTrigger value="financial">Financial</TabsTrigger>
-                        <TabsTrigger value="funding">Practice Splits</TabsTrigger>
-                        <TabsTrigger value="actions">Actions</TabsTrigger>
-                      </TabsList>
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                          <BarChart3 className="h-5 w-5" />
+                          <span className="text-sm font-medium">Jun 2025</span>
+                        </div>
+                        <TabsList className="grid grid-cols-5">
+                          <TabsTrigger value="overview">Overview</TabsTrigger>
+                          <TabsTrigger value="service">Service Delivery</TabsTrigger>
+                          <TabsTrigger value="financial">Financial</TabsTrigger>
+                          <TabsTrigger value="funding">Practice Splits</TabsTrigger>
+                          <TabsTrigger value="actions">Actions</TabsTrigger>
+                        </TabsList>
+                      </div>
 
                       <TabsContent value="overview" className="space-y-4">
                        <h4 className="text-lg font-semibold text-blue-600">Blue PCN - Enhanced Access Overview - June 2025</h4>
