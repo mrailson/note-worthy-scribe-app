@@ -1022,12 +1022,6 @@ const EnhancedAccess = () => {
                                     </ul>
                                   </div>
 
-                                  <div className="bg-purple-100 p-3 rounded-lg border-2 border-purple-300">
-                                    <p className="text-xs font-medium">
-                                      <strong>BOTTOM LINE:</strong> Monthly £5 per patient funding totals £22,440.86, 
-                                      with Park Avenue receiving the largest share (30%) based on weighted list size
-                                    </p>
-                                  </div>
                                 </div>
                               </div>
                             </div>
