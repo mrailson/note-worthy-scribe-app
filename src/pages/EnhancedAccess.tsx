@@ -580,7 +580,12 @@ const EnhancedAccess = () => {
                           <span className="text-sm font-medium">Jun 2025</span>
                         </div>
                         <TabsList className="grid grid-cols-5">
-                          <TabsTrigger value="overview">Overview</TabsTrigger>
+                          <TabsTrigger 
+                            value="overview" 
+                            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                          >
+                            Overview
+                          </TabsTrigger>
                           <TabsTrigger value="service">Service Delivery</TabsTrigger>
                           <TabsTrigger value="financial">Financial</TabsTrigger>
                           <TabsTrigger value="funding">Practice Splits</TabsTrigger>
