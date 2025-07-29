@@ -778,75 +778,6 @@ const EnhancedAccess = () => {
                       </div>
 
 
-                      {/* Recommendations & Action Points */}
-                      <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 rounded-lg">
-                        <div className="flex justify-between items-start mb-4">
-                          <div>
-                            <h3 className="text-2xl font-bold mb-2">Recommendations & Action Points</h3>
-                            <p className="text-blue-100">June 2025</p>
-                          </div>
-                          <div className="bg-white text-blue-600 px-3 py-2 rounded font-semibold text-sm">
-                            BLUE PCN
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <div className="space-y-4">
-                          <h4 className="text-xl font-semibold text-blue-600">Operational Improvements</h4>
-                          
-                          <div className="bg-green-50 p-4 rounded-lg border-l-4 border-green-500">
-                            <h5 className="font-semibold text-green-700 mb-2">Excellent Performance Across Top Spokes</h5>
-                            <p className="text-sm text-green-600">
-                              Three spokes achieving 100% utilization (The Crescent, Rushden) and County at 98% - continue current approach
-                            </p>
-                          </div>
-
-                          <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
-                            <h5 className="font-semibold text-blue-700 mb-2">Launch of new online Enhanced Access Rota system</h5>
-                            <p className="text-sm text-blue-600">Issue Feedback - Due Mid August</p>
-                          </div>
-
-                          <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
-                            <h5 className="font-semibold text-blue-700 mb-2">Verify Spoke Appointment Compliance</h5>
-                            <div className="text-sm text-blue-600 space-y-1">
-                              <p>Ensure all Spoke practices adhere to Enhanced Access requirements:</p>
-                              <ul className="list-disc ml-4 space-y-1">
-                                <li>Appointments must be additional to core GMS services</li>
-                                <li>Services primarily delivered outside core hours (6:30pm-8pm weekdays, weekends)</li>
-                                <li>Appropriate clinical governance and record-keeping in place</li>
-                                <li>Public-facing communications clearly identifying EA services</li>
-                                <li>Regular utilization reporting to PCN</li>
-                              </ul>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="space-y-4">
-                          <h4 className="text-xl font-semibold text-red-600">Financial & Compliance</h4>
-                          
-                          <div className="bg-red-50 p-4 rounded-lg border-l-4 border-red-500">
-                            <h5 className="font-semibold text-red-700 mb-2">GP Locum Pension Compliance</h5>
-                            <p className="text-sm text-red-600">
-                              Ensure 14.38% pension on 90% of hourly rate is properly applied
-                            </p>
-                          </div>
-
-                          <div className="bg-yellow-50 p-4 rounded-lg border-l-4 border-yellow-500">
-                            <h5 className="font-semibold text-yellow-700 mb-2">Review Appointment Utilization</h5>
-                            <p className="text-sm text-yellow-600">
-                              Overall booking rate: 78.2% - continue optimizing scheduling and availability
-                            </p>
-                          </div>
-
-                          <div className="bg-orange-50 p-4 rounded-lg border-l-4 border-orange-500">
-                            <h5 className="font-semibold text-orange-700 mb-2">DNA Rate Analysis</h5>
-                            <p className="text-sm text-orange-600">
-                              Low DNA rates overall - implement reminder systems at all locations
-                            </p>
-                          </div>
-                         </div>
-                       </div>
                        </TabsContent>
 
                       <TabsContent value="service" className="space-y-4">
@@ -1217,9 +1148,75 @@ const EnhancedAccess = () => {
                       </TabsContent>
 
                       <TabsContent value="actions" className="space-y-4">
-                        <div className="text-center py-8 text-muted-foreground">
-                          <p>Actions content coming soon</p>
+                        {/* Recommendations & Action Points */}
+                        <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 rounded-lg">
+                          <div className="flex justify-between items-start mb-4">
+                            <div>
+                              <h3 className="text-2xl font-bold mb-2">Recommendations & Action Points</h3>
+                              <p className="text-blue-100">June 2025</p>
+                            </div>
+                            <div className="bg-white text-blue-600 px-3 py-2 rounded font-semibold text-sm">
+                              BLUE PCN
+                            </div>
+                          </div>
                         </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                          <div className="space-y-4">
+                            <h4 className="text-xl font-semibold text-blue-600">Operational Improvements</h4>
+                            
+                            <div className="bg-green-50 p-4 rounded-lg border-l-4 border-green-500">
+                              <h5 className="font-semibold text-green-700 mb-2">Excellent Performance Across Top Spokes</h5>
+                              <p className="text-sm text-green-600">
+                                Three spokes achieving 100% utilization (The Crescent, Rushden) and County at 98% - continue current approach
+                              </p>
+                            </div>
+
+                            <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
+                              <h5 className="font-semibold text-blue-700 mb-2">Launch of new online Enhanced Access Rota system</h5>
+                              <p className="text-sm text-blue-600">Issue Feedback - Due Mid August</p>
+                            </div>
+
+                            <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
+                              <h5 className="font-semibold text-blue-700 mb-2">Verify Spoke Appointment Compliance</h5>
+                              <div className="text-sm text-blue-600 space-y-1">
+                                <p>Ensure all Spoke practices adhere to Enhanced Access requirements:</p>
+                                <ul className="list-disc ml-4 space-y-1">
+                                  <li>Appointments must be additional to core GMS services</li>
+                                  <li>Services primarily delivered outside core hours (6:30pm-8pm weekdays, weekends)</li>
+                                  <li>Appropriate clinical governance and record-keeping in place</li>
+                                  <li>Public-facing communications clearly identifying EA services</li>
+                                  <li>Regular utilization reporting to PCN</li>
+                                </ul>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="space-y-4">
+                            <h4 className="text-xl font-semibold text-red-600">Financial & Compliance</h4>
+                            
+                            <div className="bg-red-50 p-4 rounded-lg border-l-4 border-red-500">
+                              <h5 className="font-semibold text-red-700 mb-2">GP Locum Pension Compliance</h5>
+                              <p className="text-sm text-red-600">
+                                Ensure 14.38% pension on 90% of hourly rate is properly applied
+                              </p>
+                            </div>
+
+                            <div className="bg-yellow-50 p-4 rounded-lg border-l-4 border-yellow-500">
+                              <h5 className="font-semibold text-yellow-700 mb-2">Review Appointment Utilization</h5>
+                              <p className="text-sm text-yellow-600">
+                                Overall booking rate: 78.2% - continue optimizing scheduling and availability
+                              </p>
+                            </div>
+
+                            <div className="bg-orange-50 p-4 rounded-lg border-l-4 border-orange-500">
+                              <h5 className="font-semibold text-orange-700 mb-2">DNA Rate Analysis</h5>
+                              <p className="text-sm text-orange-600">
+                                Low DNA rates overall - implement reminder systems at all locations
+                              </p>
+                            </div>
+                           </div>
+                         </div>
                       </TabsContent>
                     </Tabs>
                   </TabsContent>
