@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { SafeMessageRenderer } from "@/components/SafeMessageRenderer";
 import { 
   FileText, 
   Mail, 
@@ -43,7 +44,7 @@ export const MeetingSummary = ({
 }: MeetingSummaryProps) => {
   const [detailLevel, setDetailLevel] = useState("balanced");
   const [notes, setNotes] = useState(generateMeetingNotes(transcript, "balanced"));
-  
+  const [isEditing, setIsEditing] = useState(false);
 
   function generateMeetingNotes(transcript: string, level: string) {
     if (!transcript) return "No meeting content to summarize.";
@@ -220,17 +221,31 @@ New patient pathway improvements have reduced waiting times by 15%. Patient sati
         <div className="space-y-2">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <label className="text-sm font-medium">Review and customise your meeting notes</label>
-            <Button variant="ghost" size="sm" className="touch-manipulation min-h-[44px] w-full sm:w-auto">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="touch-manipulation min-h-[44px] w-full sm:w-auto"
+              onClick={() => setIsEditing(!isEditing)}
+            >
               <Edit3 className="h-4 w-4 mr-2" />
-              Edit Notes
+              {isEditing ? "Save & Preview" : "Edit Notes"}
             </Button>
           </div>
-          <Textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            rows={12}
-            className="font-mono text-xs sm:text-sm touch-manipulation min-h-[300px] resize-y"
-          />
+          {isEditing ? (
+            <Textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={12}
+              className="font-mono text-xs sm:text-sm touch-manipulation min-h-[300px] resize-y"
+            />
+          ) : (
+            <div className="border rounded-lg p-4 min-h-[300px] bg-background">
+              <SafeMessageRenderer 
+                content={notes} 
+                className="prose prose-sm max-w-none dark:prose-invert"
+              />
+            </div>
+          )}
         </div>
 
         {/* Export Options - Mobile Grid Layout */}
