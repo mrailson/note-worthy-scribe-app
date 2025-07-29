@@ -1010,7 +1010,14 @@ const EnhancedAccess = () => {
                             
                             <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
                               <h5 className="font-semibold text-blue-700 mb-2">Launch of new online Enhanced Access Rota system</h5>
-                              <p className="text-sm text-blue-600">EA Issues Complaint Handling</p>
+                              <div className="text-sm text-blue-600 space-y-1">
+                                <p>EA Issues Complaint Handling</p>
+                                <ul className="list-disc ml-4 space-y-1">
+                                  <li>Financial Transparency (Invoices etc)</li>
+                                  <li>EA Shift Planning and offer to PCN Staff via automated email service</li>
+                                  <li>Access for PMs and setup of Reminder service for unused slots</li>
+                                </ul>
+                              </div>
                             </div>
 
                             <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
