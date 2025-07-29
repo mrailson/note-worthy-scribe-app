@@ -501,7 +501,7 @@ const EnhancedAccess = () => {
                     </p>
                     <p className="text-sm text-muted-foreground flex items-center gap-2">
                       <MapPin className="h-4 w-4" />
-                      Remote GP (2 Hours shifts so 30 mins over minimum required hours each day)
+                      Remote GP (2 Hours shifts.  0.5 Hrs over minimum required GP hours each day)
                     </p>
                   </div>
                   <div className="space-y-2">
