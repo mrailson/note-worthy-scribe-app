@@ -127,6 +127,20 @@ export default function SharedDrive() {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) throw new Error("Not authenticated");
 
+      // Check if folder name already exists in current directory
+      const { data: existingFolders, error: checkError } = await supabase
+        .from("shared_drive_folders")
+        .select("name")
+        .eq("parent_id", currentFolderId)
+        .eq("name", name);
+
+      if (checkError) throw checkError;
+
+      if (existingFolders && existingFolders.length > 0) {
+        toast.error("A folder with this name already exists");
+        return;
+      }
+
       const folderPath = currentPath.length > 0 
         ? `${currentPath.map(f => f.name).join("/")}/${name}`
         : name;
@@ -193,6 +207,100 @@ export default function SharedDrive() {
     }
   };
 
+  // Handle deleting selected items
+  const deleteSelectedItems = async () => {
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) throw new Error("Not authenticated");
+
+      const selectedFolders = folders.filter(folder => selectedItems.has(folder.id));
+      const selectedFiles = files.filter(file => selectedItems.has(file.id));
+
+      // Delete folders
+      for (const folder of selectedFolders) {
+        // First delete all files in the folder from storage
+        const { data: folderFiles } = await supabase
+          .from("shared_drive_files")
+          .select("file_path")
+          .eq("folder_id", folder.id);
+
+        if (folderFiles && folderFiles.length > 0) {
+          const filePaths = folderFiles.map(f => f.file_path);
+          await supabase.storage
+            .from("shared-drive")
+            .remove(filePaths);
+        }
+
+        // Delete folder and its contents from database (cascading)
+        const { error: folderError } = await supabase
+          .from("shared_drive_folders")
+          .delete()
+          .eq("id", folder.id);
+
+        if (folderError) throw folderError;
+      }
+
+      // Delete files
+      for (const file of selectedFiles) {
+        // Delete from storage
+        const { error: storageError } = await supabase.storage
+          .from("shared-drive")
+          .remove([file.file_path]);
+
+        if (storageError) throw storageError;
+
+        // Delete from database
+        const { error: dbError } = await supabase
+          .from("shared_drive_files")
+          .delete()
+          .eq("id", file.id);
+
+        if (dbError) throw dbError;
+      }
+
+      toast.success(`${selectedItems.size} item(s) deleted successfully`);
+      setSelectedItems(new Set());
+      loadCurrentDirectory();
+    } catch (error) {
+      console.error("Error deleting items:", error);
+      toast.error("Failed to delete items");
+    }
+  };
+
+  // Handle downloading selected items
+  const downloadSelectedItems = async () => {
+    try {
+      const selectedFiles = files.filter(file => selectedItems.has(file.id));
+      
+      for (const file of selectedFiles) {
+        const { data, error } = await supabase.storage
+          .from("shared-drive")
+          .download(file.file_path);
+
+        if (error) throw error;
+
+        // Create download link
+        const url = URL.createObjectURL(data);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = file.original_name;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
+
+      if (selectedFiles.length > 0) {
+        toast.success(`${selectedFiles.length} file(s) downloaded`);
+      } else {
+        toast.error("No files selected for download");
+      }
+    } catch (error) {
+      console.error("Error downloading files:", error);
+      toast.error("Failed to download files");
+    }
+  };
+
   // Filter items based on search
   const filteredFolders = folders.filter(folder =>
     folder.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -228,6 +336,8 @@ export default function SharedDrive() {
             viewMode={viewMode}
             onViewModeChange={setViewMode}
             selectedCount={selectedItems.size}
+            onDownloadSelected={downloadSelectedItems}
+            onDeleteSelected={deleteSelectedItems}
           />
 
           {/* Breadcrumb */}

@@ -15,6 +15,8 @@ interface SharedDriveToolbarProps {
   viewMode: "list" | "grid";
   onViewModeChange: (mode: "list" | "grid") => void;
   selectedCount: number;
+  onDownloadSelected: () => void;
+  onDeleteSelected: () => void;
 }
 
 export function SharedDriveToolbar({
@@ -24,7 +26,9 @@ export function SharedDriveToolbar({
   searchQuery,
   viewMode,
   onViewModeChange,
-  selectedCount
+  selectedCount,
+  onDownloadSelected,
+  onDeleteSelected
 }: SharedDriveToolbarProps) {
   const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false);
   const [folderName, setFolderName] = useState("");
@@ -127,11 +131,11 @@ export function SharedDriveToolbar({
           {selectedCount > 0 && (
             <>
               <div className="h-6 w-px bg-border" />
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={onDownloadSelected}>
                 <Download className="h-4 w-4 mr-2" />
                 Download ({selectedCount})
               </Button>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={onDeleteSelected}>
                 <Trash2 className="h-4 w-4 mr-2" />
                 Delete ({selectedCount})
               </Button>
