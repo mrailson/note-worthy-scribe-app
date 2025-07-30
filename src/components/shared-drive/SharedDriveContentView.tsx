@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu";
@@ -17,6 +18,7 @@ import {
   MoreVertical
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface SharedDriveFolder {
   id: string;
@@ -117,9 +119,31 @@ export function SharedDriveContentView({
   };
 
   // Context menu actions
-  const handleDownload = (file: SharedDriveFile) => {
-    // Implementation for downloading file
-    console.log("Download:", file);
+  const handleDownload = async (file: SharedDriveFile) => {
+    try {
+      // Get the signed URL for download
+      const { data: urlData } = await supabase.storage
+        .from("shared-drive")
+        .createSignedUrl(file.file_path, 60); // 60 seconds expiry
+
+      if (urlData?.signedUrl) {
+        // Create download link
+        const link = document.createElement('a');
+        link.href = urlData.signedUrl;
+        link.download = file.original_name;
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        toast.success(`Download started for ${file.name}`);
+      } else {
+        throw new Error(`Failed to get download URL for ${file.name}`);
+      }
+    } catch (error) {
+      console.error(`Error downloading file ${file.name}:`, error);
+      toast.error(`Failed to download ${file.name}`);
+    }
   };
 
   const handleShare = (item: SharedDriveFolder | SharedDriveFile) => {

@@ -382,28 +382,38 @@ export default function SharedDrive() {
 
       const selectedFiles = files.filter(file => selectedFileIds.includes(file.id));
       
+      if (selectedFiles.length === 0) {
+        toast.error("No files selected for download");
+        return;
+      }
+
       for (const file of selectedFiles) {
-        const { data, error } = await supabase.storage
-          .from("shared-drive")
-          .download(file.file_path);
+        try {
+          // Get the public URL for download instead of using download method
+          const { data: urlData } = await supabase.storage
+            .from("shared-drive")
+            .createSignedUrl(file.file_path, 60); // 60 seconds expiry
 
-        if (error) throw error;
-
-        // Create download link
-        const url = URL.createObjectURL(data);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = file.original_name;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
+          if (urlData?.signedUrl) {
+            // Create download link
+            const link = document.createElement('a');
+            link.href = urlData.signedUrl;
+            link.download = file.original_name;
+            link.target = '_blank';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          } else {
+            throw new Error(`Failed to get download URL for ${file.name}`);
+          }
+        } catch (fileError) {
+          console.error(`Error downloading file ${file.name}:`, fileError);
+          toast.error(`Failed to download ${file.name}`);
+        }
       }
 
       if (selectedFiles.length > 0) {
-        toast.success(`${selectedFiles.length} file(s) downloaded`);
-      } else {
-        toast.error("No files selected for download");
+        toast.success(`Initiated download for ${selectedFiles.length} file(s)`);
       }
     } catch (error) {
       console.error("Error downloading files:", error);
