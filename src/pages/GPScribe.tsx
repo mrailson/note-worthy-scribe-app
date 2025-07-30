@@ -1248,7 +1248,7 @@ const Index = () => {
               <TabsContent value="examples" className="space-y-4">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold">Test Consultation Examples</h3>
+                    <h3 className="text-lg font-semibold">Typical Consultation Examples - For Training on how the system works.</h3>
                     <Button
                       variant="outline"
                       size="sm"
