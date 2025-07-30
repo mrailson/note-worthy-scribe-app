@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Mic, MicOff, Wifi, WifiOff, Brain, Copy, Download, Mail, Save, Play, Pause, FileText, ChevronDown, ChevronUp, Lightbulb, AlertTriangle, BookOpen, Shield, BarChart3, Edit, Check, X, Send, Settings, Languages, Volume2, VolumeX } from "lucide-react";
+import { Mic, MicOff, Wifi, WifiOff, Brain, Copy, Download, Mail, Save, Play, Pause, FileText, ChevronDown, ChevronUp, Lightbulb, AlertTriangle, BookOpen, Shield, BarChart3, Edit, Check, X, Send, Settings, Languages, Volume2, VolumeX, Stethoscope } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 import { RealtimeTranscriber, TranscriptData } from "@/utils/RealtimeTranscriber";
@@ -22,6 +22,8 @@ import { TranslationInterface } from "@/components/TranslationInterface";
 import { ConsultationHistory } from "@/components/ConsultationHistory";
 import { PatientTranslationView } from "@/components/PatientTranslationView";
 import { SafeMessageRenderer } from "@/components/SafeMessageRenderer";
+import AI4GPService from "@/components/AI4GPService";
+import GPGenieVoiceAgent from "@/components/GPGenieVoiceAgent";
 
 const HEALTHCARE_LANGUAGES = [
   { code: 'none', name: 'No Translation', flag: '🚫' },
@@ -903,19 +905,25 @@ const Index = () => {
               Consultation
             </TabsTrigger>
             <TabsTrigger 
+              value="ai4gp" 
+              className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium"
+            >
+              AI4GP
+            </TabsTrigger>
+            <TabsTrigger 
+              value="gp-genie" 
+              className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium"
+            >
+              GP Genie
+            </TabsTrigger>
+            <TabsTrigger 
               value="examples" 
               className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium"
             >
               Examples
             </TabsTrigger>
             <TabsTrigger 
-              value="settings" 
-              className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium"
-            >
-              Settings
-            </TabsTrigger>
-            <TabsTrigger 
-              value="history" 
+              value="history"
               className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium"
             >
               History
@@ -1868,6 +1876,14 @@ const Index = () => {
             </CardContent>
           </Card>
         )}
+        
+          <TabsContent value="ai4gp" className="space-y-6">
+            <AI4GPService />
+          </TabsContent>
+          
+          <TabsContent value="gp-genie" className="space-y-6">
+            <GPGenieVoiceAgent />
+          </TabsContent>
         </Tabs>
       </div>
     </div>
