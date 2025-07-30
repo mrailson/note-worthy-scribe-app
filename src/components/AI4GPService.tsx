@@ -509,10 +509,10 @@ Always provide evidence-based, clinically appropriate advice that follows curren
               <ScrollArea className="flex-1 p-4">
                  <div className="space-y-4">
                    {messages.length === 0 && (
-                     <div className="text-center py-12">
-                       <Stethoscope className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                       <h3 className="font-semibold text-lg mb-2">Welcome to AI4GP</h3>
-                       <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                     <div className="text-center py-4">
+                       <Stethoscope className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
+                       <h3 className="font-semibold text-lg mb-1">Welcome to AI4GP</h3>
+                       <p className="text-muted-foreground max-w-md mx-auto">
                          Your AI assistant for clinical guidance, protocol development, and evidence-based practice support.
                        </p>
                      </div>
