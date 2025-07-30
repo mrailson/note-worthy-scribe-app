@@ -372,6 +372,7 @@ export default function SharedDrive() {
             <SharedDriveNavigationPane
               currentFolderId={currentFolderId}
               onNavigate={navigateToFolder}
+              onRefresh={loadCurrentDirectory}
             />
 
             {/* Content View */}

@@ -2,8 +2,10 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Folder, FolderOpen, ChevronRight, ChevronDown } from "lucide-react";
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu";
+import { Folder, FolderOpen, ChevronRight, ChevronDown, Trash2, Edit, Share } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface SharedDriveFolder {
   id: string;
@@ -24,14 +26,63 @@ interface TreeNode extends SharedDriveFolder {
 interface SharedDriveNavigationPaneProps {
   currentFolderId: string | null;
   onNavigate: (folderId: string | null) => void;
+  onRefresh?: () => void;
 }
 
 export function SharedDriveNavigationPane({
   currentFolderId,
-  onNavigate
+  onNavigate,
+  onRefresh
 }: SharedDriveNavigationPaneProps) {
   const [tree, setTree] = useState<TreeNode[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Handle folder deletion
+  const handleDeleteFolder = async (folder: TreeNode) => {
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) throw new Error("Not authenticated");
+
+      // First delete all files in the folder from storage
+      const { data: folderFiles } = await supabase
+        .from("shared_drive_files")
+        .select("file_path")
+        .eq("folder_id", folder.id);
+
+      if (folderFiles && folderFiles.length > 0) {
+        const filePaths = folderFiles.map(f => f.file_path);
+        await supabase.storage
+          .from("shared-drive")
+          .remove(filePaths);
+      }
+
+      // Delete folder and its contents from database (cascading)
+      const { error: folderError } = await supabase
+        .from("shared_drive_folders")
+        .delete()
+        .eq("id", folder.id);
+
+      if (folderError) throw folderError;
+
+      toast.success(`Folder "${folder.name}" deleted successfully`);
+      
+      // Refresh the navigation tree
+      loadRootFolders();
+      
+      // If we're currently in the deleted folder, navigate to parent
+      if (currentFolderId === folder.id) {
+        onNavigate(folder.parent_id);
+      }
+      
+      // Also refresh the main content area
+      if (onRefresh) {
+        onRefresh();
+      }
+    } catch (error) {
+      console.error("Error deleting folder:", error);
+      toast.error("Failed to delete folder");
+    }
+  };
 
   // Load root folders
   const loadRootFolders = async () => {
@@ -151,47 +202,68 @@ export function SharedDriveNavigationPane({
 
     return (
       <div key={node.id}>
-        <Button
-          variant="ghost"
-          className={cn(
-            "w-full justify-start text-left h-8 px-2",
-            isSelected(node.id) && "bg-accent text-accent-foreground",
-            "hover:bg-accent/50"
-          )}
-          style={{ paddingLeft: `${level * 16 + 8}px` }}
-          onClick={() => onNavigate(node.id)}
-        >
-          <div className="flex items-center gap-1 w-full">
-            {canExpand && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-4 w-4 p-0 hover:bg-transparent"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleFolder(node.id);
-                }}
-              >
-                {node.isLoading ? (
-                  <div className="h-3 w-3 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
-                ) : node.isExpanded ? (
-                  <ChevronDown className="h-3 w-3" />
-                ) : (
-                  <ChevronRight className="h-3 w-3" />
+        <ContextMenu>
+          <ContextMenuTrigger>
+            <Button
+              variant="ghost"
+              className={cn(
+                "w-full justify-start text-left h-8 px-2",
+                isSelected(node.id) && "bg-accent text-accent-foreground",
+                "hover:bg-accent/50"
+              )}
+              style={{ paddingLeft: `${level * 16 + 8}px` }}
+              onClick={() => onNavigate(node.id)}
+            >
+              <div className="flex items-center gap-1 w-full">
+                {canExpand && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-4 w-4 p-0 hover:bg-transparent"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleFolder(node.id);
+                    }}
+                  >
+                    {node.isLoading ? (
+                      <div className="h-3 w-3 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
+                    ) : node.isExpanded ? (
+                      <ChevronDown className="h-3 w-3" />
+                    ) : (
+                      <ChevronRight className="h-3 w-3" />
+                    )}
+                  </Button>
                 )}
-              </Button>
-            )}
-            {!canExpand && <div className="w-4" />}
-            
-            {node.isExpanded ? (
-              <FolderOpen className="h-4 w-4 text-blue-500 flex-shrink-0" />
-            ) : (
-              <Folder className="h-4 w-4 text-blue-500 flex-shrink-0" />
-            )}
-            
-            <span className="truncate flex-1 text-sm">{node.name}</span>
-          </div>
-        </Button>
+                {!canExpand && <div className="w-4" />}
+                
+                {node.isExpanded ? (
+                  <FolderOpen className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                ) : (
+                  <Folder className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                )}
+                
+                <span className="truncate flex-1 text-sm">{node.name}</span>
+              </div>
+            </Button>
+          </ContextMenuTrigger>
+          <ContextMenuContent>
+            <ContextMenuItem onClick={() => console.log("Share:", node)}>
+              <Share className="h-4 w-4 mr-2" />
+              Share
+            </ContextMenuItem>
+            <ContextMenuItem onClick={() => console.log("Rename:", node)}>
+              <Edit className="h-4 w-4 mr-2" />
+              Rename
+            </ContextMenuItem>
+            <ContextMenuItem 
+              onClick={() => handleDeleteFolder(node)}
+              className="text-destructive focus:text-destructive"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </ContextMenuItem>
+          </ContextMenuContent>
+        </ContextMenu>
         
         {node.isExpanded && hasChildren && (
           <div>
