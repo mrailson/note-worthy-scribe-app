@@ -1638,6 +1638,169 @@ export type Database = {
         }
         Relationships: []
       }
+      shared_drive_activity: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          id: string
+          target_id: string
+          target_name: string
+          target_type: Database["public"]["Enums"]["file_type"]
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          target_id: string
+          target_name: string
+          target_type: Database["public"]["Enums"]["file_type"]
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          target_id?: string
+          target_name?: string
+          target_type?: Database["public"]["Enums"]["file_type"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      shared_drive_files: {
+        Row: {
+          created_at: string
+          created_by: string
+          file_path: string
+          file_size: number | null
+          file_type: string | null
+          folder_id: string | null
+          id: string
+          mime_type: string | null
+          name: string
+          original_name: string
+          tags: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          file_path: string
+          file_size?: number | null
+          file_type?: string | null
+          folder_id?: string | null
+          id?: string
+          mime_type?: string | null
+          name: string
+          original_name: string
+          tags?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          file_path?: string
+          file_size?: number | null
+          file_type?: string | null
+          folder_id?: string | null
+          id?: string
+          mime_type?: string | null
+          name?: string
+          original_name?: string
+          tags?: string[] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_drive_files_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "shared_drive_folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shared_drive_folders: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          name: string
+          parent_id: string | null
+          path: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          name: string
+          parent_id?: string | null
+          path: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          name?: string
+          parent_id?: string | null
+          path?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_drive_folders_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "shared_drive_folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shared_drive_permissions: {
+        Row: {
+          actions: Database["public"]["Enums"]["permission_action"][]
+          created_at: string
+          granted_by: string
+          id: string
+          is_inherited: boolean
+          permission_level: Database["public"]["Enums"]["permission_level"]
+          target_id: string
+          target_type: Database["public"]["Enums"]["file_type"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          actions?: Database["public"]["Enums"]["permission_action"][]
+          created_at?: string
+          granted_by: string
+          id?: string
+          is_inherited?: boolean
+          permission_level: Database["public"]["Enums"]["permission_level"]
+          target_id: string
+          target_type: Database["public"]["Enums"]["file_type"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          actions?: Database["public"]["Enums"]["permission_action"][]
+          created_at?: string
+          granted_by?: string
+          id?: string
+          is_inherited?: boolean
+          permission_level?: Database["public"]["Enums"]["permission_level"]
+          target_id?: string
+          target_type?: Database["public"]["Enums"]["file_type"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       shift_templates: {
         Row: {
           created_at: string
@@ -2328,6 +2491,9 @@ export type Database = {
         | "response_sent"
         | "closed"
         | "escalated"
+      file_type: "folder" | "file"
+      permission_action: "view" | "edit" | "delete" | "share" | "upload"
+      permission_level: "owner" | "editor" | "viewer" | "no_access"
       staff_role:
         | "gp"
         | "phlebotomist"
@@ -2525,6 +2691,9 @@ export const Constants = {
         "closed",
         "escalated",
       ],
+      file_type: ["folder", "file"],
+      permission_action: ["view", "edit", "delete", "share", "upload"],
+      permission_level: ["owner", "editor", "viewer", "no_access"],
       staff_role: [
         "gp",
         "phlebotomist",
