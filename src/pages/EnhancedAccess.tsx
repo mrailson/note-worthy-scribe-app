@@ -1022,6 +1022,35 @@ const EnhancedAccess = () => {
                                     </ul>
                                   </div>
 
+                                  <div className="bg-green-50 p-3 rounded-lg">
+                                    <h5 className="font-semibold mb-2 text-sm">Individual Practice Spoke Requirements</h5>
+                                    <div className="space-y-2 text-xs">
+                                      <div className="bg-white p-2 rounded border">
+                                        <div className="font-semibold mb-1">Monthly Calculation Breakdown:</div>
+                                        <div className="space-y-1">
+                                          <div>• Total Contractual Requirement: 237.25 hours</div>
+                                          <div>• Hub Delivery (Mon-Fri 14hrs, Sat 16hrs): 86 hours/week × 4.33 weeks = 372.38 hours</div>
+                                          <div>• Spoke Balance Required: 0 hours (Hub exceeds requirement)</div>
+                                        </div>
+                                      </div>
+                                      <div className="bg-white p-2 rounded border">
+                                        <div className="font-semibold mb-1">Practice Spoke Allocation (if balance existed):</div>
+                                        <div className="grid grid-cols-2 gap-2">
+                                          <div>Brook Medical: 13.0% (0 hrs)</div>
+                                          <div>Bugbrooke Surgery: 17.8% (0 hrs)</div>
+                                          <div>County Surgery: 8.2% (0 hrs)</div>
+                                          <div>Park Avenue: 30.0% (0 hrs)</div>
+                                          <div>Rushden Medical: 17.2% (0 hrs)</div>
+                                          <div>The Crescent: 13.7% (0 hrs)</div>
+                                        </div>
+                                      </div>
+                                      <div className="bg-blue-100 p-2 rounded border text-blue-800">
+                                        <strong>Note:</strong> Current Hub delivery model exceeds monthly requirement. 
+                                        No additional spoke hours needed from practices.
+                                      </div>
+                                    </div>
+                                  </div>
+
                                 </div>
                               </div>
                             </div>
