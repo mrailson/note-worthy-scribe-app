@@ -23,6 +23,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [isAdmin, setIsAdmin] = useState(false);
+  const [sharedDriveVisible, setSharedDriveVisible] = useState(true);
   
   const isHomePage = location.pathname === '/';
   const isGPScribePage = location.pathname === '/gp-scribe';
@@ -43,6 +44,17 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
         
         if (!adminError) {
           setIsAdmin(adminData);
+        }
+
+        // Check shared drive visibility
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('shared_drive_visible')
+          .eq('user_id', user.id)
+          .single();
+
+        if (!profileError && profileData?.shared_drive_visible !== undefined) {
+          setSharedDriveVisible(profileData.shared_drive_visible);
         }
       } catch (error) {
         console.error('Error checking user permissions:', error);
@@ -135,14 +147,16 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                        <Clock className="h-4 w-4 mr-2" />
                        Enhanced Access
                      </DropdownMenuItem>
-                   )}
-                   <DropdownMenuItem 
-                     onClick={() => navigate('/shared-drive')}
-                     className="cursor-pointer py-3"
-                   >
-                     <FolderOpen className="h-4 w-4 mr-2" />
-                     Shared Drive
-                   </DropdownMenuItem>
+                    )}
+                    {sharedDriveVisible && (
+                      <DropdownMenuItem 
+                        onClick={() => navigate('/shared-drive')}
+                        className="cursor-pointer py-3"
+                      >
+                        <FolderOpen className="h-4 w-4 mr-2" />
+                        Shared Drive
+                      </DropdownMenuItem>
+                    )}
                  </DropdownMenuContent>
               </DropdownMenu>
             )}

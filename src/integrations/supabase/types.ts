@@ -1495,6 +1495,7 @@ export type Database = {
           meeting_retention_policy: string | null
           nhs_trust: string | null
           role: string | null
+          shared_drive_visible: boolean
           updated_at: string
           user_id: string
         }
@@ -1508,6 +1509,7 @@ export type Database = {
           meeting_retention_policy?: string | null
           nhs_trust?: string | null
           role?: string | null
+          shared_drive_visible?: boolean
           updated_at?: string
           user_id: string
         }
@@ -1521,6 +1523,7 @@ export type Database = {
           meeting_retention_policy?: string | null
           nhs_trust?: string | null
           role?: string | null
+          shared_drive_visible?: boolean
           updated_at?: string
           user_id?: string
         }

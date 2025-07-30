@@ -8,9 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Settings as SettingsIcon, Users, Building, BookOpen, Search, Plus, Pencil, Trash2, X, Clock, HelpCircle, Mail, Globe, Github, ExternalLink, BarChart3, Calendar, Timer, Key, Eye, EyeOff, Shield, Lock, Database, FileCheck, AlertTriangle, Download, FileText, Award } from "lucide-react";
+import { Settings as SettingsIcon, Users, Building, BookOpen, Search, Plus, Pencil, Trash2, X, Clock, HelpCircle, Mail, Globe, Github, ExternalLink, BarChart3, Calendar, Timer, Key, Eye, EyeOff, Shield, Lock, Database, FileCheck, AlertTriangle, Download, FileText, Award, FolderOpen } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -39,6 +40,10 @@ export default function Settings() {
   // Meeting retention policy state
   const [retentionPolicy, setRetentionPolicy] = useState<string>('forever');
   const [retentionLoading, setRetentionLoading] = useState(false);
+  
+  // Shared drive visibility state
+  const [sharedDriveVisible, setSharedDriveVisible] = useState<boolean>(true);
+  const [sharedDriveLoading, setSharedDriveLoading] = useState(false);
   
   // Usage statistics state
   const [usageStats, setUsageStats] = useState({
@@ -102,6 +107,7 @@ export default function Settings() {
   useEffect(() => {
     fetchTerms();
     fetchRetentionPolicy();
+    fetchSharedDriveSettings();
     fetchUsageStats();
   }, [user]);
 
@@ -126,6 +132,27 @@ export default function Settings() {
     }
   };
 
+  // Fetch shared drive settings
+  const fetchSharedDriveSettings = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('shared_drive_visible')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+      
+      if (data?.shared_drive_visible !== undefined) {
+        setSharedDriveVisible(data.shared_drive_visible);
+      }
+    } catch (error) {
+      console.error('Error fetching shared drive settings:', error);
+    }
+  };
+
   // Update retention policy
   const handleRetentionPolicyChange = async (value: string) => {
     if (!user) return;
@@ -146,6 +173,29 @@ export default function Settings() {
       toast.error('Failed to update retention policy');
     } finally {
       setRetentionLoading(false);
+    }
+  };
+
+  // Update shared drive visibility
+  const handleSharedDriveVisibilityChange = async (visible: boolean) => {
+    if (!user) return;
+
+    setSharedDriveLoading(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ shared_drive_visible: visible })
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      setSharedDriveVisible(visible);
+      toast.success(`Shared Drive ${visible ? 'enabled' : 'disabled'} successfully`);
+    } catch (error) {
+      console.error('Error updating shared drive visibility:', error);
+      toast.error('Failed to update shared drive visibility');
+    } finally {
+      setSharedDriveLoading(false);
     }
   };
 
@@ -413,6 +463,45 @@ export default function Settings() {
                       </p>
                       <p>
                         This setting affects all future meetings. Existing meetings will not be automatically deleted unless you change this setting.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Shared Drive Settings Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FolderOpen className="h-5 w-5" />
+                    Shared Drive Access
+                  </CardTitle>
+                  <p className="text-muted-foreground">
+                    Control whether the Shared Drive feature is visible in your navigation menu.
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <Label htmlFor="shared-drive-toggle">Show Shared Drive</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Enable or disable access to the Shared Drive feature
+                        </p>
+                      </div>
+                      <Switch
+                        id="shared-drive-toggle"
+                        checked={sharedDriveVisible}
+                        onCheckedChange={handleSharedDriveVisibilityChange}
+                        disabled={sharedDriveLoading}
+                      />
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      <p>
+                        <strong>Current setting:</strong> {sharedDriveVisible ? 'Enabled' : 'Disabled'}
+                      </p>
+                      <p>
+                        When disabled, the Shared Drive will not appear in your navigation menu. User access permissions within the Shared Drive are managed separately in the Shared Drive area.
                       </p>
                     </div>
                   </div>
