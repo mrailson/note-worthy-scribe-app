@@ -36,7 +36,7 @@ interface SharedDriveFile {
 export default function SharedDrive() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(
-    searchParams.get("folder")
+    searchParams.get("folder") || null
   );
   const [folders, setFolders] = useState<SharedDriveFolder[]>([]);
   const [files, setFiles] = useState<SharedDriveFile[]>([]);
