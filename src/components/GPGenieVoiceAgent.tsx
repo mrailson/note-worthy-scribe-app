@@ -264,19 +264,36 @@ const GPGenieVoiceAgent = () => {
           )}
         </div>
 
-        {/* What GP Genie Can Help With */}
-        <div className="bg-muted/50 rounded-lg p-4">
-          <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
-            <Heart className="h-4 w-4 text-primary" />
-            What GP Genie Can Help With
-          </h4>
-          <div className="text-xs text-muted-foreground space-y-1">
-            <p>• <strong>Patient Reassurance:</strong> Scripts and approaches for anxious patients</p>
-            <p>• <strong>Clinical Guidance:</strong> Evidence-based advice for common presentations</p>
-            <p>• <strong>Consultation Skills:</strong> Communication techniques and difficult conversations</p>
-            <p>• <strong>Safety Netting:</strong> When to worry, red flags, and follow-up advice</p>
-            <p>• <strong>Documentation Help:</strong> Note templates and coding guidance</p>
-            <p>• <strong>Prescribing Support:</strong> Drug interactions, dosing, and alternatives</p>
+        {/* What GP Genie Can Help With & Sources */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-muted/50 rounded-lg p-4">
+            <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
+              <Heart className="h-4 w-4 text-primary" />
+              What GP Genie Can Help With
+            </h4>
+            <div className="text-xs text-muted-foreground space-y-1">
+              <p>• <strong>Patient Reassurance:</strong> Scripts and approaches for anxious patients</p>
+              <p>• <strong>Clinical Guidance:</strong> Evidence-based advice for common presentations</p>
+              <p>• <strong>Consultation Skills:</strong> Communication techniques and difficult conversations</p>
+              <p>• <strong>Safety Netting:</strong> When to worry, red flags, and follow-up advice</p>
+              <p>• <strong>Documentation Help:</strong> Note templates and coding guidance</p>
+              <p>• <strong>Prescribing Support:</strong> Drug interactions, dosing, and alternatives</p>
+            </div>
+          </div>
+
+          <div className="bg-muted/50 rounded-lg p-4">
+            <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
+              <Shield className="h-4 w-4 text-primary" />
+              Sources & Guidelines
+            </h4>
+            <div className="text-xs text-muted-foreground space-y-1">
+              <p>• <strong>NICE Guidelines:</strong> Clinical evidence and recommendations</p>
+              <p>• <strong>RCGP Standards:</strong> Professional practice guidance</p>
+              <p>• <strong>NHS England Policies:</strong> Service delivery standards</p>
+              <p>• <strong>BNF/BNFC:</strong> Prescribing and drug information</p>
+              <p>• <strong>MHRA Safety Alerts:</strong> Medicine safety updates</p>
+              <p>• <strong>CQC Regulations:</strong> Quality and safety requirements</p>
+            </div>
           </div>
         </div>
 
