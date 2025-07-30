@@ -1407,8 +1407,8 @@ const Index = () => {
             </CardContent>
           </Card>
 
-        {/* Transcript - Collapsible (Hidden on GP Genie tab) */}
-        {activeTab !== "gp-genie" && (
+        {/* Transcript - Collapsible (Hidden on GP Genie, Examples, and AI4GP tabs) */}
+        {!["gp-genie", "examples", "ai4gp"].includes(activeTab) && (
         <Card className="shadow-medium border-accent/20">
           <Collapsible open={isTranscriptOpen} onOpenChange={setIsTranscriptOpen}>
             <CollapsibleTrigger asChild>
