@@ -37,6 +37,76 @@ const EnhancedAccess = () => {
   const [shiftTemplates, setShiftTemplates] = useState<any[]>([]);
   const [bankHolidays, setBankHolidays] = useState<Set<string>>(new Set());
 
+  // Calculate Hub delivery and spoke requirements for current month
+  const calculateSpokeRequirements = (date: Date) => {
+    const monthStart = startOfMonth(date);
+    const monthEnd = endOfMonth(date);
+    const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
+    
+    // Count weekdays and Saturdays
+    const dayCounts = {
+      monday: 0,
+      tuesday: 0,
+      wednesday: 0,
+      thursday: 0,
+      friday: 0,
+      saturday: 0
+    };
+    
+    daysInMonth.forEach(day => {
+      const dayOfWeek = getDay(day);
+      switch (dayOfWeek) {
+        case 1: dayCounts.monday++; break;    // Monday: 2 hours
+        case 2: dayCounts.tuesday++; break;   // Tuesday: 4 hours
+        case 3: dayCounts.wednesday++; break; // Wednesday: 2 hours
+        case 4: dayCounts.thursday++; break;  // Thursday: 2 hours
+        case 5: dayCounts.friday++; break;    // Friday: 4 hours
+        case 6: dayCounts.saturday++; break;  // Saturday: 16 hours
+      }
+    });
+    
+    // Calculate Hub delivery
+    const hubHours = (
+      dayCounts.monday * 2 +
+      dayCounts.tuesday * 4 +
+      dayCounts.wednesday * 2 +
+      dayCounts.thursday * 2 +
+      dayCounts.friday * 4 +
+      dayCounts.saturday * 16
+    );
+    
+    // Calculate spoke balance
+    const contractualHours = 237.25;
+    const spokeBalance = Math.max(0, contractualHours - hubHours);
+    
+    // Practice list size percentages
+    const practicePercentages = {
+      'Brook Medical Centre': 13.0,
+      'Bugbrooke Surgery': 17.8,
+      'County Surgery': 8.2,
+      'Park Avenue': 30.0,
+      'Rushden Medical Centre': 17.2,
+      'The Crescent': 13.7
+    };
+    
+    // Calculate individual practice requirements
+    const practiceRequirements = Object.entries(practicePercentages).map(([practice, percentage]) => ({
+      practice,
+      percentage,
+      hours: Number((spokeBalance * percentage / 100).toFixed(2))
+    }));
+    
+    return {
+      contractualHours,
+      hubHours,
+      spokeBalance,
+      practiceRequirements,
+      dayCounts
+    };
+  };
+
+  const spokeData = calculateSpokeRequirements(currentWeek);
+
   const weekStart = startOfWeek(currentWeek, { weekStartsOn: 1 });
   const monthStart = startOfMonth(currentWeek);
   const monthEnd = endOfMonth(currentWeek);
@@ -520,7 +590,7 @@ const EnhancedAccess = () => {
             </Card>
 
             {/* Quick Stats */}
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className="grid md:grid-cols-4 gap-4">
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-medium">Required Hours</CardTitle>
@@ -532,11 +602,20 @@ const EnhancedAccess = () => {
               </Card>
               <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium">Weekly Requirement</CardTitle>
+                  <CardTitle className="text-sm font-medium">Hub Delivery</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">54.75</div>
-                  <p className="text-xs text-muted-foreground">hrs</p>
+                  <div className="text-2xl font-bold">{spokeData.hubHours}</div>
+                  <p className="text-xs text-muted-foreground">{format(currentWeek, "MMMM yyyy")}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium">Spoke Balance</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-orange-600">{spokeData.spokeBalance}</div>
+                  <p className="text-xs text-muted-foreground">Hours Required</p>
                 </CardContent>
               </Card>
               <Card>
@@ -552,6 +631,45 @@ const EnhancedAccess = () => {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Spoke Requirements Breakdown */}
+            {spokeData.spokeBalance > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5" />
+                    Individual Practice Spoke Requirements - {format(currentWeek, "MMMM yyyy")}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      {spokeData.practiceRequirements.map((practice) => (
+                        <div key={practice.practice} className="bg-orange-50 p-3 rounded-lg border">
+                          <div className="font-medium text-sm">{practice.practice}</div>
+                          <div className="text-lg font-bold text-orange-600">{practice.hours} hrs</div>
+                          <div className="text-xs text-muted-foreground">{practice.percentage}% of balance</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="bg-blue-50 p-3 rounded-lg text-sm">
+                      <div className="font-semibold mb-2">Monthly Breakdown:</div>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
+                        <div>Mon: {spokeData.dayCounts.monday} days × 2hrs = {spokeData.dayCounts.monday * 2}hrs</div>
+                        <div>Tue: {spokeData.dayCounts.tuesday} days × 4hrs = {spokeData.dayCounts.tuesday * 4}hrs</div>
+                        <div>Wed: {spokeData.dayCounts.wednesday} days × 2hrs = {spokeData.dayCounts.wednesday * 2}hrs</div>
+                        <div>Thu: {spokeData.dayCounts.thursday} days × 2hrs = {spokeData.dayCounts.thursday * 2}hrs</div>
+                        <div>Fri: {spokeData.dayCounts.friday} days × 4hrs = {spokeData.dayCounts.friday * 4}hrs</div>
+                        <div>Sat: {spokeData.dayCounts.saturday} days × 16hrs = {spokeData.dayCounts.saturday * 16}hrs</div>
+                      </div>
+                      <div className="mt-2 pt-2 border-t border-blue-200">
+                        <strong>Hub Total: {spokeData.hubHours} hours | Spoke Balance: {spokeData.spokeBalance} hours</strong>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
           
           <TabsContent value="schedule" className="space-y-6 mt-6">
