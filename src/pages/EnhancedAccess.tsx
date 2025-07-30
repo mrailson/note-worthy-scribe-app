@@ -744,8 +744,9 @@ const EnhancedAccess = () => {
                           <BarChart3 className="h-5 w-5" />
                           <span className="text-sm font-medium">Jun 2025</span>
                         </div>
-                        <TabsList className="grid grid-cols-5">
+                        <TabsList className="grid grid-cols-6">
                           <TabsTrigger value="overview">Overview</TabsTrigger>
+                          <TabsTrigger value="next-3-months">Next 3 Months</TabsTrigger>
                           <TabsTrigger value="service">Service Delivery</TabsTrigger>
                           <TabsTrigger value="financial">Financial</TabsTrigger>
                           <TabsTrigger value="funding">Practice Splits</TabsTrigger>
@@ -787,9 +788,91 @@ const EnhancedAccess = () => {
                             <p className="text-sm text-gray-600">(The Crescent & Rushden)</p>
                           </div>
                         </div>
-                      </div>
+                       </div>
 
-                       </TabsContent>
+                        </TabsContent>
+
+                      <TabsContent value="next-3-months" className="space-y-4 min-h-screen">
+                        <h4 className="text-lg font-semibold text-blue-600">Individual Practice Spoke Requirements - Next 3 Months</h4>
+
+                        {/* Calculate spoke requirements for next 3 months */}
+                        {(() => {
+                          const nextThreeMonths = [];
+                          for (let i = 1; i <= 3; i++) {
+                            const monthDate = addMonths(new Date(), i);
+                            const spokeData = calculateSpokeRequirements(monthDate);
+                            nextThreeMonths.push({
+                              monthName: format(monthDate, "MMMM yyyy"),
+                              spokeData
+                            });
+                          }
+
+                          return (
+                            <div className="space-y-6">
+                              {nextThreeMonths.map((month, index) => (
+                                <Card key={index}>
+                                  <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                      <TrendingUp className="h-5 w-5" />
+                                      {month.monthName}
+                                    </CardTitle>
+                                  </CardHeader>
+                                  <CardContent>
+                                    {/* Monthly Stats */}
+                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                                      <div className="bg-blue-50 p-4 rounded-lg text-center">
+                                        <div className="text-lg font-bold text-blue-600">{month.spokeData.contractualHours}</div>
+                                        <div className="text-sm text-blue-600">Contractual Hours</div>
+                                      </div>
+                                      <div className="bg-green-50 p-4 rounded-lg text-center">
+                                        <div className="text-lg font-bold text-green-600">{month.spokeData.hubHours}</div>
+                                        <div className="text-sm text-green-600">Hub Delivery</div>
+                                      </div>
+                                      <div className="bg-orange-50 p-4 rounded-lg text-center">
+                                        <div className="text-lg font-bold text-orange-600">{month.spokeData.spokeBalance}</div>
+                                        <div className="text-sm text-orange-600">Spoke Balance</div>
+                                      </div>
+                                      <div className="bg-gray-50 p-4 rounded-lg text-center">
+                                        <div className="text-lg font-bold text-gray-600">{month.spokeData.saturday}</div>
+                                        <div className="text-sm text-gray-600">Saturdays</div>
+                                      </div>
+                                    </div>
+
+                                    {/* Day Breakdown */}
+                                    <div className="bg-gray-50 p-4 rounded-lg mb-4">
+                                      <h5 className="font-semibold mb-2">Monthly Day Count & Hub Hours Breakdown</h5>
+                                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+                                        <div>Monday: {month.spokeData.monday} days ({month.spokeData.monday * 2} hrs)</div>
+                                        <div>Tuesday: {month.spokeData.tuesday} days ({month.spokeData.tuesday * 4} hrs)</div>
+                                        <div>Wednesday: {month.spokeData.wednesday} days ({month.spokeData.wednesday * 2} hrs)</div>
+                                        <div>Thursday: {month.spokeData.thursday} days ({month.spokeData.thursday * 2} hrs)</div>
+                                        <div>Friday: {month.spokeData.friday} days ({month.spokeData.friday * 4} hrs)</div>
+                                        <div>Saturday: {month.spokeData.saturday} days ({month.spokeData.saturday * 16} hrs)</div>
+                                      </div>
+                                    </div>
+
+                                    {/* Individual Practice Requirements */}
+                                    {month.spokeData.spokeBalance > 0 && (
+                                      <div className="space-y-4">
+                                        <h5 className="font-semibold">Individual Practice Spoke Requirements</h5>
+                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                          {month.spokeData.practiceRequirements.map((practice) => (
+                                            <div key={practice.practice} className="bg-orange-50 p-3 rounded-lg border">
+                                              <div className="font-medium text-sm">{practice.practice}</div>
+                                              <div className="text-lg font-bold text-orange-600">{practice.hours} hrs</div>
+                                              <div className="text-xs text-orange-600">{practice.percentage}% of spoke balance</div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </CardContent>
+                                </Card>
+                              ))}
+                            </div>
+                          );
+                        })()}
+                      </TabsContent>
 
                       <TabsContent value="service" className="space-y-4">
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-[75vh] overflow-hidden">
