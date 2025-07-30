@@ -905,18 +905,6 @@ const Index = () => {
               Consultation
             </TabsTrigger>
             <TabsTrigger 
-              value="ai4gp" 
-              className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium"
-            >
-              AI4GP
-            </TabsTrigger>
-            <TabsTrigger 
-              value="gp-genie" 
-              className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium"
-            >
-              GP Genie
-            </TabsTrigger>
-            <TabsTrigger 
               value="examples" 
               className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium"
             >
@@ -927,6 +915,18 @@ const Index = () => {
               className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium"
             >
               History
+            </TabsTrigger>
+            <TabsTrigger 
+              value="ai4gp" 
+              className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium"
+            >
+              AI4GP
+            </TabsTrigger>
+            <TabsTrigger 
+              value="gp-genie" 
+              className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium"
+            >
+              GP Genie
             </TabsTrigger>
           </TabsList>
 
