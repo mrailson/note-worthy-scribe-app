@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Folder, FolderOpen, ChevronRight, ChevronDown, Trash2, Edit, Share } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -36,12 +37,61 @@ export function SharedDriveNavigationPane({
 }: SharedDriveNavigationPaneProps) {
   const [tree, setTree] = useState<TreeNode[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [deleteDialog, setDeleteDialog] = useState<{
+    isOpen: boolean;
+    folder: TreeNode | null;
+    subfolderCount: number;
+    fileCount: number;
+  }>({
+    isOpen: false,
+    folder: null,
+    subfolderCount: 0,
+    fileCount: 0
+  });
 
-  // Handle folder deletion
-  const handleDeleteFolder = async (folder: TreeNode) => {
+  // Check folder contents before deletion
+  const checkFolderContents = async (folder: TreeNode) => {
+    try {
+      // Count subfolders
+      const { data: subfolders, error: subfoldersError } = await supabase
+        .from("shared_drive_folders")
+        .select("id", { count: 'exact' })
+        .eq("parent_id", folder.id);
+
+      if (subfoldersError) throw subfoldersError;
+
+      // Count files
+      const { data: files, error: filesError } = await supabase
+        .from("shared_drive_files")
+        .select("id", { count: 'exact' })
+        .eq("folder_id", folder.id);
+
+      if (filesError) throw filesError;
+
+      const subfolderCount = subfolders?.length || 0;
+      const fileCount = files?.length || 0;
+
+      setDeleteDialog({
+        isOpen: true,
+        folder,
+        subfolderCount,
+        fileCount
+      });
+    } catch (error) {
+      console.error("Error checking folder contents:", error);
+      toast.error("Failed to check folder contents");
+    }
+  };
+
+  // Handle folder deletion with confirmation
+  const handleDeleteFolder = async () => {
+    if (!deleteDialog.folder) return;
+
     try {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) throw new Error("Not authenticated");
+
+      const folder = deleteDialog.folder;
 
       // First delete all files in the folder from storage
       const { data: folderFiles } = await supabase
@@ -65,6 +115,9 @@ export function SharedDriveNavigationPane({
       if (folderError) throw folderError;
 
       toast.success(`Folder "${folder.name}" deleted successfully`);
+      
+      // Close dialog
+      setDeleteDialog({ isOpen: false, folder: null, subfolderCount: 0, fileCount: 0 });
       
       // Refresh the navigation tree
       loadRootFolders();
@@ -256,7 +309,7 @@ export function SharedDriveNavigationPane({
               Rename
             </ContextMenuItem>
             <ContextMenuItem 
-              onClick={() => handleDeleteFolder(node)}
+              onClick={() => checkFolderContents(node)}
               className="text-destructive focus:text-destructive"
             >
               <Trash2 className="h-4 w-4 mr-2" />
@@ -279,40 +332,89 @@ export function SharedDriveNavigationPane({
   }, []);
 
   return (
-    <div className="w-64 border-r bg-muted/30">
-      <div className="p-4 border-b">
-        <h3 className="font-semibold text-sm">Folders</h3>
-      </div>
-      
-      <ScrollArea className="h-[600px]">
-        <div className="p-2">
-          {/* Root/Home folder */}
-          <Button
-            variant="ghost"
-            className={cn(
-              "w-full justify-start text-left h-8 px-2 mb-1",
-              currentFolderId === null && "bg-accent text-accent-foreground",
-              "hover:bg-accent/50"
-            )}
-            onClick={() => onNavigate(null)}
-          >
-            <div className="flex items-center gap-2">
-              <Folder className="h-4 w-4 text-blue-500" />
-              <span className="text-sm font-medium">Shared Drive</span>
-            </div>
-          </Button>
-
-          {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-            </div>
-          ) : (
-            <div className="space-y-1">
-              {tree.map(node => renderNode(node))}
-            </div>
-          )}
+    <>
+      <div className="w-64 border-r bg-muted/30">
+        <div className="p-4 border-b">
+          <h3 className="font-semibold text-sm">Folders</h3>
         </div>
-      </ScrollArea>
-    </div>
+        
+        <ScrollArea className="h-[600px]">
+          <div className="p-2">
+            {/* Root/Home folder */}
+            <Button
+              variant="ghost"
+              className={cn(
+                "w-full justify-start text-left h-8 px-2 mb-1",
+                currentFolderId === null && "bg-accent text-accent-foreground",
+                "hover:bg-accent/50"
+              )}
+              onClick={() => onNavigate(null)}
+            >
+              <div className="flex items-center gap-2">
+                <Folder className="h-4 w-4 text-blue-500" />
+                <span className="text-sm font-medium">Shared Drive</span>
+              </div>
+            </Button>
+
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {tree.map(node => renderNode(node))}
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+      </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog 
+        open={deleteDialog.isOpen} 
+        onOpenChange={(open) => !open && setDeleteDialog({ isOpen: false, folder: null, subfolderCount: 0, fileCount: 0 })}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Folder</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>
+                Are you sure you want to delete the folder <strong>"{deleteDialog.folder?.name}"</strong>?
+              </p>
+              
+              {(deleteDialog.subfolderCount > 0 || deleteDialog.fileCount > 0) && (
+                <div className="bg-destructive/10 border border-destructive/20 rounded-md p-3 mt-3">
+                  <p className="font-semibold text-destructive mb-2">⚠️ Warning: This folder contains:</p>
+                  <ul className="text-sm space-y-1 text-destructive">
+                    {deleteDialog.subfolderCount > 0 && (
+                      <li>• {deleteDialog.subfolderCount} subfolder{deleteDialog.subfolderCount > 1 ? 's' : ''}</li>
+                    )}
+                    {deleteDialog.fileCount > 0 && (
+                      <li>• {deleteDialog.fileCount} file{deleteDialog.fileCount > 1 ? 's' : ''}</li>
+                    )}
+                  </ul>
+                  <p className="font-semibold text-destructive mt-2">
+                    All contents will be permanently deleted and cannot be recovered.
+                  </p>
+                </div>
+              )}
+              
+              {deleteDialog.subfolderCount === 0 && deleteDialog.fileCount === 0 && (
+                <p className="text-muted-foreground">This folder is empty and will be permanently deleted.</p>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteFolder}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete Forever
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
