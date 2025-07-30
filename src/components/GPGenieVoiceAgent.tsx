@@ -43,6 +43,7 @@ const GPGenieVoiceAgent = () => {
     },
     onMessage: (message) => {
       console.log('Message:', message);
+      // Explicitly suppress transcript display
     },
     onError: (error) => {
       console.error('Conversation error:', error);
