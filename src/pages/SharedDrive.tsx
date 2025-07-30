@@ -213,8 +213,20 @@ export default function SharedDrive() {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) throw new Error("Not authenticated");
 
-      const selectedFolders = folders.filter(folder => selectedItems.has(folder.id));
-      const selectedFiles = files.filter(file => selectedItems.has(file.id));
+      // Parse selected items to get actual IDs
+      const selectedFolderIds: string[] = [];
+      const selectedFileIds: string[] = [];
+      
+      selectedItems.forEach(itemId => {
+        if (itemId.startsWith('folder-')) {
+          selectedFolderIds.push(itemId.replace('folder-', ''));
+        } else if (itemId.startsWith('file-')) {
+          selectedFileIds.push(itemId.replace('file-', ''));
+        }
+      });
+
+      const selectedFolders = folders.filter(folder => selectedFolderIds.includes(folder.id));
+      const selectedFiles = files.filter(file => selectedFileIds.includes(file.id));
 
       // Delete folders
       for (const folder of selectedFolders) {
@@ -270,7 +282,16 @@ export default function SharedDrive() {
   // Handle downloading selected items
   const downloadSelectedItems = async () => {
     try {
-      const selectedFiles = files.filter(file => selectedItems.has(file.id));
+      // Parse selected items to get actual file IDs
+      const selectedFileIds: string[] = [];
+      
+      selectedItems.forEach(itemId => {
+        if (itemId.startsWith('file-')) {
+          selectedFileIds.push(itemId.replace('file-', ''));
+        }
+      });
+
+      const selectedFiles = files.filter(file => selectedFileIds.includes(file.id));
       
       for (const file of selectedFiles) {
         const { data, error } = await supabase.storage
