@@ -65,20 +65,34 @@ export default function SharedDrive() {
     setIsLoading(true);
     try {
       // Load folders
-      const { data: foldersData, error: foldersError } = await supabase
+      let foldersQuery = supabase
         .from("shared_drive_folders")
         .select("*")
-        .eq("parent_id", currentFolderId)
         .order("name");
+      
+      if (currentFolderId === null) {
+        foldersQuery = foldersQuery.is("parent_id", null);
+      } else {
+        foldersQuery = foldersQuery.eq("parent_id", currentFolderId);
+      }
+
+      const { data: foldersData, error: foldersError } = await foldersQuery;
 
       if (foldersError) throw foldersError;
 
       // Load files
-      const { data: filesData, error: filesError } = await supabase
+      let filesQuery = supabase
         .from("shared_drive_files")
         .select("*")
-        .eq("folder_id", currentFolderId)
         .order("name");
+      
+      if (currentFolderId === null) {
+        filesQuery = filesQuery.is("folder_id", null);
+      } else {
+        filesQuery = filesQuery.eq("folder_id", currentFolderId);
+      }
+
+      const { data: filesData, error: filesError } = await filesQuery;
 
       if (filesError) throw filesError;
 
@@ -142,11 +156,18 @@ export default function SharedDrive() {
       if (!user.user) throw new Error("Not authenticated");
 
       // Check if folder name already exists in current directory
-      const { data: existingFolders, error: checkError } = await supabase
+      let checkQuery = supabase
         .from("shared_drive_folders")
         .select("name")
-        .eq("parent_id", currentFolderId)
         .eq("name", name);
+      
+      if (currentFolderId === null) {
+        checkQuery = checkQuery.is("parent_id", null);
+      } else {
+        checkQuery = checkQuery.eq("parent_id", currentFolderId);
+      }
+
+      const { data: existingFolders, error: checkError } = await checkQuery;
 
       if (checkError) throw checkError;
 
