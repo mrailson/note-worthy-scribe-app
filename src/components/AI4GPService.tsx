@@ -507,41 +507,16 @@ Always provide evidence-based, clinically appropriate advice that follows curren
             <CardContent className="flex-1 flex flex-col p-0">
               {/* Messages */}
               <ScrollArea className="flex-1 p-4">
-                <div className="space-y-4">
-                  {messages.length === 0 && (
-                    <div className="text-center py-12">
-                      <Stethoscope className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                      <h3 className="font-semibold text-lg mb-2">Welcome to AI4GP</h3>
-                      <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                        Your AI assistant for clinical guidance, protocol development, and evidence-based practice support.
-                      </p>
-                      
-                      {/* Quick Actions */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-w-4xl mx-auto">
-                        {quickActions.map((action, index) => {
-                          const Icon = action.icon;
-                          return (
-                            <Button
-                              key={index}
-                              variant="outline"
-                              className="h-auto p-4 text-left justify-start"
-                              onClick={() => setInput(action.prompt)}
-                            >
-                              <div className="flex items-start gap-3">
-                                <Icon className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                                <div>
-                                  <div className="font-medium text-sm">{action.label}</div>
-                                  <div className="text-xs text-muted-foreground">
-                                    {action.prompt.substring(0, 60)}...
-                                  </div>
-                                </div>
-                              </div>
-                            </Button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
+                 <div className="space-y-4">
+                   {messages.length === 0 && (
+                     <div className="text-center py-12">
+                       <Stethoscope className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                       <h3 className="font-semibold text-lg mb-2">Welcome to AI4GP</h3>
+                       <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                         Your AI assistant for clinical guidance, protocol development, and evidence-based practice support.
+                       </p>
+                     </div>
+                   )}
 
                   {messages.map((message) => (
                     <div key={message.id} className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -644,8 +619,38 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                       <Send className="h-4 w-4" />
                     </Button>
                   </div>
-                </div>
-              </div>
+                 </div>
+                 
+                 {/* Quick Actions */}
+                 {messages.length === 0 && (
+                   <div className="pt-4 border-t">
+                     <h4 className="text-sm font-medium mb-3 text-muted-foreground">Quick Actions</h4>
+                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                       {quickActions.map((action, index) => {
+                         const Icon = action.icon;
+                         return (
+                           <Button
+                             key={index}
+                             variant="outline"
+                             className="h-auto p-3 text-left justify-start"
+                             onClick={() => setInput(action.prompt)}
+                           >
+                             <div className="flex items-start gap-3">
+                               <Icon className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                               <div>
+                                 <div className="font-medium text-xs">{action.label}</div>
+                                 <div className="text-xs text-muted-foreground">
+                                   {action.prompt.substring(0, 50)}...
+                                 </div>
+                               </div>
+                             </div>
+                           </Button>
+                         );
+                       })}
+                     </div>
+                   </div>
+                 )}
+               </div>
             </CardContent>
           </Card>
         </div>
