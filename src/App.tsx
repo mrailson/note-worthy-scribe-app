@@ -10,6 +10,7 @@ import SystemAdmin from "./pages/SystemAdmin";
 import ComplaintsSystem from "./pages/ComplaintsSystem";
 import ComplaintDetails from "./pages/ComplaintDetails";
 import ComplaintResponse from "./pages/ComplaintResponse";
+import SharedDrive from "./pages/SharedDrive";
 
 import AI4PMService from "./pages/AI4PMService";
 import EnhancedAccess from "./pages/EnhancedAccess";
@@ -32,6 +33,7 @@ const App = () => (
       <Route path="/complaints" element={<ComplaintsSystem />} />
       <Route path="/complaints/:complaintId" element={<ComplaintDetails />} />
       <Route path="/complaint-response/:accessToken" element={<ComplaintResponse />} />
+      <Route path="/shared-drive" element={<SharedDrive />} />
       
       
       <Route path="/ai-4-pm" element={<AI4PMService />} />
