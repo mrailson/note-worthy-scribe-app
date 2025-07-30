@@ -79,7 +79,7 @@ const Index = () => {
   const [isTranscriptOpen, setIsTranscriptOpen] = useState(false);
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [selectedExample, setSelectedExample] = useState<string>("");
-  const [showExamples, setShowExamples] = useState(false);
+  const [showExamples, setShowExamples] = useState(true);
   const [activeTab, setActiveTab] = useState("consultation");
   
   // New consultation setup states
