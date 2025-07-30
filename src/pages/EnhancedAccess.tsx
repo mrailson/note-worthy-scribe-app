@@ -628,6 +628,7 @@ const EnhancedAccess = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-sm space-y-1">
+                    <div>Saturday GP (On Site): 9AM-5PM</div>
                     <div>Saturday Phlebotomist: 9AM-5PM</div>
                     <div>Saturday Receptionist: 9AM-5PM</div>
                     <div className="text-xs text-muted-foreground">Kings Heath Health Centre</div>
