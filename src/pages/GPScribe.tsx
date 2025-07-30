@@ -80,6 +80,7 @@ const Index = () => {
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [selectedExample, setSelectedExample] = useState<string>("");
   const [showExamples, setShowExamples] = useState(false);
+  const [activeTab, setActiveTab] = useState("consultation");
   
   // New consultation setup states
   const [consultationType, setConsultationType] = useState<"face-to-face" | "telephone">("face-to-face");
@@ -896,7 +897,7 @@ const Index = () => {
       <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 lg:py-8 space-y-4 sm:space-y-6 max-w-6xl">
         
         {/* Tab Navigation */}
-        <Tabs defaultValue="consultation" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-5 bg-muted/50 p-1 rounded-xl border border-border/50">
             <TabsTrigger 
               value="consultation" 
@@ -1406,7 +1407,8 @@ const Index = () => {
             </CardContent>
           </Card>
 
-        {/* Transcript - Collapsible */}
+        {/* Transcript - Collapsible (Hidden on GP Genie tab) */}
+        {activeTab !== "gp-genie" && (
         <Card className="shadow-medium border-accent/20">
           <Collapsible open={isTranscriptOpen} onOpenChange={setIsTranscriptOpen}>
             <CollapsibleTrigger asChild>
@@ -1487,6 +1489,7 @@ const Index = () => {
             </CollapsibleContent>
           </Collapsible>
         </Card>
+        )}
 
 
         {/* Generated Output */}
