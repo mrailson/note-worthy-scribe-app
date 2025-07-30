@@ -284,15 +284,15 @@ const GPGenieVoiceAgent = () => {
           <div className="bg-muted/50 rounded-lg p-4">
             <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
               <Shield className="h-4 w-4 text-primary" />
-              Sources & Guidelines
+              Sources & Clinical Intelligence
             </h4>
             <div className="text-xs text-muted-foreground space-y-1">
-              <p>• <strong>NICE Guidelines:</strong> Clinical evidence and recommendations</p>
-              <p>• <strong>RCGP Standards:</strong> Professional practice guidance</p>
-              <p>• <strong>NHS England Policies:</strong> Service delivery standards</p>
-              <p>• <strong>BNF/BNFC:</strong> Prescribing and drug information</p>
-              <p>• <strong>MHRA Safety Alerts:</strong> Medicine safety updates</p>
-              <p>• <strong>CQC Regulations:</strong> Quality and safety requirements</p>
+              <p>• <strong>NICE Guidelines & CKS:</strong> Latest clinical evidence and recommendations</p>
+              <p>• <strong>BMJ Best Practice:</strong> Evidence-based clinical decision support</p>
+              <p>• <strong>BNF & MHRA Alerts:</strong> Prescribing guidance and safety alerts</p>
+              <p>• <strong>Clinical Prediction Rules:</strong> QRISK, CHA2DS2-VASc scoring systems</p>
+              <p>• <strong>QOF & CQC Standards:</strong> Quality frameworks and regulatory compliance</p>
+              <p>• <strong>Cochrane Reviews:</strong> Systematic evidence synthesis</p>
             </div>
           </div>
         </div>
