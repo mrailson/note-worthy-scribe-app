@@ -89,12 +89,16 @@ const EnhancedAccess = () => {
       'The Crescent': 13.7
     };
     
-    // Calculate individual practice requirements
-    const practiceRequirements = Object.entries(practicePercentages).map(([practice, percentage]) => ({
-      practice,
-      percentage,
-      hours: Number((spokeBalance * percentage / 100).toFixed(2))
-    }));
+    // Calculate individual practice requirements (rounded up to nearest quarter hour)
+    const practiceRequirements = Object.entries(practicePercentages).map(([practice, percentage]) => {
+      const rawHours = spokeBalance * percentage / 100;
+      const roundedHours = Math.ceil(rawHours * 4) / 4; // Round up to nearest quarter hour
+      return {
+        practice,
+        percentage,
+        hours: Number(roundedHours.toFixed(2))
+      };
+    });
     
     return {
       contractualHours,
