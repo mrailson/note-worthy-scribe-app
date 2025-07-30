@@ -2335,6 +2335,15 @@ export type Database = {
         }
         Returns: boolean
       }
+      has_shared_drive_permission: {
+        Args: {
+          p_user_id: string
+          p_target_id: string
+          p_target_type: Database["public"]["Enums"]["file_type"]
+          p_action: Database["public"]["Enums"]["permission_action"]
+        }
+        Returns: boolean
+      }
       initialize_complaint_compliance: {
         Args: { complaint_id_param: string }
         Returns: undefined
