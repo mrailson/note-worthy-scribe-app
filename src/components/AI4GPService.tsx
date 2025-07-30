@@ -474,7 +474,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-6xl">
+    <div className="container mx-auto max-w-6xl">
       <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-8rem)]">
         
         {/* Chat Interface */}
@@ -482,8 +482,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           <Card className="flex-1 flex flex-col">
             <CardHeader className="flex-shrink-0">
               <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <Brain className="h-6 w-6 text-primary" />
+                <CardTitle className="flex items-center">
+                  <Brain className="h-6 w-6 text-primary mr-2" />
                   AI4GP - Clinical Intelligence Assistant
                 </CardTitle>
                 <div className="flex items-center gap-2">
