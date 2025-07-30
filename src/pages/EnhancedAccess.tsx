@@ -66,7 +66,7 @@ const EnhancedAccess = () => {
     });
     
     // Calculate Hub delivery
-    const hubHours = (
+    let hubHours = (
       dayCounts.monday * 2 +
       dayCounts.tuesday * 4 +
       dayCounts.wednesday * 2 +
@@ -74,6 +74,11 @@ const EnhancedAccess = () => {
       dayCounts.friday * 4 +
       dayCounts.saturday * 16
     );
+    
+    // Add extra 60 hours for October 2025 (Covid Clinics)
+    const isOctober2025 = format(date, 'MMMM yyyy') === 'October 2025';
+    const extraHubHours = isOctober2025 ? 60 : 0;
+    hubHours += extraHubHours;
     
     // Calculate spoke balance
     const contractualHours = 237.25;
@@ -105,7 +110,9 @@ const EnhancedAccess = () => {
       hubHours,
       spokeBalance,
       practiceRequirements,
-      dayCounts
+      dayCounts,
+      extraHubHours,
+      isOctober2025
     };
   };
 
@@ -824,10 +831,15 @@ const EnhancedAccess = () => {
                                         <div className="text-lg font-bold text-blue-600">{month.spokeData.contractualHours}</div>
                                         <div className="text-sm text-blue-600">Contractual Hours</div>
                                       </div>
-                                      <div className="bg-green-50 p-4 rounded-lg text-center">
-                                        <div className="text-lg font-bold text-green-600">{month.spokeData.hubHours}</div>
-                                        <div className="text-sm text-green-600">Hub Delivery</div>
-                                      </div>
+                                       <div className="bg-green-50 p-4 rounded-lg text-center">
+                                         <div className="text-lg font-bold text-green-600">
+                                           {month.spokeData.hubHours}
+                                           {month.spokeData.isOctober2025 && (
+                                             <span className="text-xs block text-green-500">+60 Covid Clinics</span>
+                                           )}
+                                         </div>
+                                         <div className="text-sm text-green-600">Hub Delivery</div>
+                                       </div>
                                       <div className="bg-orange-50 p-4 rounded-lg text-center">
                                         <div className="text-lg font-bold text-orange-600">{month.spokeData.spokeBalance}</div>
                                         <div className="text-sm text-orange-600">Spoke Balance</div>
@@ -851,10 +863,15 @@ const EnhancedAccess = () => {
                                       </div>
                                     </div>
 
-                                    {/* Individual Practice Requirements */}
-                                    {month.spokeData.spokeBalance > 0 && (
-                                      <div className="space-y-4">
-                                        <h5 className="font-semibold">Individual Practice Spoke Requirements</h5>
+                                     {/* Individual Practice Requirements */}
+                                     {month.spokeData.spokeBalance > 0 && (
+                                       <div className="space-y-4">
+                                         <h5 className="font-semibold">
+                                           Individual Practice Spoke Requirements
+                                           {month.spokeData.isOctober2025 && (
+                                             <span className="text-sm font-normal text-gray-600 ml-2">(Nett of Covid Clinics)</span>
+                                           )}
+                                         </h5>
                                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                                           {month.spokeData.practiceRequirements.map((practice) => (
                                             <div key={practice.practice} className="bg-orange-50 p-3 rounded-lg border">
