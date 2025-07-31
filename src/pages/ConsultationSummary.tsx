@@ -1375,10 +1375,13 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                                         scoringSection
                                           .replace(/\d+\/100\s*===\s*DETAILED SCORING BREAKDOWN\s*===/i, '')
                                           .replace(/=== TOTAL SCORE CALCULATION ===[\s\S]*?(?=\n=== |\n\*\*|$)/i, '')
+                                          .replace(/(\*\*HISTORY TAKING)/g, '\n\n$1')
                                           .replace(/(\*\*EXAMINATION)/g, '\n\n$1')
                                           .replace(/(\*\*DIAGNOSIS & ASSESSMENT)/g, '\n\n$1') 
                                           .replace(/(\*\*MANAGEMENT PLAN)/g, '\n\n$1')
                                           .replace(/(\*\*COMMUNICATION & DOCUMENTATION)/g, '\n\n$1')
+                                          .replace(/(Subtotal: \[\d+\/\d+\])/g, '$1\n\n')
+                                          .replace(/(Subtotal: <strong>\[\d+\/\d+\]<\/strong>)/g, '$1\n\n')
                                           .replace(/(=== CLINICAL JUSTIFICATION ===)/g, '\n\n$1')
                                           .replace(/(=== POINT DEDUCTIONS SUMMARY ===)/g, '\n\n$1')
                                           .replace(/(=== RECOMMENDATIONS FOR IMPROVEMENT ===)/g, '\n\n$1')
