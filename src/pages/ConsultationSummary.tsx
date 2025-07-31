@@ -1331,53 +1331,6 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
 
                               return (
                                 <>
-                                  <div className="grid gap-4">
-                                    <h4 className="text-lg font-semibold text-center mb-4">Detailed Scoring Breakdown</h4>
-                                    
-                                    {sections.map((section, index) => {
-                                      let awarded = 0;
-                                      // Try multiple patterns to find the score
-                                      for (const pattern of section.patterns) {
-                                        const match = scoringSection.match(pattern);
-                                        if (match) {
-                                          awarded = parseInt(match[1]);
-                                          console.log(`Found score for ${section.title}: ${awarded}/${section.total}`); // Debug log
-                                          break;
-                                        }
-                                      }
-                                      
-                                      const percentage = Math.round((awarded / section.total) * 100);
-                                      
-                                      return (
-                                        <div key={index} className="bg-white dark:bg-gray-800 rounded-lg p-4 border">
-                                          <div className="flex justify-between items-center mb-2">
-                                            <h5 className="font-semibold text-primary">{section.title}</h5>
-                                            <div className="text-right">
-                                              <div className={`text-lg font-bold ${
-                                                percentage >= 80 ? 'text-green-600' :
-                                                percentage >= 70 ? 'text-yellow-600' :
-                                                'text-red-600'
-                                              }`}>
-                                                {awarded}/{section.total}
-                                              </div>
-                                              <div className="text-xs text-muted-foreground">{percentage}%</div>
-                                            </div>
-                                          </div>
-                                          <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
-                                            <div 
-                                              className={`h-2 rounded-full ${
-                                                percentage >= 80 ? 'bg-green-500' :
-                                                percentage >= 70 ? 'bg-yellow-500' :
-                                                'bg-red-500'
-                                              }`}
-                                              style={{ width: `${percentage}%` }}
-                                            ></div>
-                                          </div>
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-
                                   {/* Summary Section */}
                                   <div className="mt-6 p-4 bg-white dark:bg-gray-800 rounded-lg border-2 border-primary">
                                     <h4 className="text-lg font-semibold text-center mb-4">Score Summary</h4>
