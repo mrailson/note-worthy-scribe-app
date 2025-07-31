@@ -36,6 +36,8 @@ import { SafeMessageRenderer } from "@/components/SafeMessageRenderer";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import jsPDF from "jspdf";
+import { Document, Packer, Paragraph, TextRun } from "docx";
+import { saveAs } from "file-saver";
 
 interface ConsultationData {
   id: string;
@@ -504,6 +506,33 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
     }
   };
 
+  const handleWordExport = async (content: string, filename: string) => {
+    try {
+      // Strip HTML tags and convert to plain text for Word export
+      const plainText = stripHtml(content);
+      
+      // Create a new Word document
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children: [
+            new Paragraph({
+              children: [new TextRun(plainText)],
+            }),
+          ],
+        }],
+      });
+
+      // Generate and save the document
+      const buffer = await Packer.toBlob(doc);
+      saveAs(buffer, `${filename}.docx`);
+      toast.success("Word document exported successfully");
+    } catch (error) {
+      console.error('Error exporting to Word:', error);
+      toast.error("Failed to export to Word");
+    }
+  };
+
   const backToExamples = () => {
     navigate('/gp-scribe', { state: { activeTab: 'examples' } });
   };
@@ -798,6 +827,14 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                     >
                       <Copy className="h-4 w-4 mr-1" />
                       Copy
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleWordExport(getCurrentGPSummary(), `GP-Summary-${consultationData?.title || 'consultation'}`)}
+                    >
+                      <Download className="h-4 w-4 mr-1" />
+                      Word
                     </Button>
                     <Button
                       size="sm"
