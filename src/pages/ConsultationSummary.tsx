@@ -99,6 +99,8 @@ export default function ConsultationSummary() {
   const [aiResponse, setAiResponse] = useState("");
   const [reviewContent, setReviewContent] = useState("");
   const [isLoadingReview, setIsLoadingReview] = useState(false);
+  const [referralContent, setReferralContent] = useState("");
+  const [isLoadingReferral, setIsLoadingReferral] = useState(false);
   const [isAILoading, setIsAILoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
@@ -640,6 +642,43 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
     }
   }, [activeTab]);
 
+  // Generate Referral functionality
+  const generateReferral = async () => {
+    setIsLoadingReferral(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-consultation-assistant', {
+        body: {
+          prompt: "write a referral letter",
+          consultationData: {
+            duration: consultationData?.duration,
+            transcript: consultationData?.transcript,
+            gpSummary: content.gpSummary,
+            patientCopy: content.patientCopy,
+            type: consultationData?.type
+          },
+          consultationType: consultationData?.type
+        }
+      });
+
+      if (error) throw error;
+
+      setReferralContent(data.response);
+      toast.success("Referral letter generated successfully");
+    } catch (error) {
+      console.error('Error generating referral:', error);
+      toast.error("Failed to generate referral letter. Please try again.");
+    } finally {
+      setIsLoadingReferral(false);
+    }
+  };
+
+  // Auto-generate referral when tab is accessed
+  useEffect(() => {
+    if (activeTab === "referral" && !referralContent && !isLoadingReferral) {
+      generateReferral();
+    }
+  }, [activeTab]);
+
   if (!consultationData) {
     return (
       <div className="min-h-screen bg-gradient-background flex items-center justify-center">
@@ -706,7 +745,7 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
           <CardContent>
             {/* Consultation Navigation */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-3 lg:grid-cols-3 bg-muted/50 p-1 rounded-xl">
+              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 bg-muted/50 p-1 rounded-xl">
                 <TabsTrigger 
                   value="gp-summary" 
                   className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm"
@@ -722,6 +761,14 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                   <MessageSquare className="h-4 w-4 mr-1 lg:mr-2" />
                   <span className="hidden sm:inline">Patient Copy</span>
                   <span className="sm:hidden">Patient</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="referral" 
+                  className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                >
+                  <FileText className="h-4 w-4 mr-1 lg:mr-2" />
+                  <span className="hidden sm:inline">Referral</span>
+                  <span className="sm:hidden">Referral</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="review" 
@@ -967,6 +1014,53 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                     </div>
                   </TabsContent>
                 </Tabs>
+              </TabsContent>
+
+              {/* Referral Tab */}
+              <TabsContent value="referral" className="space-y-4 mt-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-primary flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Referral Letter
+                  </h3>
+                  {referralContent && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleCopy(referralContent, "Referral Letter")}
+                    >
+                      <Copy className="h-4 w-4 mr-1" />
+                      Copy
+                    </Button>
+                  )}
+                </div>
+                
+                {isLoadingReferral ? (
+                  <div className="flex items-center justify-center p-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                    <p className="ml-3 text-muted-foreground">Generating referral letter...</p>
+                  </div>
+                ) : referralContent ? (
+                  <div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                    <div className="prose prose-sm max-w-none dark:prose-invert">
+                      <div className="ai-response-content space-y-3">
+                        <SafeMessageRenderer content={referralContent} />
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-muted/30 rounded-lg p-4 border text-center">
+                    <p className="text-muted-foreground">Click to generate referral letter...</p>
+                    <Button 
+                      className="mt-3" 
+                      onClick={generateReferral}
+                      variant="outline"
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      Generate Referral Letter
+                    </Button>
+                  </div>
+                )}
               </TabsContent>
 
               {/* Review & Recommendations Tab */}
