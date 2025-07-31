@@ -118,8 +118,8 @@ export default function ConsultationSummary() {
         return originalContent;
       case 1: // Standard - Use same formatting as Detailed
         return generateDetailedNotes(content.fullNote || originalContent);
-      case 2: // Detailed - Use Full Note content with better formatting
-        return generateDetailedNotes(content.fullNote || originalContent);
+      case 2: // Detailed - Use Full Note content with SNOMED codes
+        return generateDetailedNotesWithSNOMED(content.fullNote || originalContent);
       default:
         return originalContent;
     }
@@ -163,6 +163,59 @@ export default function ConsultationSummary() {
     // Convert line breaks to proper spacing
     formattedContent = formattedContent.replace(/\n\n/g, '<div class="mb-4"></div>');
     formattedContent = formattedContent.replace(/\n/g, '<br>');
+    
+    return formattedContent;
+  };
+
+  const generateDetailedNotesWithSNOMED = (content: string): string => {
+    // Use Full Note content with better formatting and add SNOMED codes
+    if (!content || content.trim() === "") {
+      return "No consultation data available to format.";
+    }
+
+    // Apply better formatting to the Full Note content
+    let formattedContent = content;
+    
+    // Clean up any existing markdown formatting
+    formattedContent = formattedContent.replace(/\*\*\*(.*?)\*\*\*/g, '**$1**'); // Convert triple asterisk to double
+    
+    // Convert headers to HTML with blue styling and bold text
+    formattedContent = formattedContent.replace(/^### (.*$)/gm, '<h3 class="text-lg font-bold text-primary mt-6 mb-3 border-b border-border pb-2">$1</h3>');
+    formattedContent = formattedContent.replace(/^## (.*$)/gm, '<h2 class="text-xl font-bold text-primary mt-8 mb-4">$1</h2>');
+    formattedContent = formattedContent.replace(/^# (.*$)/gm, '<h1 class="text-2xl font-bold text-primary mt-8 mb-6">$1</h1>');
+    
+    // Convert bold text
+    formattedContent = formattedContent.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-foreground">$1</strong>');
+    
+    // Make section headers ending with colons bold (more specific pattern)
+    formattedContent = formattedContent.replace(/^([A-Z][A-Za-z\s]*[A-Za-z]):(?=\s*$|<br>)/gm, '<strong class="font-bold text-foreground">$1:</strong>');
+    
+    // Convert bullet points with proper spacing
+    formattedContent = formattedContent.replace(/^• (.*$)/gm, '<div class="flex items-start gap-2 mb-2"><span class="text-primary mt-1">•</span><span>$1</span></div>');
+    
+    // Convert line breaks to proper spacing
+    formattedContent = formattedContent.replace(/\n\n/g, '<div class="mb-4"></div>');
+    formattedContent = formattedContent.replace(/\n/g, '<br>');
+    
+    // Add SNOMED codes section
+    formattedContent += `<div class="mb-4"></div><hr class="my-6 border-border"><div class="mb-4"></div>
+
+<h3 class="text-lg font-bold text-primary mt-6 mb-3 border-b border-border pb-2">SNOMED CT Clinical Codes</h3>
+
+<strong class="font-bold text-foreground">Clinical Documentation:</strong><br>
+<code class="px-2 py-1 bg-muted rounded text-sm font-mono">404684003</code> Clinical finding<br>
+<code class="px-2 py-1 bg-muted rounded text-sm font-mono">271649006</code> Vital signs<br>
+<code class="px-2 py-1 bg-muted rounded text-sm font-mono">5880005</code> Physical examination<br>
+<code class="px-2 py-1 bg-muted rounded text-sm font-mono">439401001</code> Diagnosis<br>
+<code class="px-2 py-1 bg-muted rounded text-sm font-mono">276239002</code> Therapy<br>
+<code class="px-2 py-1 bg-muted rounded text-sm font-mono">409073007</code> Education<br>
+<code class="px-2 py-1 bg-muted rounded text-sm font-mono">390906007</code> Follow-up<div class="mb-4"></div>
+
+<strong class="font-bold text-foreground">Administrative:</strong><br>
+<code class="px-2 py-1 bg-muted rounded text-sm font-mono">185349003</code> Encounter for check up<br>
+<code class="px-2 py-1 bg-muted rounded text-sm font-mono">308335008</code> Patient encounter procedure<br>
+<code class="px-2 py-1 bg-muted rounded text-sm font-mono">185317003</code> Telephone consultation<br>
+<code class="px-2 py-1 bg-muted rounded text-sm font-mono">185316007</code> Face-to-face consultation`;
     
     return formattedContent;
   };
