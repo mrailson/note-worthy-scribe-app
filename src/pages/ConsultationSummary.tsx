@@ -464,14 +464,6 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                     </Button>
                     <Button
                       size="sm"
-                      variant="outline"
-                      onClick={() => handleExportPDF(getCurrentGPSummary(), "gp-summary")}
-                    >
-                      <Download className="h-4 w-4 mr-1" />
-                      PDF
-                    </Button>
-                    <Button
-                      size="sm"
                       variant={editStates.gpSummary ? "default" : "outline"}
                       onClick={() => handleEditToggle("gpSummary")}
                     >
@@ -547,14 +539,6 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                     </Button>
                     <Button
                       size="sm"
-                      variant="outline"
-                      onClick={() => handleExportPDF(content.fullNote, "full-clinical-note")}
-                    >
-                      <Download className="h-4 w-4 mr-1" />
-                      PDF
-                    </Button>
-                    <Button
-                      size="sm"
                       variant={editStates.fullNote ? "default" : "outline"}
                       onClick={() => handleEditToggle("fullNote")}
                     >
@@ -599,14 +583,6 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                     >
                       <Copy className="h-4 w-4 mr-1" />
                       Copy
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleExportPDF(content.patientCopy, "patient-copy")}
-                    >
-                      <Download className="h-4 w-4 mr-1" />
-                      PDF
                     </Button>
                     <Button
                       size="sm"
@@ -658,14 +634,6 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                       >
                         <Copy className="h-4 w-4 mr-1" />
                         Copy
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleExportPDF(content.traineeFeedback, "trainee-feedback")}
-                      >
-                        <Download className="h-4 w-4 mr-1" />
-                        PDF
                       </Button>
                     </div>
                   </div>
