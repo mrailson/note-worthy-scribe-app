@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Plus, Clock, FileText, Trash2, Edit, Edit2, Mail, RefreshCw, Square, CheckSquare, ChevronDown, Copy, Sparkles } from "lucide-react";
+import { Plus, Clock, FileText, Trash2, Edit, Edit2, Mail, RefreshCw, Square, CheckSquare, ChevronDown, Copy, Sparkles, Save, Download } from "lucide-react";
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -96,6 +97,8 @@ const MeetingHistory = () => {
   const [cleanedTranscript, setCleanedTranscript] = useState("");
   const [isCleaningTranscript, setIsCleaningTranscript] = useState(false);
   const [currentMeetingForTranscript, setCurrentMeetingForTranscript] = useState<Meeting | null>(null);
+
+  const [isSavingCleanedTranscript, setIsSavingCleanedTranscript] = useState(false);
 
   const handleNewMeeting = () => {
     navigate("/");
@@ -267,6 +270,240 @@ const MeetingHistory = () => {
     } finally {
       setIsCleaningTranscript(false);
     }
+  };
+
+  const saveCleanedTranscript = async () => {
+    if (!cleanedTranscript || !currentMeetingForTranscript) return;
+    
+    setIsSavingCleanedTranscript(true);
+    try {
+      const { error } = await supabase
+        .from('meeting_transcripts')
+        .update({
+          content: cleanedTranscript,
+          updated_at: new Date().toISOString()
+        })
+        .eq('meeting_id', currentMeetingForTranscript.id);
+
+      if (error) throw error;
+
+      console.log('Cleaned transcript saved successfully');
+      setViewingTranscript(cleanedTranscript); // Update the original to match cleaned
+      
+      // Also update the main meeting transcript if this meeting is currently selected
+      if (selectedMeeting?.id === currentMeetingForTranscript.id) {
+        setMeetingTranscript(cleanedTranscript);
+      }
+    } catch (error) {
+      console.error('Error saving cleaned transcript:', error);
+    } finally {
+      setIsSavingCleanedTranscript(false);
+    }
+  };
+
+  const downloadTranscriptAsWord = async () => {
+    if (!currentMeetingForTranscript) return;
+    
+    const transcriptToUse = cleanedTranscript || viewingTranscript;
+    if (!transcriptToUse) return;
+
+    try {
+      // Create comprehensive meeting details
+      const meetingDate = new Date(currentMeetingForTranscript.start_time);
+      const formattedDate = meetingDate.toLocaleDateString('en-GB', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+      const formattedTime = meetingDate.toLocaleTimeString('en-GB', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
+
+      // Create Word document
+      const doc = new Document({
+        sections: [
+          {
+            properties: {},
+            children: [
+              // Title
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: currentMeetingForTranscript.title,
+                    bold: true,
+                    size: 32,
+                  }),
+                ],
+                heading: HeadingLevel.TITLE,
+                alignment: AlignmentType.CENTER,
+                spacing: { after: 400 },
+              }),
+              
+              // Meeting Details Header
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: "Meeting Details",
+                    bold: true,
+                    size: 24,
+                  }),
+                ],
+                heading: HeadingLevel.HEADING_1,
+                spacing: { before: 200, after: 200 },
+              }),
+              
+              // Meeting Information
+              new Paragraph({
+                children: [
+                  new TextRun({ text: "Date: ", bold: true }),
+                  new TextRun({ text: formattedDate }),
+                ],
+                spacing: { after: 100 },
+              }),
+              
+              new Paragraph({
+                children: [
+                  new TextRun({ text: "Time: ", bold: true }),
+                  new TextRun({ text: formattedTime }),
+                ],
+                spacing: { after: 100 },
+              }),
+              
+              new Paragraph({
+                children: [
+                  new TextRun({ text: "Type: ", bold: true }),
+                  new TextRun({ text: currentMeetingForTranscript.meeting_type.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) }),
+                ],
+                spacing: { after: 100 },
+              }),
+              
+              ...(currentMeetingForTranscript.duration_minutes ? [
+                new Paragraph({
+                  children: [
+                    new TextRun({ text: "Duration: ", bold: true }),
+                    new TextRun({ text: `${currentMeetingForTranscript.duration_minutes} minutes` }),
+                  ],
+                  spacing: { after: 100 },
+                })
+              ] : []),
+              
+              ...(currentMeetingForTranscript.location ? [
+                new Paragraph({
+                  children: [
+                    new TextRun({ text: "Location: ", bold: true }),
+                    new TextRun({ text: currentMeetingForTranscript.location }),
+                  ],
+                  spacing: { after: 100 },
+                })
+              ] : []),
+              
+              ...(currentMeetingForTranscript.format ? [
+                new Paragraph({
+                  children: [
+                    new TextRun({ text: "Format: ", bold: true }),
+                    new TextRun({ text: currentMeetingForTranscript.format === 'face-to-face' ? 'Face to Face' : 'Teams/Online' }),
+                  ],
+                  spacing: { after: 100 },
+                })
+              ] : []),
+              
+              ...(currentMeetingForTranscript.description ? [
+                new Paragraph({
+                  children: [
+                    new TextRun({ text: "Description: ", bold: true }),
+                    new TextRun({ text: currentMeetingForTranscript.description }),
+                  ],
+                  spacing: { after: 100 },
+                })
+              ] : []),
+              
+              // Transcript Header
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: cleanedTranscript ? "AI-Enhanced Transcript" : "Meeting Transcript",
+                    bold: true,
+                    size: 24,
+                  }),
+                ],
+                heading: HeadingLevel.HEADING_1,
+                spacing: { before: 400, after: 200 },
+              }),
+              
+              ...(cleanedTranscript ? [
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: "This transcript has been processed with AI to remove filler words, improve grammar, and enhance readability while preserving the original meaning.",
+                      italics: true,
+                      size: 20,
+                    }),
+                  ],
+                  spacing: { after: 200 },
+                })
+              ] : []),
+              
+              // Transcript Content
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: transcriptToUse,
+                    size: 22,
+                  }),
+                ],
+                spacing: { lineRule: "atLeast", line: 360 }, // 1.5 line spacing
+              }),
+              
+              // Footer
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: `Generated on ${new Date().toLocaleDateString('en-GB')} at ${new Date().toLocaleTimeString('en-GB')}`,
+                    italics: true,
+                    size: 18,
+                  }),
+                ],
+                alignment: AlignmentType.CENTER,
+                spacing: { before: 400 },
+              }),
+            ],
+          },
+        ],
+      });
+
+      // Generate and download the document
+      const buffer = await Packer.toBlob(doc);
+      const url = URL.createObjectURL(buffer);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${currentMeetingForTranscript.title} - ${formattedDate.replace(/,/g, '')} - ${cleanedTranscript ? 'AI Enhanced ' : ''}Transcript.docx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      console.log('Word document downloaded successfully');
+    } catch (error) {
+      console.error('Error creating Word document:', error);
+    }
+  };
+
+  const formatMeetingTitle = (meeting: Meeting) => {
+    const date = new Date(meeting.start_time);
+    const formattedDate = date.toLocaleDateString('en-GB', { 
+      weekday: 'short',
+      day: 'numeric', 
+      month: 'short', 
+      year: 'numeric' 
+    });
+    const formattedTime = date.toLocaleTimeString('en-GB', { 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+    
+    return `${meeting.title} - ${formattedDate} at ${formattedTime}${meeting.location ? ` (${meeting.location})` : ''}`;
   };
 
 
@@ -976,15 +1213,22 @@ const MeetingHistory = () => {
               <DialogTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5" />
                 Meeting Transcript
-                {currentMeetingForTranscript && (
-                  <span className="text-sm font-normal text-muted-foreground">
-                    - {currentMeetingForTranscript.title}
-                  </span>
-                )}
               </DialogTitle>
-              <DialogDescription>
-                View the original transcript or clean it with AI to remove filler words and improve formatting.
-              </DialogDescription>
+              {currentMeetingForTranscript && (
+                <DialogDescription className="space-y-1">
+                  <div className="font-medium text-foreground">
+                    {formatMeetingTitle(currentMeetingForTranscript)}
+                  </div>
+                  <div className="text-sm">
+                    {currentMeetingForTranscript.meeting_type.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    {currentMeetingForTranscript.duration_minutes && ` • ${currentMeetingForTranscript.duration_minutes} minutes`}
+                    {currentMeetingForTranscript.format && ` • ${currentMeetingForTranscript.format === 'face-to-face' ? 'Face to Face' : 'Teams/Online'}`}
+                  </div>
+                  <div className="text-xs">
+                    View the original transcript or clean it with AI to remove filler words and improve formatting.
+                  </div>
+                </DialogDescription>
+              )}
             </DialogHeader>
             
             <div className="space-y-4 py-4">
@@ -1015,6 +1259,34 @@ const MeetingHistory = () => {
                       <Sparkles className="h-4 w-4 mr-2" />
                     )}
                     {isCleaningTranscript ? 'Cleaning...' : 'Clean with AI'}
+                  </Button>
+                  
+                  {cleanedTranscript && (
+                    <Button
+                      onClick={saveCleanedTranscript}
+                      disabled={isSavingCleanedTranscript}
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 sm:flex-none touch-manipulation min-h-[44px]"
+                    >
+                      {isSavingCleanedTranscript ? (
+                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Save className="h-4 w-4 mr-2" />
+                      )}
+                      {isSavingCleanedTranscript ? 'Saving...' : 'Save Cleaned'}
+                    </Button>
+                  )}
+                  
+                  <Button
+                    onClick={downloadTranscriptAsWord}
+                    disabled={!viewingTranscript}
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 sm:flex-none touch-manipulation min-h-[44px]"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Download Word
                   </Button>
                   
                   <Button
