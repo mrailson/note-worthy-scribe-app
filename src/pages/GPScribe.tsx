@@ -910,31 +910,31 @@ const Index = () => {
           <TabsList className="grid w-full grid-cols-5 p-1 rounded-xl">
             <TabsTrigger 
               value="consultation" 
-              className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium"
+              className="rounded-lg transition-all duration-200 font-medium"
             >
               Consultation
             </TabsTrigger>
             <TabsTrigger 
               value="examples" 
-              className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium"
+              className="rounded-lg transition-all duration-200 font-medium"
             >
               Examples
             </TabsTrigger>
             <TabsTrigger 
               value="history"
-              className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium"
+              className="rounded-lg transition-all duration-200 font-medium"
             >
               History
             </TabsTrigger>
             <TabsTrigger 
               value="ai4gp" 
-              className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium"
+              className="rounded-lg transition-all duration-200 font-medium"
             >
               AI4GP
             </TabsTrigger>
             <TabsTrigger 
               value="gp-genie" 
-              className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium"
+              className="rounded-lg transition-all duration-200 font-medium"
             >
               GP Genie
             </TabsTrigger>
