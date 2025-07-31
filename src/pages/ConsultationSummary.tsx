@@ -116,8 +116,8 @@ export default function ConsultationSummary() {
     switch (level) {
       case 0: // Coded Notes (original standard content)
         return originalContent;
-      case 1: // Standard
-        return generateStandardNotes(originalContent);
+      case 1: // Standard - Use same formatting as Detailed
+        return generateDetailedNotes(content.fullNote || originalContent);
       case 2: // Detailed - Use Full Note content with better formatting
         return generateDetailedNotes(content.fullNote || originalContent);
       default:
