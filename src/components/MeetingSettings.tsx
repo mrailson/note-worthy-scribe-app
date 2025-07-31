@@ -110,10 +110,38 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
     setPracticeSearchOpen(false);
   };
 
-  const filteredPractices = practices.filter(practice =>
-    practice.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    practice.practice_code.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredPractices = practices.filter(practice => {
+    const lowerSearchTerm = searchTerm.toLowerCase();
+    const practiceCode = practice.practice_code.toLowerCase();
+    
+    // Search by practice name
+    if (practice.name.toLowerCase().includes(lowerSearchTerm)) {
+      return true;
+    }
+    
+    // Search by full practice code
+    if (practiceCode.includes(lowerSearchTerm)) {
+      return true;
+    }
+    
+    // If search term starts with 'k', also try without it
+    if (lowerSearchTerm.startsWith('k')) {
+      const searchWithoutK = lowerSearchTerm.substring(1);
+      if (practiceCode.includes(searchWithoutK)) {
+        return true;
+      }
+    }
+    
+    // If search term doesn't start with 'k', also try with 'k' prefix
+    if (!lowerSearchTerm.startsWith('k')) {
+      const searchWithK = 'k' + lowerSearchTerm;
+      if (practiceCode.includes(searchWithK)) {
+        return true;
+      }
+    }
+    
+    return false;
+  });
 
   const handleAudioImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
