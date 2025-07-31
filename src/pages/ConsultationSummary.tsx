@@ -151,63 +151,81 @@ export default function ConsultationSummary() {
       line.toLowerCase().includes('reason') ||
       line.toLowerCase().includes('patient') ||
       line.includes(':')
-    ) || lines[0] || "Consultation";
+    );
 
-    // Extract examination findings
+    // Extract specific history elements only if mentioned
+    const historyLines = lines.filter(line => 
+      line.toLowerCase().includes('history') ||
+      line.toLowerCase().includes('ice') ||
+      line.toLowerCase().includes('ideas') ||
+      line.toLowerCase().includes('concerns') ||
+      line.toLowerCase().includes('expectations') ||
+      line.toLowerCase().includes('red flag') ||
+      line.toLowerCase().includes('pmh') ||
+      line.toLowerCase().includes('past medical') ||
+      line.toLowerCase().includes('medications') ||
+      line.toLowerCase().includes('allergies') ||
+      line.toLowerCase().includes('family history') ||
+      line.toLowerCase().includes('social') ||
+      line.toLowerCase().includes('smoking') ||
+      line.toLowerCase().includes('alcohol')
+    );
+
+    // Extract examination findings only if mentioned
     const examFindings = lines.filter(line => 
       line.toLowerCase().includes('examination') ||
       line.toLowerCase().includes('vital') ||
       line.toLowerCase().includes('bp') ||
-      line.toLowerCase().includes('heart') ||
+      line.toLowerCase().includes('heart rate') ||
+      line.toLowerCase().includes('temperature') ||
       line.toLowerCase().includes('chest') ||
-      line.toLowerCase().includes('normal')
+      line.toLowerCase().includes('abdomen') ||
+      line.toLowerCase().includes('inspection') ||
+      line.toLowerCase().includes('palpation')
     );
 
-    // Extract diagnosis/assessment
+    // Extract diagnosis/assessment only if mentioned
     const diagnosis = lines.filter(line => 
       line.toLowerCase().includes('diagnosis') ||
       line.toLowerCase().includes('condition') ||
       line.toLowerCase().includes('assess') ||
-      line.toLowerCase().includes('likely')
+      line.toLowerCase().includes('impression')
     );
 
-    // Extract treatment/management
+    // Extract treatment/management only if mentioned
     const treatment = lines.filter(line => 
       line.toLowerCase().includes('treatment') ||
       line.toLowerCase().includes('management') ||
       line.toLowerCase().includes('plan') ||
       line.toLowerCase().includes('advice') ||
-      line.toLowerCase().includes('follow')
+      line.toLowerCase().includes('follow') ||
+      line.toLowerCase().includes('prescrib') ||
+      line.toLowerCase().includes('refer')
     );
 
-    // Format according to Heidi template with actual content
-    let detailedContent = `F2F seen alone. '${presentingComplaint.replace(/^.*?:/, '').trim()}'.
+    // Format according to Heidi template with ONLY actual content
+    let detailedContent = `F2F seen alone. '${presentingComplaint ? presentingComplaint.replace(/^.*?:/, '').trim() : 'Consultation'}'.
 
-**History:**
-- ${presentingComplaint.replace(/^.*?:/, '').trim()}
-- Patient's ideas, concerns and expectations discussed
-- Red flag symptoms assessed
-- Risk factors considered
-- PMH: Previous medical history reviewed
-- DH: Current medications checked
-- SH: Social circumstances appropriate
+**History:**`;
 
-**Examination:**
-${examFindings.length > 0 ? 
-  examFindings.map(finding => `- ${finding.replace(/^.*?:/, '').trim()}`).join('\n') :
-  '- Clinical examination performed\n- Vital signs stable'}
+    if (historyLines.length > 0) {
+      detailedContent += '\n' + historyLines.map(line => `- ${line.replace(/^.*?:/, '').trim()}`).join('\n');
+    }
 
-**Impression:**
-${diagnosis.length > 0 ? 
-  diagnosis.map((dx, index) => `${index + 1}. ${dx.replace(/^.*?:/, '').trim()}`).join('\n') :
-  '1. Clinical assessment completed'}
+    detailedContent += '\n\n**Examination:**';
+    if (examFindings.length > 0) {
+      detailedContent += '\n' + examFindings.map(finding => `- ${finding.replace(/^.*?:/, '').trim()}`).join('\n');
+    }
 
-**Plan:**
-${treatment.length > 0 ? 
-  treatment.map(tx => `- ${tx.replace(/^.*?:/, '').trim()}`).join('\n') :
-  '- Appropriate management discussed\n- Patient education provided'}
-- Follow up as clinically indicated
-- Safety netting advice given`;
+    detailedContent += '\n\n**Impression:**';
+    if (diagnosis.length > 0) {
+      detailedContent += '\n' + diagnosis.map((dx, index) => `${index + 1}. ${dx.replace(/^.*?:/, '').trim()}`).join('\n');
+    }
+
+    detailedContent += '\n\n**Plan:**';
+    if (treatment.length > 0) {
+      detailedContent += '\n' + treatment.map(tx => `- ${tx.replace(/^.*?:/, '').trim()}`).join('\n');
+    }
     
     return detailedContent;
   };
