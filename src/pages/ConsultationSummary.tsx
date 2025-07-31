@@ -736,6 +736,13 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
     }
   }, [consultationData]);
 
+  // Auto-generate referral when consultation data loads (background task)
+  useEffect(() => {
+    if (consultationData && !referralContent && !isLoadingReferral) {
+      generateReferral();
+    }
+  }, [consultationData]);
+
   // Generate Referral functionality
   const generateReferral = async () => {
     setIsLoadingReferral(true);
