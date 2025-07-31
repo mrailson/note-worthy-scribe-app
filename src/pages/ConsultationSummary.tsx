@@ -332,6 +332,11 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
       return formatted;
     };
 
+    // Filter out empty lines after formatting
+    const formatAndFilter = (lines: string[]) => {
+      return lines.map(formatLine).filter(line => line.length > 5); // Only include meaningful content
+    };
+
     return `<div class="space-y-4">
       <p>Dear Patient,</p>
       <p>Thank you for attending your consultation today.</p>
@@ -358,7 +363,7 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
       <div class="space-y-2">
         <h4 class="font-bold text-primary">Follow-up:</h4>
         <div class="ml-4 space-y-1">
-          ${followUpContent.map(item => `<p>• ${formatLine(item)}</p>`).join('')}
+          ${formatAndFilter(followUpContent).map(item => `<p>• ${item}</p>`).join('')}
         </div>
       </div>` : ''}
       
