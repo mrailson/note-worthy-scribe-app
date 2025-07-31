@@ -14,7 +14,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 import { RealtimeTranscriber, TranscriptData } from "@/utils/RealtimeTranscriber";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import jsPDF from 'jspdf';
 import { consultationExamples, type ConsultationExample } from "@/data/consultationExamples";
@@ -65,6 +65,7 @@ const Index = () => {
   const { user, loading } = useAuth();
   
   const navigate = useNavigate();
+  const location = useLocation();
   
   // Recording states
   const [isRecording, setIsRecording] = useState(false);
@@ -544,29 +545,29 @@ const Index = () => {
   const loadExample = (exampleId: string) => {
     const example = consultationExamples.find(ex => ex.id === exampleId);
     if (example) {
-      setTranscript(example.transcript);
-      setWordCount(example.transcript.split(' ').filter(word => word.length > 0).length);
-      setDuration(300); // 5 minutes example duration
+      // Prepare consultation data for the summary view
+      const consultationData = {
+        id: `example-${exampleId}`,
+        title: example.title,
+        type: example.type,
+        transcript: example.transcript,
+        duration: formatDuration(300), // 5 minutes example duration
+        wordCount: example.transcript.split(' ').filter(word => word.length > 0).length,
+        startTime: new Date().toISOString(),
+        isExample: true,
+        exampleData: {
+          gpSummary: example.expectedNotes.gpSummary,
+          fullNote: example.expectedNotes.fullNote,
+          patientCopy: example.expectedNotes.patientCopy,
+          traineeFeedback: example.traineeFeedback,
+          guidance: null // Will be generated
+        }
+      };
       
-      // Load the pre-defined clinical notes and trainee feedback
-      setGpSummary(example.expectedNotes.gpSummary);
-      setFullNote(example.expectedNotes.fullNote);
-      setPatientCopy(example.expectedNotes.patientCopy);
-      setTraineeFeedback(example.traineeFeedback);
+      toast.success(`Loading example: ${example.title}`);
       
-      // Update edit content as well
-      setEditContent({
-        gpSummary: example.expectedNotes.gpSummary,
-        fullNote: example.expectedNotes.fullNote,
-        patientCopy: example.expectedNotes.patientCopy,
-        traineeFeedback: example.traineeFeedback,
-        referralLetter: ""
-      });
-      
-      toast.success(`Loaded example: ${example.title} with supervisor feedback`);
-      
-      // Auto-generate guidance for the example
-      generateGuidance(example.transcript);
+      // Navigate to consultation summary view
+      navigate('/consultation-summary', { state: consultationData });
     }
   };
 
@@ -852,6 +853,14 @@ const Index = () => {
         return 'outline';
     }
   };
+
+  // Handle navigation state (e.g., returning from consultation summary)
+  useEffect(() => {
+    const navState = location.state as { activeTab?: string } | null;
+    if (navState?.activeTab) {
+      setActiveTab(navState.activeTab);
+    }
+  }, [location.state]);
 
   // Load user settings on component mount
   useEffect(() => {

@@ -5,6 +5,7 @@ import GPScribe from "./pages/GPScribe";
 import GPScribeSettings from "./pages/GPScribeSettings";
 import MeetingHistory from "./pages/MeetingHistory";
 import MeetingSummary from "./pages/MeetingSummary";
+import ConsultationSummary from "./pages/ConsultationSummary";
 import Settings from "./pages/Settings";
 import SystemAdmin from "./pages/SystemAdmin";
 import ComplaintsSystem from "./pages/ComplaintsSystem";
@@ -28,6 +29,7 @@ const App = () => (
       <Route path="/meetings" element={<MeetingHistory />} />
       <Route path="/meeting-history" element={<MeetingHistory />} />
       <Route path="/meeting-summary" element={<MeetingSummary />} />
+      <Route path="/consultation-summary" element={<ConsultationSummary />} />
       <Route path="/settings" element={<Settings />} />
       <Route path="/admin" element={<SystemAdmin />} />
       <Route path="/complaints" element={<ComplaintsSystem />} />
