@@ -67,6 +67,8 @@ export const MeetingRecorder = ({
   const [debugLog, setDebugLog] = useState<string[]>([]);
   const [testTranscripts, setTestTranscripts] = useState<string[]>([]);
   const [recordingMode, setRecordingMode] = useState<'microphone' | 'computer-audio'>('microphone');
+  const [tickerText, setTickerText] = useState<string>("");
+  const [showTicker, setShowTicker] = useState(false);
   
   
   // Meeting history state
@@ -215,6 +217,21 @@ export const MeetingRecorder = ({
   };
 
   const handleTranscript = (transcriptData: TranscriptData) => {
+    // Update ticker tape for live transcription
+    if (transcriptData.text && transcriptData.text.trim()) {
+      const truncatedText = transcriptData.text.length > 100 
+        ? transcriptData.text.substring(0, 100) + "..." 
+        : transcriptData.text;
+      
+      setTickerText(truncatedText);
+      setShowTicker(true);
+      
+      // Auto-hide ticker after 3 seconds if no new text
+      setTimeout(() => {
+        setShowTicker(false);
+      }, 3000);
+    }
+
     // Update transcripts array
     setRealtimeTranscripts(prev => {
       const filtered = prev.filter(t => 
@@ -1589,7 +1606,6 @@ export const MeetingRecorder = ({
                   </div>
                 )}
 
-                {/* Recording Button */}
                 <div className="text-center">
                   {!isRecording ? (
                     <div className="space-y-2">
@@ -1620,6 +1636,21 @@ export const MeetingRecorder = ({
                       <div className="flex items-center justify-center gap-3 text-primary animate-pulse bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg p-4 border border-primary/20">
                         <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
                         <span className="text-base font-semibold">Recording in progress...</span>
+                      </div>
+                      
+                      {/* Ticker tape for live transcription */}
+                      <div className={`transition-all duration-500 ${showTicker ? 'opacity-100 animate-fade-in' : 'opacity-0'}`}>
+                        <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                          <div className="flex items-center gap-2">
+                            <Waves className="h-4 w-4 text-blue-600 dark:text-blue-400 animate-pulse" />
+                            <div className="flex-1 overflow-hidden">
+                              <div className="text-sm text-blue-700 dark:text-blue-300 font-medium">Live Speech:</div>
+                              <div className="text-sm text-blue-600 dark:text-blue-400 truncate">
+                                {tickerText || "Listening..."}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                       
                       <Button 
