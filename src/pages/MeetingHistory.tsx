@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Plus, Clock, FileText, Trash2, Edit, Edit2, Mail, RefreshCw, Square, CheckSquare, ChevronDown, Copy } from "lucide-react";
+import TranscriptCleaner from "@/components/TranscriptCleaner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -714,6 +715,14 @@ const MeetingHistory = () => {
               </AlertDialog>
             </div>
           </div>
+        )}
+
+        {/* Transcript Cleaner Section */}
+        {meetings.length > 0 && (
+          <TranscriptCleaner 
+            meetings={meetings.filter(m => m.transcript_count && m.transcript_count > 0)}
+            onTranscriptCleaned={fetchMeetings}
+          />
         )}
 
         {/* Meeting Detail View or Meetings List */}
