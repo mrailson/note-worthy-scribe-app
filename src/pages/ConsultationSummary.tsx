@@ -835,16 +835,16 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                         {noteLevels[noteLevel[0]]}
                       </Badge>
                     </div>
-                    <div className="flex-1 max-w-md">
+                    <div className="flex-none max-w-xs">
                       <Slider
                         value={noteLevel}
                         onValueChange={setNoteLevel}
                         max={2}
                         min={0}
                         step={1}
-                        className="w-full"
+                        className="w-48"
                       />
-                      <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                      <div className="flex justify-between text-xs text-muted-foreground mt-1 px-1">
                         <span>Coded</span>
                         <span>Standard</span>
                         <span>Detailed</span>
