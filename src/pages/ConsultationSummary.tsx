@@ -635,12 +635,19 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
     }
   };
 
-  // Auto-generate review when tab is accessed
+  // Auto-generate review when tab is accessed OR when page loads
   useEffect(() => {
     if (activeTab === "review" && !reviewContent && !isLoadingReview) {
       generateReview();
     }
   }, [activeTab]);
+
+  // Auto-generate review when consultation data loads (background task)
+  useEffect(() => {
+    if (consultationData && !reviewContent && !isLoadingReview) {
+      generateReview();
+    }
+  }, [consultationData]);
 
   // Generate Referral functionality
   const generateReferral = async () => {
