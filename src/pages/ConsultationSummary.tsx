@@ -805,7 +805,7 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
 
                         {aiResponse && (
                           <div className="mt-4 p-4 bg-background rounded-lg border">
-                            <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center justify-between mb-3">
                               <h4 className="font-medium text-primary flex items-center gap-2">
                                 <Sparkles className="h-4 w-4" />
                                 AI Assistant Response
@@ -819,8 +819,10 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                                 Copy
                               </Button>
                             </div>
-                            <div className="prose prose-sm max-w-none">
-                              <SafeMessageRenderer content={aiResponse} />
+                            <div className="prose prose-sm max-w-none dark:prose-invert">
+                              <div className="ai-response-content space-y-3">
+                                <SafeMessageRenderer content={aiResponse} />
+                              </div>
                             </div>
                           </div>
                         )}

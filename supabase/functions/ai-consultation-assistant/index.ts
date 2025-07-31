@@ -32,13 +32,25 @@ Consultation Context:
 
 User Request: ${prompt}
 
-Please provide a helpful, professional response that addresses the user's request. If they're asking for:
-- A referral letter: Create a professional NHS-style referral letter
-- Missing items: Review the consultation for any gaps or missing information
-- Improvements: Suggest specific improvements to documentation or patient care
-- Clinical advice: Provide evidence-based medical guidance
+IMPORTANT FORMATTING INSTRUCTIONS:
+- Use HTML formatting in your response
+- Use <h3> tags for main headings
+- Use <h4> tags for sub-headings
+- Use <strong> tags for emphasis
+- Use <ul> and <li> tags for bullet points
+- Use <p> tags for paragraphs
+- Use <div class="bg-muted p-3 rounded-lg border-l-4 border-primary mt-4"> for important notes or clinical advice
+- For referral letters, use proper letter formatting with clear sections
+- For lists of recommendations, use numbered lists with <ol> and <li>
+- Use <blockquote> for quotes or specific clinical guidelines
 
-Keep responses concise but thorough, and always maintain professional medical standards.`;
+Please provide a helpful, professional response that addresses the user's request. If they're asking for:
+- A referral letter: Create a professional NHS-style referral letter with proper formatting
+- Missing items: Review the consultation systematically and present findings in an organized list
+- Improvements: Provide specific, actionable recommendations with clear categories
+- Clinical advice: Provide evidence-based medical guidance with proper structure
+
+Format your response with clear headings, proper spacing, and professional medical structure.`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
