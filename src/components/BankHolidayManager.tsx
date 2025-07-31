@@ -450,7 +450,10 @@ export const BankHolidayManager = () => {
       </Dialog>
 
       {/* Replacement Shifts */}
-      {replacementShifts.length > 0 && (
+      {replacementShifts.filter(shift => {
+        const shiftDate = new Date(shift.assignment_date);
+        return shiftDate >= new Date() && shiftDate <= sixMonthsFromNow;
+      }).length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -460,7 +463,10 @@ export const BankHolidayManager = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {replacementShifts.map((shift) => (
+              {replacementShifts.filter(shift => {
+                const shiftDate = new Date(shift.assignment_date);
+                return shiftDate >= new Date() && shiftDate <= sixMonthsFromNow;
+              }).map((shift) => (
                 <div key={shift.id} className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="flex-1">
                     <div className="flex items-center gap-3">
