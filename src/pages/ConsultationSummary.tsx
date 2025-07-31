@@ -790,12 +790,6 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
               {/* GP Summary Tab */}
               <TabsContent value="gp-summary" className="space-y-4 mt-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div>
-                    <h3 className="text-lg font-semibold text-primary">GP Summary</h3>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Adjust the detail level using the slider below
-                    </p>
-                  </div>
                   <div className="flex gap-2">
                     <Button
                       size="sm"
