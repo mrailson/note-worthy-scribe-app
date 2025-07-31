@@ -22,12 +22,19 @@ import {
   MessageSquare,
   Lightbulb,
   Settings,
+  Mic,
+  MicOff,
+  Send,
+  Sparkles,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { SafeMessageRenderer } from "@/components/SafeMessageRenderer";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { supabase } from "@/integrations/supabase/client";
 import jsPDF from "jspdf";
 
 interface ConsultationData {
@@ -85,6 +92,14 @@ export default function ConsultationSummary() {
 
   // Patient copy sub-tab state
   const [patientCopyTab, setPatientCopyTab] = useState("sms"); // "sms" or "email"
+
+  // Ask AI state
+  const [isAskAIOpen, setIsAskAIOpen] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiResponse, setAiResponse] = useState("");
+  const [isAILoading, setIsAILoading] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
 
   const noteLevels = ["Coded", "Standard", "Detailed"];
 
@@ -482,6 +497,99 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
     navigate('/gp-scribe');
   };
 
+  // Ask AI functionality
+  const handleAskAI = async () => {
+    if (!aiPrompt.trim()) {
+      toast.error("Please enter a prompt or use voice input");
+      return;
+    }
+
+    setIsAILoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-consultation-assistant', {
+        body: {
+          prompt: aiPrompt,
+          consultationData: {
+            duration: consultationData?.duration,
+            transcript: consultationData?.transcript,
+            gpSummary: content.gpSummary,
+            patientCopy: content.patientCopy,
+            type: consultationData?.type
+          },
+          consultationType: consultationData?.type
+        }
+      });
+
+      if (error) throw error;
+
+      setAiResponse(data.response);
+      toast.success("AI analysis complete");
+    } catch (error) {
+      console.error('Error getting AI response:', error);
+      toast.error("Failed to get AI response. Please try again.");
+    } finally {
+      setIsAILoading(false);
+    }
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      const chunks: BlobPart[] = [];
+
+      recorder.ondataavailable = (event) => {
+        chunks.push(event.data);
+      };
+
+      recorder.onstop = async () => {
+        const audioBlob = new Blob(chunks, { type: 'audio/webm' });
+        await processAudioToText(audioBlob);
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      recorder.start();
+      setMediaRecorder(recorder);
+      setIsRecording(true);
+      toast.success("Recording started. Speak your request...");
+    } catch (error) {
+      console.error('Error starting recording:', error);
+      toast.error("Failed to start recording. Please check microphone permissions.");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorder && isRecording) {
+      mediaRecorder.stop();
+      setIsRecording(false);
+      setMediaRecorder(null);
+      toast.success("Recording stopped. Processing...");
+    }
+  };
+
+  const processAudioToText = async (audioBlob: Blob) => {
+    try {
+      // Convert blob to base64
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64Audio = (reader.result as string).split(',')[1];
+        
+        const { data, error } = await supabase.functions.invoke('speech-to-text-consultation', {
+          body: { audio: base64Audio }
+        });
+
+        if (error) throw error;
+
+        setAiPrompt(data.text);
+        toast.success("Voice converted to text successfully");
+      };
+      reader.readAsDataURL(audioBlob);
+    } catch (error) {
+      console.error('Error processing audio:', error);
+      toast.error("Failed to process voice input. Please try again.");
+    }
+  };
+
   if (!consultationData) {
     return (
       <div className="min-h-screen bg-gradient-background flex items-center justify-center">
@@ -641,6 +749,84 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                       </div>
                     </div>
                   </div>
+                </div>
+
+                {/* Ask AI Section */}
+                <div className="bg-gradient-to-r from-violet-50 to-indigo-50 dark:from-violet-950/30 dark:to-indigo-950/30 rounded-lg border border-violet-200 dark:border-violet-800">
+                  <Collapsible open={isAskAIOpen} onOpenChange={setIsAskAIOpen}>
+                    <CollapsibleTrigger asChild>
+                      <Button variant="ghost" className="w-full justify-between p-4 h-auto">
+                        <span className="flex items-center gap-2">
+                          <Sparkles className="h-5 w-5 text-violet-600" />
+                          <span className="font-medium text-violet-700 dark:text-violet-300">Ask AI Assistant</span>
+                        </span>
+                        {isAskAIOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="px-4 pb-4">
+                      <div className="space-y-3">
+                        <p className="text-sm text-muted-foreground">
+                          Ask the AI to analyze your consultation, create referral letters, suggest improvements, or check for missing information.
+                        </p>
+                        
+                        <div className="flex gap-2">
+                          <div className="flex-1">
+                            <Textarea
+                              value={aiPrompt}
+                              onChange={(e) => setAiPrompt(e.target.value)}
+                              placeholder="e.g., 'Create a referral letter to cardiology' or 'Is there anything I missed?' or 'Review my consultation and suggest improvements'"
+                              className="min-h-[80px] resize-none"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={isRecording ? stopRecording : startRecording}
+                              disabled={isAILoading}
+                              className="p-2"
+                            >
+                              {isRecording ? <MicOff className="h-4 w-4 text-red-500" /> : <Mic className="h-4 w-4" />}
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={handleAskAI}
+                              disabled={isAILoading || !aiPrompt.trim()}
+                              className="p-2"
+                            >
+                              {isAILoading ? (
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                              ) : (
+                                <Send className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+
+                        {aiResponse && (
+                          <div className="mt-4 p-4 bg-background rounded-lg border">
+                            <div className="flex items-center justify-between mb-2">
+                              <h4 className="font-medium text-primary flex items-center gap-2">
+                                <Sparkles className="h-4 w-4" />
+                                AI Assistant Response
+                              </h4>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleCopy(aiResponse, "AI Response")}
+                              >
+                                <Copy className="h-4 w-4 mr-1" />
+                                Copy
+                              </Button>
+                            </div>
+                            <div className="prose prose-sm max-w-none">
+                              <SafeMessageRenderer content={aiResponse} />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
                 </div>
                 
                 {editStates.gpSummary ? (
