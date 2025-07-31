@@ -20,10 +20,13 @@ import {
   TrendingUp,
   CheckCircle,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  ChevronDown
 } from "lucide-react";
 import { toast } from "sonner";
 import EnhancedCQCAI from "@/components/EnhancedCQCAI";
+import CQCDomainCard from "@/components/CQCDomainCard";
+import CQCAlertsPanel from "@/components/CQCAlertsPanel";
 
 interface CQCDomain {
   name: string;
@@ -55,14 +58,7 @@ const CQCCompliance = () => {
   const [alerts, setAlerts] = useState<ComplianceAlert[]>([]);
   const [practiceSettings, setPracticeSettings] = useState<PracticeSettings>({});
   const [chatOpen, setChatOpen] = useState(false);
-  const [chatMessages, setChatMessages] = useState<Array<{
-    id: string;
-    role: 'user' | 'assistant';
-    content: string;
-    timestamp: Date;
-  }>>([]);
-  const [currentMessage, setCurrentMessage] = useState('');
-  const [chatLoading, setChatLoading] = useState(false);
+  const [showMoreDomains, setShowMoreDomains] = useState(false);
 
   const domainIcons = {
     safe: Shield,
@@ -203,79 +199,7 @@ const CQCCompliance = () => {
     }
   };
 
-  const handleChatMessage = async () => {
-    if (!currentMessage.trim() || chatLoading) return;
-
-    const userMessage = {
-      id: Date.now().toString(),
-      role: 'user' as const,
-      content: currentMessage,
-      timestamp: new Date()
-    };
-
-    setChatMessages(prev => [...prev, userMessage]);
-    setCurrentMessage('');
-    setChatLoading(true);
-
-    try {
-      // Prepare practice context
-      const practiceContext = {
-        complianceStatus: domains.reduce((acc, domain) => {
-          acc[domain.name] = domain.percentage;
-          return acc;
-        }, {} as Record<string, number>),
-        recentAlerts: alerts.slice(0, 3),
-        policies: [] // Would be populated from actual data
-      };
-
-      const response = await supabase.functions.invoke('cqc-ai-assistant', {
-        body: {
-          messages: [...chatMessages, userMessage],
-          practiceContext
-        }
-      });
-
-      if (response.error) {
-        throw new Error(response.error.message);
-      }
-
-      const assistantMessage = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant' as const,
-        content: response.data.response,
-        timestamp: new Date()
-      };
-
-      setChatMessages(prev => [...prev, assistantMessage]);
-
-    } catch (error) {
-      console.error('Error sending message:', error);
-      toast.error('Failed to get AI response');
-    } finally {
-      setChatLoading(false);
-    }
-  };
-
-  const exportChatSession = () => {
-    const chatData = {
-      session_date: new Date().toISOString(),
-      messages: chatMessages,
-      practice_context: {
-        domains: domains.map(d => ({ name: d.name, percentage: d.percentage })),
-        alerts_count: alerts.length
-      }
-    };
-
-    const blob = new Blob([JSON.stringify(chatData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `cqc-chat-session-${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
+  // loadDashboardData function handles loading mock data
 
   if (loading) {
     return (
@@ -363,82 +287,84 @@ const CQCCompliance = () => {
         </Card>
       </div>
 
-      {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* CQC Domains */}
-        <div className="lg:col-span-2">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5" />
-                CQC Domain Compliance
-              </CardTitle>
-              <CardDescription>
-                Traffic light system for the five CQC domains
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {domains.map((domain) => {
-                const Icon = domainIcons[domain.name as keyof typeof domainIcons];
-                const StatusIcon = getStatusIcon(domain.status);
-                
-                return (
-                  <div key={domain.name} className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Icon className="h-5 w-5" />
-                        <div>
-                          <div className="font-medium capitalize">{domain.name.replace('_', '-')}</div>
-                          <div className="text-sm text-muted-foreground">{domain.description}</div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <StatusIcon className={`h-4 w-4 ${getStatusColor(domain.status).replace('bg-', 'text-')}`} />
-                        <span className="font-medium">{domain.percentage}%</span>
-                      </div>
-                    </div>
-                    <Progress value={domain.percentage} className="h-2" />
-                    {domain.gaps.length > 0 && (
-                      <div className="text-sm text-red-600">
-                        Gaps: {domain.gaps.join(', ')}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </CardContent>
-          </Card>
+      {/* CQC Domains Section */}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              <TrendingUp className="h-6 w-6" />
+              CQC Domain Compliance
+            </h2>
+            <p className="text-muted-foreground">
+              Traffic light system for the five CQC domains
+            </p>
+          </div>
         </div>
 
-        {/* Alerts & Tasks */}
+        {/* Display first 2 domains, then show more button */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {domains.slice(0, showMoreDomains ? domains.length : 2).map((domain, index) => (
+            <CQCDomainCard key={domain.name} domain={domain} index={index} />
+          ))}
+        </div>
+
+        {domains.length > 2 && (
+          <div className="text-center">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowMoreDomains(!showMoreDomains)}
+              className="flex items-center gap-2"
+            >
+              {showMoreDomains ? 'Show Less' : `Show ${domains.length - 2} More Domains`}
+              <ChevronDown className={`h-4 w-4 transition-transform ${showMoreDomains ? 'rotate-180' : ''}`} />
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* Alerts & Tasks Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <CQCAlertsPanel alerts={alerts} />
+        </div>
+        
+        {/* Overall Compliance Summary */}
         <div>
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5" />
-                Alerts & Tasks
+                <Award className="h-5 w-5" />
+                Overall Status
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
-              {alerts.map((alert) => (
-                <Alert key={alert.id}>
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertTitle className="flex items-center justify-between">
-                    <span>{alert.title}</span>
-                    <Badge variant={getPriorityColor(alert.priority)}>
-                      {alert.priority}
-                    </Badge>
-                  </AlertTitle>
-                  <AlertDescription>
-                    {alert.message}
-                    {alert.due_date && (
-                      <div className="text-xs mt-1">
-                        Due: {new Date(alert.due_date).toLocaleDateString()}
-                      </div>
-                    )}
-                  </AlertDescription>
-                </Alert>
-              ))}
+            <CardContent className="space-y-4">
+              <div className="text-center">
+                <div className="text-3xl font-bold text-primary">
+                  {Math.round(domains.reduce((acc, domain) => acc + domain.percentage, 0) / domains.length)}%
+                </div>
+                <p className="text-sm text-muted-foreground">Average Compliance</p>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Compliant Domains</span>
+                  <span className="font-medium text-green-600">
+                    {domains.filter(d => d.status === 'compliant').length}/{domains.length}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Critical Issues</span>
+                  <span className="font-medium text-red-600">
+                    {domains.filter(d => d.status === 'critical').length}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>High Priority Alerts</span>
+                  <span className="font-medium text-orange-600">
+                    {alerts.filter(a => a.priority === 'urgent' || a.priority === 'high').length}
+                  </span>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -446,18 +372,20 @@ const CQCCompliance = () => {
 
       {/* Enhanced CQC AI Assistant */}
       {chatOpen && (
-        <EnhancedCQCAI 
-          practiceContext={{
-            complianceStatus: domains.reduce((acc, domain) => {
-              acc[domain.name] = domain.percentage;
-              return acc;
-            }, {} as Record<string, number>),
-            recentAlerts: alerts.slice(0, 3),
-            policies: [], // Would be populated from actual data
-            practiceSettings
-          }}
-          onClose={() => setChatOpen(false)}
-        />
+        <div className="max-w-none mb-8"> {/* Added margin-bottom to prevent overflow */}
+          <EnhancedCQCAI 
+            practiceContext={{
+              complianceStatus: domains.reduce((acc, domain) => {
+                acc[domain.name] = domain.percentage;
+                return acc;
+              }, {} as Record<string, number>),
+              recentAlerts: alerts.slice(0, 3),
+              policies: [], // Would be populated from actual data
+              practiceSettings
+            }}
+            onClose={() => setChatOpen(false)}
+          />
+        </div>
       )}
 
       {/* Quick Actions */}
