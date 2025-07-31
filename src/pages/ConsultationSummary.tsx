@@ -340,8 +340,22 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
     const medications = lines.filter(line => 
       line.toLowerCase().includes('medication') || 
       line.toLowerCase().includes('prescription') ||
-      line.toLowerCase().includes('treatment')
-    ).slice(0, 2);
+      line.toLowerCase().includes('treatment') ||
+      line.toLowerCase().includes('paracetamol') ||
+      line.toLowerCase().includes('ibuprofen') ||
+      line.toLowerCase().includes('take') ||
+      line.toLowerCase().includes('tablets') ||
+      line.toLowerCase().includes('capsules') ||
+      line.toLowerCase().includes('mg') ||
+      line.toLowerCase().includes('dose') ||
+      line.toLowerCase().includes('twice daily') ||
+      line.toLowerCase().includes('once daily') ||
+      line.toLowerCase().includes('as needed') ||
+      line.toLowerCase().includes('pain relief') ||
+      line.toLowerCase().includes('analgesic') ||
+      line.toLowerCase().includes('anti-inflammatory') ||
+      line.toLowerCase().includes('recommend')
+    ).slice(0, 3);
 
     const followUp = lines.filter(line => 
       line.toLowerCase().includes('follow') || 
