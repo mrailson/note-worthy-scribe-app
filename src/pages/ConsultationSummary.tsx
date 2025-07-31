@@ -655,7 +655,7 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
     try {
       const { data, error } = await supabase.functions.invoke('ai-consultation-assistant', {
         body: {
-          prompt: "Generate a professional NHS referral letter with proper formatting. Use double line breaks between paragraphs and sections. Structure it as: Dear Colleague, followed by separate paragraphs for Patient Details, Clinical Presentation, Examination Findings, Assessment, Management Plan, and any relevant advice. End with 'Yours sincerely,' on its own line. Return plain text with proper line breaks, no HTML or markdown.",
+          prompt: "Generate a professional NHS referral letter in plain text format. Use double line breaks between paragraphs and sections. Do not use any formatting markers like asterisks, markdown, or special characters for emphasis. Structure it clearly with: Dear Colleague, followed by separate paragraphs for Patient Details, Clinical Presentation, Examination Findings, Assessment, Management Plan, and any relevant advice. End with 'Yours sincerely,' on its own line. Use only plain text with proper spacing.",
           consultationData: {
             duration: consultationData?.duration,
             transcript: consultationData?.transcript,
