@@ -1409,7 +1409,7 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                                   {/* Detailed breakdown text */}
                                   <div className="prose prose-sm max-w-none dark:prose-invert">
                                     <div className="ai-response-content space-y-3">
-                                      <SafeMessageRenderer content={scoringSection} />
+                                      <SafeMessageRenderer content={scoringSection.replace(/\d+\/100\s*===\s*DETAILED SCORING BREAKDOWN\s*===/i, '')} />
                                     </div>
                                   </div>
                                 </>
