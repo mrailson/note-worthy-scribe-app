@@ -146,22 +146,20 @@ export default function ConsultationSummary() {
     // Clean up any existing markdown formatting
     formattedContent = formattedContent.replace(/\*\*\*(.*?)\*\*\*/g, '**$1**'); // Convert triple asterisk to double
     
-    // Remove any hash symbols
-    formattedContent = formattedContent.replace(/^#+\s*/gm, '');
+    // Convert headers to HTML with blue styling (but remove the # symbols from display)
+    formattedContent = formattedContent.replace(/^### (.*$)/gm, '<h3 class="text-lg font-semibold text-primary mt-6 mb-3 border-b border-border pb-2">$1</h3>');
+    formattedContent = formattedContent.replace(/^## (.*$)/gm, '<h2 class="text-xl font-bold text-primary mt-8 mb-4">$1</h2>');
+    formattedContent = formattedContent.replace(/^# (.*$)/gm, '<h1 class="text-2xl font-bold text-primary mt-8 mb-6">$1</h1>');
     
-    // Add proper spacing around sections
-    formattedContent = formattedContent.replace(/^##/gm, '\n## ');
-    formattedContent = formattedContent.replace(/^###/gm, '\n### ');
+    // Convert bold text
+    formattedContent = formattedContent.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-foreground">$1</strong>');
     
-    // Format bullet points consistently
-    formattedContent = formattedContent.replace(/^[-•]\s*/gm, '• ');
+    // Convert bullet points with proper spacing
+    formattedContent = formattedContent.replace(/^• (.*$)/gm, '<div class="flex items-start gap-2 mb-2"><span class="text-primary mt-1">•</span><span>$1</span></div>');
     
-    // Add line breaks before new paragraphs
-    formattedContent = formattedContent.replace(/\n([A-Z][^:\n]*[.!?])\n/g, '\n\n$1\n\n');
-    
-    // Clean up extra whitespace
-    formattedContent = formattedContent.replace(/\n{3,}/g, '\n\n');
-    formattedContent = formattedContent.trim();
+    // Convert line breaks to proper spacing
+    formattedContent = formattedContent.replace(/\n\n/g, '<div class="mb-4"></div>');
+    formattedContent = formattedContent.replace(/\n/g, '<br>');
     
     return formattedContent;
   };
