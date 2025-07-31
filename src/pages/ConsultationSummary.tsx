@@ -136,54 +136,78 @@ export default function ConsultationSummary() {
 
   const generateDetailedNotes = (content: string): string => {
     // Parse the original content and format it according to Heidi template
-    const lines = content.split('\n').filter(line => line.trim());
+    if (!content || content.trim() === "") {
+      return "No consultation data available to format.";
+    }
+
+    // Clean the content and extract meaningful sections
+    const cleanContent = content.replace(/\*\*/g, '').replace(/###|##|#/g, '').trim();
+    const lines = cleanContent.split('\n').filter(line => line.trim() !== '');
     
-    // Extract key information from original content
-    const pcLine = lines.find(line => 
-      line.toLowerCase().includes('presenting complaint') || 
-      line.toLowerCase().includes('chief complaint') ||
-      line.toLowerCase().includes('patient presents')
+    // Extract presenting complaint/reason for visit
+    const presentingComplaint = lines.find(line => 
+      line.toLowerCase().includes('presenting') || 
+      line.toLowerCase().includes('complaint') ||
+      line.toLowerCase().includes('reason') ||
+      line.toLowerCase().includes('patient') ||
+      line.includes(':')
+    ) || lines[0] || "Consultation";
+
+    // Extract examination findings
+    const examFindings = lines.filter(line => 
+      line.toLowerCase().includes('examination') ||
+      line.toLowerCase().includes('vital') ||
+      line.toLowerCase().includes('bp') ||
+      line.toLowerCase().includes('heart') ||
+      line.toLowerCase().includes('chest') ||
+      line.toLowerCase().includes('normal')
     );
-    
-    const diagnosisLine = lines.find(line => 
-      line.toLowerCase().includes('diagnosis') || 
-      line.toLowerCase().includes('condition')
+
+    // Extract diagnosis/assessment
+    const diagnosis = lines.filter(line => 
+      line.toLowerCase().includes('diagnosis') ||
+      line.toLowerCase().includes('condition') ||
+      line.toLowerCase().includes('assess') ||
+      line.toLowerCase().includes('likely')
     );
-    
-    const treatmentLines = lines.filter(line => 
-      line.toLowerCase().includes('treatment') || 
+
+    // Extract treatment/management
+    const treatment = lines.filter(line => 
+      line.toLowerCase().includes('treatment') ||
       line.toLowerCase().includes('management') ||
-      line.toLowerCase().includes('plan')
+      line.toLowerCase().includes('plan') ||
+      line.toLowerCase().includes('advice') ||
+      line.toLowerCase().includes('follow')
     );
-    
+
     // Format according to Heidi template with actual content
-    let detailedContent = `F2F seen alone. '${pcLine ? pcLine.replace(/\*\*/g, '').replace(/^.*?:/, '').trim() : 'Follow-up consultation'}.'
+    let detailedContent = `F2F seen alone. '${presentingComplaint.replace(/^.*?:/, '').trim()}'.
 
 **History:**
-- ${pcLine ? pcLine.replace(/\*\*/g, '').replace(/^.*?:/, '').trim() : 'Patient consultation for ongoing care'}
+- ${presentingComplaint.replace(/^.*?:/, '').trim()}
 - Patient's ideas, concerns and expectations discussed
-- No red flag symptoms reported
-- Risk factors assessed as appropriate
-- PMH: As documented in medical records
-- DH: Current medications reviewed
-- FH: Not specifically discussed
-- SH: Social circumstances reviewed
+- Red flag symptoms assessed
+- Risk factors considered
+- PMH: Previous medical history reviewed
+- DH: Current medications checked
+- SH: Social circumstances appropriate
 
 **Examination:**
-- Vital signs: Within normal limits
-- Physical examination: Appropriate clinical assessment performed
-- No investigations mentioned
+${examFindings.length > 0 ? 
+  examFindings.map(finding => `- ${finding.replace(/^.*?:/, '').trim()}`).join('\n') :
+  '- Clinical examination performed\n- Vital signs stable'}
 
 **Impression:**
-1. ${diagnosisLine ? diagnosisLine.replace(/\*\*/g, '').replace(/^.*?:/, '').trim() : 'Clinical assessment completed'}
+${diagnosis.length > 0 ? 
+  diagnosis.map((dx, index) => `${index + 1}. ${dx.replace(/^.*?:/, '').trim()}`).join('\n') :
+  '1. Clinical assessment completed'}
 
 **Plan:**
-${treatmentLines.length > 0 ? 
-  treatmentLines.map(line => `- ${line.replace(/\*\*/g, '').replace(/^.*?:/, '').trim()}`).join('\n') :
-  `- Appropriate management plan discussed
-- Patient education provided`}
+${treatment.length > 0 ? 
+  treatment.map(tx => `- ${tx.replace(/^.*?:/, '').trim()}`).join('\n') :
+  '- Appropriate management discussed\n- Patient education provided'}
 - Follow up as clinically indicated
-- Safety netting advice given regarding when to seek further medical attention`;
+- Safety netting advice given`;
     
     return detailedContent;
   };
