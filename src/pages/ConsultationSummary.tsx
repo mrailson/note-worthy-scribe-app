@@ -508,23 +508,107 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
 
   const handleWordExport = async (content: string, filename: string) => {
     try {
-      // Strip HTML tags and convert to plain text for Word export
-      const plainText = stripHtml(content);
+      // Parse the HTML content to preserve formatting
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(content, 'text/html');
       
-      // Create a new Word document
-      const doc = new Document({
+      const children: any[] = [];
+      
+      // Process each element in the content
+      const processNode = (node: Node): any[] => {
+        const elements: any[] = [];
+        
+        if (node.nodeType === Node.TEXT_NODE) {
+          const text = node.textContent?.trim();
+          if (text) {
+            return [new TextRun(text)];
+          }
+          return [];
+        }
+        
+        if (node.nodeType === Node.ELEMENT_NODE) {
+          const element = node as Element;
+          const childRuns: any[] = [];
+          
+          // Process all child nodes
+          for (const child of element.childNodes) {
+            childRuns.push(...processNode(child));
+          }
+          
+          switch (element.tagName.toLowerCase()) {
+            case 'h1':
+            case 'h2':
+            case 'h3':
+            case 'h4':
+              elements.push(new Paragraph({
+                children: childRuns.length > 0 ? childRuns : [new TextRun(element.textContent || '')],
+                heading: element.tagName.toLowerCase() === 'h1' ? 'Heading1' : 'Heading2',
+                spacing: { after: 200, before: 200 }
+              }));
+              break;
+            case 'p':
+              elements.push(new Paragraph({
+                children: childRuns.length > 0 ? childRuns : [new TextRun(element.textContent || '')],
+                spacing: { after: 120 }
+              }));
+              break;
+            case 'strong':
+            case 'b':
+              return [new TextRun({ text: element.textContent || '', bold: true })];
+            case 'em':
+            case 'i':
+              return [new TextRun({ text: element.textContent || '', italics: true })];
+            case 'ul':
+            case 'ol':
+              for (const li of element.querySelectorAll('li')) {
+                elements.push(new Paragraph({
+                  children: [new TextRun(`• ${li.textContent || ''}`)],
+                  spacing: { after: 60 }
+                }));
+              }
+              break;
+            case 'br':
+              return [new TextRun('\n')];
+            default:
+              if (childRuns.length > 0) {
+                return childRuns;
+              } else if (element.textContent) {
+                return [new TextRun(element.textContent)];
+              }
+          }
+        }
+        
+        return elements;
+      };
+      
+      // Process the entire document body
+      for (const node of doc.body.childNodes) {
+        children.push(...processNode(node));
+      }
+      
+      // If no structured content found, fall back to plain text with preserved line breaks
+      if (children.length === 0) {
+        const text = content.replace(/<[^>]*>/g, '').replace(/\n\s*\n/g, '\n\n');
+        const paragraphs = text.split('\n\n').filter(p => p.trim());
+        
+        for (const para of paragraphs) {
+          children.push(new Paragraph({
+            children: [new TextRun(para.trim())],
+            spacing: { after: 120 }
+          }));
+        }
+      }
+
+      // Create a new Word document with formatted content
+      const wordDoc = new Document({
         sections: [{
           properties: {},
-          children: [
-            new Paragraph({
-              children: [new TextRun(plainText)],
-            }),
-          ],
+          children: children
         }],
       });
 
       // Generate and save the document
-      const buffer = await Packer.toBlob(doc);
+      const buffer = await Packer.toBlob(wordDoc);
       saveAs(buffer, `${filename}.docx`);
       toast.success("Word document exported successfully");
     } catch (error) {
