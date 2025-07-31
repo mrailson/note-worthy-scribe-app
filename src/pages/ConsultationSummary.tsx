@@ -508,24 +508,25 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
 
   const handleWordExport = async (content: string, filename: string) => {
     try {
-      // Convert HTML to plain text but preserve line breaks and basic structure
+      // First, convert HTML to text with clear line breaks
       let text = content
+        // Add double line breaks before headings
         .replace(/<h[1-6][^>]*>/gi, '\n\n')
-        .replace(/<\/h[1-6]>/gi, '\n')
-        .replace(/<p[^>]*>/gi, '\n')
-        .replace(/<\/p>/gi, '')
+        .replace(/<\/h[1-6]>/gi, '\n\n')
+        // Add line breaks for paragraphs
+        .replace(/<p[^>]*>/gi, '\n\n')
+        .replace(/<\/p>/gi, '\n\n')
+        // Convert divs to line breaks
+        .replace(/<div[^>]*>/gi, '\n')
+        .replace(/<\/div>/gi, '\n')
+        // Convert breaks to line breaks
         .replace(/<br\s*\/?>/gi, '\n')
-        .replace(/<strong[^>]*>/gi, '')
-        .replace(/<\/strong>/gi, '')
-        .replace(/<b[^>]*>/gi, '')
-        .replace(/<\/b>/gi, '')
-        .replace(/<em[^>]*>/gi, '')
-        .replace(/<\/em>/gi, '')
-        .replace(/<i[^>]*>/gi, '')
-        .replace(/<\/i>/gi, '')
-        .replace(/<li[^>]*>/gi, '• ')
+        // Convert list items to bullet points with line breaks
+        .replace(/<li[^>]*>/gi, '\n• ')
         .replace(/<\/li>/gi, '\n')
+        // Remove all other HTML tags
         .replace(/<[^>]*>/g, '')
+        // Decode HTML entities
         .replace(/&nbsp;/g, ' ')
         .replace(/&amp;/g, '&')
         .replace(/&lt;/g, '<')
@@ -533,28 +534,26 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
         .replace(/&quot;/g, '"')
         .replace(/&#39;/g, "'");
 
-      // Clean up extra whitespace and line breaks
-      text = text
-        .replace(/\n\s*\n\s*\n/g, '\n\n')
-        .replace(/^\s+|\s+$/g, '')
-        .trim();
+      // Split by line breaks and create paragraphs
+      const lines = text.split('\n');
+      const children = [];
 
-      // Split into paragraphs and create Word document
-      const paragraphs = text.split('\n\n').filter(p => p.trim());
-      
-      const children = paragraphs.map(para => {
-        const trimmedPara = para.trim();
-        if (trimmedPara) {
-          return new Paragraph({
-            children: [new TextRun(trimmedPara)],
-            spacing: { after: 200 }
-          });
+      for (const line of lines) {
+        const trimmedLine = line.trim();
+        if (trimmedLine) {
+          // Create a new paragraph for each non-empty line
+          children.push(new Paragraph({
+            children: [new TextRun(trimmedLine)],
+            spacing: { after: 120 } // Add spacing after each paragraph
+          }));
+        } else {
+          // Add spacing for empty lines
+          children.push(new Paragraph({
+            children: [new TextRun('')],
+            spacing: { after: 60 }
+          }));
         }
-        return new Paragraph({
-          children: [new TextRun('')],
-          spacing: { after: 200 }
-        });
-      });
+      }
 
       // Ensure we have at least one paragraph
       if (children.length === 0) {
