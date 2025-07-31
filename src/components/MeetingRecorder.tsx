@@ -247,15 +247,15 @@ export const MeetingRecorder = ({
       // Update main transcript if this is final
       if (transcriptData.isFinal) {
         const finalTranscripts = newTranscripts.filter(t => t.isFinal);
-        const fullTranscript = finalTranscripts
-          .map(t => `${t.speaker}: ${t.text}`)
-          .join('\n');
+        const rawTranscript = finalTranscripts
+          .map(t => t.text)  // Remove speaker labels
+          .join(' ');
         
-        setTranscript(fullTranscript);
-        onTranscriptUpdate(fullTranscript);
+        setTranscript(rawTranscript);
+        onTranscriptUpdate(rawTranscript);
         
         // Update word count
-        const words = fullTranscript.split(' ').filter(word => word.length > 0);
+        const words = rawTranscript.split(' ').filter(word => word.length > 0);
         setWordCount(words.length);
         onWordCountUpdate(words.length);
       }
@@ -274,7 +274,7 @@ export const MeetingRecorder = ({
     };
     
     addDebugLog(`🎙️ ${data.is_final ? 'Final' : 'Interim'}: "${data.text}" (${Math.round(data.confidence * 100)}%)`);
-    setTestTranscripts(prev => [...prev.slice(-9), `${data.speaker || 'Speaker'}: ${data.text}`]);
+    setTestTranscripts(prev => [...prev.slice(-9), data.text]);
     
     handleTranscript(transcriptData);
   };
@@ -1223,11 +1223,38 @@ export const MeetingRecorder = ({
     setIsGeneratingNotes(true);
 
     try {
-      // Call the generate-meeting-minutes edge function
+      // First, clean the transcript using AI
+      let cleanedTranscript = transcript;
+      try {
+        const { data: cleanTranscriptData, error: cleanError } = await supabase.functions.invoke('clean-transcript', {
+          body: {
+            rawTranscript: transcript,
+            meetingTitle: meetingData.title
+          }
+        });
+
+        if (!cleanError && cleanTranscriptData?.cleanedTranscript) {
+          cleanedTranscript = cleanTranscriptData.cleanedTranscript;
+          console.log('Transcript cleaned successfully');
+        } else {
+          console.warn('Failed to clean transcript, using original:', cleanError);
+        }
+      } catch (cleanTranscriptError) {
+        console.warn('Error cleaning transcript, using original:', cleanTranscriptError);
+      }
+
+      // Update meeting data with cleaned transcript
+      const enhancedMeetingData = {
+        ...meetingData,
+        transcript: cleanedTranscript,
+        rawTranscript: transcript // Keep original for reference
+      };
+
+      // Call the generate-meeting-minutes edge function with cleaned transcript
       const { data: minutesData, error } = await supabase.functions.invoke('generate-meeting-minutes', {
         body: {
-          transcript: transcript,
-          meetingTitle: meetingData.title,
+          transcript: cleanedTranscript,
+          meetingTitle: enhancedMeetingData.title,
           meetingDate: new Date().toLocaleDateString(),
           meetingTime: new Date().toLocaleTimeString()
         }
@@ -1239,8 +1266,8 @@ export const MeetingRecorder = ({
 
       if (minutesData?.success && minutesData?.meetingMinutes) {
         // Add the generated meeting notes to the meeting data
-        const enhancedMeetingData = {
-          ...meetingData,
+        const finalMeetingData = {
+          ...enhancedMeetingData,
           generatedNotes: minutesData.meetingMinutes
         };
 
@@ -1248,7 +1275,7 @@ export const MeetingRecorder = ({
         toast.success('Meeting notes generated successfully!');
         
         // Navigate to meeting summary with data and generated notes
-        navigate('/meeting-summary', { state: enhancedMeetingData });
+        navigate('/meeting-summary', { state: finalMeetingData });
       } else {
         throw new Error('Failed to generate meeting notes');
       }
