@@ -1639,18 +1639,25 @@ export const MeetingRecorder = ({
                           <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
                           <span className="text-base font-semibold">Recording in progress...</span>
                         </div>
-                        <Button
-                          onClick={() => setTickerEnabled(!tickerEnabled)}
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0 text-primary hover:bg-primary/10"
-                        >
-                          {tickerEnabled ? (
-                            <Eye className="h-4 w-4" />
-                          ) : (
-                            <EyeOff className="h-4 w-4" />
-                          )}
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              onClick={() => setTickerEnabled(!tickerEnabled)}
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-primary hover:bg-primary/10"
+                            >
+                              {tickerEnabled ? (
+                                <Eye className="h-4 w-4" />
+                              ) : (
+                                <EyeOff className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{tickerEnabled ? "Hide Live Speech" : "Show Live Speech"}</p>
+                          </TooltipContent>
+                        </Tooltip>
                       </div>
                       
                       {/* Ticker tape for live transcription */}
