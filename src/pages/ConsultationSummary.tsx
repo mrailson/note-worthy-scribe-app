@@ -285,136 +285,136 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
       return `<div class="space-y-4">
         <p>Dear Patient,</p>
         <p>Thank you for attending your consultation today.</p>
-        
-        <div class="space-y-2">
-          <h4 class="font-bold text-primary">What we discussed:</h4>
-          <p class="ml-4">• Your current health concerns were reviewed and addressed.</p>
-        </div>
-        
-        <div class="space-y-2">
-          <h4 class="font-bold text-primary">What was agreed:</h4>
-          <p class="ml-4">• We've established a plan for your ongoing care.</p>
-        </div>
-        
-        <div class="space-y-2">
-          <h4 class="font-bold text-primary">Medications:</h4>
-          <p class="ml-4">• Please continue any current medications as prescribed.</p>
-        </div>
-        
-        <div class="space-y-2">
-          <h4 class="font-bold text-primary">Follow-up:</h4>
-          <p class="ml-4">• We'll be in touch regarding any necessary follow-up appointments.</p>
-        </div>
-        
-        <div class="space-y-2">
-          <h4 class="font-bold text-primary">Safety netting:</h4>
-          <div class="ml-4 space-y-1">
-            <p>• Please contact us immediately if your symptoms worsen</p>
-            <p>• Seek urgent care if you develop any concerning new symptoms</p>
-            <p>• Don't hesitate to call if you have questions about your care</p>
-          </div>
-        </div>
-        
+        <p>No specific consultation details available.</p>
         <div class="mt-6">
           <p>Best wishes,<br>Your GP Practice</p>
         </div>
       </div>`;
     }
 
-    const lines = content.split('\n').filter(line => line.trim() !== '');
+    // Clean and parse the actual content
+    const cleanContent = content.replace(/\*\*/g, '').replace(/###|##|#/g, '').trim();
+    const lines = cleanContent.split('\n').filter(line => line.trim() !== '');
     
-    // Extract relevant sections
-    const discussed = lines.filter(line => 
-      line.toLowerCase().includes('discussed') || 
-      line.toLowerCase().includes('reviewed') ||
+    // Extract actual presenting complaint/reason for visit
+    const presentingLines = lines.filter(line => 
+      line.toLowerCase().includes('presenting') || 
       line.toLowerCase().includes('complaint') ||
-      line.toLowerCase().includes('concern')
-    ).slice(0, 2);
+      line.toLowerCase().includes('concern') ||
+      line.toLowerCase().includes('problem') ||
+      line.toLowerCase().includes('issue') ||
+      line.toLowerCase().includes('patient') ||
+      line.toLowerCase().includes('discussed') ||
+      line.toLowerCase().includes('reviewed')
+    ).slice(0, 3);
 
-    const agreed = lines.filter(line => 
+    // Extract actual treatment/management decisions
+    const treatmentLines = lines.filter(line => 
       line.toLowerCase().includes('plan') || 
       line.toLowerCase().includes('agreed') ||
-      line.toLowerCase().includes('decision')
-    ).slice(0, 2);
+      line.toLowerCase().includes('decided') ||
+      line.toLowerCase().includes('management') ||
+      line.toLowerCase().includes('treatment') ||
+      line.toLowerCase().includes('advised') ||
+      line.toLowerCase().includes('recommendation')
+    ).slice(0, 3);
 
-    const medications = lines.filter(line => 
+    // Extract actual medications mentioned
+    const medicationLines = lines.filter(line => 
       line.toLowerCase().includes('medication') || 
       line.toLowerCase().includes('prescription') ||
-      line.toLowerCase().includes('treatment') ||
       line.toLowerCase().includes('paracetamol') ||
       line.toLowerCase().includes('ibuprofen') ||
-      line.toLowerCase().includes('take') ||
       line.toLowerCase().includes('tablets') ||
       line.toLowerCase().includes('capsules') ||
       line.toLowerCase().includes('mg') ||
       line.toLowerCase().includes('dose') ||
-      line.toLowerCase().includes('twice daily') ||
-      line.toLowerCase().includes('once daily') ||
-      line.toLowerCase().includes('as needed') ||
+      line.toLowerCase().includes('take') ||
       line.toLowerCase().includes('pain relief') ||
       line.toLowerCase().includes('analgesic') ||
-      line.toLowerCase().includes('anti-inflammatory') ||
-      line.toLowerCase().includes('recommend')
+      line.toLowerCase().includes('twice daily') ||
+      line.toLowerCase().includes('once daily') ||
+      line.toLowerCase().includes('as needed')
     ).slice(0, 3);
 
-    const followUp = lines.filter(line => 
+    // Extract actual follow-up plans
+    const followUpLines = lines.filter(line => 
       line.toLowerCase().includes('follow') || 
       line.toLowerCase().includes('appointment') ||
-      line.toLowerCase().includes('review')
-    ).slice(0, 1);
+      line.toLowerCase().includes('review') ||
+      line.toLowerCase().includes('contact') ||
+      line.toLowerCase().includes('return') ||
+      line.toLowerCase().includes('see you') ||
+      line.toLowerCase().includes('next visit') ||
+      line.toLowerCase().includes('weeks') ||
+      line.toLowerCase().includes('months')
+    ).slice(0, 2);
+
+    // Extract safety netting advice
+    const safetyLines = lines.filter(line => 
+      line.toLowerCase().includes('safety') || 
+      line.toLowerCase().includes('warning') ||
+      line.toLowerCase().includes('urgent') ||
+      line.toLowerCase().includes('emergency') ||
+      line.toLowerCase().includes('worsen') ||
+      line.toLowerCase().includes('concern') ||
+      line.toLowerCase().includes('contact') ||
+      line.toLowerCase().includes('seek help') ||
+      line.toLowerCase().includes('if symptoms')
+    ).slice(0, 3);
+
+    const formatLine = (line: string) => line.replace(/^.*?:/, '').trim();
 
     return `<div class="space-y-4">
       <p>Dear Patient,</p>
       <p>Thank you for attending your consultation today.</p>
       
+      ${presentingLines.length > 0 ? `
       <div class="space-y-2">
         <h4 class="font-bold text-primary">What we discussed:</h4>
         <div class="ml-4 space-y-1">
-          ${discussed.length > 0 ? 
-            discussed.map(item => `<p>• ${item.replace(/\*\*/g, '').replace(/^.*?:/, '').trim()}</p>`).join('') : 
-            '<p>• Your current health concerns were reviewed</p>'
-          }
+          ${presentingLines.map(item => `<p>• ${formatLine(item)}</p>`).join('')}
         </div>
-      </div>
+      </div>` : ''}
       
+      ${treatmentLines.length > 0 ? `
       <div class="space-y-2">
         <h4 class="font-bold text-primary">What was agreed:</h4>
         <div class="ml-4 space-y-1">
-          ${agreed.length > 0 ? 
-            agreed.map(item => `<p>• ${item.replace(/\*\*/g, '').replace(/^.*?:/, '').trim()}</p>`).join('') : 
-            '<p>• A comprehensive care plan has been established</p>'
-          }
+          ${treatmentLines.map(item => `<p>• ${formatLine(item)}</p>`).join('')}
         </div>
-      </div>
+      </div>` : ''}
       
+      ${medicationLines.length > 0 ? `
       <div class="space-y-2">
         <h4 class="font-bold text-primary">Medications:</h4>
         <div class="ml-4 space-y-1">
-          ${medications.length > 0 ? 
-            medications.map(item => `<p>• ${item.replace(/\*\*/g, '').replace(/^.*?:/, '').trim()}</p>`).join('') : 
-            '<p>• Please continue current medications as prescribed</p>'
-          }
+          ${medicationLines.map(item => `<p>• ${formatLine(item)}</p>`).join('')}
         </div>
-      </div>
+      </div>` : ''}
       
+      ${followUpLines.length > 0 ? `
       <div class="space-y-2">
         <h4 class="font-bold text-primary">Follow-up:</h4>
         <div class="ml-4 space-y-1">
-          ${followUp.length > 0 ? 
-            followUp.map(item => `<p>• ${item.replace(/\*\*/g, '').replace(/^.*?:/, '').trim()}</p>`).join('') : 
-            '<p>• No immediate follow-up required</p>'
-          }
+          ${followUpLines.map(item => `<p>• ${formatLine(item)}</p>`).join('')}
         </div>
-      </div>
+      </div>` : ''}
       
+      ${safetyLines.length > 0 ? `
+      <div class="space-y-2">
+        <h4 class="font-bold text-primary">Safety netting:</h4>
+        <div class="ml-4 space-y-1">
+          ${safetyLines.map(item => `<p>• ${formatLine(item)}</p>`).join('')}
+        </div>
+      </div>` : `
       <div class="space-y-2">
         <h4 class="font-bold text-primary">Safety netting:</h4>
         <div class="ml-4 space-y-1">
           <p>• Please contact us if your symptoms worsen or change</p>
           <p>• Seek immediate medical attention if you develop concerning symptoms</p>
-          <p>• Don't hesitate to call if you have any questions about your care</p>
         </div>
-      </div>
+      </div>`}
       
       <div class="mt-6">
         <p>Best wishes,<br>Your GP Practice</p>
