@@ -103,6 +103,7 @@ export default function ConsultationSummary() {
   const [reviewContent, setReviewContent] = useState("");
   const [isLoadingReview, setIsLoadingReview] = useState(false);
   const [consultationScore, setConsultationScore] = useState<number | null>(null);
+  const [isScoreExpanded, setIsScoreExpanded] = useState(false);
   const [referralContent, setReferralContent] = useState("");
   const [isLoadingReferral, setIsLoadingReferral] = useState(false);
   const [isAILoading, setIsAILoading] = useState(false);
@@ -689,7 +690,7 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
     try {
       const { data, error } = await supabase.functions.invoke('ai-consultation-assistant', {
         body: {
-          prompt: "Review this consultation and provide: 1) A comprehensive analysis of what may have been missed, areas for improvement, and recommendations. 2) At the end, provide a consultation score out of 100 based on completeness, accuracy, and clinical quality. Format the score as 'CONSULTATION SCORE: X/100' on a separate line. If the score is below 70, highlight critical issues that need immediate attention.",
+          prompt: "Review this consultation and provide: 1) A comprehensive analysis of what may have been missed, areas for improvement, and recommendations. 2) At the end, provide a detailed consultation score breakdown using this format:\n\nCONSULTATION SCORE: X/100\n\nSCORING METHODOLOGY:\n- History Taking (25 points): [score/25] - [explanation]\n- Examination (20 points): [score/20] - [explanation] \n- Diagnosis & Assessment (20 points): [score/20] - [explanation]\n- Management Plan (20 points): [score/20] - [explanation]\n- Communication & Documentation (15 points): [score/15] - [explanation]\n\nCLINICAL JUSTIFICATION:\n[Detailed explanation of how each score was determined based on clinical standards, guidelines, and best practices. Include specific examples from the consultation that influenced the scoring.]\n\nRECOMMendations for improvement based on scoring gaps.",
           consultationData: {
             duration: consultationData?.duration,
             transcript: consultationData?.transcript,
@@ -1212,36 +1213,6 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                     </div>
                   )}
                 </div>
-                
-                {/* Consultation Score Display */}
-                {consultationScore !== null && (
-                  <div className={`flex items-center justify-center p-4 rounded-lg border ${
-                    consultationScore >= 80 ? 'bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800' :
-                    consultationScore >= 70 ? 'bg-yellow-50 border-yellow-200 dark:bg-yellow-950/30 dark:border-yellow-800' :
-                    'bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800'
-                  }`}>
-                    <div className="flex items-center gap-3">
-                      {consultationScore >= 80 ? (
-                        <CheckCircle className="h-6 w-6 text-green-600" />
-                      ) : consultationScore >= 70 ? (
-                        <AlertTriangle className="h-6 w-6 text-yellow-600" />
-                      ) : (
-                        <AlertTriangle className="h-6 w-6 text-red-600" />
-                      )}
-                      <div className="text-center">
-                        <div className="text-lg font-bold">
-                          Consultation Score: {consultationScore}/100
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {consultationScore >= 80 ? 'Excellent consultation quality' :
-                           consultationScore >= 70 ? 'Good consultation with minor improvements needed' :
-                           'Significant improvements required'}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                
                 {isLoadingReview ? (
                   <div className="flex items-center justify-center p-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -1266,6 +1237,63 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                       <Sparkles className="h-4 w-4 mr-2" />
                       Generate Review
                     </Button>
+                  </div>
+                )}
+                
+                {/* Collapsible Consultation Score Section */}
+                {consultationScore !== null && (
+                  <div className="mt-6">
+                    <Collapsible open={isScoreExpanded} onOpenChange={setIsScoreExpanded}>
+                      <CollapsibleTrigger asChild>
+                        <Button 
+                          variant="outline" 
+                          className={`w-full justify-between p-4 h-auto ${
+                            consultationScore >= 80 ? 'border-green-200 bg-green-50 hover:bg-green-100 dark:bg-green-950/30 dark:border-green-800' :
+                            consultationScore >= 70 ? 'border-yellow-200 bg-yellow-50 hover:bg-yellow-100 dark:bg-yellow-950/30 dark:border-yellow-800' :
+                            'border-red-200 bg-red-50 hover:bg-red-100 dark:bg-red-950/30 dark:border-red-800'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            {consultationScore >= 80 ? (
+                              <CheckCircle className="h-5 w-5 text-green-600" />
+                            ) : consultationScore >= 70 ? (
+                              <AlertTriangle className="h-5 w-5 text-yellow-600" />
+                            ) : (
+                              <AlertTriangle className="h-5 w-5 text-red-600" />
+                            )}
+                            <div className="text-left">
+                              <div className="font-semibold">
+                                Consultation Score: {consultationScore}/100
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                {consultationScore >= 80 ? 'Excellent consultation quality' :
+                                 consultationScore >= 70 ? 'Good consultation with minor improvements needed' :
+                                 'Significant improvements required'}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">
+                              {isScoreExpanded ? "Hide Details" : "View Breakdown"}
+                            </span>
+                            {isScoreExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                          </div>
+                        </Button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="mt-4">
+                        <div className={`p-4 rounded-lg border ${
+                          consultationScore >= 80 ? 'bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800' :
+                          consultationScore >= 70 ? 'bg-yellow-50 border-yellow-200 dark:bg-yellow-950/30 dark:border-yellow-800' :
+                          'bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800'
+                        }`}>
+                          <div className="prose prose-sm max-w-none dark:prose-invert">
+                            <div className="ai-response-content space-y-3">
+                              <SafeMessageRenderer content={reviewContent.split('CONSULTATION SCORE:')[1] || 'Detailed scoring breakdown will appear here when available.'} />
+                            </div>
+                          </div>
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
                   </div>
                 )}
               </TabsContent>
