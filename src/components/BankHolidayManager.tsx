@@ -186,7 +186,14 @@ export const BankHolidayManager = () => {
   };
 
   const upcomingHolidays = bankHolidays.filter(h => new Date(h.date) >= new Date()).slice(0, 5);
-  const pendingReplacements = bankHolidays.filter(h => h.is_replacement_required && !h.replacement_completed);
+  const sixMonthsFromNow = new Date();
+  sixMonthsFromNow.setMonth(sixMonthsFromNow.getMonth() + 6);
+  const pendingReplacements = bankHolidays.filter(h => 
+    h.is_replacement_required && 
+    !h.replacement_completed && 
+    new Date(h.date) >= new Date() && 
+    new Date(h.date) <= sixMonthsFromNow
+  );
 
   return (
     <div className="space-y-6">
