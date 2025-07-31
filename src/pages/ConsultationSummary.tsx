@@ -146,8 +146,8 @@ export default function ConsultationSummary() {
     // Clean up any existing markdown formatting
     formattedContent = formattedContent.replace(/\*\*\*(.*?)\*\*\*/g, '**$1**'); // Convert triple asterisk to double
     
-    // Convert headers to HTML with blue styling (but remove the # symbols from display)
-    formattedContent = formattedContent.replace(/^### (.*$)/gm, '<h3 class="text-lg font-semibold text-primary mt-6 mb-3 border-b border-border pb-2">$1</h3>');
+    // Convert headers to HTML with blue styling and bold text
+    formattedContent = formattedContent.replace(/^### (.*$)/gm, '<h3 class="text-lg font-bold text-primary mt-6 mb-3 border-b border-border pb-2">$1</h3>');
     formattedContent = formattedContent.replace(/^## (.*$)/gm, '<h2 class="text-xl font-bold text-primary mt-8 mb-4">$1</h2>');
     formattedContent = formattedContent.replace(/^# (.*$)/gm, '<h1 class="text-2xl font-bold text-primary mt-8 mb-6">$1</h1>');
     
