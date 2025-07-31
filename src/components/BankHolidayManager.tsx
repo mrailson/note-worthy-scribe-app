@@ -449,60 +449,6 @@ export const BankHolidayManager = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Replacement Shifts */}
-      {replacementShifts.filter(shift => {
-        const shiftDate = new Date(shift.assignment_date);
-        return shiftDate >= new Date() && shiftDate <= sixMonthsFromNow;
-      }).length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5" />
-              Replacement Shifts
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {replacementShifts.filter(shift => {
-                const shiftDate = new Date(shift.assignment_date);
-                return shiftDate >= new Date() && shiftDate <= sixMonthsFromNow;
-              }).map((shift) => (
-                <div key={shift.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <p className="font-medium">
-                          {format(new Date(shift.assignment_date), "EEEE, do MMMM yyyy")}
-                        </p>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {shift.start_time} - {shift.end_time} ({shift.hours}h)
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <MapPin className="h-3 w-3" />
-                            {shift.location.replace('_', ' ')}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant={shift.status === 'assigned' ? 'default' : 'secondary'}>
-                      {shift.status}
-                    </Badge>
-                    {shift.staff_member && (
-                      <span className="text-sm font-medium">
-                        {shift.staff_member.role === 'doctor' ? 'Dr ' : ''}{shift.staff_member.name}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 };
