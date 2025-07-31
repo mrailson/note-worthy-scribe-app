@@ -48,6 +48,9 @@ export const BankHolidayManager = () => {
   const [bankHolidays, setBankHolidays] = useState<BankHoliday[]>([]);
   const [replacementShifts, setReplacementShifts] = useState<ReplacementShift[]>([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isReplacementDialogOpen, setIsReplacementDialogOpen] = useState(false);
+  const [selectedHoliday, setSelectedHoliday] = useState<BankHoliday | null>(null);
+  const [selectedReplacementDate, setSelectedReplacementDate] = useState<Date>();
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [newHoliday, setNewHoliday] = useState({
     name: '',
@@ -139,25 +142,48 @@ export const BankHolidayManager = () => {
     }
   };
 
-  const createReplacementShift = async (holidayId: string, hours: number) => {
+  const openReplacementDialog = (holiday: BankHoliday) => {
+    setSelectedHoliday(holiday);
+    setSelectedReplacementDate(undefined);
+    setIsReplacementDialogOpen(true);
+  };
+
+  const createReplacementShift = async () => {
+    if (!selectedHoliday || !selectedReplacementDate) {
+      toast.error('Please select a date for the replacement shift');
+      return;
+    }
+
     try {
-      // Simple replacement shift - user can customize later
-      const { error } = await supabase
+      // Create the replacement shift
+      const { error: shiftError } = await supabase
         .from('replacement_shifts')
         .insert({
-          bank_holiday_id: holidayId,
-          assignment_date: format(addDays(new Date(), 7), 'yyyy-MM-dd'), // Default to next week
+          bank_holiday_id: selectedHoliday.id,
+          assignment_date: format(selectedReplacementDate, 'yyyy-MM-dd'),
           start_time: '18:30',
-          end_time: hours === 8 ? '02:30' : '20:30',
-          hours: hours,
+          end_time: selectedHoliday.hours_to_replace === 8 ? '02:30' : '20:30',
+          hours: selectedHoliday.hours_to_replace,
           location: 'kings_heath',
           required_role: 'doctor',
           status: 'scheduled'
         });
 
-      if (error) throw error;
+      if (shiftError) throw shiftError;
 
-      toast.success('Replacement shift created');
+      // Mark the bank holiday as replacement completed
+      const { error: holidayError } = await supabase
+        .from('bank_holidays_closed_days')
+        .update({ replacement_completed: true })
+        .eq('id', selectedHoliday.id);
+
+      if (holidayError) throw holidayError;
+
+      toast.success(`Replacement shift created for ${format(selectedReplacementDate, "EEEE, do MMMM yyyy")}`);
+      setIsReplacementDialogOpen(false);
+      setSelectedHoliday(null);
+      setSelectedReplacementDate(undefined);
+      fetchBankHolidays();
       fetchReplacementShifts();
     } catch (error) {
       console.error('Error creating replacement shift:', error);
@@ -349,7 +375,7 @@ export const BankHolidayManager = () => {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => createReplacementShift(holiday.id, holiday.hours_to_replace)}
+                      onClick={() => openReplacementDialog(holiday)}
                     >
                       Create Replacement
                     </Button>
@@ -360,6 +386,68 @@ export const BankHolidayManager = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Create Replacement Dialog */}
+      <Dialog open={isReplacementDialogOpen} onOpenChange={setIsReplacementDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create Replacement Shift</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {selectedHoliday && (
+              <div className="p-4 bg-muted rounded-lg">
+                <h4 className="font-medium">Creating replacement for:</h4>
+                <p className="text-sm text-muted-foreground mt-1">
+                  <strong>{selectedHoliday.name}</strong> - {format(new Date(selectedHoliday.date), "EEEE, do MMMM yyyy")}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Requires {selectedHoliday.hours_to_replace} hours replacement
+                </p>
+              </div>
+            )}
+            
+            <div className="space-y-2">
+              <Label>Select Replacement Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !selectedReplacementDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {selectedReplacementDate ? format(selectedReplacementDate, "PPP") : "Pick a date for replacement shift"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={selectedReplacementDate}
+                    onSelect={setSelectedReplacementDate}
+                    disabled={(date) => date < new Date()}
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setIsReplacementDialogOpen(false)}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button onClick={createReplacementShift} className="flex-1">
+                Create Replacement
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Replacement Shifts */}
       {replacementShifts.length > 0 && (
