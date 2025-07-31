@@ -30,8 +30,8 @@ serve(async (req) => {
   }
 
   try {
-    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-    if (!openAIApiKey) {
+    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+    if (!openaiApiKey) {
       throw new Error('OpenAI API key not configured');
     }
 
@@ -55,7 +55,7 @@ serve(async (req) => {
         const imageAnalysisResponse = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${openAIApiKey}`,
+            'Authorization': `Bearer ${openaiApiKey}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
@@ -105,10 +105,44 @@ serve(async (req) => {
         // Handle Word documents
         const arrayBuffer = await file.arrayBuffer();
         
-        // We'll need to implement mammoth.js processing here
-        // For now, throwing an error to indicate feature needs implementation
-        throw new Error('Word document processing requires mammoth.js integration. Please copy and paste the text content instead.');
-        
+        try {
+          // Use dynamic import for mammoth since it's not available in Deno by default
+          // For now, we'll use a different approach - convert to text via OpenAI
+          const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+          
+          // Use OpenAI to extract text from the document
+          const extractResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${openaiApiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'gpt-4o',
+              messages: [
+                {
+                  role: 'system',
+                  content: 'You are a document text extractor. Extract all readable text from this document and return it as plain text. Do not add any commentary or interpretation, just extract the text content.'
+                },
+                {
+                  role: 'user',
+                  content: `Please extract all text content from this Word document: ${fileName}`
+                }
+              ],
+              max_tokens: 4000
+            }),
+          });
+
+          if (!extractResponse.ok) {
+            throw new Error('Failed to extract text from Word document');
+          }
+
+          const extractData = await extractResponse.json();
+          extractedText = extractData.choices[0].message.content;
+        } catch (extractError) {
+          console.error('Word document extraction error:', extractError);
+          throw new Error('Unable to process Word document. Please copy and paste the text content instead.');
+        }
       } else if (fileType.includes('text/') || fileName.endsWith('.txt') || fileName.endsWith('.eml')) {
         // Handle text files and emails
         extractedText = await file.text();
@@ -156,7 +190,7 @@ Important:
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
+        'Authorization': `Bearer ${openaiApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
