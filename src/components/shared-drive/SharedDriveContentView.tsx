@@ -3,6 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { formatDistanceToNow } from "date-fns";
 import { 
   Folder, 
@@ -68,6 +73,9 @@ export function SharedDriveContentView({
 }: SharedDriveContentViewProps) {
   const [sortBy, setSortBy] = useState<"name" | "date" | "size" | "type">("name");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [renameItem, setRenameItem] = useState<{item: SharedDriveFolder | SharedDriveFile, type: 'folder' | 'file'} | null>(null);
+  const [newName, setNewName] = useState("");
+  const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
 
   // Get file icon based on type
   const getFileIcon = (fileType: string | null, mimeType: string | null) => {
@@ -147,18 +155,86 @@ export function SharedDriveContentView({
   };
 
   const handleShare = (item: SharedDriveFolder | SharedDriveFile) => {
-    // Implementation for sharing item
-    console.log("Share:", item);
+    // Create a shareable link (placeholder implementation)
+    const shareUrl = `${window.location.origin}/shared-drive/shared/${item.id}`;
+    navigator.clipboard.writeText(shareUrl);
+    toast.success("Share link copied to clipboard");
   };
 
-  const handleRename = (item: SharedDriveFolder | SharedDriveFile) => {
-    // Implementation for renaming item
-    console.log("Rename:", item);
+  const handleRename = (item: SharedDriveFolder | SharedDriveFile, type: 'folder' | 'file') => {
+    setRenameItem({ item, type });
+    setNewName(item.name);
+    setIsRenameDialogOpen(true);
   };
 
-  const handleDelete = (item: SharedDriveFolder | SharedDriveFile) => {
-    // Implementation for deleting item
-    console.log("Delete:", item);
+  const handleDelete = async (item: SharedDriveFolder | SharedDriveFile, type: 'folder' | 'file') => {
+    try {
+      if (type === 'folder') {
+        const { error } = await supabase
+          .from('shared_drive_folders')
+          .delete()
+          .eq('id', item.id);
+        
+        if (error) throw error;
+        toast.success(`Folder "${item.name}" deleted successfully`);
+      } else {
+        const file = item as SharedDriveFile;
+        // Delete from storage first
+        const { error: storageError } = await supabase.storage
+          .from('shared-drive')
+          .remove([file.file_path]);
+        
+        if (storageError) throw storageError;
+        
+        // Then delete from database
+        const { error: dbError } = await supabase
+          .from('shared_drive_files')
+          .delete()
+          .eq('id', item.id);
+        
+        if (dbError) throw dbError;
+        toast.success(`File "${item.name}" deleted successfully`);
+      }
+      
+      onRefresh();
+    } catch (error) {
+      console.error('Error deleting item:', error);
+      toast.error(`Failed to delete ${type}: ${item.name}`);
+    }
+  };
+
+  const confirmRename = async () => {
+    if (!renameItem || !newName.trim()) return;
+    
+    try {
+      const { item, type } = renameItem;
+      
+      if (type === 'folder') {
+        const { error } = await supabase
+          .from('shared_drive_folders')
+          .update({ name: newName.trim() })
+          .eq('id', item.id);
+        
+        if (error) throw error;
+        toast.success(`Folder renamed to "${newName}"`);
+      } else {
+        const { error } = await supabase
+          .from('shared_drive_files')
+          .update({ name: newName.trim() })
+          .eq('id', item.id);
+        
+        if (error) throw error;
+        toast.success(`File renamed to "${newName}"`);
+      }
+      
+      setIsRenameDialogOpen(false);
+      setRenameItem(null);
+      setNewName("");
+      onRefresh();
+    } catch (error) {
+      console.error('Error renaming item:', error);
+      toast.error('Failed to rename item');
+    }
   };
 
   if (isLoading) {
@@ -226,14 +302,32 @@ export function SharedDriveContentView({
                     <Share className="h-4 w-4 mr-2" />
                     Share
                   </ContextMenuItem>
-                  <ContextMenuItem onClick={() => handleRename(folder)}>
+                  <ContextMenuItem onClick={() => handleRename(folder, 'folder')}>
                     <Edit className="h-4 w-4 mr-2" />
                     Rename
                   </ContextMenuItem>
-                  <ContextMenuItem onClick={() => handleDelete(folder)}>
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete
-                  </ContextMenuItem>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <ContextMenuItem onSelect={(e) => e.preventDefault()}>
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
+                      </ContextMenuItem>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Folder</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to delete "{folder.name}"? This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleDelete(folder, 'folder')}>
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </ContextMenuContent>
               </ContextMenu>
             );
@@ -277,14 +371,32 @@ export function SharedDriveContentView({
                     <Share className="h-4 w-4 mr-2" />
                     Share
                   </ContextMenuItem>
-                  <ContextMenuItem onClick={() => handleRename(file)}>
+                  <ContextMenuItem onClick={() => handleRename(file, 'file')}>
                     <Edit className="h-4 w-4 mr-2" />
                     Rename
                   </ContextMenuItem>
-                  <ContextMenuItem onClick={() => handleDelete(file)}>
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete
-                  </ContextMenuItem>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <ContextMenuItem onSelect={(e) => e.preventDefault()}>
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
+                      </ContextMenuItem>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete File</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to delete "{file.name}"? This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleDelete(file, 'file')}>
+                          Delete
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </ContextMenuContent>
               </ContextMenu>
             );
@@ -351,9 +463,30 @@ export function SharedDriveContentView({
                     -
                   </div>
                   <div className="col-span-1 flex items-center justify-end">
-                    <Button variant="ghost" size="sm">
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" onClick={(e) => e.stopPropagation()}>
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="bg-background border z-50">
+                        <DropdownMenuItem onClick={() => handleShare(folder)}>
+                          <Share className="h-4 w-4 mr-2" />
+                          Share
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleRename(folder, 'folder')}>
+                          <Edit className="h-4 w-4 mr-2" />
+                          Rename
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => handleDelete(folder, 'folder')} 
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
               </ContextMenuTrigger>
@@ -362,14 +495,32 @@ export function SharedDriveContentView({
                   <Share className="h-4 w-4 mr-2" />
                   Share
                 </ContextMenuItem>
-                <ContextMenuItem onClick={() => handleRename(folder)}>
+                <ContextMenuItem onClick={() => handleRename(folder, 'folder')}>
                   <Edit className="h-4 w-4 mr-2" />
                   Rename
                 </ContextMenuItem>
-                <ContextMenuItem onClick={() => handleDelete(folder)}>
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
-                </ContextMenuItem>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <ContextMenuItem onSelect={(e) => e.preventDefault()}>
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </ContextMenuItem>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Folder</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete "{folder.name}"? This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => handleDelete(folder, 'folder')}>
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </ContextMenuContent>
             </ContextMenu>
           );
@@ -409,9 +560,34 @@ export function SharedDriveContentView({
                     {formatFileSize(file.file_size)}
                   </div>
                   <div className="col-span-1 flex items-center justify-end">
-                    <Button variant="ghost" size="sm">
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" onClick={(e) => e.stopPropagation()}>
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="bg-background border z-50">
+                        <DropdownMenuItem onClick={() => handleDownload(file)}>
+                          <Download className="h-4 w-4 mr-2" />
+                          Download
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleShare(file)}>
+                          <Share className="h-4 w-4 mr-2" />
+                          Share
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleRename(file, 'file')}>
+                          <Edit className="h-4 w-4 mr-2" />
+                          Rename
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => handleDelete(file, 'file')} 
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
               </ContextMenuTrigger>
@@ -424,19 +600,79 @@ export function SharedDriveContentView({
                   <Share className="h-4 w-4 mr-2" />
                   Share
                 </ContextMenuItem>
-                <ContextMenuItem onClick={() => handleRename(file)}>
+                <ContextMenuItem onClick={() => handleRename(file, 'file')}>
                   <Edit className="h-4 w-4 mr-2" />
                   Rename
                 </ContextMenuItem>
-                <ContextMenuItem onClick={() => handleDelete(file)}>
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
-                </ContextMenuItem>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <ContextMenuItem onSelect={(e) => e.preventDefault()}>
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </ContextMenuItem>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete File</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete "{file.name}"? This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => handleDelete(file, 'file')}>
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </ContextMenuContent>
             </ContextMenu>
           );
         })}
       </div>
+
+      {/* Rename Dialog */}
+      <Dialog open={isRenameDialogOpen} onOpenChange={setIsRenameDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              Rename {renameItem?.type === 'folder' ? 'Folder' : 'File'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="rename-input">Name</Label>
+              <Input
+                id="rename-input"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder="Enter new name"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    confirmRename();
+                  }
+                }}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsRenameDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={confirmRename}
+              disabled={!newName.trim()}
+            >
+              Rename
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
