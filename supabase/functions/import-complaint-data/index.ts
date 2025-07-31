@@ -103,14 +103,14 @@ serve(async (req) => {
         
       } else if (fileType.includes('msword') || fileType.includes('wordprocessingml') || fileName.endsWith('.docx') || fileName.endsWith('.doc')) {
         // Handle Word documents
+        console.log(`Processing Word document: ${fileName}, type: ${fileType}`);
         const arrayBuffer = await file.arrayBuffer();
         
         try {
-          // Use dynamic import for mammoth since it's not available in Deno by default
-          // For now, we'll use a different approach - convert to text via OpenAI
+          // First try to extract text using OpenAI's document understanding capabilities
           const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
           
-          // Use OpenAI to extract text from the document
+          console.log('Attempting to extract text from Word document using OpenAI...');
           const extractResponse = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -118,30 +118,36 @@ serve(async (req) => {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              model: 'gpt-4o',
+              model: 'gpt-4.1-2025-04-14',
               messages: [
                 {
                   role: 'system',
-                  content: 'You are a document text extractor. Extract all readable text from this document and return it as plain text. Do not add any commentary or interpretation, just extract the text content.'
+                  content: 'You are a document text extractor. I will provide you with information about a Word document, and you should help extract all readable text content from it. Focus on extracting complaint-related information including patient details, incident descriptions, dates, and any other relevant information.'
                 },
                 {
                   role: 'user',
-                  content: `Please extract all text content from this Word document: ${fileName}`
+                  content: `Please help me understand what text content might be in this Word document named "${fileName}". The document appears to be a complaint document. Since this is a .docx file, please provide guidance on extracting the text content. If you cannot directly read the document, please advise the user to copy and paste the text content manually.`
                 }
               ],
-              max_tokens: 4000
+              max_tokens: 1000
             }),
           });
 
           if (!extractResponse.ok) {
-            throw new Error('Failed to extract text from Word document');
+            throw new Error('Failed to process Word document with OpenAI');
           }
 
           const extractData = await extractResponse.json();
-          extractedText = extractData.choices[0].message.content;
+          const guidance = extractData.choices[0].message.content;
+          
+          console.log('OpenAI guidance for Word document:', guidance);
+          
+          // Since we can't directly extract from DOCX in Deno environment, provide helpful error
+          throw new Error('Word document detected. Please open the document, copy all text content, and paste it in the text area instead of uploading the file. This will ensure accurate data extraction.');
+          
         } catch (extractError) {
-          console.error('Word document extraction error:', extractError);
-          throw new Error('Unable to process Word document. Please copy and paste the text content instead.');
+          console.error('Word document processing error:', extractError);
+          throw new Error('Unable to process Word document directly. Please copy and paste the text content from your Word document into the text area for accurate extraction.');
         }
       } else if (fileType.includes('text/') || fileName.endsWith('.txt') || fileName.endsWith('.eml')) {
         // Handle text files and emails

@@ -86,9 +86,17 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
       } else {
         throw new Error(data.error || 'Failed to process import');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Import error:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to import data');
+      
+      // Show specific error messages for different file types
+      if (error.message?.includes('Word document')) {
+        toast.error('Word documents require manual text entry. Please copy the text from your document and paste it in the text area below.');
+      } else if (error.message?.includes('PDF')) {
+        toast.error('PDF files require manual text entry. Please copy the text from your PDF and paste it in the text area below.');
+      } else {
+        toast.error(error instanceof Error ? error.message : 'Failed to import data. Please try copying and pasting the text instead.');
+      }
     } finally {
       setProcessing(false);
     }
@@ -156,7 +164,8 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Supported formats: Images (JPG, PNG), Text files, Email content, Word documents, PDFs. 
+              Supported formats: Images (JPG, PNG), Text files, Email content. 
+              <strong>For Word documents and PDFs:</strong> Please copy the text content and paste it in the Text/Email tab for best results.
               AI will automatically extract patient details, incident information, and complaint specifics.
             </AlertDescription>
           </Alert>
