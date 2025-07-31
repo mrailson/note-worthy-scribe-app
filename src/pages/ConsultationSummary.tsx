@@ -282,27 +282,43 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
   // Generate Email version
   const generateEmailVersion = (content: string): string => {
     if (!content || content.trim() === "") {
-      return `Dear Patient,
-
-Thank you for attending your consultation today.
-
-**What we discussed:**
-Your current health concerns were reviewed and addressed.
-
-**What was agreed:**
-We've established a plan for your ongoing care.
-
-**Medications:**
-Please continue any current medications as prescribed.
-
-**Follow-up:**
-We'll be in touch regarding any necessary follow-up appointments.
-
-**Safety netting:**
-Please contact us immediately if your symptoms worsen or if you develop any concerning new symptoms.
-
-Best wishes,
-Your GP Practice`;
+      return `<div class="space-y-4">
+        <p>Dear Patient,</p>
+        <p>Thank you for attending your consultation today.</p>
+        
+        <div class="space-y-2">
+          <h4 class="font-bold text-primary">What we discussed:</h4>
+          <p class="ml-4">• Your current health concerns were reviewed and addressed.</p>
+        </div>
+        
+        <div class="space-y-2">
+          <h4 class="font-bold text-primary">What was agreed:</h4>
+          <p class="ml-4">• We've established a plan for your ongoing care.</p>
+        </div>
+        
+        <div class="space-y-2">
+          <h4 class="font-bold text-primary">Medications:</h4>
+          <p class="ml-4">• Please continue any current medications as prescribed.</p>
+        </div>
+        
+        <div class="space-y-2">
+          <h4 class="font-bold text-primary">Follow-up:</h4>
+          <p class="ml-4">• We'll be in touch regarding any necessary follow-up appointments.</p>
+        </div>
+        
+        <div class="space-y-2">
+          <h4 class="font-bold text-primary">Safety netting:</h4>
+          <div class="ml-4 space-y-1">
+            <p>• Please contact us immediately if your symptoms worsen</p>
+            <p>• Seek urgent care if you develop any concerning new symptoms</p>
+            <p>• Don't hesitate to call if you have questions about your care</p>
+          </div>
+        </div>
+        
+        <div class="mt-6">
+          <p>Best wishes,<br>Your GP Practice</p>
+        </div>
+      </div>`;
     }
 
     const lines = content.split('\n').filter(line => line.trim() !== '');
@@ -333,29 +349,63 @@ Your GP Practice`;
       line.toLowerCase().includes('review')
     ).slice(0, 1);
 
-    return `Dear Patient,
-
-Thank you for attending your consultation today.
-
-**What we discussed:**
-${discussed.length > 0 ? discussed.map(item => `• ${item.replace(/\*\*/g, '').replace(/^.*?:/, '').trim()}`).join('\n') : '• Your current health concerns were reviewed'}
-
-**What was agreed:**
-${agreed.length > 0 ? agreed.map(item => `• ${item.replace(/\*\*/g, '').replace(/^.*?:/, '').trim()}`).join('\n') : '• A comprehensive care plan has been established'}
-
-**Medications:**
-${medications.length > 0 ? medications.map(item => `• ${item.replace(/\*\*/g, '').replace(/^.*?:/, '').trim()}`).join('\n') : '• Please continue current medications as prescribed'}
-
-**Follow-up:**
-${followUp.length > 0 ? followUp.map(item => `• ${item.replace(/\*\*/g, '').replace(/^.*?:/, '').trim()}`).join('\n') : '• No immediate follow-up required'}
-
-**Safety netting:**
-• Please contact us if your symptoms worsen or change
-• Seek immediate medical attention if you develop concerning symptoms
-• Don't hesitate to call if you have any questions about your care
-
-Best wishes,
-Your GP Practice`;
+    return `<div class="space-y-4">
+      <p>Dear Patient,</p>
+      <p>Thank you for attending your consultation today.</p>
+      
+      <div class="space-y-2">
+        <h4 class="font-bold text-primary">What we discussed:</h4>
+        <div class="ml-4 space-y-1">
+          ${discussed.length > 0 ? 
+            discussed.map(item => `<p>• ${item.replace(/\*\*/g, '').replace(/^.*?:/, '').trim()}</p>`).join('') : 
+            '<p>• Your current health concerns were reviewed</p>'
+          }
+        </div>
+      </div>
+      
+      <div class="space-y-2">
+        <h4 class="font-bold text-primary">What was agreed:</h4>
+        <div class="ml-4 space-y-1">
+          ${agreed.length > 0 ? 
+            agreed.map(item => `<p>• ${item.replace(/\*\*/g, '').replace(/^.*?:/, '').trim()}</p>`).join('') : 
+            '<p>• A comprehensive care plan has been established</p>'
+          }
+        </div>
+      </div>
+      
+      <div class="space-y-2">
+        <h4 class="font-bold text-primary">Medications:</h4>
+        <div class="ml-4 space-y-1">
+          ${medications.length > 0 ? 
+            medications.map(item => `<p>• ${item.replace(/\*\*/g, '').replace(/^.*?:/, '').trim()}</p>`).join('') : 
+            '<p>• Please continue current medications as prescribed</p>'
+          }
+        </div>
+      </div>
+      
+      <div class="space-y-2">
+        <h4 class="font-bold text-primary">Follow-up:</h4>
+        <div class="ml-4 space-y-1">
+          ${followUp.length > 0 ? 
+            followUp.map(item => `<p>• ${item.replace(/\*\*/g, '').replace(/^.*?:/, '').trim()}</p>`).join('') : 
+            '<p>• No immediate follow-up required</p>'
+          }
+        </div>
+      </div>
+      
+      <div class="space-y-2">
+        <h4 class="font-bold text-primary">Safety netting:</h4>
+        <div class="ml-4 space-y-1">
+          <p>• Please contact us if your symptoms worsen or change</p>
+          <p>• Seek immediate medical attention if you develop concerning symptoms</p>
+          <p>• Don't hesitate to call if you have any questions about your care</p>
+        </div>
+      </div>
+      
+      <div class="mt-6">
+        <p>Best wishes,<br>Your GP Practice</p>
+      </div>
+    </div>`;
   };
 
   const getCurrentGPSummary = (): string => {
