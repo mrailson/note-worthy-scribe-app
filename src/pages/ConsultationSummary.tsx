@@ -28,6 +28,7 @@ import {
   Sparkles,
   ChevronDown,
   ChevronUp,
+  AlertTriangle,
 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useAuth } from "@/contexts/AuthContext";
@@ -101,6 +102,7 @@ export default function ConsultationSummary() {
   const [aiResponse, setAiResponse] = useState("");
   const [reviewContent, setReviewContent] = useState("");
   const [isLoadingReview, setIsLoadingReview] = useState(false);
+  const [consultationScore, setConsultationScore] = useState<number | null>(null);
   const [referralContent, setReferralContent] = useState("");
   const [isLoadingReferral, setIsLoadingReferral] = useState(false);
   const [isAILoading, setIsAILoading] = useState(false);
@@ -687,7 +689,7 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
     try {
       const { data, error } = await supabase.functions.invoke('ai-consultation-assistant', {
         body: {
-          prompt: "is there anything I may have missed",
+          prompt: "Review this consultation and provide: 1) A comprehensive analysis of what may have been missed, areas for improvement, and recommendations. 2) At the end, provide a consultation score out of 100 based on completeness, accuracy, and clinical quality. Format the score as 'CONSULTATION SCORE: X/100' on a separate line. If the score is below 70, highlight critical issues that need immediate attention.",
           consultationData: {
             duration: consultationData?.duration,
             transcript: consultationData?.transcript,
@@ -700,6 +702,12 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
       });
 
       if (error) throw error;
+
+      // Parse the score from the response
+      const scoreMatch = data.response.match(/CONSULTATION SCORE:\s*(\d+)\/100/i);
+      if (scoreMatch) {
+        setConsultationScore(parseInt(scoreMatch[1]));
+      }
 
       setReviewContent(data.response);
       toast.success("Review generated successfully");
@@ -857,9 +865,16 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                   value="review" 
                   className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm"
                 >
-                  <BookOpen className="h-4 w-4 mr-1 lg:mr-2" />
-                  <span className="hidden sm:inline">Review & Recommendations</span>
-                  <span className="sm:hidden">Review</span>
+                  <div className="flex items-center gap-1">
+                    <BookOpen className="h-4 w-4 mr-1 lg:mr-2" />
+                    <span className="hidden sm:inline">Review & Recommendations</span>
+                    <span className="sm:hidden">Review</span>
+                    {consultationScore !== null && consultationScore < 70 && (
+                      <div className="flex items-center ml-1">
+                        <AlertTriangle className="h-4 w-4 text-red-500" />
+                      </div>
+                    )}
+                  </div>
                 </TabsTrigger>
               </TabsList>
 
@@ -1186,6 +1201,35 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                     </div>
                   )}
                 </div>
+                
+                {/* Consultation Score Display */}
+                {consultationScore !== null && (
+                  <div className={`flex items-center justify-center p-4 rounded-lg border ${
+                    consultationScore >= 80 ? 'bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800' :
+                    consultationScore >= 70 ? 'bg-yellow-50 border-yellow-200 dark:bg-yellow-950/30 dark:border-yellow-800' :
+                    'bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800'
+                  }`}>
+                    <div className="flex items-center gap-3">
+                      {consultationScore >= 80 ? (
+                        <CheckCircle className="h-6 w-6 text-green-600" />
+                      ) : consultationScore >= 70 ? (
+                        <AlertTriangle className="h-6 w-6 text-yellow-600" />
+                      ) : (
+                        <AlertTriangle className="h-6 w-6 text-red-600" />
+                      )}
+                      <div className="text-center">
+                        <div className="text-lg font-bold">
+                          Consultation Score: {consultationScore}/100
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {consultationScore >= 80 ? 'Excellent consultation quality' :
+                           consultationScore >= 70 ? 'Good consultation with minor improvements needed' :
+                           'Significant improvements required'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 
                 {isLoadingReview ? (
                   <div className="flex items-center justify-center p-8">
