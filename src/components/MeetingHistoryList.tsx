@@ -127,17 +127,55 @@ export const MeetingHistoryList = ({
       return meeting.overview;
     }
     
-    // Priority 2: Use existing meeting summary if available
+    // Priority 2: Generate content overview from meeting summary (max 200 words)
     if (meeting.meeting_summary && meeting.meeting_summary.trim()) {
       const summary = meeting.meeting_summary;
-      const lines = summary.split('\n').filter(line => line.trim());
-      const relevantLines = lines.slice(0, 2); // First two meaningful lines
-      const extractedContent = relevantLines.join(' ').replace(/\*\*/g, '').replace(/##/g, '').trim();
       
-      if (extractedContent.length > 0) {
-        const words = extractedContent.split(' ').slice(0, 25);
-        return words.join(' ') + (words.length === 25 ? '...' : '');
+      // Extract key content from meeting minutes
+      const sections = summary.split(/\d+️⃣|##/);
+      let contentParts = [];
+      
+      // Look for discussion summary or key topics
+      const discussionSection = sections.find(section => 
+        section.toLowerCase().includes('discussion') || 
+        section.toLowerCase().includes('summary') ||
+        section.toLowerCase().includes('agenda')
+      );
+      
+      if (discussionSection) {
+        // Extract bullet points and key information
+        const bullets = discussionSection
+          .split(/[-•*]/)
+          .map(item => item.replace(/\*\*/g, '').trim())
+          .filter(item => item.length > 20 && !item.toLowerCase().includes('action item'))
+          .slice(0, 3); // Take top 3 points
+        
+        contentParts = bullets;
       }
+      
+      // If no discussion section, extract from beginning
+      if (contentParts.length === 0) {
+        const cleanedSummary = summary
+          .replace(/\*\*/g, '')
+          .replace(/##/g, '')
+          .replace(/\d+️⃣/g, '')
+          .split('\n')
+          .filter(line => line.trim() && !line.includes('Meeting Minutes') && !line.includes('Date:') && !line.includes('Time:'))
+          .slice(0, 4)
+          .join(' ');
+        
+        contentParts = [cleanedSummary];
+      }
+      
+      // Combine and limit to 200 words
+      const overview = contentParts.join('. ').trim();
+      const words = overview.split(' ');
+      
+      if (words.length > 200) {
+        return words.slice(0, 200).join(' ') + '...';
+      }
+      
+      return overview || `Meeting covered key topics including discussions and decisions.`;
     }
     
     // Priority 3: Use description as agenda/purpose
