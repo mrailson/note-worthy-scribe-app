@@ -292,129 +292,91 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
       </div>`;
     }
 
-    // Clean and parse the actual content
+    // Clean and parse the actual content more broadly
     const cleanContent = content.replace(/\*\*/g, '').replace(/###|##|#/g, '').trim();
-    const lines = cleanContent.split('\n').filter(line => line.trim() !== '');
+    const lines = cleanContent.split('\n').filter(line => line.trim() !== '' && line.length > 10);
     
-    // Extract actual presenting complaint/reason for visit
-    const presentingLines = lines.filter(line => 
-      line.toLowerCase().includes('presenting') || 
-      line.toLowerCase().includes('complaint') ||
-      line.toLowerCase().includes('concern') ||
-      line.toLowerCase().includes('problem') ||
-      line.toLowerCase().includes('issue') ||
-      line.toLowerCase().includes('patient') ||
-      line.toLowerCase().includes('discussed') ||
-      line.toLowerCase().includes('reviewed')
-    ).slice(0, 3);
+    // Take the first few lines as what was discussed (broader approach)
+    const discussedContent = lines.slice(0, 4).map(line => line.replace(/^.*?:/, '').trim()).filter(line => line);
+    
+    // Look for any lines mentioning specific treatments, medications, or advice
+    const actionLines = lines.filter(line => {
+      const lower = line.toLowerCase();
+      return lower.includes('take') || lower.includes('continue') || lower.includes('stop') || 
+             lower.includes('increase') || lower.includes('reduce') || lower.includes('try') ||
+             lower.includes('should') || lower.includes('recommend') || lower.includes('advise') ||
+             lower.includes('plan') || lower.includes('agreed') || lower.includes('prescribed') ||
+             lower.includes('paracetamol') || lower.includes('ibuprofen') || lower.includes('medication');
+    }).slice(0, 4);
+    
+    // Look for follow-up mentions
+    const followUpContent = lines.filter(line => {
+      const lower = line.toLowerCase();
+      return lower.includes('follow') || lower.includes('review') || lower.includes('appointment') ||
+             lower.includes('see you') || lower.includes('contact') || lower.includes('return') ||
+             lower.includes('week') || lower.includes('month') || lower.includes('days');
+    }).slice(0, 3);
+    
+    // Look for any warning or safety advice
+    const safetyContent = lines.filter(line => {
+      const lower = line.toLowerCase();
+      return lower.includes('if') || lower.includes('should') || lower.includes('contact') ||
+             lower.includes('urgent') || lower.includes('emergency') || lower.includes('worsen') ||
+             lower.includes('concern') || lower.includes('seek') || lower.includes('call');
+    }).slice(0, 3);
 
-    // Extract actual treatment/management decisions
-    const treatmentLines = lines.filter(line => 
-      line.toLowerCase().includes('plan') || 
-      line.toLowerCase().includes('agreed') ||
-      line.toLowerCase().includes('decided') ||
-      line.toLowerCase().includes('management') ||
-      line.toLowerCase().includes('treatment') ||
-      line.toLowerCase().includes('advised') ||
-      line.toLowerCase().includes('recommendation')
-    ).slice(0, 3);
-
-    // Extract actual medications mentioned
-    const medicationLines = lines.filter(line => 
-      line.toLowerCase().includes('medication') || 
-      line.toLowerCase().includes('prescription') ||
-      line.toLowerCase().includes('paracetamol') ||
-      line.toLowerCase().includes('ibuprofen') ||
-      line.toLowerCase().includes('tablets') ||
-      line.toLowerCase().includes('capsules') ||
-      line.toLowerCase().includes('mg') ||
-      line.toLowerCase().includes('dose') ||
-      line.toLowerCase().includes('take') ||
-      line.toLowerCase().includes('pain relief') ||
-      line.toLowerCase().includes('analgesic') ||
-      line.toLowerCase().includes('twice daily') ||
-      line.toLowerCase().includes('once daily') ||
-      line.toLowerCase().includes('as needed')
-    ).slice(0, 3);
-
-    // Extract actual follow-up plans
-    const followUpLines = lines.filter(line => 
-      line.toLowerCase().includes('follow') || 
-      line.toLowerCase().includes('appointment') ||
-      line.toLowerCase().includes('review') ||
-      line.toLowerCase().includes('contact') ||
-      line.toLowerCase().includes('return') ||
-      line.toLowerCase().includes('see you') ||
-      line.toLowerCase().includes('next visit') ||
-      line.toLowerCase().includes('weeks') ||
-      line.toLowerCase().includes('months')
-    ).slice(0, 2);
-
-    // Extract safety netting advice
-    const safetyLines = lines.filter(line => 
-      line.toLowerCase().includes('safety') || 
-      line.toLowerCase().includes('warning') ||
-      line.toLowerCase().includes('urgent') ||
-      line.toLowerCase().includes('emergency') ||
-      line.toLowerCase().includes('worsen') ||
-      line.toLowerCase().includes('concern') ||
-      line.toLowerCase().includes('contact') ||
-      line.toLowerCase().includes('seek help') ||
-      line.toLowerCase().includes('if symptoms')
-    ).slice(0, 3);
-
-    const formatLine = (line: string) => line.replace(/^.*?:/, '').trim();
+    const formatLine = (line: string) => {
+      let formatted = line.replace(/^.*?:/, '').trim();
+      // Remove any remaining markdown or formatting
+      formatted = formatted.replace(/[*#]/g, '');
+      return formatted;
+    };
 
     return `<div class="space-y-4">
       <p>Dear Patient,</p>
       <p>Thank you for attending your consultation today.</p>
       
-      ${presentingLines.length > 0 ? `
       <div class="space-y-2">
         <h4 class="font-bold text-primary">What we discussed:</h4>
         <div class="ml-4 space-y-1">
-          ${presentingLines.map(item => `<p>• ${formatLine(item)}</p>`).join('')}
+          ${discussedContent.length > 0 ? 
+            discussedContent.map(item => `<p>• ${formatLine(item)}</p>`).join('') : 
+            '<p>• Your health concerns were reviewed during the consultation</p>'
+          }
         </div>
-      </div>` : ''}
+      </div>
       
-      ${treatmentLines.length > 0 ? `
+      ${actionLines.length > 0 ? `
       <div class="space-y-2">
-        <h4 class="font-bold text-primary">What was agreed:</h4>
+        <h4 class="font-bold text-primary">Treatment and medications:</h4>
         <div class="ml-4 space-y-1">
-          ${treatmentLines.map(item => `<p>• ${formatLine(item)}</p>`).join('')}
+          ${actionLines.map(item => `<p>• ${formatLine(item)}</p>`).join('')}
         </div>
       </div>` : ''}
       
-      ${medicationLines.length > 0 ? `
-      <div class="space-y-2">
-        <h4 class="font-bold text-primary">Medications:</h4>
-        <div class="ml-4 space-y-1">
-          ${medicationLines.map(item => `<p>• ${formatLine(item)}</p>`).join('')}
-        </div>
-      </div>` : ''}
-      
-      ${followUpLines.length > 0 ? `
+      ${followUpContent.length > 0 ? `
       <div class="space-y-2">
         <h4 class="font-bold text-primary">Follow-up:</h4>
         <div class="ml-4 space-y-1">
-          ${followUpLines.map(item => `<p>• ${formatLine(item)}</p>`).join('')}
+          ${followUpContent.map(item => `<p>• ${formatLine(item)}</p>`).join('')}
         </div>
       </div>` : ''}
       
-      ${safetyLines.length > 0 ? `
+      ${safetyContent.length > 0 ? `
       <div class="space-y-2">
-        <h4 class="font-bold text-primary">Safety netting:</h4>
+        <h4 class="font-bold text-primary">Important advice:</h4>
         <div class="ml-4 space-y-1">
-          ${safetyLines.map(item => `<p>• ${formatLine(item)}</p>`).join('')}
+          ${safetyContent.map(item => `<p>• ${formatLine(item)}</p>`).join('')}
         </div>
-      </div>` : `
+      </div>` : ''}
+      
       <div class="space-y-2">
-        <h4 class="font-bold text-primary">Safety netting:</h4>
+        <h4 class="font-bold text-primary">If you need help:</h4>
         <div class="ml-4 space-y-1">
-          <p>• Please contact us if your symptoms worsen or change</p>
-          <p>• Seek immediate medical attention if you develop concerning symptoms</p>
+          <p>• Contact the practice if you have any questions</p>
+          <p>• Seek urgent care if your symptoms worsen significantly</p>
         </div>
-      </div>`}
+      </div>
       
       <div class="mt-6">
         <p>Best wishes,<br>Your GP Practice</p>
