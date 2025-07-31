@@ -648,7 +648,7 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
     try {
       const { data, error } = await supabase.functions.invoke('ai-consultation-assistant', {
         body: {
-          prompt: "Generate a professional NHS referral letter in proper letter format. Do not include any headers, contact details, signature blocks, or explanations. Start directly with 'Dear Colleague,' and write the actual referral letter content in formal medical letter style. End with 'Yours sincerely,' without any name or contact details below.",
+          prompt: "Generate a professional NHS referral letter. Return plain text only, no code blocks, no HTML tags, no markdown formatting. Start directly with 'Dear Colleague,' and write the actual referral letter content in formal medical letter style. End with 'Yours sincerely,' without any name or contact details below.",
           consultationData: {
             duration: consultationData?.duration,
             transcript: consultationData?.transcript,
