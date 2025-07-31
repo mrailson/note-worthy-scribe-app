@@ -558,14 +558,6 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                   <span className="sm:hidden">Summary</span>
                 </TabsTrigger>
                 <TabsTrigger 
-                  value="full-note" 
-                  className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm"
-                >
-                  <FileText className="h-4 w-4 mr-1 lg:mr-2" />
-                  <span className="hidden sm:inline">Full Note</span>
-                  <span className="sm:hidden">Full</span>
-                </TabsTrigger>
-                <TabsTrigger 
                   value="patient-copy" 
                   className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm"
                 >
@@ -661,53 +653,6 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                 ) : (
                   <div className="bg-muted/30 rounded-lg p-4 border">
                     <SafeMessageRenderer content={getCurrentGPSummary()} />
-                  </div>
-                )}
-              </TabsContent>
-
-              {/* Full Note Tab */}
-              <TabsContent value="full-note" className="space-y-4 mt-6">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-primary">Full Clinical Note</h3>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleCopy(content.fullNote, "Full Note")}
-                    >
-                      <Copy className="h-4 w-4 mr-1" />
-                      Copy
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={editStates.fullNote ? "default" : "outline"}
-                      onClick={() => handleEditToggle("fullNote")}
-                    >
-                      {editStates.fullNote ? (
-                        <>
-                          <Save className="h-4 w-4 mr-1" />
-                          Save
-                        </>
-                      ) : (
-                        <>
-                          <Edit3 className="h-4 w-4 mr-1" />
-                          Edit
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-                
-                {editStates.fullNote ? (
-                  <Textarea
-                    value={editContent.fullNote}
-                    onChange={(e) => setEditContent(prev => ({ ...prev, fullNote: e.target.value }))}
-                    className="min-h-[300px] font-mono text-sm"
-                    placeholder="Edit full clinical note..."
-                  />
-                ) : (
-                  <div className="bg-muted/30 rounded-lg p-4 border">
-                    <SafeMessageRenderer content={content.fullNote} />
                   </div>
                 )}
               </TabsContent>
