@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Mic, MicOff, Wifi, WifiOff, Brain, Copy, Download, Mail, Save, Play, Pause, FileText, ChevronDown, ChevronUp, Lightbulb, AlertTriangle, BookOpen, Shield, BarChart3, Edit, Check, X, Send, Settings, Languages, Volume2, VolumeX, Stethoscope } from "lucide-react";
+import { Mic, MicOff, Wifi, WifiOff, Brain, Copy, Download, Mail, Save, Play, Pause, FileText, ChevronDown, ChevronUp, Lightbulb, AlertTriangle, BookOpen, Shield, BarChart3, Edit, Check, X, Send, Settings, Languages, Volume2, VolumeX, Stethoscope, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 import { RealtimeTranscriber, TranscriptData } from "@/utils/RealtimeTranscriber";
@@ -82,6 +82,12 @@ const Index = () => {
   const [selectedExample, setSelectedExample] = useState<string>("");
   const [showExamples, setShowExamples] = useState(true);
   const [activeTab, setActiveTab] = useState("consultation");
+  const [showTicker, setShowTicker] = useState(false);
+  const [tickerEnabled, setTickerEnabled] = useState(true);
+  const [tickerText, setTickerText] = useState<string>("");
+  const [cleanedTranscript, setCleanedTranscript] = useState("");
+  const [isCleaningTranscript, setIsCleaningTranscript] = useState(false);
+  const [completedConsultation, setCompletedConsultation] = useState<any>(null);
   
   // New consultation setup states
   const [consultationType, setConsultationType] = useState<"face-to-face" | "telephone">("face-to-face");
@@ -434,6 +440,21 @@ const Index = () => {
   const handleTranscript = (transcriptData: TranscriptData) => {
     if (isPaused || isMicMuted) return;
     
+    // Update ticker tape for live transcription
+    if (transcriptData.text && transcriptData.text.trim() && tickerEnabled) {
+      const truncatedText = transcriptData.text.length > 100 
+        ? transcriptData.text.substring(0, 100) + "..." 
+        : transcriptData.text;
+      
+      setTickerText(truncatedText);
+      setShowTicker(true);
+      
+      // Auto-hide ticker after 3 seconds if no new text
+      setTimeout(() => {
+        setShowTicker(false);
+      }, 3000);
+    }
+    
     setRealtimeTranscripts(prev => {
       const filtered = prev.filter(t => 
         !(t.speaker === transcriptData.speaker && !t.isFinal)
@@ -604,8 +625,39 @@ const Index = () => {
     }
   };
 
+  // Clean transcript with AI
+  const cleanTranscript = async () => {
+    if (!transcript || transcript.length < 10) {
+      toast.error("No transcript available to clean");
+      return;
+    }
+
+    setIsCleaningTranscript(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('clean-transcript', {
+        body: {
+          rawTranscript: transcript,
+          meetingTitle: `GP Consultation - ${consultationType}`
+        }
+      });
+
+      if (error) throw error;
+
+      setCleanedTranscript(data.cleanedTranscript);
+      toast.success("Transcript cleaned successfully!");
+    } catch (error: any) {
+      console.error("Error cleaning transcript:", error);
+      toast.error(`Failed to clean transcript: ${error.message}`);
+    } finally {
+      setIsCleaningTranscript(false);
+    }
+  };
+
   const generateSummary = async () => {
-    if (!transcript.trim()) {
+    const transcriptToUse = cleanedTranscript || transcript;
+    
+    if (!transcriptToUse.trim()) {
       toast.error("No transcript available to generate summary");
       return;
     }
@@ -615,7 +667,7 @@ const Index = () => {
     try {
       const { data, error } = await supabase.functions.invoke('generate-gp-consultation-notes', {
         body: {
-          transcript,
+          transcript: transcriptToUse,
           outputLevel,
           showSnomedCodes,
           formatForEmis,
@@ -1230,16 +1282,46 @@ const Index = () => {
                       )}
                       
                       {isRecording && (
-                        <div className={`flex items-center justify-center gap-3 rounded-lg p-4 mt-4 ${
-                          isMicMuted 
-                            ? "text-red-500 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800" 
-                            : "text-primary bg-accent/20 animate-pulse"
-                        }`}>
-                          <div className={`w-3 h-3 rounded-full ${isMicMuted ? 'bg-red-500' : 'bg-primary'}`}></div>
-                          <span className="text-base font-medium">
-                            {isMicMuted ? "Microphone muted..." : (isPaused ? "Recording paused..." : "Recording consultation...")}
-                          </span>
-                        </div>
+                        <>
+                          <div className={`flex items-center justify-center gap-3 rounded-lg p-4 mt-4 ${
+                            isMicMuted 
+                              ? "text-red-500 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800" 
+                              : "text-primary bg-accent/20 animate-pulse"
+                          }`}>
+                            <div className={`w-3 h-3 rounded-full ${isMicMuted ? 'bg-red-500' : 'bg-primary'}`}></div>
+                            <span className="text-base font-medium">
+                              {isMicMuted ? "Microphone muted..." : (isPaused ? "Recording paused..." : "Recording consultation...")}
+                            </span>
+                          </div>
+                          
+                          {/* Eye toggle for live speech */}
+                          <div className="flex items-center justify-center mt-4">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setTickerEnabled(!tickerEnabled)}
+                              className="flex items-center gap-2"
+                            >
+                              {tickerEnabled ? (
+                                <Eye className="h-4 w-4" />
+                              ) : (
+                                <EyeOff className="h-4 w-4" />
+                              )}
+                              <p>{tickerEnabled ? "Hide Live Speech" : "Show Live Speech"}</p>
+                            </Button>
+                          </div>
+                          
+                          {/* Live speech ticker */}
+                          <div className={`transition-all duration-500 ${showTicker && tickerEnabled ? 'opacity-100 animate-fade-in' : 'opacity-0'}`}>
+                            {tickerText && (
+                              <div className="bg-background/90 backdrop-blur-sm border border-primary/20 rounded-lg p-3 mt-4 shadow-subtle">
+                                <p className="text-sm text-primary font-medium animate-pulse">
+                                  {tickerText}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </>
                       )}
                     </div>
                   </div>
@@ -1247,6 +1329,161 @@ const Index = () => {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Completed Consultation Tab */}
+        <TabsContent value="completed" className="space-y-4">
+          {completedConsultation && (
+            <Card className="shadow-medium border-accent/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Check className="h-5 w-5 text-green-600" />
+                  Consultation Completed
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Summary stats */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="bg-accent/20 rounded-lg p-3">
+                    <div className="text-2xl font-bold text-primary">{completedConsultation.duration}</div>
+                    <div className="text-sm text-muted-foreground">Duration</div>
+                  </div>
+                  <div className="bg-accent/20 rounded-lg p-3">
+                    <div className="text-2xl font-bold text-primary">{completedConsultation.wordCount}</div>
+                    <div className="text-sm text-muted-foreground">Words</div>
+                  </div>
+                  <div className="bg-accent/20 rounded-lg p-3">
+                    <div className="text-2xl font-bold text-primary">{completedConsultation.consultationType}</div>
+                    <div className="text-sm text-muted-foreground">Type</div>
+                  </div>
+                  <div className="bg-accent/20 rounded-lg p-3">
+                    <div className="text-2xl font-bold text-primary">
+                      {new Date(completedConsultation.timestamp).toLocaleTimeString()}
+                    </div>
+                    <div className="text-sm text-muted-foreground">Completed</div>
+                  </div>
+                </div>
+
+                {/* Transcript section with clean option */}
+                <Card className="border-accent/20">
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <FileText className="h-5 w-5" />
+                        Consultation Transcript
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          onClick={cleanTranscript}
+                          disabled={isCleaningTranscript || !transcript}
+                          variant="outline"
+                          size="sm"
+                        >
+                          <Brain className="h-4 w-4 mr-2" />
+                          {isCleaningTranscript ? 'Cleaning...' : 'Clean with AI'}
+                        </Button>
+                        <Button
+                          onClick={() => copyToClipboard(cleanedTranscript || transcript)}
+                          variant="outline"
+                          size="sm"
+                        >
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copy {cleanedTranscript ? 'Cleaned' : 'Original'}
+                        </Button>
+                      </div>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="bg-accent/10 rounded-lg p-4 max-h-64 overflow-y-auto">
+                      <pre className="whitespace-pre-wrap text-sm">
+                        {cleanedTranscript || transcript || 'No transcript available'}
+                      </pre>
+                    </div>
+                    {cleanedTranscript && (
+                      <div className="mt-2 text-xs text-green-600 flex items-center gap-1">
+                        <Check className="h-3 w-3" />
+                        Transcript cleaned with AI
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Generated notes display */}
+                {(gpSummary || fullNote || patientCopy) && (
+                  <Card className="border-accent/20">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Brain className="h-5 w-5" />
+                        Generated Clinical Notes
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <Tabs defaultValue="summary" className="w-full">
+                        <TabsList className="grid w-full grid-cols-4">
+                          <TabsTrigger value="summary">GP Summary</TabsTrigger>
+                          <TabsTrigger value="full">Full Note</TabsTrigger>
+                          <TabsTrigger value="patient">Patient Copy</TabsTrigger>
+                          {traineeFeedback && <TabsTrigger value="trainee">Trainee Feedback</TabsTrigger>}
+                        </TabsList>
+                        
+                        <TabsContent value="summary" className="space-y-4">
+                          <div className="bg-accent/10 rounded-lg p-4">
+                            <SafeMessageRenderer content={gpSummary || 'No GP summary generated'} />
+                          </div>
+                        </TabsContent>
+                        
+                        <TabsContent value="full" className="space-y-4">
+                          <div className="bg-accent/10 rounded-lg p-4">
+                            <SafeMessageRenderer content={fullNote || 'No full note generated'} />
+                          </div>
+                        </TabsContent>
+                        
+                        <TabsContent value="patient" className="space-y-4">
+                          <div className="bg-accent/10 rounded-lg p-4">
+                            <SafeMessageRenderer content={patientCopy || 'No patient copy generated'} />
+                          </div>
+                        </TabsContent>
+                        
+                        {traineeFeedback && (
+                          <TabsContent value="trainee" className="space-y-4">
+                            <div className="bg-accent/10 rounded-lg p-4">
+                              <SafeMessageRenderer content={traineeFeedback} />
+                            </div>
+                          </TabsContent>
+                        )}
+                      </Tabs>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Action buttons */}
+                <div className="flex flex-wrap gap-3">
+                  <Button
+                    onClick={() => setActiveTab("consultation")}
+                    variant="outline"
+                  >
+                    Start New Consultation
+                  </Button>
+                  <Button
+                    onClick={() => navigate('/consultation-history')}
+                    variant="outline"
+                  >
+                    View History
+                  </Button>
+                  {transcript && (
+                    <Button
+                      onClick={generateSummary}
+                      disabled={isGenerating}
+                      className="bg-gradient-primary hover:bg-primary-hover"
+                    >
+                      <Brain className="h-4 w-4 mr-2" />
+                      {isGenerating ? 'Generating...' : 'Regenerate Notes'}
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
           {/* Tab Content */}
