@@ -1236,6 +1236,39 @@ const Index = () => {
                       </div>
                     )}
 
+                    {/* Live Speech Controls and Display - positioned above stats */}
+                    {isRecording && (
+                      <>
+                        {/* Eye toggle for live speech */}
+                        <div className="flex items-center justify-center mb-4">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setTickerEnabled(!tickerEnabled)}
+                            className="flex items-center gap-2"
+                          >
+                            {tickerEnabled ? (
+                              <Eye className="h-4 w-4" />
+                            ) : (
+                              <EyeOff className="h-4 w-4" />
+                            )}
+                            <p>{tickerEnabled ? "Hide Live Speech" : "Show Live Speech"}</p>
+                          </Button>
+                        </div>
+                        
+                        {/* Live speech ticker */}
+                        <div className={`transition-all duration-500 mb-4 ${showTicker && tickerEnabled ? 'opacity-100 animate-fade-in' : 'opacity-0'}`}>
+                          {tickerText && (
+                            <div className="bg-background/90 backdrop-blur-sm border border-primary/20 rounded-lg p-3 shadow-subtle">
+                              <p className="text-sm text-primary font-medium animate-pulse text-center">
+                                {tickerText}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    )}
+
                     {/* Recording Stats */}
                     <div className="grid grid-cols-2 gap-4">
                       <div className="bg-accent/20 rounded-lg p-4 text-center">
@@ -1282,46 +1315,16 @@ const Index = () => {
                       )}
                       
                       {isRecording && (
-                        <>
-                          <div className={`flex items-center justify-center gap-3 rounded-lg p-4 mt-4 ${
-                            isMicMuted 
-                              ? "text-red-500 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800" 
-                              : "text-primary bg-accent/20 animate-pulse"
-                          }`}>
-                            <div className={`w-3 h-3 rounded-full ${isMicMuted ? 'bg-red-500' : 'bg-primary'}`}></div>
-                            <span className="text-base font-medium">
-                              {isMicMuted ? "Microphone muted..." : (isPaused ? "Recording paused..." : "Recording consultation...")}
-                            </span>
-                          </div>
-                          
-                          {/* Eye toggle for live speech */}
-                          <div className="flex items-center justify-center mt-4">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setTickerEnabled(!tickerEnabled)}
-                              className="flex items-center gap-2"
-                            >
-                              {tickerEnabled ? (
-                                <Eye className="h-4 w-4" />
-                              ) : (
-                                <EyeOff className="h-4 w-4" />
-                              )}
-                              <p>{tickerEnabled ? "Hide Live Speech" : "Show Live Speech"}</p>
-                            </Button>
-                          </div>
-                          
-                          {/* Live speech ticker */}
-                          <div className={`transition-all duration-500 ${showTicker && tickerEnabled ? 'opacity-100 animate-fade-in' : 'opacity-0'}`}>
-                            {tickerText && (
-                              <div className="bg-background/90 backdrop-blur-sm border border-primary/20 rounded-lg p-3 mt-4 shadow-subtle">
-                                <p className="text-sm text-primary font-medium animate-pulse">
-                                  {tickerText}
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        </>
+                        <div className={`flex items-center justify-center gap-3 rounded-lg p-4 mt-4 ${
+                          isMicMuted 
+                            ? "text-red-500 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800" 
+                            : "text-primary bg-accent/20 animate-pulse"
+                        }`}>
+                          <div className={`w-3 h-3 rounded-full ${isMicMuted ? 'bg-red-500' : 'bg-primary'}`}></div>
+                          <span className="text-base font-medium">
+                            {isMicMuted ? "Microphone muted..." : (isPaused ? "Recording paused..." : "Recording consultation...")}
+                          </span>
+                        </div>
                       )}
                     </div>
                   </div>
