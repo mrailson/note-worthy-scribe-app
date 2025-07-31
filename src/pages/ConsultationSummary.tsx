@@ -248,7 +248,42 @@ ${content.toLowerCase().includes('treatment') || content.toLowerCase().includes(
   };
 
   const getCurrentGPSummary = (): string => {
-    return generateNoteLevelContent(content.gpSummary, noteLevel[0]);
+    const markdownContent = generateNoteLevelContent(content.gpSummary, noteLevel[0]);
+    return convertMarkdownToHTML(markdownContent);
+  };
+
+  // Convert basic markdown to HTML for proper rendering
+  const convertMarkdownToHTML = (markdown: string): string => {
+    let html = markdown;
+    
+    // Convert headers
+    html = html.replace(/^### (.*$)/gm, '<h3 class="text-lg font-semibold text-primary mt-6 mb-3 border-b border-border pb-2">$1</h3>');
+    html = html.replace(/^## (.*$)/gm, '<h2 class="text-xl font-bold text-primary mt-8 mb-4">$1</h2>');
+    html = html.replace(/^# (.*$)/gm, '<h1 class="text-2xl font-bold text-primary mt-8 mb-6">$1</h1>');
+    
+    // Convert bold text
+    html = html.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-foreground">$1</strong>');
+    
+    // Convert horizontal rules
+    html = html.replace(/^---$/gm, '<hr class="my-6 border-border">');
+    
+    // Convert bullet points with proper spacing
+    html = html.replace(/^• (.*$)/gm, '<div class="flex items-start gap-2 mb-2"><span class="text-primary mt-1">•</span><span>$1</span></div>');
+    
+    // Convert checkmarks
+    html = html.replace(/✅/g, '<span class="text-green-600">✅</span>');
+    
+    // Convert line breaks to proper spacing
+    html = html.replace(/\n\n/g, '<div class="mb-4"></div>');
+    html = html.replace(/\n/g, '<br>');
+    
+    // Convert code blocks (SNOMED codes)
+    html = html.replace(/`([^`]+)`/g, '<code class="px-2 py-1 bg-muted rounded text-sm font-mono">$1</code>');
+    
+    // Convert italic text for final summary
+    html = html.replace(/\*(.*?)\*/g, '<em class="text-muted-foreground text-sm italic">$1</em>');
+    
+    return html;
   };
 
   const handleEditToggle = (section: keyof typeof editStates) => {
