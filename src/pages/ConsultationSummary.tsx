@@ -83,6 +83,9 @@ export default function ConsultationSummary() {
     traineeFeedback: ""
   });
 
+  // Patient copy sub-tab state
+  const [patientCopyTab, setPatientCopyTab] = useState("sms"); // "sms" or "email"
+
   const noteLevels = ["Coded", "Standard", "Detailed"];
 
   useEffect(() => {
@@ -246,6 +249,113 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
     
     // Return max 4 most relevant codes
     return codes.slice(0, 4);
+  };
+
+  // Generate SMS version (max 50 words)
+  const generateSMSVersion = (content: string): string => {
+    if (!content || content.trim() === "") {
+      return "Hi, thank you for attending your consultation today. We've reviewed your condition and discussed next steps. Please take any prescribed medications as directed and contact us if you have concerns.";
+    }
+
+    const lines = content.split('\n').filter(line => line.trim() !== '');
+    const mainPoints = lines.slice(0, 3).map(line => 
+      line.replace(/\*\*/g, '').replace(/###|##|#/g, '').replace(/^.*?:/, '').trim()
+    ).filter(point => point.length > 10);
+
+    let smsText = "Hi, thank you for your consultation today. ";
+    
+    if (mainPoints.length > 0) {
+      smsText += mainPoints[0].substring(0, 100) + ". ";
+    }
+    
+    smsText += "Please contact us if you have any concerns.";
+    
+    // Trim to max 50 words
+    const words = smsText.split(' ');
+    if (words.length > 50) {
+      return words.slice(0, 47).join(' ') + '...';
+    }
+    
+    return smsText;
+  };
+
+  // Generate Email version
+  const generateEmailVersion = (content: string): string => {
+    if (!content || content.trim() === "") {
+      return `Dear Patient,
+
+Thank you for attending your consultation today.
+
+**What we discussed:**
+Your current health concerns were reviewed and addressed.
+
+**What was agreed:**
+We've established a plan for your ongoing care.
+
+**Medications:**
+Please continue any current medications as prescribed.
+
+**Follow-up:**
+We'll be in touch regarding any necessary follow-up appointments.
+
+**Safety netting:**
+Please contact us immediately if your symptoms worsen or if you develop any concerning new symptoms.
+
+Best wishes,
+Your GP Practice`;
+    }
+
+    const lines = content.split('\n').filter(line => line.trim() !== '');
+    
+    // Extract relevant sections
+    const discussed = lines.filter(line => 
+      line.toLowerCase().includes('discussed') || 
+      line.toLowerCase().includes('reviewed') ||
+      line.toLowerCase().includes('complaint') ||
+      line.toLowerCase().includes('concern')
+    ).slice(0, 2);
+
+    const agreed = lines.filter(line => 
+      line.toLowerCase().includes('plan') || 
+      line.toLowerCase().includes('agreed') ||
+      line.toLowerCase().includes('decision')
+    ).slice(0, 2);
+
+    const medications = lines.filter(line => 
+      line.toLowerCase().includes('medication') || 
+      line.toLowerCase().includes('prescription') ||
+      line.toLowerCase().includes('treatment')
+    ).slice(0, 2);
+
+    const followUp = lines.filter(line => 
+      line.toLowerCase().includes('follow') || 
+      line.toLowerCase().includes('appointment') ||
+      line.toLowerCase().includes('review')
+    ).slice(0, 1);
+
+    return `Dear Patient,
+
+Thank you for attending your consultation today.
+
+**What we discussed:**
+${discussed.length > 0 ? discussed.map(item => `• ${item.replace(/\*\*/g, '').replace(/^.*?:/, '').trim()}`).join('\n') : '• Your current health concerns were reviewed'}
+
+**What was agreed:**
+${agreed.length > 0 ? agreed.map(item => `• ${item.replace(/\*\*/g, '').replace(/^.*?:/, '').trim()}`).join('\n') : '• A comprehensive care plan has been established'}
+
+**Medications:**
+${medications.length > 0 ? medications.map(item => `• ${item.replace(/\*\*/g, '').replace(/^.*?:/, '').trim()}`).join('\n') : '• Please continue current medications as prescribed'}
+
+**Follow-up:**
+${followUp.length > 0 ? followUp.map(item => `• ${item.replace(/\*\*/g, '').replace(/^.*?:/, '').trim()}`).join('\n') : '• No immediate follow-up required'}
+
+**Safety netting:**
+• Please contact us if your symptoms worsen or change
+• Seek immediate medical attention if you develop concerning symptoms
+• Don't hesitate to call if you have any questions about your care
+
+Best wishes,
+Your GP Practice`;
   };
 
   const getCurrentGPSummary = (): string => {
@@ -575,47 +685,76 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
               <TabsContent value="patient-copy" className="space-y-4 mt-6">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold text-primary">Patient Copy</h3>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleCopy(content.patientCopy, "Patient Copy")}
-                    >
-                      <Copy className="h-4 w-4 mr-1" />
-                      Copy
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={editStates.patientCopy ? "default" : "outline"}
-                      onClick={() => handleEditToggle("patientCopy")}
-                    >
-                      {editStates.patientCopy ? (
-                        <>
-                          <Save className="h-4 w-4 mr-1" />
-                          Save
-                        </>
-                      ) : (
-                        <>
-                          <Edit3 className="h-4 w-4 mr-1" />
-                          Edit
-                        </>
-                      )}
-                    </Button>
-                  </div>
                 </div>
                 
-                {editStates.patientCopy ? (
-                  <Textarea
-                    value={editContent.patientCopy}
-                    onChange={(e) => setEditContent(prev => ({ ...prev, patientCopy: e.target.value }))}
-                    className="min-h-[300px] font-mono text-sm"
-                    placeholder="Edit patient copy..."
-                  />
-                ) : (
-                  <div className="bg-muted/30 rounded-lg p-4 border">
-                    <SafeMessageRenderer content={content.patientCopy} />
-                  </div>
-                )}
+                {/* Patient Copy Sub-tabs */}
+                <Tabs value={patientCopyTab} onValueChange={setPatientCopyTab} className="w-full">
+                  <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-1 rounded-xl">
+                    <TabsTrigger 
+                      value="sms" 
+                      className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                    >
+                      <MessageSquare className="h-4 w-4 mr-2" />
+                      SMS (50 words)
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="email" 
+                      className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                    >
+                      <Mail className="h-4 w-4 mr-2" />
+                      Email Format
+                    </TabsTrigger>
+                  </TabsList>
+
+                  {/* SMS Version */}
+                  <TabsContent value="sms" className="space-y-4 mt-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="text-md font-semibold text-primary">SMS Short Summary</h4>
+                        <p className="text-sm text-muted-foreground">Maximum 50 words for text message</p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleCopy(generateSMSVersion(content.patientCopy), "SMS Summary")}
+                      >
+                        <Copy className="h-4 w-4 mr-1" />
+                        Copy
+                      </Button>
+                    </div>
+                    
+                    <div className="bg-muted/30 rounded-lg p-4 border">
+                      <div className="text-sm font-mono">
+                        {generateSMSVersion(content.patientCopy)}
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-2">
+                        Word count: {generateSMSVersion(content.patientCopy).split(' ').length} words
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  {/* Email Version */}
+                  <TabsContent value="email" className="space-y-4 mt-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="text-md font-semibold text-primary">Email Summary</h4>
+                        <p className="text-sm text-muted-foreground">Formatted overview with sections</p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleCopy(generateEmailVersion(content.patientCopy), "Email Summary")}
+                      >
+                        <Copy className="h-4 w-4 mr-1" />
+                        Copy
+                      </Button>
+                    </div>
+                    
+                    <div className="bg-muted/30 rounded-lg p-4 border">
+                      <SafeMessageRenderer content={generateEmailVersion(content.patientCopy)} />
+                    </div>
+                  </TabsContent>
+                </Tabs>
               </TabsContent>
 
               {/* Trainee Feedback Tab */}
