@@ -483,7 +483,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
   }
 
   return (
-    <div className="container mx-auto max-w-6xl">
+    <div className="w-full max-w-6xl mx-auto">
       <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-8rem)]">
         
         {/* Chat Interface */}
