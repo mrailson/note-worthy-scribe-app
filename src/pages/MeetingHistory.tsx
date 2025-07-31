@@ -9,8 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Plus, Clock, FileText, Trash2, Edit, Edit2, Mail, RefreshCw, Square, CheckSquare, ChevronDown, Copy } from "lucide-react";
-import TranscriptCleaner from "@/components/TranscriptCleaner";
+import { Plus, Clock, FileText, Trash2, Edit, Edit2, Mail, RefreshCw, Square, CheckSquare, ChevronDown, Copy, Sparkles } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -94,6 +93,9 @@ const MeetingHistory = () => {
   // Transcript view state
   const [transcriptDialogOpen, setTranscriptDialogOpen] = useState(false);
   const [viewingTranscript, setViewingTranscript] = useState("");
+  const [cleanedTranscript, setCleanedTranscript] = useState("");
+  const [isCleaningTranscript, setIsCleaningTranscript] = useState(false);
+  const [currentMeetingForTranscript, setCurrentMeetingForTranscript] = useState<Meeting | null>(null);
 
   const handleNewMeeting = () => {
     navigate("/");
@@ -195,6 +197,16 @@ const MeetingHistory = () => {
 
   const handleViewTranscript = async (meetingId: string) => {
     try {
+      // Fetch meeting details
+      const { data: meeting, error: meetingError } = await supabase
+        .from('meetings')
+        .select('*')
+        .eq('id', meetingId)
+        .eq('user_id', user?.id)
+        .single();
+
+      if (meetingError) throw meetingError;
+
       // Fetch transcript for the specific meeting
       const { data: transcripts, error: transcriptError } = await supabase
         .from('meeting_transcripts')
@@ -206,6 +218,8 @@ const MeetingHistory = () => {
 
       const fullTranscript = transcripts?.map(t => t.content).join(' ') || '';
       setViewingTranscript(fullTranscript);
+      setCurrentMeetingForTranscript(meeting);
+      setCleanedTranscript(""); // Reset cleaned transcript
       setTranscriptDialogOpen(true);
     } catch (error: any) {
       console.error("Error loading transcript:", error.message);
@@ -214,10 +228,44 @@ const MeetingHistory = () => {
 
   const copyTranscriptToClipboard = async () => {
     try {
-      await navigator.clipboard.writeText(viewingTranscript);
+      const textToCopy = cleanedTranscript || viewingTranscript;
+      await navigator.clipboard.writeText(textToCopy);
       console.log("Transcript copied to clipboard");
     } catch (error) {
       console.error("Failed to copy transcript:", error);
+    }
+  };
+
+  const cleanCurrentTranscript = async () => {
+    if (!viewingTranscript || !currentMeetingForTranscript) return;
+    
+    setIsCleaningTranscript(true);
+    try {
+      // Remove speaker labels and join with spaces
+      const rawTranscript = viewingTranscript
+        .split('\n')
+        .map(line => line.replace(/^Speaker \d+:\s*/, '').trim())
+        .filter(line => line.length > 0)
+        .join(' ');
+
+      // Clean the transcript using AI
+      const { data: cleanData, error: cleanError } = await supabase.functions.invoke('clean-transcript', {
+        body: {
+          rawTranscript: rawTranscript,
+          meetingTitle: currentMeetingForTranscript.title
+        }
+      });
+
+      if (cleanError || !cleanData?.cleanedTranscript) {
+        throw new Error('Failed to clean transcript');
+      }
+
+      setCleanedTranscript(cleanData.cleanedTranscript);
+      console.log(`Transcript cleaned for "${currentMeetingForTranscript.title}"`);
+    } catch (error) {
+      console.error('Error cleaning transcript:', error);
+    } finally {
+      setIsCleaningTranscript(false);
     }
   };
 
@@ -717,13 +765,6 @@ const MeetingHistory = () => {
           </div>
         )}
 
-        {/* Transcript Cleaner Section */}
-        {meetings.length > 0 && (
-          <TranscriptCleaner 
-            meetings={meetings.filter(m => m.transcript_count && m.transcript_count > 0)}
-            onTranscriptCleaned={fetchMeetings}
-          />
-        )}
 
         {/* Meeting Detail View or Meetings List */}
         {selectedMeeting ? (
@@ -928,42 +969,126 @@ const MeetingHistory = () => {
           />
         )}
 
-        {/* Transcript View Dialog */}
+        {/* Enhanced Transcript View Dialog with AI Cleaning */}
         <Dialog open={transcriptDialogOpen} onOpenChange={setTranscriptDialogOpen}>
-          <DialogContent className="mx-4 max-w-4xl max-h-[80vh]">
+          <DialogContent className="mx-4 max-w-5xl max-h-[90vh]">
             <DialogHeader>
-              <DialogTitle>Meeting Transcript</DialogTitle>
+              <DialogTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Meeting Transcript
+                {currentMeetingForTranscript && (
+                  <span className="text-sm font-normal text-muted-foreground">
+                    - {currentMeetingForTranscript.title}
+                  </span>
+                )}
+              </DialogTitle>
               <DialogDescription>
-                View and copy the transcript from this meeting.
+                View the original transcript or clean it with AI to remove filler words and improve formatting.
               </DialogDescription>
             </DialogHeader>
             
             <div className="space-y-4 py-4">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">
-                  {viewingTranscript.split(' ').length} words
-                </span>
-                <Button
-                  onClick={copyTranscriptToClipboard}
-                  variant="outline"
-                  size="sm"
-                  className="touch-manipulation min-h-[44px]"
-                >
-                  <Copy className="h-4 w-4 mr-2" />
-                  Copy Transcript
-                </Button>
+              {/* Action Bar */}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 p-4 bg-muted/30 rounded-lg border">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                  <span className="text-sm text-muted-foreground">
+                    {(cleanedTranscript || viewingTranscript).split(' ').length} words
+                  </span>
+                  {cleanedTranscript && (
+                    <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full">
+                      ✨ AI Cleaned
+                    </span>
+                  )}
+                </div>
+                
+                <div className="flex gap-2 w-full sm:w-auto">
+                  <Button
+                    onClick={cleanCurrentTranscript}
+                    disabled={isCleaningTranscript || !viewingTranscript}
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 sm:flex-none touch-manipulation min-h-[44px]"
+                  >
+                    {isCleaningTranscript ? (
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-4 w-4 mr-2" />
+                    )}
+                    {isCleaningTranscript ? 'Cleaning...' : 'Clean with AI'}
+                  </Button>
+                  
+                  <Button
+                    onClick={copyTranscriptToClipboard}
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 sm:flex-none touch-manipulation min-h-[44px]"
+                  >
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy {cleanedTranscript ? 'Cleaned' : 'Original'}
+                  </Button>
+                </div>
               </div>
-              
-              <div className="border rounded-lg p-4 bg-muted/50 max-h-[50vh] overflow-y-auto">
-                <pre className="whitespace-pre-wrap text-sm font-mono">
-                  {viewingTranscript || "No transcript available for this meeting."}
-                </pre>
-              </div>
+
+              {/* Transcript Display */}
+              <Tabs defaultValue="display" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="display">
+                    {cleanedTranscript ? 'Cleaned Transcript' : 'Current Transcript'}
+                  </TabsTrigger>
+                  <TabsTrigger value="comparison" disabled={!cleanedTranscript}>
+                    Compare Versions
+                  </TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="display" className="space-y-4">
+                  <div className="border rounded-lg p-4 bg-background max-h-[50vh] overflow-y-auto">
+                    {cleanedTranscript ? (
+                      <div className="prose max-w-none">
+                        <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                          {cleanedTranscript}
+                        </div>
+                      </div>
+                    ) : (
+                      <pre className="whitespace-pre-wrap text-sm font-mono text-muted-foreground">
+                        {viewingTranscript || "No transcript available for this meeting."}
+                      </pre>
+                    )}
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="comparison" className="space-y-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium text-muted-foreground">Original Transcript</h4>
+                      <div className="border rounded-lg p-4 bg-muted/30 max-h-[45vh] overflow-y-auto">
+                        <pre className="whitespace-pre-wrap text-sm font-mono text-muted-foreground">
+                          {viewingTranscript}
+                        </pre>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium text-green-700 dark:text-green-400">AI Cleaned Transcript</h4>
+                      <div className="border rounded-lg p-4 bg-green-50/50 dark:bg-green-950/30 max-h-[45vh] overflow-y-auto">
+                        <div className="prose max-w-none">
+                          <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                            {cleanedTranscript}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </TabsContent>
+              </Tabs>
             </div>
             
             <DialogFooter>
               <Button 
-                onClick={() => setTranscriptDialogOpen(false)}
+                onClick={() => {
+                  setTranscriptDialogOpen(false);
+                  setCleanedTranscript("");
+                  setCurrentMeetingForTranscript(null);
+                }}
                 className="touch-manipulation min-h-[44px]"
               >
                 Close
