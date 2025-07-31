@@ -1290,12 +1290,34 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                             {/* Parse and display the scoring breakdown in a structured format */}
                             {(() => {
                               const scoringSection = reviewContent.split('CONSULTATION SCORE:')[1] || '';
+                              console.log('Scoring section content:', scoringSection); // Debug log
+                              
                               const sections = [
-                                { title: 'History Taking', total: 25, pattern: /\*\*HISTORY TAKING.*?Subtotal: \[(\d+)\/25\]/s },
-                                { title: 'Examination', total: 20, pattern: /\*\*EXAMINATION.*?Subtotal: \[(\d+)\/20\]/s },
-                                { title: 'Diagnosis & Assessment', total: 20, pattern: /\*\*DIAGNOSIS & ASSESSMENT.*?Subtotal: \[(\d+)\/20\]/s },
-                                { title: 'Management Plan', total: 20, pattern: /\*\*MANAGEMENT PLAN.*?Subtotal: \[(\d+)\/20\]/s },
-                                { title: 'Communication & Documentation', total: 15, pattern: /\*\*COMMUNICATION & DOCUMENTATION.*?Subtotal: \[(\d+)\/15\]/s }
+                                { title: 'History Taking', total: 25, patterns: [
+                                  /History Taking.*?(\d+)\/25/is,
+                                  /HISTORY TAKING.*?Subtotal:\s*\[(\d+)\/25\]/is,
+                                  /\*\*HISTORY TAKING.*?Subtotal:\s*\[(\d+)\/25\]/is
+                                ]},
+                                { title: 'Examination', total: 20, patterns: [
+                                  /Examination.*?(\d+)\/20/is,
+                                  /EXAMINATION.*?Subtotal:\s*\[(\d+)\/20\]/is,
+                                  /\*\*EXAMINATION.*?Subtotal:\s*\[(\d+)\/20\]/is
+                                ]},
+                                { title: 'Diagnosis & Assessment', total: 20, patterns: [
+                                  /Diagnosis.*?(\d+)\/20/is,
+                                  /DIAGNOSIS & ASSESSMENT.*?Subtotal:\s*\[(\d+)\/20\]/is,
+                                  /\*\*DIAGNOSIS & ASSESSMENT.*?Subtotal:\s*\[(\d+)\/20\]/is
+                                ]},
+                                { title: 'Management Plan', total: 20, patterns: [
+                                  /Management.*?(\d+)\/20/is,
+                                  /MANAGEMENT PLAN.*?Subtotal:\s*\[(\d+)\/20\]/is,
+                                  /\*\*MANAGEMENT PLAN.*?Subtotal:\s*\[(\d+)\/20\]/is
+                                ]},
+                                { title: 'Communication & Documentation', total: 15, patterns: [
+                                  /Communication.*?(\d+)\/15/is,
+                                  /COMMUNICATION & DOCUMENTATION.*?Subtotal:\s*\[(\d+)\/15\]/is,
+                                  /\*\*COMMUNICATION & DOCUMENTATION.*?Subtotal:\s*\[(\d+)\/15\]/is
+                                ]}
                               ];
 
                               return (
@@ -1304,8 +1326,17 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                                     <h4 className="text-lg font-semibold text-center mb-4">Detailed Scoring Breakdown</h4>
                                     
                                     {sections.map((section, index) => {
-                                      const match = scoringSection.match(section.pattern);
-                                      const awarded = match ? parseInt(match[1]) : 0;
+                                      let awarded = 0;
+                                      // Try multiple patterns to find the score
+                                      for (const pattern of section.patterns) {
+                                        const match = scoringSection.match(pattern);
+                                        if (match) {
+                                          awarded = parseInt(match[1]);
+                                          console.log(`Found score for ${section.title}: ${awarded}/${section.total}`); // Debug log
+                                          break;
+                                        }
+                                      }
+                                      
                                       const percentage = Math.round((awarded / section.total) * 100);
                                       
                                       return (
@@ -1343,8 +1374,16 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                                     <h4 className="text-lg font-semibold text-center mb-4">Score Summary</h4>
                                     <div className="grid grid-cols-2 gap-2 text-sm">
                                       {sections.map((section, index) => {
-                                        const match = scoringSection.match(section.pattern);
-                                        const awarded = match ? parseInt(match[1]) : 0;
+                                        let awarded = 0;
+                                        // Try multiple patterns to find the score
+                                        for (const pattern of section.patterns) {
+                                          const match = scoringSection.match(pattern);
+                                          if (match) {
+                                            awarded = parseInt(match[1]);
+                                            break;
+                                          }
+                                        }
+                                        
                                         return (
                                           <div key={index} className="flex justify-between py-1">
                                             <span>{section.title}:</span>
