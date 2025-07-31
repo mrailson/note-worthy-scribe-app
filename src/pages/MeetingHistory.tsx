@@ -277,15 +277,27 @@ const MeetingHistory = () => {
     
     setIsSavingCleanedTranscript(true);
     try {
-      const { error } = await supabase
+      // First, delete all existing transcript records for this meeting
+      const { error: deleteError } = await supabase
         .from('meeting_transcripts')
-        .update({
-          content: cleanedTranscript,
-          updated_at: new Date().toISOString()
-        })
+        .delete()
         .eq('meeting_id', currentMeetingForTranscript.id);
 
-      if (error) throw error;
+      if (deleteError) throw deleteError;
+
+      // Then, insert a single new record with the cleaned transcript
+      const { error: insertError } = await supabase
+        .from('meeting_transcripts')
+        .insert({
+          meeting_id: currentMeetingForTranscript.id,
+          content: cleanedTranscript,
+          speaker_name: 'AI Cleaned Transcript',
+          timestamp_seconds: 0,
+          confidence_score: 1.0,
+          created_at: new Date().toISOString()
+        });
+
+      if (insertError) throw insertError;
 
       console.log('Cleaned transcript saved successfully');
       setViewingTranscript(cleanedTranscript); // Update the original to match cleaned
@@ -294,6 +306,9 @@ const MeetingHistory = () => {
       if (selectedMeeting?.id === currentMeetingForTranscript.id) {
         setMeetingTranscript(cleanedTranscript);
       }
+      
+      // Show success feedback
+      console.log('✅ Transcript replaced with cleaned version');
     } catch (error) {
       console.error('Error saving cleaned transcript:', error);
     } finally {
