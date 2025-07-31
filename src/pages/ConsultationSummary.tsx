@@ -1409,7 +1409,18 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                                   {/* Detailed breakdown text */}
                                   <div className="prose prose-sm max-w-none dark:prose-invert">
                                     <div className="ai-response-content space-y-3">
-                                      <SafeMessageRenderer content={scoringSection.replace(/\d+\/100\s*===\s*DETAILED SCORING BREAKDOWN\s*===/i, '')} />
+                                      <SafeMessageRenderer content={
+                                        scoringSection
+                                          .replace(/\d+\/100\s*===\s*DETAILED SCORING BREAKDOWN\s*===/i, '')
+                                          .replace(/(\*\*EXAMINATION)/g, '\n\n$1')
+                                          .replace(/(\*\*DIAGNOSIS & ASSESSMENT)/g, '\n\n$1') 
+                                          .replace(/(\*\*MANAGEMENT PLAN)/g, '\n\n$1')
+                                          .replace(/(\*\*COMMUNICATION & DOCUMENTATION)/g, '\n\n$1')
+                                          .replace(/(=== TOTAL SCORE CALCULATION ===)/g, '\n\n$1')
+                                          .replace(/(=== CLINICAL JUSTIFICATION ===)/g, '\n\n$1')
+                                          .replace(/(=== POINT DEDUCTIONS SUMMARY ===)/g, '\n\n$1')
+                                          .replace(/(=== RECOMMENDATIONS FOR IMPROVEMENT ===)/g, '\n\n$1')
+                                      } />
                                     </div>
                                   </div>
                                 </>
