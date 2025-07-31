@@ -97,6 +97,8 @@ export default function ConsultationSummary() {
   const [isAskAIOpen, setIsAskAIOpen] = useState(false);
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiResponse, setAiResponse] = useState("");
+  const [reviewContent, setReviewContent] = useState("");
+  const [isLoadingReview, setIsLoadingReview] = useState(false);
   const [isAILoading, setIsAILoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
@@ -601,6 +603,43 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
     }
   };
 
+  // Generate Review functionality
+  const generateReview = async () => {
+    setIsLoadingReview(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-consultation-assistant', {
+        body: {
+          prompt: "is there anything I may have missed",
+          consultationData: {
+            duration: consultationData?.duration,
+            transcript: consultationData?.transcript,
+            gpSummary: content.gpSummary,
+            patientCopy: content.patientCopy,
+            type: consultationData?.type
+          },
+          consultationType: consultationData?.type
+        }
+      });
+
+      if (error) throw error;
+
+      setReviewContent(data.response);
+      toast.success("Review generated successfully");
+    } catch (error) {
+      console.error('Error generating review:', error);
+      toast.error("Failed to generate review. Please try again.");
+    } finally {
+      setIsLoadingReview(false);
+    }
+  };
+
+  // Auto-generate review when tab is accessed
+  useEffect(() => {
+    if (activeTab === "review" && !reviewContent && !isLoadingReview) {
+      generateReview();
+    }
+  }, [activeTab]);
+
   if (!consultationData) {
     return (
       <div className="min-h-screen bg-gradient-background flex items-center justify-center">
@@ -667,7 +706,7 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
           <CardContent>
             {/* Consultation Navigation */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 bg-muted/50 p-1 rounded-xl">
+              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 bg-muted/50 p-1 rounded-xl">
                 <TabsTrigger 
                   value="gp-summary" 
                   className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm"
@@ -683,6 +722,14 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                   <MessageSquare className="h-4 w-4 mr-1 lg:mr-2" />
                   <span className="hidden sm:inline">Patient Copy</span>
                   <span className="sm:hidden">Patient</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="review" 
+                  className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                >
+                  <CheckCircle className="h-4 w-4 mr-1 lg:mr-2" />
+                  <span className="hidden sm:inline">Review & Recommendations</span>
+                  <span className="sm:hidden">Review</span>
                 </TabsTrigger>
                 {consultationData.isExample && (
                   <TabsTrigger 
@@ -930,6 +977,53 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                     </div>
                   </TabsContent>
                 </Tabs>
+              </TabsContent>
+
+              {/* Review & Recommendations Tab */}
+              <TabsContent value="review" className="space-y-4 mt-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-primary flex items-center gap-2">
+                    <CheckCircle className="h-5 w-5" />
+                    Review of Consultation and Recommendations
+                  </h3>
+                  {reviewContent && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleCopy(reviewContent, "Review Content")}
+                    >
+                      <Copy className="h-4 w-4 mr-1" />
+                      Copy
+                    </Button>
+                  )}
+                </div>
+                
+                {isLoadingReview ? (
+                  <div className="flex items-center justify-center p-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                    <p className="ml-3 text-muted-foreground">Generating review...</p>
+                  </div>
+                ) : reviewContent ? (
+                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 rounded-lg p-4 border border-green-200 dark:border-green-800">
+                    <div className="prose prose-sm max-w-none dark:prose-invert">
+                      <div className="ai-response-content space-y-3">
+                        <SafeMessageRenderer content={reviewContent} />
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-muted/30 rounded-lg p-4 border text-center">
+                    <p className="text-muted-foreground">Click to generate consultation review...</p>
+                    <Button 
+                      className="mt-3" 
+                      onClick={generateReview}
+                      variant="outline"
+                    >
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Generate Review
+                    </Button>
+                  </div>
+                )}
               </TabsContent>
 
               {/* Trainee Feedback Tab */}
