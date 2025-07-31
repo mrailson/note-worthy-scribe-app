@@ -1412,11 +1412,11 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                                       <SafeMessageRenderer content={
                                         scoringSection
                                           .replace(/\d+\/100\s*===\s*DETAILED SCORING BREAKDOWN\s*===/i, '')
+                                          .replace(/=== TOTAL SCORE CALCULATION ===[\s\S]*?(?=\n=== |\n\*\*|$)/i, '')
                                           .replace(/(\*\*EXAMINATION)/g, '\n\n$1')
                                           .replace(/(\*\*DIAGNOSIS & ASSESSMENT)/g, '\n\n$1') 
                                           .replace(/(\*\*MANAGEMENT PLAN)/g, '\n\n$1')
                                           .replace(/(\*\*COMMUNICATION & DOCUMENTATION)/g, '\n\n$1')
-                                          .replace(/(=== TOTAL SCORE CALCULATION ===)/g, '\n\n$1')
                                           .replace(/(=== CLINICAL JUSTIFICATION ===)/g, '\n\n$1')
                                           .replace(/(=== POINT DEDUCTIONS SUMMARY ===)/g, '\n\n$1')
                                           .replace(/(=== RECOMMENDATIONS FOR IMPROVEMENT ===)/g, '\n\n$1')
