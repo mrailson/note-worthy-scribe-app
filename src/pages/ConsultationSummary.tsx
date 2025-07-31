@@ -146,9 +146,8 @@ export default function ConsultationSummary() {
     // Clean up any existing markdown formatting
     formattedContent = formattedContent.replace(/\*\*\*(.*?)\*\*\*/g, '**$1**'); // Convert triple asterisk to double
     
-    // Ensure proper section headers
-    formattedContent = formattedContent.replace(/^([A-Z][A-Z\s]+):$/gm, '## $1');
-    formattedContent = formattedContent.replace(/^([A-Z][a-z\s]+):$/gm, '### $1');
+    // Remove any hash symbols
+    formattedContent = formattedContent.replace(/^#+\s*/gm, '');
     
     // Add proper spacing around sections
     formattedContent = formattedContent.replace(/^##/gm, '\n## ');
