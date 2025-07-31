@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -17,15 +17,32 @@ import {
   Edit3, 
   MoreHorizontal,
   ArrowRight,
-  Loader2
+  Loader2,
+  Undo,
+  Mic,
+  Upload
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { SpeechToText } from "@/components/SpeechToText";
+import { useDropzone } from 'react-dropzone';
 
 interface MeetingMinutesEnhancerProps {
   originalContent: string;
   onEnhancedContent: (content: string) => void;
   isVisible: boolean;
+}
+
+interface ContentVersion {
+  content: string;
+  timestamp: Date;
+  enhancementType?: string;
+}
+
+interface UploadedFile {
+  name: string;
+  content: string;
+  type: string;
 }
 
 export function MeetingMinutesEnhancer({ 
@@ -43,6 +60,13 @@ export function MeetingMinutesEnhancer({
     request?: string;
     timestamp: Date;
   }>>([]);
+  
+  // New state for undo functionality
+  const [contentVersions, setContentVersions] = useState<ContentVersion[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  
+  // File input ref
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const enhancementOptions = [
     {
@@ -83,6 +107,85 @@ export function MeetingMinutesEnhancer({
     }
   ];
 
+  // Save current content version before enhancement
+  const saveCurrentVersion = (content: string, type?: string) => {
+    setContentVersions(prev => [...prev, {
+      content,
+      timestamp: new Date(),
+      enhancementType: type
+    }]);
+  };
+
+  // Undo function to restore previous version
+  const handleUndo = () => {
+    if (contentVersions.length === 0) {
+      toast.error("No previous version to restore");
+      return;
+    }
+
+    const previousVersion = contentVersions[contentVersions.length - 1];
+    onEnhancedContent(previousVersion.content);
+    
+    // Remove the restored version from history
+    setContentVersions(prev => prev.slice(0, -1));
+    
+    toast.success("Restored to previous version");
+  };
+
+  // Handle file upload
+  const handleFileUpload = async (files: File[]) => {
+    const newFiles: UploadedFile[] = [];
+    
+    for (const file of files) {
+      if (file.type.includes('text') || file.name.endsWith('.txt')) {
+        try {
+          const content = await file.text();
+          newFiles.push({
+            name: file.name,
+            content,
+            type: file.type
+          });
+        } catch (error) {
+          toast.error(`Failed to read ${file.name}`);
+        }
+      } else {
+        toast.error(`Unsupported file type: ${file.name}`);
+      }
+    }
+    
+    setUploadedFiles(prev => [...prev, ...newFiles]);
+    
+    if (newFiles.length > 0) {
+      const contextFromFiles = newFiles.map(f => `From ${f.name}: ${f.content}`).join('\n\n');
+      setAdditionalContext(prev => prev ? `${prev}\n\n${contextFromFiles}` : contextFromFiles);
+      toast.success(`Added ${newFiles.length} file(s) to context`);
+    }
+  };
+
+  // Handle speech input for instructions
+  const handleSpeechInput = (text: string) => {
+    setCustomRequest(prev => prev ? `${prev} ${text}` : text);
+    toast.success("Speech added to instructions");
+  };
+
+  // Handle speech input for context
+  const handleContextSpeechInput = (text: string) => {
+    setAdditionalContext(prev => prev ? `${prev} ${text}` : text);
+    toast.success("Speech added to context");
+  };
+
+  // Dropzone for file upload
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop: handleFileUpload,
+    accept: {
+      'text/plain': ['.txt'],
+      'text/markdown': ['.md'],
+      'application/json': ['.json']
+    },
+    maxSize: 5 * 1024 * 1024, // 5MB
+    noClick: true
+  });
+
   const handleEnhancement = async () => {
     if (!enhancementType) {
       toast.error("Please select an enhancement type");
@@ -98,6 +201,9 @@ export function MeetingMinutesEnhancer({
       toast.error("No content to enhance");
       return;
     }
+
+    // Save current version before enhancing
+    saveCurrentVersion(originalContent, enhancementType);
 
     setIsEnhancing(true);
 
@@ -213,7 +319,14 @@ export function MeetingMinutesEnhancer({
 
               {(enhancementType === 'replace_content' || enhancementType === 'custom') && (
                 <div className="space-y-2">
-                  <Label htmlFor="custom-request">Specific Instructions</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="custom-request">Specific Instructions</Label>
+                    <SpeechToText 
+                      onTranscription={handleSpeechInput}
+                      size="sm"
+                      className="h-8"
+                    />
+                  </div>
                   <Textarea
                     id="custom-request"
                     value={customRequest}
@@ -229,33 +342,87 @@ export function MeetingMinutesEnhancer({
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="additional-context">Additional Context (Optional)</Label>
-                <Input
-                  id="additional-context"
-                  value={additionalContext}
-                  onChange={(e) => setAdditionalContext(e.target.value)}
-                  placeholder="Any additional context to help with the enhancement..."
-                />
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="additional-context">Additional Context (Optional)</Label>
+                  <div className="flex gap-2">
+                    <SpeechToText 
+                      onTranscription={handleContextSpeechInput}
+                      size="sm"
+                      className="h-8"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="h-8"
+                    >
+                      <Upload className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+                <div {...getRootProps()} className={`relative ${isDragActive ? 'border-primary bg-primary/5' : ''}`}>
+                  <Input
+                    id="additional-context"
+                    value={additionalContext}
+                    onChange={(e) => setAdditionalContext(e.target.value)}
+                    placeholder="Any additional context to help with the enhancement..."
+                    className={isDragActive ? 'border-primary' : ''}
+                  />
+                  <input
+                    {...getInputProps()}
+                    ref={fileInputRef}
+                    className="hidden"
+                  />
+                  {isDragActive && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-primary/10 border-2 border-dashed border-primary rounded">
+                      <span className="text-sm font-medium text-primary">Drop files here</span>
+                    </div>
+                  )}
+                </div>
+                {uploadedFiles.length > 0 && (
+                  <div className="mt-2">
+                    <div className="text-xs text-muted-foreground mb-1">Uploaded files:</div>
+                    <div className="flex flex-wrap gap-1">
+                      {uploadedFiles.map((file, index) => (
+                        <Badge key={index} variant="outline" className="text-xs">
+                          {file.name}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
-              <Button 
-                onClick={handleEnhancement}
-                disabled={!enhancementType || isEnhancing}
-                className="w-full"
-              >
-                {isEnhancing ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Enhancing...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    Enhance Meeting Minutes
-                    <ArrowRight className="h-4 w-4 ml-2" />
-                  </>
-                )}
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={handleEnhancement}
+                  disabled={!enhancementType || isEnhancing}
+                  className="flex-1"
+                >
+                  {isEnhancing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Enhancing...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Enhance Meeting Minutes
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </>
+                  )}
+                </Button>
+                
+                <Button
+                  onClick={handleUndo}
+                  disabled={contentVersions.length === 0}
+                  variant="outline"
+                  className="px-3"
+                >
+                  <Undo className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
 
             {enhancementHistory.length > 0 && (
