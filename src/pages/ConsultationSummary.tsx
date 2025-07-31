@@ -1323,7 +1323,9 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                                 { title: 'Communication & Documentation', total: 15, patterns: [
                                   /Communication.*?(\d+)\/15/is,
                                   /COMMUNICATION & DOCUMENTATION.*?Subtotal:\s*\[(\d+)\/15\]/is,
-                                  /\*\*COMMUNICATION & DOCUMENTATION.*?Subtotal:\s*\[(\d+)\/15\]/is
+                                  /\*\*COMMUNICATION & DOCUMENTATION.*?Subtotal:\s*\[(\d+)\/15\]/is,
+                                  /COMMUNICATION & DOCUMENTATION.*?Subtotal:\s*<strong>\[(\d+)\/15\]<\/strong>/is,
+                                  /\*\*COMMUNICATION & DOCUMENTATION.*?Subtotal:\s*<strong>\[(\d+)\/15\]<\/strong>/is
                                 ]}
                               ];
 
