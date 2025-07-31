@@ -2385,6 +2385,19 @@ export type Database = {
         }
         Returns: string
       }
+      log_complaint_document_action: {
+        Args: {
+          p_complaint_id: string
+          p_action_type: string
+          p_document_name: string
+          p_document_id?: string
+        }
+        Returns: string
+      }
+      log_complaint_view: {
+        Args: { p_complaint_id: string; p_view_context?: string }
+        Returns: string
+      }
       log_compliance_change: {
         Args: {
           p_complaint_id: string
