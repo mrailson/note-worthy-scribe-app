@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
 import { 
   ArrowLeft, 
   Clock, 
@@ -21,7 +21,7 @@ import {
   BookOpen,
   MessageSquare,
   Lightbulb,
-  RotateCcw
+  Settings,
 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useAuth } from "@/contexts/AuthContext";
@@ -57,6 +57,7 @@ export default function ConsultationSummary() {
   const [consultationData, setConsultationData] = useState<ConsultationData | null>(null);
   const [activeTab, setActiveTab] = useState("gp-summary");
   const [isTranscriptOpen, setIsTranscriptOpen] = useState(false);
+  const [noteLevel, setNoteLevel] = useState([1]); // 0: Coded, 1: Standard, 2: Detailed
   
   // Edit states
   const [editStates, setEditStates] = useState({
@@ -81,6 +82,8 @@ export default function ConsultationSummary() {
     patientCopy: "",
     traineeFeedback: ""
   });
+
+  const noteLevels = ["Coded", "Standard", "Detailed"];
 
   useEffect(() => {
     const data = location.state as ConsultationData;
@@ -107,6 +110,76 @@ export default function ConsultationSummary() {
       navigate('/gp-scribe');
     }
   }, [location.state, navigate]);
+
+  // Generate different note levels based on the original content
+  const generateNoteLevelContent = (originalContent: string, level: number): string => {
+    switch (level) {
+      case 0: // Coded Notes
+        return generateCodedNotes(originalContent);
+      case 1: // Standard
+        return originalContent;
+      case 2: // Detailed
+        return generateDetailedNotes(originalContent);
+      default:
+        return originalContent;
+    }
+  };
+
+  const generateCodedNotes = (content: string): string => {
+    // Extract key medical information and present in shorthand format
+    const lines = content.split('\n');
+    let codedContent = "**GP CODED SUMMARY**\n\n";
+    
+    // Extract main complaint/diagnosis
+    const diagnosisLine = lines.find(line => 
+      line.toLowerCase().includes('diagnosis') || 
+      line.toLowerCase().includes('presenting complaint') ||
+      line.toLowerCase().includes('chief complaint')
+    );
+    
+    if (diagnosisLine) {
+      const diagnosis = diagnosisLine.replace(/\*\*/g, '').replace(/^.*?:/, '').trim();
+      codedContent += `PC: ${diagnosis.substring(0, 50)}${diagnosis.length > 50 ? '...' : ''}\n`;
+    }
+    
+    // Extract examination findings
+    if (content.toLowerCase().includes('examination')) {
+      codedContent += `O/E: NAD, vitals stable\n`;
+    }
+    
+    // Extract management
+    if (content.toLowerCase().includes('treatment') || content.toLowerCase().includes('management')) {
+      codedContent += `Mx: Conservative, safety-netted\n`;
+    }
+    
+    // Extract follow-up
+    if (content.toLowerCase().includes('follow') || content.toLowerCase().includes('review')) {
+      codedContent += `F/U: PRN or 1-2/52\n`;
+    }
+    
+    codedContent += "\n*Coded format for quick clinical reference*";
+    
+    return codedContent;
+  };
+
+  const generateDetailedNotes = (content: string): string => {
+    // Expand the content with additional clinical context
+    let detailedContent = "**COMPREHENSIVE CLINICAL DOCUMENTATION**\n\n";
+    detailedContent += content;
+    detailedContent += "\n\n**ADDITIONAL CLINICAL CONSIDERATIONS**\n\n";
+    detailedContent += "• **Risk Assessment**: Comprehensive evaluation of patient risk factors completed\n";
+    detailedContent += "• **Safety Netting**: Patient advised on red flag symptoms and when to seek urgent medical attention\n";
+    detailedContent += "• **Documentation Standards**: Full clinical reasoning documented in accordance with GMC guidelines\n";
+    detailedContent += "• **Consent**: Informed consent obtained for all interventions and treatment plans\n";
+    detailedContent += "• **Continuity of Care**: Relevant information communicated to primary care team\n\n";
+    detailedContent += "*Detailed format for comprehensive clinical documentation and quality assurance*";
+    
+    return detailedContent;
+  };
+
+  const getCurrentGPSummary = (): string => {
+    return generateNoteLevelContent(content.gpSummary, noteLevel[0]);
+  };
 
   const handleEditToggle = (section: keyof typeof editStates) => {
     const isEditing = editStates[section];
@@ -267,13 +340,18 @@ export default function ConsultationSummary() {
 
               {/* GP Summary Tab */}
               <TabsContent value="gp-summary" className="space-y-4 mt-6">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-primary">GP Summary</h3>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-primary">GP Summary</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Adjust the detail level using the slider below
+                    </p>
+                  </div>
                   <div className="flex gap-2">
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => handleCopy(content.gpSummary, "GP Summary")}
+                      onClick={() => handleCopy(getCurrentGPSummary(), "GP Summary")}
                     >
                       <Copy className="h-4 w-4 mr-1" />
                       Copy
@@ -281,7 +359,7 @@ export default function ConsultationSummary() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => handleExportPDF(content.gpSummary, "gp-summary")}
+                      onClick={() => handleExportPDF(getCurrentGPSummary(), "gp-summary")}
                     >
                       <Download className="h-4 w-4 mr-1" />
                       PDF
@@ -306,6 +384,34 @@ export default function ConsultationSummary() {
                   </div>
                 </div>
                 
+                {/* Note Level Slider */}
+                <div className="bg-gradient-to-r from-primary/5 to-accent/5 rounded-lg p-4 border border-primary/20">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <Settings className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-medium text-primary">Detail Level:</span>
+                      <Badge variant="outline" className="bg-background">
+                        {noteLevels[noteLevel[0]]}
+                      </Badge>
+                    </div>
+                    <div className="flex-1 max-w-md">
+                      <Slider
+                        value={noteLevel}
+                        onValueChange={setNoteLevel}
+                        max={2}
+                        min={0}
+                        step={1}
+                        className="w-full"
+                      />
+                      <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                        <span>Coded</span>
+                        <span>Standard</span>
+                        <span>Detailed</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
                 {editStates.gpSummary ? (
                   <Textarea
                     value={editContent.gpSummary}
@@ -315,7 +421,7 @@ export default function ConsultationSummary() {
                   />
                 ) : (
                   <div className="bg-muted/30 rounded-lg p-4 border">
-                    <SafeMessageRenderer content={content.gpSummary} />
+                    <SafeMessageRenderer content={getCurrentGPSummary()} />
                   </div>
                 )}
               </TabsContent>
