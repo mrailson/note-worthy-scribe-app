@@ -135,114 +135,46 @@ export default function ConsultationSummary() {
   };
 
   const generateDetailedNotes = (content: string): string => {
-    // Clean, well-structured SOAP format
-    const lines = content.split('\n').filter(line => line.trim());
-    
-    // Extract key information from original content
-    const pcLine = lines.find(line => 
-      line.toLowerCase().includes('presenting complaint') || 
-      line.toLowerCase().includes('chief complaint') ||
-      line.toLowerCase().includes('patient presents')
-    );
-    
-    const diagnosisLine = lines.find(line => 
-      line.toLowerCase().includes('diagnosis') || 
-      line.toLowerCase().includes('condition')
-    );
-    
-    let detailedContent = `## 🏥 COMPREHENSIVE CLINICAL DOCUMENTATION
-
-### 📝 SUBJECTIVE
-
-**Presenting Complaint:**
-${pcLine ? `• ${pcLine.replace(/\*\*/g, '').replace(/^.*?:/, '').trim()}` : '• Patient consultation documented'}
+    // Heidi template format for comprehensive consultation notes
+    let detailedContent = `[face to face "F2F" OR if calling via telephone "T/C"] [specify whether anyone else is present I.e. "seen alone" or "seen with…" (based on introductions). '[Reason for visit, e.g. current issues or presenting complaint or booking note or follow up]'.
 
 **History:**
-• Detailed symptom progression documented
-• Associated symptoms explored
-• Impact on daily activities assessed
+- [History of presenting complaints]
+- [ICE: Patient's Ideas, Concerns and Expectations]
+- [Presence or absence of red flag symptoms relevant to the presenting complaint]
+- [Relevant risk factors]
+- [PMH: / PSH: - include the past medical history or surgical history (if applicable)]
+- [DH: Drug history/medications (if mentioned)]. [Allergies: (only include if explicitly mentioned in the transcript, contextual notes or clinical note, otherwise leave blank)]
+- [FH: Relevant family history (if applicable)]
+- [SH: Social history I.e. lives with, occupation, smoking/alcohol/drugs, recent travel, carers/package of care (if applicable)]
 
-**Background:**
-• Past Medical History: Reviewed
-• Current Medications: Checked for interactions
-• Allergies: Documented and verified
+**Examination:**
+- [Vital signs listed, eg. T , Sats %, HR , BP , RR , (as applicable)]
+- [Physical or mental state examination findings, including system specific examination] (only include if applicable, and use as many bullet points as needed to capture the examination findings)
+- [Investigations with results (include only if applicable and if mentioned)]
 
----
+**Impression:**
+[1. Issue, problem or request 1 (issue, request or condition name only)]. [Assessment, likely diagnosis for Issue 1 (condition name only) (include only if mentioned)] 
+- [Differential diagnosis for Issue 1 (include only if applicable and if mentioned)]
+[2. Issue, problem or request 2 (issue, request or condition name only)]. [Assessment, likely diagnosis for Issue 2 (condition name only) (include only if mentioned)] 
+- [Differential diagnosis for Issue 2 (include only if applicable and if mentioned)]
+[3. Issue, problem or request 3, 4, 5 etc (issue, request or condition name only)]. [Assessment, likely diagnosis for Issue 3, 4, 5 etc (condition name only) (include only if mentioned)] 
+- [Differential diagnosis for Issue 3, 4, 5 etc (include only if applicable and if mentioned)]
 
-### 🔬 OBJECTIVE
+**Plan:**
+- [Investigations planned for Issue 1 (include only if applicable and if mentioned)]
+- [Treatment planned for Issue 1 (include only if applicable and if mentioned)]
+- [Relevant referrals for Issue 1 (include only if applicable and if mentioned)]
+- [Investigations planned for Issue 2 (include only if applicable and if mentioned)]
+- [Treatment planned for Issue 2 (include only if applicable and if mentioned)]
+- [Relevant referrals for Issue 2 (include only if applicable and if mentioned)]
+- [Investigations planned for Issue 3, 4, 5 etc (include only if applicable and if mentioned)]
+- [Treatment planned for Issue 3, 4, 5 etc (include only if applicable and if mentioned)]
+- [Relevant referrals for Issue 3, 4, 5 etc (include only if applicable and if mentioned)]
+- [Follow up plan (noting timeframe if stated or applicable and if mentioned)]
+- [Safety netting advice given (for example, if mentioned, state which symptoms would mean they need to call back GP OR call 111 (non-life threatening) for out of hours GP or if deteriorates to attend A&E/call 999 in life-threatening emergency (include only the advice/options which are mentioned in transcript or contextual notes))]
 
-**Vital Signs:**
-• Blood Pressure: Documented
-• Heart Rate: Regular rhythm  
-• Temperature: Afebrile
-• Respiratory Rate: Normal
-
-**Physical Examination:**
-${content.toLowerCase().includes('examination') ? 
-  `• Systematic examination performed
-• Relevant findings documented` : 
-  `• Clinical assessment completed
-• Appropriate examinations performed`}
-
----
-
-### 🎯 ASSESSMENT
-
-**Primary Diagnosis:**
-${diagnosisLine ? `• ${diagnosisLine.replace(/\*\*/g, '').replace(/^.*?:/, '').trim()}` : '• Clinical diagnosis established'}
-
-**Clinical Reasoning:**
-• Differential diagnoses considered
-• Risk assessment completed
-• Evidence-based evaluation
-
----
-
-### 📋 PLAN
-
-**Management:**
-${content.toLowerCase().includes('treatment') || content.toLowerCase().includes('management') ? 
-  `• Evidence-based treatment initiated
-• Clinical guidelines followed` : 
-  `• Appropriate management plan
-• Conservative approach adopted`}
-
-**Patient Education:**
-• Condition explained clearly
-• Written information provided
-• Questions answered
-
-**Safety Netting:**
-• Red flag symptoms discussed
-• Clear instructions for urgent care
-• Follow-up arrangements made
-
----
-
-### 📊 CLINICAL GOVERNANCE
-
-**Documentation Standards:**
-✅ GMC Good Medical Practice compliant
-✅ Medical Records Standards met
-✅ Clinical Governance assured
-
-**Quality Measures:**
-✅ Informed consent obtained
-✅ Mental capacity assessed
-✅ Professional communication maintained
-
----
-
-**SNOMED CT Codes:**
-• Clinical finding: 404684003
-• Vital signs: 271649006  
-• Physical examination: 5880005
-• Diagnosis: 439401001
-• Therapy: 276239002
-• Education: 409073007
-• Follow-up: 390906007
-
-*Professional SOAP-structured documentation with integrated clinical coding*`;
+(Never come up with your own patient details, assessment, diagnosis, differential diagnosis, plan, interventions, evaluation, plan for continuing care, safety netting advice, etc - use only the transcript, contextual notes or clinical note as a reference for the information you include in your note. If any information related to a placeholder has not been explicitly mentioned in the transcript or contextual notes, you must not state the information has not been explicitly mentioned in your output, just leave the relevant placeholder or section blank.)(Use as many sentences as needed to capture all the relevant information from the transcript and contextual notes.)`;
     
     return detailedContent;
   };
