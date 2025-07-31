@@ -148,6 +148,11 @@ const ComplaintsSystem = () => {
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [complianceAuditLogs, setComplianceAuditLogs] = useState<any[]>([]);
   const [auditSearchTerm, setAuditSearchTerm] = useState("");
+  
+  // Delete confirmation states
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [complaintToDelete, setComplaintToDelete] = useState<Complaint | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [auditActionFilter, setAuditActionFilter] = useState("all");
   const [auditLoading, setAuditLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('workflow');
@@ -964,6 +969,37 @@ const ComplaintsSystem = () => {
     toast.success('Form populated with imported data - please review and submit');
   };
 
+  const handleDeleteComplaint = async (complaint: Complaint) => {
+    setComplaintToDelete(complaint);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteComplaint = async () => {
+    if (!complaintToDelete) return;
+    
+    setDeleting(true);
+    try {
+      const { error } = await supabase
+        .from('complaints')
+        .delete()
+        .eq('id', complaintToDelete.id);
+
+      if (error) throw error;
+
+      // Remove from local state
+      setComplaints(prev => prev.filter(c => c.id !== complaintToDelete.id));
+      
+      toast.success(`Complaint ${complaintToDelete.reference_number} has been permanently deleted`);
+      setShowDeleteConfirm(false);
+      setComplaintToDelete(null);
+    } catch (error) {
+      console.error('Error deleting complaint:', error);
+      toast.error('Failed to delete complaint. Please try again.');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "draft": return <Edit className="h-4 w-4" />;
@@ -1457,12 +1493,23 @@ const ComplaintsSystem = () => {
                                 <FileText className="h-4 w-4 mr-1" />
                                 View Outcome Letter
                               </Button>
-                            ) : (
-                              <div className="text-xs text-muted-foreground">
-                                No outcome letter available
-                              </div>
-                            )}
-                            
+                             ) : (
+                               <div className="text-xs text-muted-foreground">
+                                 No outcome letter available
+                               </div>
+                             )}
+                             
+                             {/* Delete Button */}
+                             <Button 
+                               size="sm" 
+                               variant="outline"
+                               onClick={() => handleDeleteComplaint(complaint)}
+                               className="text-destructive hover:text-destructive-foreground hover:bg-destructive"
+                             >
+                               <Trash2 className="h-4 w-4 mr-1" />
+                               Delete
+                             </Button>
+                             
                           </div>
                         </div>
                       </CardContent>
@@ -2683,6 +2730,75 @@ const ComplaintsSystem = () => {
             </div>
           </div>
         )}
+        
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-destructive">
+                <AlertCircle className="h-5 w-5" />
+                Confirm Deletion
+              </DialogTitle>
+              <DialogDescription>
+                This action cannot be undone. This will permanently delete the complaint and all associated data.
+              </DialogDescription>
+            </DialogHeader>
+            
+            {complaintToDelete && (
+              <div className="py-4">
+                <div className="space-y-2 text-sm">
+                  <div><strong>Reference:</strong> {complaintToDelete.reference_number}</div>
+                  <div><strong>Patient:</strong> {complaintToDelete.patient_name}</div>
+                  <div><strong>Title:</strong> {complaintToDelete.complaint_title}</div>
+                  <div><strong>Status:</strong> {complaintToDelete.status}</div>
+                </div>
+                
+                <div className="mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+                  <p className="text-sm text-destructive font-medium">
+                    Warning: This will permanently delete:
+                  </p>
+                  <ul className="text-xs text-destructive mt-1 ml-4 list-disc">
+                    <li>Complaint record and all details</li>
+                    <li>All associated letters and documents</li>
+                    <li>Investigation findings and evidence</li>
+                    <li>Compliance checks and audit logs</li>
+                    <li>All related staff responses</li>
+                  </ul>
+                </div>
+              </div>
+            )}
+            
+            <div className="flex justify-end gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setComplaintToDelete(null);
+                }}
+                disabled={deleting}
+              >
+                Cancel
+              </Button>
+              <Button 
+                variant="destructive" 
+                onClick={confirmDeleteComplaint}
+                disabled={deleting}
+              >
+                {deleting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Permanently
+                  </>
+                )}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   };
