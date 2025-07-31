@@ -1135,16 +1135,23 @@ const ComplaintsSystem = () => {
           <TabsContent value="dashboard" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <Card className="cursor-pointer hover:shadow-md transition-shadow" 
-                    onClick={() => { setDashboardFilter("all"); }}>
+                    onClick={() => { 
+                      setDashboardFilter("all"); 
+                      setCurrentTab("view");
+                    }}>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">Total Complaints</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{complaints.length}</div>
+                  <p className="text-xs text-muted-foreground mt-1">Click to view all</p>
                 </CardContent>
               </Card>
               <Card className="cursor-pointer hover:shadow-md transition-shadow" 
-                    onClick={() => { setDashboardFilter("open"); }}>
+                    onClick={() => { 
+                      setDashboardFilter("open"); 
+                      setCurrentTab("view");
+                    }}>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">Open</CardTitle>
                 </CardHeader>
@@ -1152,10 +1159,14 @@ const ComplaintsSystem = () => {
                   <div className="text-2xl font-bold text-orange-600">
                     {complaints.filter(c => ['submitted', 'under_review'].includes(c.status)).length}
                   </div>
+                  <p className="text-xs text-muted-foreground mt-1">Click to view open complaints</p>
                 </CardContent>
               </Card>
               <Card className="cursor-pointer hover:shadow-md transition-shadow" 
-                    onClick={() => { setDashboardFilter("overdue"); }}>
+                    onClick={() => { 
+                      setDashboardFilter("overdue"); 
+                      setCurrentTab("view");
+                    }}>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">Overdue</CardTitle>
                 </CardHeader>
@@ -1163,10 +1174,14 @@ const ComplaintsSystem = () => {
                   <div className="text-2xl font-bold text-red-600">
                     {complaints.filter(isOverdue).length}
                   </div>
+                  <p className="text-xs text-muted-foreground mt-1">Click to view overdue complaints</p>
                 </CardContent>
               </Card>
               <Card className="cursor-pointer hover:shadow-md transition-shadow" 
-                    onClick={() => { setDashboardFilter("closed_this_month"); }}>
+                    onClick={() => { 
+                      setDashboardFilter("closed_this_month"); 
+                      setCurrentTab("view");
+                    }}>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">Closed This Month</CardTitle>
                 </CardHeader>
@@ -1175,6 +1190,7 @@ const ComplaintsSystem = () => {
                     {complaints.filter(c => c.status === 'closed' && 
                       new Date(c.closed_at || '').getMonth() === new Date().getMonth()).length}
                   </div>
+                  <p className="text-xs text-muted-foreground mt-1">Click to view closed complaints</p>
                 </CardContent>
               </Card>
             </div>
@@ -1222,7 +1238,16 @@ const ComplaintsSystem = () => {
             {/* Search and Filters */}
             <Card>
               <CardHeader>
-                <CardTitle>Search & Filter Complaints</CardTitle>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Search & Filter Complaints</span>
+                  {dashboardFilter !== "all" && (
+                    <Badge variant="secondary" className="ml-2">
+                      {dashboardFilter === "open" && "Showing Open Complaints"}
+                      {dashboardFilter === "overdue" && "Showing Overdue Complaints"}
+                      {dashboardFilter === "closed_this_month" && "Showing Closed This Month"}
+                    </Badge>
+                  )}
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
