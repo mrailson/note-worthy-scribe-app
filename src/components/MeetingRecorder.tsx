@@ -1197,15 +1197,15 @@ export const MeetingRecorder = ({
     console.log('Recording stopped');
     toast.success('Recording stopped');
     
-    // Check if recording has at least 5 seconds of content
-    if (duration < 5) {
-      // Silent validation - just return without saving
+    // Check if recording has at least 10 seconds of content
+    if (duration < 10) {
+      toast.error('Recording too short. Minimum 10 seconds required.');
       return;
     }
 
-    // Check if there's meaningful transcript content
-    if (!transcript || transcript.trim().length < 10) {
-      // Silent validation - just return without saving
+    // Check if there's meaningful transcript content (at least 20 words)
+    if (wordCount < 20) {
+      toast.error('Recording too short. Minimum 20 words required.');
       return;
     }
     
