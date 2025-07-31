@@ -869,9 +869,15 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                     <BookOpen className="h-4 w-4 mr-1 lg:mr-2" />
                     <span className="hidden sm:inline">Review & Recommendations</span>
                     <span className="sm:hidden">Review</span>
-                    {consultationScore !== null && consultationScore < 70 && (
+                    {consultationScore !== null && (
                       <div className="flex items-center ml-1">
-                        <AlertTriangle className="h-4 w-4 text-red-500" />
+                        {consultationScore >= 80 ? (
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                        ) : consultationScore >= 70 ? (
+                          <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                        ) : (
+                          <AlertTriangle className="h-4 w-4 text-red-500" />
+                        )}
                       </div>
                     )}
                   </div>
