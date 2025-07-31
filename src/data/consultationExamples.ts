@@ -778,5 +778,844 @@ You're doing extremely well managing your diabetes - keep up the great work!`,
 **Overall Assessment:** Outstanding diabetes review consultation. Demonstrates comprehensive understanding of diabetes management and excellent patient engagement. Shows advanced competency in chronic disease care.
 
 **Grade: Excellent** (demonstrates advanced chronic disease management skills suitable for independent practice)`
+  },
+  {
+    id: "chestpain",
+    title: "Chest Pain Assessment",
+    type: "Acute Presentation",
+    description: "54-year-old male with central chest pain - urgent assessment required",
+    transcript: `Doctor: Mr. Williams, I understand you're experiencing chest pain. Can you tell me exactly what happened?
+
+Patient: Doctor, I was mowing the lawn about an hour ago and suddenly got this crushing pain in the middle of my chest. It was really frightening.
+
+Doctor: Where exactly is the pain now?
+
+Patient: *points to center of chest* Right here, across the middle. It feels like someone's sitting on my chest.
+
+Doctor: On a scale of 1 to 10, how would you rate the pain?
+
+Patient: It's probably about a 7 or 8. It's definitely the worst pain I've ever had in my chest.
+
+Doctor: Does the pain go anywhere else?
+
+Patient: Yes, it goes up into my jaw and down my left arm. That's what really scared me.
+
+Doctor: How long did the pain last when you were mowing?
+
+Patient: About 15 minutes. I had to stop and sit down. It's much better now but still there.
+
+Doctor: Any nausea, sweating, or feeling short of breath?
+
+Patient: I did feel a bit sick and was sweating quite a lot, but I thought that was just from the heat.
+
+Doctor: Have you had chest pain like this before?
+
+Patient: Never anything this bad. Sometimes I get a bit tight when climbing stairs, but nothing like this.
+
+Doctor: Do you smoke, Mr. Williams?
+
+Patient: I quit 5 years ago, but I smoked for about 20 years before that.
+
+Doctor: Any family history of heart problems?
+
+Patient: My dad had a heart attack when he was 60. My brother had bypass surgery last year.
+
+Doctor: Are you on any medications?
+
+Patient: Just something for my blood pressure - ramipril I think. And I take a statin.
+
+Doctor: Let me examine you. *takes observations* Your blood pressure is 160/95, pulse is 95 and regular. Let me listen to your heart and lungs. *examines* I'm going to do an ECG right now.
+
+Doctor: Mr. Williams, your ECG shows some changes that suggest your heart muscle isn't getting enough oxygen. I need to call an ambulance to take you to hospital immediately.
+
+Patient: Is it a heart attack?
+
+Doctor: It's looking like it could be what we call acute coronary syndrome. The hospital team need to see you urgently to do more tests and start treatment.
+
+Doctor: I'm going to give you an aspirin to chew now, and some spray under your tongue for the pain. The paramedics will be here shortly.`,
+    expectedNotes: {
+      gpSummary: "ACS - central crushing chest pain with radiation, ECG changes, 999 called, aspirin given, GTN administered",
+      fullNote: `URGENT - Acute Coronary Syndrome
+
+Presenting Complaint:
+Central crushing chest pain (7-8/10 severity) with radiation to jaw and left arm, onset during physical exertion (lawn mowing), duration 15 minutes, associated with nausea and diaphoresis.
+
+History:
+54-year-old male with crushing central chest pain onset 1 hour ago during lawn mowing. Classic cardiac pain radiation to jaw and left arm. Associated symptoms: nausea, sweating. Previous history of exertional chest tightness. No previous episodes of this severity.
+
+Risk Factors:
+- Ex-smoker (20 pack years, quit 5 years ago)
+- Hypertension (on ramipril)
+- Hyperlipidemia (on statin therapy)
+- Strong family history (father MI age 60, brother CABG)
+- Male, age 54
+
+Examination:
+BP: 160/95, HR: 95 regular
+Heart sounds: normal S1, S2, no murmurs
+Chest: clear
+ECG: T-wave inversion leads V2-V4, consistent with anterior ischemia
+
+Immediate Management:
+- 300mg aspirin chewed
+- GTN spray sublingual
+- 999 emergency ambulance called
+- Hospital pre-alert given
+
+Diagnosis:
+Acute Coronary Syndrome - STEMI/NSTEMI to be determined by hospital team
+
+Outcome:
+Patient transferred to Emergency Department under Category 1 ambulance for urgent cardiology assessment and primary PCI if indicated.`,
+      patientCopy: `URGENT MEDICAL CONDITION
+
+You have been diagnosed with a heart condition called Acute Coronary Syndrome.
+
+What this means:
+- One of the arteries supplying your heart muscle may be blocked
+- This requires immediate hospital treatment
+- This is a serious condition but treatments are very effective
+
+What we've done:
+- Given you aspirin to help prevent further clots
+- Given you a spray to help with the pain
+- Called an ambulance to take you to hospital immediately
+
+At the hospital they will:
+- Do more detailed heart tests (blood tests, scans)
+- Possibly open the blocked artery with a procedure
+- Start you on medications to protect your heart
+
+This condition is treatable and many people make full recoveries with proper treatment.
+
+IMPORTANT: If you have similar symptoms again, call 999 immediately.`,
+      snomedCodes: [
+        "394659003 - Acute coronary syndrome",
+        "29857009 - Chest pain",
+        "22298006 - Myocardial infarction",
+        "164947007 - Abnormal ECG"
+      ]
+    },
+    traineeFeedback: `**GP Trainee Supervisor Feedback - Acute Chest Pain**
+
+**Outstanding Practice Demonstrated:**
+- Immediate recognition of high-risk chest pain presentation
+- Systematic history covering all cardinal features (site, radiation, character, timing)
+- Thorough risk factor assessment (smoking, family history, medications)
+- Appropriate examination with vital signs and ECG
+- Rapid, decisive management with immediate treatment and hospital transfer
+
+**Clinical Management:**
+- Excellent clinical reasoning leading to correct diagnosis
+- Appropriate immediate treatment (aspirin, GTN)
+- Correct decision for Category 1 ambulance transfer
+- Good pre-hospital management of acute coronary syndrome
+
+**Emergency Care Skills:**
+- Calm, efficient approach to acute medical emergency
+- Clear communication with patient during stressful situation
+- Appropriate use of investigation (ECG) to guide management
+- Excellent prioritization of immediate vs routine care
+
+**Patient Communication:**
+- Clear explanation of serious nature without causing panic
+- Appropriate level of information during acute situation
+- Good balance of honesty and reassurance
+
+**Areas for Development:**
+- Document exact ECG changes in more detail for hospital team
+- Consider pain score monitoring after GTN
+- Brief mention of time to hospital/expected journey
+
+**Learning Points:**
+- Perfect example of acute care in primary care setting
+- Demonstrates importance of pattern recognition in chest pain
+- Shows excellent emergency response and handover skills
+- Good example of when not to "wait and see"
+
+**Overall Assessment:** Exemplary management of acute chest pain. Shows advanced clinical decision-making and emergency care skills. Patient's life potentially saved by rapid recognition and treatment.
+
+**Grade: Outstanding** (demonstrates expert emergency management skills)`
+  },
+  {
+    id: "contraception",
+    title: "Contraception Consultation",
+    type: "Sexual Health",
+    description: "22-year-old female requesting contraceptive advice",
+    transcript: `Doctor: Hello Emma, how can I help you today?
+
+Patient: Hi doctor, I'd like to discuss contraception options. I'm currently on the pill but I keep forgetting to take it.
+
+Doctor: I see. Which pill are you taking at the moment?
+
+Patient: It's called Microgynon, I think. I've been on it for about 2 years.
+
+Doctor: How often would you say you miss pills?
+
+Patient: Probably 2 or 3 times a month. Sometimes I remember the next day, sometimes not until I see the packet.
+
+Doctor: Have you had any pregnancy scares or used emergency contraception recently?
+
+Patient: I had to get the morning after pill about 3 months ago when I missed two pills in a row.
+
+Doctor: That must have been stressful. Are you in a relationship at the moment?
+
+Patient: Yes, I've been with my boyfriend for about 6 months. We're not using condoms because we've both been tested for STIs.
+
+Doctor: That's good that you've both been tested. Are you planning a pregnancy in the near future?
+
+Patient: Definitely not for the next few years. I'm still at university and we're nowhere near ready for that.
+
+Doctor: What's most important to you in contraception - effectiveness, convenience, or perhaps having periods?
+
+Patient: Definitely convenience. I travel a lot with uni and I just can't keep track of daily pills. And I wouldn't mind not having periods actually.
+
+Doctor: Have you heard about long-acting contraceptive methods like the coil or implant?
+
+Patient: I've heard of them but don't really know much. Are they safe?
+
+Doctor: Yes, they're very safe and highly effective. The contraceptive implant goes in your arm and lasts 3 years. The coil sits in your womb and can last 5-10 years depending on the type.
+
+Patient: Do they hurt to have fitted?
+
+Doctor: The implant is inserted with local anesthetic, so just a small scratch. The coil insertion can be uncomfortable but it's over quickly. Both are done as outpatient procedures.
+
+Doctor: With the implant, you might have irregular bleeding initially, but many women stop having periods altogether after a year. The hormonal coil often makes periods much lighter or stop completely.
+
+Patient: That sounds quite appealing actually. What about side effects?
+
+Doctor: With the implant, some women experience mood changes, weight gain, or skin changes, but most tolerate it well. If you don't get on with it, it can be removed at any time.
+
+Patient: I think I'd like to try the implant. When could I have it done?
+
+Doctor: We can arrange it for next week. You'll need to use additional contraception for the first 7 days if it's not fitted in the first 5 days of your cycle.
+
+Doctor: I'll also give you some information leaflets to read before you decide. Do you have any other questions about sexual health while you're here?`,
+    expectedNotes: {
+      gpSummary: "Contraception review, poor pill compliance, counseled re LARC options, patient requesting contraceptive implant",
+      fullNote: `Contraception Consultation
+
+Presenting Issue:
+22-year-old female requesting contraceptive review due to poor compliance with combined oral contraceptive pill (Microgynon).
+
+Current Contraception:
+Microgynon 30 for 2 years, missing 2-3 pills monthly, required emergency contraception 3 months ago following missed pills.
+
+Contraceptive History:
+No previous LARC methods. Partner relationship 6 months, both STI tested.
+
+Requirements:
+- High effectiveness
+- Convenience (frequent travel with studies)
+- Not planning pregnancy for several years
+- Acceptable to have amenorrhea
+
+Discussion:
+Counseled regarding LARC options including contraceptive implant and intrauterine devices. Discussed effectiveness, insertion procedure, side effects, and bleeding patterns.
+
+Decision:
+Patient opted for contraceptive implant (Nexplanon) after full counseling.
+
+Plan:
+- Arrange implant insertion appointment next week
+- Patient information leaflets provided
+- Advised regarding 7-day additional contraception requirement
+- Continue current pill until implant fitted
+
+Consent: Full informed consent obtained for contraceptive implant`,
+      patientCopy: `Contraception Consultation Summary
+
+We discussed your contraception needs today because you're having trouble remembering to take your pill every day.
+
+Your choice: Contraceptive Implant (Nexplanon)
+- Small rod inserted under skin in upper arm
+- Works for 3 years
+- Over 99% effective at preventing pregnancy
+- Can be removed at any time if you want to get pregnant or don't like it
+
+What to expect:
+- Inserted with local anesthetic (small scratch)
+- Takes about 2 minutes
+- Use extra contraception (condoms) for first 7 days
+- Periods may become irregular or stop completely
+
+Possible side effects:
+- Irregular bleeding (especially first 6 months)
+- Some women experience mood changes or weight gain
+- Most women have no problems
+
+Next steps:
+- Appointment arranged for next week
+- Read the information leaflets provided
+- Continue your pill until the implant is fitted
+- Call if you have any questions
+
+Remember: This is a very effective and convenient method of contraception. You can always have it removed if you change your mind.`,
+      snomedCodes: [
+        "13197004 - Contraception",
+        "268463003 - Contraceptive implant",
+        "182836005 - Review of contraception",
+        "432102000 - Administration of contraceptive"
+      ]
+    },
+    traineeFeedback: `**GP Trainee Supervisor Feedback - Contraception Consultation**
+
+**Excellent Practice Demonstrated:**
+- Sensitive, non-judgmental approach to sexual health consultation
+- Thorough assessment of current contraceptive failure and needs
+- Comprehensive discussion of LARC options with advantages/disadvantages
+- Patient-centered approach focusing on individual requirements
+- Good relationship and STI risk assessment
+
+**Clinical Knowledge:**
+- Accurate information about contraceptive methods and effectiveness
+- Appropriate counseling about side effects and bleeding patterns
+- Correct advice about timing and additional contraception requirements
+- Good understanding of contraceptive failure rates and mechanisms
+
+**Communication Skills:**
+- Created safe space for sexual health discussion
+- Used appropriate language level for young adult
+- Checked understanding and provided written information
+- Respected patient autonomy in decision-making
+
+**Areas for Development:**
+- Could have explored weight/BMI (relevant for some contraceptive choices)
+- Consider asking about previous mental health (relevant for hormonal methods)
+- Brief discussion about future fertility reassurance could be helpful
+- Consider mentioning STI prevention despite current relationship status
+
+**Consultation Management:**
+- Efficient consultation covering all key areas
+- Appropriate follow-up arrangements
+- Good documentation of informed consent process
+
+**Learning Points:**
+- Excellent example of patient-centered contraceptive counseling
+- Shows good understanding of LARC promotion
+- Demonstrates importance of discussing contraceptive failure
+- Good balance of information provision without overwhelming patient
+
+**Overall Assessment:** Very good contraception consultation showing competent sexual health skills. Patient's needs well assessed and appropriate method chosen.
+
+**Grade: Good** (demonstrates safe sexual health practice with good patient engagement)`
+  },
+  {
+    id: "copd",
+    title: "COPD Exacerbation",
+    type: "Respiratory",
+    description: "68-year-old with worsening breathlessness and productive cough",
+    transcript: `Doctor: Good morning Mr. Thompson. I see from the notes that you called yesterday about your breathing. How are you feeling today?
+
+Patient: Not good at all, doctor. I can barely walk to the bathroom without getting completely out of breath.
+
+Doctor: That does sound concerning. Tell me about your breathing over the past few days.
+
+Patient: It's been getting worse since Monday. Usually I can walk to the shops, but now I'm struggling to get dressed.
+
+Doctor: And how's your cough been?
+
+Patient: Much worse. I'm bringing up thick green stuff, quite a lot of it. Usually it's just clear or a bit white.
+
+Doctor: Any fever or feeling generally unwell?
+
+Patient: I've felt hot and cold, and I'm just so tired. My wife said I look terrible.
+
+Doctor: Have you been taking your inhalers as usual?
+
+Patient: Yes, but they don't seem to be helping much. I've been using the blue one much more often.
+
+Doctor: How often are you using the salbutamol?
+
+Patient: Probably every couple of hours. It used to last me much longer.
+
+Doctor: Any chest pain or leg swelling?
+
+Patient: No chest pain, but my legs do look a bit more swollen than usual.
+
+Doctor: When were you last in hospital with your chest?
+
+Patient: About 8 months ago. They gave me antibiotics and steroids and I felt much better.
+
+Doctor: Let me examine you. *takes observations* Your oxygen saturation is 88% on room air, temperature 37.9°C, heart rate 110. *listens to chest* I can hear wheeze and some coarse crackles at both bases.
+
+Doctor: Mr. Thompson, this looks like another flare-up of your COPD. Your oxygen levels are lower than they should be and you have signs of infection.
+
+Patient: Do I need to go to hospital?
+
+Doctor: I think we can treat you at home this time, but you'll need antibiotics and steroid tablets. I'm also going to arrange for you to have oxygen at home.
+
+Doctor: I'm starting you on amoxicillin for the infection and prednisolone tablets. The oxygen will help your breathing until the treatment kicks in.
+
+Doctor: It's very important that you don't smoke while you have oxygen in the house. I'll arrange for the respiratory nurse to visit you tomorrow.
+
+Patient: How long before I feel better?
+
+Doctor: You should start feeling better in 2-3 days, but it may take a week or two to get back to your normal. If you get worse, or can't cope at home, call us immediately.
+
+Doctor: I'll see you again in a few days to check how you're getting on.`,
+    expectedNotes: {
+      gpSummary: "COPD exacerbation with infection, pyrexial, O2 sats 88%, started amoxicillin and prednisolone, home oxygen arranged",
+      fullNote: `COPD Exacerbation - Moderate Severity
+
+Presenting Complaint:
+4-day history of worsening dyspnea, increased sputum production (green), systemic symptoms.
+
+History:
+Known COPD patient with deteriorating functional capacity over 4 days. Increased sputum volume and purulence, fever, fatigue. Increased salbutamol usage (every 2 hours). Some peripheral edema noted. Last hospital admission 8 months ago for similar episode.
+
+Examination:
+Obs: T 37.9°C, O2 sats 88% (RA), HR 110 bpm
+Chest: bilateral wheeze, coarse crackles both bases
+Peripheral edema present
+No signs of respiratory distress at rest
+
+Assessment:
+COPD exacerbation - moderate severity with infective component
+No criteria for hospital admission
+
+Management:
+- Amoxicillin 500mg TDS x 5 days
+- Prednisolone 30mg daily x 5 days
+- Home oxygen therapy arranged
+- Continue current inhalers
+- Respiratory nurse visit arranged for tomorrow
+
+Safety Netting:
+Return/contact surgery if increased breathlessness, unable to cope at home, or systemic deterioration
+
+Follow-up: Review in 3-4 days`,
+      patientCopy: `Your COPD (lung condition) has flared up with an infection.
+
+What this means:
+- Your airways are more inflamed than usual
+- You have a chest infection that needs treating
+- This is treatable at home with medication
+
+Your treatment:
+- Antibiotics: Amoxicillin 500mg, three times daily for 5 days
+- Steroid tablets: Prednisolone 30mg once daily for 5 days
+- Continue your usual inhalers
+- Home oxygen has been arranged to help your breathing
+
+Important safety information:
+- Do NOT smoke while you have oxygen in the house (fire risk)
+- Take all antibiotics even if you feel better
+- The steroid tablets should be taken with food
+
+When to contact us urgently:
+- If your breathing gets much worse
+- If you feel you cannot cope at home
+- If you become confused or very unwell
+
+Follow-up:
+- Respiratory nurse will visit you tomorrow
+- Doctor will see you again in 3-4 days
+- You should start feeling better in 2-3 days
+
+Remember: This type of flare-up is common with COPD and usually responds well to treatment.`,
+      snomedCodes: [
+        "13645005 - COPD",
+        "195951007 - Acute exacerbation of COPD",
+        "9014002 - Sputum purulent",
+        "182836005 - Medication review"
+      ]
+    },
+    traineeFeedback: `**GP Trainee Supervisor Feedback - COPD Exacerbation**
+
+**Excellent Practice Demonstrated:**
+- Rapid recognition of COPD exacerbation with systematic assessment
+- Good differentiation between baseline and acute deterioration
+- Thorough examination with appropriate vital signs monitoring
+- Correct severity assessment and treatment decision
+- Excellent safety netting and follow-up arrangements
+
+**Clinical Management:**
+- Appropriate antibiotic choice for COPD exacerbation
+- Correct steroid dosing and duration
+- Good decision-making regarding home vs hospital treatment
+- Appropriate oxygen therapy arrangement with safety advice
+
+**Respiratory Medicine:**
+- Good understanding of COPD exacerbation triggers and management
+- Appropriate assessment of functional decline
+- Good recognition of infective vs non-infective exacerbation
+- Correct use of oxygen saturation monitoring
+
+**Areas for Development:**
+- Could have documented peak flow or assessed for pneumonia more specifically
+- Consider arterial blood gas if concerned about CO2 retention
+- Brief mention of smoking cessation advice (if still smoking)
+- Consider reviewing inhaler technique during recovery
+
+**Patient Education:**
+- Good explanation of condition and treatment rationale
+- Excellent safety advice regarding oxygen and smoking
+- Clear instructions about when to seek help
+- Appropriate expectations about recovery timeline
+
+**Learning Points:**
+- Demonstrates good acute respiratory medicine skills
+- Shows appropriate use of community resources (respiratory nurse)
+- Good example of avoiding unnecessary hospital admission
+- Shows understanding of COPD management pathways
+
+**Overall Assessment:** Very good management of COPD exacerbation. Shows competent respiratory medicine skills with appropriate treatment decisions and safety planning.
+
+**Grade: Good** (demonstrates safe independent management of acute respiratory conditions)`
+  },
+  {
+    id: "dementia",
+    title: "Memory Problems Assessment",
+    type: "Cognitive Assessment",
+    description: "75-year-old brought by daughter with concerns about memory loss",
+    transcript: `Doctor: Good morning Mrs. Patterson, and thank you for coming in with your daughter. I understand there are some concerns about your memory?
+
+Patient: I don't know what all the fuss is about. My memory's fine.
+
+Daughter: Doctor, I'm really worried about mum. She's been forgetting things that just happened, and yesterday she got lost coming back from the shops she's been going to for 20 years.
+
+Doctor: Mrs. Patterson, do you remember getting lost yesterday?
+
+Patient: I wasn't lost. I just took a different route home. Sarah worries too much.
+
+Daughter: Mum, you were gone for 3 hours. The shopkeeper called me because you seemed confused.
+
+Doctor: Mrs. Patterson, can you tell me what day it is today?
+
+Patient: It's... Thursday? No, maybe Wednesday. What does it matter anyway?
+
+Doctor: It's Tuesday today. Can you tell me who's the Prime Minister?
+
+Patient: Oh, that's Tony Blair, isn't it?
+
+Daughter: Mum, Tony Blair hasn't been Prime Minister for years.
+
+Doctor: Sarah, can you tell me what changes you've noticed at home?
+
+Daughter: She's left the gas on twice in the past month. She keeps asking me the same questions over and over. She's forgotten how to use the washing machine she's had for 5 years.
+
+Doctor: Has she been managing her finances okay?
+
+Daughter: She gave the same charity £50 three times last week because she forgot she'd already donated. And she's been buying groceries and forgetting she's bought them.
+
+Doctor: Mrs. Patterson, are you managing okay with cooking and cleaning?
+
+Patient: Of course I am. I've been looking after myself for years since Harold died.
+
+Daughter: Doctor, she's not eating properly. I found moldy food in her fridge, and she's lost quite a bit of weight.
+
+Doctor: How long has Harold been gone, Mrs. Patterson?
+
+Patient: He died... last year? Or was it the year before? Time goes so quickly.
+
+Daughter: Dad died 8 years ago, mum.
+
+Doctor: Mrs. Patterson, I'm going to do a few simple tests with you. Can you tell me what year it is?
+
+Patient: 2018? 2019? I get confused with all these numbers.
+
+Doctor: Can you remember three words for me: apple, penny, table?
+
+Patient: Apple, penny... what was the third one?
+
+Doctor: *after cognitive testing* I'd like to do some blood tests to check for other causes of memory problems, and I'm going to refer you to the memory clinic.
+
+Daughter: Is it dementia, doctor?
+
+Doctor: There are signs that Mrs. Patterson's memory and thinking skills have declined significantly. The memory clinic will do more detailed tests to work out exactly what's causing this.
+
+Doctor: In the meantime, I'll put you in touch with social services to discuss support at home, and there are some safety things we need to think about like driving.`,
+    expectedNotes: {
+      gpSummary: "Cognitive impairment assessment, MMSE 18/30, functional decline, daughter concerns, memory clinic referral, driving discussed",
+      fullNote: `Cognitive Assessment - Referred by Family
+
+History:
+Progressive memory loss over several months, brought by daughter. Recent incident of getting lost in familiar area. Significant functional decline: leaving gas on, repetitive questioning, unable to operate familiar appliances, financial mismanagement. Poor nutritional status and self-care.
+
+Cognitive Assessment:
+Disoriented to time (thinks Tuesday is Thursday/Wednesday)
+Disoriented to chronology (thinks Tony Blair current PM, confused about husband's death 8 years ago)
+Poor short-term memory (unable to recall 3 words after 5 minutes)
+MMSE: 18/30 (moderate cognitive impairment)
+
+Functional Assessment:
+- Safety concerns: gas left on, poor food hygiene
+- Financial vulnerability: repeat donations, duplicate shopping
+- ADL difficulties: washing machine, cooking
+- Weight loss noted
+- Living alone since husband died 8 years ago
+
+Assessment:
+Moderate cognitive impairment consistent with dementia
+Differential diagnosis: Alzheimer's disease, vascular dementia, mixed dementia
+
+Investigations Planned:
+- Blood tests: FBC, U&E, LFTs, TFTs, B12, folate, glucose
+- Memory clinic referral for formal cognitive assessment
+
+Management:
+- Social services referral for care assessment
+- DVLA notification advised (driving assessment)
+- Family support discussed
+- Safety assessment needed
+
+Follow-up:
+Review after memory clinic assessment`,
+      patientCopy: `Memory Assessment Summary
+
+We have assessed your memory and thinking today because your daughter has noticed some changes.
+
+What we found:
+- Some difficulties with memory and thinking
+- You may need some extra support at home
+- We need to do some tests to understand this better
+
+Next steps:
+- Blood tests to check for treatable causes
+- Referral to memory clinic for detailed assessment
+- Social services will contact you about support at home
+
+Important considerations:
+- Driving: We may need to inform DVLA about your memory problems
+- Safety at home: Your daughter can help with things like cooking
+- Managing money: Consider having help with finances
+
+Support available:
+- Memory clinic specialists will help with diagnosis and treatment
+- Social services can arrange help at home
+- Your family are very caring and want to help
+
+This appointment was to make sure you get the right help and support. The memory clinic will explain everything in more detail and discuss what help is available.
+
+Follow-up appointment will be arranged after your memory clinic visit.`,
+      snomedCodes: [
+        "52448006 - Dementia",
+        "386806002 - Impaired cognition",
+        "419284004 - Altered mental status",
+        "3616003 - Cognition test"
+      ]
+    },
+    traineeFeedback: `**GP Trainee Supervisor Feedback - Dementia Assessment**
+
+**Outstanding Practice Demonstrated:**
+- Sensitive handling of cognitive assessment with family present
+- Excellent collateral history taking from daughter
+- Systematic cognitive testing with appropriate screening tools
+- Comprehensive functional assessment covering safety and ADLs
+- Appropriate investigation and referral pathway initiated
+
+**Clinical Skills:**
+- Good recognition of moderate cognitive impairment
+- Appropriate differential diagnosis consideration
+- Excellent safety assessment (driving, gas, finances)
+- Good understanding of when to involve external services
+
+**Communication Excellence:**
+- Maintained patient dignity while acknowledging daughter's concerns
+- Balanced approach to patient who lacks insight
+- Clear explanation of next steps without premature diagnostic labeling
+- Sensitive discussion of difficult topics (driving, independence)
+
+**Areas for Development:**
+- Could have used formal MMSE scoring tool more explicitly
+- Consider medication review (may contribute to confusion)
+- Brief discussion of advance care planning could be introduced
+- Consider asking about mood/depression symptoms
+
+**Family-Centered Care:**
+- Excellent recognition of carer burden and concerns
+- Good involvement of daughter as advocate and historian
+- Appropriate discussion of support services
+- Clear explanation of referral process and timeline
+
+**Learning Points:**
+- Perfect example of challenging cognitive assessment
+- Shows excellent clinical reasoning about safety and capacity
+- Demonstrates good understanding of dementia care pathway
+- Good balance of hope and realism in difficult situation
+
+**Overall Assessment:** Exemplary handling of complex cognitive assessment. Shows advanced skills in dementia recognition and appropriate intervention. Excellent family communication in difficult circumstances.
+
+**Grade: Outstanding** (demonstrates expert skills in cognitive assessment and dementia care)`
+  },
+  {
+    id: "backpain",
+    title: "Acute Lower Back Pain",
+    type: "Musculoskeletal",
+    description: "35-year-old tradesman with sudden onset severe back pain",
+    transcript: `Doctor: Good morning Paul. I can see you're struggling to sit comfortably. Tell me what's happened to your back.
+
+Patient: Doctor, I was lifting some heavy tiles at work yesterday morning and felt something go in my lower back. The pain was instant and now I can barely move.
+
+Doctor: Where exactly is the pain?
+
+Patient: Right here *points to lower back* across the bottom of my back, mainly on the right side. It's absolutely killing me.
+
+Doctor: Does the pain go anywhere else?
+
+Patient: It shoots down my right leg, especially when I cough or sneeze. Sometimes it goes all the way to my foot.
+
+Doctor: What does the pain feel like in your leg?
+
+Patient: It's like electric shocks, quite sharp. And my right foot feels a bit numb and tingly.
+
+Doctor: Can you walk normally?
+
+Patient: Barely. I had to call in sick today which I never do. I'm sort of shuffling around bent forward.
+
+Doctor: Have you had any problems with your bladder or bowels?
+
+Patient: No, nothing like that.
+
+Doctor: Any weakness in your legs?
+
+Patient: The right leg feels weak, especially when I try to lift my foot up.
+
+Doctor: Have you had back problems before?
+
+Patient: I've had the odd twinge over the years - I'm a tiler so it's occupational hazard - but nothing like this.
+
+Doctor: What pain relief have you tried?
+
+Patient: I took some ibuprofen last night and this morning, but it's barely touched it. I couldn't sleep at all.
+
+Doctor: Let me examine your back. Can you stand up for me? *observes posture and gait* I can see you're listing to one side. Let me check your reflexes and do some movement tests.
+
+Doctor: *after examination* Your right knee reflex is reduced and you have weakness lifting your right foot. The straight leg raising test is very positive on the right.
+
+Doctor: Paul, this looks like you've prolapsed a disc in your lower back which is pressing on the nerve going to your right leg. This is what's causing the shooting pain and numbness.
+
+Patient: That sounds serious. Do I need surgery?
+
+Doctor: Most disc problems get better without surgery, even when they're severe like yours. However, I am going to refer you for an urgent MRI scan because of the nerve symptoms.
+
+Doctor: For now, I'm going to give you stronger painkillers - some naproxen and codeine. Keep as active as you can, but listen to your body.
+
+Patient: Should I be off work?
+
+Doctor: Yes, definitely for at least a week, possibly longer. I'll give you a sick note. Your back needs time to heal.
+
+Doctor: If you develop any bladder problems, loss of feeling around your back passage, or severe weakness in both legs, you must go to A&E immediately.
+
+Patient: How long before I'm better?
+
+Doctor: Most people see significant improvement in 6-8 weeks, but it can take longer. We'll review you in a week to see how you're getting on.`,
+    expectedNotes: {
+      gpSummary: "Acute disc prolapse L5/S1, severe sciatica with neurological signs, MRI requested, strong analgesia, sick leave",
+      fullNote: `Acute Lower Back Pain with Sciatica
+
+Presenting Complaint:
+Sudden onset severe lower back pain following lifting heavy tiles at work. 24-hour history.
+
+History:
+Acute onset lumbar pain with immediate right-sided sciatica extending to foot. Neuropathic pain description (electric shocks). Associated numbness and tingling in right foot. Functional impairment - unable to work, disturbed sleep. Failed response to NSAIDs.
+
+Red Flag Assessment:
+No cauda equina symptoms (bladder/bowel function normal, no saddle anesthesia)
+
+Examination:
+Antalgic gait, reduced lumbar lordosis, listing to left
+Right knee reflex diminished
+Weakness of right foot dorsiflexion (4/5 power)
+Positive straight leg raise test right side (30 degrees)
+Sensory loss lateral aspect right foot
+
+Assessment:
+Acute lumbar disc prolapse (likely L5/S1) with nerve root compression
+
+Investigations:
+Urgent MRI lumbar spine requested due to neurological signs
+
+Management:
+- Naproxen 500mg BD
+- Codeine 30mg QDS PRN
+- Sick certification for 1 week initially
+- Advice re: graduated activity as tolerated
+
+Red Flag Safety Netting:
+Immediate A&E if cauda equina symptoms develop (bladder/bowel dysfunction, bilateral leg weakness, saddle anesthesia)
+
+Follow-up: Review in 1 week`,
+      patientCopy: `Back Pain Information
+
+What's wrong:
+You have a prolapsed disc in your lower back which is pressing on a nerve going to your right leg. This is why you have pain shooting down your leg and numbness in your foot.
+
+Treatment:
+- Stronger painkillers: Naproxen twice daily, Codeine up to 4 times daily as needed
+- Stay as active as possible within your pain limits
+- Avoid bed rest - gentle movement helps recovery
+- Heat pads may help muscle spasm
+
+Work:
+- You are signed off work for 1 week initially
+- We'll review this as your pain improves
+- No heavy lifting for several weeks
+
+When to seek emergency help (go to A&E immediately):
+- Loss of bladder or bowel control
+- Numbness around your back passage
+- Severe weakness in both legs
+
+What to expect:
+- This type of injury usually improves significantly in 6-8 weeks
+- The leg pain often improves before the back pain
+- Most people recover without needing surgery
+
+Follow-up:
+- Appointment in 1 week to check progress
+- MRI scan has been arranged
+- Call if symptoms worsen or red flag symptoms develop
+
+Remember: This is a common injury that usually heals well with time and appropriate treatment.`,
+      snomedCodes: [
+        "202794004 - Prolapsed lumbar intervertebral disc",
+        "23056005 - Sciatica",
+        "279039007 - Low back pain",
+        "57676002 - Nerve root pain"
+      ]
+    },
+    traineeFeedback: `**GP Trainee Supervisor Feedback - Acute Back Pain with Sciatica**
+
+**Excellent Practice Demonstrated:**
+- Systematic assessment of acute back pain with appropriate red flag screening
+- Thorough neurological examination with relevant clinical tests
+- Good recognition of disc prolapse with nerve root compression
+- Appropriate investigation request (urgent MRI) based on neurological findings
+- Excellent safety netting for cauda equina syndrome
+
+**Clinical Skills:**
+- Good occupational history and mechanism of injury
+- Appropriate pain assessment and previous treatment review
+- Comprehensive examination including reflexes, power, and straight leg raise
+- Correct clinical reasoning leading to accurate diagnosis
+
+**Pain Management:**
+- Appropriate escalation of analgesia with combination therapy
+- Good advice about activity levels and avoiding bed rest
+- Realistic expectations about recovery timeline
+- Consideration of work capacity and certification
+
+**Areas for Development:**
+- Could have asked more specifically about previous episodes and triggers
+- Consider brief discussion of weight/lifestyle factors if relevant
+- Might mention physiotherapy referral for recovery phase
+- Consider discussing sleeping position and posture advice
+
+**Emergency Care:**
+- Outstanding red flag education and safety netting
+- Clear, specific instructions about when to seek emergency care
+- Good balance of reassurance while maintaining vigilance
+
+**Learning Points:**
+- Excellent example of systematic approach to acute back pain
+- Shows good understanding of when to investigate neurological back pain
+- Demonstrates appropriate use of imaging in presence of neurological signs
+- Good balance of conservative management with appropriate investigation
+
+**Overall Assessment:** Very good management of acute back pain with complications. Shows competent musculoskeletal assessment skills and appropriate clinical decision-making.
+
+**Grade: Good** (demonstrates safe independent management of complex back pain presentations)`
   }
 ];
