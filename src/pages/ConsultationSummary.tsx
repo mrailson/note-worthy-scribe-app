@@ -197,16 +197,55 @@ export default function ConsultationSummary() {
     formattedContent = formattedContent.replace(/\n\n/g, '<div class="mb-4"></div>');
     formattedContent = formattedContent.replace(/\n/g, '<br>');
     
-    // Add relevant SNOMED codes section
-    formattedContent += `<div class="mb-4"></div><hr class="my-6 border-border"><div class="mb-4"></div>
+    // Add relevant SNOMED codes based on consultation content
+    const relevantCodes = generateRelevantSNOMEDCodes(content);
+    if (relevantCodes.length > 0) {
+      formattedContent += `<div class="mb-4"></div><hr class="my-6 border-border"><div class="mb-4"></div>
 
 <h3 class="text-lg font-bold text-primary mt-6 mb-3 border-b border-border pb-2">Relevant SNOMED CT Codes</h3>
 
-<code class="px-2 py-1 bg-muted rounded text-sm font-mono">185349003</code> Encounter for check up<br>
-<code class="px-2 py-1 bg-muted rounded text-sm font-mono">439401001</code> Diagnosis<br>
-<code class="px-2 py-1 bg-muted rounded text-sm font-mono">182836005</code> Review of medication`;
+${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm font-mono">${code.code}</code> ${code.description}<br>`).join('')}`;
+    }
     
     return formattedContent;
+  };
+
+  const generateRelevantSNOMEDCodes = (content: string): Array<{code: string, description: string}> => {
+    const lowerContent = content.toLowerCase();
+    const codes: Array<{code: string, description: string}> = [];
+    
+    // Encounter type (always include)
+    if (lowerContent.includes('face to face') || lowerContent.includes('f2f')) {
+      codes.push({ code: '185316007', description: 'Face to face consultation' });
+    } else if (lowerContent.includes('telephone') || lowerContent.includes('phone')) {
+      codes.push({ code: '185317003', description: 'Telephone consultation' });
+    } else {
+      codes.push({ code: '185349003', description: 'Encounter for check up' });
+    }
+    
+    // Common conditions based on content
+    if (lowerContent.includes('blood pressure') || lowerContent.includes('hypertension') || lowerContent.includes('bp')) {
+      codes.push({ code: '38341003', description: 'Hypertensive disorder' });
+    }
+    
+    if (lowerContent.includes('diabetes') || lowerContent.includes('blood sugar') || lowerContent.includes('glucose')) {
+      codes.push({ code: '73211009', description: 'Diabetes mellitus' });
+    }
+    
+    if (lowerContent.includes('depression') || lowerContent.includes('mental health') || lowerContent.includes('mood')) {
+      codes.push({ code: '35489007', description: 'Depressive disorder' });
+    }
+    
+    if (lowerContent.includes('medication') || lowerContent.includes('prescription') || lowerContent.includes('treatment')) {
+      codes.push({ code: '182836005', description: 'Review of medication' });
+    }
+    
+    if (lowerContent.includes('follow up') || lowerContent.includes('follow-up') || lowerContent.includes('review')) {
+      codes.push({ code: '390906007', description: 'Follow-up encounter' });
+    }
+    
+    // Return max 4 most relevant codes
+    return codes.slice(0, 4);
   };
 
   const getCurrentGPSummary = (): string => {
