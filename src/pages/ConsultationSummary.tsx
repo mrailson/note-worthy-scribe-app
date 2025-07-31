@@ -1109,14 +1109,24 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                     Referral Letter
                   </h3>
                   {referralContent && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleCopy(referralContent, "Referral Letter")}
-                    >
-                      <Copy className="h-4 w-4 mr-1" />
-                      Copy
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleWordExport(referralContent, `Referral-Letter-${consultationData?.title || 'consultation'}`)}
+                      >
+                        <Download className="h-4 w-4 mr-1" />
+                        Word
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleCopy(referralContent, "Referral Letter")}
+                      >
+                        <Copy className="h-4 w-4 mr-1" />
+                        Copy
+                      </Button>
+                    </div>
                   )}
                 </div>
                 
