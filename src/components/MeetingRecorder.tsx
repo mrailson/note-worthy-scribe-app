@@ -16,7 +16,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History, Search, Trash2, CheckSquare, SquareIcon, Monitor, Volume2, Waves, Video, Headphones, AlertCircle } from "lucide-react";
+import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History, Search, Trash2, CheckSquare, SquareIcon, Monitor, Volume2, Waves, Video, Headphones, AlertCircle, Eye, EyeOff } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { MeetingSettings } from "@/components/MeetingSettings";
@@ -69,6 +69,7 @@ export const MeetingRecorder = ({
   const [recordingMode, setRecordingMode] = useState<'microphone' | 'computer-audio'>('microphone');
   const [tickerText, setTickerText] = useState<string>("");
   const [showTicker, setShowTicker] = useState(false);
+  const [tickerEnabled, setTickerEnabled] = useState(true);
   
   
   // Meeting history state
@@ -218,7 +219,7 @@ export const MeetingRecorder = ({
 
   const handleTranscript = (transcriptData: TranscriptData) => {
     // Update ticker tape for live transcription
-    if (transcriptData.text && transcriptData.text.trim()) {
+    if (transcriptData.text && transcriptData.text.trim() && tickerEnabled) {
       const truncatedText = transcriptData.text.length > 100 
         ? transcriptData.text.substring(0, 100) + "..." 
         : transcriptData.text;
@@ -1633,13 +1634,27 @@ export const MeetingRecorder = ({
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      <div className="flex items-center justify-center gap-3 text-primary animate-pulse bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg p-4 border border-primary/20">
-                        <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-                        <span className="text-base font-semibold">Recording in progress...</span>
+                      <div className="flex items-center justify-between gap-3 text-primary animate-pulse bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg p-4 border border-primary/20">
+                        <div className="flex items-center gap-3">
+                          <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                          <span className="text-base font-semibold">Recording in progress...</span>
+                        </div>
+                        <Button
+                          onClick={() => setTickerEnabled(!tickerEnabled)}
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-primary hover:bg-primary/10"
+                        >
+                          {tickerEnabled ? (
+                            <Eye className="h-4 w-4" />
+                          ) : (
+                            <EyeOff className="h-4 w-4" />
+                          )}
+                        </Button>
                       </div>
                       
                       {/* Ticker tape for live transcription */}
-                      <div className={`transition-all duration-500 ${showTicker ? 'opacity-100 animate-fade-in' : 'opacity-0'}`}>
+                      <div className={`transition-all duration-500 ${showTicker && tickerEnabled ? 'opacity-100 animate-fade-in' : 'opacity-0'}`}>
                         <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
                           <div className="flex items-center gap-2">
                             <Waves className="h-4 w-4 text-blue-600 dark:text-blue-400 animate-pulse" />
