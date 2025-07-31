@@ -445,16 +445,29 @@ const MeetingHistory = () => {
                 })
               ] : []),
               
-              // Transcript Content
-              new Paragraph({
-                children: [
-                  new TextRun({
-                    text: transcriptToUse,
-                    size: 22,
-                  }),
-                ],
-                spacing: { lineRule: "atLeast", line: 360 }, // 1.5 line spacing
-              }),
+              // Transcript Content - Split into paragraphs to preserve spacing
+              ...(function() {
+                // Split the transcript into paragraphs (the AI creates natural paragraph breaks)
+                const paragraphs = transcriptToUse.split(/\n\s*\n/).filter(p => p.trim().length > 0);
+                
+                return paragraphs.map(paragraphText => 
+                  new Paragraph({
+                    children: [
+                      new TextRun({
+                        text: paragraphText.trim(),
+                        size: 22,
+                      }),
+                    ],
+                    spacing: { 
+                      before: 120,  // Space before paragraph
+                      after: 120,   // Space after paragraph
+                      lineRule: "atLeast", 
+                      line: 360     // 1.5 line spacing within paragraph
+                    },
+                    alignment: AlignmentType.JUSTIFIED, // Makes text look more professional
+                  })
+                );
+              })(),
               
               // Footer
               new Paragraph({
