@@ -122,11 +122,20 @@ const AI4GPService = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Only scroll if the chat container is visible and has content
+    if (messagesEndRef.current && messages.length > 0) {
+      const chatContainer = messagesEndRef.current.closest('[data-radix-scroll-area-viewport]');
+      if (chatContainer) {
+        messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
   };
 
   useEffect(() => {
-    scrollToBottom();
+    // Only auto-scroll if there are actual messages and component is visible
+    if (messages.length > 0) {
+      scrollToBottom();
+    }
   }, [messages]);
 
   // Load search history and practice context on component mount
