@@ -154,8 +154,8 @@ export default function ConsultationSummary() {
     // Convert bold text
     formattedContent = formattedContent.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-foreground">$1</strong>');
     
-    // Make titles ending with colons bold
-    formattedContent = formattedContent.replace(/^([A-Za-z][^:\n]*):(?=\s|$)/gm, '<strong class="font-bold text-foreground">$1:</strong>');
+    // Make section headers ending with colons bold (more specific pattern)
+    formattedContent = formattedContent.replace(/^([A-Z][A-Za-z\s]*[A-Za-z]):(?=\s*$|<br>)/gm, '<strong class="font-bold text-foreground">$1:</strong>');
     
     // Convert bullet points with proper spacing
     formattedContent = formattedContent.replace(/^• (.*$)/gm, '<div class="flex items-start gap-2 mb-2"><span class="text-primary mt-1">•</span><span>$1</span></div>');
