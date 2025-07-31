@@ -706,7 +706,7 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
           <CardContent>
             {/* Consultation Navigation */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 bg-muted/50 p-1 rounded-xl">
+              <TabsList className="grid w-full grid-cols-3 lg:grid-cols-3 bg-muted/50 p-1 rounded-xl">
                 <TabsTrigger 
                   value="gp-summary" 
                   className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm"
@@ -727,20 +727,10 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                   value="review" 
                   className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm"
                 >
-                  <CheckCircle className="h-4 w-4 mr-1 lg:mr-2" />
+                  <BookOpen className="h-4 w-4 mr-1 lg:mr-2" />
                   <span className="hidden sm:inline">Review & Recommendations</span>
                   <span className="sm:hidden">Review</span>
                 </TabsTrigger>
-                {consultationData.isExample && (
-                  <TabsTrigger 
-                    value="trainee-feedback" 
-                    className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm"
-                  >
-                    <BookOpen className="h-4 w-4 mr-1 lg:mr-2" />
-                    <span className="hidden sm:inline">Trainee Feedback</span>
-                    <span className="sm:hidden">Feedback</span>
-                  </TabsTrigger>
-                )}
               </TabsList>
 
               {/* GP Summary Tab */}
@@ -983,7 +973,7 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
               <TabsContent value="review" className="space-y-4 mt-6">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold text-primary flex items-center gap-2">
-                    <CheckCircle className="h-5 w-5" />
+                    <BookOpen className="h-5 w-5" />
                     Review of Consultation and Recommendations
                   </h3>
                   {reviewContent && (
@@ -1026,31 +1016,6 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                 )}
               </TabsContent>
 
-              {/* Trainee Feedback Tab */}
-              {consultationData.isExample && (
-                <TabsContent value="trainee-feedback" className="space-y-4 mt-6">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-primary flex items-center gap-2">
-                      <Lightbulb className="h-5 w-5" />
-                      Supervisor Feedback for Trainees
-                    </h3>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleCopy(content.traineeFeedback, "Trainee Feedback")}
-                      >
-                        <Copy className="h-4 w-4 mr-1" />
-                        Copy
-                      </Button>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-                    <SafeMessageRenderer content={content.traineeFeedback} />
-                  </div>
-                </TabsContent>
-              )}
             </Tabs>
 
             {/* Transcript Section */}
