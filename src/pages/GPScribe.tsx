@@ -907,7 +907,7 @@ const Index = () => {
         
         {/* Tab Navigation */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-5 bg-muted/50 p-1 rounded-xl border border-border/50">
+          <TabsList className="grid w-full grid-cols-5 p-1 rounded-xl">
             <TabsTrigger 
               value="consultation" 
               className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:border data-[state=active]:border-border/50 transition-all duration-200 font-medium"
