@@ -111,7 +111,8 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
   };
 
   const filteredPractices = practices.filter(practice =>
-    practice.name.toLowerCase().includes(searchTerm.toLowerCase())
+    practice.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    practice.practice_code.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleAudioImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -328,14 +329,14 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
                       aria-expanded={practiceSearchOpen}
                       className="w-full justify-between"
                     >
-                      {settings.location || "Search by Practice Name or Area"}
+                      {settings.location || "Search by Practice Name or K Code"}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-full p-0">
                     <Command>
                       <CommandInput 
-                        placeholder="Search practices..." 
+                        placeholder="Search by practice name or K code..." 
                         value={searchTerm}
                         onValueChange={setSearchTerm}
                       />
