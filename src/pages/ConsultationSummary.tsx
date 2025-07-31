@@ -1166,14 +1166,24 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                     Review of Consultation and Recommendations
                   </h3>
                   {reviewContent && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleCopy(reviewContent, "Review Content")}
-                    >
-                      <Copy className="h-4 w-4 mr-1" />
-                      Copy
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleWordExport(reviewContent, `Review-Recommendations-${consultationData?.title || 'consultation'}`)}
+                      >
+                        <Download className="h-4 w-4 mr-1" />
+                        Word
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleCopy(reviewContent, "Review Content")}
+                      >
+                        <Copy className="h-4 w-4 mr-1" />
+                        Copy
+                      </Button>
+                    </div>
                   )}
                 </div>
                 
