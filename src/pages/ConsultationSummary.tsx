@@ -706,7 +706,9 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
       // Parse the score from the response
       const scoreMatch = data.response.match(/CONSULTATION SCORE:\s*(\d+)\/100/i);
       if (scoreMatch) {
-        setConsultationScore(parseInt(scoreMatch[1]));
+        const score = parseInt(scoreMatch[1], 10);
+        console.log('Parsed consultation score:', score, typeof score); // Debug log
+        setConsultationScore(score);
       }
 
       setReviewContent(data.response);
@@ -871,13 +873,16 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                     <span className="sm:hidden">Review</span>
                     {consultationScore !== null && (
                       <div className="flex items-center ml-1">
-                        {consultationScore >= 80 ? (
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                        ) : consultationScore >= 70 ? (
-                          <AlertTriangle className="h-4 w-4 text-yellow-500" />
-                        ) : (
-                          <AlertTriangle className="h-4 w-4 text-red-500" />
-                        )}
+                        {(() => {
+                          console.log('Tab indicator - Score:', consultationScore, 'Type:', typeof consultationScore);
+                          if (consultationScore >= 80) {
+                            return <CheckCircle className="h-4 w-4 text-green-500" />;
+                          } else if (consultationScore >= 70) {
+                            return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
+                          } else {
+                            return <AlertTriangle className="h-4 w-4 text-red-500" />;
+                          }
+                        })()}
                       </div>
                     )}
                   </div>
