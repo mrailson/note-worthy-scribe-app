@@ -467,9 +467,20 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
     }));
   };
 
+  const stripHtml = (html: string): string => {
+    const temp = document.createElement('div');
+    temp.innerHTML = html;
+    return temp.textContent || temp.innerText || '';
+  };
+
   const handleCopy = async (text: string, section: string) => {
     try {
-      await navigator.clipboard.writeText(text);
+      // Strip HTML tags if this is an AI response or if the text contains HTML
+      const textToCopy = section === "AI Response" || text.includes('<') 
+        ? stripHtml(text) 
+        : text;
+      
+      await navigator.clipboard.writeText(textToCopy);
       toast.success(`${section} copied to clipboard`);
     } catch (error) {
       toast.error("Failed to copy to clipboard");
