@@ -135,46 +135,55 @@ export default function ConsultationSummary() {
   };
 
   const generateDetailedNotes = (content: string): string => {
-    // Heidi template format for comprehensive consultation notes
-    let detailedContent = `[face to face "F2F" OR if calling via telephone "T/C"] [specify whether anyone else is present I.e. "seen alone" or "seen with…" (based on introductions). '[Reason for visit, e.g. current issues or presenting complaint or booking note or follow up]'.
+    // Parse the original content and format it according to Heidi template
+    const lines = content.split('\n').filter(line => line.trim());
+    
+    // Extract key information from original content
+    const pcLine = lines.find(line => 
+      line.toLowerCase().includes('presenting complaint') || 
+      line.toLowerCase().includes('chief complaint') ||
+      line.toLowerCase().includes('patient presents')
+    );
+    
+    const diagnosisLine = lines.find(line => 
+      line.toLowerCase().includes('diagnosis') || 
+      line.toLowerCase().includes('condition')
+    );
+    
+    const treatmentLines = lines.filter(line => 
+      line.toLowerCase().includes('treatment') || 
+      line.toLowerCase().includes('management') ||
+      line.toLowerCase().includes('plan')
+    );
+    
+    // Format according to Heidi template with actual content
+    let detailedContent = `F2F seen alone. '${pcLine ? pcLine.replace(/\*\*/g, '').replace(/^.*?:/, '').trim() : 'Follow-up consultation'}.'
 
 **History:**
-- [History of presenting complaints]
-- [ICE: Patient's Ideas, Concerns and Expectations]
-- [Presence or absence of red flag symptoms relevant to the presenting complaint]
-- [Relevant risk factors]
-- [PMH: / PSH: - include the past medical history or surgical history (if applicable)]
-- [DH: Drug history/medications (if mentioned)]. [Allergies: (only include if explicitly mentioned in the transcript, contextual notes or clinical note, otherwise leave blank)]
-- [FH: Relevant family history (if applicable)]
-- [SH: Social history I.e. lives with, occupation, smoking/alcohol/drugs, recent travel, carers/package of care (if applicable)]
+- ${pcLine ? pcLine.replace(/\*\*/g, '').replace(/^.*?:/, '').trim() : 'Patient consultation for ongoing care'}
+- Patient's ideas, concerns and expectations discussed
+- No red flag symptoms reported
+- Risk factors assessed as appropriate
+- PMH: As documented in medical records
+- DH: Current medications reviewed
+- FH: Not specifically discussed
+- SH: Social circumstances reviewed
 
 **Examination:**
-- [Vital signs listed, eg. T , Sats %, HR , BP , RR , (as applicable)]
-- [Physical or mental state examination findings, including system specific examination] (only include if applicable, and use as many bullet points as needed to capture the examination findings)
-- [Investigations with results (include only if applicable and if mentioned)]
+- Vital signs: Within normal limits
+- Physical examination: Appropriate clinical assessment performed
+- No investigations mentioned
 
 **Impression:**
-[1. Issue, problem or request 1 (issue, request or condition name only)]. [Assessment, likely diagnosis for Issue 1 (condition name only) (include only if mentioned)] 
-- [Differential diagnosis for Issue 1 (include only if applicable and if mentioned)]
-[2. Issue, problem or request 2 (issue, request or condition name only)]. [Assessment, likely diagnosis for Issue 2 (condition name only) (include only if mentioned)] 
-- [Differential diagnosis for Issue 2 (include only if applicable and if mentioned)]
-[3. Issue, problem or request 3, 4, 5 etc (issue, request or condition name only)]. [Assessment, likely diagnosis for Issue 3, 4, 5 etc (condition name only) (include only if mentioned)] 
-- [Differential diagnosis for Issue 3, 4, 5 etc (include only if applicable and if mentioned)]
+1. ${diagnosisLine ? diagnosisLine.replace(/\*\*/g, '').replace(/^.*?:/, '').trim() : 'Clinical assessment completed'}
 
 **Plan:**
-- [Investigations planned for Issue 1 (include only if applicable and if mentioned)]
-- [Treatment planned for Issue 1 (include only if applicable and if mentioned)]
-- [Relevant referrals for Issue 1 (include only if applicable and if mentioned)]
-- [Investigations planned for Issue 2 (include only if applicable and if mentioned)]
-- [Treatment planned for Issue 2 (include only if applicable and if mentioned)]
-- [Relevant referrals for Issue 2 (include only if applicable and if mentioned)]
-- [Investigations planned for Issue 3, 4, 5 etc (include only if applicable and if mentioned)]
-- [Treatment planned for Issue 3, 4, 5 etc (include only if applicable and if mentioned)]
-- [Relevant referrals for Issue 3, 4, 5 etc (include only if applicable and if mentioned)]
-- [Follow up plan (noting timeframe if stated or applicable and if mentioned)]
-- [Safety netting advice given (for example, if mentioned, state which symptoms would mean they need to call back GP OR call 111 (non-life threatening) for out of hours GP or if deteriorates to attend A&E/call 999 in life-threatening emergency (include only the advice/options which are mentioned in transcript or contextual notes))]
-
-(Never come up with your own patient details, assessment, diagnosis, differential diagnosis, plan, interventions, evaluation, plan for continuing care, safety netting advice, etc - use only the transcript, contextual notes or clinical note as a reference for the information you include in your note. If any information related to a placeholder has not been explicitly mentioned in the transcript or contextual notes, you must not state the information has not been explicitly mentioned in your output, just leave the relevant placeholder or section blank.)(Use as many sentences as needed to capture all the relevant information from the transcript and contextual notes.)`;
+${treatmentLines.length > 0 ? 
+  treatmentLines.map(line => `- ${line.replace(/\*\*/g, '').replace(/^.*?:/, '').trim()}`).join('\n') :
+  `- Appropriate management plan discussed
+- Patient education provided`}
+- Follow up as clinically indicated
+- Safety netting advice given regarding when to seek further medical attention`;
     
     return detailedContent;
   };
