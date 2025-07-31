@@ -89,6 +89,13 @@ async function callOpenAI(messages: Message[], practiceContext?: any): Promise<s
         contextPrompt += `- ${domain}: ${percentage}%\n`;
       });
     }
+
+    if (practiceContext.uploadedFiles?.length > 0) {
+      contextPrompt += "\nUploaded Documents:\n";
+      practiceContext.uploadedFiles.forEach((file: any) => {
+        contextPrompt += `- ${file.name}: ${file.content}\n`;
+      });
+    }
   }
 
   const gptMessages = [
@@ -98,6 +105,8 @@ async function callOpenAI(messages: Message[], practiceContext?: any): Promise<s
       content: msg.content
     }))
   ];
+
+  console.log('Sending request to OpenAI with', messages.length, 'messages');
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -120,6 +129,7 @@ async function callOpenAI(messages: Message[], practiceContext?: any): Promise<s
   }
 
   const data = await response.json();
+  console.log('OpenAI response received successfully');
   return data.choices[0].message.content;
 }
 

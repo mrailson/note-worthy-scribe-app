@@ -23,6 +23,7 @@ import {
   AlertCircle
 } from "lucide-react";
 import { toast } from "sonner";
+import EnhancedCQCAI from "@/components/EnhancedCQCAI";
 
 interface CQCDomain {
   name: string;
@@ -443,97 +444,20 @@ const CQCCompliance = () => {
         </div>
       </div>
 
-      {/* CQC AI Assistant Chat */}
+      {/* Enhanced CQC AI Assistant */}
       {chatOpen && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span className="flex items-center gap-2">
-                <MessageSquare className="h-5 w-5" />
-                Ask CQC Assistant
-              </span>
-              <div className="flex gap-2">
-                {chatMessages.length > 0 && (
-                  <Button variant="outline" size="sm" onClick={exportChatSession}>
-                    Export Session
-                  </Button>
-                )}
-                <Button variant="outline" size="sm" onClick={() => setChatOpen(false)}>
-                  Close
-                </Button>
-              </div>
-            </CardTitle>
-            <CardDescription>
-              Get instant answers about CQC compliance, policies, and best practices
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {/* Chat Messages */}
-              <div className="h-64 overflow-y-auto space-y-3 border rounded p-3">
-                {chatMessages.length === 0 ? (
-                  <div className="text-center text-muted-foreground">
-                    <p>Ask me anything about CQC compliance!</p>
-                    <p className="text-sm mt-2">
-                      Try: "What evidence do I need for Fire Safety?" or 
-                      "What should be in our infection control policy?"
-                    </p>
-                  </div>
-                ) : (
-                  chatMessages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                    >
-                      <div
-                        className={`max-w-[80%] p-3 rounded-lg ${
-                          message.role === 'user'
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-muted'
-                        }`}
-                      >
-                        <div className="whitespace-pre-wrap">{message.content}</div>
-                        <div className="text-xs opacity-70 mt-1">
-                          {message.timestamp.toLocaleTimeString()}
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-                {chatLoading && (
-                  <div className="flex justify-start">
-                    <div className="bg-muted p-3 rounded-lg">
-                      <div className="flex space-x-1">
-                        <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></div>
-                        <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                        <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Chat Input */}
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={currentMessage}
-                  onChange={(e) => setCurrentMessage(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleChatMessage()}
-                  placeholder="Ask about CQC compliance..."
-                  className="flex-1 px-3 py-2 border rounded-md"
-                  disabled={chatLoading}
-                />
-                <Button 
-                  onClick={handleChatMessage}
-                  disabled={!currentMessage.trim() || chatLoading}
-                >
-                  Send
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <EnhancedCQCAI 
+          practiceContext={{
+            complianceStatus: domains.reduce((acc, domain) => {
+              acc[domain.name] = domain.percentage;
+              return acc;
+            }, {} as Record<string, number>),
+            recentAlerts: alerts.slice(0, 3),
+            policies: [], // Would be populated from actual data
+            practiceSettings
+          }}
+          onClose={() => setChatOpen(false)}
+        />
       )}
 
       {/* Quick Actions */}
