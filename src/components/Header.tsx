@@ -142,15 +142,22 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                        AI 4 PM Assistant
                      </DropdownMenuItem>
                    )}
-                   {hasModuleAccess('enhanced_access') && (
+                    {hasModuleAccess('enhanced_access') && (
+                      <DropdownMenuItem 
+                        onClick={() => navigate('/enhanced-access')}
+                        className="cursor-pointer py-3"
+                      >
+                        <Clock className="h-4 w-4 mr-2" />
+                        Enhanced Access
+                      </DropdownMenuItem>
+                     )}
                      <DropdownMenuItem 
-                       onClick={() => navigate('/enhanced-access')}
+                       onClick={() => navigate('/cqc-compliance')}
                        className="cursor-pointer py-3"
                      >
-                       <Clock className="h-4 w-4 mr-2" />
-                       Enhanced Access
+                       <Shield className="h-4 w-4 mr-2" />
+                       CQC Compliance
                      </DropdownMenuItem>
-                    )}
                     {sharedDriveVisible && (
                       <DropdownMenuItem 
                         onClick={() => navigate('/shared-drive')}

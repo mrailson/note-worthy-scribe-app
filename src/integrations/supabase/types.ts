@@ -992,6 +992,390 @@ export type Database = {
         }
         Relationships: []
       }
+      cqc_ai_sessions: {
+        Row: {
+          created_at: string | null
+          exported_at: string | null
+          id: string
+          messages: Json
+          practice_id: string | null
+          session_summary: string | null
+          session_title: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          exported_at?: string | null
+          id?: string
+          messages?: Json
+          practice_id?: string | null
+          session_summary?: string | null
+          session_title?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          exported_at?: string | null
+          id?: string
+          messages?: Json
+          practice_id?: string | null
+          session_summary?: string | null
+          session_title?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      cqc_alerts: {
+        Row: {
+          alert_type: string
+          created_at: string | null
+          created_by: string | null
+          due_date: string | null
+          id: string
+          message: string
+          practice_id: string | null
+          priority: string | null
+          related_evidence_id: string | null
+          related_policy_id: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string | null
+          title: string
+        }
+        Insert: {
+          alert_type: string
+          created_at?: string | null
+          created_by?: string | null
+          due_date?: string | null
+          id?: string
+          message: string
+          practice_id?: string | null
+          priority?: string | null
+          related_evidence_id?: string | null
+          related_policy_id?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string | null
+          title: string
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string | null
+          created_by?: string | null
+          due_date?: string | null
+          id?: string
+          message?: string
+          practice_id?: string | null
+          priority?: string | null
+          related_evidence_id?: string | null
+          related_policy_id?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
+      cqc_assessments: {
+        Row: {
+          action_description: string | null
+          action_due_date: string | null
+          action_required: boolean | null
+          answer: string | null
+          assessment_date: string | null
+          completed_at: string | null
+          completed_by: string | null
+          compliance_status: string | null
+          cqc_domain: string | null
+          created_at: string | null
+          evidence_ids: string[] | null
+          id: string
+          kloe_reference: string
+          notes: string | null
+          practice_id: string | null
+          question: string
+          updated_at: string | null
+        }
+        Insert: {
+          action_description?: string | null
+          action_due_date?: string | null
+          action_required?: boolean | null
+          answer?: string | null
+          assessment_date?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          compliance_status?: string | null
+          cqc_domain?: string | null
+          created_at?: string | null
+          evidence_ids?: string[] | null
+          id?: string
+          kloe_reference: string
+          notes?: string | null
+          practice_id?: string | null
+          question: string
+          updated_at?: string | null
+        }
+        Update: {
+          action_description?: string | null
+          action_due_date?: string | null
+          action_required?: boolean | null
+          answer?: string | null
+          assessment_date?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          compliance_status?: string | null
+          cqc_domain?: string | null
+          created_at?: string | null
+          evidence_ids?: string[] | null
+          id?: string
+          kloe_reference?: string
+          notes?: string | null
+          practice_id?: string | null
+          question?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      cqc_domains: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          weight: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          weight?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          weight?: number | null
+        }
+        Relationships: []
+      }
+      cqc_evidence: {
+        Row: {
+          cqc_domain: string | null
+          created_at: string | null
+          description: string | null
+          evidence_type: string
+          expiry_date: string | null
+          file_name: string | null
+          file_path: string | null
+          file_size: number | null
+          id: string
+          kloe_reference: string | null
+          practice_id: string | null
+          status: string | null
+          tags: string[] | null
+          title: string
+          updated_at: string | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          cqc_domain?: string | null
+          created_at?: string | null
+          description?: string | null
+          evidence_type: string
+          expiry_date?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          kloe_reference?: string | null
+          practice_id?: string | null
+          status?: string | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          cqc_domain?: string | null
+          created_at?: string | null
+          description?: string | null
+          evidence_type?: string
+          expiry_date?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          kloe_reference?: string | null
+          practice_id?: string | null
+          status?: string | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string | null
+          uploaded_by?: string | null
+        }
+        Relationships: []
+      }
+      cqc_guidance_updates: {
+        Row: {
+          ai_summary: string | null
+          content: string | null
+          cqc_domain: string | null
+          created_at: string | null
+          id: string
+          impact_level: string | null
+          published_date: string | null
+          requires_policy_review: boolean | null
+          source_url: string | null
+          summary: string | null
+          tags: string[] | null
+          title: string
+        }
+        Insert: {
+          ai_summary?: string | null
+          content?: string | null
+          cqc_domain?: string | null
+          created_at?: string | null
+          id?: string
+          impact_level?: string | null
+          published_date?: string | null
+          requires_policy_review?: boolean | null
+          source_url?: string | null
+          summary?: string | null
+          tags?: string[] | null
+          title: string
+        }
+        Update: {
+          ai_summary?: string | null
+          content?: string | null
+          cqc_domain?: string | null
+          created_at?: string | null
+          id?: string
+          impact_level?: string | null
+          published_date?: string | null
+          requires_policy_review?: boolean | null
+          source_url?: string | null
+          summary?: string | null
+          tags?: string[] | null
+          title?: string
+        }
+        Relationships: []
+      }
+      cqc_policies: {
+        Row: {
+          ai_compliance_score: number | null
+          ai_feedback: Json | null
+          approved_at: string | null
+          approved_by: string | null
+          cqc_domain: string | null
+          created_at: string | null
+          description: string | null
+          expiry_date: string | null
+          file_name: string | null
+          file_path: string | null
+          file_size: number | null
+          id: string
+          policy_type: string
+          practice_id: string | null
+          review_date: string | null
+          status: string | null
+          title: string
+          updated_at: string | null
+          uploaded_by: string | null
+          version: string | null
+        }
+        Insert: {
+          ai_compliance_score?: number | null
+          ai_feedback?: Json | null
+          approved_at?: string | null
+          approved_by?: string | null
+          cqc_domain?: string | null
+          created_at?: string | null
+          description?: string | null
+          expiry_date?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          policy_type: string
+          practice_id?: string | null
+          review_date?: string | null
+          status?: string | null
+          title: string
+          updated_at?: string | null
+          uploaded_by?: string | null
+          version?: string | null
+        }
+        Update: {
+          ai_compliance_score?: number | null
+          ai_feedback?: Json | null
+          approved_at?: string | null
+          approved_by?: string | null
+          cqc_domain?: string | null
+          created_at?: string | null
+          description?: string | null
+          expiry_date?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          policy_type?: string
+          practice_id?: string | null
+          review_date?: string | null
+          status?: string | null
+          title?: string
+          updated_at?: string | null
+          uploaded_by?: string | null
+          version?: string | null
+        }
+        Relationships: []
+      }
+      cqc_practice_settings: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          current_rating: string | null
+          email_alerts: boolean | null
+          id: string
+          last_inspection_date: string | null
+          next_inspection_date: string | null
+          notifications_enabled: boolean | null
+          practice_id: string | null
+          sms_alerts: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          current_rating?: string | null
+          email_alerts?: boolean | null
+          id?: string
+          last_inspection_date?: string | null
+          next_inspection_date?: string | null
+          notifications_enabled?: boolean | null
+          practice_id?: string | null
+          sms_alerts?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          current_rating?: string | null
+          email_alerts?: boolean | null
+          id?: string
+          last_inspection_date?: string | null
+          next_inspection_date?: string | null
+          notifications_enabled?: boolean | null
+          practice_id?: string | null
+          sms_alerts?: boolean | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       data_retention_policies: {
         Row: {
           created_at: string
