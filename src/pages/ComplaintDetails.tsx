@@ -237,6 +237,20 @@ const ComplaintDetails = () => {
     }
   };
 
+  // Log complaint view when component loads
+  const logComplaintView = async () => {
+    if (!user || !complaintId) return;
+    try {
+      await supabase.rpc('log_complaint_view', {
+        p_complaint_id: complaintId,
+        p_view_context: 'complaint_details_page'
+      });
+    } catch (error) {
+      console.error('Error logging complaint view:', error);
+      // Don't show toast for view logging errors to avoid cluttering UI
+    }
+  };
+
   // useEffect hook - must be called before conditional returns
   useEffect(() => {
     if (user && complaintId) {
@@ -244,6 +258,7 @@ const ComplaintDetails = () => {
       fetchComplianceData();
       fetchAuditLogs();
       fetchComplaintDocuments();
+      logComplaintView(); // Log the view
     }
   }, [user, complaintId]);
 

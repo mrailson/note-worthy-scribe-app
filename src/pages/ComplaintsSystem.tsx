@@ -1218,7 +1218,15 @@ const ComplaintsSystem = () => {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => {
+                          onClick={async () => {
+                            try {
+                              await supabase.rpc('log_complaint_view', {
+                                p_complaint_id: complaint.id,
+                                p_view_context: 'dashboard_recent_activity'
+                              });
+                            } catch (error) {
+                              console.error('Error logging complaint view:', error);
+                            }
                             navigate(`/complaints/${complaint.id}`);
                           }}
                         >
@@ -1477,9 +1485,17 @@ const ComplaintsSystem = () => {
                             <Button 
                               size="sm" 
                               variant="outline"
-                          onClick={() => {
-                            navigate(`/complaints/${complaint.id}`);
-                          }}
+                              onClick={async () => {
+                                try {
+                                  await supabase.rpc('log_complaint_view', {
+                                    p_complaint_id: complaint.id,
+                                    p_view_context: 'complaints_list_view'
+                                  });
+                                } catch (error) {
+                                  console.error('Error logging complaint view:', error);
+                                }
+                                navigate(`/complaints/${complaint.id}`);
+                              }}
                             >
                               <Eye className="h-4 w-4 mr-1" />
                               View Details
