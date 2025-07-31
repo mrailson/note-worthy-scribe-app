@@ -139,7 +139,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                        className="cursor-pointer py-3"
                      >
                        <Sparkles className="h-4 w-4 mr-2" />
-                       AI Assistant
+                       AI 4 PM Assistant
                      </DropdownMenuItem>
                    )}
                    {hasModuleAccess('enhanced_access') && (
