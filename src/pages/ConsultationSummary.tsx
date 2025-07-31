@@ -648,7 +648,7 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
     try {
       const { data, error } = await supabase.functions.invoke('ai-consultation-assistant', {
         body: {
-          prompt: "write a referral letter",
+          prompt: "write a referral letter without any header contact information or practice details",
           consultationData: {
             duration: consultationData?.duration,
             transcript: consultationData?.transcript,
