@@ -118,8 +118,8 @@ export default function ConsultationSummary() {
         return originalContent;
       case 1: // Standard
         return generateStandardNotes(originalContent);
-      case 2: // Detailed
-        return generateDetailedNotes(originalContent);
+      case 2: // Detailed - Use Full Note content with better formatting
+        return generateDetailedNotes(content.fullNote || originalContent);
       default:
         return originalContent;
     }
@@ -135,99 +135,36 @@ export default function ConsultationSummary() {
   };
 
   const generateDetailedNotes = (content: string): string => {
-    // Parse the original content and format it according to Heidi template
+    // Use Full Note content with better formatting and layout
     if (!content || content.trim() === "") {
       return "No consultation data available to format.";
     }
 
-    // Clean the content and extract meaningful sections
-    const cleanContent = content.replace(/\*\*/g, '').replace(/###|##|#/g, '').trim();
-    const lines = cleanContent.split('\n').filter(line => line.trim() !== '');
+    // Apply better formatting to the Full Note content
+    let formattedContent = content;
     
-    // Extract presenting complaint/reason for visit
-    const presentingComplaint = lines.find(line => 
-      line.toLowerCase().includes('presenting') || 
-      line.toLowerCase().includes('complaint') ||
-      line.toLowerCase().includes('reason') ||
-      line.toLowerCase().includes('patient') ||
-      line.includes(':')
-    );
-
-    // Extract specific history elements only if mentioned
-    const historyLines = lines.filter(line => 
-      line.toLowerCase().includes('history') ||
-      line.toLowerCase().includes('ice') ||
-      line.toLowerCase().includes('ideas') ||
-      line.toLowerCase().includes('concerns') ||
-      line.toLowerCase().includes('expectations') ||
-      line.toLowerCase().includes('red flag') ||
-      line.toLowerCase().includes('pmh') ||
-      line.toLowerCase().includes('past medical') ||
-      line.toLowerCase().includes('medications') ||
-      line.toLowerCase().includes('allergies') ||
-      line.toLowerCase().includes('family history') ||
-      line.toLowerCase().includes('social') ||
-      line.toLowerCase().includes('smoking') ||
-      line.toLowerCase().includes('alcohol')
-    );
-
-    // Extract examination findings only if mentioned
-    const examFindings = lines.filter(line => 
-      line.toLowerCase().includes('examination') ||
-      line.toLowerCase().includes('vital') ||
-      line.toLowerCase().includes('bp') ||
-      line.toLowerCase().includes('heart rate') ||
-      line.toLowerCase().includes('temperature') ||
-      line.toLowerCase().includes('chest') ||
-      line.toLowerCase().includes('abdomen') ||
-      line.toLowerCase().includes('inspection') ||
-      line.toLowerCase().includes('palpation')
-    );
-
-    // Extract diagnosis/assessment only if mentioned
-    const diagnosis = lines.filter(line => 
-      line.toLowerCase().includes('diagnosis') ||
-      line.toLowerCase().includes('condition') ||
-      line.toLowerCase().includes('assess') ||
-      line.toLowerCase().includes('impression')
-    );
-
-    // Extract treatment/management only if mentioned
-    const treatment = lines.filter(line => 
-      line.toLowerCase().includes('treatment') ||
-      line.toLowerCase().includes('management') ||
-      line.toLowerCase().includes('plan') ||
-      line.toLowerCase().includes('advice') ||
-      line.toLowerCase().includes('follow') ||
-      line.toLowerCase().includes('prescrib') ||
-      line.toLowerCase().includes('refer')
-    );
-
-    // Format according to Heidi template with ONLY actual content
-    let detailedContent = `F2F seen alone. '${presentingComplaint ? presentingComplaint.replace(/^.*?:/, '').trim() : 'Consultation'}'.
-
-**History:**`;
-
-    if (historyLines.length > 0) {
-      detailedContent += '\n' + historyLines.map(line => `- ${line.replace(/^.*?:/, '').trim()}`).join('\n');
-    }
-
-    detailedContent += '\n\n**Examination:**';
-    if (examFindings.length > 0) {
-      detailedContent += '\n' + examFindings.map(finding => `- ${finding.replace(/^.*?:/, '').trim()}`).join('\n');
-    }
-
-    detailedContent += '\n\n**Impression:**';
-    if (diagnosis.length > 0) {
-      detailedContent += '\n' + diagnosis.map((dx, index) => `${index + 1}. ${dx.replace(/^.*?:/, '').trim()}`).join('\n');
-    }
-
-    detailedContent += '\n\n**Plan:**';
-    if (treatment.length > 0) {
-      detailedContent += '\n' + treatment.map(tx => `- ${tx.replace(/^.*?:/, '').trim()}`).join('\n');
-    }
+    // Clean up any existing markdown formatting
+    formattedContent = formattedContent.replace(/\*\*\*(.*?)\*\*\*/g, '**$1**'); // Convert triple asterisk to double
     
-    return detailedContent;
+    // Ensure proper section headers
+    formattedContent = formattedContent.replace(/^([A-Z][A-Z\s]+):$/gm, '## $1');
+    formattedContent = formattedContent.replace(/^([A-Z][a-z\s]+):$/gm, '### $1');
+    
+    // Add proper spacing around sections
+    formattedContent = formattedContent.replace(/^##/gm, '\n## ');
+    formattedContent = formattedContent.replace(/^###/gm, '\n### ');
+    
+    // Format bullet points consistently
+    formattedContent = formattedContent.replace(/^[-•]\s*/gm, '• ');
+    
+    // Add line breaks before new paragraphs
+    formattedContent = formattedContent.replace(/\n([A-Z][^:\n]*[.!?])\n/g, '\n\n$1\n\n');
+    
+    // Clean up extra whitespace
+    formattedContent = formattedContent.replace(/\n{3,}/g, '\n\n');
+    formattedContent = formattedContent.trim();
+    
+    return formattedContent;
   };
 
   const getCurrentGPSummary = (): string => {
