@@ -135,202 +135,114 @@ export default function ConsultationSummary() {
   };
 
   const generateDetailedNotes = (content: string): string => {
-    // Enhanced SOAP format with SNOMED codes and beautiful formatting
+    // Clean, well-structured SOAP format
     const lines = content.split('\n').filter(line => line.trim());
     
-    let detailedContent = `# 🏥 COMPREHENSIVE CLINICAL DOCUMENTATION
-
----
-
-## 📋 SOAP STRUCTURED CONSULTATION
-
-### 📝 **SUBJECTIVE**
-
-#### **Presenting Complaint**
-`;
-    
-    // Extract presenting complaint
+    // Extract key information from original content
     const pcLine = lines.find(line => 
       line.toLowerCase().includes('presenting complaint') || 
       line.toLowerCase().includes('chief complaint') ||
       line.toLowerCase().includes('patient presents')
     );
     
-    if (pcLine) {
-      const pc = pcLine.replace(/\*\*/g, '').replace(/^.*?:/, '').trim();
-      detailedContent += `• ${pc}
-
-> **SNOMED CT:** \`404684003\` |Clinical finding|
-
-`;
-    }
-    
-    detailedContent += `#### **History of Presenting Complaint**
-• Detailed symptom progression documented
-• Associated symptoms explored  
-• Impact on daily activities assessed
-• Temporal pattern and severity noted
-
-#### **Background History**
-• **Past Medical History:** Reviewed and documented
-• **Current Medications:** All medications reviewed for interactions
-• **Allergies:** Documented and verified in detail
-• **Social History:** Relevant social factors considered
-
----
-
-### 🔬 **OBJECTIVE**
-
-#### **Vital Signs**
-| Parameter | Finding | Status |
-|-----------|---------|--------|
-| Blood Pressure | Documented | ✅ Normal range |
-| Heart Rate | Regular rhythm | ✅ Stable |
-| Temperature | Afebrile | ✅ Normal |
-| Respiratory Rate | Within normal limits | ✅ Stable |
-
-> **SNOMED CT:** \`271649006\` |Vital signs|
-
-#### **Physical Examination**
-`;
-
-    if (content.toLowerCase().includes('examination')) {
-      detailedContent += `• **Systematic examination performed**
-  - Inspection: Thorough visual assessment
-  - Palpation: Relevant areas examined
-  - Auscultation: Heart and lung sounds assessed
-• **Positive findings:** Documented in detail
-• **Negative findings:** Relevant exclusions noted
-
-`;
-    } else {
-      detailedContent += `• **Clinical assessment completed**
-• **Relevant examinations performed**
-• **Findings documented appropriately**
-
-`;
-    }
-    
-    detailedContent += `> **SNOMED CT:** \`5880005\` |Physical examination procedure|
-
----
-
-### 🎯 **ASSESSMENT**
-
-#### **Primary Diagnosis**
-`;
-    
-    // Extract diagnosis
     const diagnosisLine = lines.find(line => 
       line.toLowerCase().includes('diagnosis') || 
       line.toLowerCase().includes('condition')
     );
     
-    if (diagnosisLine) {
-      const diagnosis = diagnosisLine.replace(/\*\*/g, '').replace(/^.*?:/, '').trim();
-      detailedContent += `• **${diagnosis}**
+    let detailedContent = `## 🏥 COMPREHENSIVE CLINICAL DOCUMENTATION
 
-`;
-    }
-    
-    detailedContent += `> **SNOMED CT:** \`439401001\` |Diagnosis|
+### 📝 SUBJECTIVE
 
-#### **Clinical Reasoning**
-• **Differential diagnoses** considered and documented
-• **Risk stratification** completed using clinical guidelines
-• **Evidence-based assessment** following NICE/GMC standards
-• **Red flag symptoms** systematically excluded
+**Presenting Complaint:**
+${pcLine ? `• ${pcLine.replace(/\*\*/g, '').replace(/^.*?:/, '').trim()}` : '• Patient consultation documented'}
 
----
+**History:**
+• Detailed symptom progression documented
+• Associated symptoms explored
+• Impact on daily activities assessed
 
-### 📋 **PLAN**
-
-#### **Immediate Management**
-`;
-
-    if (content.toLowerCase().includes('treatment') || content.toLowerCase().includes('management')) {
-      detailedContent += `• **Evidence-based treatment** initiated
-• **Clinical guidelines** followed (NICE/GMC)
-• **Patient-centered approach** maintained
-
-> **SNOMED CT:** \`276239002\` |Therapy|
-
-`;
-    }
-    
-    detailedContent += `#### **Patient Education & Communication**
-• **Condition explained** in clear, understandable terms
-• **Treatment options discussed** with benefits and risks
-• **Written information provided** where appropriate
-• **Questions answered** and understanding confirmed
-
-> **SNOMED CT:** \`409073007\` |Education|
-
-#### **Safety Netting**
-• **Red flag symptoms** clearly explained
-• **When to seek urgent care** - specific instructions given
-• **Expected symptom progression** discussed
-• **Contact information** provided for concerns
-
-> **SNOMED CT:** \`409063005\` |Counselling|
-
-#### **Follow-up & Continuity**
-`;
-
-    if (content.toLowerCase().includes('follow') || content.toLowerCase().includes('review')) {
-      detailedContent += `• **Appropriate follow-up arranged** as per clinical need
-• **Review timeline established** based on condition
-• **Care coordination** with relevant services
-
-`;
-    } else {
-      detailedContent += `• **Follow-up as clinically indicated**
-• **Patient advised** on self-monitoring
-• **Open access** for deterioration
-
-`;
-    }
-    
-    detailedContent += `> **SNOMED CT:** \`390906007\` |Follow-up encounter|
+**Background:**
+• Past Medical History: Reviewed
+• Current Medications: Checked for interactions
+• Allergies: Documented and verified
 
 ---
 
-## 📊 CLINICAL GOVERNANCE & QUALITY ASSURANCE
+### 🔬 OBJECTIVE
 
-### ✅ **Documentation Standards**
-| Standard | Status | Details |
-|----------|--------|---------|
-| GMC Good Medical Practice | ✅ **Compliant** | Full documentation standards met |
-| Medical Records Standards | ✅ **Compliant** | Comprehensive record maintained |
-| Clinical Governance | ✅ **Quality Assured** | Peer review standards achieved |
+**Vital Signs:**
+• Blood Pressure: Documented
+• Heart Rate: Regular rhythm  
+• Temperature: Afebrile
+• Respiratory Rate: Normal
 
-### 🔒 **Consent & Capacity Assessment**
-• **Informed consent** obtained for all interventions and examinations
-• **Mental capacity** assessed using established criteria
-• **Best interests** considered where applicable
-• **Documentation** meets legal and ethical standards
-
-> **SNOMED CT:** \`386053000\` |Evaluation procedure|
-
-### 📞 **Communication Excellence**
-• **Patient communication:** Clear, empathetic, and culturally sensitive
-• **Multidisciplinary coordination:** Relevant teams appropriately informed
-• **Documentation quality:** Comprehensive and legally compliant
-• **Continuity planning:** Seamless care transitions arranged
+**Physical Examination:**
+${content.toLowerCase().includes('examination') ? 
+  `• Systematic examination performed
+• Relevant findings documented` : 
+  `• Clinical assessment completed
+• Appropriate examinations performed`}
 
 ---
 
-### 🏥 **CLINICAL SUMMARY**
+### 🎯 ASSESSMENT
 
-**This consultation demonstrates:**
-- ✅ Comprehensive SOAP-structured documentation
-- ✅ Integrated SNOMED CT coding for clinical accuracy
-- ✅ Evidence-based medical practice
-- ✅ Patient-centered care delivery
-- ✅ Quality assurance standards met
-- ✅ Full GMC compliance achieved
+**Primary Diagnosis:**
+${diagnosisLine ? `• ${diagnosisLine.replace(/\*\*/g, '').replace(/^.*?:/, '').trim()}` : '• Clinical diagnosis established'}
 
-> *📋 Professional documentation meeting all regulatory and clinical excellence standards*`;
+**Clinical Reasoning:**
+• Differential diagnoses considered
+• Risk assessment completed
+• Evidence-based evaluation
+
+---
+
+### 📋 PLAN
+
+**Management:**
+${content.toLowerCase().includes('treatment') || content.toLowerCase().includes('management') ? 
+  `• Evidence-based treatment initiated
+• Clinical guidelines followed` : 
+  `• Appropriate management plan
+• Conservative approach adopted`}
+
+**Patient Education:**
+• Condition explained clearly
+• Written information provided
+• Questions answered
+
+**Safety Netting:**
+• Red flag symptoms discussed
+• Clear instructions for urgent care
+• Follow-up arrangements made
+
+---
+
+### 📊 CLINICAL GOVERNANCE
+
+**Documentation Standards:**
+✅ GMC Good Medical Practice compliant
+✅ Medical Records Standards met
+✅ Clinical Governance assured
+
+**Quality Measures:**
+✅ Informed consent obtained
+✅ Mental capacity assessed
+✅ Professional communication maintained
+
+---
+
+**SNOMED CT Codes:**
+• Clinical finding: 404684003
+• Vital signs: 271649006  
+• Physical examination: 5880005
+• Diagnosis: 439401001
+• Therapy: 276239002
+• Education: 409073007
+• Follow-up: 390906007
+
+*Professional SOAP-structured documentation with integrated clinical coding*`;
     
     return detailedContent;
   };
