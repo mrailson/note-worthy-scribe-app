@@ -1281,15 +1281,101 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                         </Button>
                       </CollapsibleTrigger>
                       <CollapsibleContent className="mt-4">
-                        <div className={`p-4 rounded-lg border ${
+                        <div className={`p-6 rounded-lg border ${
                           consultationScore >= 80 ? 'bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800' :
                           consultationScore >= 70 ? 'bg-yellow-50 border-yellow-200 dark:bg-yellow-950/30 dark:border-yellow-800' :
                           'bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800'
                         }`}>
-                          <div className="prose prose-sm max-w-none dark:prose-invert">
-                            <div className="ai-response-content space-y-3">
-                              <SafeMessageRenderer content={reviewContent.split('CONSULTATION SCORE:')[1] || 'Detailed scoring breakdown will appear here when available.'} />
-                            </div>
+                          <div className="space-y-6">
+                            {/* Parse and display the scoring breakdown in a structured format */}
+                            {(() => {
+                              const scoringSection = reviewContent.split('CONSULTATION SCORE:')[1] || '';
+                              const sections = [
+                                { title: 'History Taking', total: 25, pattern: /\*\*HISTORY TAKING.*?Subtotal: \[(\d+)\/25\]/s },
+                                { title: 'Examination', total: 20, pattern: /\*\*EXAMINATION.*?Subtotal: \[(\d+)\/20\]/s },
+                                { title: 'Diagnosis & Assessment', total: 20, pattern: /\*\*DIAGNOSIS & ASSESSMENT.*?Subtotal: \[(\d+)\/20\]/s },
+                                { title: 'Management Plan', total: 20, pattern: /\*\*MANAGEMENT PLAN.*?Subtotal: \[(\d+)\/20\]/s },
+                                { title: 'Communication & Documentation', total: 15, pattern: /\*\*COMMUNICATION & DOCUMENTATION.*?Subtotal: \[(\d+)\/15\]/s }
+                              ];
+
+                              return (
+                                <>
+                                  <div className="grid gap-4">
+                                    <h4 className="text-lg font-semibold text-center mb-4">Detailed Scoring Breakdown</h4>
+                                    
+                                    {sections.map((section, index) => {
+                                      const match = scoringSection.match(section.pattern);
+                                      const awarded = match ? parseInt(match[1]) : 0;
+                                      const percentage = Math.round((awarded / section.total) * 100);
+                                      
+                                      return (
+                                        <div key={index} className="bg-white dark:bg-gray-800 rounded-lg p-4 border">
+                                          <div className="flex justify-between items-center mb-2">
+                                            <h5 className="font-semibold text-primary">{section.title}</h5>
+                                            <div className="text-right">
+                                              <div className={`text-lg font-bold ${
+                                                percentage >= 80 ? 'text-green-600' :
+                                                percentage >= 70 ? 'text-yellow-600' :
+                                                'text-red-600'
+                                              }`}>
+                                                {awarded}/{section.total}
+                                              </div>
+                                              <div className="text-xs text-muted-foreground">{percentage}%</div>
+                                            </div>
+                                          </div>
+                                          <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+                                            <div 
+                                              className={`h-2 rounded-full ${
+                                                percentage >= 80 ? 'bg-green-500' :
+                                                percentage >= 70 ? 'bg-yellow-500' :
+                                                'bg-red-500'
+                                              }`}
+                                              style={{ width: `${percentage}%` }}
+                                            ></div>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+
+                                  {/* Summary Section */}
+                                  <div className="mt-6 p-4 bg-white dark:bg-gray-800 rounded-lg border-2 border-primary">
+                                    <h4 className="text-lg font-semibold text-center mb-4">Score Summary</h4>
+                                    <div className="grid grid-cols-2 gap-2 text-sm">
+                                      {sections.map((section, index) => {
+                                        const match = scoringSection.match(section.pattern);
+                                        const awarded = match ? parseInt(match[1]) : 0;
+                                        return (
+                                          <div key={index} className="flex justify-between py-1">
+                                            <span>{section.title}:</span>
+                                            <span className="font-medium">{awarded}/{section.total}</span>
+                                          </div>
+                                        );
+                                      })}
+                                      <div className="col-span-2 border-t pt-2 mt-2">
+                                        <div className="flex justify-between text-lg font-bold">
+                                          <span>Total Score:</span>
+                                          <span className={
+                                            consultationScore >= 80 ? 'text-green-600' :
+                                            consultationScore >= 70 ? 'text-yellow-600' :
+                                            'text-red-600'
+                                          }>
+                                            {consultationScore}/100
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Detailed breakdown text */}
+                                  <div className="prose prose-sm max-w-none dark:prose-invert">
+                                    <div className="ai-response-content space-y-3">
+                                      <SafeMessageRenderer content={scoringSection} />
+                                    </div>
+                                  </div>
+                                </>
+                              );
+                            })()}
                           </div>
                         </div>
                       </CollapsibleContent>
