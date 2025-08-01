@@ -200,6 +200,15 @@ const ContractorManagement = () => {
     }
   };
 
+  const handleAskIfAvailable = (contractor: Contractor) => {
+    toast({
+      title: "Availability Request Sent",
+      description: `Request sent to ${contractor.name} to check availability for your project.`,
+    });
+    // In a real implementation, this would send an email or notification
+    // to the contractor asking about their availability
+  };
+
   const handleFileSelection = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files) return;
@@ -678,16 +687,29 @@ const ContractorManagement = () => {
                     </Button>
                   )}
                 </div>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => {
-                    setSelectedContractor(contractor);
-                    fetchContractorDetails(contractor.id);
-                  }}
-                >
-                  View Details
-                </Button>
+                <div className="flex gap-2">
+                  {contractor.status === 'approved' && (
+                    <Button 
+                      variant="default" 
+                      size="sm"
+                      onClick={() => handleAskIfAvailable(contractor)}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      <MessageSquare className="h-3 w-3 mr-1" />
+                      Ask if Available
+                    </Button>
+                  )}
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      setSelectedContractor(contractor);
+                      fetchContractorDetails(contractor.id);
+                    }}
+                  >
+                    View Details
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
