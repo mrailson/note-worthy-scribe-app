@@ -45,7 +45,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model: 'gpt-4o',
           messages: [
             {
               role: 'user',
@@ -68,8 +68,9 @@ serve(async (req) => {
       });
 
       const visionData = await visionResponse.json();
+      console.log('Vision API full response:', JSON.stringify(visionData));
       if (!visionData.choices || !visionData.choices[0] || !visionData.choices[0].message || !visionData.choices[0].message.content) {
-        console.error('Vision API response:', visionData);
+        console.error('Vision API response structure issue:', visionData);
         throw new Error('Failed to extract text from image - invalid API response');
       }
       
@@ -84,7 +85,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model: 'gpt-4o',
           messages: [
             {
               role: 'system',
@@ -140,8 +141,9 @@ serve(async (req) => {
       });
 
       const parseData = await parseResponse.json();
+      console.log('Parse API full response:', JSON.stringify(parseData));
       if (!parseData.choices || !parseData.choices[0] || !parseData.choices[0].message || !parseData.choices[0].message.content) {
-        console.error('Parse API response:', parseData);
+        console.error('Parse API response structure issue:', parseData);
         throw new Error('Failed to parse resume - invalid API response');
       }
       
@@ -162,7 +164,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model: 'gpt-4o',
           messages: [
             {
               role: 'system',
@@ -245,7 +247,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4o',
         messages: [
           {
             role: 'system',
