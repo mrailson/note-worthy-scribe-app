@@ -2675,6 +2675,8 @@ export type Database = {
         Row: {
           created_at: string
           email: string
+          gp_onsite_rate: number | null
+          gp_remote_rate: number | null
           hourly_rate: number | null
           id: string
           is_active: boolean
@@ -2688,6 +2690,8 @@ export type Database = {
         Insert: {
           created_at?: string
           email: string
+          gp_onsite_rate?: number | null
+          gp_remote_rate?: number | null
           hourly_rate?: number | null
           id?: string
           is_active?: boolean
@@ -2701,6 +2705,8 @@ export type Database = {
         Update: {
           created_at?: string
           email?: string
+          gp_onsite_rate?: number | null
+          gp_remote_rate?: number | null
           hourly_rate?: number | null
           id?: string
           is_active?: boolean
