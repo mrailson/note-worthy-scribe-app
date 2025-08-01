@@ -49,6 +49,15 @@ serve(async (req) => {
 
     let extractedData;
 
+    // Truncate content if too long to avoid OpenAI token limits
+    const maxContentLength = 100000; // Approximately 25,000 tokens to be safe
+    let processedFileContent = fileContent;
+    
+    if (!isImage && fileContent.length > maxContentLength) {
+      console.log(`Content too long (${fileContent.length} chars), truncating to ${maxContentLength} chars`);
+      processedFileContent = fileContent.substring(0, maxContentLength) + "\n\n[Content truncated due to length]";
+    }
+
     if (isImage) {
       // For images, use OpenAI Vision to extract text first, then parse
       console.log('Processing image with OpenAI Vision...');
@@ -83,7 +92,7 @@ serve(async (req) => {
       });
 
       const visionData = await visionResponse.json();
-      console.log('Vision API full response:', JSON.stringify(visionData));
+      console.log('Vision API response status:', visionResponse.status);
       if (!visionData.choices || !visionData.choices[0] || !visionData.choices[0].message || !visionData.choices[0].message.content) {
         console.error('Vision API response structure issue:', visionData);
         throw new Error('Failed to extract text from image - invalid API response');
@@ -100,7 +109,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4o',
+          model: 'gpt-4o-mini',
           messages: [
             {
               role: 'system',
@@ -156,7 +165,7 @@ serve(async (req) => {
       });
 
       const parseData = await parseResponse.json();
-      console.log('Parse API full response:', JSON.stringify(parseData));
+      console.log('Parse API response status:', parseResponse.status);
       if (!parseData.choices || !parseData.choices[0] || !parseData.choices[0].message || !parseData.choices[0].message.content) {
         console.error('Parse API response structure issue:', parseData);
         throw new Error('Failed to parse resume - invalid API response');
@@ -172,6 +181,8 @@ serve(async (req) => {
       
     } else {
       // For text files, parse directly
+      console.log(`Processing text file with ${processedFileContent.length} characters`);
+      
       const parseResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -179,7 +190,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4o',
+          model: 'gpt-4o-mini',
           messages: [
             {
               role: 'system',
@@ -227,7 +238,7 @@ serve(async (req) => {
             },
             {
               role: 'user',
-              content: `Parse this contractor resume:\n\n${fileContent}`
+              content: `Parse this contractor resume:\n\n${processedFileContent}`
             }
           ],
           temperature: 0.1,
@@ -235,6 +246,7 @@ serve(async (req) => {
       });
 
       const parseData = await parseResponse.json();
+      console.log('Parse API response status:', parseResponse.status);
       if (!parseData.choices || !parseData.choices[0] || !parseData.choices[0].message || !parseData.choices[0].message.content) {
         console.error('Parse API response:', parseData);
         throw new Error('Failed to parse resume - invalid API response');
