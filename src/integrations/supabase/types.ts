@@ -992,6 +992,295 @@ export type Database = {
         }
         Relationships: []
       }
+      contractor_competencies: {
+        Row: {
+          competency_type: string
+          contractor_id: string
+          expiry_date: string | null
+          extracted_at: string
+          id: string
+          issuing_body: string | null
+          level: string | null
+          name: string
+          verified: boolean | null
+        }
+        Insert: {
+          competency_type: string
+          contractor_id: string
+          expiry_date?: string | null
+          extracted_at?: string
+          id?: string
+          issuing_body?: string | null
+          level?: string | null
+          name: string
+          verified?: boolean | null
+        }
+        Update: {
+          competency_type?: string
+          contractor_id?: string
+          expiry_date?: string | null
+          extracted_at?: string
+          id?: string
+          issuing_body?: string | null
+          level?: string | null
+          name?: string
+          verified?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contractor_competencies_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "contractors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contractor_experience: {
+        Row: {
+          contractor_id: string
+          description: string | null
+          employer: string
+          end_date: string | null
+          extracted_at: string
+          id: string
+          is_current: boolean | null
+          position: string | null
+          start_date: string | null
+        }
+        Insert: {
+          contractor_id: string
+          description?: string | null
+          employer: string
+          end_date?: string | null
+          extracted_at?: string
+          id?: string
+          is_current?: boolean | null
+          position?: string | null
+          start_date?: string | null
+        }
+        Update: {
+          contractor_id?: string
+          description?: string | null
+          employer?: string
+          end_date?: string | null
+          extracted_at?: string
+          id?: string
+          is_current?: boolean | null
+          position?: string | null
+          start_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contractor_experience_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "contractors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contractor_notes: {
+        Row: {
+          content: string
+          contractor_id: string
+          created_at: string
+          id: string
+          is_internal: boolean | null
+          note_type: string | null
+          title: string | null
+          user_id: string
+        }
+        Insert: {
+          content: string
+          contractor_id: string
+          created_at?: string
+          id?: string
+          is_internal?: boolean | null
+          note_type?: string | null
+          title?: string | null
+          user_id: string
+        }
+        Update: {
+          content?: string
+          contractor_id?: string
+          created_at?: string
+          id?: string
+          is_internal?: boolean | null
+          note_type?: string | null
+          title?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contractor_notes_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "contractors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contractor_recommendations: {
+        Row: {
+          contractor_id: string
+          created_at: string
+          description: string
+          id: string
+          priority: string | null
+          recommendation_type: string
+          status: string | null
+          title: string
+        }
+        Insert: {
+          contractor_id: string
+          created_at?: string
+          description: string
+          id?: string
+          priority?: string | null
+          recommendation_type: string
+          status?: string | null
+          title: string
+        }
+        Update: {
+          contractor_id?: string
+          created_at?: string
+          description?: string
+          id?: string
+          priority?: string | null
+          recommendation_type?: string
+          status?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contractor_recommendations_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "contractors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contractor_resumes: {
+        Row: {
+          contractor_id: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          file_type: string
+          id: string
+          parsed_content: string | null
+          processing_status: string | null
+          raw_extracted_data: Json | null
+          uploaded_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          contractor_id: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          file_type: string
+          id?: string
+          parsed_content?: string | null
+          processing_status?: string | null
+          raw_extracted_data?: Json | null
+          uploaded_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          contractor_id?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          file_type?: string
+          id?: string
+          parsed_content?: string | null
+          processing_status?: string | null
+          raw_extracted_data?: Json | null
+          uploaded_at?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contractor_resumes_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "contractors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contractors: {
+        Row: {
+          ai_summary: string | null
+          availability_date: string | null
+          availability_score: number | null
+          availability_status: string | null
+          certification_score: number | null
+          completeness_score: number | null
+          created_at: string
+          email: string | null
+          experience_score: number | null
+          id: string
+          location: string | null
+          name: string
+          overall_score: number | null
+          phone: string | null
+          red_flags: string[] | null
+          status: string | null
+          trade: string
+          updated_at: string
+          user_id: string
+          verified: boolean | null
+        }
+        Insert: {
+          ai_summary?: string | null
+          availability_date?: string | null
+          availability_score?: number | null
+          availability_status?: string | null
+          certification_score?: number | null
+          completeness_score?: number | null
+          created_at?: string
+          email?: string | null
+          experience_score?: number | null
+          id?: string
+          location?: string | null
+          name: string
+          overall_score?: number | null
+          phone?: string | null
+          red_flags?: string[] | null
+          status?: string | null
+          trade: string
+          updated_at?: string
+          user_id: string
+          verified?: boolean | null
+        }
+        Update: {
+          ai_summary?: string | null
+          availability_date?: string | null
+          availability_score?: number | null
+          availability_status?: string | null
+          certification_score?: number | null
+          completeness_score?: number | null
+          created_at?: string
+          email?: string | null
+          experience_score?: number | null
+          id?: string
+          location?: string | null
+          name?: string
+          overall_score?: number | null
+          phone?: string | null
+          red_flags?: string[] | null
+          status?: string | null
+          trade?: string
+          updated_at?: string
+          user_id?: string
+          verified?: boolean | null
+        }
+        Relationships: []
+      }
       cqc_ai_sessions: {
         Row: {
           created_at: string | null
