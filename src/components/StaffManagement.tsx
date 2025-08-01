@@ -107,33 +107,60 @@ export const StaffManagement = () => {
   };
 
   const handleSubmit = async () => {
+    console.log('Submit button clicked');
+    console.log('Form data:', formData);
+    
+    // Basic validation
+    if (!formData.name.trim()) {
+      toast.error('Name is required');
+      return;
+    }
+    
+    if (!formData.email.trim()) {
+      toast.error('Email is required');
+      return;
+    }
+    
     try {
       const staffData = {
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone || null,
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        phone: formData.phone?.trim() || null,
         role: formData.role,
         hourly_rate: formData.hourly_rate ? parseFloat(formData.hourly_rate) : null,
         gp_onsite_rate: formData.gp_onsite_rate ? parseFloat(formData.gp_onsite_rate) : null,
         gp_remote_rate: formData.gp_remote_rate ? parseFloat(formData.gp_remote_rate) : null,
-        notes: formData.notes || null,
+        notes: formData.notes?.trim() || null,
         is_active: true,
       };
 
+      console.log('Staff data to submit:', staffData);
+
       if (editingStaff) {
+        console.log('Updating existing staff member:', editingStaff.id);
         const { error } = await supabase
           .from('staff_members')
           .update(staffData)
           .eq('id', editingStaff.id);
 
-        if (error) throw error;
+        if (error) {
+          console.error('Update error:', error);
+          throw error;
+        }
         toast.success('Staff member updated successfully');
       } else {
-        const { error } = await supabase
+        console.log('Adding new staff member');
+        const { data, error } = await supabase
           .from('staff_members')
-          .insert([staffData]);
+          .insert([staffData])
+          .select();
 
-        if (error) throw error;
+        if (error) {
+          console.error('Insert error:', error);
+          throw error;
+        }
+        
+        console.log('Successfully added staff member:', data);
         toast.success('Staff member added successfully');
       }
 
@@ -142,8 +169,8 @@ export const StaffManagement = () => {
       setFormData({ name: '', email: '', phone: '', role: 'gp', hourly_rate: '', gp_onsite_rate: '', gp_remote_rate: '', notes: '' });
       fetchStaffMembers();
     } catch (error) {
-      toast.error('Failed to save staff member');
-      console.error('Error:', error);
+      console.error('Submit error details:', error);
+      toast.error(`Failed to save staff member: ${error.message || 'Unknown error'}`);
     }
   };
 
