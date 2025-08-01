@@ -31,7 +31,8 @@ import {
   MessageSquare,
   Download,
   X,
-  FileImage
+  FileImage,
+  Trash2
 } from "lucide-react";
 
 interface Contractor {
@@ -165,6 +166,31 @@ const ContractorManagement = () => {
       setCompetencies(compData || []);
       setExperience(expData || []);
       setRecommendations(recData || []);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const deleteContractor = async (contractorId: string, contractorName: string) => {
+    try {
+      const { error } = await supabase
+        .from('contractors')
+        .delete()
+        .eq('id', contractorId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `${contractorName} has been deleted`,
+      });
+
+      // Refresh the contractors list
+      fetchContractors();
     } catch (error: any) {
       toast({
         title: "Error",
@@ -634,7 +660,20 @@ const ContractorManagement = () => {
 
               {/* Status */}
               <div className="flex justify-between items-center">
-                {getStatusBadge(contractor.status)}
+                <div className="flex items-center gap-2">
+                  {getStatusBadge(contractor.status)}
+                  {contractor.status === 'error' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => deleteContractor(contractor.id, contractor.name)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-3 w-3 mr-1" />
+                      Delete
+                    </Button>
+                  )}
+                </div>
                 <Button 
                   variant="outline" 
                   size="sm"
