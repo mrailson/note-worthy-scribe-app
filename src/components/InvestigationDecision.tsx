@@ -402,6 +402,21 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
           .eq('id', existingOutcome.id);
 
         if (error) throw error;
+        
+        // Update complaint status to closed if not already
+        const { error: statusError } = await supabase
+          .from('complaints')
+          .update({ 
+            status: 'closed',
+            closed_at: new Date().toISOString()
+          })
+          .eq('id', complaintId)
+          .neq('status', 'closed'); // Only update if not already closed
+
+        if (statusError) {
+          console.error('Failed to update complaint status:', statusError);
+          // Don't throw error here, outcome letter was still saved successfully
+        }
       } else {
         // Create new outcome (this would require decision data)
         if (!decision) return;
@@ -420,6 +435,8 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
 
         if (error) throw error;
         setExistingOutcome(data);
+        
+        // Status will be automatically updated by the database trigger
       }
 
       // Add audit log
