@@ -1332,7 +1332,123 @@ const ComplaintDetails = () => {
                 </CardContent>
               </Card>
 
-              {/* Investigation Workflow */}
+              {/* Outcome Letter Section */}
+              {existingOutcome && outcomeLetter && (
+                <Card className="border-green-200 bg-green-50">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-green-800">
+                      <FileText className="h-5 w-5" />
+                      Outcome Letter Available
+                    </CardTitle>
+                    <CardDescription className="text-green-700">
+                      The final outcome letter for this complaint has been generated and is ready to view or download
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex flex-col gap-2">
+                          <Badge variant="default" className="bg-green-600 text-white">
+                            Outcome: {existingOutcome.outcome_type?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                          </Badge>
+                          {existingOutcome.decided_at && (
+                            <div className="text-sm text-green-700">
+                              Decided: {format(new Date(existingOutcome.decided_at), 'dd/MM/yyyy HH:mm')}
+                            </div>
+                          )}
+                        </div>
+                        <div className="space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowOutcomeLetter(true)}
+                            className="border-green-600 text-green-700 hover:bg-green-100"
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            View Letter
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={async () => {
+                              if (!outcomeLetter || !complaint) return;
+                              
+                              try {
+                                const doc = createLetterDocument(outcomeLetter, 'outcome', complaint.reference_number);
+                                const buffer = await Packer.toBlob(doc);
+                                
+                                const url = window.URL.createObjectURL(buffer);
+                                const link = document.createElement('a');
+                                link.href = url;
+                                link.download = `Outcome_Letter_${complaint.reference_number}.docx`;
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                                window.URL.revokeObjectURL(url);
+                                
+                                toast.success("Outcome letter downloaded successfully");
+                              } catch (error) {
+                                console.error('Error downloading outcome letter:', error);
+                                toast.error("Failed to download outcome letter");
+                              }
+                            }}
+                            className="border-green-600 text-green-700 hover:bg-green-100"
+                          >
+                            <Download className="h-4 w-4 mr-1" />
+                            Download
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      {existingOutcome.outcome_summary && (
+                        <div className="p-3 bg-green-100 rounded border border-green-200">
+                          <Label className="font-medium text-green-800">Outcome Summary:</Label>
+                          <p className="text-sm text-green-700 mt-1">{existingOutcome.outcome_summary}</p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Outcome Letter Dialog */}
+              <Dialog open={showOutcomeLetter} onOpenChange={setShowOutcomeLetter}>
+                <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <FileText className="h-5 w-5" />
+                      Outcome Letter - {complaint?.reference_number}
+                    </DialogTitle>
+                    <DialogDescription>
+                      Final outcome letter for this complaint
+                    </DialogDescription>
+                  </DialogHeader>
+                  
+                  <div className="flex flex-col gap-4 max-h-[60vh]">
+                    <div className="flex-1 overflow-y-auto border rounded-lg bg-white">
+                      <div className="p-6">
+                        <div className="prose prose-sm max-w-none">
+                          <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">
+                            {outcomeLetter}
+                          </pre>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex justify-end gap-2">
+                      <Button variant="outline" onClick={() => setShowOutcomeLetter(false)}>
+                        Close
+                      </Button>
+                      <Button onClick={() => {
+                        navigator.clipboard.writeText(outcomeLetter);
+                        toast.success('Letter copied to clipboard');
+                      }}>
+                        Copy to Clipboard
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
               {acknowledgementLetter && (
                 <Card>
                   <CardHeader>
