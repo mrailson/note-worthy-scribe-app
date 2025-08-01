@@ -9,7 +9,17 @@ const corsHeaders = {
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const openaiApiKey = Deno.env.get('OPENAI_API_KEY')!;
+const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+
+console.log('Environment check:', {
+  hasSupabaseUrl: !!supabaseUrl,
+  hasSupabaseKey: !!supabaseKey,
+  hasOpenAIKey: !!openaiApiKey
+});
+
+if (!openaiApiKey) {
+  console.error('OPENAI_API_KEY is not set');
+}
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -25,6 +35,11 @@ serve(async (req) => {
     resumeId = requestData.resumeId;
     const { fileContent, isImage = false } = requestData;
     console.log('Processing resume:', resumeId, 'isImage:', isImage);
+
+    // Check if OpenAI API key is available
+    if (!openaiApiKey) {
+      throw new Error('OpenAI API key is not configured. Please add OPENAI_API_KEY to your Supabase secrets.');
+    }
 
     // Update resume status to processing
     await supabase
