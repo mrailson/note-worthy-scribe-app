@@ -29,7 +29,9 @@ import {
   Award,
   Briefcase,
   MessageSquare,
-  Download
+  Download,
+  X,
+  FileImage
 } from "lucide-react";
 
 interface Contractor {
@@ -82,6 +84,13 @@ interface ContractorRecommendation {
   status: string;
 }
 
+interface UploadProgress {
+  fileName: string;
+  progress: number;
+  status: 'uploading' | 'processing' | 'completed' | 'error';
+  error?: string;
+}
+
 const ContractorManagement = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -97,6 +106,8 @@ const ContractorManagement = () => {
   const [recommendations, setRecommendations] = useState<ContractorRecommendation[]>([]);
   const [uploading, setUploading] = useState(false);
   const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress[]>([]);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
   const trades = [
     "Electrician", "Plumber", "Carpenter", "Heating Engineer", "Gas Engineer",
@@ -163,73 +174,164 @@ const ContractorManagement = () => {
     }
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || !user) return;
+  const handleFileSelection = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files) return;
+    
+    const fileArray = Array.from(files);
+    setSelectedFiles(fileArray);
+    
+    // Initialize progress tracking
+    const initialProgress = fileArray.map(file => ({
+      fileName: file.name,
+      progress: 0,
+      status: 'uploading' as const
+    }));
+    setUploadProgress(initialProgress);
+  };
+
+  const removeFile = (index: number) => {
+    const newFiles = selectedFiles.filter((_, i) => i !== index);
+    setSelectedFiles(newFiles);
+    const newProgress = uploadProgress.filter((_, i) => i !== index);
+    setUploadProgress(newProgress);
+  };
+
+  const processImageFile = async (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = reader.result as string;
+        const base64Data = base64.split(',')[1]; // Remove data:image/jpeg;base64, prefix
+        resolve(base64Data);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const getFileContent = async (file: File): Promise<string> => {
+    if (file.type.startsWith('image/')) {
+      // For images, return base64 data for OCR processing
+      return await processImageFile(file);
+    } else {
+      // For text files, read as text
+      return await file.text();
+    }
+  };
+
+  const isImageFile = (file: File): boolean => {
+    return file.type.startsWith('image/');
+  };
+
+  const uploadMultipleFiles = async () => {
+    if (selectedFiles.length === 0 || !user) return;
 
     setUploading(true);
+    
     try {
-      // Create contractor entry first
-      const { data: contractor, error: contractorError } = await supabase
-        .from('contractors')
-        .insert({
-          user_id: user.id,
-          name: 'Processing...',
-          trade: 'Unknown',
-          status: 'pending'
-        })
-        .select()
-        .single();
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const file = selectedFiles[i];
+        
+        // Update progress
+        setUploadProgress(prev => prev.map((p, idx) => 
+          idx === i ? { ...p, status: 'uploading' as const, progress: 10 } : p
+        ));
 
-      if (contractorError) throw contractorError;
+        // Create contractor entry
+        const { data: contractor, error: contractorError } = await supabase
+          .from('contractors')
+          .insert({
+            user_id: user.id,
+            name: 'Processing...',
+            trade: 'Unknown',
+            status: 'pending'
+          })
+          .select()
+          .single();
 
-      // Upload file to storage
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${contractor.id}-${Date.now()}.${fileExt}`;
-      const filePath = `resumes/${fileName}`;
+        if (contractorError) throw contractorError;
 
-      const { error: uploadError } = await supabase.storage
-        .from('contractor-documents')
-        .upload(filePath, file);
+        // Update progress
+        setUploadProgress(prev => prev.map((p, idx) => 
+          idx === i ? { ...p, progress: 30 } : p
+        ));
 
-      if (uploadError) throw uploadError;
+        // Upload file to storage
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${contractor.id}-${Date.now()}.${fileExt}`;
+        const filePath = `resumes/${fileName}`;
 
-      // Create resume record
-      const { data: resume, error: resumeError } = await supabase
-        .from('contractor_resumes')
-        .insert({
-          contractor_id: contractor.id,
-          file_name: file.name,
-          file_path: filePath,
-          file_type: file.type,
-          file_size: file.size,
-          uploaded_by: user.id
-        })
-        .select()
-        .single();
+        const { error: uploadError } = await supabase.storage
+          .from('contractor-documents')
+          .upload(filePath, file);
 
-      if (resumeError) throw resumeError;
+        if (uploadError) throw uploadError;
 
-      // Read file content for processing
-      const fileContent = await file.text();
+        // Update progress
+        setUploadProgress(prev => prev.map((p, idx) => 
+          idx === i ? { ...p, progress: 50 } : p
+        ));
 
-      // Process the resume with AI
-      const { error: processError } = await supabase.functions.invoke('process-contractor-resume', {
-        body: {
-          resumeId: resume.id,
-          fileContent: fileContent
+        // Create resume record
+        const { data: resume, error: resumeError } = await supabase
+          .from('contractor_resumes')
+          .insert({
+            contractor_id: contractor.id,
+            file_name: file.name,
+            file_path: filePath,
+            file_type: file.type,
+            file_size: file.size,
+            uploaded_by: user.id
+          })
+          .select()
+          .single();
+
+        if (resumeError) throw resumeError;
+
+        // Update progress
+        setUploadProgress(prev => prev.map((p, idx) => 
+          idx === i ? { ...p, status: 'processing' as const, progress: 70 } : p
+        ));
+
+        // Get file content
+        const fileContent = await getFileContent(file);
+
+        // Process the resume with AI
+        const { error: processError } = await supabase.functions.invoke('process-contractor-resume', {
+          body: {
+            resumeId: resume.id,
+            fileContent: fileContent,
+            isImage: isImageFile(file)
+          }
+        });
+
+        if (processError) {
+          setUploadProgress(prev => prev.map((p, idx) => 
+            idx === i ? { ...p, status: 'error' as const, error: processError.message } : p
+          ));
+          continue;
         }
-      });
 
-      if (processError) throw processError;
+        // Update progress to completed
+        setUploadProgress(prev => prev.map((p, idx) => 
+          idx === i ? { ...p, status: 'completed' as const, progress: 100 } : p
+        ));
+      }
 
       toast({
         title: "Success",
-        description: "Resume uploaded and processing started",
+        description: `${selectedFiles.length} resume(s) uploaded and processing completed`,
       });
 
-      setShowUploadDialog(false);
-      fetchContractors();
+      // Reset and close dialog after a short delay
+      setTimeout(() => {
+        setShowUploadDialog(false);
+        setSelectedFiles([]);
+        setUploadProgress([]);
+        fetchContractors();
+      }, 2000);
+
     } catch (error: any) {
       toast({
         title: "Error",
@@ -291,30 +393,119 @@ const ContractorManagement = () => {
               Upload Resume
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Upload Contractor Resume</DialogTitle>
+              <DialogTitle>Upload Contractor Resumes</DialogTitle>
               <DialogDescription>
-                Upload a PDF, Word document, or text file. Our AI will automatically extract and analyze the information.
+                Upload multiple resumes at once. Supported formats: PDF, Word documents, text files, and JPEG images. Our AI will automatically extract and analyze the information.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <Label htmlFor="resume">Resume File</Label>
+                <Label htmlFor="resumes">Resume Files (Multiple selection supported)</Label>
                 <Input
-                  id="resume"
+                  id="resumes"
                   type="file"
-                  accept=".pdf,.doc,.docx,.txt"
-                  onChange={handleFileUpload}
+                  accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png"
+                  onChange={handleFileSelection}
+                  multiple
                   disabled={uploading}
+                  className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-primary/90"
                 />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Select multiple files to upload them all at once
+                </p>
               </div>
-              {uploading && (
-                <div className="flex items-center gap-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                  <span>Processing resume...</span>
+
+              {/* Selected Files Preview */}
+              {selectedFiles.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Selected Files ({selectedFiles.length})</Label>
+                  <div className="max-h-32 overflow-y-auto space-y-2">
+                    {selectedFiles.map((file, index) => (
+                      <div key={index} className="flex items-center justify-between p-2 border rounded">
+                        <div className="flex items-center gap-2">
+                          {file.type.startsWith('image/') ? (
+                            <FileImage className="h-4 w-4 text-blue-500" />
+                          ) : (
+                            <FileText className="h-4 w-4 text-gray-500" />
+                          )}
+                          <span className="text-sm truncate max-w-[200px]">{file.name}</span>
+                          <span className="text-xs text-muted-foreground">
+                            ({(file.size / 1024 / 1024).toFixed(1)} MB)
+                          </span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeFile(index)}
+                          disabled={uploading}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
+
+              {/* Upload Progress */}
+              {uploadProgress.length > 0 && (
+                <div className="space-y-3">
+                  <Label>Upload Progress</Label>
+                  {uploadProgress.map((progress, index) => (
+                    <div key={index} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">{progress.fileName}</span>
+                        <div className="flex items-center gap-2">
+                          {progress.status === 'completed' && (
+                            <CheckCircle className="h-4 w-4 text-green-500" />
+                          )}
+                          {progress.status === 'error' && (
+                            <AlertTriangle className="h-4 w-4 text-red-500" />
+                          )}
+                          {progress.status === 'uploading' && (
+                            <Clock className="h-4 w-4 text-blue-500" />
+                          )}
+                          {progress.status === 'processing' && (
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                          )}
+                          <span className="text-sm capitalize text-muted-foreground">
+                            {progress.status}
+                          </span>
+                        </div>
+                      </div>
+                      <Progress value={progress.progress} className="h-2" />
+                      {progress.error && (
+                        <p className="text-xs text-red-500">{progress.error}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Upload Button */}
+              <div className="flex justify-between">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowUploadDialog(false);
+                    setSelectedFiles([]);
+                    setUploadProgress([]);
+                  }}
+                  disabled={uploading}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={uploadMultipleFiles}
+                  disabled={selectedFiles.length === 0 || uploading}
+                  className="flex items-center gap-2"
+                >
+                  <Upload className="h-4 w-4" />
+                  Upload {selectedFiles.length > 0 ? `${selectedFiles.length} File${selectedFiles.length !== 1 ? 's' : ''}` : 'Files'}
+                </Button>
+              </div>
             </div>
           </DialogContent>
         </Dialog>

@@ -19,8 +19,8 @@ serve(async (req) => {
   }
 
   try {
-    const { resumeId, fileContent } = await req.json();
-    console.log('Processing resume:', resumeId);
+    const { resumeId, fileContent, isImage = false } = await req.json();
+    console.log('Processing resume:', resumeId, 'isImage:', isImage);
 
     // Update resume status to processing
     await supabase
@@ -28,71 +28,183 @@ serve(async (req) => {
       .update({ processing_status: 'processing' })
       .eq('id', resumeId);
 
-    // Parse resume content with OpenAI
-    const parseResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openaiApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: `You are an expert contractor resume parser. Extract structured information from contractor resumes.
-            
-            Return ONLY valid JSON with this exact structure:
-            {
-              "personal_info": {
-                "name": "Full Name",
-                "email": "email@example.com",
-                "phone": "+44 123 456 7890",
-                "location": "City, Region"
-              },
-              "trade": "Primary trade (Electrician, Plumber, Carpenter, etc.)",
-              "experience": [
-                {
-                  "employer": "Company Name",
-                  "position": "Job Title",
-                  "start_date": "YYYY-MM-DD or null",
-                  "end_date": "YYYY-MM-DD or null",
-                  "is_current": false,
-                  "description": "Brief description"
-                }
-              ],
-              "competencies": [
-                {
-                  "name": "Skill/Certification Name",
-                  "type": "skill|certification|tool|system",
-                  "level": "basic|intermediate|advanced|expert|unknown",
-                  "expiry_date": "YYYY-MM-DD or null",
-                  "issuing_body": "Organization name or null"
-                }
-              ],
-              "availability": {
-                "status": "immediately|notice_required|unavailable|unknown",
-                "date": "YYYY-MM-DD or null",
-                "notice_period": "e.g., 2 weeks, 1 month, or null"
-              },
-              "years_experience": 0,
-              "red_flags": [
-                "List of potential concerns or gaps"
-              ],
-              "summary": "Brief professional summary"
-            }`
-          },
-          {
-            role: 'user',
-            content: `Parse this contractor resume:\n\n${fileContent}`
-          }
-        ],
-        temperature: 0.1,
-      }),
-    });
+    let extractedData;
 
-    const parseData = await parseResponse.json();
-    const extractedData = JSON.parse(parseData.choices[0].message.content);
+    if (isImage) {
+      // For images, use OpenAI Vision to extract text first, then parse
+      console.log('Processing image with OpenAI Vision...');
+      
+      const visionResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openaiApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Extract all text content from this resume/CV image. Focus on capturing all readable text including personal information, work experience, skills, certifications, and any other relevant details. Preserve the structure and formatting as much as possible.'
+                },
+                {
+                  type: 'image_url',
+                  image_url: {
+                    url: `data:image/jpeg;base64,${fileContent}`
+                  }
+                }
+              ]
+            }
+          ],
+          max_tokens: 4000,
+        }),
+      });
+
+      const visionData = await visionResponse.json();
+      if (!visionData.choices?.[0]?.message?.content) {
+        throw new Error('Failed to extract text from image');
+      }
+      
+      const extractedText = visionData.choices[0].message.content;
+      console.log('Extracted text from image:', extractedText.substring(0, 200) + '...');
+
+      // Now parse the extracted text with the structured parser
+      const parseResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openaiApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: `You are an expert contractor resume parser. Extract structured information from contractor resumes.
+              
+              Return ONLY valid JSON with this exact structure:
+              {
+                "personal_info": {
+                  "name": "Full Name",
+                  "email": "email@example.com",
+                  "phone": "+44 123 456 7890",
+                  "location": "City, Region"
+                },
+                "trade": "Primary trade (Electrician, Plumber, Carpenter, etc.)",
+                "experience": [
+                  {
+                    "employer": "Company Name",
+                    "position": "Job Title",
+                    "start_date": "YYYY-MM-DD or null",
+                    "end_date": "YYYY-MM-DD or null",
+                    "is_current": false,
+                    "description": "Brief description"
+                  }
+                ],
+                "competencies": [
+                  {
+                    "name": "Skill/Certification Name",
+                    "type": "skill|certification|tool|system",
+                    "level": "basic|intermediate|advanced|expert|unknown",
+                    "expiry_date": "YYYY-MM-DD or null",
+                    "issuing_body": "Organization name or null"
+                  }
+                ],
+                "availability": {
+                  "status": "immediately|notice_required|unavailable|unknown",
+                  "date": "YYYY-MM-DD or null",
+                  "notice_period": "e.g., 2 weeks, 1 month, or null"
+                },
+                "years_experience": 0,
+                "red_flags": [
+                  "List of potential concerns or gaps"
+                ],
+                "summary": "Brief professional summary"
+              }`
+            },
+            {
+              role: 'user',
+              content: `Parse this contractor resume text extracted from an image:\n\n${extractedText}`
+            }
+          ],
+          temperature: 0.1,
+        }),
+      });
+
+      const parseData = await parseResponse.json();
+      extractedData = JSON.parse(parseData.choices[0].message.content);
+      
+    } else {
+      // For text files, parse directly
+      const parseResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openaiApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: `You are an expert contractor resume parser. Extract structured information from contractor resumes.
+              
+              Return ONLY valid JSON with this exact structure:
+              {
+                "personal_info": {
+                  "name": "Full Name",
+                  "email": "email@example.com",
+                  "phone": "+44 123 456 7890",
+                  "location": "City, Region"
+                },
+                "trade": "Primary trade (Electrician, Plumber, Carpenter, etc.)",
+                "experience": [
+                  {
+                    "employer": "Company Name",
+                    "position": "Job Title",
+                    "start_date": "YYYY-MM-DD or null",
+                    "end_date": "YYYY-MM-DD or null",
+                    "is_current": false,
+                    "description": "Brief description"
+                  }
+                ],
+                "competencies": [
+                  {
+                    "name": "Skill/Certification Name",
+                    "type": "skill|certification|tool|system",
+                    "level": "basic|intermediate|advanced|expert|unknown",
+                    "expiry_date": "YYYY-MM-DD or null",
+                    "issuing_body": "Organization name or null"
+                  }
+                ],
+                "availability": {
+                  "status": "immediately|notice_required|unavailable|unknown",
+                  "date": "YYYY-MM-DD or null",
+                  "notice_period": "e.g., 2 weeks, 1 month, or null"
+                },
+                "years_experience": 0,
+                "red_flags": [
+                  "List of potential concerns or gaps"
+                ],
+                "summary": "Brief professional summary"
+              }`
+            },
+            {
+              role: 'user',
+              content: `Parse this contractor resume:\n\n${fileContent}`
+            }
+          ],
+          temperature: 0.1,
+        }),
+      });
+
+      const parseData = await parseResponse.json();
+      extractedData = JSON.parse(parseData.choices[0].message.content);
+    }
+    
     console.log('Extracted data:', extractedData);
 
     // Calculate scores
