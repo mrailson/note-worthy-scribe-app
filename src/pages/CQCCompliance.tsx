@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
+import { Header } from "@/components/Header";
 import { useAuth } from "@/contexts/AuthContext";
+import { LoginForm } from "@/components/LoginForm";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -52,8 +54,12 @@ interface PracticeSettings {
 }
 
 const CQCCompliance = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
+
+  const handleNewMeeting = () => {
+    // Navigation logic for new meeting
+  };
   const [domains, setDomains] = useState<CQCDomain[]>([]);
   const [alerts, setAlerts] = useState<ComplianceAlert[]>([]);
   const [practiceSettings, setPracticeSettings] = useState<PracticeSettings>({});
@@ -201,15 +207,40 @@ const CQCCompliance = () => {
 
   // loadDashboardData function handles loading mock data
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-2 text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-background">
+        <Header onNewMeeting={handleNewMeeting} />
+        <div className="container mx-auto px-3 py-6 sm:px-4 sm:py-8">
+          <LoginForm />
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="animate-pulse space-y-6">
-          <div className="h-8 bg-gray-200 rounded w-1/3"></div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="h-32 bg-gray-200 rounded"></div>
-            ))}
+      <div className="min-h-screen bg-gradient-background">
+        <Header onNewMeeting={handleNewMeeting} />
+        <div className="container mx-auto p-6">
+          <div className="animate-pulse space-y-6">
+            <div className="h-8 bg-gray-200 rounded w-1/3"></div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="h-32 bg-gray-200 rounded"></div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -219,6 +250,8 @@ const CQCCompliance = () => {
   const daysUntilInspection = getDaysUntilInspection();
 
   return (
+    <div className="min-h-screen bg-gradient-background">
+      <Header onNewMeeting={handleNewMeeting} />
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
@@ -414,6 +447,7 @@ const CQCCompliance = () => {
           </div>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 };
