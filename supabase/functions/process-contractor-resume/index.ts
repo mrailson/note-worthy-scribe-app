@@ -18,8 +18,12 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  let resumeId: string | undefined;
+  
   try {
-    const { resumeId, fileContent, isImage = false } = await req.json();
+    const requestData = await req.json();
+    resumeId = requestData.resumeId;
+    const { fileContent, isImage = false } = requestData;
     console.log('Processing resume:', resumeId, 'isImage:', isImage);
 
     // Update resume status to processing
@@ -64,8 +68,9 @@ serve(async (req) => {
       });
 
       const visionData = await visionResponse.json();
-      if (!visionData.choices?.[0]?.message?.content) {
-        throw new Error('Failed to extract text from image');
+      if (!visionData.choices || !visionData.choices[0] || !visionData.choices[0].message || !visionData.choices[0].message.content) {
+        console.error('Vision API response:', visionData);
+        throw new Error('Failed to extract text from image - invalid API response');
       }
       
       const extractedText = visionData.choices[0].message.content;
@@ -135,7 +140,18 @@ serve(async (req) => {
       });
 
       const parseData = await parseResponse.json();
-      extractedData = JSON.parse(parseData.choices[0].message.content);
+      if (!parseData.choices || !parseData.choices[0] || !parseData.choices[0].message || !parseData.choices[0].message.content) {
+        console.error('Parse API response:', parseData);
+        throw new Error('Failed to parse resume - invalid API response');
+      }
+      
+      let parseContent = parseData.choices[0].message.content;
+      // Clean up markdown formatting if present
+      if (parseContent.includes('```json')) {
+        parseContent = parseContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      }
+      
+      extractedData = JSON.parse(parseContent);
       
     } else {
       // For text files, parse directly
@@ -202,7 +218,18 @@ serve(async (req) => {
       });
 
       const parseData = await parseResponse.json();
-      extractedData = JSON.parse(parseData.choices[0].message.content);
+      if (!parseData.choices || !parseData.choices[0] || !parseData.choices[0].message || !parseData.choices[0].message.content) {
+        console.error('Parse API response:', parseData);
+        throw new Error('Failed to parse resume - invalid API response');
+      }
+      
+      let parseContent = parseData.choices[0].message.content;
+      // Clean up markdown formatting if present
+      if (parseContent.includes('```json')) {
+        parseContent = parseContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      }
+      
+      extractedData = JSON.parse(parseContent);
     }
     
     console.log('Extracted data:', extractedData);
@@ -247,7 +274,18 @@ serve(async (req) => {
     });
 
     const analysisData = await analysisResponse.json();
-    const analysis = JSON.parse(analysisData.choices[0].message.content);
+    if (!analysisData.choices || !analysisData.choices[0] || !analysisData.choices[0].message || !analysisData.choices[0].message.content) {
+      console.error('Analysis API response:', analysisData);
+      throw new Error('Failed to analyze resume - invalid API response');
+    }
+    
+    let analysisContent = analysisData.choices[0].message.content;
+    // Clean up markdown formatting if present
+    if (analysisContent.includes('```json')) {
+      analysisContent = analysisContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    }
+    
+    const analysis = JSON.parse(analysisContent);
 
     // Get the contractor from the resume
     const { data: resume } = await supabase
@@ -352,12 +390,29 @@ serve(async (req) => {
     console.error('Error processing resume:', error);
     
     // Update resume status to failed if resumeId is available
-    const body = await req.clone().json().catch(() => ({}));
-    if (body.resumeId) {
-      await supabase
-        .from('contractor_resumes')
-        .update({ processing_status: 'failed' })
-        .eq('id', body.resumeId);
+    if (resumeId) {
+      try {
+        await supabase
+          .from('contractor_resumes')
+          .update({ processing_status: 'failed' })
+          .eq('id', resumeId);
+          
+        // Also update contractor status
+        const { data: resume } = await supabase
+          .from('contractor_resumes')
+          .select('contractor_id')
+          .eq('id', resumeId)
+          .single();
+          
+        if (resume) {
+          await supabase
+            .from('contractors')
+            .update({ status: 'error' })
+            .eq('id', resume.contractor_id);
+        }
+      } catch (updateError) {
+        console.error('Could not update status after error:', updateError);
+      }
     }
 
     return new Response(JSON.stringify({ error: error.message }), {
