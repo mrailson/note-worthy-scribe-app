@@ -262,6 +262,39 @@ const ComplaintDetails = () => {
     }
   }, [user, complaintId]);
 
+  // Refresh compliance data when active tab changes to ensure sync
+  useEffect(() => {
+    if (activeTab === 'compliance' && user && complaintId) {
+      fetchComplianceData();
+    }
+  }, [activeTab, user, complaintId]);
+
+  // Set up real-time listener for compliance changes to sync between tabs
+  useEffect(() => {
+    if (!user || !complaintId) return;
+
+    const channel = supabase
+      .channel('compliance-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'complaint_compliance_checks',
+          filter: `complaint_id=eq.${complaintId}`
+        },
+        () => {
+          // Refresh compliance data when any check is updated
+          fetchComplianceData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, complaintId]);
+
   // Conditional return AFTER all hooks are called
   if (!user) {
     return <LoginForm />;
@@ -339,6 +372,49 @@ const ComplaintDetails = () => {
     } catch (error) {
       console.error('Error updating compliance check:', error);
       toast.error("Failed to update compliance check");
+    }
+  };
+
+  const markAllCompliant = async () => {
+    try {
+      // Get all non-compliant items
+      const nonCompliantChecks = complianceChecks.filter(check => !check.is_compliant);
+
+      if (nonCompliantChecks.length === 0) {
+        toast.success("All items are already completed");
+        return;
+      }
+
+      // Update each item individually
+      for (const check of nonCompliantChecks) {
+        const { error } = await supabase
+          .from('complaint_compliance_checks')
+          .update({
+            is_compliant: true,
+            checked_at: new Date().toISOString(),
+            checked_by: user.id
+          })
+          .eq('id', check.id);
+
+        if (error) throw error;
+      }
+
+      // Update local state
+      setComplianceChecks(prev => 
+        prev.map(check => ({
+          ...check,
+          is_compliant: true,
+          checked_at: new Date().toISOString()
+        }))
+      );
+
+      // Refresh compliance summary
+      fetchComplianceData();
+      
+      toast.success(`Marked ${nonCompliantChecks.length} items as completed`);
+    } catch (error) {
+      console.error('Error marking all items as compliant:', error);
+      toast.error("Failed to mark all items as completed");
     }
   };
 
@@ -1481,8 +1557,23 @@ const ComplaintDetails = () => {
             <TabsContent value="compliance" className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>NHS Compliance Overview</CardTitle>
-                  <CardDescription>Track compliance with NHS England complaints procedures and CQC requirements</CardDescription>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>NHS Compliance Overview</CardTitle>
+                      <CardDescription>Track compliance with NHS England complaints procedures and CQC requirements</CardDescription>
+                    </div>
+                    {complianceChecks.length > 0 && complianceSummary?.compliance_percentage !== 100 && (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={markAllCompliant}
+                        className="flex items-center gap-2"
+                      >
+                        <CheckCircle className="h-4 w-4" />
+                        Mark All Compliant
+                      </Button>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent>
                   {complianceSummary && (
