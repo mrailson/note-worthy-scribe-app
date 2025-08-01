@@ -9,7 +9,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
-import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning, Sparkles, Mail, Users, Clock, FolderOpen } from "lucide-react";
+import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning, Sparkles, Mail, Users, Clock, FolderOpen, Wrench } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -151,22 +151,29 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                         Enhanced Access
                       </DropdownMenuItem>
                      )}
-                     <DropdownMenuItem 
-                       onClick={() => navigate('/cqc-compliance')}
-                       className="cursor-pointer py-3"
-                     >
-                       <Shield className="h-4 w-4 mr-2" />
-                       CQC Compliance
-                     </DropdownMenuItem>
-                    {sharedDriveVisible && (
                       <DropdownMenuItem 
-                        onClick={() => navigate('/shared-drive')}
+                        onClick={() => navigate('/cqc-compliance')}
                         className="cursor-pointer py-3"
                       >
-                        <FolderOpen className="h-4 w-4 mr-2" />
-                        Shared Drive
+                        <Shield className="h-4 w-4 mr-2" />
+                        CQC Compliance
                       </DropdownMenuItem>
-                    )}
+                      <DropdownMenuItem 
+                        onClick={() => navigate('/contractor-finder')}
+                        className="cursor-pointer py-3"
+                      >
+                        <Wrench className="h-4 w-4 mr-2" />
+                        Contractor Finder
+                      </DropdownMenuItem>
+                     {sharedDriveVisible && (
+                       <DropdownMenuItem 
+                         onClick={() => navigate('/shared-drive')}
+                         className="cursor-pointer py-3"
+                       >
+                         <FolderOpen className="h-4 w-4 mr-2" />
+                         Shared Drive
+                       </DropdownMenuItem>
+                     )}
                  </DropdownMenuContent>
               </DropdownMenu>
             )}
