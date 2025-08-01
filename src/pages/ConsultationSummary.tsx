@@ -849,7 +849,7 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
               <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 bg-muted/50 p-1 rounded-xl">
                 <TabsTrigger 
                   value="gp-summary" 
-                  className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                  className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-blue-700 data-[state=active]:font-semibold"
                 >
                   <Users className="h-4 w-4 mr-1 lg:mr-2" />
                   <span className="hidden sm:inline">GP Summary</span>
@@ -857,7 +857,7 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                 </TabsTrigger>
                 <TabsTrigger 
                   value="patient-copy" 
-                  className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                  className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-blue-700 data-[state=active]:font-semibold"
                 >
                   <MessageSquare className="h-4 w-4 mr-1 lg:mr-2" />
                   <span className="hidden sm:inline">Patient Copy</span>
@@ -865,7 +865,7 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                 </TabsTrigger>
                 <TabsTrigger 
                   value="referral" 
-                  className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                  className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-blue-700 data-[state=active]:font-semibold"
                 >
                   <FileText className="h-4 w-4 mr-1 lg:mr-2" />
                   <span className="hidden sm:inline">Referral</span>
@@ -873,7 +873,7 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                 </TabsTrigger>
                 <TabsTrigger 
                   value="review" 
-                  className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                  className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-blue-700 data-[state=active]:font-semibold"
                 >
                   <div className="flex items-center gap-1">
                     <BookOpen className="h-4 w-4 mr-1 lg:mr-2" />
