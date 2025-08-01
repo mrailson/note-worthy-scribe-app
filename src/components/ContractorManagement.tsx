@@ -662,7 +662,7 @@ const ContractorManagement = () => {
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
                   {getStatusBadge(contractor.status)}
-                  {contractor.status === 'error' && (
+                  {(contractor.status === 'error' || contractor.status === 'pending') && (
                     <Button
                       variant="outline"
                       size="sm"
