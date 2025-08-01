@@ -338,7 +338,7 @@ const ComplaintDetails = () => {
       under_review: "Under Review",
       response_sent: "Response Sent", 
       closed: "Closed",
-      resolved: "Resolved"
+      escalated: "Escalated"
     };
     return statusMap[status] || status;
   };
@@ -554,6 +554,21 @@ const ComplaintDetails = () => {
         .eq('complaint_id', complaint.id);
 
       if (error) throw error;
+
+      // Update complaint status to under_review if not already
+      const { error: statusError } = await supabase
+        .from('complaints')
+        .update({ 
+          status: 'under_review',
+          acknowledged_at: new Date().toISOString()
+        })
+        .eq('id', complaint.id)
+        .neq('status', 'under_review'); // Only update if not already under_review
+
+      if (statusError) {
+        console.error('Failed to update complaint status:', statusError);
+        // Don't throw error here, acknowledgement letter was still saved successfully
+      }
 
       setAcknowledgementLetter(editedAcknowledgementContent);
       setIsEditingAcknowledgement(false);
