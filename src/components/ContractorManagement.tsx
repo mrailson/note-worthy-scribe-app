@@ -382,7 +382,7 @@ const ContractorManagement = () => {
       {/* Header with Upload */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Contractor Management</h1>
+          <h1 className="text-3xl font-bold">Tradesman International - Contractor Matching Service</h1>
           <p className="text-muted-foreground">AI-powered contractor screening and management</p>
         </div>
         
