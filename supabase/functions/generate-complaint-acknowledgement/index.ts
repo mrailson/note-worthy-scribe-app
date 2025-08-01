@@ -177,6 +177,20 @@ CRITICAL: Never include personal email addresses or direct contact details in th
       throw new Error('Failed to store acknowledgement');
     }
 
+    // Update complaint status to "under_review" after acknowledgement is generated
+    const { error: statusError } = await supabase
+      .from('complaints')
+      .update({ 
+        status: 'under_review',
+        acknowledged_at: new Date().toISOString()
+      })
+      .eq('id', complaintId);
+
+    if (statusError) {
+      console.error('Failed to update complaint status:', statusError);
+      // Don't throw error here, acknowledgement was still generated successfully
+    }
+
     return new Response(JSON.stringify({ 
       acknowledgementLetter,
       usage: data.usage 
