@@ -31,15 +31,19 @@ serve(async (req) => {
   let resumeId: string | undefined;
   
   try {
+    console.log('Function started processing request');
     const requestData = await req.json();
     resumeId = requestData.resumeId;
     const { fileContent, isImage = false } = requestData;
-    console.log('Processing resume:', resumeId, 'isImage:', isImage);
+    console.log('Processing resume:', resumeId, 'isImage:', isImage, 'contentLength:', fileContent?.length);
 
     // Check if OpenAI API key is available
     if (!openaiApiKey) {
+      console.error('OpenAI API key is missing');
       throw new Error('OpenAI API key is not configured. Please add OPENAI_API_KEY to your Supabase secrets.');
     }
+
+    console.log('OpenAI API key is available, proceeding with processing');
 
     // Update resume status to processing
     await supabase
