@@ -1070,14 +1070,14 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                   <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-1 rounded-xl">
                     <TabsTrigger 
                       value="sms" 
-                      className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                      className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-blue-700 data-[state=active]:font-semibold"
                     >
                       <MessageSquare className="h-4 w-4 mr-2" />
                       SMS (50 words)
                     </TabsTrigger>
                     <TabsTrigger 
                       value="email" 
-                      className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                      className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-blue-700 data-[state=active]:font-semibold"
                     >
                       <Mail className="h-4 w-4 mr-2" />
                       Email Format
