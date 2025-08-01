@@ -158,13 +158,6 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                         <Shield className="h-4 w-4 mr-2" />
                         CQC Compliance
                       </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => navigate('/contractor-finder')}
-                        className="cursor-pointer py-3"
-                      >
-                        <Wrench className="h-4 w-4 mr-2" />
-                        Contractor Finder
-                      </DropdownMenuItem>
                      {sharedDriveVisible && (
                        <DropdownMenuItem 
                          onClick={() => navigate('/shared-drive')}

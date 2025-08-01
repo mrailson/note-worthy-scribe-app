@@ -16,7 +16,7 @@ import SharedDrive from "./pages/SharedDrive";
 import AI4PMService from "./pages/AI4PMService";
 import EnhancedAccess from "./pages/EnhancedAccess";
 import CQCCompliance from "./pages/CQCCompliance";
-import ContractorFinder from "./pages/ContractorFinder";
+
 
 import NotFound from "./pages/NotFound";
 import { ResetPassword } from "./components/ResetPassword";
@@ -43,7 +43,7 @@ const App = () => (
       <Route path="/ai-4-pm" element={<AI4PMService />} />
       <Route path="/enhanced-access" element={<EnhancedAccess />} />
       <Route path="/cqc-compliance" element={<CQCCompliance />} />
-      <Route path="/contractor-finder" element={<ContractorFinder />} />
+      
       <Route path="/reset-password" element={<ResetPassword />} />
       
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
