@@ -324,7 +324,8 @@ const ContractorManagement = () => {
         const fileContent = await getFileContent(file);
 
         // Process the resume with AI
-        const { error: processError } = await supabase.functions.invoke('process-contractor-resume', {
+        console.log('Invoking process-contractor-resume function for resume:', resume.id);
+        const { data: processData, error: processError } = await supabase.functions.invoke('process-contractor-resume', {
           body: {
             resumeId: resume.id,
             fileContent: fileContent,
@@ -332,7 +333,10 @@ const ContractorManagement = () => {
           }
         });
 
+        console.log('Process response:', { processData, processError });
+
         if (processError) {
+          console.error('Process error details:', processError);
           setUploadProgress(prev => prev.map((p, idx) => 
             idx === i ? { ...p, status: 'error' as const, error: processError.message } : p
           ));
