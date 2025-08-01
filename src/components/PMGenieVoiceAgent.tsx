@@ -139,7 +139,7 @@ const PMGenieVoiceAgent = () => {
   }, []);
 
   return (
-    <Card className="w-full max-w-4xl mx-auto">
+    <Card className="w-full">
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
