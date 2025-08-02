@@ -1700,7 +1700,7 @@ I am committed to ensuring that all patients receive the care and service they d
                                             updatedStaff[index].email = e.target.value;
                                             setSelectedStaff(updatedStaff);
                                           }}
-                                          className="text-xs h-6"
+                                          className="text-xs h-6 w-80"
                                           maxLength={50}
                                         />
                                         <span className="text-xs text-red-500">Email required</span>
