@@ -56,6 +56,9 @@ interface MeetingData {
   startTime: string;
   practiceName?: string;
   generatedNotes?: string;
+  startedBy?: string;
+  needsAudioBackup?: boolean;
+  audioBackupBlob?: Blob | null;
 }
 
 export default function MeetingSummary() {
@@ -281,6 +284,31 @@ export default function MeetingSummary() {
         // No default practice found
       }
 
+      // Handle audio backup if needed
+      let audioBackupPath = null;
+      if (data.needsAudioBackup && data.audioBackupBlob && user) {
+        try {
+          console.log('📤 Uploading audio backup...');
+          const fileName = `${user.id}/${Date.now()}_backup.webm`;
+          
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('meeting-audio-backups')
+            .upload(fileName, data.audioBackupBlob, {
+              contentType: 'audio/webm',
+              upsert: false
+            });
+
+          if (uploadError) {
+            console.error('Failed to upload audio backup:', uploadError);
+          } else {
+            audioBackupPath = uploadData.path;
+            console.log('✅ Audio backup uploaded successfully');
+          }
+        } catch (error) {
+          console.error('Error uploading audio backup:', error);
+        }
+      }
+
       const { data: meeting, error: meetingError } = await supabase
         .from('meetings')
         .insert({
@@ -290,7 +318,10 @@ export default function MeetingSummary() {
           end_time: new Date().toISOString(),
           duration_minutes: Math.floor(parseInt(data.duration.split(':')[0]) + parseInt(data.duration.split(':')[1]) / 60),
           status: 'completed',
-          meeting_type: 'general'
+          meeting_type: 'general',
+          requires_audio_backup: data.needsAudioBackup || false,
+          audio_backup_path: audioBackupPath,
+          audio_backup_created_at: audioBackupPath ? new Date().toISOString() : null
         })
         .select()
         .single();

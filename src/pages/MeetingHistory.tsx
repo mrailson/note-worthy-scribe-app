@@ -109,7 +109,7 @@ const MeetingHistory = () => {
       // Fetch meeting details
       const { data: meeting, error: meetingError } = await supabase
         .from('meetings')
-        .select('*')
+        .select('*, audio_backup_path, audio_backup_created_at, requires_audio_backup')
         .eq('id', meetingId)
         .eq('user_id', user?.id)
         .single();
@@ -203,7 +203,7 @@ const MeetingHistory = () => {
       // Fetch meeting details
       const { data: meeting, error: meetingError } = await supabase
         .from('meetings')
-        .select('*')
+        .select('*, audio_backup_path, audio_backup_created_at, requires_audio_backup')
         .eq('id', meetingId)
         .eq('user_id', user?.id)
         .single();
@@ -564,6 +564,9 @@ const MeetingHistory = () => {
           created_at,
           location,
           format,
+          audio_backup_path,
+          audio_backup_created_at,
+          requires_audio_backup,
           meeting_overviews(overview)
         `)
         .eq('user_id', user?.id)

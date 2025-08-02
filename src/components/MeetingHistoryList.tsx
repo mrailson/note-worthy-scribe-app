@@ -14,7 +14,9 @@ import {
   AlertCircle,
   Edit,
   FileTextIcon,
-  Copy
+  Copy,
+  Volume2,
+  Download
 } from "lucide-react";
 import {
   AlertDialog,
@@ -29,6 +31,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 import { MeetingOverviewEditor } from "@/components/MeetingOverviewEditor";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface Meeting {
   id: string;
@@ -44,6 +48,9 @@ interface Meeting {
   summary_exists?: boolean;
   meeting_summary?: string;
   overview?: string | null;
+  audio_backup_path?: string | null;
+  audio_backup_created_at?: string | null;
+  requires_audio_backup?: boolean;
 }
 
 interface MeetingHistoryListProps {
@@ -70,6 +77,41 @@ export const MeetingHistoryList = ({
   selectedMeetings = [],
   onSelectMeeting
 }: MeetingHistoryListProps) => {
+
+  // Handle audio backup download
+  const handleAudioBackup = async (meeting: Meeting) => {
+    if (!meeting.audio_backup_path) {
+      toast.error('No audio backup available for this meeting');
+      return;
+    }
+
+    try {
+      console.log('📥 Downloading audio backup:', meeting.audio_backup_path);
+      
+      const { data, error } = await supabase.storage
+        .from('meeting-audio-backups')
+        .download(meeting.audio_backup_path);
+
+      if (error) {
+        throw error;
+      }
+
+      // Create download link
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${meeting.title}_audio_backup.webm`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast.success('Audio backup downloaded successfully');
+    } catch (error) {
+      console.error('Error downloading audio backup:', error);
+      toast.error('Failed to download audio backup');
+    }
+  };
   
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -296,6 +338,19 @@ export const MeetingHistoryList = ({
                   <FileTextIcon className="h-4 w-4" />
                   <span>View Transcript</span>
                 </Button>
+                
+                {/* Audio Backup Button - Only show if audio backup exists */}
+                {meeting.audio_backup_path && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleAudioBackup(meeting)}
+                    className="flex items-center justify-center gap-2 flex-1 sm:flex-none touch-manipulation min-h-[44px] text-blue-600 hover:text-blue-700"
+                  >
+                    <Volume2 className="h-4 w-4" />
+                    <span>Audio Backup</span>
+                  </Button>
+                )}
                 
                 <Button
                   variant="outline"

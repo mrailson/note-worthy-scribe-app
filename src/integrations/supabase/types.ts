@@ -1944,6 +1944,8 @@ export type Database = {
       }
       meetings: {
         Row: {
+          audio_backup_created_at: string | null
+          audio_backup_path: string | null
           created_at: string
           data_retention_date: string | null
           description: string | null
@@ -1953,6 +1955,7 @@ export type Database = {
           id: string
           location: string | null
           meeting_type: string
+          requires_audio_backup: boolean | null
           start_time: string
           status: string
           title: string
@@ -1960,6 +1963,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          audio_backup_created_at?: string | null
+          audio_backup_path?: string | null
           created_at?: string
           data_retention_date?: string | null
           description?: string | null
@@ -1969,6 +1974,7 @@ export type Database = {
           id?: string
           location?: string | null
           meeting_type?: string
+          requires_audio_backup?: boolean | null
           start_time?: string
           status?: string
           title: string
@@ -1976,6 +1982,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          audio_backup_created_at?: string | null
+          audio_backup_path?: string | null
           created_at?: string
           data_retention_date?: string | null
           description?: string | null
@@ -1985,6 +1993,7 @@ export type Database = {
           id?: string
           location?: string | null
           meeting_type?: string
+          requires_audio_backup?: boolean | null
           start_time?: string
           status?: string
           title?: string

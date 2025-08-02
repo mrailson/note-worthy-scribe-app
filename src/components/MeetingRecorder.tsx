@@ -99,6 +99,11 @@ export const MeetingRecorder = ({
   const autoSaveRef = useRef<NodeJS.Timeout | null>(null);
   const browserAudioStreamRef = useRef<MediaStream | null>(null);
   const micAudioStreamRef = useRef<MediaStream | null>(null);
+  
+  // Audio backup recording refs
+  const audioBackupRecorder = useRef<MediaRecorder | null>(null);
+  const audioBackupChunks = useRef<Blob[]>([]);
+  const audioBackupStream = useRef<MediaStream | null>(null);
 
   // Function to round time to nearest 15 minutes
   const roundToNearest15Minutes = (date: Date): Date => {
@@ -121,6 +126,114 @@ export const MeetingRecorder = ({
     const now = new Date();
     const roundedTime = roundToNearest15Minutes(now);
     return roundedTime.toISOString();
+  };
+
+  // Audio backup functions
+  const startAudioBackup = async () => {
+    try {
+      console.log('🎯 Starting audio backup recording...');
+      
+      // Get microphone stream for backup recording
+      audioBackupStream.current = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          sampleRate: 44100,
+          channelCount: 2,
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false
+        }
+      });
+
+      audioBackupChunks.current = [];
+      audioBackupRecorder.current = new MediaRecorder(audioBackupStream.current, {
+        mimeType: 'audio/webm;codecs=opus'
+      });
+
+      audioBackupRecorder.current.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioBackupChunks.current.push(event.data);
+        }
+      };
+
+      audioBackupRecorder.current.start(1000); // Collect data every second
+      console.log('✅ Audio backup recording started');
+      
+    } catch (error) {
+      console.error('❌ Failed to start audio backup:', error);
+    }
+  };
+
+  const stopAudioBackup = async (): Promise<Blob | null> => {
+    return new Promise((resolve) => {
+      if (!audioBackupRecorder.current || audioBackupRecorder.current.state === 'inactive') {
+        resolve(null);
+        return;
+      }
+
+      audioBackupRecorder.current.onstop = () => {
+        const audioBlob = new Blob(audioBackupChunks.current, { type: 'audio/webm' });
+        console.log('✅ Audio backup recording stopped, size:', audioBlob.size);
+        
+        // Clean up
+        if (audioBackupStream.current) {
+          audioBackupStream.current.getTracks().forEach(track => track.stop());
+          audioBackupStream.current = null;
+        }
+        
+        resolve(audioBlob);
+      };
+
+      audioBackupRecorder.current.stop();
+    });
+  };
+
+  // Calculate expected word count based on duration (5000 words per hour)
+  const calculateExpectedWordCount = (durationSeconds: number): number => {
+    const hours = durationSeconds / 3600;
+    return Math.floor(hours * 5000);
+  };
+
+  // Check if audio backup is needed based on word count vs duration
+  const shouldCreateAudioBackup = (wordCount: number, durationSeconds: number): boolean => {
+    const expectedWords = calculateExpectedWordCount(durationSeconds);
+    const wordCountRatio = wordCount / expectedWords;
+    const needsBackup = wordCountRatio < 0.7; // If word count is less than 70% of expected
+    
+    console.log(`📊 Word count analysis:`, {
+      actualWords: wordCount,
+      expectedWords,
+      ratio: wordCountRatio,
+      needsBackup
+    });
+    
+    return needsBackup && durationSeconds > 300; // Only for meetings longer than 5 minutes
+  };
+
+  // Upload audio backup to Supabase storage
+  const uploadAudioBackup = async (audioBlob: Blob, meetingId: string): Promise<string | null> => {
+    try {
+      console.log('📤 Uploading audio backup...');
+      
+      const fileName = `${user?.id}/${meetingId}_backup.webm`;
+      
+      const { data, error } = await supabase.storage
+        .from('meeting-audio-backups')
+        .upload(fileName, audioBlob, {
+          contentType: 'audio/webm',
+          upsert: false
+        });
+
+      if (error) {
+        throw error;
+      }
+
+      console.log('✅ Audio backup uploaded successfully:', data.path);
+      return data.path;
+      
+    } catch (error) {
+      console.error('❌ Failed to upload audio backup:', error);
+      return null;
+    }
   };
   const audioContextRef = useRef<AudioContext | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -1127,6 +1240,8 @@ export const MeetingRecorder = ({
       setDebugLog([]);
       setTestTranscripts([]);
       
+      // Start audio backup recording
+      await startAudioBackup();
       // Choose transcription method based on recording mode
       if (recordingMode === 'computer-audio') {
         await startComputerAudioTranscription();
@@ -1213,6 +1328,9 @@ export const MeetingRecorder = ({
       audioContextRef.current = null;
     }
     
+    // Stop audio backup recording
+    const audioBackupBlob = await stopAudioBackup();
+    
     setIsRecording(false);
     setConnectionStatus("Disconnected");
     
@@ -1234,6 +1352,10 @@ export const MeetingRecorder = ({
       return;
     }
     
+    // Check if audio backup is needed based on word count vs duration
+    const needsAudioBackup = shouldCreateAudioBackup(wordCount, duration);
+    console.log(`📊 Audio backup needed: ${needsAudioBackup}`);
+    
     // Prepare meeting data
     const meetingData = {
       title: initialSettings?.title || 'General Meeting',
@@ -1242,7 +1364,9 @@ export const MeetingRecorder = ({
       transcript: transcript,
       speakerCount: speakerCount,
       startTime: startTime,
-      startedBy: user?.email || 'Unknown User'
+      startedBy: user?.email || 'Unknown User',
+      needsAudioBackup: needsAudioBackup,
+      audioBackupBlob: audioBackupBlob
     };
 
     // Show Notewell AI animation
