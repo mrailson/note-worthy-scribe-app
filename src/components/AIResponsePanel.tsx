@@ -20,7 +20,7 @@ export const AIResponsePanel: React.FC<AIResponsePanelProps> = ({
 }) => {
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-[1000px] sm:w-[1500px] lg:w-[2000px] max-w-[90vw]">
+      <SheetContent side="right" className="w-[75vw] min-w-[1000px]">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-violet-600" />
