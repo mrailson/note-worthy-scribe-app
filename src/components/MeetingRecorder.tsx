@@ -163,6 +163,7 @@ export const MeetingRecorder = ({
         transcript: transcript,
         speakerCount: speakerCount,
         startTime: startTime,
+        startedBy: user?.email || 'Unknown User',
         timestamp: Date.now()
       };
       localStorage.setItem('unsaved_meeting', JSON.stringify(meetingData));
@@ -1240,7 +1241,8 @@ export const MeetingRecorder = ({
       wordCount: wordCount,
       transcript: transcript,
       speakerCount: speakerCount,
-      startTime: startTime
+      startTime: startTime,
+      startedBy: user?.email || 'Unknown User'
     };
 
     // Show Notewell AI animation
