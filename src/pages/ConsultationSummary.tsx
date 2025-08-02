@@ -1299,30 +1299,35 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                               const sections = [
                                 { title: 'History Taking', total: 25, patterns: [
                                   /History Taking.*?(\d+)\/25/is,
-                                  /HISTORY TAKING.*?Subtotal:\s*\[(\d+)\/25\]/is,
-                                  /\*\*HISTORY TAKING.*?Subtotal:\s*\[(\d+)\/25\]/is
+                                  /HISTORY TAKING.*?Subtotal:?\s*[\[\(]?(\d+)\/25[\]\)]?/is,
+                                  /\*\*HISTORY TAKING.*?Subtotal:?\s*[\[\(]?(\d+)\/25[\]\)]?/is,
+                                  /History.*?(\d+)\/25/is
                                 ]},
                                 { title: 'Examination', total: 20, patterns: [
                                   /Examination.*?(\d+)\/20/is,
-                                  /EXAMINATION.*?Subtotal:\s*\[(\d+)\/20\]/is,
-                                  /\*\*EXAMINATION.*?Subtotal:\s*\[(\d+)\/20\]/is
+                                  /EXAMINATION.*?Subtotal:?\s*[\[\(]?(\d+)\/20[\]\)]?/is,
+                                  /\*\*EXAMINATION.*?Subtotal:?\s*[\[\(]?(\d+)\/20[\]\)]?/is
                                 ]},
                                 { title: 'Diagnosis & Assessment', total: 20, patterns: [
                                   /Diagnosis.*?(\d+)\/20/is,
-                                  /DIAGNOSIS & ASSESSMENT.*?Subtotal:\s*\[(\d+)\/20\]/is,
-                                  /\*\*DIAGNOSIS & ASSESSMENT.*?Subtotal:\s*\[(\d+)\/20\]/is
+                                  /DIAGNOSIS & ASSESSMENT.*?Subtotal:?\s*[\[\(]?(\d+)\/20[\]\)]?/is,
+                                  /\*\*DIAGNOSIS & ASSESSMENT.*?Subtotal:?\s*[\[\(]?(\d+)\/20[\]\)]?/is,
+                                  /DIAGNOSIS.*?(\d+)\/20/is
                                 ]},
                                 { title: 'Management Plan', total: 20, patterns: [
                                   /Management.*?(\d+)\/20/is,
-                                  /MANAGEMENT PLAN.*?Subtotal:\s*\[(\d+)\/20\]/is,
-                                  /\*\*MANAGEMENT PLAN.*?Subtotal:\s*\[(\d+)\/20\]/is
+                                  /MANAGEMENT PLAN.*?Subtotal:?\s*[\[\(]?(\d+)\/20[\]\)]?/is,
+                                  /\*\*MANAGEMENT PLAN.*?Subtotal:?\s*[\[\(]?(\d+)\/20[\]\)]?/is,
+                                  /MANAGEMENT.*?(\d+)\/20/is,
+                                  /Management Plan.*?(\d+)\/20/is
                                 ]},
                                 { title: 'Communication & Documentation', total: 15, patterns: [
                                   /Communication.*?(\d+)\/15/is,
-                                  /COMMUNICATION & DOCUMENTATION.*?Subtotal:\s*\[(\d+)\/15\]/is,
-                                  /\*\*COMMUNICATION & DOCUMENTATION.*?Subtotal:\s*\[(\d+)\/15\]/is,
-                                  /COMMUNICATION & DOCUMENTATION.*?Subtotal:\s*<strong>\[(\d+)\/15\]<\/strong>/is,
-                                  /\*\*COMMUNICATION & DOCUMENTATION.*?Subtotal:\s*<strong>\[(\d+)\/15\]<\/strong>/is
+                                  /COMMUNICATION & DOCUMENTATION.*?Subtotal:?\s*[\[\(]?(\d+)\/15[\]\)]?/is,
+                                  /\*\*COMMUNICATION & DOCUMENTATION.*?Subtotal:?\s*[\[\(]?(\d+)\/15[\]\)]?/is,
+                                  /COMMUNICATION.*?(\d+)\/15/is,
+                                  /Communication & Documentation.*?(\d+)\/15/is,
+                                  /Documentation.*?(\d+)\/15/is
                                 ]}
                               ];
 
@@ -1334,12 +1339,27 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                                     <div className="space-y-3">
                                       {sections.map((section, index) => {
                                         let awarded = 0;
+                                        let matchedPattern = '';
+                                        
                                         // Try multiple patterns to find the score
-                                        for (const pattern of section.patterns) {
+                                        for (let i = 0; i < section.patterns.length; i++) {
+                                          const pattern = section.patterns[i];
                                           const match = scoringSection.match(pattern);
                                           if (match) {
                                             awarded = parseInt(match[1]);
+                                            matchedPattern = `Pattern ${i + 1}`;
                                             break;
+                                          }
+                                        }
+                                        
+                                        // If no pattern matched, try a more generic approach
+                                        if (awarded === 0) {
+                                          // Look for any number/total combination near the section title
+                                          const genericPattern = new RegExp(`${section.title.replace(/[&\s]/g, '.*?')}.*?(\\d+)\\/${section.total}`, 'is');
+                                          const genericMatch = scoringSection.match(genericPattern);
+                                          if (genericMatch) {
+                                            awarded = parseInt(genericMatch[1]);
+                                            matchedPattern = 'Generic pattern';
                                           }
                                         }
                                         
