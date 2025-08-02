@@ -617,7 +617,9 @@ const MeetingHistory = () => {
       const enrichedMeetings = meetingsData.map(meeting => ({
         ...meeting,
         transcript_count: transcriptCounts[meeting.id] || 0,
-        summary_exists: !!summaryExists[meeting.id]
+        summary_exists: !!summaryExists[meeting.id],
+        // Extract the overview from the nested meeting_overviews object
+        overview: meeting.meeting_overviews?.overview || null
       }));
 
       setMeetings(enrichedMeetings);
