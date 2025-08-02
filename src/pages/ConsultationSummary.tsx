@@ -900,150 +900,150 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
 
               {/* GP Summary Tab */}
               <TabsContent value="gp-summary" className="space-y-4 mt-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleCopy(getCurrentGPSummary(), "GP Summary")}
-                    >
-                      <Copy className="h-4 w-4 mr-1" />
-                      Copy
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleWordExport(getCurrentGPSummary(), `GP-Summary-${consultationData?.title || 'consultation'}`)}
-                    >
-                      <Download className="h-4 w-4 mr-1" />
-                      Word
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={editStates.gpSummary ? "default" : "outline"}
-                      onClick={() => handleEditToggle("gpSummary")}
-                    >
-                      {editStates.gpSummary ? (
-                        <>
-                          <Save className="h-4 w-4 mr-1" />
-                          Save
-                        </>
-                      ) : (
-                        <>
-                          <Edit3 className="h-4 w-4 mr-1" />
-                          Edit
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-                
-                {/* Note Level Slider */}
+                {/* Combined Control Row */}
                 <div className="bg-gradient-to-r from-primary/5 to-accent/5 rounded-lg p-4 border border-primary/20">
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <Settings className="h-4 w-4 text-primary" />
-                      <span className="text-sm font-medium text-primary">Detail Level:</span>
-                      <Badge variant="outline" className="bg-background">
-                        {noteLevels[noteLevel[0]]}
-                      </Badge>
-                    </div>
-                    <div className="flex-none max-w-xs">
-                      <Slider
-                        value={noteLevel}
-                        onValueChange={setNoteLevel}
-                        max={2}
-                        min={0}
-                        step={1}
-                        className="w-48"
-                      />
-                      <div className="flex justify-between text-xs text-muted-foreground mt-1 px-1">
-                        <span>Coded</span>
-                        <span>Standard</span>
-                        <span>Detailed</span>
+                  <div className="flex flex-col lg:flex-row lg:items-center gap-4 lg:gap-6">
+                    {/* Detail Level Slider */}
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-1">
+                      <div className="flex items-center gap-2">
+                        <Settings className="h-4 w-4 text-primary" />
+                        <span className="text-sm font-medium text-primary">Detail Level:</span>
+                        <Badge variant="outline" className="bg-background">
+                          {noteLevels[noteLevel[0]]}
+                        </Badge>
+                      </div>
+                      <div className="flex-none w-48">
+                        <Slider
+                          value={noteLevel}
+                          onValueChange={setNoteLevel}
+                          max={2}
+                          min={0}
+                          step={1}
+                          className="w-full"
+                        />
+                        <div className="flex justify-between text-xs text-muted-foreground mt-1 px-1">
+                          <span>Coded</span>
+                          <span>Standard</span>
+                          <span>Detailed</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
 
-                {/* Ask AI Section */}
-                <div className="bg-gradient-to-r from-violet-50 to-indigo-50 dark:from-violet-950/30 dark:to-indigo-950/30 rounded-lg border border-violet-200 dark:border-violet-800">
-                  <Collapsible open={isAskAIOpen} onOpenChange={setIsAskAIOpen}>
-                    <CollapsibleTrigger asChild>
-                      <Button variant="ghost" className="w-full justify-between p-4 h-auto">
-                        <span className="flex items-center gap-2">
-                          <Sparkles className="h-5 w-5 text-violet-600" />
-                          <span className="font-medium text-violet-700 dark:text-violet-300">Ask AI Assistant</span>
-                        </span>
-                        {isAskAIOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                      </Button>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="px-4 pb-4">
-                      <div className="space-y-3">
-                        <p className="text-sm text-muted-foreground">
-                          Ask the AI to analyze your consultation, create referral letters, suggest improvements, or check for missing information.
-                        </p>
-                        
-                        <div className="flex gap-2">
-                          <div className="flex-1">
-                            <Textarea
-                              value={aiPrompt}
-                              onChange={(e) => setAiPrompt(e.target.value)}
-                              placeholder="e.g., 'Create a referral letter to cardiology' or 'Is there anything I missed?' or 'Review my consultation and suggest improvements'"
-                              className="min-h-[80px] resize-none"
-                            />
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={isRecording ? stopRecording : startRecording}
-                              disabled={isAILoading}
-                              className="p-2"
-                            >
-                              {isRecording ? <MicOff className="h-4 w-4 text-red-500" /> : <Mic className="h-4 w-4" />}
-                            </Button>
-                            <Button
-                              size="sm"
-                              onClick={handleAskAI}
-                              disabled={isAILoading || !aiPrompt.trim()}
-                              className="p-2"
-                            >
-                              {isAILoading ? (
-                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                              ) : (
-                                <Send className="h-4 w-4" />
-                              )}
-                            </Button>
-                          </div>
-                        </div>
-
-                        {aiResponse && (
-                          <div className="mt-4 p-4 bg-background rounded-lg border">
-                            <div className="flex items-center justify-between mb-3">
-                              <h4 className="font-medium text-primary flex items-center gap-2">
-                                <Sparkles className="h-4 w-4" />
-                                AI Assistant Response
-                              </h4>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleCopy(aiResponse, "AI Response")}
-                              >
-                                <Copy className="h-4 w-4 mr-1" />
-                                Copy
-                              </Button>
-                            </div>
-                            <div className="prose prose-sm max-w-none dark:prose-invert">
-                              <div className="ai-response-content space-y-3">
-                                <SafeMessageRenderer content={aiResponse} />
+                    {/* Ask AI Assistant */}
+                    <div className="flex-none">
+                      <Collapsible open={isAskAIOpen} onOpenChange={setIsAskAIOpen}>
+                        <CollapsibleTrigger asChild>
+                          <Button variant="outline" className="w-full sm:w-auto">
+                            <Sparkles className="h-4 w-4 mr-2 text-violet-600" />
+                            <span className="text-violet-700 dark:text-violet-300">Ask AI Assistant</span>
+                            {isAskAIOpen ? <ChevronUp className="h-4 w-4 ml-2" /> : <ChevronDown className="h-4 w-4 ml-2" />}
+                          </Button>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="absolute z-10 mt-2 w-80 lg:w-96 bg-background border border-border rounded-lg shadow-lg p-4">
+                          <div className="space-y-3">
+                            <p className="text-sm text-muted-foreground">
+                              Ask the AI to analyze your consultation, create referral letters, suggest improvements, or check for missing information.
+                            </p>
+                            
+                            <div className="flex gap-2">
+                              <div className="flex-1">
+                                <Textarea
+                                  value={aiPrompt}
+                                  onChange={(e) => setAiPrompt(e.target.value)}
+                                  placeholder="e.g., 'Create a referral letter to cardiology' or 'Is there anything I missed?' or 'Review my consultation and suggest improvements'"
+                                  className="min-h-[80px] resize-none"
+                                />
+                              </div>
+                              <div className="flex flex-col gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={isRecording ? stopRecording : startRecording}
+                                  disabled={isAILoading}
+                                  className="p-2"
+                                >
+                                  {isRecording ? <MicOff className="h-4 w-4 text-red-500" /> : <Mic className="h-4 w-4" />}
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  onClick={handleAskAI}
+                                  disabled={isAILoading || !aiPrompt.trim()}
+                                  className="p-2"
+                                >
+                                  {isAILoading ? (
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                  ) : (
+                                    <Send className="h-4 w-4" />
+                                  )}
+                                </Button>
                               </div>
                             </div>
+
+                            {aiResponse && (
+                              <div className="mt-4 p-4 bg-muted/30 rounded-lg border">
+                                <div className="flex items-center justify-between mb-3">
+                                  <h4 className="font-medium text-primary flex items-center gap-2">
+                                    <Sparkles className="h-4 w-4" />
+                                    AI Assistant Response
+                                  </h4>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleCopy(aiResponse, "AI Response")}
+                                  >
+                                    <Copy className="h-4 w-4 mr-1" />
+                                    Copy
+                                  </Button>
+                                </div>
+                                <div className="prose prose-sm max-w-none dark:prose-invert">
+                                  <div className="ai-response-content space-y-3">
+                                    <SafeMessageRenderer content={aiResponse} />
+                                  </div>
+                                </div>
+                              </div>
+                            )}
                           </div>
+                        </CollapsibleContent>
+                      </Collapsible>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-2 flex-none">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleCopy(getCurrentGPSummary(), "GP Summary")}
+                      >
+                        <Copy className="h-4 w-4 mr-1" />
+                        Copy
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleWordExport(getCurrentGPSummary(), `GP-Summary-${consultationData?.title || 'consultation'}`)}
+                      >
+                        <Download className="h-4 w-4 mr-1" />
+                        Word
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={editStates.gpSummary ? "default" : "outline"}
+                        onClick={() => handleEditToggle("gpSummary")}
+                      >
+                        {editStates.gpSummary ? (
+                          <>
+                            <Save className="h-4 w-4 mr-1" />
+                            Save
+                          </>
+                        ) : (
+                          <>
+                            <Edit3 className="h-4 w-4 mr-1" />
+                            Edit
+                          </>
                         )}
-                      </div>
-                    </CollapsibleContent>
-                  </Collapsible>
+                      </Button>
+                    </div>
+                  </div>
                 </div>
                 
                 {editStates.gpSummary ? (
