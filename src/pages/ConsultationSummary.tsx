@@ -29,12 +29,14 @@ import {
   ChevronDown,
   ChevronUp,
   AlertTriangle,
+  Maximize2,
 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { SafeMessageRenderer } from "@/components/SafeMessageRenderer";
 import { FormattedReviewContent } from "@/components/FormattedReviewContent";
+import { AIResponsePanel } from "@/components/AIResponsePanel";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import jsPDF from "jspdf";
@@ -99,6 +101,7 @@ export default function ConsultationSummary() {
 
   // Ask AI state
   const [isAskAIOpen, setIsAskAIOpen] = useState(false);
+  const [isAIResponsePanelOpen, setIsAIResponsePanelOpen] = useState(false);
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiResponse, setAiResponse] = useState("");
   const [reviewContent, setReviewContent] = useState("");
@@ -618,6 +621,7 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
       if (error) throw error;
 
       setAiResponse(data.response);
+      setIsAIResponsePanelOpen(true);
       toast.success("AI analysis complete");
     } catch (error) {
       console.error('Error getting AI response:', error);
@@ -980,25 +984,17 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                             </div>
 
                             {aiResponse && (
-                              <div className="mt-4 p-4 bg-muted/30 rounded-lg border">
-                                <div className="flex items-center justify-between mb-3">
-                                  <h4 className="font-medium text-primary flex items-center gap-2">
-                                    <Sparkles className="h-4 w-4" />
-                                    AI Assistant Response
-                                  </h4>
+                              <div className="mt-4 p-3 bg-muted/30 rounded-lg border">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm font-medium text-primary">Response ready</span>
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    onClick={() => handleCopy(aiResponse, "AI Response")}
+                                    onClick={() => setIsAIResponsePanelOpen(true)}
                                   >
-                                    <Copy className="h-4 w-4 mr-1" />
-                                    Copy
+                                    <Maximize2 className="h-4 w-4 mr-1" />
+                                    View Response
                                   </Button>
-                                </div>
-                                <div className="prose prose-sm max-w-none dark:prose-invert">
-                                  <div className="ai-response-content space-y-3">
-                                    <SafeMessageRenderer content={aiResponse} />
-                                  </div>
                                 </div>
                               </div>
                             )}
@@ -1472,6 +1468,14 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
           </CardContent>
         </Card>
       </div>
+
+      {/* AI Response Panel */}
+      <AIResponsePanel
+        response={aiResponse}
+        isOpen={isAIResponsePanelOpen}
+        onOpenChange={setIsAIResponsePanelOpen}
+        onCopy={() => handleCopy(aiResponse, "AI Response")}
+      />
     </div>
   );
 }
