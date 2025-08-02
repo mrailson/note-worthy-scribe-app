@@ -1508,75 +1508,79 @@ const ComplaintDetails = () => {
                       </div>
                     </div>
 
-                    {/* Input Tracking Section */}
-                    <div className="space-y-3">
-                      <Label className="text-sm font-medium">Input Status Tracking</Label>
-                      <div className="space-y-2">
-                        <div className="text-sm text-muted-foreground">
-                          Track the status of input requests sent to staff members:
-                        </div>
-                        
-                        <div className="space-y-2 p-3 bg-gray-50 rounded border">
-                          {inputRequests.length === 0 ? (
-                            <div className="text-sm text-muted-foreground text-center py-4">
-                              {investigationMethod === "input-required" 
-                                ? "No staff input requests sent yet. Select staff members and click 'Send Input Requests'."
-                                : "No staff input requests sent yet. Select investigation method and staff members above."
-                              }
+                    {/* Input Tracking Section - Hidden when Direct Investigation is selected */}
+                    {investigationMethod !== "direct-investigation" && (
+                      <>
+                        <div className="space-y-3">
+                          <Label className="text-sm font-medium">Input Status Tracking</Label>
+                          <div className="space-y-2">
+                            <div className="text-sm text-muted-foreground">
+                              Track the status of input requests sent to staff members:
                             </div>
-                          ) : (
-                            <div className="space-y-2">
-                              {inputRequests.map((request) => (
-                                <div key={request.id} className="flex items-center justify-between p-2 bg-white rounded border">
-                                  <div className="flex flex-col">
-                                    <span className="text-sm font-medium">{request.staffName}</span>
-                                    <span className="text-xs text-muted-foreground">{request.staffEmail}</span>
-                                    <span className="text-xs text-muted-foreground">
-                                      Sent: {format(new Date(request.sentAt), 'dd/MM/yyyy HH:mm')}
-                                    </span>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <Badge variant={request.responseReceived ? "default" : "secondary"}>
-                                      {request.responseReceived ? "Response Received" : "Awaiting Response"}
-                                    </Badge>
-                                  </div>
+                            
+                            <div className="space-y-2 p-3 bg-gray-50 rounded border">
+                              {inputRequests.length === 0 ? (
+                                <div className="text-sm text-muted-foreground text-center py-4">
+                                  {investigationMethod === "input-required" 
+                                    ? "No staff input requests sent yet. Select staff members and click 'Send Input Requests'."
+                                    : "No staff input requests sent yet. Select investigation method and staff members above."
+                                  }
                                 </div>
-                              ))}
+                              ) : (
+                                <div className="space-y-2">
+                                  {inputRequests.map((request) => (
+                                    <div key={request.id} className="flex items-center justify-between p-2 bg-white rounded border">
+                                      <div className="flex flex-col">
+                                        <span className="text-sm font-medium">{request.staffName}</span>
+                                        <span className="text-xs text-muted-foreground">{request.staffEmail}</span>
+                                        <span className="text-xs text-muted-foreground">
+                                          Sent: {format(new Date(request.sentAt), 'dd/MM/yyyy HH:mm')}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <Badge variant={request.responseReceived ? "default" : "secondary"}>
+                                          {request.responseReceived ? "Response Received" : "Awaiting Response"}
+                                        </Badge>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                             </div>
-                          )}
+                          </div>
                         </div>
-                      </div>
-                    </div>
 
-                    <div className="flex gap-2 pt-4">
-                      <Button 
-                        className="flex-1"
-                        onClick={handleSendInputRequests}
-                        disabled={submitting || investigationMethod !== "input-required" || selectedStaff.length === 0 || inputRequests.length > 0}
-                      >
-                        <Send className="h-4 w-4 mr-2" />
-                        {inputRequests.length > 0 ? 'Requests Already Sent' : submitting ? 'Sending...' : 'Send Input Requests'}
-                      </Button>
-                      {inputRequests.length > 0 && (
-                        <Button 
-                          variant="destructive"
-                          size="sm"
-                          onClick={handleClearInputRequests}
-                          disabled={submitting}
-                        >
-                          <X className="h-4 w-4 mr-1" />
-                          Clear Requests
-                        </Button>
-                      )}
-                      <Button 
-                        variant="outline"
-                        onClick={handleSaveWorkflowSettings}
-                        disabled={submitting || !investigationMethod}
-                      >
-                        <Save className="h-4 w-4 mr-2" />
-                        {submitting ? 'Saving...' : 'Save Settings'}
-                      </Button>
-                    </div>
+                        <div className="flex gap-2 pt-4">
+                          <Button 
+                            className="flex-1"
+                            onClick={handleSendInputRequests}
+                            disabled={submitting || investigationMethod !== "input-required" || selectedStaff.length === 0 || inputRequests.length > 0}
+                          >
+                            <Send className="h-4 w-4 mr-2" />
+                            {inputRequests.length > 0 ? 'Requests Already Sent' : submitting ? 'Sending...' : 'Send Input Requests'}
+                          </Button>
+                          {inputRequests.length > 0 && (
+                            <Button 
+                              variant="destructive"
+                              size="sm"
+                              onClick={handleClearInputRequests}
+                              disabled={submitting}
+                            >
+                              <X className="h-4 w-4 mr-1" />
+                              Clear Requests
+                            </Button>
+                          )}
+                          <Button 
+                            variant="outline"
+                            onClick={handleSaveWorkflowSettings}
+                            disabled={submitting || !investigationMethod}
+                          >
+                            <Save className="h-4 w-4 mr-2" />
+                            {submitting ? 'Saving...' : 'Save Settings'}
+                          </Button>
+                        </div>
+                      </>
+                    )}
 
                     {/* Direct Investigation Section */}
                     {investigationMethod === "direct-investigation" && (
