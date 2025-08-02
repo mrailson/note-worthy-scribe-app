@@ -9,7 +9,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
-import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning, Sparkles, Mail, Users, Clock, FolderOpen, Wrench } from "lucide-react";
+import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning, Sparkles, Mail, Users, Clock, FolderOpen, Wrench, BookOpen } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -157,6 +157,13 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                       >
                         <Shield className="h-4 w-4 mr-2" />
                         CQC Compliance
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => navigate('/compliance-docs')}
+                        className="cursor-pointer py-3"
+                      >
+                        <BookOpen className="h-4 w-4 mr-2" />
+                        Security Documentation
                       </DropdownMenuItem>
                      {sharedDriveVisible && (
                        <DropdownMenuItem 
