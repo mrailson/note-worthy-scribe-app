@@ -543,6 +543,7 @@ const Index = () => {
   };
 
   const stopRecording = () => {
+    console.log("stopRecording called");
     if (transciberRef.current) {
       transciberRef.current.stopTranscription();
       transciberRef.current = null;
@@ -557,10 +558,14 @@ const Index = () => {
     setIsPaused(false);
     toast.success("Recording stopped");
     
+    console.log("Transcript length:", transcript ? transcript.trim().length : 0);
+    
     // Auto-generate summary if there's meaningful content and navigate to consultation summary
     if (transcript && transcript.trim().length > 50) {
+      console.log("Generating summary...");
       setTimeout(() => generateSummary(), 1000);
     } else {
+      console.log("Navigating directly to consultation summary...");
       // Even if no meaningful content, navigate to consultation summary with basic data
       const consultationData = {
         id: `consultation-${Date.now()}`,
@@ -573,6 +578,7 @@ const Index = () => {
         isExample: false
       };
       
+      console.log("Navigating with data:", consultationData);
       navigate('/consultation-summary', { state: consultationData });
     }
   };
@@ -710,6 +716,7 @@ const Index = () => {
       // Save to history
       await saveToHistory(data);
       
+      console.log("Navigating to consultation summary with generated data...");
       // Navigate to consultation summary with the generated data
       const consultationData = {
         id: `consultation-${Date.now()}`,
@@ -728,6 +735,7 @@ const Index = () => {
         }
       };
       
+      console.log("Navigation data:", consultationData);
       navigate('/consultation-summary', { state: consultationData });
       toast.success("Clinical summary generated successfully");
     } catch (error: any) {
