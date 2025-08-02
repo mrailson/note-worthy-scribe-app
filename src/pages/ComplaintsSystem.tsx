@@ -1858,7 +1858,7 @@ const ComplaintsSystem = () => {
                           required
                         />
                         <Label htmlFor="consent_given" className="text-sm">
-                          consent obtained for processing this complaint
+                          Consent obtained for processing this complaint
                         </Label>
                       </div>
 
