@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Plus, Clock, FileText, Trash2, Edit, Edit2, Mail, RefreshCw, Square, CheckSquare, ChevronDown, Copy, Sparkles, Save, Download } from "lucide-react";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
 import {
@@ -32,6 +33,7 @@ import {
 } from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 import { useNavigate } from "react-router-dom";
 
@@ -53,6 +55,7 @@ interface Meeting {
 
 const MeetingHistory = () => {
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   
   const navigate = useNavigate();
   const [meetings, setMeetings] = useState<Meeting[]>([]);
@@ -97,8 +100,10 @@ const MeetingHistory = () => {
   const [cleanedTranscript, setCleanedTranscript] = useState("");
   const [isCleaningTranscript, setIsCleaningTranscript] = useState(false);
   const [currentMeetingForTranscript, setCurrentMeetingForTranscript] = useState<Meeting | null>(null);
-
   const [isSavingCleanedTranscript, setIsSavingCleanedTranscript] = useState(false);
+  
+  // Collapsible action controls for mobile (collapsed by default on mobile)
+  const [actionsExpanded, setActionsExpanded] = useState(!isMobile);
 
   const handleNewMeeting = () => {
     navigate("/");
@@ -1320,79 +1325,97 @@ const MeetingHistory = () => {
             </DialogHeader>
             
             <div className="space-y-3 sm:space-y-4 py-2 sm:py-4 overflow-hidden">
-              {/* Action Bar - Mobile Optimized */}
-              <div className="flex flex-col gap-3 p-3 sm:p-4 bg-muted/30 rounded-lg border">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-                    <span className="text-xs sm:text-sm text-muted-foreground">
-                      {(cleanedTranscript || viewingTranscript).split(' ').length} words
-                    </span>
-                    {cleanedTranscript && (
-                      <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full">
-                        ✨ AI Cleaned
-                      </span>
-                    )}
-                  </div>
-                </div>
-                
-                {/* Mobile-first button layout */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap gap-2">
-                  <Button
-                    onClick={cleanCurrentTranscript}
-                    disabled={isCleaningTranscript || !viewingTranscript}
-                    variant="outline"
-                    size="sm"
-                    className="w-full lg:w-auto touch-manipulation min-h-[44px] text-xs sm:text-sm"
-                  >
-                    {isCleaningTranscript ? (
-                      <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
-                    )}
-                    {isCleaningTranscript ? 'Cleaning...' : 'Clean with AI'}
-                  </Button>
-                  
+              {/* Transcript Info */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 px-1">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                  <span className="text-xs sm:text-sm text-muted-foreground">
+                    {(cleanedTranscript || viewingTranscript).split(' ').length} words
+                  </span>
                   {cleanedTranscript && (
+                    <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full">
+                      ✨ AI Cleaned
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Collapsible Action Bar */}
+              <Collapsible 
+                open={actionsExpanded} 
+                onOpenChange={setActionsExpanded}
+                className="w-full"
+              >
+                <CollapsibleTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-between touch-manipulation min-h-[44px] mb-2"
+                  >
+                    <span className="text-xs sm:text-sm">
+                      {actionsExpanded ? 'Hide Actions' : 'Show AI Tools & Export'}
+                    </span>
+                    <ChevronDown className={`h-4 w-4 transition-transform ${actionsExpanded ? 'rotate-180' : ''}`} />
+                  </Button>
+                </CollapsibleTrigger>
+                
+                <CollapsibleContent className="space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap gap-2 p-3 sm:p-4 bg-muted/30 rounded-lg border">
                     <Button
-                      onClick={saveCleanedTranscript}
-                      disabled={isSavingCleanedTranscript}
+                      onClick={cleanCurrentTranscript}
+                      disabled={isCleaningTranscript || !viewingTranscript}
                       variant="outline"
                       size="sm"
                       className="w-full lg:w-auto touch-manipulation min-h-[44px] text-xs sm:text-sm"
                     >
-                      {isSavingCleanedTranscript ? (
+                      {isCleaningTranscript ? (
                         <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4 mr-2 animate-spin" />
                       ) : (
-                        <Save className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
+                        <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                       )}
-                      {isSavingCleanedTranscript ? 'Saving...' : 'Save Cleaned'}
+                      {isCleaningTranscript ? 'Cleaning...' : 'Clean with AI'}
                     </Button>
-                  )}
-                  
-                  <Button
-                    onClick={downloadTranscriptAsWord}
-                    disabled={!viewingTranscript}
-                    variant="outline"
-                    size="sm"
-                    className="w-full lg:w-auto touch-manipulation min-h-[44px] text-xs sm:text-sm"
-                  >
-                    <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
-                    <span className="sm:hidden">Word</span>
-                    <span className="hidden sm:inline">Download Word</span>
-                  </Button>
-                  
-                  <Button
-                    onClick={copyTranscriptToClipboard}
-                    variant="outline"
-                    size="sm"
-                    className="w-full lg:w-auto touch-manipulation min-h-[44px] text-xs sm:text-sm"
-                  >
-                    <Copy className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
-                    <span className="sm:hidden">Copy</span>
-                    <span className="hidden sm:inline">Copy {cleanedTranscript ? 'Cleaned' : 'Original'}</span>
-                  </Button>
-                </div>
-              </div>
+                    
+                    {cleanedTranscript && (
+                      <Button
+                        onClick={saveCleanedTranscript}
+                        disabled={isSavingCleanedTranscript}
+                        variant="outline"
+                        size="sm"
+                        className="w-full lg:w-auto touch-manipulation min-h-[44px] text-xs sm:text-sm"
+                      >
+                        {isSavingCleanedTranscript ? (
+                          <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Save className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
+                        )}
+                        {isSavingCleanedTranscript ? 'Saving...' : 'Save Cleaned'}
+                      </Button>
+                    )}
+                    
+                    <Button
+                      onClick={downloadTranscriptAsWord}
+                      disabled={!viewingTranscript}
+                      variant="outline"
+                      size="sm"
+                      className="w-full lg:w-auto touch-manipulation min-h-[44px] text-xs sm:text-sm"
+                    >
+                      <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
+                      <span className="sm:hidden">Word</span>
+                      <span className="hidden sm:inline">Download Word</span>
+                    </Button>
+                    
+                    <Button
+                      onClick={copyTranscriptToClipboard}
+                      variant="outline"
+                      size="sm"
+                      className="w-full lg:w-auto touch-manipulation min-h-[44px] text-xs sm:text-sm"
+                    >
+                      <Copy className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
+                      <span className="sm:hidden">Copy</span>
+                      <span className="hidden sm:inline">Copy {cleanedTranscript ? 'Cleaned' : 'Original'}</span>
+                    </Button>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
 
               {/* Transcript Display - Mobile Optimized */}
               <Tabs defaultValue="display" className="w-full">
