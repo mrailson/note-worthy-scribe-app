@@ -48,7 +48,7 @@ import { createLetterDocument } from "@/utils/letterFormatter";
 import { Document, Packer } from "docx";
 import { InvestigationEvidence } from "@/components/InvestigationEvidence";
 import { InvestigationFindings } from "@/components/InvestigationFindings";
-import { InvestigationDecision } from "@/components/InvestigationDecision";
+import { InvestigationDecisionAndLearning } from "@/components/InvestigationDecisionAndLearning";
 
 interface Complaint {
   id: string;
@@ -1797,7 +1797,7 @@ I am committed to ensuring that all patients receive the care and service they d
                         <div className="space-y-6">
                           <InvestigationEvidence complaintId={complaint.id} disabled={submitting} />
                           <InvestigationFindings complaintId={complaint.id} disabled={submitting} />
-                          <InvestigationDecision complaintId={complaint.id} disabled={submitting} />
+                          <InvestigationDecisionAndLearning complaintId={complaint.id} disabled={submitting} />
                         </div>
                       </div>
                     )}
@@ -2003,7 +2003,7 @@ I am committed to ensuring that all patients receive the care and service they d
                         <div className="space-y-6">
                           <InvestigationEvidence complaintId={complaint.id} disabled={submitting} />
                           <InvestigationFindings complaintId={complaint.id} disabled={submitting} />
-                          <InvestigationDecision complaintId={complaint.id} disabled={submitting} />
+                          <InvestigationDecisionAndLearning complaintId={complaint.id} disabled={submitting} />
                         </div>
                       </div>
                     )}

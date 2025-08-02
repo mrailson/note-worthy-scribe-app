@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Search, Save, Edit, CheckCircle } from 'lucide-react';
+import { Search, Save, Edit, CheckCircle, Sparkles, Loader2 } from 'lucide-react';
 import { SpeechToText } from '@/components/SpeechToText';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -31,6 +31,8 @@ export function InvestigationFindings({ complaintId, disabled = false }: Investi
   const [findingsText, setFindingsText] = useState('');
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [generatingSummary, setGeneratingSummary] = useState(false);
+  const [generatingFindings, setGeneratingFindings] = useState(false);
 
   useEffect(() => {
     fetchInvestigationFindings();
@@ -129,6 +131,58 @@ export function InvestigationFindings({ complaintId, disabled = false }: Investi
     }
   };
 
+  const generateInvestigationSummary = async () => {
+    setGeneratingSummary(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-investigation-assistant', {
+        body: {
+          complaint_id: complaintId,
+          request_type: 'investigation_summary'
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.success && data?.content) {
+        setInvestigationSummary(data.content);
+        toast.success('Investigation summary generated successfully');
+      } else {
+        throw new Error(data?.error || 'Failed to generate summary');
+      }
+    } catch (error) {
+      console.error('Error generating investigation summary:', error);
+      toast.error('Failed to generate investigation summary');
+    } finally {
+      setGeneratingSummary(false);
+    }
+  };
+
+  const generateDetailedFindings = async () => {
+    setGeneratingFindings(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-investigation-assistant', {
+        body: {
+          complaint_id: complaintId,
+          request_type: 'detailed_findings'
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.success && data?.content) {
+        setFindingsText(data.content);
+        toast.success('Detailed findings generated successfully');
+      } else {
+        throw new Error(data?.error || 'Failed to generate findings');
+      }
+    } catch (error) {
+      console.error('Error generating detailed findings:', error);
+      toast.error('Failed to generate detailed findings');
+    } finally {
+      setGeneratingFindings(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -176,7 +230,26 @@ export function InvestigationFindings({ complaintId, disabled = false }: Investi
         ) : (
           <div className="space-y-4">
             <div>
-              <Label htmlFor="investigation-summary">Investigation Summary *</Label>
+              <div className="flex items-center justify-between mb-2">
+                <Label htmlFor="investigation-summary">Investigation Summary *</Label>
+                {!disabled && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={generateInvestigationSummary}
+                    disabled={generatingSummary || saving}
+                    className="text-xs"
+                  >
+                    {generatingSummary ? (
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-3 w-3 mr-1" />
+                    )}
+                    {generatingSummary ? 'Generating...' : 'AI Generate'}
+                  </Button>
+                )}
+              </div>
               <div className="relative">
                 <Textarea
                   id="investigation-summary"
@@ -202,7 +275,26 @@ export function InvestigationFindings({ complaintId, disabled = false }: Investi
             </div>
 
             <div>
-              <Label htmlFor="findings-text">Detailed Findings *</Label>
+              <div className="flex items-center justify-between mb-2">
+                <Label htmlFor="findings-text">Detailed Findings *</Label>
+                {!disabled && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={generateDetailedFindings}
+                    disabled={generatingFindings || saving}
+                    className="text-xs"
+                  >
+                    {generatingFindings ? (
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-3 w-3 mr-1" />
+                    )}
+                    {generatingFindings ? 'Generating...' : 'AI Generate'}
+                  </Button>
+                )}
+              </div>
               <div className="relative">
                 <Textarea
                   id="findings-text"
