@@ -1408,18 +1408,26 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
 
                                   {/* Detailed breakdown text */}
                                   <div className="prose prose-sm max-w-none dark:prose-invert">
-                                    <div className="ai-response-content space-y-3">
+                                    <div className="ai-response-content space-y-4">
                                       <SafeMessageRenderer content={
                                         scoringSection
                                           .replace(/\d+\/100\s*===\s*DETAILED SCORING BREAKDOWN\s*===/i, '')
                                           .replace(/=== TOTAL SCORE CALCULATION ===[\s\S]*?(?=\n=== |\n\*\*|$)/i, '')
-                                          .replace(/Subtotal: <strong>\[\d+\/\d+\]<\/strong>/g, 'Subtotal: <strong>[$&]</strong>\n\n---\n')
-                                          .replace(/Subtotal: \[\d+\/\d+\]/g, '$&\n\n---\n')
-                                          .replace(/(<strong>\*\*[A-Z& ]+\*\*<\/strong>)/g, '\n$1')
-                                          .replace(/(\*\*[A-Z& ]+\*\*)/g, '\n$1')
-                                          .replace(/(=== CLINICAL JUSTIFICATION ===)/g, '\n\n$1')
-                                          .replace(/(=== POINT DEDUCTIONS SUMMARY ===)/g, '\n\n$1')
-                                          .replace(/(=== RECOMMENDATIONS FOR IMPROVEMENT ===)/g, '\n\n$1')
+                                          // Add clear section breaks
+                                          .replace(/(\*\*[A-Z\s&]+\*\*)/g, '\n\n---\n\n$1\n')
+                                          .replace(/(=== [A-Z\s]+ ===)/g, '\n\n---\n\n$1\n')
+                                          // Format subtotals with better spacing
+                                          .replace(/Subtotal: <strong>\[\d+\/\d+\]<\/strong>/g, '\n\n**$&**\n\n---\n')
+                                          .replace(/Subtotal: \[\d+\/\d+\]/g, '\n\n**$&**\n\n---\n')
+                                          // Format bullet points and criteria
+                                          .replace(/^(\s*)-\s+([A-Z][^:]+:)/gm, '\n• **$2**')
+                                          .replace(/^(\s*)-\s+/gm, '\n• ')
+                                          // Add spacing around scores and assessments
+                                          .replace(/(\[\d+\/\d+\])/g, ' **$1** ')
+                                          // Clean up multiple line breaks but preserve intentional spacing
+                                          .replace(/\n{4,}/g, '\n\n\n')
+                                          .replace(/---\n+---/g, '---')
+                                          .trim()
                                       } />
                                     </div>
                                   </div>
