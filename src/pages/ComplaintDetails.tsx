@@ -198,6 +198,52 @@ const ComplaintDetails = () => {
     }
   };
 
+  const fetchStaffResponses = async () => {
+    if (!user || !complaintId) return;
+    try {
+      const { data, error } = await supabase
+        .from('complaint_involved_parties')
+        .select('*')
+        .eq('complaint_id', complaintId);
+
+      if (error) throw error;
+
+      // Convert database records to inputRequests format
+      if (data && data.length > 0) {
+        const requests = data.map(party => ({
+          id: party.id,
+          staffName: party.staff_name,
+          staffEmail: party.staff_email,
+          status: party.response_submitted_at ? 'completed' : 'pending',
+          sentAt: party.response_requested_at,
+          responseReceived: !!party.response_submitted_at,
+          responseReceivedAt: party.response_submitted_at,
+          responseText: party.response_text,
+          isTestResponse: !!party.response_text // If there's response text, it might be a test response
+        }));
+        
+        setInputRequests(requests);
+        
+        // Also update selectedStaff if needed
+        const staffList = data.map(party => ({
+          name: party.staff_name,
+          email: party.staff_email,
+          role: party.staff_role || '',
+          suggested: false,
+          type: 'added'
+        }));
+        
+        if (selectedStaff.length === 0) {
+          setSelectedStaff(staffList);
+        }
+        
+        console.log('Loaded staff responses:', requests);
+      }
+    } catch (error) {
+      console.error('Error fetching staff responses:', error);
+    }
+  };
+
   const fetchComplaintDocuments = async () => {
     if (!user || !complaintId) return;
     try {
@@ -260,6 +306,7 @@ const ComplaintDetails = () => {
       fetchComplianceData();
       fetchAuditLogs();
       fetchComplaintDocuments();
+      fetchStaffResponses(); // Add this to load staff responses
       logComplaintView(); // Log the view
     }
   }, [user, complaintId]);
