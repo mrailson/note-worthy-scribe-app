@@ -1987,6 +1987,26 @@ I am committed to ensuring that all patients receive the care and service they d
                         </div>
                       </div>
                     )}
+
+                    {/* Outcome Section for Input Required - Show when all responses received */}
+                    {investigationMethod === "input-required" && inputRequests.length > 0 && 
+                     inputRequests.every(request => request.responseReceived) && (
+                      <div className="space-y-6 p-4 bg-green-50 rounded-lg border border-green-200 mt-6">
+                        <div className="flex items-center gap-2 mb-4">
+                          <CheckCircle className="h-4 w-4 text-green-600" />
+                          <Label className="text-sm font-medium text-green-900">Investigation & Decision</Label>
+                        </div>
+                        <p className="text-sm text-green-800 mb-4">
+                          All staff responses have been received. You can now review the evidence, document your findings, and make a decision on the complaint.
+                        </p>
+
+                        <div className="space-y-6">
+                          <InvestigationEvidence complaintId={complaint.id} disabled={submitting} />
+                          <InvestigationFindings complaintId={complaint.id} disabled={submitting} />
+                          <InvestigationDecision complaintId={complaint.id} disabled={submitting} />
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               )}
