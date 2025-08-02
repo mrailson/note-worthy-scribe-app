@@ -46,9 +46,11 @@ export const AIResponsePanel: React.FC<AIResponsePanelProps> = ({
               <div className="ai-response-content space-y-4 p-4 bg-muted/30 rounded-lg border">
                 <SafeMessageRenderer content={
                   response
-                    .replace(/^```html\s*/i, '')  // Remove opening ```html
-                    .replace(/\s*```\s*$/i, '')   // Remove closing ```
-                    .replace(/^html\s*/i, '')     // Remove standalone "html" at start
+                    .replace(/^```html\s*/i, '')     // Remove opening ```html
+                    .replace(/^```\s*/i, '')         // Remove opening ```
+                    .replace(/\s*```\s*$/i, '')      // Remove closing ```
+                    .replace(/^html\s*/i, '')        // Remove standalone "html" at start
+                    .replace(/\s*```[a-z]*\s*$/gi, '') // Remove any trailing ``` with optional language
                     .trim()
                 } />
               </div>
