@@ -70,6 +70,9 @@ serve(async (req) => {
     // Remove various forms of the prompt text that might appear
     cleanText = cleanText.replace(/Please transcribe only clear English speech and ignore background noise[,\s]*music[,\s]*or unclear audio\.?\s*/gi, '');
     cleanText = cleanText.replace(/This is a professional meeting or consultation recording in English\.?\s*/gi, '');
+    // Remove hallucinated phrases from silence
+    cleanText = cleanText.replace(/Thank you for watching\.?\s*/gi, '');
+    cleanText = cleanText.replace(/Thanks for watching\.?\s*/gi, '');
     cleanText = cleanText.trim();
     
     return new Response(JSON.stringify({ 

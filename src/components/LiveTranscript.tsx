@@ -117,7 +117,13 @@ export const LiveTranscript = ({
       return formatTranscriptWithSpeakers();
     }
     
-    const sentences = text.split('. ');
+    // Remove hallucinated phrases from transcript display
+    const cleanedText = text
+      .replace(/Thank you for watching\.?\s*/gi, '')
+      .replace(/Thanks for watching\.?\s*/gi, '')
+      .trim();
+    
+    const sentences = cleanedText.split('. ');
     return sentences.map((sentence, index) => {
       const timestamp = `${Math.floor(index * 0.5).toString().padStart(2, '0')}:${((index * 30) % 60).toString().padStart(2, '0')}`;
       return showTimestamps ? `[${timestamp}] ${sentence}` : sentence;

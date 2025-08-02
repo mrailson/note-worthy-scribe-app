@@ -389,11 +389,17 @@ export const MeetingRecorder = ({
           .map(t => t.text)  // Remove speaker labels
           .join(' ');
         
-        setTranscript(rawTranscript);
-        onTranscriptUpdate(rawTranscript);
+        // Remove hallucinated phrases from transcript
+        const cleanedTranscript = rawTranscript
+          .replace(/Thank you for watching\.?\s*/gi, '')
+          .replace(/Thanks for watching\.?\s*/gi, '')
+          .trim();
+        
+        setTranscript(cleanedTranscript);
+        onTranscriptUpdate(cleanedTranscript);
         
         // Update word count
-        const words = rawTranscript.split(' ').filter(word => word.length > 0);
+        const words = cleanedTranscript.split(' ').filter(word => word.length > 0);
         setWordCount(words.length);
         onWordCountUpdate(words.length);
       }
@@ -403,8 +409,17 @@ export const MeetingRecorder = ({
   };
 
   const handleBrowserTranscript = (data: BrowserTranscriptData) => {
+    // Remove hallucinated phrases from browser transcription
+    const cleanedText = data.text
+      .replace(/Thank you for watching\.?\s*/gi, '')
+      .replace(/Thanks for watching\.?\s*/gi, '')
+      .trim();
+    
+    // Skip empty transcripts after cleaning
+    if (!cleanedText) return;
+    
     const transcriptData: TranscriptData = {
-      text: data.text,
+      text: cleanedText,
       speaker: data.speaker || 'Speaker',
       confidence: data.confidence,
       timestamp: new Date().toISOString(),
