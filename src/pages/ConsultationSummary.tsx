@@ -949,6 +949,34 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                               Ask the AI to analyze your consultation, create referral letters, suggest improvements, or check for missing information.
                             </p>
                             
+                            {/* Quick Prompt Buttons */}
+                            <div className="flex flex-wrap gap-2">
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => setAiPrompt("Create a patient-friendly letter explaining the consultation findings, diagnosis, and treatment plan in simple language that the patient can easily understand.")}
+                                className="text-xs"
+                              >
+                                Patient Letter
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => setAiPrompt("Review this consultation thoroughly and provide feedback on the clinical reasoning, examination completeness, differential diagnosis considerations, and management plan. Highlight any areas for improvement or missing elements.")}
+                                className="text-xs"
+                              >
+                                Review Consultation
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => setAiPrompt("Based on this consultation, create a list of follow-up tasks and actions required, including any investigations to order, referrals to make, follow-up appointments to schedule, and patient education points to cover.")}
+                                className="text-xs"
+                              >
+                                Create Task
+                              </Button>
+                            </div>
+                            
                             <div className="flex gap-2">
                               <div className="flex-1">
                                 <Textarea
