@@ -36,7 +36,7 @@ async function callClaude(messages: Message[], systemPrompt: string, files?: Upl
 
   // Format messages for Claude
   const claudeMessages = messages.map(msg => {
-    let content = msg.content;
+    let content = msg.content || ''; // Ensure content is never null/undefined
     
     // Add file content if present
     if (msg.files && msg.files.length > 0) {
@@ -44,6 +44,11 @@ async function callClaude(messages: Message[], systemPrompt: string, files?: Upl
         `\n\n--- File: ${file.name} ---\n${file.content}\n--- End of ${file.name} ---`
       ).join('');
       content += fileContent;
+    }
+    
+    // Ensure content is not empty
+    if (!content.trim()) {
+      content = '[No message content]';
     }
     
     return {
@@ -89,7 +94,7 @@ async function callGPT(messages: Message[], systemPrompt: string, files?: Upload
   ];
 
   messages.forEach(msg => {
-    let content = msg.content;
+    let content = msg.content || ''; // Ensure content is never null/undefined
     
     // Add file content if present
     if (msg.files && msg.files.length > 0) {
@@ -97,6 +102,11 @@ async function callGPT(messages: Message[], systemPrompt: string, files?: Upload
         `\n\n--- File: ${file.name} ---\n${file.content}\n--- End of ${file.name} ---`
       ).join('');
       content += fileContent;
+    }
+    
+    // Ensure content is not empty
+    if (!content.trim()) {
+      content = '[No message content]';
     }
     
     gptMessages.push({
