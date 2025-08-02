@@ -734,9 +734,13 @@ const ComplaintDetails = () => {
       return;
     }
 
-    // Check if requests have already been sent
-    if (inputRequests.length > 0) {
-      toast.error("Input requests have already been sent. Check the tracking section below.");
+    // Check if requests have already been sent for currently selected staff
+    const hasExistingRequests = selectedStaff.some(staff => 
+      inputRequests.some(request => request.staffName === staff.name && request.staffEmail === staff.email)
+    );
+    
+    if (hasExistingRequests) {
+      toast.error("Input requests have already been sent for some of the selected staff. Check the tracking section below.");
       return;
     }
 
