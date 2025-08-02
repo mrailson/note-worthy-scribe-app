@@ -1700,9 +1700,22 @@ I am committed to ensuring that all patients receive the care and service they d
                                             updatedStaff[index].email = e.target.value;
                                             setSelectedStaff(updatedStaff);
                                           }}
-                                          className="text-xs h-6 w-80"
+                                          className="text-xs h-6 w-60"
                                           maxLength={50}
                                         />
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() => {
+                                            // Create a test input request for this staff member
+                                            const requestId = Date.now().toString();
+                                            handleTestReply(requestId, staff.name);
+                                          }}
+                                          disabled={submitting}
+                                          className="text-xs h-6"
+                                        >
+                                          Test Reply
+                                        </Button>
                                         <span className="text-xs text-red-500">Email required</span>
                                       </div>
                                     )}
