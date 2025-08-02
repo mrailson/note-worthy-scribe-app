@@ -158,13 +158,6 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                         <Shield className="h-4 w-4 mr-2" />
                         CQC Compliance
                       </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => navigate('/compliance-docs')}
-                        className="cursor-pointer py-3"
-                      >
-                        <BookOpen className="h-4 w-4 mr-2" />
-                        Security Documentation
-                      </DropdownMenuItem>
                      {sharedDriveVisible && (
                        <DropdownMenuItem 
                          onClick={() => navigate('/shared-drive')}
@@ -203,13 +196,28 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                     User Settings
                   </DropdownMenuItem>
                    {isAdmin && (
-                      <DropdownMenuItem 
-                        onClick={() => navigate('/admin')}
-                        className="cursor-pointer py-3"
-                      >
-                        <Shield className="h-4 w-4 mr-2" />
-                        System Admin
-                      </DropdownMenuItem>
+                     <DropdownMenuSub>
+                       <DropdownMenuSubTrigger className="cursor-pointer py-3">
+                         <Shield className="h-4 w-4 mr-2" />
+                         System Admin
+                       </DropdownMenuSubTrigger>
+                       <DropdownMenuSubContent className="bg-background border border-border shadow-lg">
+                         <DropdownMenuItem 
+                           onClick={() => navigate('/admin')}
+                           className="cursor-pointer py-3"
+                         >
+                           <Wrench className="h-4 w-4 mr-2" />
+                           Admin Dashboard
+                         </DropdownMenuItem>
+                         <DropdownMenuItem 
+                           onClick={() => navigate('/compliance-docs')}
+                           className="cursor-pointer py-3"
+                         >
+                           <BookOpen className="h-4 w-4 mr-2" />
+                           Security Documentation
+                         </DropdownMenuItem>
+                       </DropdownMenuSubContent>
+                     </DropdownMenuSub>
                    )}
                 </DropdownMenuContent>
               </DropdownMenu>
