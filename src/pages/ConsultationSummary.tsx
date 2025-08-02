@@ -34,6 +34,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { SafeMessageRenderer } from "@/components/SafeMessageRenderer";
+import { FormattedReviewContent } from "@/components/FormattedReviewContent";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import jsPDF from "jspdf";
@@ -1227,11 +1228,7 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                   </div>
                 ) : reviewContent ? (
                   <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 rounded-lg p-4 border border-green-200 dark:border-green-800">
-                    <div className="prose prose-sm max-w-none dark:prose-invert">
-                      <div className="ai-response-content space-y-3">
-                        <SafeMessageRenderer content={reviewContent.split('CONSULTATION SCORE:')[0] || reviewContent} />
-                      </div>
-                    </div>
+                    <FormattedReviewContent content={reviewContent.split('CONSULTATION SCORE:')[0] || reviewContent} />
                   </div>
                 ) : (
                   <div className="bg-muted/30 rounded-lg p-4 border text-center">
