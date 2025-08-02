@@ -557,9 +557,23 @@ const Index = () => {
     setIsPaused(false);
     toast.success("Recording stopped");
     
-    // Auto-generate summary if there's meaningful content
+    // Auto-generate summary if there's meaningful content and navigate to consultation summary
     if (transcript && transcript.trim().length > 50) {
       setTimeout(() => generateSummary(), 1000);
+    } else {
+      // Even if no meaningful content, navigate to consultation summary with basic data
+      const consultationData = {
+        id: `consultation-${Date.now()}`,
+        title: `GP Consultation - ${new Date().toLocaleDateString()}`,
+        type: 'gp_consultation',
+        transcript: transcript || '',
+        duration: formatDuration(duration),
+        wordCount: transcript ? transcript.split(' ').filter(word => word.length > 0).length : 0,
+        startTime: new Date().toISOString(),
+        isExample: false
+      };
+      
+      navigate('/consultation-summary', { state: consultationData });
     }
   };
 
@@ -696,6 +710,25 @@ const Index = () => {
       // Save to history
       await saveToHistory(data);
       
+      // Navigate to consultation summary with the generated data
+      const consultationData = {
+        id: `consultation-${Date.now()}`,
+        title: `GP Consultation - ${new Date().toLocaleDateString()}`,
+        type: 'gp_consultation',
+        transcript: transcript,
+        duration: formatDuration(duration),
+        wordCount: transcript.split(' ').filter(word => word.length > 0).length,
+        startTime: new Date().toISOString(),
+        isExample: false,
+        generatedData: {
+          gpSummary: data.gpSummary,
+          fullNote: data.fullNote,
+          patientCopy: data.patientCopy,
+          traineeFeedback: data.traineeFeedback
+        }
+      };
+      
+      navigate('/consultation-summary', { state: consultationData });
       toast.success("Clinical summary generated successfully");
     } catch (error: any) {
       toast.error(`Error generating summary: ${error.message}`);
