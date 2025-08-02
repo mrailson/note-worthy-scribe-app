@@ -184,11 +184,25 @@ Return ONLY a valid JSON object with these fields (use null for missing informat
   "complaint_on_behalf": true/false if complaint is made on behalf of someone else
 }
 
+CRITICAL: Category Selection Rules (prioritize by severity - highest to lowest):
+1. clinical_care - Any medical treatment issues, misdiagnosis, clinical errors, patient safety concerns
+2. medication - Prescription errors, wrong medication, adverse reactions due to medical errors
+3. communication - Breach of confidentiality, inadequate information sharing, critical communication failures
+4. referrals - Delayed or inappropriate referrals affecting patient care
+5. staff_attitude - Unprofessional behavior, discrimination, harassment
+6. appointment_system - Missed appointments causing health issues, booking system failures
+7. waiting_times - Excessive delays affecting patient health
+8. facilities - Unsafe or inadequate medical facilities
+9. billing - Financial disputes, incorrect charges
+10. other - Anything not covered above
+
+If multiple complaint categories apply, ALWAYS select the most serious category from the hierarchy above.
+
 Important:
 - Extract dates carefully and convert to YYYY-MM-DD format
 - If text appears to be an email, extract the complaint content from the body
 - Infer priority based on severity of the complaint
-- Identify the most appropriate category based on the complaint content
+- ALWAYS choose the most serious applicable category when multiple issues are present
 - Return valid JSON only, no additional text or explanation`;
 
     const userPrompt = `Extract complaint information from this text:\n\n${extractedText}`;
