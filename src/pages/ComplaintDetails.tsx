@@ -1950,12 +1950,18 @@ I am committed to ensuring that all patients receive the care and service they d
                           <Button 
                             className="flex-1"
                             onClick={handleSendInputRequests}
-                            disabled={submitting || selectedStaff.length === 0 || inputRequests.length > 0}
+                            disabled={submitting || selectedStaff.length === 0 || selectedStaff.some(staff => 
+                              inputRequests.some(request => request.staffName === staff.name && request.staffEmail === staff.email)
+                            )}
                           >
                             <Send className="h-4 w-4 mr-2" />
-                            {inputRequests.length > 0 ? 'Requests Already Sent' : submitting ? 'Sending...' : 'Send Input Requests'}
+                            {selectedStaff.some(staff => 
+                              inputRequests.some(request => request.staffName === staff.name && request.staffEmail === staff.email)
+                            ) ? 'Requests Already Sent' : submitting ? 'Sending...' : 'Send Input Requests'}
                           </Button>
-                          {inputRequests.length > 0 && (
+                          {selectedStaff.some(staff => 
+                            inputRequests.some(request => request.staffName === staff.name && request.staffEmail === staff.email)
+                          ) && (
                             <Button 
                               variant="destructive"
                               size="sm"
