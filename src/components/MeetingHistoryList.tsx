@@ -332,7 +332,11 @@ export const MeetingHistoryList = ({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => onViewTranscript(meeting.id)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onViewTranscript(meeting.id);
+                  }}
                   className="flex items-center justify-center gap-2 flex-1 sm:flex-none touch-manipulation min-h-[44px]"
                 >
                   <FileTextIcon className="h-4 w-4" />

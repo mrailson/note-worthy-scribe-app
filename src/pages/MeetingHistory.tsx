@@ -204,7 +204,17 @@ const MeetingHistory = () => {
   };
 
   const handleViewTranscript = async (meetingId: string) => {
+    // Prevent double-tap issues on mobile
+    if (transcriptDialogOpen) {
+      return;
+    }
+
     try {
+      // Reset states first
+      setViewingTranscript("");
+      setCleanedTranscript("");
+      setCurrentMeetingForTranscript(null);
+      
       // Fetch meeting details
       const { data: meeting, error: meetingError } = await supabase
         .from('meetings')
@@ -225,10 +235,16 @@ const MeetingHistory = () => {
       if (transcriptError) throw transcriptError;
 
       const fullTranscript = transcripts?.map(t => t.content).join(' ') || '';
+      
+      // Set all data before opening dialog
       setViewingTranscript(fullTranscript);
       setCurrentMeetingForTranscript(meeting);
-      setCleanedTranscript(""); // Reset cleaned transcript
-      setTranscriptDialogOpen(true);
+      
+      // Use setTimeout to ensure state is updated before dialog opens
+      setTimeout(() => {
+        setTranscriptDialogOpen(true);
+      }, 50);
+      
     } catch (error: any) {
       console.error("Error loading transcript:", error.message);
     }
