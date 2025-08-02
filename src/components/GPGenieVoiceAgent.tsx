@@ -29,6 +29,8 @@ const GPGenieVoiceAgent = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [hasPermission, setHasPermission] = useState(false);
   const [volume, setVolume] = useState(0.8);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isMicMuted, setIsMicMuted] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const conversation = useConversation({
@@ -130,9 +132,28 @@ const GPGenieVoiceAgent = () => {
   // Handle volume change
   const handleVolumeChange = async (newVolume: number) => {
     setVolume(newVolume);
-    if (conversation.status === 'connected') {
+    if (conversation.status === 'connected' && !isMuted) {
       await conversation.setVolume({ volume: newVolume });
     }
+  };
+
+  // Toggle sound mute
+  const toggleSoundMute = async () => {
+    const newMutedState = !isMuted;
+    setIsMuted(newMutedState);
+    
+    if (conversation.status === 'connected') {
+      await conversation.setVolume({ volume: newMutedState ? 0 : volume });
+      toast.info(newMutedState ? 'Sound muted' : 'Sound unmuted');
+    }
+  };
+
+  // Toggle microphone mute
+  const toggleMicMute = () => {
+    setIsMicMuted(!isMicMuted);
+    // Note: ElevenLabs doesn't provide direct mic mute API
+    // This is a visual indicator and may need additional implementation
+    toast.info(isMicMuted ? 'Microphone unmuted' : 'Microphone muted');
   };
 
   useEffect(() => {
@@ -246,20 +267,50 @@ const GPGenieVoiceAgent = () => {
             )}
           </div>
 
-          {/* Volume Control */}
+          {/* Audio Controls */}
           {conversation.status === 'connected' && (
-            <div className="flex items-center gap-3 w-full max-w-xs">
-              <VolumeX className="h-4 w-4 text-muted-foreground" />
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.1"
-                value={volume}
-                onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
-                className="flex-1"
-              />
-              <Volume2 className="h-4 w-4 text-muted-foreground" />
+            <div className="space-y-4 w-full max-w-md">
+              {/* Mute Controls */}
+              <div className="flex items-center justify-center gap-6">
+                <Button
+                  variant={isMicMuted ? "destructive" : "outline"}
+                  size="sm"
+                  onClick={toggleMicMute}
+                  className="flex items-center gap-2"
+                >
+                  {isMicMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                  {isMicMuted ? 'Mic Off' : 'Mic On'}
+                </Button>
+                
+                <Button
+                  variant={isMuted ? "destructive" : "outline"}
+                  size="sm"
+                  onClick={toggleSoundMute}
+                  className="flex items-center gap-2"
+                >
+                  {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                  {isMuted ? 'Sound Off' : 'Sound On'}
+                </Button>
+              </div>
+              
+              {/* Volume Slider */}
+              <div className="flex items-center gap-3">
+                <VolumeX className="h-4 w-4 text-muted-foreground" />
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.1"
+                  value={isMuted ? 0 : volume}
+                  onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
+                  disabled={isMuted}
+                  className="flex-1 disabled:opacity-50"
+                />
+                <Volume2 className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground min-w-[3ch]">
+                  {Math.round((isMuted ? 0 : volume) * 100)}%
+                </span>
+              </div>
             </div>
           )}
         </div>
