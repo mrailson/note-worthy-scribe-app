@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,6 +45,30 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
   const [practiceSearchOpen, setPracticeSearchOpen] = useState(false);
   const [practices, setPractices] = useState<Array<{id: string, name: string, practice_code: string}>>([]);
   const [searchTerm, setSearchTerm] = useState("");
+
+  // Function to round time to nearest 15 minutes (London time)
+  const roundToNearest15Minutes = (date: Date): Date => {
+    const minutes = date.getMinutes();
+    const roundedMinutes = Math.round(minutes / 15) * 15;
+    const roundedDate = new Date(date);
+    roundedDate.setMinutes(roundedMinutes, 0, 0); // Set seconds and milliseconds to 0
+    
+    // If rounding went to next hour, adjust
+    if (roundedMinutes === 60) {
+      roundedDate.setHours(roundedDate.getHours() + 1);
+      roundedDate.setMinutes(0);
+    }
+    
+    return roundedDate;
+  };
+
+  // Generate rounded start time for London timezone
+  const generateRoundedStartTime = (): string => {
+    const now = new Date();
+    const roundedTime = roundToNearest15Minutes(now);
+    return format(roundedTime, 'HH:mm');
+  };
+
   const [settings, setSettings] = useState({
     title: initialSettings?.title || "General Meeting",
     description: initialSettings?.description || "",
@@ -53,8 +78,8 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
     format: "",
     attendees: "",
     agenda: "",
-    date: new Date().toISOString().split('T')[0],
-    startTime: new Date().toLocaleTimeString('en-GB', { hour12: false, hour: '2-digit', minute: '2-digit' })
+    date: format(new Date(), 'yyyy-MM-dd'),
+    startTime: generateRoundedStartTime()
   });
 
   // Fetch default practice on mount

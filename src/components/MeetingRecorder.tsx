@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { format, startOfDay, addMinutes } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -98,6 +99,29 @@ export const MeetingRecorder = ({
   const autoSaveRef = useRef<NodeJS.Timeout | null>(null);
   const browserAudioStreamRef = useRef<MediaStream | null>(null);
   const micAudioStreamRef = useRef<MediaStream | null>(null);
+
+  // Function to round time to nearest 15 minutes
+  const roundToNearest15Minutes = (date: Date): Date => {
+    const minutes = date.getMinutes();
+    const roundedMinutes = Math.round(minutes / 15) * 15;
+    const roundedDate = new Date(date);
+    roundedDate.setMinutes(roundedMinutes, 0, 0); // Set seconds and milliseconds to 0
+    
+    // If rounding went to next hour, adjust
+    if (roundedMinutes === 60) {
+      roundedDate.setHours(roundedDate.getHours() + 1);
+      roundedDate.setMinutes(0);
+    }
+    
+    return roundedDate;
+  };
+
+  // Function to generate meeting timestamp with current date and rounded time
+  const generateMeetingTimestamp = (): string => {
+    const now = new Date();
+    const roundedTime = roundToNearest15Minutes(now);
+    return roundedTime.toISOString();
+  };
   const audioContextRef = useRef<AudioContext | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 
@@ -1016,7 +1040,7 @@ export const MeetingRecorder = ({
       setIsRecording(true);
       setRealtimeTranscripts([]);
       setSpeakerCount(1);
-      setStartTime(new Date().toISOString());
+      setStartTime(generateMeetingTimestamp());
       setConnectionStatus("Connected");
       
       addDebugLog('✅ Test recording started successfully');
@@ -1112,7 +1136,7 @@ export const MeetingRecorder = ({
       setIsRecording(true);
       setRealtimeTranscripts([]);
       setSpeakerCount(1);
-      setStartTime(new Date().toISOString());
+      setStartTime(generateMeetingTimestamp());
       setConnectionStatus("Connected");
       
       addDebugLog('✅ Recording started successfully');
