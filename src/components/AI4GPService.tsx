@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { SafeMessageRenderer } from './SafeMessageRenderer';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -539,7 +540,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                             ? 'bg-primary text-primary-foreground' 
                             : 'bg-muted'
                         }`}>
-                          <div dangerouslySetInnerHTML={{ __html: message.content.replace(/\n/g, '<br>') }} />
+                          <SafeMessageRenderer content={message.content} />
                           
                           {message.files && message.files.length > 0 && (
                             <div className="mt-2 space-y-1">
