@@ -44,7 +44,13 @@ export const AIResponsePanel: React.FC<AIResponsePanelProps> = ({
           <ScrollArea className="h-[calc(100vh-120px)] pr-4">
             <div className="prose prose-sm max-w-none dark:prose-invert">
               <div className="ai-response-content space-y-4 p-4 bg-muted/30 rounded-lg border">
-                <SafeMessageRenderer content={response} />
+                <SafeMessageRenderer content={
+                  response
+                    .replace(/^```html\s*/i, '')  // Remove opening ```html
+                    .replace(/\s*```\s*$/i, '')   // Remove closing ```
+                    .replace(/^html\s*/i, '')     // Remove standalone "html" at start
+                    .trim()
+                } />
               </div>
             </div>
           </ScrollArea>
