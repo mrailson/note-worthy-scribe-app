@@ -325,21 +325,21 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
             {/* Meeting Format */}
             <div className="space-y-2">
               <Label>Meeting Format</Label>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Button
                   variant={settings.format === 'face-to-face' ? 'default' : 'outline'}
                   onClick={() => updateSetting('format', 'face-to-face')}
-                  className="flex-1"
+                  className="flex-1 text-xs sm:text-sm"
                 >
-                  <Users className="h-4 w-4 mr-2" />
+                  <Users className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                   Face to Face
                 </Button>
                 <Button
                   variant={settings.format === 'online' ? 'default' : 'outline'}
                   onClick={() => updateSetting('format', 'online')}
-                  className="flex-1"
+                  className="flex-1 text-xs sm:text-sm"
                 >
-                  <Monitor className="h-4 w-4 mr-2" />
+                  <Monitor className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                   Teams/Web Meeting
                 </Button>
               </div>
@@ -404,13 +404,13 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
             {/* Meeting Attendees */}
             <div className="space-y-2">
               <Label htmlFor="attendees">Meeting Attendees</Label>
-              <div className="flex gap-2 mb-2">
-                <Button variant="outline" size="sm" className="flex-1">
-                  <Upload className="h-4 w-4 mr-2" />
+              <div className="flex flex-col sm:flex-row gap-2 mb-2">
+                <Button variant="outline" size="sm" className="flex-1 text-xs sm:text-sm">
+                  <Upload className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                   Import from File
                 </Button>
-                <Button variant="outline" size="sm" className="flex-1">
-                  <ClipboardPaste className="h-4 w-4 mr-2" />
+                <Button variant="outline" size="sm" className="flex-1 text-xs sm:text-sm">
+                  <ClipboardPaste className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                   Paste from Clipboard
                 </Button>
               </div>
@@ -426,13 +426,13 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
             {/* Meeting Agenda */}
             <div className="space-y-2">
               <Label htmlFor="agenda">Meeting Agenda</Label>
-              <div className="flex gap-2 mb-2">
-                <Button variant="outline" size="sm" className="flex-1">
-                  <Upload className="h-4 w-4 mr-2" />
+              <div className="flex flex-col sm:flex-row gap-2 mb-2">
+                <Button variant="outline" size="sm" className="flex-1 text-xs sm:text-sm">
+                  <Upload className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                   Import from File
                 </Button>
-                <Button variant="outline" size="sm" className="flex-1">
-                  <ClipboardPaste className="h-4 w-4 mr-2" />
+                <Button variant="outline" size="sm" className="flex-1 text-xs sm:text-sm">
+                  <ClipboardPaste className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                   Paste from Clipboard
                 </Button>
               </div>
