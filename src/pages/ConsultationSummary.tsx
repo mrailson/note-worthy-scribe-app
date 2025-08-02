@@ -70,7 +70,7 @@ export default function ConsultationSummary() {
   const [consultationData, setConsultationData] = useState<ConsultationData | null>(null);
   const [activeTab, setActiveTab] = useState("gp-summary");
   const [isTranscriptOpen, setIsTranscriptOpen] = useState(false);
-  const [noteLevel, setNoteLevel] = useState([1]); // 0: Coded, 1: Standard, 2: Detailed
+  const [noteLevel, setNoteLevel] = useState([1]); // 0: Shorthand, 1: Standard, 2: Detailed
   
   // Edit states
   const [editStates, setEditStates] = useState({
@@ -114,7 +114,7 @@ export default function ConsultationSummary() {
   const [isRecording, setIsRecording] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
 
-  const noteLevels = ["Coded", "Standard", "Detailed"];
+  const noteLevels = ["Shorthand", "Standard", "Detailed"];
 
   useEffect(() => {
     const data = location.state as ConsultationData;
@@ -926,7 +926,7 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                           className="w-full"
                         />
                         <div className="flex justify-between text-xs text-muted-foreground mt-1 px-1">
-                          <span>Coded</span>
+                          <span>Shorthand</span>
                           <span>Standard</span>
                           <span>Detailed</span>
                         </div>
