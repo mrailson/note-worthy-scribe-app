@@ -764,6 +764,75 @@ const ComplaintDetails = () => {
     }
   };
 
+  const handleTestReply = async (requestId: string, staffName: string) => {
+    setSubmitting(true);
+    try {
+      // Generate a realistic test response based on the complaint category
+      const testResponses = {
+        "Communication Issues": `I want to sincerely apologize for the breach of confidentiality that occurred. As the receptionist involved, I acknowledge that I should not have discussed the patient's test results in a public area where other patients could overhear.
+
+I understand the importance of maintaining patient confidentiality at all times, and I take full responsibility for this error in judgment. This incident occurred during a particularly busy period, but I recognize that this is not an excuse for compromising patient privacy.
+
+I have already taken steps to ensure this doesn't happen again by:
+- Reviewing the practice's confidentiality policies
+- Requesting additional training on GDPR and patient confidentiality
+- Implementing a personal checklist to ensure all patient discussions occur in private areas
+
+I deeply regret the distress this has caused to the patient and understand the impact this has had on their trust in our practice. I am committed to maintaining the highest standards of confidentiality going forward.`,
+        
+        "Clinical Care & Treatment": `Thank you for bringing this matter to my attention. I have carefully reviewed the patient's care and the circumstances surrounding this complaint.
+
+After thorough consideration of the case notes and treatment decisions made, I want to provide my perspective on the clinical care provided. The treatment plan was developed based on the patient's presenting symptoms and clinical history available at the time.
+
+I acknowledge that the patient's experience did not meet their expectations, and I sincerely apologize for any distress caused. Following this complaint, I have:
+- Reviewed the latest clinical guidelines for this condition
+- Discussed the case with colleagues for peer review
+- Identified areas where communication could have been clearer
+
+I am committed to learning from this experience and ensuring that all patients receive the highest standard of care and communication.`,
+        
+        "default": `Thank you for the opportunity to provide my input regarding this complaint. I have carefully considered the concerns raised and want to address them thoroughly.
+
+I sincerely apologize for any part I played in the patient's unsatisfactory experience. Patient care and satisfaction are our top priorities, and I regret that we fell short of the standards expected.
+
+After reflection, I have identified several areas for improvement and have taken the following actions:
+- Reviewed relevant policies and procedures
+- Sought additional guidance from senior colleagues
+- Implemented changes to prevent similar issues in the future
+
+I am committed to ensuring that all patients receive the care and service they deserve.`
+      };
+
+      const response = testResponses[complaint?.category as keyof typeof testResponses] || testResponses.default;
+
+      // Update the complaint_involved_parties record with the test response
+      const { error } = await supabase
+        .from('complaint_involved_parties')
+        .update({
+          response_text: response,
+          response_submitted_at: new Date().toISOString()
+        })
+        .eq('complaint_id', complaint?.id)
+        .eq('staff_name', staffName);
+
+      if (error) throw error;
+
+      // Update local state to mark as completed
+      setInputRequests(prev => prev.map(request => 
+        request.id === requestId 
+          ? { ...request, responseReceived: true, status: 'completed' }
+          : request
+      ));
+
+      toast.success(`Test reply generated for ${staffName}`);
+      
+    } catch (error) {
+      console.error('Error generating test reply:', error);
+      toast.error("Failed to generate test reply");
+    } finally {
+      setSubmitting(false);
+    }
+  };
   const handleSaveWorkflowSettings = async () => {
     setSubmitting(true);
     try {
@@ -1540,6 +1609,17 @@ const ComplaintDetails = () => {
                                       <Badge variant={request.responseReceived ? "default" : "secondary"}>
                                         {request.responseReceived ? "Response Received" : "Awaiting Response"}
                                       </Badge>
+                                      {!request.responseReceived && (
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() => handleTestReply(request.id, request.staffName)}
+                                          disabled={submitting}
+                                          className="text-xs"
+                                        >
+                                          Test Reply
+                                        </Button>
+                                      )}
                                     </div>
                                   </div>
                                 ))}
@@ -1598,16 +1678,33 @@ const ComplaintDetails = () => {
                           <div className="space-y-2">
                             {selectedStaff.map((staff, index) => (
                               <div key={index} className="flex items-center justify-between p-2 bg-white rounded border">
-                                <div className="flex items-center space-x-2">
+                                <div className="flex items-center space-x-2 flex-1">
                                   <input 
                                     type="checkbox" 
                                     className="rounded" 
                                     defaultChecked={staff.suggested}
                                     onChange={(e) => handleStaffSelection(index, e.target.checked)}
                                   />
-                                  <div className="flex flex-col">
+                                  <div className="flex flex-col flex-1">
                                     <span className="text-sm font-medium">{staff.name}</span>
-                                    {staff.email && <span className="text-xs text-muted-foreground">{staff.email}</span>}
+                                    {staff.email ? (
+                                      <span className="text-xs text-muted-foreground">{staff.email}</span>
+                                    ) : (
+                                      <div className="flex items-center gap-2 mt-1">
+                                        <Input
+                                          type="email"
+                                          placeholder="Enter email address"
+                                          value={staff.email}
+                                          onChange={(e) => {
+                                            const updatedStaff = [...selectedStaff];
+                                            updatedStaff[index].email = e.target.value;
+                                            setSelectedStaff(updatedStaff);
+                                          }}
+                                          className="text-xs h-6"
+                                        />
+                                        <span className="text-xs text-red-500">Email required</span>
+                                      </div>
+                                    )}
                                   </div>
                                   <Badge variant="outline" className="text-xs">
                                     {staff.type === 'mentioned' ? 'Mentioned' : 
