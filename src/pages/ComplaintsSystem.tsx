@@ -1858,7 +1858,7 @@ const ComplaintsSystem = () => {
                           required
                         />
                         <Label htmlFor="consent_given" className="text-sm">
-                          I consent to the practice processing this complaint in accordance with NHS procedures and GDPR requirements *
+                          * consent obtained for processing this complaint
                         </Label>
                       </div>
 
