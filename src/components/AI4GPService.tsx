@@ -390,12 +390,10 @@ Always provide evidence-based, clinically appropriate advice that follows curren
 
       const { data, error } = await supabase.functions.invoke('ai-4-pm-chat', {
         body: {
-          messages: [
-            { role: 'system', content: systemPrompt },
-            ...messagesForAPI
-          ],
+          messages: messagesForAPI,
           model: model,
-          sessionMemory: sessionMemory
+          systemPrompt: systemPrompt,
+          files: uploadedFiles.length > 0 ? uploadedFiles : undefined
         }
       });
 

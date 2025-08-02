@@ -149,6 +149,8 @@ serve(async (req) => {
     const { messages, model, systemPrompt, files }: RequestBody = await req.json();
 
     console.log(`Processing ${model} request with ${messages.length} messages`);
+    console.log('SystemPrompt:', systemPrompt ? 'Present' : 'Missing');
+    console.log('Messages content check:', messages.map(m => ({ role: m.role, hasContent: !!m.content })));
 
     let response: string;
 
