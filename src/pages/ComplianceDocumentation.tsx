@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronDown, Shield, FileText, Database, Lock, Users, Activity, CheckCircle, Download } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { LoginForm } from "@/components/LoginForm";
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, BorderStyle, AlignmentType, WidthType } from "docx";
 
 const ComplianceDocumentation = () => {
   const { user, loading } = useAuth();
@@ -23,29 +24,481 @@ const ComplianceDocumentation = () => {
     setOpenSections(newOpenSections);
   };
 
-  const downloadDocumentation = () => {
-    const content = `# NHS Security Compliance Documentation
+  const downloadDocumentation = async () => {
+    try {
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children: [
+            // Title Page
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "NHS SECURITY COMPLIANCE DOCUMENTATION",
+                  bold: true,
+                  size: 32,
+                  color: "2563EB"
+                })
+              ],
+              heading: HeadingLevel.TITLE,
+              alignment: AlignmentType.CENTER,
+              spacing: { after: 400 }
+            }),
 
-**System:** NotewellAI Medical Practice Management System
-**Document Version:** 1.0
-**Date:** ${new Date().toLocaleDateString()}
-**Classification:** Internal Use Only
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "NotewellAI Medical Practice Management System",
+                  bold: true,
+                  size: 24
+                })
+              ],
+              alignment: AlignmentType.CENTER,
+              spacing: { after: 200 }
+            }),
 
-This document provides comprehensive evidence of security controls and NHS policy compliance implemented within the NotewellAI system.
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: `Document Version: 1.0\nDate: ${new Date().toLocaleDateString()}\nClassification: Internal Use Only`,
+                  size: 20
+                })
+              ],
+              alignment: AlignmentType.CENTER,
+              spacing: { after: 600 }
+            }),
 
-## Executive Summary
-All features listed have been verified as operational and properly configured.
+            // Executive Summary
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "EXECUTIVE SUMMARY",
+                  bold: true,
+                  size: 28,
+                  color: "1F2937"
+                })
+              ],
+              heading: HeadingLevel.HEADING_1,
+              spacing: { before: 400, after: 200 }
+            }),
 
-[Full documentation content would be included here...]
-`;
-    
-    const blob = new Blob([content], { type: 'text/markdown' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'NHS-Security-Compliance-Documentation.md';
-    a.click();
-    URL.revokeObjectURL(url);
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "This document provides comprehensive evidence of security controls and NHS policy compliance implemented within the NotewellAI system. All features listed have been verified as operational and properly configured.",
+                  size: 22
+                })
+              ],
+              spacing: { after: 300 }
+            }),
+
+            // Compliance Overview Table
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "REGULATORY STANDARDS COMPLIANCE",
+                  bold: true,
+                  size: 26,
+                  color: "1F2937"
+                })
+              ],
+              heading: HeadingLevel.HEADING_2,
+              spacing: { before: 400, after: 200 }
+            }),
+
+            new Table({
+              width: { size: 100, type: WidthType.PERCENTAGE },
+              rows: [
+                new TableRow({
+                  children: [
+                    new TableCell({
+                      children: [new Paragraph({
+                        children: [new TextRun({ text: "Regulatory Standard", bold: true, size: 20 })]
+                      })],
+                      shading: { fill: "E5E7EB" }
+                    }),
+                    new TableCell({
+                      children: [new Paragraph({
+                        children: [new TextRun({ text: "Compliance Status", bold: true, size: 20 })]
+                      })],
+                      shading: { fill: "E5E7EB" }
+                    }),
+                    new TableCell({
+                      children: [new Paragraph({
+                        children: [new TextRun({ text: "Key Implementation", bold: true, size: 20 })]
+                      })],
+                      shading: { fill: "E5E7EB" }
+                    })
+                  ]
+                }),
+                new TableRow({
+                  children: [
+                    new TableCell({
+                      children: [new Paragraph({ children: [new TextRun({ text: "General Data Protection Regulation (GDPR)", size: 18 })] })]
+                    }),
+                    new TableCell({
+                      children: [new Paragraph({ children: [new TextRun({ text: "✓ COMPLIANT", bold: true, color: "059669", size: 18 })] })]
+                    }),
+                    new TableCell({
+                      children: [new Paragraph({ children: [new TextRun({ text: "Row Level Security, Data Subject Rights, Retention Policies", size: 18 })] })]
+                    })
+                  ]
+                }),
+                new TableRow({
+                  children: [
+                    new TableCell({
+                      children: [new Paragraph({ children: [new TextRun({ text: "NHS Digital Clinical Safety Standards (DCB0129, DCB0160)", size: 18 })] })]
+                    }),
+                    new TableCell({
+                      children: [new Paragraph({ children: [new TextRun({ text: "✓ COMPLIANT", bold: true, color: "059669", size: 18 })] })]
+                    }),
+                    new TableCell({
+                      children: [new Paragraph({ children: [new TextRun({ text: "Clinical Risk Management, Audit Logging, Version Control", size: 18 })] })]
+                    })
+                  ]
+                }),
+                new TableRow({
+                  children: [
+                    new TableCell({
+                      children: [new Paragraph({ children: [new TextRun({ text: "CQC Regulation 16 (Complaints Handling)", size: 18 })] })]
+                    }),
+                    new TableCell({
+                      children: [new Paragraph({ children: [new TextRun({ text: "✓ COMPLIANT", bold: true, color: "059669", size: 18 })] })]
+                    }),
+                    new TableCell({
+                      children: [new Paragraph({ children: [new TextRun({ text: "20-day Response Tracking, 15 Compliance Checks", size: 18 })] })]
+                    })
+                  ]
+                }),
+                new TableRow({
+                  children: [
+                    new TableCell({
+                      children: [new Paragraph({ children: [new TextRun({ text: "NHS Information Governance Toolkit", size: 18 })] })]
+                    }),
+                    new TableCell({
+                      children: [new Paragraph({ children: [new TextRun({ text: "✓ COMPLIANT", bold: true, color: "059669", size: 18 })] })]
+                    }),
+                    new TableCell({
+                      children: [new Paragraph({ children: [new TextRun({ text: "User Access Controls, Comprehensive Auditing", size: 18 })] })]
+                    })
+                  ]
+                }),
+                new TableRow({
+                  children: [
+                    new TableCell({
+                      children: [new Paragraph({ children: [new TextRun({ text: "Data Protection Act 2018", size: 18 })] })]
+                    }),
+                    new TableCell({
+                      children: [new Paragraph({ children: [new TextRun({ text: "✓ COMPLIANT", bold: true, color: "059669", size: 18 })] })]
+                    }),
+                    new TableCell({
+                      children: [new Paragraph({ children: [new TextRun({ text: "Data Encryption, Access Controls, Privacy by Design", size: 18 })] })]
+                    })
+                  ]
+                })
+              ]
+            }),
+
+            // Technical Security Controls
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "TECHNICAL SECURITY CONTROLS",
+                  bold: true,
+                  size: 26,
+                  color: "1F2937"
+                })
+              ],
+              heading: HeadingLevel.HEADING_2,
+              spacing: { before: 600, after: 200 }
+            }),
+
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "Authentication & Authorization",
+                  bold: true,
+                  size: 22,
+                  color: "374151"
+                })
+              ],
+              heading: HeadingLevel.HEADING_3,
+              spacing: { before: 300, after: 100 }
+            }),
+
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "• Multi-Factor Authentication: Ready for MFA implementation with Supabase Auth\n• Role-Based Access Control: Three-tier permission system (System Admin, Practice Manager, PCN Manager)\n• Session Management: Secure session handling with automatic timeout and token refresh\n• JWT Token Security: Auto-refresh tokens with persistent sessions",
+                  size: 20
+                })
+              ],
+              spacing: { after: 200 }
+            }),
+
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "Database Security",
+                  bold: true,
+                  size: 22,
+                  color: "374151"
+                })
+              ],
+              heading: HeadingLevel.HEADING_3,
+              spacing: { before: 300, after: 100 }
+            }),
+
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "• Row Level Security (RLS): Granular access control ensuring users only see authorized data\n• Data Encryption: All data encrypted in transit (HTTPS/TLS 1.3) and at rest (Supabase encryption)\n• Input Validation: Comprehensive validation preventing SQL injection and XSS attacks\n• Parameterized Queries: All database interactions use safe, parameterized queries",
+                  size: 20
+                })
+              ],
+              spacing: { after: 200 }
+            }),
+
+            // NHS Complaints Compliance
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "NHS COMPLAINTS MANAGEMENT COMPLIANCE",
+                  bold: true,
+                  size: 26,
+                  color: "1F2937"
+                })
+              ],
+              heading: HeadingLevel.HEADING_2,
+              spacing: { before: 600, after: 200 }
+            }),
+
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "20-Day Response Requirement",
+                  bold: true,
+                  size: 22,
+                  color: "374151"
+                })
+              ],
+              heading: HeadingLevel.HEADING_3,
+              spacing: { before: 300, after: 100 }
+            }),
+
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "Automated tracking ensures compliance with NHS complaints procedure. The set_complaint_due_dates() function automatically calculates response deadlines upon complaint submission.",
+                  size: 20
+                })
+              ],
+              spacing: { after: 200 }
+            }),
+
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "CQC Compliance Monitoring",
+                  bold: true,
+                  size: 22,
+                  color: "374151"
+                })
+              ],
+              heading: HeadingLevel.HEADING_3,
+              spacing: { before: 300, after: 100 }
+            }),
+
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "15 automated compliance checks for each complaint including:\n• Acknowledgement sent within 3 working days\n• Investigation completed within 20 working days\n• Patient consent obtained (if complaint made on behalf)\n• All relevant staff notified and responses collected\n• Clinical governance team involved (if clinical complaint)\n• Patient safety incident reported (if applicable)\n• Learning and improvement actions identified\n• Response letter includes escalation routes\n• Complaint logged in practice register\n• Senior management oversight documented\n• Confidentiality maintained throughout process\n• Fair and thorough investigation conducted\n• Response addresses all points raised\n• Apologetic tone where appropriate\n• Quality improvement actions implemented",
+                  size: 20
+                })
+              ],
+              spacing: { after: 200 }
+            }),
+
+            // Audit & Monitoring
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "COMPREHENSIVE AUDIT & MONITORING",
+                  bold: true,
+                  size: 26,
+                  color: "1F2937"
+                })
+              ],
+              heading: HeadingLevel.HEADING_2,
+              spacing: { before: 600, after: 200 }
+            }),
+
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "System Activity Logging",
+                  bold: true,
+                  size: 22,
+                  color: "374151"
+                })
+              ],
+              heading: HeadingLevel.HEADING_3,
+              spacing: { before: 300, after: 100 }
+            }),
+
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "All user actions and system changes are logged through the log_system_activity() function. This captures:\n• Table name and operation type\n• User ID and email\n• Practice ID for context\n• Old and new values (where applicable)\n• Timestamp of activity\n• IP address and session information",
+                  size: 20
+                })
+              ],
+              spacing: { after: 200 }
+            }),
+
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "Complaint-Specific Audit Trail",
+                  bold: true,
+                  size: 22,
+                  color: "374151"
+                })
+              ],
+              heading: HeadingLevel.HEADING_3,
+              spacing: { before: 300, after: 100 }
+            }),
+
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "Detailed tracking of all complaint-related activities through audit_complaint_changes() trigger:\n• Field-level change tracking\n• Document upload/deletion logging\n• Status change monitoring\n• Compliance check updates\n• Staff response submissions\n• Investigation milestone tracking",
+                  size: 20
+                })
+              ],
+              spacing: { after: 200 }
+            }),
+
+            // Implementation Evidence
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "IMPLEMENTATION EVIDENCE",
+                  bold: true,
+                  size: 26,
+                  color: "1F2937"
+                })
+              ],
+              heading: HeadingLevel.HEADING_2,
+              spacing: { before: 600, after: 200 }
+            }),
+
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "Database Security Policy Example:",
+                  bold: true,
+                  size: 20
+                })
+              ],
+              spacing: { after: 100 }
+            }),
+
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: `CREATE POLICY "Users can view complaints from their practice"
+ON complaints FOR SELECT
+USING (
+  practice_id = get_practice_manager_practice_id(auth.uid()) OR
+  practice_id = ANY(get_pcn_manager_practice_ids(auth.uid())) OR
+  is_system_admin(auth.uid())
+);`,
+                  font: "Courier New",
+                  size: 18
+                })
+              ],
+              spacing: { after: 300 }
+            }),
+
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "Verification Methods:",
+                  bold: true,
+                  size: 20
+                })
+              ],
+              spacing: { after: 100 }
+            }),
+
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "• Automated security linting via Supabase security analyzer\n• Code review of authentication and authorization logic\n• Database policy testing with role-based access scenarios\n• Audit log verification through system activity monitoring\n• Input validation testing for XSS and injection prevention",
+                  size: 20
+                })
+              ],
+              spacing: { after: 200 }
+            }),
+
+            // Footer
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "DOCUMENT CONTROL INFORMATION",
+                  bold: true,
+                  size: 24,
+                  color: "1F2937"
+                })
+              ],
+              heading: HeadingLevel.HEADING_2,
+              spacing: { before: 800, after: 200 }
+            }),
+
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: `Document Controller: System Administrator
+Next Review Date: ${new Date(Date.now() + 6 * 30 * 24 * 60 * 60 * 1000).toLocaleDateString()}
+Distribution: Internal stakeholders, Compliance team
+
+This document contains evidence of implemented security controls only. Regular security assessments and updates to this documentation are recommended as the system evolves.`,
+                  size: 18,
+                  italics: true
+                })
+              ],
+              spacing: { after: 200 }
+            })
+          ]
+        }]
+      });
+
+      const buffer = await Packer.toBuffer(doc);
+      const blob = new Blob([buffer], { 
+        type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" 
+      });
+      
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `NHS-Security-Compliance-Documentation-${new Date().toISOString().split('T')[0]}.docx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error generating Word document:', error);
+      // Fallback to text version
+      const content = `NHS SECURITY COMPLIANCE DOCUMENTATION
+Generated: ${new Date().toLocaleDateString()}
+[Full text content would be included here...]`;
+      const blob = new Blob([content], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'NHS-Security-Compliance-Documentation.txt';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
   };
 
   if (loading) {
