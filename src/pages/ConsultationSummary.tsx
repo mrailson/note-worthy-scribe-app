@@ -1330,8 +1330,8 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                                 <>
                                   {/* Summary Section */}
                                   <div className="mt-6 p-4 bg-white dark:bg-gray-800 rounded-lg border-2 border-primary">
-                                    <h4 className="text-lg font-semibold text-center mb-4">Score Summary</h4>
-                                    <div className="grid grid-cols-2 gap-2 text-sm">
+                                    <h4 className="text-lg font-semibold text-center mb-4">Score Breakdown</h4>
+                                    <div className="space-y-3">
                                       {sections.map((section, index) => {
                                         let awarded = 0;
                                         // Try multiple patterns to find the score
@@ -1343,23 +1343,44 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                                           }
                                         }
                                         
+                                        const percentage = Math.round((awarded / section.total) * 100);
+                                        
                                         return (
-                                          <div key={index} className="flex justify-between py-1">
-                                            <span>{section.title}:</span>
-                                            <span className="font-medium">{awarded}/{section.total}</span>
+                                          <div key={index} className="flex justify-between items-center p-3 bg-muted/30 rounded-lg">
+                                            <div className="flex-1">
+                                              <div className="font-medium text-sm">{section.title}</div>
+                                              <div className="text-xs text-muted-foreground">Subtotal: {awarded}/{section.total} ({percentage}%)</div>
+                                            </div>
+                                            <div className="text-right">
+                                              <div className={`text-lg font-bold ${
+                                                percentage >= 80 ? 'text-green-600' :
+                                                percentage >= 70 ? 'text-yellow-600' :
+                                                percentage >= 60 ? 'text-orange-600' :
+                                                'text-red-600'
+                                              }`}>
+                                                {percentage}%
+                                              </div>
+                                              <div className="text-xs text-muted-foreground">{awarded}/{section.total}</div>
+                                            </div>
                                           </div>
                                         );
                                       })}
-                                      <div className="col-span-2 border-t pt-2 mt-2">
-                                        <div className="flex justify-between text-lg font-bold">
-                                          <span>Total Score:</span>
-                                          <span className={
-                                            consultationScore >= 80 ? 'text-green-600' :
-                                            consultationScore >= 70 ? 'text-yellow-600' :
-                                            'text-red-600'
-                                          }>
-                                            {consultationScore}/100
-                                          </span>
+                                      <div className="mt-4 p-3 bg-primary/10 rounded-lg border-2 border-primary/20">
+                                        <div className="flex justify-between items-center">
+                                          <div>
+                                            <div className="font-bold text-base">Total Score</div>
+                                            <div className="text-sm text-muted-foreground">Overall Performance</div>
+                                          </div>
+                                          <div className="text-right">
+                                            <div className={`text-2xl font-bold ${
+                                              consultationScore >= 80 ? 'text-green-600' :
+                                              consultationScore >= 70 ? 'text-yellow-600' :
+                                              'text-red-600'
+                                            }`}>
+                                              {consultationScore}%
+                                            </div>
+                                            <div className="text-sm text-muted-foreground">{consultationScore}/100</div>
+                                          </div>
                                         </div>
                                       </div>
                                     </div>
