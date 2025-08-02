@@ -1439,6 +1439,9 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                                           .replace(/=== TOTAL SCORE CALCULATION ===[\s\S]*?(?=\n=== |\n\*\*|$)/i, '')
                                           .replace(/2\.\s*Consultation Score Breakdown.*?Below is the detailed scoring breakdown based on the consultation\./is, '')
                                           .replace(/Consultation Score Breakdown.*?Below is the detailed scoring breakdown based on the consultation\./is, '')
+                                          // Remove the detailed scoring breakdown block
+                                          .replace(/\*\*HISTORY TAKING[\s\S]*?\*\*FINAL SCORE:\s*\*\*\[\d+\/100\]\*\*\s*\*\*/i, '')
+                                          .replace(/\*\*HISTORY TAKING[\s\S]*?FINAL SCORE:\s*\[\d+\/100\]/i, '')
                                           // Add clear section breaks
                                           .replace(/(\*\*[A-Z\s&]+\*\*)/g, '\n\n---\n\n$1\n')
                                           .replace(/(=== [A-Z\s]+ ===)/g, '\n\n---\n\n$1\n')

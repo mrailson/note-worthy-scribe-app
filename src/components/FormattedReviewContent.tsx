@@ -13,6 +13,10 @@ export const FormattedReviewContent: React.FC<FormattedReviewContentProps> = ({ 
     
     // Split into sections and format each one
     const formatted = reviewOnly
+      // Remove the detailed scoring breakdown block
+      .replace(/\*\*HISTORY TAKING[\s\S]*?\*\*FINAL SCORE:\s*\*\*\[\d+\/100\]\*\*\s*\*\*/i, '')
+      .replace(/\*\*HISTORY TAKING[\s\S]*?FINAL SCORE:\s*\[\d+\/100\]/i, '')
+      
       // Add proper spacing around major sections
       .replace(/(\*\*[A-Z\s&]+\*\*)/g, '\n\n$1\n')
       .replace(/(=== [A-Z\s]+ ===)/g, '\n\n$1\n')
