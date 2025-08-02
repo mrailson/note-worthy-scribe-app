@@ -1510,59 +1510,59 @@ const ComplaintDetails = () => {
 
                     {/* Input Tracking Section - Hidden when Direct Investigation is selected */}
                     {investigationMethod !== "direct-investigation" && (
-                      <>
-                        <div className="space-y-3">
-                          <Label className="text-sm font-medium">Input Status Tracking</Label>
-                          <div className="space-y-2">
-                            <div className="text-sm text-muted-foreground">
-                              Track the status of input requests sent to staff members:
-                            </div>
-                            
-                            <div className="space-y-2 p-3 bg-gray-50 rounded border">
-                              {inputRequests.length === 0 ? (
-                                <div className="text-sm text-muted-foreground text-center py-4">
-                                  {investigationMethod === "input-required" 
-                                    ? "No staff input requests sent yet. Select staff members and click 'Send Input Requests'."
-                                    : "No staff input requests sent yet. Select investigation method and staff members above."
-                                  }
-                                </div>
-                              ) : (
-                                <div className="space-y-2">
-                                  {inputRequests.map((request) => (
-                                    <div key={request.id} className="flex items-center justify-between p-2 bg-white rounded border">
-                                      <div className="flex flex-col">
-                                        <span className="text-sm font-medium">{request.staffName}</span>
-                                        <span className="text-xs text-muted-foreground">{request.staffEmail}</span>
-                                        <span className="text-xs text-muted-foreground">
-                                          Sent: {format(new Date(request.sentAt), 'dd/MM/yyyy HH:mm')}
-                                        </span>
-                                      </div>
-                                      <div className="flex items-center gap-2">
-                                        <Badge variant={request.responseReceived ? "default" : "secondary"}>
-                                          {request.responseReceived ? "Response Received" : "Awaiting Response"}
-                                        </Badge>
-                                      </div>
+                      <div className="space-y-3">
+                        <Label className="text-sm font-medium">Input Status Tracking</Label>
+                        <div className="space-y-2">
+                          <div className="text-sm text-muted-foreground">
+                            Track the status of input requests sent to staff members:
+                          </div>
+                          
+                          <div className="space-y-2 p-3 bg-gray-50 rounded border">
+                            {inputRequests.length === 0 ? (
+                              <div className="text-sm text-muted-foreground text-center py-4">
+                                {investigationMethod === "input-required" 
+                                  ? "No staff input requests sent yet. Select staff members and click 'Send Input Requests'."
+                                  : "No staff input requests sent yet. Select investigation method and staff members above."
+                                }
+                              </div>
+                            ) : (
+                              <div className="space-y-2">
+                                {inputRequests.map((request) => (
+                                  <div key={request.id} className="flex items-center justify-between p-2 bg-white rounded border">
+                                    <div className="flex flex-col">
+                                      <span className="text-sm font-medium">{request.staffName}</span>
+                                      <span className="text-xs text-muted-foreground">{request.staffEmail}</span>
+                                      <span className="text-xs text-muted-foreground">
+                                        Sent: {format(new Date(request.sentAt), 'dd/MM/yyyy HH:mm')}
+                                      </span>
                                     </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
+                                    <div className="flex items-center gap-2">
+                                      <Badge variant={request.responseReceived ? "default" : "secondary"}>
+                                        {request.responseReceived ? "Response Received" : "Awaiting Response"}
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         </div>
+                      </div>
+                    )}
 
-                        {/* Save Settings Button - Always visible when investigation method is selected but not input-required */}
-                        {investigationMethod && investigationMethod !== "input-required" && (
-                          <div className="flex justify-end pt-4">
-                            <Button 
-                              variant="outline"
-                              onClick={handleSaveWorkflowSettings}
-                              disabled={submitting || !investigationMethod}
-                            >
-                              <Save className="h-4 w-4 mr-2" />
-                              {submitting ? 'Saving...' : 'Save Settings'}
-                            </Button>
-                          </div>
-                        )}
+                    {/* Save Settings Button - Always visible when investigation method is selected but not input-required */}
+                    {investigationMethod && investigationMethod !== "input-required" && (
+                      <div className="flex justify-end pt-4">
+                        <Button 
+                          variant="outline"
+                          onClick={handleSaveWorkflowSettings}
+                          disabled={submitting || !investigationMethod}
+                        >
+                          <Save className="h-4 w-4 mr-2" />
+                          {submitting ? 'Saving...' : 'Save Settings'}
+                        </Button>
+                      </div>
+                    )}
 
                     {/* Direct Investigation Section */}
                     {investigationMethod === "direct-investigation" && (
