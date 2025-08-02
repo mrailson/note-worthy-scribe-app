@@ -1413,6 +1413,8 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                                         scoringSection
                                           .replace(/\d+\/100\s*===\s*DETAILED SCORING BREAKDOWN\s*===/i, '')
                                           .replace(/=== TOTAL SCORE CALCULATION ===[\s\S]*?(?=\n=== |\n\*\*|$)/i, '')
+                                          .replace(/2\.\s*Consultation Score Breakdown.*?Below is the detailed scoring breakdown based on the consultation\./is, '')
+                                          .replace(/Consultation Score Breakdown.*?Below is the detailed scoring breakdown based on the consultation\./is, '')
                                           // Add clear section breaks
                                           .replace(/(\*\*[A-Z\s&]+\*\*)/g, '\n\n---\n\n$1\n')
                                           .replace(/(=== [A-Z\s]+ ===)/g, '\n\n---\n\n$1\n')
