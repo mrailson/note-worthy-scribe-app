@@ -540,7 +540,10 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                             ? 'bg-primary text-primary-foreground' 
                             : 'bg-muted'
                         }`}>
-                          <SafeMessageRenderer content={message.content} />
+                          <SafeMessageRenderer 
+                            content={message.content.replace(/\n/g, '<br/>')} 
+                            className="whitespace-pre-wrap"
+                          />
                           
                           {message.files && message.files.length > 0 && (
                             <div className="mt-2 space-y-1">
