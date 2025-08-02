@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { SafeMessageRenderer } from './SafeMessageRenderer';
+import { EmailCompositionModal } from './EmailCompositionModal';
 import { Copy, Sparkles, Maximize2, X, Download, Printer, Mail } from 'lucide-react';
 import { Document, Packer, Paragraph, TextRun } from "docx";
 import { saveAs } from "file-saver";
@@ -21,6 +22,8 @@ export const AIResponsePanel: React.FC<AIResponsePanelProps> = ({
   onOpenChange,
   onCopy
 }) => {
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  
   // Strip HTML tags for plain text versions
   const stripHtml = (html: string) => {
     return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
@@ -102,25 +105,8 @@ export const AIResponsePanel: React.FC<AIResponsePanelProps> = ({
   };
 
   // Handle email to patient
-  const handleEmailToPatient = async () => {
-    try {
-      // This would typically integrate with your email system
-      // For now, we'll show a placeholder
-      toast.info("Email functionality will be integrated with your central mailbox system");
-      
-      // In a real implementation, you would call a Supabase edge function
-      // const { data, error } = await supabase.functions.invoke('send-email-via-emailjs', {
-      //   body: {
-      //     to: patientEmail,
-      //     subject: "Medical Consultation Response",
-      //     content: response,
-      //     from: "central@clinic.com"
-      //   }
-      // });
-    } catch (error) {
-      console.error('Error sending email:', error);
-      toast.error("Failed to send email");
-    }
+  const handleEmailToPatient = () => {
+    setIsEmailModalOpen(true);
   };
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
@@ -192,6 +178,14 @@ export const AIResponsePanel: React.FC<AIResponsePanelProps> = ({
           </ScrollArea>
         </div>
       </SheetContent>
+      
+      {/* Email Composition Modal */}
+      <EmailCompositionModal
+        isOpen={isEmailModalOpen}
+        onOpenChange={setIsEmailModalOpen}
+        defaultContent={response}
+        defaultSubject="Medical Consultation Information"
+      />
     </Sheet>
   );
 };
