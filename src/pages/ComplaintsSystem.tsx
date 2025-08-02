@@ -946,6 +946,23 @@ const ComplaintsSystem = () => {
     }
   };
 
+  const mapAICategoryToFormCategory = (aiCategory: string): string => {
+    const categoryMapping: { [key: string]: string } = {
+      'clinical_care': 'Clinical Care & Treatment',
+      'medication': 'Prescriptions',
+      'communication': 'Communication Issues',
+      'referrals': 'Test Results & Follow-Up',
+      'staff_attitude': 'Staff Attitude & Behaviour',
+      'appointment_system': 'Appointments & Access',
+      'waiting_times': 'Appointments & Access',
+      'facilities': 'Facilities & Environment',
+      'billing': 'Administration',
+      'other': 'other'
+    };
+    
+    return categoryMapping[aiCategory] || 'other';
+  };
+
   const handleImportData = (importedData: any) => {
     // Auto-populate form with imported data
     setFormData(prev => ({
@@ -958,7 +975,7 @@ const ComplaintsSystem = () => {
       incident_date: importedData.incident_date || prev.incident_date,
       complaint_title: importedData.complaint_title || prev.complaint_title,
       complaint_description: importedData.complaint_description || prev.complaint_description,
-      category: importedData.category || prev.category,
+      category: importedData.category ? mapAICategoryToFormCategory(importedData.category) : prev.category,
       location_service: importedData.location_service || prev.location_service,
       staff_mentioned: importedData.staff_mentioned ? importedData.staff_mentioned.join(', ') : prev.staff_mentioned,
       priority: importedData.priority || prev.priority,
