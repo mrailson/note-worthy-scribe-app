@@ -17,20 +17,22 @@ export const FormattedReviewContent: React.FC<FormattedReviewContentProps> = ({ 
       .replace(/\*\*HISTORY TAKING[\s\S]*?\*\*FINAL SCORE:\s*\*\*\[\d+\/100\]\*\*\s*\*\*/i, '')
       .replace(/\*\*HISTORY TAKING[\s\S]*?FINAL SCORE:\s*\[\d+\/100\]/i, '')
       
+      // Remove all bold markdown formatting
+      .replace(/\*\*(.*?)\*\*/g, '$1')
+      
       // Add proper spacing around major sections
-      .replace(/(\*\*[A-Z\s&]+\*\*)/g, '\n\n$1\n')
       .replace(/(=== [A-Z\s]+ ===)/g, '\n\n$1\n')
       
       // Format subsections with better spacing
-      .replace(/(-\s)([A-Z][^:]+:)/g, '\n\n**$2**\n')
-      .replace(/(-\s)([^:]+:)(\s*\[[^\]]+\])/g, '\n\n**$2**$3\n')
+      .replace(/(-\s)([A-Z][^:]+:)/g, '\n\n$2\n')
+      .replace(/(-\s)([^:]+:)(\s*\[[^\]]+\])/g, '\n\n$2$3\n')
       
       // Improve bullet point formatting
       .replace(/^-\s/gm, '• ')
       .replace(/^\*\s/gm, '• ')
       
       // Add spacing around scoring brackets
-      .replace(/(\[[^\]]+\])/g, ' **$1**')
+      .replace(/(\[[^\]]+\])/g, ' $1')
       
       // Clean up multiple newlines
       .replace(/\n{3,}/g, '\n\n')
