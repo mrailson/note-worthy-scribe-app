@@ -1037,55 +1037,112 @@ const MeetingHistory = () => {
         {/* Meeting Detail View or Meetings List */}
         {selectedMeeting ? (
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div className="flex-1">
+            <CardHeader className="space-y-4">
+              {/* Always visible back button at the top */}
+              <div className="flex items-center justify-between">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setSelectedMeeting(null)}
+                  className="touch-manipulation min-h-[44px] flex items-center gap-2"
+                >
+                  <ChevronDown className="h-4 w-4 rotate-90" />
+                  Back to List
+                </Button>
+                
+                {/* Edit button - only show when not editing */}
+                {!editingMeeting && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handleMeetingEdit(selectedMeeting.id)}
+                    className="touch-manipulation min-h-[44px] flex items-center gap-2"
+                  >
+                    <Edit2 className="h-4 w-4" />
+                    <span className="hidden sm:inline">Edit</span>
+                  </Button>
+                )}
+              </div>
+              
+              {/* Meeting title and editing section */}
+              <div className="space-y-3">
                 {editingMeeting?.id === selectedMeeting.id ? (
-                  <div className="flex items-center gap-2">
-                    <Input
-                      value={editTitle}
-                      onChange={(e) => setEditTitle(e.target.value)}
-                      className="text-lg font-semibold"
-                      autoFocus
-                    />
-                    <Button
-                      size="sm"
-                      onClick={handleSaveEdit}
-                      disabled={isSaving || !editTitle.trim()}
-                    >
-                      {isSaving ? 'Saving...' : 'Save'}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={handleCancelEdit}
-                      disabled={isSaving}
-                    >
-                      Cancel
-                    </Button>
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-title">Meeting Title</Label>
+                      <Input
+                        id="edit-title"
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        className="text-lg font-semibold touch-manipulation min-h-[44px]"
+                        placeholder="Enter meeting title"
+                        autoFocus
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-type">Meeting Type</Label>
+                      <Select value={editMeetingType} onValueChange={setEditMeetingType}>
+                        <SelectTrigger className="touch-manipulation min-h-[44px]">
+                          <SelectValue placeholder="Select meeting type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="general">General Meeting</SelectItem>
+                          <SelectItem value="patient-consultation">Patient Meeting</SelectItem>
+                          <SelectItem value="team-meeting">Team Meeting</SelectItem>
+                          <SelectItem value="clinical-review">Clinical Review</SelectItem>
+                          <SelectItem value="training">Training Session</SelectItem>
+                          <SelectItem value="pcn-meeting">PCN Meeting</SelectItem>
+                          <SelectItem value="icb-meeting">ICB Meeting</SelectItem>
+                          <SelectItem value="neighbourhood-meeting">Neighbourhood Meeting</SelectItem>
+                          <SelectItem value="federation">Federation</SelectItem>
+                          <SelectItem value="locality">Locality</SelectItem>
+                          <SelectItem value="lmc">LMC</SelectItem>
+                          <SelectItem value="gp-partners">GP Partners Meeting</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <Button
+                        onClick={handleSaveEdit}
+                        disabled={isSaving || !editTitle.trim()}
+                        className="touch-manipulation min-h-[44px] flex-1 sm:flex-none"
+                      >
+                        {isSaving ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                            Saving...
+                          </>
+                        ) : (
+                          'Save Changes'
+                        )}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={handleCancelEdit}
+                        disabled={isSaving}
+                        className="touch-manipulation min-h-[44px] flex-1 sm:flex-none"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2">
-                    <CardTitle>{selectedMeeting.title}</CardTitle>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleMeetingEdit(selectedMeeting.id)}
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </Button>
+                  <div>
+                    <CardTitle className="text-xl sm:text-2xl mb-2">{selectedMeeting.title}</CardTitle>
+                    <p className="text-muted-foreground">
+                      {new Date(selectedMeeting.start_time).toLocaleDateString('en-GB', { 
+                        weekday: 'long', 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </p>
                   </div>
                 )}
-                <p className="text-muted-foreground">
-                  {new Date(selectedMeeting.start_time).toLocaleDateString()}
-                </p>
               </div>
-              <Button 
-                variant="outline" 
-                onClick={() => setSelectedMeeting(null)}
-                className="touch-manipulation min-h-[44px]"
-              >
-                Back to List
-              </Button>
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
