@@ -120,6 +120,7 @@ const ComplaintDetails = () => {
   const [additionalStaff, setAdditionalStaff] = useState({name: '', email: '', role: ''});
   const [inputRequests, setInputRequests] = useState<Array<{id: string; staffName: string; staffEmail: string; status: string; sentAt: string; responseReceived: boolean; responseReceivedAt?: string; responseText?: string; isTestResponse?: boolean}>>([]);
   const [workflowSettings, setWorkflowSettings] = useState<any>(null);
+  const [editingStaffIndex, setEditingStaffIndex] = useState<number | null>(null);
 
   // Define all functions before useEffect
   const fetchComplaintDetails = async () => {
@@ -1772,40 +1773,90 @@ I am committed to ensuring that all patients receive the care and service they d
                                     defaultChecked={staff.suggested}
                                     onChange={(e) => handleStaffSelection(index, e.target.checked)}
                                   />
-                                  <div className="flex flex-col flex-1">
-                                    <span className="text-sm font-medium">{staff.name}</span>
-                                    {staff.email ? (
-                                      <span className="text-xs text-muted-foreground">{staff.email}</span>
-                                    ) : (
-                                      <div className="flex items-center gap-2 mt-1">
-                                        <Input
-                                          type="email"
-                                          placeholder="Enter email address"
-                                          value={staff.email}
-                                          onChange={(e) => {
-                                            const updatedStaff = [...selectedStaff];
-                                            updatedStaff[index].email = e.target.value;
-                                            setSelectedStaff(updatedStaff);
-                                          }}
-                                          className="text-xs h-6 w-60"
-                                          maxLength={50}
-                                        />
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={() => {
-                                            // Create a test input request for this staff member
-                                            const requestId = Date.now().toString();
-                                            handleTestReply(requestId, staff.name);
-                                          }}
-                                          disabled={submitting}
-                                          className="text-xs h-6"
-                                        >
-                                          Test Reply
-                                        </Button>
-                                        <span className="text-xs text-red-500">Email required</span>
-                                      </div>
-                                    )}
+                                    <div className="flex flex-col flex-1">
+                                      <span className="text-sm font-medium">{staff.name}</span>
+                                      {staff.email ? (
+                                        editingStaffIndex === index ? (
+                                          // Edit mode
+                                          <div className="flex items-center gap-2 mt-1">
+                                            <Input
+                                              type="email"
+                                              placeholder="Enter email address"
+                                              value={staff.email}
+                                              onChange={(e) => {
+                                                const updatedStaff = [...selectedStaff];
+                                                updatedStaff[index].email = e.target.value;
+                                                setSelectedStaff(updatedStaff);
+                                              }}
+                                              className="text-xs h-6 w-60"
+                                              maxLength={50}
+                                              autoFocus
+                                            />
+                                            <Button
+                                              variant="outline"
+                                              size="sm"
+                                              onClick={() => setEditingStaffIndex(null)}
+                                              className="text-xs h-6"
+                                            >
+                                              Save
+                                            </Button>
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() => {
+                                                setEditingStaffIndex(null);
+                                                // Reset to original value if needed - could store original in state
+                                              }}
+                                              className="text-xs h-6"
+                                            >
+                                              Cancel
+                                            </Button>
+                                          </div>
+                                        ) : (
+                                          // Display mode
+                                          <div className="flex items-center gap-2">
+                                            <span className="text-xs text-muted-foreground">{staff.email}</span>
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() => setEditingStaffIndex(index)}
+                                              className="text-xs h-5 px-2"
+                                            >
+                                              <Edit className="h-3 w-3" />
+                                            </Button>
+                                          </div>
+                                        )
+                                      ) : (
+                                        // No email - initial entry mode
+                                        <div className="flex items-center gap-2 mt-1">
+                                          <Input
+                                            type="email"
+                                            placeholder="Enter email address"
+                                            value={staff.email}
+                                            onChange={(e) => {
+                                              const updatedStaff = [...selectedStaff];
+                                              updatedStaff[index].email = e.target.value;
+                                              setSelectedStaff(updatedStaff);
+                                            }}
+                                            className="text-xs h-6 w-60"
+                                            maxLength={50}
+                                          />
+                                          <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => {
+                                              // Create a test input request for this staff member
+                                              const requestId = Date.now().toString();
+                                              handleTestReply(requestId, staff.name);
+                                            }}
+                                            disabled={submitting}
+                                            className="text-xs h-6"
+                                          >
+                                            Test Reply
+                                          </Button>
+                                          <span className="text-xs text-red-500">Email required</span>
+                                        </div>
+                                      )}
                                   </div>
                                   <Badge variant="outline" className="text-xs">
                                     {staff.type === 'mentioned' ? 'Mentioned' : 
