@@ -1550,37 +1550,19 @@ const ComplaintDetails = () => {
                           </div>
                         </div>
 
-                        <div className="flex gap-2 pt-4">
-                          <Button 
-                            className="flex-1"
-                            onClick={handleSendInputRequests}
-                            disabled={submitting || investigationMethod !== "input-required" || selectedStaff.length === 0 || inputRequests.length > 0}
-                          >
-                            <Send className="h-4 w-4 mr-2" />
-                            {inputRequests.length > 0 ? 'Requests Already Sent' : submitting ? 'Sending...' : 'Send Input Requests'}
-                          </Button>
-                          {inputRequests.length > 0 && (
+                        {/* Save Settings Button - Always visible when investigation method is selected but not input-required */}
+                        {investigationMethod && investigationMethod !== "input-required" && (
+                          <div className="flex justify-end pt-4">
                             <Button 
-                              variant="destructive"
-                              size="sm"
-                              onClick={handleClearInputRequests}
-                              disabled={submitting}
+                              variant="outline"
+                              onClick={handleSaveWorkflowSettings}
+                              disabled={submitting || !investigationMethod}
                             >
-                              <X className="h-4 w-4 mr-1" />
-                              Clear Requests
+                              <Save className="h-4 w-4 mr-2" />
+                              {submitting ? 'Saving...' : 'Save Settings'}
                             </Button>
-                          )}
-                          <Button 
-                            variant="outline"
-                            onClick={handleSaveWorkflowSettings}
-                            disabled={submitting || !investigationMethod}
-                          >
-                            <Save className="h-4 w-4 mr-2" />
-                            {submitting ? 'Saving...' : 'Save Settings'}
-                          </Button>
-                        </div>
-                      </>
-                    )}
+                          </div>
+                        )}
 
                     {/* Direct Investigation Section */}
                     {investigationMethod === "direct-investigation" && (
@@ -1678,6 +1660,37 @@ const ComplaintDetails = () => {
                               Add
                             </Button>
                           </div>
+                        </div>
+                        
+                        {/* Action Buttons for Input Required */}
+                        <div className="flex gap-2 pt-4 border-t border-blue-200">
+                          <Button 
+                            className="flex-1"
+                            onClick={handleSendInputRequests}
+                            disabled={submitting || selectedStaff.length === 0 || inputRequests.length > 0}
+                          >
+                            <Send className="h-4 w-4 mr-2" />
+                            {inputRequests.length > 0 ? 'Requests Already Sent' : submitting ? 'Sending...' : 'Send Input Requests'}
+                          </Button>
+                          {inputRequests.length > 0 && (
+                            <Button 
+                              variant="destructive"
+                              size="sm"
+                              onClick={handleClearInputRequests}
+                              disabled={submitting}
+                            >
+                              <X className="h-4 w-4 mr-1" />
+                              Clear Requests
+                            </Button>
+                          )}
+                          <Button 
+                            variant="outline"
+                            onClick={handleSaveWorkflowSettings}
+                            disabled={submitting}
+                          >
+                            <Save className="h-4 w-4 mr-2" />
+                            {submitting ? 'Saving...' : 'Save Settings'}
+                          </Button>
                         </div>
                       </div>
                     )}
