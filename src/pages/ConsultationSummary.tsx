@@ -800,35 +800,37 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
     <div className="min-h-screen bg-gradient-background">
       <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 max-w-6xl">
         
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-          <div className="flex items-center gap-3">
+        {/* Header - Mobile Optimized */}
+        <div className="flex flex-col gap-3 mb-4 sm:mb-6">
+          <div className="flex items-center justify-between">
             <Button
               variant="outline"
               size="sm"
               onClick={consultationData.isExample ? backToExamples : continueRecording}
-              className="shrink-0"
+              className="shrink-0 touch-manipulation min-h-[44px]"
             >
               <ArrowLeft className="h-4 w-4 mr-1" />
               {isMobile ? "Back" : (consultationData.isExample ? "Back to Examples" : "Continue Recording")}
             </Button>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-primary flex items-center gap-2">
-                <Stethoscope className="h-5 w-5 sm:h-6 sm:w-6" />
-                {consultationData.title}
-              </h1>
-              {consultationData.isExample && (
-                <Badge variant="secondary" className="mt-1">
-                  Training Example
-                </Badge>
-              )}
-            </div>
+            
+            {consultationData.isExample && (
+              <Badge variant="secondary" className="text-xs">
+                Training Example
+              </Badge>
+            )}
           </div>
           
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Clock className="h-4 w-4" />
+          <div>
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-primary flex items-center gap-2">
+              <Stethoscope className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6" />
+              <span className="break-words">{consultationData.title}</span>
+            </h1>
+          </div>
+          
+          <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
+            <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
             <span>{consultationData.duration}</span>
-            <Badge variant="outline" className="ml-2">
+            <Badge variant="outline" className="text-xs">
               {consultationData.wordCount} words
             </Badge>
           </div>
@@ -849,51 +851,55 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
           </CardHeader>
           
           <CardContent>
-            {/* Consultation Navigation */}
+            {/* Consultation Navigation - Mobile First */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 bg-muted/50 p-1 rounded-xl">
+              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 bg-muted/50 p-1 rounded-xl h-auto">
                 <TabsTrigger 
                   value="gp-summary" 
-                  className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-blue-700 data-[state=active]:font-semibold"
+                  className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-blue-700 data-[state=active]:font-semibold min-h-[44px] px-2 text-xs sm:text-sm"
                 >
-                  <Users className="h-4 w-4 mr-1 lg:mr-2" />
+                  <Users className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                  <span className="hidden xs:inline sm:hidden">GP</span>
                   <span className="hidden sm:inline">GP Summary</span>
-                  <span className="sm:hidden">Summary</span>
+                  <span className="xs:hidden">Summary</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="patient-copy" 
-                  className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-blue-700 data-[state=active]:font-semibold"
+                  className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-blue-700 data-[state=active]:font-semibold min-h-[44px] px-2 text-xs sm:text-sm"
                 >
-                  <MessageSquare className="h-4 w-4 mr-1 lg:mr-2" />
+                  <MessageSquare className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                  <span className="hidden xs:inline sm:hidden">Patient</span>
                   <span className="hidden sm:inline">Patient Copy</span>
-                  <span className="sm:hidden">Patient</span>
+                  <span className="xs:hidden">Copy</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="referral" 
-                  className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-blue-700 data-[state=active]:font-semibold"
+                  className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-blue-700 data-[state=active]:font-semibold min-h-[44px] px-2 text-xs sm:text-sm"
                 >
-                  <FileText className="h-4 w-4 mr-1 lg:mr-2" />
+                  <FileText className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                  <span className="hidden xs:inline sm:hidden">Ref</span>
                   <span className="hidden sm:inline">Referral</span>
-                  <span className="sm:hidden">Referral</span>
+                  <span className="xs:hidden">Ref</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="review" 
-                  className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-blue-700 data-[state=active]:font-semibold"
+                  className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-blue-700 data-[state=active]:font-semibold min-h-[44px] px-2 text-xs sm:text-sm"
                 >
                   <div className="flex items-center gap-1">
-                    <BookOpen className="h-4 w-4 mr-1 lg:mr-2" />
+                    <BookOpen className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                    <span className="hidden xs:inline sm:hidden">Review</span>
                     <span className="hidden sm:inline">Review & Recommendations</span>
-                    <span className="sm:hidden">Review</span>
+                    <span className="xs:hidden">Rev</span>
                     {consultationScore !== null && (
                       <div className="flex items-center ml-1">
                         {(() => {
                           console.log('Tab indicator - Score:', consultationScore, 'Type:', typeof consultationScore);
                           if (consultationScore >= 80) {
-                            return <CheckCircle className="h-4 w-4 text-green-500" />;
+                            return <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-500" />;
                           } else if (consultationScore >= 70) {
-                            return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
+                            return <AlertTriangle className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-500" />;
                           } else {
-                            return <AlertTriangle className="h-4 w-4 text-red-500" />;
+                            return <AlertTriangle className="h-3 w-3 sm:h-4 sm:w-4 text-red-500" />;
                           }
                         })()}
                       </div>
@@ -902,21 +908,21 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                 </TabsTrigger>
               </TabsList>
 
-              {/* GP Summary Tab */}
+              {/* GP Summary Tab - Mobile Optimized */}
               <TabsContent value="gp-summary" className="space-y-4 mt-6">
                 {/* Combined Control Row */}
-                <div className="bg-gradient-to-r from-primary/5 to-accent/5 rounded-lg p-4 border border-primary/20">
-                  <div className="flex flex-col lg:flex-row lg:items-center gap-4 lg:gap-6">
+                <div className="bg-gradient-to-r from-primary/5 to-accent/5 rounded-lg p-3 sm:p-4 border border-primary/20">
+                  <div className="flex flex-col gap-4">
                     {/* Detail Level Slider */}
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-1">
+                    <div className="flex flex-col gap-3">
                       <div className="flex items-center gap-2">
-                        <Settings className="h-4 w-4 text-primary" />
-                        <span className="text-sm font-medium text-primary">Detail Level:</span>
-                        <Badge variant="outline" className="bg-background">
+                        <Settings className="h-3 w-3 sm:h-4 sm:w-4 text-primary" />
+                        <span className="text-xs sm:text-sm font-medium text-primary">Detail Level:</span>
+                        <Badge variant="outline" className="bg-background text-xs">
                           {noteLevels[noteLevel[0]]}
                         </Badge>
                       </div>
-                      <div className="flex-none w-48">
+                      <div className="w-full">
                         <Slider
                           value={noteLevel}
                           onValueChange={setNoteLevel}
@@ -934,13 +940,16 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                     </div>
 
                     {/* Ask AI Assistant */}
-                    <div className="flex-none">
+                    <div className="w-full">
                       <Collapsible open={isAskAIOpen} onOpenChange={setIsAskAIOpen}>
                         <CollapsibleTrigger asChild>
-                          <Button variant="outline" className="w-full sm:w-auto">
-                            <Sparkles className="h-4 w-4 mr-2 text-violet-600" />
-                            <span className="text-violet-700 dark:text-violet-300">Ask AI Assistant</span>
-                            {isAskAIOpen ? <ChevronUp className="h-4 w-4 ml-2" /> : <ChevronDown className="h-4 w-4 ml-2" />}
+                          <Button 
+                            variant="outline" 
+                            className="w-full touch-manipulation min-h-[44px]"
+                          >
+                            <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 mr-2 text-violet-600" />
+                            <span className="text-violet-700 dark:text-violet-300 text-sm">Ask AI Assistant</span>
+                            {isAskAIOpen ? <ChevronUp className="h-3 w-3 sm:h-4 sm:w-4 ml-2" /> : <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4 ml-2" />}
                           </Button>
                         </CollapsibleTrigger>
                         <CollapsibleContent className="absolute z-10 mt-2 w-80 lg:w-96 bg-background border border-border rounded-lg shadow-lg p-4">
@@ -1031,37 +1040,41 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                       </Collapsible>
                     </div>
 
-                    {/* Action Buttons */}
-                    <div className="flex gap-2 flex-none">
+                    {/* Action Buttons - Mobile Optimized */}
+                    <div className="flex flex-col sm:flex-row gap-2 flex-none">
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => handleCopy(getCurrentGPSummary(), "GP Summary")}
+                        className="touch-manipulation min-h-[44px] flex-1 sm:flex-none"
                       >
-                        <Copy className="h-4 w-4 mr-1" />
+                        <Copy className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                         Copy
                       </Button>
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => handleWordExport(getCurrentGPSummary(), `GP-Summary-${consultationData?.title || 'consultation'}`)}
+                        className="touch-manipulation min-h-[44px] flex-1 sm:flex-none"
                       >
-                        <Download className="h-4 w-4 mr-1" />
-                        Word
+                        <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                        <span className="hidden xs:inline">Word</span>
+                        <span className="xs:hidden">Doc</span>
                       </Button>
                       <Button
                         size="sm"
                         variant={editStates.gpSummary ? "default" : "outline"}
                         onClick={() => handleEditToggle("gpSummary")}
+                        className="touch-manipulation min-h-[44px] flex-1 sm:flex-none"
                       >
                         {editStates.gpSummary ? (
                           <>
-                            <Save className="h-4 w-4 mr-1" />
+                            <Save className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                             Save
                           </>
                         ) : (
                           <>
-                            <Edit3 className="h-4 w-4 mr-1" />
+                            <Edit3 className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                             Edit
                           </>
                         )}
@@ -1475,23 +1488,26 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
 
             </Tabs>
 
-            {/* Transcript Section */}
-            <div className="mt-8">
+            {/* Transcript Section - Mobile Optimized */}
+            <div className="mt-6 sm:mt-8">
               <Collapsible open={isTranscriptOpen} onOpenChange={setIsTranscriptOpen}>
                 <CollapsibleTrigger asChild>
-                  <Button variant="outline" className="w-full justify-between">
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-between touch-manipulation min-h-[44px]"
+                  >
                     <span className="flex items-center gap-2">
-                      <FileText className="h-4 w-4" />
-                      View Original Transcript
+                      <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
+                      <span className="text-sm sm:text-base">View Original Transcript</span>
                     </span>
                     <span className="text-xs">
                       {isTranscriptOpen ? "Hide" : "Show"}
                     </span>
                   </Button>
                 </CollapsibleTrigger>
-                <CollapsibleContent className="mt-4">
-                  <div className="bg-muted/30 rounded-lg p-4 border max-h-[400px] overflow-y-auto">
-                    <pre className="whitespace-pre-wrap text-sm font-mono">
+                <CollapsibleContent className="mt-3 sm:mt-4">
+                  <div className="bg-muted/30 rounded-lg p-3 sm:p-4 border max-h-[50vh] sm:max-h-[400px] overflow-y-auto">
+                    <pre className="whitespace-pre-wrap text-xs sm:text-sm font-mono leading-relaxed">
                       {consultationData.transcript}
                     </pre>
                   </div>

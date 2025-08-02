@@ -1801,20 +1801,35 @@ const Index = () => {
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="summary" className="w-full">
-                <TabsList className="grid w-full grid-cols-5">
-                  <TabsTrigger value="summary">🟦 GP Summary</TabsTrigger>
-                  <TabsTrigger value="full">🟨 Full Note</TabsTrigger>
-                  <TabsTrigger value="patient">🟩 Patient Copy</TabsTrigger>
-                  <TabsTrigger value="trainee">🟣 Trainee Feedback</TabsTrigger>
-                  <TabsTrigger value="referral">📄 Referral Letter</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1 h-auto p-1">
+                  <TabsTrigger value="summary" className="min-h-[44px] text-xs sm:text-sm touch-manipulation">
+                    <span className="hidden sm:inline">🟦 GP Summary</span>
+                    <span className="sm:hidden">GP</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="full" className="min-h-[44px] text-xs sm:text-sm touch-manipulation">
+                    <span className="hidden sm:inline">🟨 Full Note</span>
+                    <span className="sm:hidden">Full</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="patient" className="min-h-[44px] text-xs sm:text-sm touch-manipulation">
+                    <span className="hidden sm:inline">🟩 Patient Copy</span>
+                    <span className="sm:hidden">Patient</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="trainee" className="min-h-[44px] text-xs sm:text-sm touch-manipulation">
+                    <span className="hidden lg:inline">🟣 Trainee Feedback</span>
+                    <span className="lg:hidden">Trainee</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="referral" className="min-h-[44px] text-xs sm:text-sm touch-manipulation">
+                    <span className="hidden lg:inline">📄 Referral Letter</span>
+                    <span className="lg:hidden">Referral</span>
+                  </TabsTrigger>
                 </TabsList>
                 
                 <TabsContent value="summary" className="space-y-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <label className="text-sm font-medium">Quick Pick Level:</label>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                      <label className="text-xs sm:text-sm font-medium">Quick Pick Level:</label>
                       <Select value={outputLevel.toString()} onValueChange={(value) => handleOutputLevelChange(parseInt(value))}>
-                        <SelectTrigger className="w-40">
+                        <SelectTrigger className="w-full sm:w-40 min-h-[44px]">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -1831,6 +1846,7 @@ const Index = () => {
                       variant="outline"
                       onClick={() => startEdit('gpSummary')}
                       disabled={editStates.gpSummary}
+                      className="touch-manipulation min-h-[44px] w-full sm:w-auto"
                     >
                       <Edit className="h-4 w-4 mr-2" />
                       Edit
@@ -1844,12 +1860,21 @@ const Index = () => {
                         onChange={(e) => setEditContent(prev => ({ ...prev, gpSummary: e.target.value }))}
                         className="min-h-[200px] bg-blue-50 dark:bg-blue-950/20"
                       />
-                      <div className="flex gap-2">
-                        <Button size="sm" onClick={() => saveEdit('gpSummary')}>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <Button 
+                          size="sm" 
+                          onClick={() => saveEdit('gpSummary')}
+                          className="touch-manipulation min-h-[44px] flex-1 sm:flex-none"
+                        >
                           <Check className="h-4 w-4 mr-2" />
                           Save
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => cancelEdit('gpSummary')}>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => cancelEdit('gpSummary')}
+                          className="touch-manipulation min-h-[44px] flex-1 sm:flex-none"
+                        >
                           <X className="h-4 w-4 mr-2" />
                           Cancel
                         </Button>
@@ -1860,12 +1885,20 @@ const Index = () => {
                       {formatTextForDisplay(gpSummary) || "No summary generated yet"}
                     </div>
                   )}
-                  <div className="flex gap-2">
-                    <Button size="sm" onClick={() => copyToClipboard(gpSummary)}>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Button 
+                      size="sm" 
+                      onClick={() => copyToClipboard(gpSummary)}
+                      className="touch-manipulation min-h-[44px] flex-1 sm:flex-none"
+                    >
                       <Copy className="h-4 w-4 mr-2" />
                       Copy
                     </Button>
-                    <Button size="sm" onClick={() => downloadAsPDF(gpSummary, 'gp-summary')}>
+                    <Button 
+                      size="sm" 
+                      onClick={() => downloadAsPDF(gpSummary, 'gp-summary')}
+                      className="touch-manipulation min-h-[44px] flex-1 sm:flex-none"
+                    >
                       <Download className="h-4 w-4 mr-2" />
                       PDF
                     </Button>
