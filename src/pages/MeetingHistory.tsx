@@ -1237,57 +1237,60 @@ const MeetingHistory = () => {
           />
         )}
 
-        {/* Enhanced Transcript View Dialog with AI Cleaning */}
+        {/* Enhanced Transcript View Dialog with AI Cleaning - Mobile Optimized */}
         <Dialog open={transcriptDialogOpen} onOpenChange={setTranscriptDialogOpen}>
-          <DialogContent className="mx-4 max-w-5xl max-h-[90vh]">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
+          <DialogContent className="mx-2 sm:mx-4 max-w-[98vw] sm:max-w-5xl max-h-[95vh] sm:max-h-[90vh] p-3 sm:p-6">
+            <DialogHeader className="text-left space-y-2">
+              <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <FileText className="h-4 w-4 sm:h-5 sm:w-5" />
                 Meeting Transcript
               </DialogTitle>
               {currentMeetingForTranscript && (
-                <DialogDescription className="space-y-1">
-                  <div className="font-medium text-foreground">
+                <DialogDescription className="space-y-1 text-xs sm:text-sm">
+                  <div className="font-medium text-foreground text-sm sm:text-base">
                     {formatMeetingTitle(currentMeetingForTranscript)}
                   </div>
-                  <div className="text-sm">
-                    {currentMeetingForTranscript.meeting_type.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                    {currentMeetingForTranscript.duration_minutes && ` • ${currentMeetingForTranscript.duration_minutes} minutes`}
-                    {currentMeetingForTranscript.format && ` • ${currentMeetingForTranscript.format === 'face-to-face' ? 'Face to Face' : 'Teams/Online'}`}
+                  <div className="text-xs sm:text-sm flex flex-wrap gap-1">
+                    <span>{currentMeetingForTranscript.meeting_type.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
+                    {currentMeetingForTranscript.duration_minutes && <span>• {currentMeetingForTranscript.duration_minutes} min</span>}
+                    {currentMeetingForTranscript.format && <span>• {currentMeetingForTranscript.format === 'face-to-face' ? 'Face to Face' : 'Teams/Online'}</span>}
                   </div>
-                  <div className="text-xs">
+                  <div className="text-xs hidden sm:block">
                     View the original transcript or clean it with AI to remove filler words and improve formatting.
                   </div>
                 </DialogDescription>
               )}
             </DialogHeader>
             
-            <div className="space-y-4 py-4">
-              {/* Action Bar */}
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 p-4 bg-muted/30 rounded-lg border">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-                  <span className="text-sm text-muted-foreground">
-                    {(cleanedTranscript || viewingTranscript).split(' ').length} words
-                  </span>
-                  {cleanedTranscript && (
-                    <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full">
-                      ✨ AI Cleaned
+            <div className="space-y-3 sm:space-y-4 py-2 sm:py-4 overflow-hidden">
+              {/* Action Bar - Mobile Optimized */}
+              <div className="flex flex-col gap-3 p-3 sm:p-4 bg-muted/30 rounded-lg border">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                    <span className="text-xs sm:text-sm text-muted-foreground">
+                      {(cleanedTranscript || viewingTranscript).split(' ').length} words
                     </span>
-                  )}
+                    {cleanedTranscript && (
+                      <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full">
+                        ✨ AI Cleaned
+                      </span>
+                    )}
+                  </div>
                 </div>
                 
-                <div className="flex gap-2 w-full sm:w-auto">
+                {/* Mobile-first button layout */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap gap-2">
                   <Button
                     onClick={cleanCurrentTranscript}
                     disabled={isCleaningTranscript || !viewingTranscript}
                     variant="outline"
                     size="sm"
-                    className="flex-1 sm:flex-none touch-manipulation min-h-[44px]"
+                    className="w-full lg:w-auto touch-manipulation min-h-[44px] text-xs sm:text-sm"
                   >
                     {isCleaningTranscript ? (
-                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4 mr-2 animate-spin" />
                     ) : (
-                      <Sparkles className="h-4 w-4 mr-2" />
+                      <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                     )}
                     {isCleaningTranscript ? 'Cleaning...' : 'Clean with AI'}
                   </Button>
@@ -1298,12 +1301,12 @@ const MeetingHistory = () => {
                       disabled={isSavingCleanedTranscript}
                       variant="outline"
                       size="sm"
-                      className="flex-1 sm:flex-none touch-manipulation min-h-[44px]"
+                      className="w-full lg:w-auto touch-manipulation min-h-[44px] text-xs sm:text-sm"
                     >
                       {isSavingCleanedTranscript ? (
-                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                        <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4 mr-2 animate-spin" />
                       ) : (
-                        <Save className="h-4 w-4 mr-2" />
+                        <Save className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                       )}
                       {isSavingCleanedTranscript ? 'Saving...' : 'Save Cleaned'}
                     </Button>
@@ -1314,67 +1317,69 @@ const MeetingHistory = () => {
                     disabled={!viewingTranscript}
                     variant="outline"
                     size="sm"
-                    className="flex-1 sm:flex-none touch-manipulation min-h-[44px]"
+                    className="w-full lg:w-auto touch-manipulation min-h-[44px] text-xs sm:text-sm"
                   >
-                    <Download className="h-4 w-4 mr-2" />
-                    Download Word
+                    <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
+                    <span className="sm:hidden">Word</span>
+                    <span className="hidden sm:inline">Download Word</span>
                   </Button>
                   
                   <Button
                     onClick={copyTranscriptToClipboard}
                     variant="outline"
                     size="sm"
-                    className="flex-1 sm:flex-none touch-manipulation min-h-[44px]"
+                    className="w-full lg:w-auto touch-manipulation min-h-[44px] text-xs sm:text-sm"
                   >
-                    <Copy className="h-4 w-4 mr-2" />
-                    Copy {cleanedTranscript ? 'Cleaned' : 'Original'}
+                    <Copy className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
+                    <span className="sm:hidden">Copy</span>
+                    <span className="hidden sm:inline">Copy {cleanedTranscript ? 'Cleaned' : 'Original'}</span>
                   </Button>
                 </div>
               </div>
 
-              {/* Transcript Display */}
+              {/* Transcript Display - Mobile Optimized */}
               <Tabs defaultValue="display" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="display">
-                    {cleanedTranscript ? 'Cleaned Transcript' : 'Current Transcript'}
+                <TabsList className="grid w-full grid-cols-2 h-auto">
+                  <TabsTrigger value="display" className="text-xs sm:text-sm py-2 sm:py-3">
+                    {cleanedTranscript ? 'Cleaned' : 'Current'}
                   </TabsTrigger>
-                  <TabsTrigger value="comparison" disabled={!cleanedTranscript}>
-                    Compare Versions
+                  <TabsTrigger value="comparison" disabled={!cleanedTranscript} className="text-xs sm:text-sm py-2 sm:py-3">
+                    Compare
                   </TabsTrigger>
                 </TabsList>
                 
-                <TabsContent value="display" className="space-y-4">
-                  <div className="border rounded-lg p-4 bg-background max-h-[50vh] overflow-y-auto">
+                <TabsContent value="display" className="space-y-4 mt-3">
+                  <div className="border rounded-lg p-3 sm:p-4 bg-background max-h-[45vh] sm:max-h-[50vh] overflow-y-auto">
                     {cleanedTranscript ? (
-                      <div className="prose max-w-none">
-                        <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                      <div className="prose max-w-none prose-sm sm:prose">
+                        <div className="whitespace-pre-wrap text-xs sm:text-sm leading-relaxed">
                           {cleanedTranscript}
                         </div>
                       </div>
                     ) : (
-                      <pre className="whitespace-pre-wrap text-sm font-mono text-muted-foreground">
+                      <pre className="whitespace-pre-wrap text-xs sm:text-sm font-mono text-muted-foreground leading-relaxed">
                         {viewingTranscript || "No transcript available for this meeting."}
                       </pre>
                     )}
                   </div>
                 </TabsContent>
                 
-                <TabsContent value="comparison" className="space-y-4">
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <TabsContent value="comparison" className="space-y-4 mt-3">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
                     <div className="space-y-2">
-                      <h4 className="text-sm font-medium text-muted-foreground">Original Transcript</h4>
-                      <div className="border rounded-lg p-4 bg-muted/30 max-h-[45vh] overflow-y-auto">
-                        <pre className="whitespace-pre-wrap text-sm font-mono text-muted-foreground">
+                      <h4 className="text-xs sm:text-sm font-medium text-muted-foreground">Original Transcript</h4>
+                      <div className="border rounded-lg p-3 sm:p-4 bg-muted/30 max-h-[40vh] sm:max-h-[45vh] overflow-y-auto">
+                        <pre className="whitespace-pre-wrap text-xs sm:text-sm font-mono text-muted-foreground leading-relaxed">
                           {viewingTranscript}
                         </pre>
                       </div>
                     </div>
                     
                     <div className="space-y-2">
-                      <h4 className="text-sm font-medium text-green-700 dark:text-green-400">AI Cleaned Transcript</h4>
-                      <div className="border rounded-lg p-4 bg-green-50/50 dark:bg-green-950/30 max-h-[45vh] overflow-y-auto">
-                        <div className="prose max-w-none">
-                          <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                      <h4 className="text-xs sm:text-sm font-medium text-green-700 dark:text-green-400">AI Cleaned Transcript</h4>
+                      <div className="border rounded-lg p-3 sm:p-4 bg-green-50/50 dark:bg-green-950/30 max-h-[40vh] sm:max-h-[45vh] overflow-y-auto">
+                        <div className="prose max-w-none prose-sm sm:prose">
+                          <div className="whitespace-pre-wrap text-xs sm:text-sm leading-relaxed">
                             {cleanedTranscript}
                           </div>
                         </div>
@@ -1385,14 +1390,14 @@ const MeetingHistory = () => {
               </Tabs>
             </div>
             
-            <DialogFooter>
+            <DialogFooter className="pt-2 sm:pt-4">
               <Button 
                 onClick={() => {
                   setTranscriptDialogOpen(false);
                   setCleanedTranscript("");
                   setCurrentMeetingForTranscript(null);
                 }}
-                className="touch-manipulation min-h-[44px]"
+                className="w-full sm:w-auto touch-manipulation min-h-[44px] text-sm"
               >
                 Close
               </Button>
