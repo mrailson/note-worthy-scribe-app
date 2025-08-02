@@ -1417,57 +1417,93 @@ const MeetingHistory = () => {
                 </CollapsibleContent>
               </Collapsible>
 
-              {/* Transcript Display - Mobile Optimized */}
-              <Tabs defaultValue="display" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 h-auto">
-                  <TabsTrigger value="display" className="text-xs sm:text-sm py-2 sm:py-3">
-                    {cleanedTranscript ? 'Cleaned' : 'Current'}
-                  </TabsTrigger>
-                  <TabsTrigger value="comparison" disabled={!cleanedTranscript} className="text-xs sm:text-sm py-2 sm:py-3">
-                    Compare
-                  </TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="display" className="space-y-4 mt-3">
-                  <div className="border rounded-lg p-3 sm:p-4 bg-background max-h-[45vh] sm:max-h-[50vh] overflow-y-auto">
-                    {cleanedTranscript ? (
-                      <div className="prose max-w-none prose-sm sm:prose">
-                        <div className="whitespace-pre-wrap text-xs sm:text-sm leading-relaxed">
-                          {cleanedTranscript}
-                        </div>
-                      </div>
-                    ) : (
-                      <pre className="whitespace-pre-wrap text-xs sm:text-sm font-mono text-muted-foreground leading-relaxed">
-                        {viewingTranscript || "No transcript available for this meeting."}
-                      </pre>
-                    )}
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="comparison" className="space-y-4 mt-3">
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
-                    <div className="space-y-2">
-                      <h4 className="text-xs sm:text-sm font-medium text-muted-foreground">Original Transcript</h4>
-                      <div className="border rounded-lg p-3 sm:p-4 bg-muted/30 max-h-[40vh] sm:max-h-[45vh] overflow-y-auto">
-                        <pre className="whitespace-pre-wrap text-xs sm:text-sm font-mono text-muted-foreground leading-relaxed">
-                          {viewingTranscript}
-                        </pre>
-                      </div>
+              {/* Transcript Display - Always Visible */}
+              <div className="border rounded-lg p-3 sm:p-4 bg-background max-h-[50vh] sm:max-h-[55vh] overflow-y-auto">
+                {cleanedTranscript ? (
+                  <div className="prose max-w-none prose-sm sm:prose">
+                    <div className="whitespace-pre-wrap text-xs sm:text-sm leading-relaxed">
+                      {cleanedTranscript}
                     </div>
+                  </div>
+                ) : (
+                  <pre className="whitespace-pre-wrap text-xs sm:text-sm font-mono text-muted-foreground leading-relaxed">
+                    {viewingTranscript || "No transcript available for this meeting."}
+                  </pre>
+                )}
+              </div>
+
+              {/* Tab Controls - Inside Collapsible */}
+              <Collapsible 
+                open={actionsExpanded} 
+                onOpenChange={setActionsExpanded}
+                className="w-full"
+              >
+                <CollapsibleTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-between touch-manipulation min-h-[44px]"
+                  >
+                    <span className="text-xs sm:text-sm">
+                      {actionsExpanded ? 'Hide View Options' : 'Show Current & Compare Views'}
+                    </span>
+                    <ChevronDown className={`h-4 w-4 transition-transform ${actionsExpanded ? 'rotate-180' : ''}`} />
+                  </Button>
+                </CollapsibleTrigger>
+                
+                <CollapsibleContent className="space-y-3 mt-3">
+                  {/* Tab Controls */}
+                  <Tabs defaultValue="display" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2 h-auto">
+                      <TabsTrigger value="display" className="text-xs sm:text-sm py-2 sm:py-3">
+                        {cleanedTranscript ? 'Cleaned' : 'Current'}
+                      </TabsTrigger>
+                      <TabsTrigger value="comparison" disabled={!cleanedTranscript} className="text-xs sm:text-sm py-2 sm:py-3">
+                        Compare
+                      </TabsTrigger>
+                    </TabsList>
                     
-                    <div className="space-y-2">
-                      <h4 className="text-xs sm:text-sm font-medium text-green-700 dark:text-green-400">AI Cleaned Transcript</h4>
-                      <div className="border rounded-lg p-3 sm:p-4 bg-green-50/50 dark:bg-green-950/30 max-h-[40vh] sm:max-h-[45vh] overflow-y-auto">
-                        <div className="prose max-w-none prose-sm sm:prose">
-                          <div className="whitespace-pre-wrap text-xs sm:text-sm leading-relaxed">
-                            {cleanedTranscript}
+                    <TabsContent value="display" className="space-y-4 mt-3">
+                      <div className="border rounded-lg p-3 sm:p-4 bg-background max-h-[45vh] sm:max-h-[50vh] overflow-y-auto">
+                        {cleanedTranscript ? (
+                          <div className="prose max-w-none prose-sm sm:prose">
+                            <div className="whitespace-pre-wrap text-xs sm:text-sm leading-relaxed">
+                              {cleanedTranscript}
+                            </div>
+                          </div>
+                        ) : (
+                          <pre className="whitespace-pre-wrap text-xs sm:text-sm font-mono text-muted-foreground leading-relaxed">
+                            {viewingTranscript || "No transcript available for this meeting."}
+                          </pre>
+                        )}
+                      </div>
+                    </TabsContent>
+                    
+                    <TabsContent value="comparison" className="space-y-4 mt-3">
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
+                        <div className="space-y-2">
+                          <h4 className="text-xs sm:text-sm font-medium text-muted-foreground">Original Transcript</h4>
+                          <div className="border rounded-lg p-3 sm:p-4 bg-muted/30 max-h-[40vh] sm:max-h-[45vh] overflow-y-auto">
+                            <pre className="whitespace-pre-wrap text-xs sm:text-sm font-mono text-muted-foreground leading-relaxed">
+                              {viewingTranscript}
+                            </pre>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <h4 className="text-xs sm:text-sm font-medium text-green-700 dark:text-green-400">AI Cleaned Transcript</h4>
+                          <div className="border rounded-lg p-3 sm:p-4 bg-green-50/50 dark:bg-green-950/30 max-h-[40vh] sm:max-h-[45vh] overflow-y-auto">
+                            <div className="prose max-w-none prose-sm sm:prose">
+                              <div className="whitespace-pre-wrap text-xs sm:text-sm leading-relaxed">
+                                {cleanedTranscript}
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  </div>
-                </TabsContent>
-              </Tabs>
+                    </TabsContent>
+                  </Tabs>
+                </CollapsibleContent>
+              </Collapsible>
             </div>
             
             <DialogFooter className="pt-2 sm:pt-4">
