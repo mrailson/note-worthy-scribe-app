@@ -38,6 +38,7 @@ import {
   Shield,
   X,
   Save,
+  AlertTriangle,
   ArrowLeft,
   Search
 } from "lucide-react";
@@ -117,7 +118,7 @@ const ComplaintDetails = () => {
   const [investigationMethod, setInvestigationMethod] = useState("");
   const [selectedStaff, setSelectedStaff] = useState<Array<{name: string; email: string; role: string; suggested: boolean; type: string}>>([]);
   const [additionalStaff, setAdditionalStaff] = useState({name: '', email: '', role: ''});
-  const [inputRequests, setInputRequests] = useState<Array<{id: string; staffName: string; staffEmail: string; status: string; sentAt: string; responseReceived: boolean}>>([]);
+  const [inputRequests, setInputRequests] = useState<Array<{id: string; staffName: string; staffEmail: string; status: string; sentAt: string; responseReceived: boolean; responseReceivedAt?: string; responseText?: string; isTestResponse?: boolean}>>([]);
   const [workflowSettings, setWorkflowSettings] = useState<any>(null);
 
   // Define all functions before useEffect
@@ -820,7 +821,14 @@ I am committed to ensuring that all patients receive the care and service they d
       // Update local state to mark as completed
       setInputRequests(prev => prev.map(request => 
         request.id === requestId 
-          ? { ...request, responseReceived: true, status: 'completed' }
+          ? { 
+              ...request, 
+              responseReceived: true, 
+              status: 'completed',
+              responseReceivedAt: new Date().toISOString(),
+              responseText: response,
+              isTestResponse: true
+            }
           : request
       ));
 
@@ -1595,34 +1603,113 @@ I am committed to ensuring that all patients receive the care and service they d
                                 }
                               </div>
                             ) : (
-                              <div className="space-y-2">
-                                {inputRequests.map((request) => (
-                                  <div key={request.id} className="flex items-center justify-between p-2 bg-white rounded border">
-                                    <div className="flex flex-col">
-                                      <span className="text-sm font-medium">{request.staffName}</span>
-                                      <span className="text-xs text-muted-foreground">{request.staffEmail}</span>
-                                      <span className="text-xs text-muted-foreground">
-                                        Sent: {format(new Date(request.sentAt), 'dd/MM/yyyy HH:mm')}
-                                      </span>
+                              <div className="space-y-3">
+                                {inputRequests.map((request) => {
+                                  const sentDate = new Date(request.sentAt);
+                                  const daysSinceRequest = Math.floor((new Date().getTime() - sentDate.getTime()) / (1000 * 60 * 60 * 24));
+                                  const responseDeadline = new Date(sentDate.getTime() + (10 * 24 * 60 * 60 * 1000)); // 10 days deadline
+                                  const daysLeft = Math.floor((responseDeadline.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+                                  const isOverdue = daysLeft < 0;
+                                  
+                                  return (
+                                    <div key={request.id} className="border rounded-lg p-4 bg-white">
+                                      <div className="flex items-start justify-between">
+                                        <div className="flex-1">
+                                          <div className="flex items-center gap-2 mb-2">
+                                            <span className="font-medium text-foreground">{request.staffName}</span>
+                                            <Badge 
+                                              variant={
+                                                request.responseReceived 
+                                                  ? "default" 
+                                                  : isOverdue 
+                                                    ? "destructive" 
+                                                    : "secondary"
+                                              }
+                                            >
+                                              {request.responseReceived 
+                                                ? "Response Received" 
+                                                : isOverdue 
+                                                  ? `Overdue (${Math.abs(daysLeft)} days)` 
+                                                  : `${daysLeft} days left`
+                                              }
+                                            </Badge>
+                                            {request.isTestResponse && (
+                                              <Badge variant="outline" className="text-xs">
+                                                Test Response
+                                              </Badge>
+                                            )}
+                                          </div>
+                                          
+                                          <div className="text-sm text-muted-foreground space-y-1">
+                                            <p>Email: {request.staffEmail}</p>
+                                            <p>Request sent: {format(sentDate, 'dd/MM/yyyy HH:mm')} ({daysSinceRequest} days ago)</p>
+                                            {!request.responseReceived && (
+                                              <p className={isOverdue ? "text-red-600 font-medium" : ""}>
+                                                Response due: {format(responseDeadline, 'dd/MM/yyyy')}
+                                                {isOverdue && " (OVERDUE)"}
+                                              </p>
+                                            )}
+                                            {request.responseReceived && request.responseReceivedAt && (
+                                              <p className="text-green-600">
+                                                Response received: {format(new Date(request.responseReceivedAt), 'dd/MM/yyyy HH:mm')}
+                                              </p>
+                                            )}
+                                          </div>
+
+                                          {/* Show response details if available */}
+                                          {request.responseReceived && request.responseText && (
+                                            <div className="mt-3 p-3 bg-gray-50 rounded border-l-4 border-blue-500">
+                                              <h5 className="text-sm font-medium text-foreground mb-2">Response:</h5>
+                                              <div className="text-sm text-muted-foreground max-h-32 overflow-y-auto">
+                                                {request.responseText.length > 200 
+                                                  ? `${request.responseText.substring(0, 200)}...` 
+                                                  : request.responseText
+                                                }
+                                              </div>
+                                              {request.responseText.length > 200 && (
+                                                <button 
+                                                  className="text-xs text-blue-600 hover:text-blue-800 mt-1"
+                                                  onClick={() => {
+                                                    // Simple alert for now - could implement a modal
+                                                    alert(request.responseText);
+                                                  }}
+                                                >
+                                                  View full response
+                                                </button>
+                                              )}
+                                            </div>
+                                          )}
+                                        </div>
+                                        
+                                        <div className="flex flex-col items-end gap-2 ml-4">
+                                          {/* Status indicator */}
+                                          <div className="flex items-center gap-1">
+                                            {request.responseReceived ? (
+                                              <CheckCircle className="h-4 w-4 text-green-500" />
+                                            ) : isOverdue ? (
+                                              <AlertTriangle className="h-4 w-4 text-red-500" />
+                                            ) : (
+                                              <Clock className="h-4 w-4 text-yellow-500" />
+                                            )}
+                                          </div>
+                                          
+                                          {/* Test Reply button for pending requests */}
+                                          {!request.responseReceived && (
+                                            <Button
+                                              variant="outline"
+                                              size="sm"
+                                              onClick={() => handleTestReply(request.id, request.staffName)}
+                                              disabled={submitting}
+                                              className="text-xs"
+                                            >
+                                              Test Reply
+                                            </Button>
+                                          )}
+                                        </div>
+                                      </div>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                      <Badge variant={request.responseReceived ? "default" : "secondary"}>
-                                        {request.responseReceived ? "Response Received" : "Awaiting Response"}
-                                      </Badge>
-                                      {!request.responseReceived && (
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={() => handleTestReply(request.id, request.staffName)}
-                                          disabled={submitting}
-                                          className="text-xs"
-                                        >
-                                          Test Reply
-                                        </Button>
-                                      )}
-                                    </div>
-                                  </div>
-                                ))}
+                                  );
+                                })}
                               </div>
                             )}
                           </div>
