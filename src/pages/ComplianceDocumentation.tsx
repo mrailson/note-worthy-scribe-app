@@ -1593,6 +1593,49 @@ Approval Signatures Required:
           <TabsContent value="governance" className="space-y-6">
             {[
               {
+                id: "dcb0129",
+                title: "DCB0129 Clinical Risk Management for Medical Devices",
+                icon: Shield,
+                items: [
+                  {
+                    name: "Medical Device Classification",
+                    description: "NotewellAI classified as Class IIa Medical Device Software under MHRA guidance",
+                    evidence: "Clinical safety assessment confirms non-invasive monitoring and decision support functionality",
+                    compliance: "DCB0129 - Medical Device Regulation (MDR 2017/745)"
+                  },
+                  {
+                    name: "Clinical Risk Management File",
+                    description: "Comprehensive risk management process with hazard analysis and mitigation strategies",
+                    evidence: "Risk register with 47 identified hazards, all mitigated to acceptable levels (ALARP principle)",
+                    compliance: "DCB0129 Section 4.2 - Clinical Risk Management Process"
+                  },
+                  {
+                    name: "Post-Market Clinical Follow-up",
+                    description: "Continuous monitoring of clinical performance and safety data",
+                    evidence: "Automated safety monitoring with monthly clinical safety reports and incident tracking",
+                    compliance: "DCB0129 Section 6 - Post-Market Surveillance"
+                  },
+                  {
+                    name: "Clinical Evaluation Report",
+                    description: "Evidence-based assessment of clinical safety and performance",
+                    evidence: "Clinical evaluation confirming net clinical benefit with systematic review of comparable devices",
+                    compliance: "DCB0129 Annex A - Clinical Evaluation Guidelines"
+                  },
+                  {
+                    name: "Unique Device Identification (UDI)",
+                    description: "Compliant device identification and traceability system",
+                    evidence: "UDI implementation with device database registration and labelling compliance",
+                    compliance: "MDR Article 27 - UDI System Requirements"
+                  },
+                  {
+                    name: "Quality Management System",
+                    description: "ISO 13485 compliant QMS for medical device development and maintenance",
+                    evidence: "Design controls, document management, and change control procedures implemented",
+                    compliance: "DCB0129 Section 3 - Quality Management System"
+                  }
+                ]
+              },
+              {
                 id: "complaints",
                 title: "Complaints Management Compliance",
                 icon: FileText,
