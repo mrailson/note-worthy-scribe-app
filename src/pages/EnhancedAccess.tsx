@@ -490,9 +490,9 @@ const EnhancedAccess = () => {
                                           <div className="space-y-1 mt-1">
                                              {shiftAssignments.map((assignment, idx) => (
                                                <Badge key={assignment.id} variant="secondary" className="text-[10px] sm:text-xs flex items-center justify-center sm:justify-start gap-1 w-full sm:w-auto">
-                                                 {getRoleIcon(assignment.staff_member?.role)}
+                                                 {getRoleIcon(assignment.staff_member?.role || shift.required_role)}
                                                  <span className="truncate max-w-[100px] sm:max-w-none">
-                                                   {formatStaffName(assignment.staff_member?.name || 'Assigned', assignment.staff_member?.role || '')}
+                                                   {assignment.staff_member?.name ? formatStaffName(assignment.staff_member.name, assignment.staff_member.role) : 'Staff Assigned'}
                                                  </span>
                                                </Badge>
                                              ))}
@@ -681,14 +681,14 @@ const EnhancedAccess = () => {
                                     </div>
                                     {shiftAssignments.length > 0 ? (
                                       <div className="space-y-1 mt-1">
-                                         {shiftAssignments.map((assignment, idx) => (
-                                           <Badge key={assignment.id} variant="secondary" className="text-[10px] sm:text-xs flex items-center justify-center sm:justify-start gap-1 w-full sm:w-auto">
-                                             {getRoleIcon(assignment.staff_member?.role)}
-                                             <span className="truncate max-w-[100px] sm:max-w-none">
-                                               {formatStaffName(assignment.staff_member?.name || 'Assigned', assignment.staff_member?.role || '')}
-                                             </span>
-                                           </Badge>
-                                         ))}
+                                             {shiftAssignments.map((assignment, idx) => (
+                                               <Badge key={assignment.id} variant="secondary" className="text-[10px] sm:text-xs flex items-center justify-center sm:justify-start gap-1 w-full sm:w-auto">
+                                                 {getRoleIcon(assignment.staff_member?.role || shift.required_role)}
+                                                 <span className="truncate max-w-[100px] sm:max-w-none">
+                                                   {assignment.staff_member?.name ? formatStaffName(assignment.staff_member.name, assignment.staff_member.role) : 'Staff Assigned'}
+                                                 </span>
+                                               </Badge>
+                                             ))}
                                         {shiftAssignments.length > 1 && (
                                           <div className="text-[10px] sm:text-xs text-muted-foreground text-center sm:text-left">
                                             ({shiftAssignments.length} staff)
