@@ -273,6 +273,14 @@ export const ServiceOverview = () => {
         <p className="text-muted-foreground">
           Experience the future of primary care administration with intelligent AI assistance designed by healthcare professionals.
         </p>
+        <div className="mt-4 p-4 bg-primary/5 rounded-lg border border-primary/20">
+          <p className="text-sm font-medium text-foreground mb-2">
+            Questions or want to learn more?
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Contact: <a href="mailto:Malcolm.Railson@nhs.net" className="text-primary hover:text-primary-hover font-medium underline">Malcolm.Railson@nhs.net</a>
+          </p>
+        </div>
       </div>
     </div>
   );
