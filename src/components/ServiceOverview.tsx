@@ -281,6 +281,55 @@ export const ServiceOverview = () => {
         </CardContent>
       </Card>
 
+      {/* Neighbourhoods Ready Section */}
+      <Card className="bg-gradient-subtle border-primary/20">
+        <CardHeader className="text-center">
+          <CardTitle className="flex items-center justify-center gap-2 text-xl">
+            <Users className="h-5 w-5 text-primary" />
+            Neighbourhoods Ready: Multi-Agency Collaboration
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-center text-muted-foreground">
+            All systems have been developed to meet the needs of the impending Neighbourhoods with a multi-agency ready system to collaborate and share without the historic IT challenges that always stifled efficient collaboration.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+            <div className="space-y-2 text-center">
+              <div className="p-3 rounded-lg bg-primary/10 text-primary mx-auto w-fit">
+                <Users className="h-6 w-6" />
+              </div>
+              <h4 className="font-semibold">Seamless Integration</h4>
+              <p className="text-sm text-muted-foreground">
+                Built for multi-agency collaboration from the ground up
+              </p>
+            </div>
+            <div className="space-y-2 text-center">
+              <div className="p-3 rounded-lg bg-primary/10 text-primary mx-auto w-fit">
+                <FolderOpen className="h-6 w-6" />
+              </div>
+              <h4 className="font-semibold">Unified Data Sharing</h4>
+              <p className="text-sm text-muted-foreground">
+                Secure, standardized data exchange across organizations
+              </p>
+            </div>
+            <div className="space-y-2 text-center">
+              <div className="p-3 rounded-lg bg-primary/10 text-primary mx-auto w-fit">
+                <CheckCircle className="h-6 w-6" />
+              </div>
+              <h4 className="font-semibold">Future-Proof Design</h4>
+              <p className="text-sm text-muted-foreground">
+                Ready for tomorrow's healthcare collaboration models
+              </p>
+            </div>
+          </div>
+          <div className="mt-6 p-4 bg-primary/5 rounded-lg border border-primary/20">
+            <p className="text-sm text-center text-muted-foreground">
+              <strong>Breaking Down IT Barriers:</strong> Our platform eliminates the traditional IT silos that have historically hindered effective multi-agency collaboration, enabling truly integrated care delivery.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Call to Action */}
       <div className="text-center space-y-4">
         <h3 className="text-xl font-semibold">Ready to Transform Your Practice?</h3>
