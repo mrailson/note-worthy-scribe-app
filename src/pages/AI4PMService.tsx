@@ -1342,9 +1342,9 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                 </div>
               </CardHeader>
               
-              <CardContent className="flex flex-col h-full p-0">
+              <CardContent className={`flex flex-col h-full ${messages.length === 0 && isModelSelectorCollapsed ? 'p-0' : 'p-0'}`}>
                 {/* Messages */}
-                 <ScrollArea className="flex-1 p-4">
+                <ScrollArea className={`${messages.length === 0 && isModelSelectorCollapsed ? 'h-0 p-0' : 'flex-1 p-4'}`}>
                    {messages.length === 0 ? null : (
                     <div className="space-y-6">
                       {messages.map((message) => (
