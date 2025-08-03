@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 import { 
   Send, 
@@ -43,7 +44,9 @@ import {
   Image,
   Type,
   X,
-  Loader2
+  Loader2,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { LoginForm } from '@/components/LoginForm';
@@ -120,6 +123,7 @@ const AI4PMService = () => {
   const [chatBoxSize, setChatBoxSize] = useState('default'); // 'small', 'default', 'large', 'extra-large'
   const [includePracticeBranding, setIncludePracticeBranding] = useState(true);
   const [practiceDetails, setPracticeDetails] = useState<any>(null);
+  const [isModelSelectorCollapsed, setIsModelSelectorCollapsed] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const scrollToBottom = () => {
@@ -1244,7 +1248,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
               <CardHeader className="pb-3">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 w-full">
-                    <CardTitle className="flex flex-col sm:flex-row sm:items-center gap-2">
+                    <CardTitle className="flex flex-col gap-2">
                       <div className="flex items-center gap-2">
                         <Sparkles className="h-5 w-5" />
                         <span className="text-lg sm:text-xl">AI 4 PM Service</span>
@@ -1261,18 +1265,43 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                           <span className="sm:hidden">New</span>
                         </Button>
                       </div>
-                      <div className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-1">
-                        <span className={`text-xs sm:text-sm font-medium ${model === 'gpt' ? 'text-primary' : 'text-muted-foreground'}`}>
-                          GPT-4
-                        </span>
-                        <Switch
-                          checked={model === 'claude'}
-                          onCheckedChange={(checked) => setModel(checked ? 'claude' : 'gpt')}
-                        />
-                        <span className={`text-xs sm:text-sm font-medium ${model === 'claude' ? 'text-primary' : 'text-muted-foreground'}`}>
-                          Claude
-                        </span>
-                      </div>
+                      
+                      {/* Collapsible Model Selector */}
+                      <Collapsible 
+                        open={!isModelSelectorCollapsed} 
+                        onOpenChange={(open) => setIsModelSelectorCollapsed(!open)}
+                      >
+                        <CollapsibleTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="w-fit p-2 h-auto flex items-center gap-2 text-muted-foreground hover:text-foreground"
+                          >
+                            <span className="text-xs">
+                              {model === 'gpt' ? 'GPT-4' : 'Claude'}
+                            </span>
+                            {isModelSelectorCollapsed ? (
+                              <ChevronDown className="h-3 w-3" />
+                            ) : (
+                              <ChevronUp className="h-3 w-3" />
+                            )}
+                          </Button>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="mt-2">
+                          <div className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-1 w-fit">
+                            <span className={`text-xs sm:text-sm font-medium ${model === 'gpt' ? 'text-primary' : 'text-muted-foreground'}`}>
+                              GPT-4
+                            </span>
+                            <Switch
+                              checked={model === 'claude'}
+                              onCheckedChange={(checked) => setModel(checked ? 'claude' : 'gpt')}
+                            />
+                            <span className={`text-xs sm:text-sm font-medium ${model === 'claude' ? 'text-primary' : 'text-muted-foreground'}`}>
+                              Claude
+                            </span>
+                          </div>
+                        </CollapsibleContent>
+                      </Collapsible>
                     </CardTitle>
                     <div className="hidden sm:flex items-center gap-2">
                       {/* Chat size controls - hidden on mobile */}
