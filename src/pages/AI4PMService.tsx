@@ -123,7 +123,7 @@ const AI4PMService = () => {
   const [chatBoxSize, setChatBoxSize] = useState('default'); // 'small', 'default', 'large', 'extra-large'
   const [includePracticeBranding, setIncludePracticeBranding] = useState(true);
   const [practiceDetails, setPracticeDetails] = useState<any>(null);
-  const [isModelSelectorCollapsed, setIsModelSelectorCollapsed] = useState(true);
+  const [isModelSelectorCollapsed, setIsModelSelectorCollapsed] = useState(true); // Collapsed by default
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const scrollToBottom = () => {
