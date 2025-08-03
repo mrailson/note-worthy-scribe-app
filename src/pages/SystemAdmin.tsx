@@ -15,7 +15,6 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import { useToast } from '@/components/ui/use-toast';
 import { 
   Plus, 
   Search, 
