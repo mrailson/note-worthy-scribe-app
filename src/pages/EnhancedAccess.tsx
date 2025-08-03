@@ -280,25 +280,38 @@ const EnhancedAccess = () => {
       
       {/* Page Header */}
       <div className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
+        <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <h1 className="text-3xl font-bold text-foreground">Enhanced Access Services</h1>
-              <p className="text-muted-foreground mt-1">Manage staffing and compliance for extended GP services</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Enhanced Access Services</h1>
+              <p className="text-muted-foreground mt-1 text-sm sm:text-base">Manage staffing and compliance for extended GP services</p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-2">
+      <div className="container mx-auto px-3 sm:px-4 py-2">
         <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="grid w-full grid-cols-5">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="schedule">Rota Management</TabsTrigger>
-              <TabsTrigger value="staff">Staff Management</TabsTrigger>
-              <TabsTrigger value="holidays">Bank Holidays</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1 h-auto p-1">
+              <TabsTrigger value="overview" className="min-h-[44px] text-xs sm:text-sm touch-manipulation">
+                <span className="hidden sm:inline">Overview</span>
+                <span className="sm:hidden">Home</span>
+              </TabsTrigger>
+              <TabsTrigger value="schedule" className="min-h-[44px] text-xs sm:text-sm touch-manipulation">
+                <span className="hidden sm:inline">Rota Management</span>
+                <span className="sm:hidden">Rota</span>
+              </TabsTrigger>
+              <TabsTrigger value="staff" className="min-h-[44px] text-xs sm:text-sm touch-manipulation">
+                <span className="hidden sm:inline">Staff Management</span>
+                <span className="sm:hidden">Staff</span>
+              </TabsTrigger>
+              <TabsTrigger value="holidays" className="min-h-[44px] text-xs sm:text-sm touch-manipulation">
+                <span className="hidden lg:inline">Bank Holidays</span>
+                <span className="lg:hidden">Holidays</span>
+              </TabsTrigger>
             <TabsTrigger 
               value="reports" 
+              className="min-h-[44px] text-xs sm:text-sm touch-manipulation"
               onClick={() => {
                 setTimeout(() => {
                   const headerHeight = 120; // Approximate height of header + page title
@@ -314,38 +327,52 @@ const EnhancedAccess = () => {
             {/* View Toggle */}
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <CardTitle className="flex items-center gap-2">
                     <Calendar className="h-5 w-5" />
-                    {isMonthlyView ? `${format(currentWeek, "MMMM yyyy")}` : `This Week - ${formatDateWithOrdinal(weekStart)}`}
+                    <span className="text-lg sm:text-xl">
+                      {isMonthlyView ? `${format(currentWeek, "MMMM yyyy")}` : `This Week - ${formatDateWithOrdinal(weekStart)}`}
+                    </span>
                   </CardTitle>
-                  <div className="flex items-center gap-4">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
                     <div className="flex items-center space-x-2">
-                      <Label htmlFor="view-toggle" className="text-sm">Weekly</Label>
+                      <Label htmlFor="view-toggle" className="text-xs sm:text-sm">Weekly</Label>
                       <Switch
                         id="view-toggle"
                         checked={isMonthlyView}
                         onCheckedChange={setIsMonthlyView}
                       />
-                      <Label htmlFor="view-toggle" className="text-sm">Monthly</Label>
+                      <Label htmlFor="view-toggle" className="text-xs sm:text-sm">Monthly</Label>
                     </div>
                     {isMonthlyView && (
                       <div className="flex items-center space-x-2">
-                        <Label htmlFor="detail-toggle" className="text-sm">Summary</Label>
+                        <Label htmlFor="detail-toggle" className="text-xs sm:text-sm">Summary</Label>
                         <Switch
                           id="detail-toggle"
                           checked={isDetailedView}
                           onCheckedChange={setIsDetailedView}
                         />
-                        <Label htmlFor="detail-toggle" className="text-sm">Detailed</Label>
+                        <Label htmlFor="detail-toggle" className="text-xs sm:text-sm">Detailed</Label>
                       </div>
                     )}
-                    <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm" onClick={() => navigateWeek('prev')}>
-                        {isMonthlyView ? 'Previous Month' : 'Previous'}
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => navigateWeek('prev')}
+                        className="flex-1 sm:flex-none min-h-[44px] touch-manipulation"
+                      >
+                        <span className="hidden sm:inline">{isMonthlyView ? 'Previous Month' : 'Previous'}</span>
+                        <span className="sm:hidden">Prev</span>
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => navigateWeek('next')}>
-                        {isMonthlyView ? 'Next Month' : 'Next'}
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => navigateWeek('next')}
+                        className="flex-1 sm:flex-none min-h-[44px] touch-manipulation"
+                      >
+                        <span className="hidden sm:inline">{isMonthlyView ? 'Next Month' : 'Next'}</span>
+                        <span className="sm:hidden">Next</span>
                       </Button>
                     </div>
                   </div>
@@ -353,11 +380,12 @@ const EnhancedAccess = () => {
               </CardHeader>
               <CardContent>
                  {isMonthlyView ? (
-                  <div className={`grid grid-cols-7 gap-2 ${isDetailedView ? '' : ''}`}>
+                  <div className={`grid grid-cols-7 gap-1 sm:gap-2 ${isDetailedView ? '' : ''}`}>
                     {/* Month header */}
                     {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
-                      <div key={day} className="p-2 text-center font-medium text-sm text-muted-foreground">
-                        {day}
+                      <div key={day} className="p-1 sm:p-2 text-center font-medium text-xs sm:text-sm text-muted-foreground">
+                        <span className="hidden sm:inline">{day}</span>
+                        <span className="sm:hidden">{day.slice(0, 1)}</span>
                       </div>
                     ))}
                     {/* Add empty cells for days before month starts */}
@@ -367,7 +395,7 @@ const EnhancedAccess = () => {
                       const mondayStart = startDay === 0 ? 6 : startDay - 1; // Convert to Monday = 0
                       
                       return Array.from({ length: mondayStart }, (_, i) => (
-                        <div key={`empty-${i}`} className="p-2 min-h-[60px]"></div>
+                        <div key={`empty-${i}`} className="p-1 sm:p-2 min-h-[40px] sm:min-h-[60px]"></div>
                       ));
                     })()}
                     {/* Month days */}
@@ -573,16 +601,16 @@ const EnhancedAccess = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="grid sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <h4 className="font-medium">Monday - Friday</h4>
                     <p className="text-sm text-muted-foreground flex items-center gap-2">
                       <Clock className="h-4 w-4" />
                       6:30 PM - 8:00 PM
                     </p>
-                    <p className="text-sm text-muted-foreground flex items-center gap-2">
-                      <MapPin className="h-4 w-4" />
-                      Remote GP (2 Hours shifts.  0.5 Hrs over minimum required GP hours each day)
+                    <p className="text-sm text-muted-foreground flex items-start gap-2">
+                      <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                      <span>Remote GP (2 Hours shifts. 0.5 Hrs over minimum required GP hours each day)</span>
                     </p>
                   </div>
                   <div className="space-y-2">
@@ -601,13 +629,13 @@ const EnhancedAccess = () => {
             </Card>
 
             {/* Quick Stats */}
-            <div className="grid md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-medium">Required Hours</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">237.25</div>
+                  <div className="text-xl sm:text-2xl font-bold">237.25</div>
                   <p className="text-xs text-muted-foreground">Monthly Target</p>
                 </CardContent>
               </Card>
@@ -616,7 +644,7 @@ const EnhancedAccess = () => {
                   <CardTitle className="text-sm font-medium">Hub Delivery</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{spokeData.hubHours}</div>
+                  <div className="text-xl sm:text-2xl font-bold">{spokeData.hubHours}</div>
                   <p className="text-xs text-muted-foreground">{format(currentWeek, "MMMM yyyy")}</p>
                 </CardContent>
               </Card>
@@ -625,16 +653,16 @@ const EnhancedAccess = () => {
                   <CardTitle className="text-sm font-medium">Spoke Balance</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-orange-600">{spokeData.spokeBalance}</div>
+                  <div className="text-xl sm:text-2xl font-bold text-orange-600">{spokeData.spokeBalance}</div>
                   <p className="text-xs text-muted-foreground">Hours Required</p>
                 </CardContent>
               </Card>
-              <Card>
+              <Card className="col-span-2 lg:col-span-1">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-medium">Default Staffing</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-sm space-y-1">
+                  <div className="text-xs sm:text-sm space-y-1">
                     <div>Saturday GP (On Site): 9AM-5PM</div>
                     <div>Saturday Phlebotomist: 9AM-5PM</div>
                     <div>Saturday Receptionist: 9AM-5PM</div>
@@ -655,7 +683,7 @@ const EnhancedAccess = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                       {spokeData.practiceRequirements.map((practice) => (
                         <div key={practice.practice} className="bg-orange-50 p-3 rounded-lg border">
                           <div className="font-medium text-sm">{practice.practice}</div>
@@ -666,7 +694,7 @@ const EnhancedAccess = () => {
                     </div>
                     <div className="bg-blue-50 p-3 rounded-lg text-sm">
                       <div className="font-semibold mb-2">Monthly Breakdown:</div>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-xs">
                         <div>Mon: {spokeData.dayCounts.monday} days × 2hrs = {spokeData.dayCounts.monday * 2}hrs</div>
                         <div>Tue: {spokeData.dayCounts.tuesday} days × 4hrs = {spokeData.dayCounts.tuesday * 4}hrs</div>
                         <div>Wed: {spokeData.dayCounts.wednesday} days × 2hrs = {spokeData.dayCounts.wednesday * 2}hrs</div>
