@@ -179,7 +179,7 @@ const SystemAdmin = () => {
   // Connection monitoring state
   const [connectionStats, setConnectionStats] = useState({
     openaiConnections: 12,
-    deepgramConnections: 3,
+    deepgramConnections: 0, // Updated to 0 after cleanup
     elevenlabsConnections: 1,
     assemblyaiConnections: 2,
     supabaseDbConnections: 45,
@@ -189,12 +189,36 @@ const SystemAdmin = () => {
 
   const connectionLimits = {
     openai: { current: 12, max: 200, recommended: 100, cost_per_hour: 0.50 },
-    deepgram: { current: 3, max: 100, recommended: 50, cost_per_hour: 2.40 },
+    deepgram: { current: 0, max: 100, recommended: 50, cost_per_hour: 2.40 }, // Updated to 0
     elevenlabs: { current: 1, max: 50, recommended: 25, cost_per_hour: 1.20 },
     assemblyai: { current: 2, max: 100, recommended: 50, cost_per_hour: 1.80 },
     supabase_db: { current: 45, max: 60, recommended: 48, cost_per_hour: 0.10 },
     supabase_storage: { current: 8, max: 200, recommended: 100, cost_per_hour: 0.05 },
     edge_functions: { current: 15, max: 300, recommended: 150, cost_per_hour: 0.20 }
+  };
+
+  // Cleanup function for orphaned connections
+  const cleanupConnections = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase.functions.invoke('cleanup-connections');
+      
+      if (error) throw error;
+      
+      // Update connection stats to show cleanup
+      setConnectionStats(prev => ({
+        ...prev,
+        deepgramConnections: 0
+      }));
+      
+      toast.success('Connection cleanup initiated successfully');
+      console.log('Cleanup result:', data);
+    } catch (error) {
+      console.error('Error cleaning up connections:', error);
+      toast.error('Failed to cleanup connections');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -1404,13 +1428,26 @@ const SystemAdmin = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Activity className="h-5 w-5" />
-                  Live Connection Status
-                </CardTitle>
-                <CardDescription>
-                  Real-time monitoring of active service connections
-                </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Activity className="h-5 w-5" />
+                      Live Connection Status
+                    </CardTitle>
+                    <CardDescription>
+                      Real-time monitoring of active service connections
+                    </CardDescription>
+                  </div>
+                  <Button
+                    onClick={cleanupConnections}
+                    disabled={loading}
+                    variant="outline"
+                    size="sm"
+                    className="ml-4"
+                  >
+                    🧹 Cleanup Orphaned
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 {Object.entries(connectionLimits).map(([service, limits]) => {

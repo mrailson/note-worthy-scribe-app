@@ -219,35 +219,61 @@ export class MobileRealtimeTranscriber {
   }
 
   stopTranscription() {
+    console.log('🛑 Stopping MobileRealtimeTranscriber...');
     this.isRecording = false;
     this.onStatusChange('Stopping...');
 
+    // Close WebSocket connection first
+    if (this.ws) {
+      console.log('🔌 Closing WebSocket connection...');
+      try {
+        if (this.ws.readyState === WebSocket.OPEN) {
+          this.ws.close();
+        }
+        this.ws = null;
+        console.log('✅ WebSocket closed successfully');
+      } catch (error) {
+        console.error('❌ Error closing WebSocket:', error);
+        this.ws = null;
+      }
+    }
+
+    // Disconnect audio processing
     if (this.processor) {
+      console.log('🔧 Disconnecting audio processor...');
       this.processor.disconnect();
       this.processor = null;
     }
 
     if (this.source) {
+      console.log('🔧 Disconnecting audio source...');
       this.source.disconnect();
       this.source = null;
     }
 
+    // Stop media stream tracks
     if (this.stream) {
-      this.stream.getTracks().forEach(track => track.stop());
+      console.log('🎤 Stopping media stream tracks...');
+      this.stream.getTracks().forEach(track => {
+        track.stop();
+        console.log(`🎤 Stopped ${track.kind} track`);
+      });
       this.stream = null;
     }
 
+    // Close audio context
     if (this.audioContext && this.audioContext.state !== 'closed') {
-      this.audioContext.close();
+      console.log('🔊 Closing audio context...');
+      this.audioContext.close().then(() => {
+        console.log('✅ Audio context closed successfully');
+      }).catch((error) => {
+        console.error('❌ Error closing audio context:', error);
+      });
       this.audioContext = null;
     }
 
-    if (this.ws) {
-      this.ws.close();
-      this.ws = null;
-    }
-
     this.onStatusChange('Stopped');
+    console.log('✅ MobileRealtimeTranscriber fully stopped and cleaned up');
   }
 
   isActive() {
