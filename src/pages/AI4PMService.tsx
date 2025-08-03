@@ -1278,7 +1278,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                             className="w-fit p-2 h-auto flex items-center gap-2 text-muted-foreground hover:text-foreground"
                           >
                             <span className="text-xs">
-                              {model === 'gpt' ? 'GPT-4' : 'Claude'}
+                              AI Model: {model === 'gpt' ? 'GPT-4' : 'Claude'}
                             </span>
                             {isModelSelectorCollapsed ? (
                               <ChevronDown className="h-3 w-3" />
