@@ -17,6 +17,7 @@ import AI4PMService from "./pages/AI4PMService";
 import EnhancedAccess from "./pages/EnhancedAccess";
 import CQCCompliance from "./pages/CQCCompliance";
 import ComplianceDocumentation from "./pages/ComplianceDocumentation";
+import SecurityCompliance from "./pages/SecurityCompliance";
 
 import NotFound from "./pages/NotFound";
 import { ResetPassword } from "./components/ResetPassword";
@@ -44,6 +45,7 @@ const App = () => (
       <Route path="/enhanced-access" element={<EnhancedAccess />} />
       <Route path="/cqc-compliance" element={<CQCCompliance />} />
       <Route path="/compliance-docs" element={<ComplianceDocumentation />} />
+      <Route path="/security-compliance" element={<SecurityCompliance />} />
       
       <Route path="/reset-password" element={<ResetPassword />} />
       

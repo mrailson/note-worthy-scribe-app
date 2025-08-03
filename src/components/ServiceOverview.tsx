@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { 
   Stethoscope, 
   Users, 
@@ -13,10 +14,13 @@ import {
   Clock,
   Heart,
   Lock,
-  Mic
+  Mic,
+  ExternalLink
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export const ServiceOverview = () => {
+  const navigate = useNavigate();
   const services = [
     {
       icon: <Stethoscope className="h-6 w-6" />,
@@ -194,6 +198,16 @@ export const ServiceOverview = () => {
             <p className="text-sm text-center text-muted-foreground">
               <strong>Data Residency:</strong> All patient and practice data is stored within UK borders in accordance with NHS Digital guidelines and never leaves the UK jurisdiction.
             </p>
+          </div>
+          <div className="text-center mt-6">
+            <Button 
+              onClick={() => navigate('/security-compliance')}
+              variant="outline" 
+              className="gap-2"
+            >
+              <ExternalLink className="h-4 w-4" />
+              More Information on Security & Compliance
+            </Button>
           </div>
         </CardContent>
       </Card>
