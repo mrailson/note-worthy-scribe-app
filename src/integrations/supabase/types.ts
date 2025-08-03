@@ -2293,6 +2293,54 @@ export type Database = {
           },
         ]
       }
+      security_events: {
+        Row: {
+          created_at: string
+          event_details: Json | null
+          event_timestamp: string
+          event_type: string
+          id: string
+          ip_address: unknown | null
+          resolution_notes: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          user_agent: string | null
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_details?: Json | null
+          event_timestamp?: string
+          event_type: string
+          id?: string
+          ip_address?: unknown | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_details?: Json | null
+          event_timestamp?: string
+          event_type?: string
+          id?: string
+          ip_address?: unknown | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       security_settings: {
         Row: {
           description: string | null
@@ -3195,7 +3243,17 @@ export type Database = {
         Returns: string
       }
       log_security_event: {
-        Args: { p_event_type: string; p_user_id: string; p_details?: Json }
+        Args:
+          | {
+              p_event_type: string
+              p_severity?: string
+              p_user_id?: string
+              p_user_email?: string
+              p_ip_address?: unknown
+              p_user_agent?: string
+              p_event_details?: Json
+            }
+          | { p_event_type: string; p_user_id: string; p_details?: Json }
         Returns: string
       }
       log_system_activity: {

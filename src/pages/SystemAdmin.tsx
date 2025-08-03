@@ -206,6 +206,17 @@ const SystemAdmin = () => {
     practice_id: ''
   });
 
+  // Security monitoring state
+  const [securityEvents, setSecurityEvents] = useState<any[]>([]);
+  const [isSecurityDialogOpen, setIsSecurityDialogOpen] = useState(false);
+  const [newSecurityEvent, setNewSecurityEvent] = useState({
+    event_type: 'failed_login_attempt',
+    severity: 'medium' as const,
+    user_email: '',
+    ip_address: '',
+    event_details: {}
+  });
+
   const connectionLimits = {
     openai: { current: 12, max: 200, recommended: 100, cost_per_hour: 0.50 },
     deepgram: { current: 0, max: 100, recommended: 50, cost_per_hour: 2.40 }, // Updated to 0
@@ -252,6 +263,7 @@ const SystemAdmin = () => {
       fetchNeighbourhoods();
       fetchDashboardStats();
       fetchSupplierIncidents();
+      fetchSecurityEvents();
     }
   }, [isAdmin]);
 
@@ -414,6 +426,22 @@ const SystemAdmin = () => {
     }
   };
 
+  const fetchSecurityEvents = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('security_events')
+        .select('*')
+        .order('event_timestamp', { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+      setSecurityEvents(data || []);
+    } catch (error) {
+      console.error('Error fetching security events:', error);
+      toast.error("Failed to fetch security events");
+    }
+  };
+
   const handleAddSupplierIncident = async () => {
     try {
       setLoading(true);
@@ -449,6 +477,38 @@ const SystemAdmin = () => {
     } catch (error) {
       console.error('Error adding supplier incident:', error);
       toast.error("Failed to report supplier incident");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddSecurityEvent = async () => {
+    try {
+      setLoading(true);
+      const { error } = await supabase
+        .rpc('log_security_event', {
+          p_event_type: newSecurityEvent.event_type,
+          p_severity: newSecurityEvent.severity,
+          p_user_email: newSecurityEvent.user_email || null,
+          p_ip_address: newSecurityEvent.ip_address || null,
+          p_event_details: newSecurityEvent.event_details
+        });
+
+      if (error) throw error;
+      
+      toast.success("Security event logged successfully");
+      setIsSecurityDialogOpen(false);
+      setNewSecurityEvent({
+        event_type: 'failed_login_attempt',
+        severity: 'medium',
+        user_email: '',
+        ip_address: '',
+        event_details: {}
+      });
+      fetchSecurityEvents();
+    } catch (error) {
+      console.error('Error adding security event:', error);
+      toast.error("Failed to log security event");
     } finally {
       setLoading(false);
     }
@@ -1834,6 +1894,167 @@ const SystemAdmin = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Security Monitoring Section */}
+            <Card className="lg:col-span-2">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Shield className="h-5 w-5" />
+                      Security Event Monitoring
+                    </CardTitle>
+                    <CardDescription>
+                      Healthcare security compliance monitoring - hack attempts, lockouts, and suspicious activity
+                    </CardDescription>
+                  </div>
+                  <Button
+                    onClick={() => setIsSecurityDialogOpen(true)}
+                    size="sm"
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Log Security Event
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {/* Security Summary Stats */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="p-3 bg-muted rounded-lg">
+                      <div className="text-sm text-muted-foreground">Total Events</div>
+                      <div className="text-2xl font-bold">{securityEvents.length}</div>
+                    </div>
+                    <div className="p-3 bg-muted rounded-lg">
+                      <div className="text-sm text-muted-foreground">Critical</div>
+                      <div className="text-2xl font-bold text-destructive">
+                        {securityEvents.filter((e: any) => e.severity === 'critical').length}
+                      </div>
+                    </div>
+                    <div className="p-3 bg-muted rounded-lg">
+                      <div className="text-sm text-muted-foreground">High Priority</div>
+                      <div className="text-2xl font-bold text-warning">
+                        {securityEvents.filter((e: any) => e.severity === 'high').length}
+                      </div>
+                    </div>
+                    <div className="p-3 bg-muted rounded-lg">
+                      <div className="text-sm text-muted-foreground">Unresolved</div>
+                      <div className="text-2xl font-bold text-warning">
+                        {securityEvents.filter((e: any) => !e.resolved_at).length}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Recent Security Events Table */}
+                  <div className="border rounded-lg">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Event Type</TableHead>
+                          <TableHead>Severity</TableHead>
+                          <TableHead>User/Email</TableHead>
+                          <TableHead>IP Address</TableHead>
+                          <TableHead>Details</TableHead>
+                          <TableHead>Timestamp</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {securityEvents.slice(0, 10).map((event: any) => (
+                          <TableRow key={event.id}>
+                            <TableCell>
+                              <Badge variant={
+                                event.event_type.includes('failed') ? 'destructive' :
+                                event.event_type.includes('suspicious') ? 'destructive' :
+                                event.event_type.includes('unauthorized') ? 'destructive' :
+                                event.event_type.includes('lockout') ? 'destructive' : 'secondary'
+                              }>
+                                {event.event_type.replace(/_/g, ' ')}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={
+                                event.severity === 'critical' ? 'destructive' :
+                                event.severity === 'high' ? 'destructive' :
+                                event.severity === 'medium' ? 'secondary' : 'outline'
+                              }>
+                                {event.severity}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="font-mono text-xs">
+                              {event.user_email || 'Unknown'}
+                            </TableCell>
+                            <TableCell className="font-mono text-xs">
+                              {event.ip_address || 'N/A'}
+                            </TableCell>
+                            <TableCell className="max-w-48 truncate text-sm">
+                              {event.event_details && typeof event.event_details === 'object' 
+                                ? Object.entries(event.event_details)
+                                    .map(([key, value]) => `${key}: ${value}`)
+                                    .join(', ')
+                                : 'No details'
+                              }
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {new Date(event.event_timestamp).toLocaleString()}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={event.resolved_at ? 'outline' : 'destructive'}>
+                                {event.resolved_at ? 'Resolved' : 'Open'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-1">
+                                <Button variant="ghost" size="sm">
+                                  <Eye className="h-3 w-3" />
+                                </Button>
+                                {!event.resolved_at && (
+                                  <Button variant="ghost" size="sm">
+                                    <CheckCircle className="h-3 w-3" />
+                                  </Button>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                    
+                    {securityEvents.length === 0 && (
+                      <div className="p-8 text-center text-muted-foreground">
+                        No security events logged yet
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Security Event Types Guide */}
+                  <div className="mt-6 p-4 bg-muted rounded-lg">
+                    <h4 className="font-medium mb-3">Monitored Security Events</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="font-medium text-destructive">High Priority Events:</p>
+                        <ul className="mt-1 space-y-1 text-muted-foreground">
+                          <li>• Failed login attempts (brute force)</li>
+                          <li>• Account lockouts</li>
+                          <li>• Unauthorized data access</li>
+                          <li>• Suspicious API patterns</li>
+                        </ul>
+                      </div>
+                      <div>
+                        <p className="font-medium text-warning">Medium Priority Events:</p>
+                        <ul className="mt-1 space-y-1 text-muted-foreground">
+                          <li>• Password reset requests</li>
+                          <li>• Role/permission changes</li>
+                          <li>• Unusual login times/locations</li>
+                          <li>• File access anomalies</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
 
@@ -2803,6 +3024,114 @@ const SystemAdmin = () => {
             </Button>
             <Button onClick={handleAddSupplierIncident} disabled={loading}>
               {loading ? 'Reporting...' : 'Report Incident'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Security Event Dialog */}
+      <Dialog open={isSecurityDialogOpen} onOpenChange={setIsSecurityDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Log Security Event</DialogTitle>
+            <DialogDescription>
+              Record security incidents for healthcare IT compliance monitoring
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="security-event-type">Event Type</Label>
+                <Select 
+                  value={newSecurityEvent.event_type} 
+                  onValueChange={(value) => setNewSecurityEvent({...newSecurityEvent, event_type: value})}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="failed_login_attempt">Failed Login Attempt</SelectItem>
+                    <SelectItem value="account_lockout">Account Lockout</SelectItem>
+                    <SelectItem value="suspicious_api_access">Suspicious API Access</SelectItem>
+                    <SelectItem value="unauthorized_data_access">Unauthorized Data Access</SelectItem>
+                    <SelectItem value="password_reset_request">Password Reset Request</SelectItem>
+                    <SelectItem value="role_permission_change">Role/Permission Change</SelectItem>
+                    <SelectItem value="unusual_login_pattern">Unusual Login Pattern</SelectItem>
+                    <SelectItem value="data_breach_attempt">Data Breach Attempt</SelectItem>
+                    <SelectItem value="malware_detection">Malware Detection</SelectItem>
+                    <SelectItem value="phishing_attempt">Phishing Attempt</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="security-severity">Severity</Label>
+                <Select 
+                  value={newSecurityEvent.severity} 
+                  onValueChange={(value) => setNewSecurityEvent({...newSecurityEvent, severity: value as any})}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="critical">Critical</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="security-user-email">User Email (if known)</Label>
+                <Input
+                  id="security-user-email"
+                  type="email"
+                  placeholder="user@nhs.net"
+                  value={newSecurityEvent.user_email}
+                  onChange={(e) => setNewSecurityEvent({...newSecurityEvent, user_email: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="security-ip-address">IP Address</Label>
+                <Input
+                  id="security-ip-address"
+                  placeholder="192.168.1.100"
+                  value={newSecurityEvent.ip_address}
+                  onChange={(e) => setNewSecurityEvent({...newSecurityEvent, ip_address: e.target.value})}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="security-details">Event Details (JSON format)</Label>
+              <Textarea
+                id="security-details"
+                placeholder='{"attempts": 5, "source": "external", "blocked": true}'
+                value={JSON.stringify(newSecurityEvent.event_details, null, 2)}
+                onChange={(e) => {
+                  try {
+                    const parsed = JSON.parse(e.target.value || '{}');
+                    setNewSecurityEvent({...newSecurityEvent, event_details: parsed});
+                  } catch {
+                    // Invalid JSON, allow user to continue typing
+                  }
+                }}
+                rows={4}
+                className="font-mono text-sm"
+              />
+              <p className="text-xs text-muted-foreground">
+                Additional context about the security event in JSON format
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsSecurityDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddSecurityEvent} disabled={loading}>
+              {loading ? 'Logging...' : 'Log Security Event'}
             </Button>
           </DialogFooter>
         </DialogContent>
