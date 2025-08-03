@@ -1288,44 +1288,45 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                           </Button>
                         </CollapsibleTrigger>
                         <CollapsibleContent className="mt-2">
-                          <div className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-1 w-fit">
-                            <span className={`text-xs sm:text-sm font-medium ${model === 'gpt' ? 'text-primary' : 'text-muted-foreground'}`}>
-                              GPT-4
-                            </span>
-                            <Switch
-                              checked={model === 'claude'}
-                              onCheckedChange={(checked) => setModel(checked ? 'claude' : 'gpt')}
-                            />
-                            <span className={`text-xs sm:text-sm font-medium ${model === 'claude' ? 'text-primary' : 'text-muted-foreground'}`}>
-                              Claude
-                            </span>
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                            <div className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-1 w-fit">
+                              <span className={`text-xs sm:text-sm font-medium ${model === 'gpt' ? 'text-primary' : 'text-muted-foreground'}`}>
+                                GPT-4
+                              </span>
+                              <Switch
+                                checked={model === 'claude'}
+                                onCheckedChange={(checked) => setModel(checked ? 'claude' : 'gpt')}
+                              />
+                              <span className={`text-xs sm:text-sm font-medium ${model === 'claude' ? 'text-primary' : 'text-muted-foreground'}`}>
+                                Claude
+                              </span>
+                            </div>
+                            
+                            {/* Chat size controls */}
+                            <div className="flex items-center gap-1 border rounded-lg p-1">
+                              <Button
+                                variant={chatBoxSize === 'large' ? 'secondary' : 'ghost'}
+                                size="sm"
+                                onClick={() => setChatBoxSize('large')}
+                                className="h-8 w-8 p-0"
+                                title="Large window"
+                              >
+                                <div className="w-4 h-4 bg-current rounded-sm"></div>
+                              </Button>
+                              <Button
+                                variant={chatBoxSize === 'extra-large' ? 'secondary' : 'ghost'}
+                                size="sm"
+                                onClick={() => setChatBoxSize('extra-large')}
+                                className="h-8 w-8 p-0"
+                                title="Extra large window"
+                              >
+                                <div className="w-5 h-7 bg-current rounded-sm"></div>
+                              </Button>
+                            </div>
                           </div>
                         </CollapsibleContent>
                       </Collapsible>
                     </CardTitle>
-                    <div className="hidden sm:flex items-center gap-2">
-                      {/* Chat size controls - hidden on mobile */}
-                      <div className="flex items-center gap-1 border rounded-lg p-1">
-                        <Button
-                          variant={chatBoxSize === 'large' ? 'secondary' : 'ghost'}
-                          size="sm"
-                          onClick={() => setChatBoxSize('large')}
-                          className="h-8 w-8 p-0"
-                          title="Large window"
-                        >
-                          <div className="w-4 h-4 bg-current rounded-sm"></div>
-                        </Button>
-                        <Button
-                          variant={chatBoxSize === 'extra-large' ? 'secondary' : 'ghost'}
-                          size="sm"
-                          onClick={() => setChatBoxSize('extra-large')}
-                          className="h-8 w-8 p-0"
-                          title="Extra large window"
-                        >
-                          <div className="w-5 h-7 bg-current rounded-sm"></div>
-                        </Button>
-                      </div>
-                    </div>
                   </div>
                 </div>
               </CardHeader>
