@@ -79,6 +79,7 @@ const Index = () => {
   // UI states
   const [isTranscriptOpen, setIsTranscriptOpen] = useState(false);
   const [isConfigOpen, setIsConfigOpen] = useState(false);
+  const [isTranslationCollapsed, setIsTranslationCollapsed] = useState(true); // Collapsed by default
   const [selectedExample, setSelectedExample] = useState<string>("");
   const [showExamples, setShowExamples] = useState(true);
   const [activeTab, setActiveTab] = useState("consultation");
@@ -1113,76 +1114,86 @@ const Index = () => {
                     </div>
 
 
-                    {/* Translation Settings */}
-                    <div>
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
-                        <h4 className="text-sm font-semibold text-primary flex items-center gap-2">
-                          <Languages className="h-4 w-4" />
-                          Real-time Translation
-                        </h4>
-                        {isTranslationEnabled && (
-                          <div className="flex items-center gap-4 text-xs">
-                            <label className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                checked={autoSpeak}
-                                onChange={(e) => setAutoSpeak(e.target.checked)}
-                                className="rounded"
-                              />
-                              Auto-speak
-                            </label>
-                            <div className="flex items-center gap-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={toggleMicMute}
-                                className="h-6 px-2"
-                              >
-                                {isMicMuted ? <MicOff className="h-3 w-3" /> : <Mic className="h-3 w-3" />}
-                                {isMicMuted ? 'Unmute Mic' : 'Mute Mic'}
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={handleSpeakerMuteToggle}
-                                className="h-6 px-2"
-                              >
-                                {isMuted ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
-                                {isMuted ? 'Unmute Speaker' : 'Mute Speaker'}
-                              </Button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      <div className="space-y-3">
-                        <Select value={translationLanguage} onValueChange={handleLanguageSelect}>
-                          <SelectTrigger className="bg-background">
-                            <SelectValue placeholder="Select translation language" />
-                          </SelectTrigger>
-                          <SelectContent className="max-h-60">
-                            {HEALTHCARE_LANGUAGES.map((language) => (
-                              <SelectItem key={language.code} value={language.code}>
+                    {/* Translation Settings - Collapsible */}
+                    <Collapsible open={!isTranslationCollapsed} onOpenChange={(open) => setIsTranslationCollapsed(!open)}>
+                      <CollapsibleTrigger asChild>
+                        <div className="flex items-center justify-between cursor-pointer hover:bg-accent/10 transition-colors rounded-lg p-2">
+                          <h4 className="text-sm font-semibold text-primary flex items-center gap-2">
+                            <Languages className="h-4 w-4" />
+                            Real-time Translation
+                          </h4>
+                          {isTranslationCollapsed ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronUp className="h-4 w-4" />
+                          )}
+                        </div>
+                      </CollapsibleTrigger>
+                       <CollapsibleContent>
+                        <div className="space-y-4 mt-3">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                            {isTranslationEnabled && (
+                              <div className="flex items-center gap-4 text-xs">
+                                <label className="flex items-center gap-2">
+                                  <input
+                                    type="checkbox"
+                                    checked={autoSpeak}
+                                    onChange={(e) => setAutoSpeak(e.target.checked)}
+                                    className="rounded"
+                                  />
+                                  Auto-speak
+                                </label>
                                 <div className="flex items-center gap-2">
-                                  <span>{language.flag}</span>
-                                  <span>{language.name}</span>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={toggleMicMute}
+                                    className="h-6 px-2"
+                                  >
+                                    {isMicMuted ? <MicOff className="h-3 w-3" /> : <Mic className="h-3 w-3" />}
+                                    {isMicMuted ? 'Unmute Mic' : 'Mute Mic'}
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={handleSpeakerMuteToggle}
+                                    className="h-6 px-2"
+                                  >
+                                    {isMuted ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
+                                    {isMuted ? 'Unmute Speaker' : 'Mute Speaker'}
+                                  </Button>
                                 </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    {/* Live Translation Display */}
-                    {isTranslationEnabled && translationLanguage !== 'none' && (
-                      <div className="bg-gradient-to-br from-primary/5 to-accent/10 rounded-xl p-4 border-2 border-primary/20 shadow-subtle animate-fade-in">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-2">
-                            <Languages className="h-4 w-4 text-primary" />
-                            <span className="text-sm font-semibold text-primary">
-                              Live Translation: {HEALTHCARE_LANGUAGES.find(l => l.code === translationLanguage)?.flag} {HEALTHCARE_LANGUAGES.find(l => l.code === translationLanguage)?.name}
-                            </span>
+                              </div>
+                            )}
                           </div>
+                          <div className="space-y-3">
+                            <Select value={translationLanguage} onValueChange={handleLanguageSelect}>
+                              <SelectTrigger className="bg-background">
+                                <SelectValue placeholder="Select translation language" />
+                              </SelectTrigger>
+                              <SelectContent className="max-h-60">
+                                {HEALTHCARE_LANGUAGES.map((language) => (
+                                  <SelectItem key={language.code} value={language.code}>
+                                    <div className="flex items-center gap-2">
+                                      <span>{language.flag}</span>
+                                      <span>{language.name}</span>
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                           </div>
+                          
+                          {/* Live Translation Display */}
+                          {isTranslationEnabled && translationLanguage !== 'none' && (
+                            <div className="bg-gradient-to-br from-primary/5 to-accent/10 rounded-xl p-4 border-2 border-primary/20 shadow-subtle animate-fade-in">
+                              <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-2">
+                                  <Languages className="h-4 w-4 text-primary" />
+                                  <span className="text-sm font-semibold text-primary">
+                                    Live Translation: {HEALTHCARE_LANGUAGES.find(l => l.code === translationLanguage)?.flag} {HEALTHCARE_LANGUAGES.find(l => l.code === translationLanguage)?.name}
+                                  </span>
+                                </div>
                           <div className="flex items-center gap-2">
                             <Button
                               size="sm"
@@ -1273,9 +1284,12 @@ const Index = () => {
                               </div>
                             </div>
                           )}
-                        </div>
-                      </div>
-                    )}
+                                 </div>
+                               </div>
+                             )}
+                          </div>
+                        </CollapsibleContent>
+                      </Collapsible>
 
                     {/* Live Speech Controls and Display - positioned above stats */}
                     {isRecording && (
