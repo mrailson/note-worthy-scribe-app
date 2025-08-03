@@ -1288,40 +1288,51 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                           </Button>
                         </CollapsibleTrigger>
                         <CollapsibleContent className="mt-2">
-                          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                            <div className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-1 w-fit">
-                              <span className={`text-xs sm:text-sm font-medium ${model === 'gpt' ? 'text-primary' : 'text-muted-foreground'}`}>
-                                GPT-4
-                              </span>
-                              <Switch
-                                checked={model === 'claude'}
-                                onCheckedChange={(checked) => setModel(checked ? 'claude' : 'gpt')}
-                              />
-                              <span className={`text-xs sm:text-sm font-medium ${model === 'claude' ? 'text-primary' : 'text-muted-foreground'}`}>
-                                Claude
-                              </span>
+                          <div className="flex flex-col gap-4">
+                            {/* Welcome message */}
+                            <div className="text-center text-muted-foreground py-4">
+                              <Bot className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                              <p className="text-lg font-medium mb-2">Welcome to AI 4 PM Service</p>
+                              <p className="text-sm">Your NHS Practice Management AI Assistant</p>
+                              <p className="text-xs mt-2">Ask me about NHS policies, compliance, workflows, or upload documents for analysis.</p>
                             </div>
                             
-                            {/* Chat size controls */}
-                            <div className="flex items-center gap-1 border rounded-lg p-1">
-                              <Button
-                                variant={chatBoxSize === 'large' ? 'secondary' : 'ghost'}
-                                size="sm"
-                                onClick={() => setChatBoxSize('large')}
-                                className="h-8 w-8 p-0"
-                                title="Large window"
-                              >
-                                <div className="w-4 h-4 bg-current rounded-sm"></div>
-                              </Button>
-                              <Button
-                                variant={chatBoxSize === 'extra-large' ? 'secondary' : 'ghost'}
-                                size="sm"
-                                onClick={() => setChatBoxSize('extra-large')}
-                                className="h-8 w-8 p-0"
-                                title="Extra large window"
-                              >
-                                <div className="w-5 h-7 bg-current rounded-sm"></div>
-                              </Button>
+                            {/* Controls */}
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                              <div className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-1 w-fit">
+                                <span className={`text-xs sm:text-sm font-medium ${model === 'gpt' ? 'text-primary' : 'text-muted-foreground'}`}>
+                                  GPT-4
+                                </span>
+                                <Switch
+                                  checked={model === 'claude'}
+                                  onCheckedChange={(checked) => setModel(checked ? 'claude' : 'gpt')}
+                                />
+                                <span className={`text-xs sm:text-sm font-medium ${model === 'claude' ? 'text-primary' : 'text-muted-foreground'}`}>
+                                  Claude
+                                </span>
+                              </div>
+                              
+                              {/* Chat size controls */}
+                              <div className="flex items-center gap-1 border rounded-lg p-1">
+                                <Button
+                                  variant={chatBoxSize === 'large' ? 'secondary' : 'ghost'}
+                                  size="sm"
+                                  onClick={() => setChatBoxSize('large')}
+                                  className="h-8 w-8 p-0"
+                                  title="Large window"
+                                >
+                                  <div className="w-4 h-4 bg-current rounded-sm"></div>
+                                </Button>
+                                <Button
+                                  variant={chatBoxSize === 'extra-large' ? 'secondary' : 'ghost'}
+                                  size="sm"
+                                  onClick={() => setChatBoxSize('extra-large')}
+                                  className="h-8 w-8 p-0"
+                                  title="Extra large window"
+                                >
+                                  <div className="w-5 h-7 bg-current rounded-sm"></div>
+                                </Button>
+                              </div>
                             </div>
                           </div>
                         </CollapsibleContent>
@@ -1333,15 +1344,14 @@ Always provide practical, actionable advice that follows NHS guidelines and best
               
               <CardContent className="flex flex-col h-full p-0">
                 {/* Messages */}
-                <ScrollArea className="flex-1 p-4">
-                  {messages.length === 0 ? (
-                    <div className="text-center text-muted-foreground py-8">
-                      <Bot className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p className="text-lg font-medium mb-2">Welcome to AI 4 PM Service</p>
-                      <p className="text-sm">Your NHS Practice Management AI Assistant</p>
-                      <p className="text-xs mt-2">Ask me about NHS policies, compliance, workflows, or upload documents for analysis.</p>
-                    </div>
-                  ) : (
+                 <ScrollArea className="flex-1 p-4">
+                   {messages.length === 0 ? (
+                     !isModelSelectorCollapsed ? null : (
+                       <div className="text-center text-muted-foreground py-8">
+                         <p className="text-sm">Click the dropdown above to get started</p>
+                       </div>
+                     )
+                   ) : (
                     <div className="space-y-6">
                       {messages.map((message) => (
                         <div key={message.id}>
