@@ -411,6 +411,165 @@ function checkPermissionWithAudit(
 
                 <Separator />
 
+                {/* Role-Based Data Integrity Examples */}
+                <div>
+                  <Button
+                    variant="ghost"
+                    onClick={() => toggleSection("roleExamples")}
+                    className="flex items-center gap-2 p-0 h-auto font-semibold"
+                  >
+                    {expandedSections.roleExamples ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                    Role-Based Data Integrity Examples
+                  </Button>
+                  {expandedSections.roleExamples && (
+                    <div className="mt-3 space-y-4">
+                      <div className="p-4 bg-muted/30 rounded-lg">
+                        <h5 className="font-medium mb-2">Practice Manager Access Control</h5>
+                        <p className="text-sm text-muted-foreground mb-3">
+                          Practice managers can only access data from their specific practice, ensuring complete data isolation between practices.
+                        </p>
+                        <pre className="text-sm overflow-x-auto mb-3 bg-background p-3 rounded border">
+{`-- RLS Policy Example: Practice Manager can only see their practice complaints
+CREATE POLICY "Practice managers can view their practice complaints"
+ON public.complaints FOR SELECT 
+USING (
+  practice_id = get_practice_manager_practice_id(auth.uid())
+  AND has_role(auth.uid(), 'practice_manager')
+);
+
+-- Example Query Result:
+-- Practice Manager at "Greenfield Surgery" logs in
+-- They can ONLY see complaints where practice_id = '123e4567-...'
+-- They CANNOT see complaints from "Riverside Medical Centre" or any other practice`}
+                        </pre>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <h6 className="font-medium mb-1 text-primary">✅ Accessible Data</h6>
+                            <ul className="space-y-1 text-xs">
+                              <li>• Complaints from their practice only</li>
+                              <li>• Staff assignments within their practice</li>
+                              <li>• Meeting records from their practice</li>
+                              <li>• User profiles within their practice</li>
+                            </ul>
+                          </div>
+                          <div>
+                            <h6 className="font-medium mb-1 text-destructive">❌ Restricted Data</h6>
+                            <ul className="space-y-1 text-xs">
+                              <li>• Other practices' complaint data</li>
+                              <li>• System-wide user management</li>
+                              <li>• Cross-practice analytics</li>
+                              <li>• Global security settings</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="p-4 bg-secondary/20 rounded-lg">
+                        <h5 className="font-medium mb-2">PCN Manager Multi-Practice Access</h5>
+                        <p className="text-sm text-muted-foreground mb-3">
+                          PCN managers can access data from multiple practices within their assigned Primary Care Network, but still cannot see data outside their network.
+                        </p>
+                        <pre className="text-sm overflow-x-auto mb-3 bg-background p-3 rounded border">
+{`-- RLS Policy: PCN Manager can see data from assigned practices only
+CREATE POLICY "PCN managers can view their network practices"
+ON public.complaints FOR SELECT 
+USING (
+  practice_id = ANY(get_pcn_manager_practice_ids(auth.uid()))
+  AND has_role(auth.uid(), 'pcn_manager')
+);
+
+-- Example: PCN Manager for "North London Network"
+-- Assigned practices: ['practice_1', 'practice_2', 'practice_3']
+-- Can see data from all 3 practices
+-- Cannot see data from practices in "South London Network"`}
+                        </pre>
+                      </div>
+
+                      <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
+                        <h5 className="font-medium mb-2 text-primary">Clinical Staff Data Protection</h5>
+                        <p className="text-sm text-muted-foreground mb-3">
+                          Clinical staff (GPs, nurses) have read-only access to patient-related data within their practice, with full audit trails for all access.
+                        </p>
+                        <pre className="text-sm overflow-x-auto mb-3 bg-background p-3 rounded border">
+{`-- Clinical staff can view patient consultations but not administrative data
+CREATE POLICY "Clinical staff can view patient data in their practice"
+ON public.consultations FOR SELECT 
+USING (
+  practice_id = get_user_practice_id(auth.uid())
+  AND (has_role(auth.uid(), 'gp') OR has_role(auth.uid(), 'clinical_staff'))
+);
+
+-- Automatic audit logging for every access
+CREATE TRIGGER log_patient_data_access
+  AFTER SELECT ON public.consultations
+  FOR EACH ROW EXECUTE FUNCTION log_data_access();`}
+                        </pre>
+                        <div className="text-sm">
+                          <h6 className="font-medium mb-1">Access Restrictions</h6>
+                          <ul className="space-y-1 text-xs">
+                            <li>• Can view: Patient consultations, medical records within their practice</li>
+                            <li>• Cannot access: Financial data, complaint management, user administration</li>
+                            <li>• All access logged with timestamp, user ID, and accessed records</li>
+                          </ul>
+                        </div>
+                      </div>
+
+                      <div className="p-4 bg-accent/20 rounded-lg">
+                        <h5 className="font-medium mb-2">Admin Assistant Limited Access</h5>
+                        <p className="text-sm text-muted-foreground mb-3">
+                          Admin assistants have access to administrative functions but no access to clinical data or sensitive patient information.
+                        </p>
+                        <pre className="text-sm overflow-x-auto mb-3 bg-background p-3 rounded border">
+{`-- Admin assistants can manage appointments but not view medical records
+CREATE POLICY "Admin assistants schedule access only"
+ON public.appointments FOR ALL 
+USING (
+  practice_id = get_user_practice_id(auth.uid())
+  AND has_role(auth.uid(), 'admin_assistant')
+);
+
+-- They CANNOT access clinical notes table
+CREATE POLICY "No clinical data access for admin assistants"
+ON public.clinical_notes FOR ALL 
+USING (
+  NOT has_role(auth.uid(), 'admin_assistant')
+);`}
+                        </pre>
+                      </div>
+
+                      <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
+                        <h5 className="font-medium mb-2 text-orange-800">Data Breach Prevention Examples</h5>
+                        <div className="space-y-3 text-sm">
+                          <div>
+                            <h6 className="font-medium text-orange-700">Scenario 1: Unauthorized Cross-Practice Access</h6>
+                            <p className="text-xs text-orange-600 mb-2">
+                              A practice manager tries to access another practice's complaint data by modifying URL parameters.
+                            </p>
+                            <pre className="text-xs bg-white p-2 rounded border">
+{`Result: Database query returns empty result set
+Audit Log: "UNAUTHORIZED_ACCESS_ATTEMPT" logged
+System Response: No data exposure, access denied at database level`}
+                            </pre>
+                          </div>
+                          <div>
+                            <h6 className="font-medium text-orange-700">Scenario 2: Role Escalation Attempt</h6>
+                            <p className="text-xs text-orange-600 mb-2">
+                              A clinical staff member attempts to access user management functions.
+                            </p>
+                            <pre className="text-xs bg-white p-2 rounded border">
+{`Result: 403 Forbidden - Insufficient permissions
+Audit Log: Role mismatch detected and logged
+System Response: Action blocked, security team notified`}
+                            </pre>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <Separator />
+
                 {/* Database Security Section - Enhanced */}
                 <div>
                   <Button
