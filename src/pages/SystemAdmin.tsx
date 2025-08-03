@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
@@ -31,7 +32,9 @@ import {
   Clock,
   Activity,
   AlertTriangle,
-  CheckCircle
+  CheckCircle,
+  ExternalLink,
+  Eye
 } from 'lucide-react';
 
 interface User {
@@ -187,6 +190,22 @@ const SystemAdmin = () => {
     edgeFunctionConnections: 15
   });
 
+  // Supplier monitoring state
+  const [supplierIncidents, setSupplierIncidents] = useState([]);
+  const [isSupplierDialogOpen, setIsSupplierDialogOpen] = useState(false);
+  const [supplierDialogMode, setSupplierDialogMode] = useState<'add' | 'edit'>('add');
+  const [selectedIncident, setSelectedIncident] = useState(null);
+  const [supplierForm, setSupplierForm] = useState({
+    supplier_name: '',
+    system_component: '',
+    incident_type: 'yellow_card',
+    severity: 'medium',
+    description: '',
+    impact_assessment: '',
+    immediate_actions_taken: '',
+    practice_id: ''
+  });
+
   const connectionLimits = {
     openai: { current: 12, max: 200, recommended: 100, cost_per_hour: 0.50 },
     deepgram: { current: 0, max: 100, recommended: 50, cost_per_hour: 2.40 }, // Updated to 0
@@ -232,6 +251,7 @@ const SystemAdmin = () => {
       fetchPCNs();
       fetchNeighbourhoods();
       fetchDashboardStats();
+      fetchSupplierIncidents();
     }
   }, [isAdmin]);
 
@@ -372,6 +392,65 @@ const SystemAdmin = () => {
       });
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);
+    }
+  };
+
+  const fetchSupplierIncidents = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('supplier_incidents')
+        .select(`
+          *,
+          profiles!reported_by(full_name),
+          gp_practices!practice_id(name)
+        `)
+        .order('reported_date', { ascending: false });
+
+      if (error) throw error;
+      setSupplierIncidents(data || []);
+    } catch (error) {
+      console.error('Error fetching supplier incidents:', error);
+      toast.error("Failed to fetch supplier incidents");
+    }
+  };
+
+  const handleAddSupplierIncident = async () => {
+    try {
+      setLoading(true);
+      const { error } = await supabase
+        .from('supplier_incidents')
+        .insert({
+          supplier_name: supplierForm.supplier_name,
+          system_component: supplierForm.system_component,
+          incident_type: supplierForm.incident_type,
+          severity: supplierForm.severity,
+          description: supplierForm.description,
+          impact_assessment: supplierForm.impact_assessment,
+          immediate_actions_taken: supplierForm.immediate_actions_taken,
+          reported_by: user?.id,
+          practice_id: supplierForm.practice_id === 'none' ? null : supplierForm.practice_id
+        } as any);
+
+      if (error) throw error;
+      
+      toast.success("Supplier incident reported successfully");
+      setIsSupplierDialogOpen(false);
+      setSupplierForm({
+        supplier_name: '',
+        system_component: '',
+        incident_type: 'yellow_card',
+        severity: 'medium',
+        description: '',
+        impact_assessment: '',
+        immediate_actions_taken: '',
+        practice_id: ''
+      });
+      fetchSupplierIncidents();
+    } catch (error) {
+      console.error('Error adding supplier incident:', error);
+      toast.error("Failed to report supplier incident");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -1620,6 +1699,141 @@ const SystemAdmin = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Supplier Monitoring Section */}
+            <Card className="lg:col-span-2">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Shield className="h-5 w-5" />
+                      DCB0160/DCB0129 Supplier Monitoring
+                    </CardTitle>
+                    <CardDescription>
+                      Yellow card issues and regulatory compliance tracking
+                    </CardDescription>
+                  </div>
+                  <Button
+                    onClick={() => {
+                      setSupplierDialogMode('add');
+                      setIsSupplierDialogOpen(true);
+                    }}
+                    size="sm"
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Report Incident
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {/* Summary Stats */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="p-3 bg-muted rounded-lg">
+                      <div className="text-sm text-muted-foreground">Total Incidents</div>
+                      <div className="text-2xl font-bold">{supplierIncidents.length}</div>
+                    </div>
+                    <div className="p-3 bg-muted rounded-lg">
+                      <div className="text-sm text-muted-foreground">Open</div>
+                      <div className="text-2xl font-bold text-warning">
+                        {supplierIncidents.filter((i: any) => ['reported', 'investigating', 'action_required'].includes(i.status)).length}
+                      </div>
+                    </div>
+                    <div className="p-3 bg-muted rounded-lg">
+                      <div className="text-sm text-muted-foreground">Critical</div>
+                      <div className="text-2xl font-bold text-destructive">
+                        {supplierIncidents.filter((i: any) => i.severity === 'critical').length}
+                      </div>
+                    </div>
+                    <div className="p-3 bg-muted rounded-lg">
+                      <div className="text-sm text-muted-foreground">DCB Compliant</div>
+                      <div className="text-2xl font-bold text-success">
+                        {supplierIncidents.filter((i: any) => i.dcb0160_compliant && i.dcb0129_compliant).length}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Recent Incidents Table */}
+                  <div className="border rounded-lg">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Reference</TableHead>
+                          <TableHead>Supplier</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead>Severity</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Reported</TableHead>
+                          <TableHead>DCB Compliance</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {supplierIncidents.slice(0, 10).map((incident: any) => (
+                          <TableRow key={incident.id}>
+                            <TableCell className="font-mono text-sm">
+                              {incident.incident_reference}
+                            </TableCell>
+                            <TableCell>{incident.supplier_name}</TableCell>
+                            <TableCell>
+                              <Badge variant={incident.incident_type === 'yellow_card' ? 'destructive' : 'secondary'}>
+                                {incident.incident_type.replace('_', ' ')}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={
+                                incident.severity === 'critical' ? 'destructive' :
+                                incident.severity === 'high' ? 'destructive' :
+                                incident.severity === 'medium' ? 'secondary' : 'outline'
+                              }>
+                                {incident.severity}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={
+                                incident.status === 'closed' ? 'outline' :
+                                incident.status === 'monitoring' ? 'secondary' : 'default'
+                              }>
+                                {incident.status.replace('_', ' ')}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {new Date(incident.reported_date).toLocaleDateString()}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-1">
+                                <Badge variant={incident.dcb0160_compliant ? 'outline' : 'destructive'} className="text-xs">
+                                  DCB0160
+                                </Badge>
+                                <Badge variant={incident.dcb0129_compliant ? 'outline' : 'destructive'} className="text-xs">
+                                  DCB0129
+                                </Badge>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-1">
+                                <Button variant="ghost" size="sm">
+                                  <Eye className="h-3 w-3" />
+                                </Button>
+                                <Button variant="ghost" size="sm">
+                                  <Edit className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                    
+                    {supplierIncidents.length === 0 && (
+                      <div className="p-8 text-center text-muted-foreground">
+                        No supplier incidents reported yet
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
 
@@ -2462,6 +2676,133 @@ const SystemAdmin = () => {
             </Button>
             <Button onClick={assignUserToPractice} disabled={loading}>
               {loading ? 'Assigning...' : 'Assign User'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Supplier Incident Dialog */}
+      <Dialog open={isSupplierDialogOpen} onOpenChange={setIsSupplierDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {supplierDialogMode === 'add' ? 'Report Supplier Incident' : 'Edit Supplier Incident'}
+            </DialogTitle>
+            <DialogDescription>
+              Report yellow card issues, adverse events, or system failures for DCB0160/DCB0129 compliance
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="supplier-name">Supplier Name</Label>
+                <Input
+                  id="supplier-name"
+                  value={supplierForm.supplier_name}
+                  onChange={(e) => setSupplierForm(prev => ({ ...prev, supplier_name: e.target.value }))}
+                  placeholder="e.g., EMIS, TPP, Docman"
+                />
+              </div>
+              <div>
+                <Label htmlFor="system-component">System Component</Label>
+                <Input
+                  id="system-component"
+                  value={supplierForm.system_component}
+                  onChange={(e) => setSupplierForm(prev => ({ ...prev, system_component: e.target.value }))}
+                  placeholder="e.g., SystmOne, EMIS Web, Document Management"
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="incident-type">Incident Type</Label>
+                <Select value={supplierForm.incident_type} onValueChange={(value) => setSupplierForm(prev => ({ ...prev, incident_type: value }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select incident type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="yellow_card">Yellow Card</SelectItem>
+                    <SelectItem value="adverse_event">Adverse Event</SelectItem>
+                    <SelectItem value="system_failure">System Failure</SelectItem>
+                    <SelectItem value="data_breach">Data Breach</SelectItem>
+                    <SelectItem value="usability_issue">Usability Issue</SelectItem>
+                    <SelectItem value="performance_issue">Performance Issue</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="severity">Severity</Label>
+                <Select value={supplierForm.severity} onValueChange={(value) => setSupplierForm(prev => ({ ...prev, severity: value }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select severity" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="critical">Critical</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="low">Low</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="practice-select">Practice</Label>
+              <Select value={supplierForm.practice_id} onValueChange={(value) => setSupplierForm(prev => ({ ...prev, practice_id: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select practice" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">All Practices</SelectItem>
+                  {practices.map((practice) => (
+                    <SelectItem key={practice.id} value={practice.id}>
+                      {practice.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="description">Incident Description</Label>
+              <Textarea
+                id="description"
+                className="min-h-[100px] resize-none"
+                value={supplierForm.description}
+                onChange={(e) => setSupplierForm(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Detailed description of the incident, including when it occurred, who was affected, and what happened..."
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="impact-assessment">Impact Assessment</Label>
+              <Textarea
+                id="impact-assessment"
+                className="min-h-[80px] resize-none"
+                value={supplierForm.impact_assessment}
+                onChange={(e) => setSupplierForm(prev => ({ ...prev, impact_assessment: e.target.value }))}
+                placeholder="Assessment of the impact on patient safety, service delivery, or data integrity..."
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="immediate-actions">Immediate Actions Taken</Label>
+              <Textarea
+                id="immediate-actions"
+                className="min-h-[80px] resize-none"
+                value={supplierForm.immediate_actions_taken}
+                onChange={(e) => setSupplierForm(prev => ({ ...prev, immediate_actions_taken: e.target.value }))}
+                placeholder="What immediate actions were taken to mitigate the issue..."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsSupplierDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddSupplierIncident} disabled={loading}>
+              {loading ? 'Reporting...' : 'Report Incident'}
             </Button>
           </DialogFooter>
         </DialogContent>

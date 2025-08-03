@@ -2728,6 +2728,99 @@ export type Database = {
         }
         Relationships: []
       }
+      supplier_incidents: {
+        Row: {
+          actual_completion_date: string | null
+          closed_at: string | null
+          closed_by: string | null
+          corrective_actions: string | null
+          created_at: string
+          dcb0129_compliant: boolean | null
+          dcb0160_compliant: boolean | null
+          description: string
+          id: string
+          immediate_actions_taken: string | null
+          impact_assessment: string | null
+          incident_reference: string
+          incident_type: string
+          lessons_learned: string | null
+          practice_id: string | null
+          preventive_actions: string | null
+          regulatory_notification_date: string | null
+          regulatory_notification_required: boolean | null
+          regulatory_notification_sent: boolean | null
+          reported_by: string
+          reported_date: string
+          root_cause_analysis: string | null
+          severity: string
+          status: string
+          supplier_name: string
+          system_component: string
+          target_completion_date: string | null
+          updated_at: string
+        }
+        Insert: {
+          actual_completion_date?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          corrective_actions?: string | null
+          created_at?: string
+          dcb0129_compliant?: boolean | null
+          dcb0160_compliant?: boolean | null
+          description: string
+          id?: string
+          immediate_actions_taken?: string | null
+          impact_assessment?: string | null
+          incident_reference: string
+          incident_type: string
+          lessons_learned?: string | null
+          practice_id?: string | null
+          preventive_actions?: string | null
+          regulatory_notification_date?: string | null
+          regulatory_notification_required?: boolean | null
+          regulatory_notification_sent?: boolean | null
+          reported_by: string
+          reported_date?: string
+          root_cause_analysis?: string | null
+          severity?: string
+          status?: string
+          supplier_name: string
+          system_component: string
+          target_completion_date?: string | null
+          updated_at?: string
+        }
+        Update: {
+          actual_completion_date?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
+          corrective_actions?: string | null
+          created_at?: string
+          dcb0129_compliant?: boolean | null
+          dcb0160_compliant?: boolean | null
+          description?: string
+          id?: string
+          immediate_actions_taken?: string | null
+          impact_assessment?: string | null
+          incident_reference?: string
+          incident_type?: string
+          lessons_learned?: string | null
+          practice_id?: string | null
+          preventive_actions?: string | null
+          regulatory_notification_date?: string | null
+          regulatory_notification_required?: boolean | null
+          regulatory_notification_sent?: boolean | null
+          reported_by?: string
+          reported_date?: string
+          root_cause_analysis?: string | null
+          severity?: string
+          status?: string
+          supplier_name?: string
+          system_component?: string
+          target_completion_date?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       system_audit_log: {
         Row: {
           id: string
@@ -2922,6 +3015,10 @@ export type Database = {
         Returns: string
       }
       generate_complaint_reference: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      generate_incident_reference: {
         Args: Record<PropertyKey, never>
         Returns: string
       }
