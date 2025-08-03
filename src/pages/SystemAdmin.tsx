@@ -817,39 +817,50 @@ const SystemAdmin = () => {
         </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-8 mb-6">
-          <TabsTrigger value="dashboard" className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4" />
-            Dashboard
-          </TabsTrigger>
-          <TabsTrigger value="users" className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            Users
-          </TabsTrigger>
-          <TabsTrigger value="practices" className="flex items-center gap-2">
-            <Building className="h-4 w-4" />
-            Practices
-          </TabsTrigger>
-          <TabsTrigger value="pcns" className="flex items-center gap-2">
-            <Network className="h-4 w-4" />
-            PCNs
-          </TabsTrigger>
-          <TabsTrigger value="neighbourhoods" className="flex items-center gap-2">
-            <Network className="h-4 w-4" />
-            Neighbourhoods
-          </TabsTrigger>
-          <TabsTrigger value="security" className="flex items-center gap-2">
-            <Shield className="h-4 w-4" />
-            Security
-          </TabsTrigger>
-          <TabsTrigger value="audit" className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            Audit Logs
-          </TabsTrigger>
-          <TabsTrigger value="settings" className="flex items-center gap-2">
-            <Settings className="h-4 w-4" />
-            Settings
-          </TabsTrigger>
+        <TabsList className="w-full mb-6 h-auto p-1 bg-muted/50 overflow-x-auto">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-9 gap-1 w-full min-w-max">
+            <TabsTrigger value="dashboard" className="flex items-center justify-center gap-1 text-xs sm:text-sm p-2 sm:p-3 whitespace-nowrap">
+              <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Dashboard</span>
+              <span className="sm:hidden">Dash</span>
+            </TabsTrigger>
+            <TabsTrigger value="users" className="flex items-center justify-center gap-1 text-xs sm:text-sm p-2 sm:p-3 whitespace-nowrap">
+              <Users className="h-3 w-3 sm:h-4 sm:w-4" />
+              Users
+            </TabsTrigger>
+            <TabsTrigger value="practices" className="flex items-center justify-center gap-1 text-xs sm:text-sm p-2 sm:p-3 whitespace-nowrap">
+              <Building className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Practices</span>
+              <span className="sm:hidden">Practice</span>
+            </TabsTrigger>
+            <TabsTrigger value="pcns" className="flex items-center justify-center gap-1 text-xs sm:text-sm p-2 sm:p-3 whitespace-nowrap">
+              <Network className="h-3 w-3 sm:h-4 sm:w-4" />
+              PCNs
+            </TabsTrigger>
+            <TabsTrigger value="neighbourhoods" className="flex items-center justify-center gap-1 text-xs sm:text-sm p-2 sm:p-3 whitespace-nowrap">
+              <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden lg:inline">Neighbourhoods</span>
+              <span className="lg:hidden">Areas</span>
+            </TabsTrigger>
+            <TabsTrigger value="monitoring" className="flex items-center justify-center gap-1 text-xs sm:text-sm p-2 sm:p-3 whitespace-nowrap">
+              <Activity className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Monitoring</span>
+              <span className="sm:hidden">Monitor</span>
+            </TabsTrigger>
+            <TabsTrigger value="security" className="flex items-center justify-center gap-1 text-xs sm:text-sm p-2 sm:p-3 whitespace-nowrap">
+              <Shield className="h-3 w-3 sm:h-4 sm:w-4" />
+              Security
+            </TabsTrigger>
+            <TabsTrigger value="audit" className="flex items-center justify-center gap-1 text-xs sm:text-sm p-2 sm:p-3 whitespace-nowrap">
+              <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Audit Logs</span>
+              <span className="sm:hidden">Audit</span>
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="flex items-center justify-center gap-1 text-xs sm:text-sm p-2 sm:p-3 whitespace-nowrap">
+              <Settings className="h-3 w-3 sm:h-4 sm:w-4" />
+              Settings
+            </TabsTrigger>
+          </div>
         </TabsList>
 
         <TabsContent value="dashboard" className="space-y-6">
