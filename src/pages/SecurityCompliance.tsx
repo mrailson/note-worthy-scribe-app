@@ -367,6 +367,10 @@ function hasModuleAccess(user_id: uuid, module: app_module): boolean
 function isSystemAdmin(user_id: uuid): boolean
 function isPracticeManager(user_id: uuid, practice_id: uuid): boolean
 function isPCNManager(user_id: uuid): boolean
+function isGP(user_id: uuid): boolean
+function isClinicalStaff(user_id: uuid): boolean
+function isAdminAssistant(user_id: uuid): boolean
+function isPracticeFinanceManager(user_id: uuid): boolean
 function canAccessPatientData(user_id: uuid, patient_id: uuid): boolean
 
 // Dynamic permission checking with audit trail
