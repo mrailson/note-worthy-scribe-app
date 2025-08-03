@@ -370,10 +370,20 @@ FOR EACH ROW EXECUTE FUNCTION audit_complaint_changes();`}
                 <CardTitle>MHRA Medical Device Compliance</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertTriangle className="h-4 w-4 text-amber-600" />
+                    <h4 className="font-semibold text-amber-800">Application Status</h4>
+                  </div>
+                  <p className="text-sm text-amber-700">
+                    <strong>MHRA Class 1 Medical Device Registration:</strong> Application submitted and approval expected within the coming weeks. 
+                    GP Scribe will remain in controlled beta testing and will not be launched for general use without MHRA Class 1 approval.
+                  </p>
+                </div>
                 <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
-                  <h4 className="font-semibold mb-2">Classification: Class 1 Medical Device</h4>
+                  <h4 className="font-semibold mb-2">Target Classification: Class 1 Medical Device</h4>
                   <p className="text-sm text-muted-foreground">
-                    NoteWell AI is classified as a Class 1 Software as a Medical Device (SaMD) under MHRA regulations.
+                    NoteWell AI GP Scribe is being classified as a Class 1 Software as a Medical Device (SaMD) under MHRA regulations.
                   </p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
