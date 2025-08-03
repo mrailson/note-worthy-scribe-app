@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Mail, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ForgotPassword } from "./ForgotPassword";
+import { ServiceOverview } from "./ServiceOverview";
 
 export const LoginForm = () => {
   const [email, setEmail] = useState("");
@@ -56,95 +57,105 @@ export const LoginForm = () => {
 
 
   return (
-    <div className="min-h-[500px] flex items-center justify-center">
-      <Card className="w-full max-w-md shadow-strong">
-        <CardHeader className="text-center">
-          <CardTitle className="flex items-center justify-center gap-2 text-primary">
-            <Mail className="h-5 w-5" />
-            NHS Staff Access
-          </CardTitle>
-        </CardHeader>
-        
-        <CardContent>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="signin-email">Email Address</Label>
-              <Input
-                id="signin-email"
-                type="email"
-                placeholder="your.name@nhs.net"
-                value={email}
-                onChange={handleEmailChange}
-                className={`transition-colors ${
-                  email && !isValid 
-                    ? 'border-destructive focus:border-destructive' 
-                    : email && isValid 
-                    ? 'border-success focus:border-success'
-                    : ''
-                }`}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="signin-password">Password</Label>
-              <div className="relative">
-                <Input
-                  id="signin-password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Enter password"
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    // Clear error when user starts typing
-                    if (error) setError(null);
-                  }}
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-            </div>
-
-            {/* Error Message Display */}
-            {error && (
-              <div className="bg-destructive/10 border border-destructive/20 rounded-md p-3">
-                <p className="text-sm text-destructive">{error}</p>
-              </div>
-            )}
-
-            <Button 
-              onClick={handleLogin}
-              disabled={!isValid || !password || loading}
-              className="w-full bg-gradient-primary hover:bg-primary-hover shadow-subtle disabled:opacity-50"
-            >
-              {loading ? "Signing In..." : "Sign In"}
-            </Button>
-
-            <div className="text-center">
-              <Button
-                variant="link"
-                size="sm"
-                onClick={() => setShowForgotPassword(true)}
-                className="text-primary hover:text-primary-hover text-sm"
-              >
-                Forgot your password?
-              </Button>
-            </div>
+    <div className="min-h-screen bg-gradient-subtle">
+      <div className="container mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+          {/* Service Overview - Takes up 2/3 of the screen on large devices */}
+          <div className="lg:col-span-2 order-2 lg:order-1">
+            <ServiceOverview />
           </div>
+          
+          {/* Login Form - Takes up 1/3 of the screen on large devices */}
+          <div className="order-1 lg:order-2 lg:sticky lg:top-8">
+            <Card className="w-full shadow-strong">
+              <CardHeader className="text-center">
+                <CardTitle className="flex items-center justify-center gap-2 text-primary">
+                  <Mail className="h-5 w-5" />
+                  NHS Staff Access
+                </CardTitle>
+              </CardHeader>
+              
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="signin-email">Email Address</Label>
+                    <Input
+                      id="signin-email"
+                      type="email"
+                      placeholder="your.name@nhs.net"
+                      value={email}
+                      onChange={handleEmailChange}
+                      className={`transition-colors ${
+                        email && !isValid 
+                          ? 'border-destructive focus:border-destructive' 
+                          : email && isValid 
+                          ? 'border-success focus:border-success'
+                          : ''
+                      }`}
+                    />
+                  </div>
 
+                  <div className="space-y-2">
+                    <Label htmlFor="signin-password">Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="signin-password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Enter password"
+                        value={password}
+                        onChange={(e) => {
+                          setPassword(e.target.value);
+                          // Clear error when user starts typing
+                          if (error) setError(null);
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
 
-        </CardContent>
-      </Card>
+                  {/* Error Message Display */}
+                  {error && (
+                    <div className="bg-destructive/10 border border-destructive/20 rounded-md p-3">
+                      <p className="text-sm text-destructive">{error}</p>
+                    </div>
+                  )}
+
+                  <Button 
+                    onClick={handleLogin}
+                    disabled={!isValid || !password || loading}
+                    className="w-full bg-gradient-primary hover:bg-primary-hover shadow-subtle disabled:opacity-50"
+                  >
+                    {loading ? "Signing In..." : "Sign In"}
+                  </Button>
+
+                  <div className="text-center">
+                    <Button
+                      variant="link"
+                      size="sm"
+                      onClick={() => setShowForgotPassword(true)}
+                      className="text-primary hover:text-primary-hover text-sm"
+                    >
+                      Forgot your password?
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
