@@ -1064,6 +1064,10 @@ const SystemAdmin = () => {
                     <AlertTriangle className="h-5 w-5" />
                     Supplier Incidents
                   </CardTitle>
+                  <Button size="sm" className="h-8">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Incident
+                  </Button>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
@@ -1077,6 +1081,11 @@ const SystemAdmin = () => {
                       </div>
                     ))}
                   </div>
+                  {supplierIncidents.length > 3 && (
+                    <Button variant="outline" size="sm" className="w-full mt-3">
+                      View All Incidents
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             </div>
