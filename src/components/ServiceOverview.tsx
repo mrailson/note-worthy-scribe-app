@@ -208,8 +208,13 @@ export const ServiceOverview = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-center text-muted-foreground">
-            Revolutionary voice-enabled AI assistant designed specifically for Practice Managers and Clinical Staff to streamline daily operations through natural conversation.
+            It's like having a highly knowledgeable colleague available 24/7 who always gives excellent advice and follows NHS best practice guidelines. You can feel completely reassured asking anything you need!
           </p>
+          <div className="mt-6 p-4 bg-primary/5 rounded-lg border border-primary/20 text-center">
+            <p className="text-sm font-medium text-primary">
+              💬 "Just like talking to your most experienced colleague - but they're always available and never too busy to help!"
+            </p>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
             <div className="space-y-4">
               <h4 className="font-semibold text-center">For Practice Managers</h4>
