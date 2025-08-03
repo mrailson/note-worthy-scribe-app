@@ -367,6 +367,81 @@ FOR EACH ROW EXECUTE FUNCTION audit_complaint_changes();`}
 
             <Card>
               <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="h-5 w-5 text-primary" />
+                  UK Hosting & Data Residency
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
+                  <h4 className="font-semibold mb-3 text-foreground">NHS Digital Requirements</h4>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm">
+                      <CheckCircle className="h-3 w-3 text-success shrink-0" />
+                      <span><strong>UK-Only Hosting:</strong> All infrastructure, databases, and backups hosted exclusively on UK servers</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <CheckCircle className="h-3 w-3 text-success shrink-0" />
+                      <span><strong>Data Sovereignty:</strong> Patient and practice data never leaves UK jurisdiction</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <CheckCircle className="h-3 w-3 text-success shrink-0" />
+                      <span><strong>NHS Approved Providers:</strong> Infrastructure hosted with NHS Digital approved cloud providers</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="p-4 bg-secondary/20 rounded-lg border border-secondary/40">
+                  <h4 className="font-semibold mb-3 text-foreground">GDPR & UK Data Protection</h4>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm">
+                      <CheckCircle className="h-3 w-3 text-success shrink-0" />
+                      <span><strong>UK GDPR Compliance:</strong> Full adherence to post-Brexit UK GDPR requirements</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <CheckCircle className="h-3 w-3 text-success shrink-0" />
+                      <span><strong>Data Protection Act 2018:</strong> Complete compliance with UK data protection legislation</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <CheckCircle className="h-3 w-3 text-success shrink-0" />
+                      <span><strong>Adequate Protection:</strong> No international data transfers requiring additional safeguards</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-success/10 rounded-lg border border-success/30">
+                  <h4 className="font-semibold mb-2 text-success-foreground">Infrastructure Specifications</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <h5 className="font-medium mb-1">Primary Hosting</h5>
+                      <ul className="space-y-1 text-muted-foreground">
+                        <li>• UK-based data centers</li>
+                        <li>• ISO 27001 certified facilities</li>
+                        <li>• 24/7 UK-based monitoring</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h5 className="font-medium mb-1">Backup & Recovery</h5>
+                      <ul className="space-y-1 text-muted-foreground">
+                        <li>• UK-only backup locations</li>
+                        <li>• Geographic separation within UK</li>
+                        <li>• NHS-compliant retention policies</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <p className="text-xs text-amber-800">
+                    <strong>Verification:</strong> All hosting arrangements are verified annually and documented for NHS Digital compliance audits. 
+                    Infrastructure certificates and compliance reports are available upon request for regulatory reviews.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
                 <CardTitle>MHRA Medical Device Compliance</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
