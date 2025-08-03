@@ -1208,7 +1208,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
         </div>
       )}
       
-      <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 max-w-7xl">
+      <div className="container mx-auto px-3 py-2 sm:px-4 sm:py-3 max-w-7xl">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1 h-auto p-1">
             <TabsTrigger value="ai-service" className="flex items-center gap-1 min-h-[44px] text-xs sm:text-sm touch-manipulation">
@@ -1239,63 +1239,64 @@ Always provide practical, actionable advice that follows NHS guidelines and best
           </TabsList>
 
           {/* AI Service Tab */}
-          <TabsContent value="ai-service" className="mt-3">
+          <TabsContent value="ai-service" className="mt-1">
             <Card className={getChatBoxHeight()}>
               <CardHeader className="pb-3">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <CardTitle className="flex flex-col sm:flex-row sm:items-center gap-2">
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="h-5 w-5" />
-                      <span className="text-lg sm:text-xl">AI 4 PM Service</span>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 w-full">
+                    <CardTitle className="flex flex-col sm:flex-row sm:items-center gap-2">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="h-5 w-5" />
+                        <span className="text-lg sm:text-xl">AI 4 PM Service</span>
+                        {/* New Chat button moved here - visible on mobile */}
+                        <Button
+                          onClick={clearConversation}
+                          variant="outline"
+                          size="sm"
+                          className="min-h-[44px] px-3 touch-manipulation ml-2"
+                          title="Clear conversation and start new chat"
+                        >
+                          <Plus className="h-4 w-4 mr-1" />
+                          <span className="hidden sm:inline">New Chat</span>
+                          <span className="sm:hidden">New</span>
+                        </Button>
+                      </div>
+                      <div className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-1">
+                        <span className={`text-xs sm:text-sm font-medium ${model === 'gpt' ? 'text-primary' : 'text-muted-foreground'}`}>
+                          GPT-4
+                        </span>
+                        <Switch
+                          checked={model === 'claude'}
+                          onCheckedChange={(checked) => setModel(checked ? 'claude' : 'gpt')}
+                        />
+                        <span className={`text-xs sm:text-sm font-medium ${model === 'claude' ? 'text-primary' : 'text-muted-foreground'}`}>
+                          Claude
+                        </span>
+                      </div>
+                    </CardTitle>
+                    <div className="hidden sm:flex items-center gap-2">
+                      {/* Chat size controls - hidden on mobile */}
+                      <div className="flex items-center gap-1 border rounded-lg p-1">
+                        <Button
+                          variant={chatBoxSize === 'large' ? 'secondary' : 'ghost'}
+                          size="sm"
+                          onClick={() => setChatBoxSize('large')}
+                          className="h-8 w-8 p-0"
+                          title="Large window"
+                        >
+                          <div className="w-4 h-4 bg-current rounded-sm"></div>
+                        </Button>
+                        <Button
+                          variant={chatBoxSize === 'extra-large' ? 'secondary' : 'ghost'}
+                          size="sm"
+                          onClick={() => setChatBoxSize('extra-large')}
+                          className="h-8 w-8 p-0"
+                          title="Extra large window"
+                        >
+                          <div className="w-5 h-7 bg-current rounded-sm"></div>
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-1">
-                      <span className={`text-xs sm:text-sm font-medium ${model === 'gpt' ? 'text-primary' : 'text-muted-foreground'}`}>
-                        GPT-4
-                      </span>
-                      <Switch
-                        checked={model === 'claude'}
-                        onCheckedChange={(checked) => setModel(checked ? 'claude' : 'gpt')}
-                      />
-                      <span className={`text-xs sm:text-sm font-medium ${model === 'claude' ? 'text-primary' : 'text-muted-foreground'}`}>
-                        Claude
-                      </span>
-                    </div>
-                  </CardTitle>
-                  <div className="flex items-center gap-2">
-                    {/* Chat size controls - hidden on mobile */}
-                    <div className="hidden sm:flex items-center gap-1 border rounded-lg p-1">
-                      <Button
-                        variant={chatBoxSize === 'large' ? 'secondary' : 'ghost'}
-                        size="sm"
-                        onClick={() => setChatBoxSize('large')}
-                        className="h-8 w-8 p-0"
-                        title="Large window"
-                      >
-                        <div className="w-4 h-4 bg-current rounded-sm"></div>
-                      </Button>
-                      <Button
-                        variant={chatBoxSize === 'extra-large' ? 'secondary' : 'ghost'}
-                        size="sm"
-                        onClick={() => setChatBoxSize('extra-large')}
-                        className="h-8 w-8 p-0"
-                        title="Extra large window"
-                      >
-                        <div className="w-5 h-7 bg-current rounded-sm"></div>
-                      </Button>
-                    </div>
-                    
-                    {/* Clear chat button */}
-                    <Button
-                      onClick={clearConversation}
-                      variant="outline"
-                      size="sm"
-                      className="min-h-[44px] px-3 touch-manipulation"
-                      title="Clear conversation and start new chat"
-                    >
-                      <Plus className="h-4 w-4 mr-1" />
-                      <span className="hidden sm:inline">New Chat</span>
-                      <span className="sm:hidden">New</span>
-                    </Button>
                   </div>
                 </div>
               </CardHeader>
