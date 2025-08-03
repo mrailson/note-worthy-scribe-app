@@ -592,42 +592,6 @@ FOR EACH ROW EXECUTE FUNCTION audit_complaint_changes();`}
             </Card>
           </TabsContent>
         </Tabs>
-
-        {/* Document Information */}
-        <Card className="mt-8">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Document Control
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-              <div>
-                <h5 className="font-semibold mb-1">Document Version</h5>
-                <p className="text-muted-foreground">1.0</p>
-              </div>
-              <div>
-                <h5 className="font-semibold mb-1">Effective Date</h5>
-                <p className="text-muted-foreground">August 2025</p>
-              </div>
-              <div>
-                <h5 className="font-semibold mb-1">Next Review</h5>
-                <p className="text-muted-foreground">February 2026</p>
-              </div>
-            </div>
-            <Separator className="my-4" />
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
-                Classification: Internal Use Only
-              </p>
-              <Button variant="outline" size="sm">
-                <Download className="h-4 w-4 mr-2" />
-                Download Documentation
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
