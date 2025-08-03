@@ -12,7 +12,8 @@ import {
   BarChart3,
   Clock,
   Heart,
-  Lock
+  Lock,
+  Mic
 } from "lucide-react";
 
 export const ServiceOverview = () => {
@@ -26,8 +27,8 @@ export const ServiceOverview = () => {
     {
       icon: <MessageSquare className="h-6 w-6" />,
       title: "AI Practice Manager",
-      description: "Intelligent assistant for practice management tasks",
-      benefits: ["Administrative guidance", "Policy queries", "Workflow optimization"]
+      description: "Intelligent assistant for practice management tasks with voice interaction",
+      benefits: ["Voice-activated queries", "Administrative guidance", "Policy support", "Workflow optimization"]
     },
     {
       icon: <Users className="h-6 w-6" />,
@@ -197,11 +198,75 @@ export const ServiceOverview = () => {
         </CardContent>
       </Card>
 
+      {/* Interactive Voice Facility Section */}
+      <Card className="bg-gradient-subtle border-primary/20">
+        <CardHeader className="text-center">
+          <CardTitle className="flex items-center justify-center gap-2 text-xl">
+            <Mic className="h-5 w-5 text-primary" />
+            Interactive Voice Assistant
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-center text-muted-foreground">
+            Revolutionary voice-enabled AI assistant designed specifically for Practice Managers and Clinical Staff to streamline daily operations through natural conversation.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+            <div className="space-y-4">
+              <h4 className="font-semibold text-center">For Practice Managers</h4>
+              <ul className="space-y-2">
+                <li className="flex items-center gap-2 text-sm">
+                  <CheckCircle className="h-3 w-3 text-success shrink-0" />
+                  <span>Voice-activated practice policy queries</span>
+                </li>
+                <li className="flex items-center gap-2 text-sm">
+                  <CheckCircle className="h-3 w-3 text-success shrink-0" />
+                  <span>Staff scheduling and resource management</span>
+                </li>
+                <li className="flex items-center gap-2 text-sm">
+                  <CheckCircle className="h-3 w-3 text-success shrink-0" />
+                  <span>Compliance guidance and regulatory updates</span>
+                </li>
+                <li className="flex items-center gap-2 text-sm">
+                  <CheckCircle className="h-3 w-3 text-success shrink-0" />
+                  <span>Financial reporting and budget queries</span>
+                </li>
+              </ul>
+            </div>
+            <div className="space-y-4">
+              <h4 className="font-semibold text-center">For Clinical Staff</h4>
+              <ul className="space-y-2">
+                <li className="flex items-center gap-2 text-sm">
+                  <CheckCircle className="h-3 w-3 text-success shrink-0" />
+                  <span>Clinical protocol and guideline assistance</span>
+                </li>
+                <li className="flex items-center gap-2 text-sm">
+                  <CheckCircle className="h-3 w-3 text-success shrink-0" />
+                  <span>Drug interaction and dosage guidance</span>
+                </li>
+                <li className="flex items-center gap-2 text-sm">
+                  <CheckCircle className="h-3 w-3 text-success shrink-0" />
+                  <span>Patient care pathway recommendations</span>
+                </li>
+                <li className="flex items-center gap-2 text-sm">
+                  <CheckCircle className="h-3 w-3 text-success shrink-0" />
+                  <span>Real-time clinical decision support</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div className="mt-6 p-4 bg-primary/5 rounded-lg border border-primary/20 text-center">
+            <p className="text-sm text-muted-foreground">
+              <strong>Hands-Free Operation:</strong> Perfect for busy clinical environments where hands-free interaction is essential. Simply speak your questions and receive immediate, accurate responses.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Call to Action */}
       <div className="text-center space-y-4">
         <h3 className="text-xl font-semibold">Ready to Transform Your Practice?</h3>
         <p className="text-muted-foreground">
-          Join hundreds of Primary Care practices already using NoteWell AI to improve efficiency and patient care.
+          Experience the future of primary care administration with intelligent AI assistance designed by healthcare professionals.
         </p>
       </div>
     </div>
