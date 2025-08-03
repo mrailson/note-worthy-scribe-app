@@ -1210,26 +1210,31 @@ Always provide practical, actionable advice that follows NHS guidelines and best
       
       <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 max-w-7xl">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="ai-service" className="flex items-center gap-2">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1 h-auto p-1">
+            <TabsTrigger value="ai-service" className="flex items-center gap-1 min-h-[44px] text-xs sm:text-sm touch-manipulation">
               <MessageSquare className="h-4 w-4" />
-              AI Service
+              <span className="hidden sm:inline">AI Service</span>
+              <span className="sm:hidden">AI</span>
             </TabsTrigger>
-            <TabsTrigger value="pm-genie" className="flex items-center gap-2">
+            <TabsTrigger value="pm-genie" className="flex items-center gap-1 min-h-[44px] text-xs sm:text-sm touch-manipulation">
               <Bot className="h-4 w-4" />
-              Chat with PM Genie
+              <span className="hidden sm:inline">PM Genie</span>
+              <span className="sm:hidden">Genie</span>
             </TabsTrigger>
-            <TabsTrigger value="previous-searches" className="flex items-center gap-2">
+            <TabsTrigger value="previous-searches" className="flex items-center gap-1 min-h-[44px] text-xs sm:text-sm touch-manipulation">
               <History className="h-4 w-4" />
-              Previous Searches
+              <span className="hidden sm:inline">Previous Searches</span>
+              <span className="sm:hidden">History</span>
             </TabsTrigger>
-            <TabsTrigger value="ai-settings" className="flex items-center gap-2">
+            <TabsTrigger value="ai-settings" className="flex items-center gap-1 min-h-[44px] text-xs sm:text-sm touch-manipulation">
               <Settings className="h-4 w-4" />
-              AI Settings
+              <span className="hidden sm:inline">AI Settings</span>
+              <span className="sm:hidden">Settings</span>
             </TabsTrigger>
-            <TabsTrigger value="what-can-ai-do" className="flex items-center gap-2">
+            <TabsTrigger value="what-can-ai-do" className="flex items-center gap-1 min-h-[44px] text-xs sm:text-sm touch-manipulation">
               <HelpCircle className="h-4 w-4" />
-              What can AI do for me?
+              <span className="hidden lg:inline">What can AI do?</span>
+              <span className="lg:hidden">Help</span>
             </TabsTrigger>
           </TabsList>
 
@@ -1237,26 +1242,28 @@ Always provide practical, actionable advice that follows NHS guidelines and best
           <TabsContent value="ai-service" className="mt-3">
             <Card className={getChatBoxHeight()}>
               <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <Sparkles className="h-5 w-5" />
-                    AI 4 PM Service
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <CardTitle className="flex flex-col sm:flex-row sm:items-center gap-2">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-5 w-5" />
+                      <span className="text-lg sm:text-xl">AI 4 PM Service</span>
+                    </div>
                     <div className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-1">
-                      <span className={`text-sm font-medium ${model === 'gpt' ? 'text-primary' : 'text-muted-foreground'}`}>
+                      <span className={`text-xs sm:text-sm font-medium ${model === 'gpt' ? 'text-primary' : 'text-muted-foreground'}`}>
                         GPT-4
                       </span>
                       <Switch
                         checked={model === 'claude'}
                         onCheckedChange={(checked) => setModel(checked ? 'claude' : 'gpt')}
                       />
-                      <span className={`text-sm font-medium ${model === 'claude' ? 'text-primary' : 'text-muted-foreground'}`}>
+                      <span className={`text-xs sm:text-sm font-medium ${model === 'claude' ? 'text-primary' : 'text-muted-foreground'}`}>
                         Claude
                       </span>
                     </div>
                   </CardTitle>
                   <div className="flex items-center gap-2">
-                    {/* Chat size controls */}
-                    <div className="flex items-center gap-1 border rounded-lg p-1">
+                    {/* Chat size controls - hidden on mobile */}
+                    <div className="hidden sm:flex items-center gap-1 border rounded-lg p-1">
                       <Button
                         variant={chatBoxSize === 'large' ? 'secondary' : 'ghost'}
                         size="sm"
@@ -1282,11 +1289,12 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                       onClick={clearConversation}
                       variant="outline"
                       size="sm"
-                      className="h-8 px-3"
+                      className="min-h-[44px] px-3 touch-manipulation"
                       title="Clear conversation and start new chat"
                     >
                       <Plus className="h-4 w-4 mr-1" />
-                      New Chat
+                      <span className="hidden sm:inline">New Chat</span>
+                      <span className="sm:hidden">New</span>
                     </Button>
                   </div>
                 </div>
@@ -1328,12 +1336,12 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                               )}
                               
                               {/* Export buttons */}
-                              <div className="flex gap-2">
+                              <div className="flex flex-col sm:flex-row gap-2">
                                 <Button
                                   variant="outline"
                                   size="sm"
                                   onClick={() => generateWordDocument(message.content, 'AI Generated Document')}
-                                  className="h-8 text-xs"
+                                  className="min-h-[44px] text-xs touch-manipulation"
                                 >
                                   <FileDown className="h-3 w-3 mr-1" />
                                   Export as Word
@@ -1342,7 +1350,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                                   variant="outline"
                                   size="sm"
                                   onClick={() => generatePowerPoint(message.content, 'AI Generated Presentation')}
-                                  className="h-8 text-xs"
+                                  className="min-h-[44px] text-xs touch-manipulation"
                                 >
                                   <Presentation className="h-3 w-3 mr-1" />
                                   Create PowerPoint
@@ -1531,7 +1539,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
           {/* Previous Searches Tab */}
           <TabsContent value="previous-searches" className="mt-3">
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
+              <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <CardTitle className="flex items-center gap-2">
                   <History className="h-5 w-5" />
                   Previous Searches
@@ -1542,10 +1550,11 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                     variant="outline"
                     size="sm"
                     disabled={messages.length === 0}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 min-h-[44px] touch-manipulation"
                   >
                     <Download className="h-4 w-4" />
-                    Save Current Search
+                    <span className="hidden sm:inline">Save Current Search</span>
+                    <span className="sm:hidden">Save</span>
                   </Button>
                 </div>
               </CardHeader>
@@ -1624,42 +1633,43 @@ Always provide practical, actionable advice that follows NHS guidelines and best
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>AI Model Selection</Label>
-                    <div className="flex gap-2">
-                      <Button
-                        variant={model === 'claude' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setModel('claude')}
-                        className="flex-1"
-                      >
-                        <Bot className="h-4 w-4 mr-2" />
-                        Claude (Anthropic)
-                      </Button>
-                      <Button
-                        variant={model === 'gpt' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setModel('gpt')}
-                        className="flex-1"
-                      >
-                        <Sparkles className="h-4 w-4 mr-2" />
-                        GPT-4 (OpenAI)
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={handleNewMeeting}
-                        className="px-3"
-                        title="Start a new conversation"
-                      >
-                        <Plus className="h-4 w-4 mr-1" />
-                        New Chat
-                      </Button>
+                    <div className="space-y-2">
+                      <Label>AI Model Selection</Label>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <Button
+                          variant={model === 'claude' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setModel('claude')}
+                          className="flex-1 min-h-[44px] touch-manipulation"
+                        >
+                          <Bot className="h-4 w-4 mr-2" />
+                          Claude (Anthropic)
+                        </Button>
+                        <Button
+                          variant={model === 'gpt' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setModel('gpt')}
+                          className="flex-1 min-h-[44px] touch-manipulation"
+                        >
+                          <Sparkles className="h-4 w-4 mr-2" />
+                          GPT-4 (OpenAI)
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={handleNewMeeting}
+                          className="px-3 min-h-[44px] touch-manipulation"
+                          title="Start a new conversation"
+                        >
+                          <Plus className="h-4 w-4 mr-1" />
+                          <span className="hidden sm:inline">New Chat</span>
+                          <span className="sm:hidden">New</span>
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Choose your preferred AI model. Claude excels at detailed analysis, while GPT-4 is great for creative content.
+                      </p>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Choose your preferred AI model. Claude excels at detailed analysis, while GPT-4 is great for creative content.
-                    </p>
-                  </div>
                   
                   <Separator />
                   
@@ -1753,7 +1763,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                     combining deep knowledge of NHS policies, CQC requirements, and practice operations with cutting-edge AI capabilities.
                   </p>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
+                  <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
                     <div className="text-center p-4 bg-muted/50 rounded-lg">
                       <Bot className="h-8 w-8 mx-auto mb-2 text-primary" />
                       <h4 className="font-medium text-sm mb-1">AI-Powered Analysis</h4>
