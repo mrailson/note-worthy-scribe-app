@@ -484,7 +484,7 @@ const EnhancedAccess = () => {
                     })}
                   </div>
                 ) : (
-                  <div className="grid grid-cols-7 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-7 gap-2 sm:gap-3">
                     {Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)).map((day, index) => {
                       const dayOfWeek = index + 1; // 1=Monday, 2=Tuesday, etc.
                       const shifts = getShiftsForDay(dayOfWeek);
@@ -494,7 +494,7 @@ const EnhancedAccess = () => {
                       
                       if (isClosedDay) {
                         return (
-                          <div key={day.toISOString()} className="p-3 border border-border/50 rounded-lg bg-muted/30">
+                          <div key={day.toISOString()} className="p-2 sm:p-3 border border-border/50 rounded-lg bg-muted/30">
                             <div className="text-center">
                               <h3 className="font-medium text-muted-foreground text-sm">{format(day, "EEE")}</h3>
                               <p className="text-xs text-muted-foreground mt-1">{formatDateWithOrdinal(day)}</p>
@@ -525,7 +525,7 @@ const EnhancedAccess = () => {
                       return (
                         <div 
                           key={day.toISOString()} 
-                          className={`p-3 border rounded-lg text-center ${
+                          className={`p-2 sm:p-3 border rounded-lg ${
                             allAssigned 
                               ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20" 
                               : hasAssignments
@@ -533,12 +533,14 @@ const EnhancedAccess = () => {
                               : "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20"
                           }`}
                         >
-                          <h3 className="font-medium text-sm">{format(day, "EEE")}</h3>
-                          <p className="text-xs text-muted-foreground mb-2">{formatDateWithOrdinal(day)}</p>
+                          <div className="text-center sm:text-left">
+                            <h3 className="font-medium text-sm">{format(day, "EEE")}</h3>
+                            <p className="text-xs text-muted-foreground mb-2">{formatDateWithOrdinal(day)}</p>
+                          </div>
                           
                           <div className="space-y-1">
                             {shifts.length === 0 ? (
-                              <p className="text-xs text-muted-foreground">No shifts</p>
+                              <p className="text-xs text-muted-foreground text-center sm:text-left">No shifts</p>
                             ) : (
                               shifts.map((shift) => {
                                 const shiftAssignments = weeklyAssignments.filter(a => 
@@ -547,25 +549,29 @@ const EnhancedAccess = () => {
                                 );
                                 
                                 return (
-                                  <div key={shift.id} className="text-xs">
-                                    <div className="font-medium">{shift.start_time}-{shift.end_time}</div>
-                                    <div className="text-muted-foreground">{getLocationDisplay(shift.location)}</div>
+                                  <div key={shift.id} className="text-xs space-y-1">
+                                    <div className="font-medium text-center sm:text-left">{shift.start_time}-{shift.end_time}</div>
+                                    <div className="text-muted-foreground text-center sm:text-left truncate" title={getLocationDisplay(shift.location)}>
+                                      {getLocationDisplay(shift.location)}
+                                    </div>
                                     {shiftAssignments.length > 0 ? (
                                       <div className="space-y-1 mt-1">
                                          {shiftAssignments.map((assignment, idx) => (
-                                           <Badge key={assignment.id} variant="secondary" className="text-xs flex items-center gap-1">
+                                           <Badge key={assignment.id} variant="secondary" className="text-[10px] sm:text-xs flex items-center justify-center sm:justify-start gap-1 w-full sm:w-auto">
                                              {getRoleIcon(assignment.staff_member?.role)}
-                                             {formatStaffName(assignment.staff_member?.name || 'Assigned', assignment.staff_member?.role || '')}
+                                             <span className="truncate max-w-[100px] sm:max-w-none">
+                                               {formatStaffName(assignment.staff_member?.name || 'Assigned', assignment.staff_member?.role || '')}
+                                             </span>
                                            </Badge>
                                          ))}
                                         {shiftAssignments.length > 1 && (
-                                          <div className="text-xs text-muted-foreground">
-                                            ({shiftAssignments.length} staff assigned)
+                                          <div className="text-[10px] sm:text-xs text-muted-foreground text-center sm:text-left">
+                                            ({shiftAssignments.length} staff)
                                           </div>
                                         )}
                                       </div>
                                     ) : (
-                                      <Badge variant="destructive" className="text-xs mt-1">
+                                      <Badge variant="destructive" className="text-[10px] sm:text-xs mt-1 w-full justify-center sm:w-auto">
                                         No {shift.required_role}
                                       </Badge>
                                     )}
