@@ -386,7 +386,7 @@ FOR EACH ROW EXECUTE FUNCTION audit_complaint_changes();`}
                     </div>
                     <div className="flex items-center gap-2 text-sm">
                       <CheckCircle className="h-3 w-3 text-success shrink-0" />
-                      <span><strong>NHS Approved Providers:</strong> Infrastructure hosted with NHS Digital approved cloud providers</span>
+                      <span><strong>NHS Compliant Providers:</strong> Infrastructure hosted with NHS Digital compliant cloud providers</span>
                     </div>
                   </div>
                 </div>
