@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
+import { useToast } from '@/components/ui/use-toast';
 import { 
   Plus, 
   Search, 
@@ -123,6 +124,15 @@ const SystemAdmin = () => {
   // Security monitoring state
   const [securityEvents, setSecurityEvents] = useState<any[]>([]);
   const [supplierIncidents, setSupplierIncidents] = useState([]);
+  const [showAddIncidentModal, setShowAddIncidentModal] = useState(false);
+  const [newIncident, setNewIncident] = useState({
+    supplier_name: '',
+    system_component: '',
+    incident_type: '',
+    severity: 'medium',
+    description: '',
+    status: 'open'
+  });
 
   // Enhanced security monitoring state
   const [authenticationLogs, setAuthenticationLogs] = useState([]);
@@ -1064,7 +1074,7 @@ const SystemAdmin = () => {
                     <AlertTriangle className="h-5 w-5" />
                     Supplier Incidents
                   </CardTitle>
-                  <Button size="sm" className="h-8">
+                  <Button size="sm" className="h-8" onClick={() => setShowAddIncidentModal(true)}>
                     <Plus className="h-4 w-4 mr-2" />
                     Add Incident
                   </Button>
@@ -1092,6 +1102,122 @@ const SystemAdmin = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Add Supplier Incident Modal */}
+      <Dialog open={showAddIncidentModal} onOpenChange={setShowAddIncidentModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Report Supplier Incident</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Supplier Name</label>
+              <Input
+                value={newIncident.supplier_name}
+                onChange={(e) => setNewIncident({...newIncident, supplier_name: e.target.value})}
+                placeholder="Enter supplier name"
+              />
+            </div>
+            
+            <div>
+              <label className="text-sm font-medium">System Component</label>
+              <Input
+                value={newIncident.system_component}
+                onChange={(e) => setNewIncident({...newIncident, system_component: e.target.value})}
+                placeholder="e.g., GP Scribe, Complaints System"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Incident Type</label>
+              <Select value={newIncident.incident_type} onValueChange={(value) => setNewIncident({...newIncident, incident_type: value})}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select incident type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="service_outage">Service Outage</SelectItem>
+                  <SelectItem value="data_breach">Data Breach</SelectItem>
+                  <SelectItem value="security_incident">Security Incident</SelectItem>
+                  <SelectItem value="performance_issue">Performance Issue</SelectItem>
+                  <SelectItem value="compliance_issue">Compliance Issue</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Severity</label>
+              <Select value={newIncident.severity} onValueChange={(value) => setNewIncident({...newIncident, severity: value})}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">Low</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                  <SelectItem value="critical">Critical</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+
+            <div>
+              <label className="text-sm font-medium">Description</label>
+              <Textarea
+                value={newIncident.description}
+                onChange={(e) => setNewIncident({...newIncident, description: e.target.value})}
+                placeholder="Describe the incident..."
+                rows={3}
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddIncidentModal(false)}>
+              Cancel
+            </Button>
+            <Button onClick={async () => {
+              try {
+                const { data, error } = await supabase
+                  .from('supplier_incidents')
+                  .insert({
+                    incident_reference: '', // Auto-generated by trigger
+                    supplier_name: newIncident.supplier_name,
+                    system_component: newIncident.system_component,
+                    incident_type: newIncident.incident_type,
+                    severity: newIncident.severity,
+                    description: newIncident.description,
+                    status: newIncident.status,
+                    reported_date: new Date().toISOString().split('T')[0],
+                    reported_by: user?.id
+                  });
+
+                if (error) {
+                  console.error('Error creating incident:', error);
+                  toast.error("Failed to create incident. Please try again.");
+                } else {
+                  toast.success("Supplier incident reported successfully.");
+                  setShowAddIncidentModal(false);
+                  setNewIncident({
+                    supplier_name: '',
+                    system_component: '',
+                    incident_type: '',
+                    severity: 'medium',
+                    description: '',
+                    status: 'open'
+                  });
+                  fetchSupplierIncidents();
+                }
+              } catch (error) {
+                console.error('Error:', error);
+                toast.error("An unexpected error occurred.");
+              }
+            }}>
+              Report Incident
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
