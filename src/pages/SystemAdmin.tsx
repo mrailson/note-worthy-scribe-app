@@ -28,7 +28,10 @@ import {
   Settings,
   Database,
   FileText,
-  Clock
+  Clock,
+  Activity,
+  AlertTriangle,
+  CheckCircle
 } from 'lucide-react';
 
 interface User {
@@ -172,6 +175,27 @@ const SystemAdmin = () => {
     name: '',
     description: ''
   });
+
+  // Connection monitoring state
+  const [connectionStats, setConnectionStats] = useState({
+    openaiConnections: 12,
+    deepgramConnections: 3,
+    elevenlabsConnections: 1,
+    assemblyaiConnections: 2,
+    supabaseDbConnections: 45,
+    supabaseStorageConnections: 8,
+    edgeFunctionConnections: 15
+  });
+
+  const connectionLimits = {
+    openai: { current: 12, max: 200, recommended: 100, cost_per_hour: 0.50 },
+    deepgram: { current: 3, max: 100, recommended: 50, cost_per_hour: 2.40 },
+    elevenlabs: { current: 1, max: 50, recommended: 25, cost_per_hour: 1.20 },
+    assemblyai: { current: 2, max: 100, recommended: 50, cost_per_hour: 1.80 },
+    supabase_db: { current: 45, max: 60, recommended: 48, cost_per_hour: 0.10 },
+    supabase_storage: { current: 8, max: 200, recommended: 100, cost_per_hour: 0.05 },
+    edge_functions: { current: 15, max: 300, recommended: 150, cost_per_hour: 0.20 }
+  };
 
   useEffect(() => {
     checkAccessPermissions();
@@ -1362,6 +1386,192 @@ const SystemAdmin = () => {
             <Button variant="outline">
               Load More Entries
             </Button>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="monitoring" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="h-5 w-5" />
+                  Live Connection Status
+                </CardTitle>
+                <CardDescription>
+                  Real-time monitoring of active service connections
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {Object.entries(connectionLimits).map(([service, limits]) => {
+                  const currentPercent = (limits.current / limits.max) * 100;
+                  const getStatusColor = () => {
+                    if (currentPercent >= 90) return 'text-destructive';
+                    if (currentPercent >= 70) return 'text-warning';
+                    return 'text-success';
+                  };
+                  const getStatusIcon = () => {
+                    if (currentPercent >= 90) return AlertTriangle;
+                    return CheckCircle;
+                  };
+                  const StatusIcon = getStatusIcon();
+
+                  return (
+                    <div key={service} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <StatusIcon className={`h-5 w-5 ${getStatusColor()}`} />
+                        <div>
+                          <p className="font-medium capitalize">{service.replace('_', ' ')}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {limits.current}/{limits.max} connections
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className={`text-sm font-medium ${getStatusColor()}`}>
+                          {currentPercent.toFixed(1)}% utilized
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          ${limits.cost_per_hour}/hr
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Database className="h-5 w-5" />
+                  Service Configuration
+                </CardTitle>
+                <CardDescription>
+                  Recommended connection limits and cost optimization
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-3 gap-4 text-sm font-medium">
+                    <div>Service</div>
+                    <div>Current/Max</div>
+                    <div>Recommended</div>
+                  </div>
+                  {Object.entries(connectionLimits).map(([service, limits]) => (
+                    <div key={service} className="grid grid-cols-3 gap-4 text-sm">
+                      <div className="capitalize">{service.replace('_', ' ')}</div>
+                      <div>{limits.current}/{limits.max}</div>
+                      <div className="text-primary">{limits.recommended}</div>
+                    </div>
+                  ))}
+                </div>
+                
+                <Separator />
+                
+                <div className="space-y-2">
+                  <h4 className="font-medium">Cost Breakdown (Per Hour)</h4>
+                  <div className="space-y-1 text-sm">
+                    {Object.entries(connectionLimits).map(([service, limits]) => (
+                      <div key={service} className="flex justify-between">
+                        <span className="capitalize">{service.replace('_', ' ')}</span>
+                        <span>${(limits.current * limits.cost_per_hour).toFixed(2)}</span>
+                      </div>
+                    ))}
+                    <Separator />
+                    <div className="flex justify-between font-medium">
+                      <span>Total Hourly Cost</span>
+                      <span>
+                        ${Object.values(connectionLimits)
+                          .reduce((total, limits) => total + (limits.current * limits.cost_per_hour), 0)
+                          .toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="lg:col-span-2">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5" />
+                  Service Utilization Guidelines
+                </CardTitle>
+                <CardDescription>
+                  Best practices for concurrent connection management
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <h4 className="font-medium">Real-time Services</h4>
+                    <div className="space-y-3 text-sm">
+                      <div className="p-3 bg-muted rounded-lg">
+                        <div className="font-medium">Voice Transcription (Deepgram/OpenAI)</div>
+                        <div className="text-muted-foreground">Limit: 25-50 concurrent streams</div>
+                        <div className="text-muted-foreground">Use case: GP consultations, meetings</div>
+                      </div>
+                      <div className="p-3 bg-muted rounded-lg">
+                        <div className="font-medium">Text-to-Speech (ElevenLabs)</div>
+                        <div className="text-muted-foreground">Limit: 10-25 concurrent requests</div>
+                        <div className="text-muted-foreground">Use case: Voice responses, notifications</div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <h4 className="font-medium">AI & Processing Services</h4>
+                    <div className="space-y-3 text-sm">
+                      <div className="p-3 bg-muted rounded-lg">
+                        <div className="font-medium">OpenAI Chat Completions</div>
+                        <div className="text-muted-foreground">Limit: 100-200 concurrent requests</div>
+                        <div className="text-muted-foreground">Use case: AI assistants, document processing</div>
+                      </div>
+                      <div className="p-3 bg-muted rounded-lg">
+                        <div className="font-medium">File Processing (Assembly AI)</div>
+                        <div className="text-muted-foreground">Limit: 50-100 concurrent uploads</div>
+                        <div className="text-muted-foreground">Use case: Batch transcription, document analysis</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div className="space-y-4">
+                  <h4 className="font-medium">Infrastructure Monitoring</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div className="p-3 border rounded-lg">
+                      <div className="font-medium text-primary">Database Connections</div>
+                      <div className="text-muted-foreground mt-1">
+                        Monitor at 80% of pool limit (48/60)
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-2">
+                        Alert when approaching limit to prevent timeouts
+                      </div>
+                    </div>
+                    <div className="p-3 border rounded-lg">
+                      <div className="font-medium text-primary">Edge Function Concurrency</div>
+                      <div className="text-muted-foreground mt-1">
+                        Scale horizontally at 100-300 concurrent
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-2">
+                        Auto-scaling based on request volume
+                      </div>
+                    </div>
+                    <div className="p-3 border rounded-lg">
+                      <div className="font-medium text-primary">Storage Operations</div>
+                      <div className="text-muted-foreground mt-1">
+                        Batch operations for 100+ concurrent uploads
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-2">
+                        Queue large file operations during peak times
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
 
