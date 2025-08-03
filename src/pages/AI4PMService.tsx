@@ -1245,7 +1245,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
           {/* AI Service Tab */}
           <TabsContent value="ai-service" className="mt-1">
             <Card className={getChatBoxHeight()}>
-              <CardHeader className="pb-3">
+              <CardHeader className={`${isModelSelectorCollapsed ? 'pb-1' : 'pb-3'}`}>
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 w-full">
                     <CardTitle className="flex flex-col gap-2">
@@ -1345,13 +1345,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
               <CardContent className="flex flex-col h-full p-0">
                 {/* Messages */}
                  <ScrollArea className="flex-1 p-4">
-                   {messages.length === 0 ? (
-                     !isModelSelectorCollapsed ? null : (
-                       <div className="text-center text-muted-foreground py-8">
-                         <p className="text-sm">Click the dropdown above to get started</p>
-                       </div>
-                     )
-                   ) : (
+                   {messages.length === 0 ? null : (
                     <div className="space-y-6">
                       {messages.map((message) => (
                         <div key={message.id}>
