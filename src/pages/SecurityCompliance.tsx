@@ -158,11 +158,11 @@ export default function SecurityCompliance() {
         </div>
 
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="technical">Technical Controls</TabsTrigger>
-            <TabsTrigger value="compliance">Compliance</TabsTrigger>
-            <TabsTrigger value="risk">Risk Management</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 h-auto">
+            <TabsTrigger value="overview" className="text-xs sm:text-sm px-2 py-2">Overview</TabsTrigger>
+            <TabsTrigger value="technical" className="text-xs sm:text-sm px-2 py-2">Technical</TabsTrigger>
+            <TabsTrigger value="compliance" className="text-xs sm:text-sm px-2 py-2">Compliance</TabsTrigger>
+            <TabsTrigger value="risk" className="text-xs sm:text-sm px-2 py-2">Risk Mgmt</TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
