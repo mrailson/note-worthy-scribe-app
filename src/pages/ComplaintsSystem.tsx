@@ -1132,36 +1132,61 @@ const ComplaintsSystem = () => {
   return (
     <div className="min-h-screen bg-gradient-subtle">
       <Header onNewMeeting={() => {}} />
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground mb-2">🏥 GP Practice Complaint Management System</h1>
-          <p className="text-muted-foreground">Secure, NHS-compliant complaint management with full audit trail</p>
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
+        <div className="mb-4 sm:mb-8">
+          <h1 className="text-xl sm:text-3xl font-bold text-foreground mb-2">
+            <span className="hidden sm:inline">🏥 GP Practice Complaint Management System</span>
+            <span className="sm:hidden">🏥 Complaints</span>
+          </h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
+            <span className="hidden sm:inline">Secure, NHS-compliant complaint management with full audit trail</span>
+            <span className="sm:hidden">NHS-compliant complaint management</span>
+          </p>
         </div>
 
-        <Tabs value={currentTab} onValueChange={setCurrentTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-            <TabsTrigger value="view">View Complaints</TabsTrigger>
-            <TabsTrigger value="new">New Complaint</TabsTrigger>
-            <TabsTrigger value="reports">Reports</TabsTrigger>
-            
-            <TabsTrigger value="settings">Signature Settings</TabsTrigger>
+        <Tabs value={currentTab} onValueChange={setCurrentTab} className="space-y-4 sm:space-y-6">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 gap-1 h-auto p-1">
+            <TabsTrigger value="dashboard" className="min-h-[44px] text-xs sm:text-sm touch-manipulation">
+              <span className="hidden sm:inline">Dashboard</span>
+              <span className="sm:hidden">Home</span>
+            </TabsTrigger>
+            <TabsTrigger value="view" className="min-h-[44px] text-xs sm:text-sm touch-manipulation">
+              <span className="hidden sm:inline">View Complaints</span>
+              <span className="sm:hidden">View</span>
+            </TabsTrigger>
+            <TabsTrigger value="new" className="min-h-[44px] text-xs sm:text-sm touch-manipulation">
+              <span className="hidden sm:inline">New Complaint</span>
+              <span className="sm:hidden">New</span>
+            </TabsTrigger>
+            <TabsTrigger value="reports" className="min-h-[44px] text-xs sm:text-sm touch-manipulation">
+              Reports
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="min-h-[44px] text-xs sm:text-sm touch-manipulation">
+              <span className="hidden sm:inline">Signature Settings</span>
+              <span className="sm:hidden">Settings</span>
+            </TabsTrigger>
           </TabsList>
 
           {/* Dashboard Tab */}
-          <TabsContent value="dashboard" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <TabsContent value="dashboard" className="space-y-4 sm:space-y-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               <Card className="cursor-pointer hover:shadow-md transition-shadow" 
                     onClick={() => { 
                       setDashboardFilter("all"); 
                       setCurrentTab("view");
                     }}>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">Total Complaints</CardTitle>
+                  <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
+                    <span className="hidden sm:inline">Total Complaints</span>
+                    <span className="sm:hidden">Total</span>
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{complaints.length}</div>
-                  <p className="text-xs text-muted-foreground mt-1">Click to view all</p>
+                  <div className="text-xl sm:text-2xl font-bold">{complaints.length}</div>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
+                    <span className="hidden sm:inline">Click to view all</span>
+                    <span className="sm:hidden">View all</span>
+                  </p>
                 </CardContent>
               </Card>
               <Card className="cursor-pointer hover:shadow-md transition-shadow" 
@@ -1170,13 +1195,16 @@ const ComplaintsSystem = () => {
                       setCurrentTab("view");
                     }}>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">Open</CardTitle>
+                  <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Open</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-orange-600">
+                  <div className="text-xl sm:text-2xl font-bold text-orange-600">
                     {complaints.filter(c => ['submitted', 'under_review'].includes(c.status)).length}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">Click to view open complaints</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
+                    <span className="hidden sm:inline">Click to view open complaints</span>
+                    <span className="sm:hidden">View open</span>
+                  </p>
                 </CardContent>
               </Card>
               <Card className="cursor-pointer hover:shadow-md transition-shadow" 
@@ -1185,13 +1213,16 @@ const ComplaintsSystem = () => {
                       setCurrentTab("view");
                     }}>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">Overdue</CardTitle>
+                  <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Overdue</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-red-600">
+                  <div className="text-xl sm:text-2xl font-bold text-red-600">
                     {complaints.filter(isOverdue).length}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">Click to view overdue complaints</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
+                    <span className="hidden sm:inline">Click to view overdue complaints</span>
+                    <span className="sm:hidden">View overdue</span>
+                  </p>
                 </CardContent>
               </Card>
               <Card className="cursor-pointer hover:shadow-md transition-shadow" 
@@ -1645,73 +1676,81 @@ const ComplaintsSystem = () => {
           </TabsContent>
 
           {/* New Complaint Tab */}
-          <TabsContent value="new" className="space-y-6">
+          <TabsContent value="new" className="space-y-4 sm:space-y-6">
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <div>
-                    <CardTitle>Submit New Complaint</CardTitle>
-                    <CardDescription>Record a new patient complaint following NHS procedures</CardDescription>
+                    <CardTitle className="text-lg sm:text-xl">Submit New Complaint</CardTitle>
+                    <CardDescription className="text-sm">
+                      <span className="hidden sm:inline">Record a new patient complaint following NHS procedures</span>
+                      <span className="sm:hidden">Record new patient complaint</span>
+                    </CardDescription>
                   </div>
                   <Button 
                     variant="outline" 
                     onClick={() => setShowImport(true)}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 min-h-[44px] touch-manipulation w-full sm:w-auto"
                   >
                     <Upload className="h-4 w-4" />
-                    Import New Complaint
+                    <span className="hidden sm:inline">Import New Complaint</span>
+                    <span className="sm:hidden">Import</span>
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSubmitComplaint} className="space-y-6">
+              <CardContent className="px-3 sm:px-6">
+                <form onSubmit={handleSubmitComplaint} className="space-y-4 sm:space-y-6">
                   {/* Patient Information Section */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold flex items-center gap-2">
-                      <User className="h-5 w-5" />
+                  <div className="space-y-3 sm:space-y-4">
+                    <h3 className="text-base sm:text-lg font-semibold flex items-center gap-2">
+                      <User className="h-4 w-4 sm:h-5 sm:w-5" />
                       Patient Information
                     </h3>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="patient_name">Patient Name *</Label>
+                        <Label htmlFor="patient_name" className="text-sm">Patient Name *</Label>
                         <Input 
                           id="patient_name" 
                           value={formData.patient_name}
                           onChange={(e) => handleInputChange('patient_name', e.target.value)}
-                          placeholder="Enter patient's full name" 
+                          placeholder="Enter patient's full name"
+                          className="min-h-[44px] touch-manipulation"
                           required 
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="patient_dob">Date of Birth</Label>
+                        <Label htmlFor="patient_dob" className="text-sm">Date of Birth</Label>
                         <Input 
                           id="patient_dob" 
                           type="date"
                           value={formData.patient_dob}
                           onChange={(e) => handleInputChange('patient_dob', e.target.value)}
+                          className="min-h-[44px] touch-manipulation"
                         />
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="patient_contact_phone">Contact Phone</Label>
+                        <Label htmlFor="patient_contact_phone" className="text-sm">Contact Phone</Label>
                         <Input 
                           id="patient_contact_phone" 
                           value={formData.patient_contact_phone}
                           onChange={(e) => handleInputChange('patient_contact_phone', e.target.value)}
-                          placeholder="Phone number" 
+                          placeholder="Phone number"
+                          className="min-h-[44px] touch-manipulation"
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="patient_contact_email">Contact Email</Label>
+                        <Label htmlFor="patient_contact_email" className="text-sm">Contact Email</Label>
                         <Input 
                           id="patient_contact_email" 
                           type="email"
                           value={formData.patient_contact_email}
                           onChange={(e) => handleInputChange('patient_contact_email', e.target.value)}
-                          placeholder="Email address" 
+                          placeholder="Email address"
+                          className="min-h-[44px] touch-manipulation"
                         />
                       </div>
                     </div>
@@ -2069,10 +2108,17 @@ const ComplaintsSystem = () => {
 
                 {/* Complaint Workflow Tabs */}
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                  <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="workflow">Workflow</TabsTrigger>
-                    <TabsTrigger value="compliance">Compliance</TabsTrigger>
-                    <TabsTrigger value="audit">Audit Log</TabsTrigger>
+                  <TabsList className="grid w-full grid-cols-3 gap-1 h-auto p-1">
+                    <TabsTrigger value="workflow" className="min-h-[44px] text-xs sm:text-sm touch-manipulation">
+                      Workflow
+                    </TabsTrigger>
+                    <TabsTrigger value="compliance" className="min-h-[44px] text-xs sm:text-sm touch-manipulation">
+                      Compliance
+                    </TabsTrigger>
+                    <TabsTrigger value="audit" className="min-h-[44px] text-xs sm:text-sm touch-manipulation">
+                      <span className="hidden sm:inline">Audit Log</span>
+                      <span className="sm:hidden">Audit</span>
+                    </TabsTrigger>
                   </TabsList>
 
                   {/* Workflow Tab */}
@@ -2230,7 +2276,7 @@ const ComplaintsSystem = () => {
                             value={newParty.staffRole}
                             onChange={(e) => setNewParty(prev => ({...prev, staffRole: e.target.value}))}
                           />
-                          <Button onClick={addInvolvedParty} size="sm">
+                          <Button onClick={addInvolvedParty} size="sm" className="min-h-[44px] touch-manipulation">
                             <Plus className="h-4 w-4 mr-1" />
                             Add
                           </Button>
