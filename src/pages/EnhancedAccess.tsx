@@ -426,8 +426,8 @@ const EnhancedAccess = () => {
                       return (
                         <div 
                           key={day.toISOString()} 
-                           className={`p-2 border rounded text-center ${
-                             isDetailedView ? 'min-h-[120px]' : 'min-h-[60px]'
+                           className={`p-1 sm:p-2 border rounded text-center ${
+                             isDetailedView ? 'min-h-[80px] sm:min-h-[120px]' : 'min-h-[40px] sm:min-h-[60px]'
                            } ${
                              isClosedDay 
                                ? "border-border/50 bg-muted/30"
@@ -438,9 +438,9 @@ const EnhancedAccess = () => {
                                : "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20"
                            }`}
                          >
-                           <div className="text-sm font-medium">{format(day, "d")}</div>
+                           <div className="text-xs sm:text-sm font-medium">{format(day, "d")}</div>
                            {isClosedDay ? (
-                             <div className="text-xs text-muted-foreground mt-1">
+                             <div className="text-[10px] sm:text-xs text-muted-foreground mt-1">
                                {isBankHoliday ? 'Bank Holiday' : 'No service'}
                              </div>
                           ) : isDetailedView ? (
@@ -451,16 +451,16 @@ const EnhancedAccess = () => {
                                   a.assignment_date === format(day, 'yyyy-MM-dd')
                                 );
                                 return (
-                                  <div key={shift.id} className="text-xs">
-                                    <div className="font-medium text-xs">{shift.start_time}</div>
+                                  <div key={shift.id} className="text-[9px] sm:text-xs">
+                                    <div className="font-medium text-[9px] sm:text-xs">{shift.start_time}</div>
                                     {shiftAssignments.length > 0 ? (
                                       shiftAssignments.map(assignment => (
-                                        <div key={assignment.id} className="text-green-600 truncate">
+                                        <div key={assignment.id} className="text-green-600 truncate text-[8px] sm:text-xs" title={formatStaffName(assignment.staff_member.name, assignment.staff_member.role)}>
                                           {formatStaffName(assignment.staff_member.name, assignment.staff_member.role)}
                                         </div>
                                       ))
                                     ) : (
-                                      <div className="text-red-600">Unassigned</div>
+                                      <div className="text-red-600 text-[8px] sm:text-xs">Unassigned</div>
                                     )}
                                   </div>
                                 );
@@ -469,15 +469,15 @@ const EnhancedAccess = () => {
                           ) : shifts.length > 0 ? (
                             <div className="flex justify-center mt-1">
                               {allAssigned ? (
-                                <CheckCircle className="h-3 w-3 text-green-600" />
+                                <CheckCircle className="h-2 w-2 sm:h-3 sm:w-3 text-green-600" />
                               ) : hasAssignments ? (
-                                <AlertTriangle className="h-3 w-3 text-yellow-600" />
+                                <AlertTriangle className="h-2 w-2 sm:h-3 sm:w-3 text-yellow-600" />
                               ) : (
-                                <AlertTriangle className="h-3 w-3 text-red-600" />
+                                <AlertTriangle className="h-2 w-2 sm:h-3 sm:w-3 text-red-600" />
                               )}
                             </div>
                           ) : (
-                            <div className="text-xs text-muted-foreground mt-1">No shifts</div>
+                            <div className="text-[10px] sm:text-xs text-muted-foreground mt-1">No shifts</div>
                           )}
                         </div>
                       );
