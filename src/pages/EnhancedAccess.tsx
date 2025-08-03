@@ -380,109 +380,234 @@ const EnhancedAccess = () => {
               </CardHeader>
               <CardContent>
                  {isMonthlyView ? (
-                  <div className={`grid grid-cols-7 gap-1 sm:gap-2 ${isDetailedView ? '' : ''}`}>
-                    {/* Month header */}
-                    {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
-                      <div key={day} className="p-1 sm:p-2 text-center font-medium text-xs sm:text-sm text-muted-foreground">
-                        <span className="hidden sm:inline">{day}</span>
-                        <span className="sm:hidden">{day.slice(0, 1)}</span>
-                      </div>
-                    ))}
-                    {/* Add empty cells for days before month starts */}
-                    {(() => {
-                      const firstDayOfMonth = startOfMonth(currentWeek);
-                      const startDay = getDay(firstDayOfMonth); // 0 = Sunday, 1 = Monday, etc.
-                      const mondayStart = startDay === 0 ? 6 : startDay - 1; // Convert to Monday = 0
-                      
-                      return Array.from({ length: mondayStart }, (_, i) => (
-                        <div key={`empty-${i}`} className="p-1 sm:p-2 min-h-[40px] sm:min-h-[60px]"></div>
-                      ));
-                    })()}
-                    {/* Month days */}
-                    {eachDayOfInterval({ start: monthStart, end: monthEnd }).map((day) => {
-                      const dayOfWeek = getDay(day); // 0 = Sunday, 1 = Monday, etc.
-                      const adjustedDayOfWeek = dayOfWeek === 0 ? 7 : dayOfWeek; // Convert Sunday to 7
-                      const shifts = getShiftsForDay(adjustedDayOfWeek);
-                      const isSunday = dayOfWeek === 0;
-                      const isBankHoliday = bankHolidays.has(format(day, 'yyyy-MM-dd'));
-                      const isClosedDay = isSunday || isBankHoliday;
-                      
-                      const hasAssignments = !isClosedDay && shifts.some(shift => {
-                        const shiftAssignments = weeklyAssignments.filter(a => 
-                          a.shift_template_id === shift.id && 
-                          a.assignment_date === format(day, 'yyyy-MM-dd')
-                        );
-                        return shiftAssignments.length > 0;
-                      });
-                      
-                      const allAssigned = !isClosedDay && shifts.length > 0 && shifts.every(shift => {
-                        const shiftAssignments = weeklyAssignments.filter(a => 
-                          a.shift_template_id === shift.id && 
-                          a.assignment_date === format(day, 'yyyy-MM-dd')
-                        );
-                        return shiftAssignments.length > 0;
-                      });
-
-                      return (
-                        <div 
-                          key={day.toISOString()} 
-                           className={`p-1 sm:p-2 border rounded text-center ${
-                             isDetailedView ? 'min-h-[80px] sm:min-h-[120px]' : 'min-h-[40px] sm:min-h-[60px]'
-                           } ${
-                             isClosedDay 
-                               ? "border-border/50 bg-muted/30"
-                               : allAssigned 
-                               ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20" 
-                               : hasAssignments
-                               ? "border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-900/20"
-                               : "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20"
-                           }`}
-                         >
-                           <div className="text-xs sm:text-sm font-medium">{format(day, "d")}</div>
-                           {isClosedDay ? (
-                             <div className="text-[10px] sm:text-xs text-muted-foreground mt-1">
-                               {isBankHoliday ? 'Bank Holiday' : 'No service'}
-                             </div>
-                          ) : isDetailedView ? (
-                            <div className="mt-1 space-y-1">
-                              {shifts.map(shift => {
-                                const shiftAssignments = weeklyAssignments.filter(a => 
-                                  a.shift_template_id === shift.id && 
-                                  a.assignment_date === format(day, 'yyyy-MM-dd')
-                                );
-                                return (
-                                  <div key={shift.id} className="text-[9px] sm:text-xs">
-                                    <div className="font-medium text-[9px] sm:text-xs">{shift.start_time}</div>
-                                    {shiftAssignments.length > 0 ? (
-                                      shiftAssignments.map(assignment => (
-                                        <div key={assignment.id} className="text-green-600 truncate text-[8px] sm:text-xs" title={formatStaffName(assignment.staff_member.name, assignment.staff_member.role)}>
-                                          {formatStaffName(assignment.staff_member.name, assignment.staff_member.role)}
-                                        </div>
-                                      ))
-                                    ) : (
-                                      <div className="text-red-600 text-[8px] sm:text-xs">Unassigned</div>
-                                    )}
-                                  </div>
-                                );
-                              })}
+                  <>
+                    {isDetailedView ? (
+                      /* Detailed Monthly View - Single column on mobile like weekly view */
+                      <div className="grid grid-cols-1 sm:grid-cols-7 gap-2 sm:gap-3">
+                        {/* Mobile header - show current month */}
+                        <div className="sm:hidden text-center font-medium text-sm text-muted-foreground mb-4 col-span-full">
+                          {format(currentWeek, "MMMM yyyy")}
+                        </div>
+                        
+                        {/* Desktop header */}
+                        <div className="hidden sm:contents">
+                          {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
+                            <div key={day} className="p-2 text-center font-medium text-sm text-muted-foreground">
+                              {day}
                             </div>
-                          ) : shifts.length > 0 ? (
-                            <div className="flex justify-center mt-1">
-                              {allAssigned ? (
-                                <CheckCircle className="h-2 w-2 sm:h-3 sm:w-3 text-green-600" />
-                              ) : hasAssignments ? (
-                                <AlertTriangle className="h-2 w-2 sm:h-3 sm:w-3 text-yellow-600" />
+                          ))}
+                        </div>
+                        
+                        {/* Add empty cells for days before month starts - desktop only */}
+                        <div className="hidden sm:contents">
+                          {(() => {
+                            const firstDayOfMonth = startOfMonth(currentWeek);
+                            const startDay = getDay(firstDayOfMonth);
+                            const mondayStart = startDay === 0 ? 6 : startDay - 1;
+                            
+                            return Array.from({ length: mondayStart }, (_, i) => (
+                              <div key={`empty-${i}`} className="p-2 min-h-[120px]"></div>
+                            ));
+                          })()}
+                        </div>
+                        
+                        {/* Month days */}
+                        {eachDayOfInterval({ start: monthStart, end: monthEnd }).map((day) => {
+                          const dayOfWeek = getDay(day);
+                          const adjustedDayOfWeek = dayOfWeek === 0 ? 7 : dayOfWeek;
+                          const shifts = getShiftsForDay(adjustedDayOfWeek);
+                          const isSunday = dayOfWeek === 0;
+                          const isBankHoliday = bankHolidays.has(format(day, 'yyyy-MM-dd'));
+                          const isClosedDay = isSunday || isBankHoliday;
+                          
+                          const hasAssignments = !isClosedDay && shifts.some(shift => {
+                            const shiftAssignments = weeklyAssignments.filter(a => 
+                              a.shift_template_id === shift.id && 
+                              a.assignment_date === format(day, 'yyyy-MM-dd')
+                            );
+                            return shiftAssignments.length > 0;
+                          });
+                          
+                          const allAssigned = !isClosedDay && shifts.length > 0 && shifts.every(shift => {
+                            const shiftAssignments = weeklyAssignments.filter(a => 
+                              a.shift_template_id === shift.id && 
+                              a.assignment_date === format(day, 'yyyy-MM-dd')
+                            );
+                            return shiftAssignments.length > 0;
+                          });
+
+                          if (isClosedDay) {
+                            return (
+                              <div key={day.toISOString()} className="p-2 sm:p-3 border border-border/50 rounded-lg bg-muted/30">
+                                <div className="text-center sm:text-left">
+                                  <h3 className="font-medium text-sm">
+                                    <span className="sm:hidden">{format(day, "EEE, d MMM")}</span>
+                                    <span className="hidden sm:inline">{format(day, "d")}</span>
+                                  </h3>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {isBankHoliday ? 'Bank Holiday' : 'No service'}
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <div 
+                              key={day.toISOString()} 
+                              className={`p-2 sm:p-3 border rounded-lg ${
+                                allAssigned 
+                                  ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20" 
+                                  : hasAssignments
+                                  ? "border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-900/20"
+                                  : "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20"
+                              }`}
+                            >
+                              <div className="text-center sm:text-left">
+                                <h3 className="font-medium text-sm">
+                                  <span className="sm:hidden">{format(day, "EEE, d MMM")}</span>
+                                  <span className="hidden sm:inline">{format(day, "d")}</span>
+                                </h3>
+                              </div>
+                              
+                              <div className="space-y-1 mt-2">
+                                {shifts.length === 0 ? (
+                                  <p className="text-xs text-muted-foreground text-center sm:text-left">No shifts</p>
+                                ) : (
+                                  shifts.map((shift) => {
+                                    const shiftAssignments = weeklyAssignments.filter(a => 
+                                      a.shift_template_id === shift.id && 
+                                      a.assignment_date === format(day, 'yyyy-MM-dd')
+                                    );
+                                    
+                                    return (
+                                      <div key={shift.id} className="text-xs space-y-1">
+                                        <div className="font-medium text-center sm:text-left">{shift.start_time}-{shift.end_time}</div>
+                                        <div className="text-muted-foreground text-center sm:text-left truncate" title={getLocationDisplay(shift.location)}>
+                                          {getLocationDisplay(shift.location)}
+                                        </div>
+                                        {shiftAssignments.length > 0 ? (
+                                          <div className="space-y-1 mt-1">
+                                             {shiftAssignments.map((assignment, idx) => (
+                                               <Badge key={assignment.id} variant="secondary" className="text-[10px] sm:text-xs flex items-center justify-center sm:justify-start gap-1 w-full sm:w-auto">
+                                                 {getRoleIcon(assignment.staff_member?.role)}
+                                                 <span className="truncate max-w-[100px] sm:max-w-none">
+                                                   {formatStaffName(assignment.staff_member?.name || 'Assigned', assignment.staff_member?.role || '')}
+                                                 </span>
+                                               </Badge>
+                                             ))}
+                                            {shiftAssignments.length > 1 && (
+                                              <div className="text-[10px] sm:text-xs text-muted-foreground text-center sm:text-left">
+                                                ({shiftAssignments.length} staff)
+                                              </div>
+                                            )}
+                                          </div>
+                                        ) : (
+                                          <Badge variant="destructive" className="text-[10px] sm:text-xs mt-1 w-full justify-center sm:w-auto">
+                                            No {shift.required_role}
+                                          </Badge>
+                                        )}
+                                      </div>
+                                    );
+                                  })
+                                )}
+                              </div>
+                              
+                              <div className="flex justify-center mt-2">
+                                {allAssigned ? (
+                                  <CheckCircle className="h-3 w-3 text-green-600" />
+                                ) : hasAssignments ? (
+                                  <AlertTriangle className="h-3 w-3 text-yellow-600" />
+                                ) : (
+                                  <AlertTriangle className="h-3 w-3 text-red-600" />
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      /* Standard Monthly View - Grid layout */
+                      <div className="grid grid-cols-7 gap-1 sm:gap-2">
+                        {/* Month header */}
+                        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
+                          <div key={day} className="p-1 sm:p-2 text-center font-medium text-xs sm:text-sm text-muted-foreground">
+                            <span className="hidden sm:inline">{day}</span>
+                            <span className="sm:hidden">{day.slice(0, 1)}</span>
+                          </div>
+                        ))}
+                        {/* Add empty cells for days before month starts */}
+                        {(() => {
+                          const firstDayOfMonth = startOfMonth(currentWeek);
+                          const startDay = getDay(firstDayOfMonth);
+                          const mondayStart = startDay === 0 ? 6 : startDay - 1;
+                          
+                          return Array.from({ length: mondayStart }, (_, i) => (
+                            <div key={`empty-${i}`} className="p-1 sm:p-2 min-h-[40px] sm:min-h-[60px]"></div>
+                          ));
+                        })()}
+                        {/* Month days */}
+                        {eachDayOfInterval({ start: monthStart, end: monthEnd }).map((day) => {
+                          const dayOfWeek = getDay(day);
+                          const adjustedDayOfWeek = dayOfWeek === 0 ? 7 : dayOfWeek;
+                          const shifts = getShiftsForDay(adjustedDayOfWeek);
+                          const isSunday = dayOfWeek === 0;
+                          const isBankHoliday = bankHolidays.has(format(day, 'yyyy-MM-dd'));
+                          const isClosedDay = isSunday || isBankHoliday;
+                          
+                          const hasAssignments = !isClosedDay && shifts.some(shift => {
+                            const shiftAssignments = weeklyAssignments.filter(a => 
+                              a.shift_template_id === shift.id && 
+                              a.assignment_date === format(day, 'yyyy-MM-dd')
+                            );
+                            return shiftAssignments.length > 0;
+                          });
+                          
+                          const allAssigned = !isClosedDay && shifts.length > 0 && shifts.every(shift => {
+                            const shiftAssignments = weeklyAssignments.filter(a => 
+                              a.shift_template_id === shift.id && 
+                              a.assignment_date === format(day, 'yyyy-MM-dd')
+                            );
+                            return shiftAssignments.length > 0;
+                          });
+
+                          return (
+                            <div 
+                              key={day.toISOString()} 
+                              className={`p-1 sm:p-2 border rounded text-center min-h-[40px] sm:min-h-[60px] ${
+                                isClosedDay 
+                                  ? "border-border/50 bg-muted/30"
+                                  : allAssigned 
+                                  ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20" 
+                                  : hasAssignments
+                                  ? "border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-900/20"
+                                  : "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20"
+                              }`}
+                            >
+                              <div className="text-xs sm:text-sm font-medium">{format(day, "d")}</div>
+                              {isClosedDay ? (
+                                <div className="text-[10px] sm:text-xs text-muted-foreground mt-1">
+                                  {isBankHoliday ? 'Bank Holiday' : 'No service'}
+                                </div>
+                              ) : shifts.length > 0 ? (
+                                <div className="flex justify-center mt-1">
+                                  {allAssigned ? (
+                                    <CheckCircle className="h-2 w-2 sm:h-3 sm:w-3 text-green-600" />
+                                  ) : hasAssignments ? (
+                                    <AlertTriangle className="h-2 w-2 sm:h-3 sm:w-3 text-yellow-600" />
+                                  ) : (
+                                    <AlertTriangle className="h-2 w-2 sm:h-3 sm:w-3 text-red-600" />
+                                  )}
+                                </div>
                               ) : (
-                                <AlertTriangle className="h-2 w-2 sm:h-3 sm:w-3 text-red-600" />
+                                <div className="text-[10px] sm:text-xs text-muted-foreground mt-1">No shifts</div>
                               )}
                             </div>
-                          ) : (
-                            <div className="text-[10px] sm:text-xs text-muted-foreground mt-1">No shifts</div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-7 gap-2 sm:gap-3">
                     {Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)).map((day, index) => {
