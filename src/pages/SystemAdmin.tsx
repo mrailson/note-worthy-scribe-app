@@ -384,26 +384,31 @@ const SystemAdmin = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="overview" className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" />
-              Overview
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 h-auto">
+            <TabsTrigger value="overview" className="flex flex-col sm:flex-row items-center gap-1 text-xs sm:text-sm p-2 sm:p-3">
+              <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Overview</span>
+              <span className="sm:hidden">Stats</span>
             </TabsTrigger>
-            <TabsTrigger value="user-management" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              User Management
+            <TabsTrigger value="user-management" className="flex flex-col sm:flex-row items-center gap-1 text-xs sm:text-sm p-2 sm:p-3">
+              <Users className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">User Management</span>
+              <span className="sm:hidden">Users</span>
             </TabsTrigger>
-            <TabsTrigger value="system-config" className="flex items-center gap-2">
-              <Settings className="h-4 w-4" />
-              System Config
+            <TabsTrigger value="system-config" className="flex flex-col sm:flex-row items-center gap-1 text-xs sm:text-sm p-2 sm:p-3">
+              <Settings className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">System Config</span>
+              <span className="sm:hidden">Config</span>
             </TabsTrigger>
-            <TabsTrigger value="security" className="flex items-center gap-2">
-              <Shield className="h-4 w-4" />
-              Security & Compliance
+            <TabsTrigger value="security" className="flex flex-col sm:flex-row items-center gap-1 text-xs sm:text-sm p-2 sm:p-3">
+              <Shield className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Security & Compliance</span>
+              <span className="sm:hidden">Security</span>
             </TabsTrigger>
-            <TabsTrigger value="monitoring" className="flex items-center gap-2">
-              <Activity className="h-4 w-4" />
-              System Monitoring
+            <TabsTrigger value="monitoring" className="flex flex-col sm:flex-row items-center gap-1 text-xs sm:text-sm p-2 sm:p-3">
+              <Activity className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">System Monitoring</span>
+              <span className="sm:hidden">Monitor</span>
             </TabsTrigger>
           </TabsList>
 
@@ -498,11 +503,11 @@ const SystemAdmin = () => {
           {/* User Management Tab */}
           <TabsContent value="user-management" className="space-y-6">
             <Tabs defaultValue="users" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="users">Users</TabsTrigger>
-                <TabsTrigger value="practices">Practices</TabsTrigger>
-                <TabsTrigger value="pcns">PCNs</TabsTrigger>
-                <TabsTrigger value="neighbourhoods">Neighbourhoods</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto">
+                <TabsTrigger value="users" className="text-xs sm:text-sm p-2">Users</TabsTrigger>
+                <TabsTrigger value="practices" className="text-xs sm:text-sm p-2">Practices</TabsTrigger>
+                <TabsTrigger value="pcns" className="text-xs sm:text-sm p-2">PCNs</TabsTrigger>
+                <TabsTrigger value="neighbourhoods" className="text-xs sm:text-sm p-2">Areas</TabsTrigger>
               </TabsList>
               
               <TabsContent value="users" className="space-y-6">
@@ -796,11 +801,11 @@ const SystemAdmin = () => {
           {/* Security & Compliance Tab */}
           <TabsContent value="security" className="space-y-6">
             <Tabs value={securityTab} onValueChange={setSecurityTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="monitoring">Authentication</TabsTrigger>
-                <TabsTrigger value="data-access">Data Access</TabsTrigger>
-                <TabsTrigger value="vulnerabilities">Vulnerabilities</TabsTrigger>
-                <TabsTrigger value="compliance">Compliance</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto">
+                <TabsTrigger value="monitoring" className="text-xs sm:text-sm p-2">Auth</TabsTrigger>
+                <TabsTrigger value="data-access" className="text-xs sm:text-sm p-2">Data</TabsTrigger>
+                <TabsTrigger value="vulnerabilities" className="text-xs sm:text-sm p-2">Vulns</TabsTrigger>
+                <TabsTrigger value="compliance" className="text-xs sm:text-sm p-2">Compliance</TabsTrigger>
               </TabsList>
 
               <TabsContent value="monitoring" className="space-y-6">
