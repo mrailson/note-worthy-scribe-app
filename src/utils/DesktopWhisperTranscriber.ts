@@ -54,49 +54,6 @@ export class DesktopWhisperTranscriber {
         }
       });
 
-      // Check supported MIME types for desktop
-      const mimeTypes = [
-        'audio/webm;codecs=opus',
-        'audio/webm',
-        'audio/mp4',
-        'audio/mp4;codecs=mp4a.40.2',
-        'audio/aac'
-      ];
-
-      let selectedMimeType = 'audio/webm'; // fallback
-      for (const mimeType of mimeTypes) {
-        if (MediaRecorder.isTypeSupported(mimeType)) {
-          selectedMimeType = mimeType;
-          console.log('🖥️ Using MIME type:', mimeType);
-          break;
-        }
-      }
-
-      this.mediaRecorder = new MediaRecorder(this.stream, {
-        mimeType: selectedMimeType,
-        audioBitsPerSecond: 128000 // Higher bitrate for desktop
-      });
-
-      this.mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          this.audioChunks.push(event.data);
-        }
-      };
-
-      this.mediaRecorder.onstop = async () => {
-        if (this.audioChunks.length > 0) {
-          // Increment chunk count BEFORE processing to ensure unique numbering
-          const currentChunk = this.chunkCount++;
-          console.log(`🔍 DEBUG: Processing scheduled chunk ${currentChunk}, next will be ${this.chunkCount}`);
-          await this.processAudioChunks(currentChunk);
-        }
-      };
-
-      this.mediaRecorder.onerror = (event) => {
-        console.error('🖥️ MediaRecorder error:', event);
-        this.onError('Recording error occurred');
-      };
-
       // Start recording and schedule first chunk
       this.isRecording = true;
       this.chunkCount = 0;
@@ -112,7 +69,49 @@ export class DesktopWhisperTranscriber {
   }
 
   private startChunkedRecording() {
-    if (!this.mediaRecorder || !this.isRecording) return;
+    if (!this.stream || !this.isRecording) return;
+
+    // Recreate MediaRecorder for each chunk to ensure clean state
+    const mimeTypes = [
+      'audio/webm;codecs=opus',
+      'audio/webm',
+      'audio/mp4',
+      'audio/mp4;codecs=mp4a.40.2',
+      'audio/aac'
+    ];
+
+    let selectedMimeType = 'audio/webm'; // fallback
+    for (const mimeType of mimeTypes) {
+      if (MediaRecorder.isTypeSupported(mimeType)) {
+        selectedMimeType = mimeType;
+        break;
+      }
+    }
+
+    this.mediaRecorder = new MediaRecorder(this.stream, {
+      mimeType: selectedMimeType,
+      audioBitsPerSecond: 128000
+    });
+
+    this.mediaRecorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        this.audioChunks.push(event.data);
+      }
+    };
+
+    this.mediaRecorder.onstop = async () => {
+      if (this.audioChunks.length > 0) {
+        // Increment chunk count BEFORE processing to ensure unique numbering
+        const currentChunk = this.chunkCount++;
+        console.log(`🔍 DEBUG: Processing scheduled chunk ${currentChunk}, next will be ${this.chunkCount}`);
+        await this.processAudioChunks(currentChunk);
+      }
+    };
+
+    this.mediaRecorder.onerror = (event) => {
+      console.error('🖥️ MediaRecorder error:', event);
+      this.onError('Recording error occurred');
+    };
 
     // Start recording
     this.mediaRecorder.start();
@@ -131,13 +130,14 @@ export class DesktopWhisperTranscriber {
 
     this.transcriptionTimeout = setTimeout(() => {
       if (this.mediaRecorder && this.isRecording && this.mediaRecorder.state === 'recording') {
+        console.log(`🖥️ Stopping chunk ${this.chunkCount} for processing`);
         this.mediaRecorder.stop();
         
         // Start new recording immediately after a brief pause
         setTimeout(() => {
-          if (this.mediaRecorder && this.isRecording) {
-            this.mediaRecorder.start();
-            this.scheduleNextChunk();
+          if (this.isRecording && this.stream) {
+            console.log(`🖥️ Starting new chunk ${this.chunkCount + 1}`);
+            this.startChunkedRecording();
           }
         }, 100);
       }
