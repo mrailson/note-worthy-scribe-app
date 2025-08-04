@@ -15,6 +15,7 @@ export class DesktopWhisperTranscriber {
   private transcriptionTimeout: NodeJS.Timeout | null = null;
   private overlapBuffer: Blob[] = [];
   private chunkCount = 0;
+  private allTranscriptions: string[] = []; // Store all transcriptions directly
 
   constructor(
     private onTranscription: (data: TranscriptData) => void,
@@ -184,14 +185,20 @@ export class DesktopWhisperTranscriber {
       }
 
       if (data.text && data.text.trim()) {
+        const cleanText = data.text.trim();
+        
+        // Store transcription internally
+        this.allTranscriptions.push(cleanText);
+        console.log(`📝 Stored transcription ${this.allTranscriptions.length}: "${cleanText.substring(0, 100)}..."`);
+        
         const transcriptData: TranscriptData = {
-          text: data.text.trim(),
+          text: cleanText,
           is_final: true,
           confidence: 0.9,
           speaker: 'Speaker'
         };
 
-        console.log('✅ Desktop transcription:', data.text);
+        console.log('✅ Desktop transcription:', cleanText);
         this.onTranscription(transcriptData);
       }
 
@@ -248,5 +255,21 @@ export class DesktopWhisperTranscriber {
 
   isActive(): boolean {
     return this.isRecording;
+  }
+
+  getCompleteTranscript(): string {
+    console.log(`📋 Getting complete transcript from ${this.allTranscriptions.length} chunks`);
+    this.allTranscriptions.forEach((text, i) => {
+      console.log(`📋 Chunk ${i + 1}: "${text.substring(0, 100)}..."`);
+    });
+    
+    const completeText = this.allTranscriptions.join(' ').trim();
+    console.log(`📋 Complete transcript length: ${completeText.length} characters`);
+    return completeText;
+  }
+
+  clearTranscriptions(): void {
+    this.allTranscriptions = [];
+    console.log('🧹 Cleared internal transcriptions');
   }
 }

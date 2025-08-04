@@ -1438,29 +1438,18 @@ export const MeetingRecorder = ({
     const needsAudioBackup = shouldCreateAudioBackup(wordCount, duration);
     console.log(`📊 Audio backup needed: ${needsAudioBackup}`);
     
-    // Instead of complex polling, use a more reliable approach:
-    // Wait for the transcriber to fully stop and process final chunks
-    console.log('🔍 DEBUG: Waiting for transcriber to fully stop...');
+    // Get transcript directly from the transcriber instead of relying on state
+    console.log('🔍 DEBUG: Getting transcript directly from transcriber...');
+    let finalTranscript = '';
     
-    // Give extra time for any final transcriptions to complete
-    await new Promise(resolve => setTimeout(resolve, 5000));
-    
-    // Get final transcript from the accumulated transcript state instead of relying on individual chunks
-    let finalTranscript = transcript.trim();
-    
-    // If the main transcript seems incomplete, also check realtimeTranscripts as backup
-    const allTranscripts = realtimeTranscripts;
-    console.log(`🔍 DEBUG: Main transcript length: ${finalTranscript.length}`);
-    console.log(`🔍 DEBUG: Available transcript chunks: ${allTranscripts.length}`);
-    
-    // If we have transcript chunks and the main transcript is short, combine them
-    if (allTranscripts.length > 0 && finalTranscript.length < 500) {
-      console.log('🔍 DEBUG: Main transcript seems short, combining chunks...');
-      const sortedTranscripts = allTranscripts.sort((a, b) => 
-        new Date(a.timestamp || 0).getTime() - new Date(b.timestamp || 0).getTime()
-      );
-      finalTranscript = sortedTranscripts.map(t => t.text.trim()).join(' ');
-      console.log(`🔍 DEBUG: Combined transcript length: ${finalTranscript.length}`);
+    if (desktopTranscriberRef.current) {
+      finalTranscript = desktopTranscriberRef.current.getCompleteTranscript();
+      console.log(`🔍 DEBUG: Direct transcript from transcriber: ${finalTranscript.length} chars`);
+      console.log(`🔍 DEBUG: Direct transcript preview: "${finalTranscript.substring(0, 200)}..."`);
+      console.log(`🔍 DEBUG: Direct transcript ending: "${finalTranscript.slice(-200)}"`);
+    } else {
+      console.log('🔍 DEBUG: No transcriber available, falling back to state');
+      finalTranscript = transcript.trim();
     }
     
     // Clean the final transcript
