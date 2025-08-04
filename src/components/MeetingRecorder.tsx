@@ -1331,8 +1331,8 @@ export const MeetingRecorder = ({
       setStartTime(generateMeetingTimestamp());
       setConnectionStatus("Connected");
       
-      // Generate a temporary meeting ID for this session and set it on the transcriber
-      const tempMeetingId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      // Generate a temporary meeting ID for this session and set it on the transcriber (use proper UUID)
+      const tempMeetingId = crypto.randomUUID();
       if (desktopTranscriberRef.current) {
         desktopTranscriberRef.current.setMeetingId(tempMeetingId);
         console.log(`🔗 Set temporary meeting ID: ${tempMeetingId}`);
