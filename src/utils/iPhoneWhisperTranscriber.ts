@@ -177,7 +177,7 @@ export class iPhoneWhisperTranscriber {
     }
   }
 
-  stopTranscription() {
+  async stopTranscription() {
     console.log('🛑 Stopping iPhone transcription...');
     this.isRecording = false;
 
@@ -186,8 +186,17 @@ export class iPhoneWhisperTranscriber {
       this.transcriptionInterval = null;
     }
 
+    // Process any remaining audio chunks before stopping
     if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
       this.mediaRecorder.stop();
+      // Wait a moment for the final ondataavailable event
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    // Process final chunk if any audio data remains
+    if (this.audioChunks.length > 0) {
+      console.log('🔄 Processing final audio chunk before stopping...');
+      await this.processAudioChunks();
     }
 
     if (this.stream) {
