@@ -261,28 +261,20 @@ export class UnifiedAudioCapture {
       console.log('📏 Audio file size:', audioBlob.size, 'bytes', `(${(audioBlob.size / 1024 / 1024).toFixed(2)} MB)`);
       console.log('⏱️ Total recording chunks collected:', totalChunks);
 
-      // Convert to base64
-      const arrayBuffer = await audioBlob.arrayBuffer();
-      const uint8Array = new Uint8Array(arrayBuffer);
-      
-      let binary = '';
-      const chunkSize = 0x8000;
-      for (let i = 0; i < uint8Array.length; i += chunkSize) {
-        const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
-        binary += String.fromCharCode.apply(null, Array.from(chunk));
-      }
-      const base64Audio = btoa(binary);
-
       console.log('🔄 Sending complete session audio to Whisper...');
       
+      // Create FormData with the audio file for the edge function
+      const formData = new FormData();
+      const audioFile = new File([audioBlob], 'consultation.webm', { type: 'audio/webm' });
+      formData.append('audio', audioFile);
+
       // Use direct Whisper transcription for faster processing
       const response = await fetch('https://dphcnbricafkbtizkoal.functions.supabase.co/functions/v1/test-mp3-transcription', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwaGNuYnJpY2Fma2J0aXprb2FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MzIyMzIsImV4cCI6MjA2ODMwODIzMn0.U3bJI6P1yzgRBz_k2s0zlJGu1GWiVRTHjYgv9QQggPs'
         },
-        body: JSON.stringify({ audio: base64Audio })
+        body: formData
       });
 
       const endTime = Date.now();
@@ -317,9 +309,8 @@ export class UnifiedAudioCapture {
         const errorText = await response.text();
         console.error('❌ Whisper transcription failed:', response.status, errorText);
         
-        // Try alternative transcription method if first attempt fails
-        console.log('🔄 Trying alternative transcription approach...');
-        await this.fallbackDirectWhisper(base64Audio, audioBlob.size, startTime);
+        // Log the error but don't try fallback since we're using the same endpoint
+        console.log('❌ Transcription failed - no fallback available');
       }
       
     } catch (error) {
@@ -327,50 +318,6 @@ export class UnifiedAudioCapture {
     }
   }
 
-  private async fallbackDirectWhisper(base64Audio: string, fileSize: number, startTime: number) {
-    try {
-      console.log('🔄 Using fallback direct Whisper transcription...');
-      
-      // Use the test-mp3-transcription function for direct Whisper
-      const response = await fetch('https://dphcnbricafkbtizkoal.functions.supabase.co/functions/v1/test-mp3-transcription', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwaGNuYnJpY2Fma2J0aXprb2FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MzIyMzIsImV4cCI6MjA2ODMwODIzMn0.U3bJI6P1yzgRBz_k2s0zlJGu1GWiVRTHjYgv9QQggPs'
-        },
-        body: JSON.stringify({ audio: base64Audio })
-      });
-
-      const endTime = Date.now();
-      const processingTime = endTime - startTime;
-      
-      if (response.ok) {
-        const result = await response.json();
-        const transcriptionText = result.text || '';
-        
-        console.log('✅ FALLBACK WHISPER TRANSCRIPTION COMPLETE:', {
-          fileSize: `${fileSize} bytes (${(fileSize / 1024 / 1024).toFixed(2)} MB)`,
-          processingTime: `${processingTime}ms (${(processingTime / 1000).toFixed(1)}s)`,
-          textLength: transcriptionText.length
-        });
-
-        if (this.onTranscript && transcriptionText) {
-          this.onTranscript({
-            text: transcriptionText,
-            speaker: this.systemStream ? 'Mic + Browser (Fallback)' : 'Microphone (Fallback)',
-            confidence: 0.85,
-            timestamp: new Date().toISOString(),
-            isFinal: true,
-            isCompleteSession: true
-          });
-        }
-      } else {
-        console.error('❌ Fallback Whisper also failed:', response.status);
-      }
-    } catch (error) {
-      console.error('❌ Error in fallback Whisper:', error);
-    }
-  }
 
   // DISABLED - No test audio in single session mode
   private async sendTestAudio() {
