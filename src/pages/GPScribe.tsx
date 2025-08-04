@@ -453,22 +453,9 @@ const Index = () => {
     console.log('🚫 Live transcription disabled - single session mode only');
     return;
   };
-    
-    setRealtimeTranscripts(prev => {
-      const filtered = prev.filter(t => 
-        !(t.speaker === transcriptData.speaker && !t.isFinal)
-      );
-      const newTranscripts = [...filtered, transcriptData];
-      
-      if (transcriptData.isFinal) {
-        const finalTranscripts = newTranscripts.filter(t => t.isFinal);
-        const rawTranscript = finalTranscripts
-          .map(t => t.text.trim())
-          .join(' ')
-          .replace(/\s+/g, ' ') // Fix multiple spaces
-          .replace(/\.\s*([a-z])/g, '. $1') // Fix sentence spacing
-          .replace(/([a-z])\.\s*([A-Z])/g, '$1. $2') // Ensure proper sentence breaks
-          .trim();
+  const debouncedGenerateGuidance = (text: string) => {
+    console.log('Single session mode - guidance disabled during recording');
+  };
         
         // Basic immediate cleaning for better readability
         const quickCleanedTranscript = performQuickCleaning(rawTranscript);
