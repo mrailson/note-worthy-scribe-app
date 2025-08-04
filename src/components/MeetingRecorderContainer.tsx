@@ -1,16 +1,14 @@
-import { EnhancedMeetingRecorder } from "./EnhancedMeetingRecorder";
-
-interface MeetingRecorderContainerProps {
-  onTranscriptUpdate: (transcript: string) => void;
-  onDurationUpdate: (duration: string) => void;
-  onWordCountUpdate: (count: number) => void;
-  initialSettings?: {
-    title: string;
-    description: string;
-    meetingType: string;
-  };
-}
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from "sonner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useMeetingRecorder } from '@/hooks/useMeetingRecorder';
+import { AudioControls } from './AudioControls';
+import { TranscriptDisplay } from './TranscriptDisplay';
+import { MeetingSettings } from './MeetingSettings';
+import { MeetingHistoryList } from './MeetingHistoryList';
 
 interface MeetingRecorderContainerProps {
   onTranscriptUpdate: (transcript: string) => void;
