@@ -108,11 +108,8 @@ export class DesktopWhisperTranscriber {
     let nextInterval: number;
     
     if (this.chunkCount === 0) {
-      // First chunk: 5 seconds
-      nextInterval = 5000;
-    } else if (this.chunkCount === 1) {
-      // Second chunk: 15 seconds after first (so 20 seconds total)
-      nextInterval = 15000;
+      // First chunk: 20 seconds
+      nextInterval = 20000;
     } else {
       // Subsequent chunks: 45 seconds
       nextInterval = 45000;
