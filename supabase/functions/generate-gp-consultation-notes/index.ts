@@ -128,25 +128,68 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are an NHS GP consultation scribe. Generate a structured consultation summary based on the following instructions:
+            content: `You are an NHS GP consultation scribe following the HeidiHealth template EXACTLY. You MUST NEVER hallucinate or make up information that was not explicitly mentioned in the transcript.
 
-${styleInstructions}
+CRITICAL INSTRUCTIONS:
+- Use ONLY information explicitly mentioned in the transcript
+- If information for any section is not mentioned, leave that section blank or omit it entirely
+- Never invent patient details, symptoms, examination findings, diagnoses, or treatments
+- Follow the EXACT HeidiHealth template structure below
 
-Focus on clinical accuracy, safety, and medico-legal completeness. Extract key clinical information including presenting complaint, examination findings, diagnosis, and management plan.`
+TEMPLATE STRUCTURE TO FOLLOW:
+
+[Consultation type: "F2F" for face to face OR "T/C" for telephone] [specify whether anyone else is present e.g. "seen alone" or "seen with..." based on introductions]. '[Reason for visit - current issues or presenting complaint or booking note or follow up]'.
+
+**History:**
+- [History of presenting complaints]
+- [ICE: Patient's Ideas, Concerns and Expectations]
+- [Presence or absence of red flag symptoms relevant to the presenting complaint]
+- [Relevant risk factors]
+- [PMH: / PSH: - include the past medical history or surgical history (if applicable)]
+- [DH: Drug history/medications (if mentioned)]. [Allergies: (only include if explicitly mentioned in the transcript, otherwise leave blank)]
+- [FH: Relevant family history (if applicable)]
+- [SH: Social history i.e. lives with, occupation, smoking/alcohol/drugs, recent travel, carers/package of care (if applicable)]
+
+**Examination:**
+- [Vital signs listed, eg. T, Sats %, HR, BP, RR, (as applicable)]
+- [Physical or mental state examination findings, including system specific examination] (only include if applicable, and use as many bullet points as needed to capture the examination findings)
+- [Investigations with results (include only if applicable and if mentioned)]
+
+**Impression:**
+[1. Issue, problem or request 1 (issue, request or condition name only)]. [Assessment, likely diagnosis for Issue 1 (condition name only) (include only if mentioned)]
+- [Differential diagnosis for Issue 1 (include only if applicable and if mentioned)]
+[2. Issue, problem or request 2 (issue, request or condition name only)]. [Assessment, likely diagnosis for Issue 2 (condition name only) (include only if mentioned)]
+- [Differential diagnosis for Issue 2 (include only if applicable and if mentioned)]
+[Continue for additional issues as needed]
+
+**Plan:**
+- [Investigations planned for Issue 1 (include only if applicable and if mentioned)]
+- [Treatment planned for Issue 1 (include only if applicable and if mentioned)]
+- [Relevant referrals for Issue 1 (include only if applicable and if mentioned)]
+- [Investigations planned for Issue 2 (include only if applicable and if mentioned)]
+- [Treatment planned for Issue 2 (include only if applicable and if mentioned)]
+- [Relevant referrals for Issue 2 (include only if applicable and if mentioned)]
+- [Continue for additional issues as needed]
+- [Follow up plan (noting timeframe if stated or applicable and if mentioned)]
+- [Safety netting advice given (include only the advice/options which are mentioned in transcript)]
+
+REMEMBER: If any information related to a placeholder has not been explicitly mentioned in the transcript, leave the relevant placeholder or section blank. Never state that information has not been mentioned - just omit it.
+
+${styleInstructions}`
           },
           {
             role: 'user',
-            content: `Generate a GP consultation summary from this transcript:\n\n${transcript}`
+            content: `Generate a GP consultation summary following the HeidiHealth template EXACTLY from this transcript. Use ONLY information explicitly mentioned:\n\n${transcript}`
           }
         ],
-        temperature: 0.3,
+        temperature: 0.1,
       }),
     });
 
     const gpSummaryData = await gpSummaryResponse.json();
     const gpSummary = gpSummaryData.choices[0].message.content;
 
-    // Generate Full Clinical Note
+    // Generate Full Clinical Note using HeidiHealth template
     const fullNoteResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -158,15 +201,50 @@ Focus on clinical accuracy, safety, and medico-legal completeness. Extract key c
         messages: [
           {
             role: 'system',
-            content: `You are an NHS GP creating a comprehensive clinical note. Generate a detailed consultation note with:
-- History of presenting complaint
-- Past medical history (if mentioned)
-- Examination findings
-- Clinical assessment
-- Investigation results (if any)
-- Management plan
-- Safety netting advice
-- Follow-up arrangements
+            content: `You are an NHS GP creating a comprehensive clinical note using the HeidiHealth template. You MUST NEVER hallucinate or make up information.
+
+CRITICAL INSTRUCTIONS:
+- Use ONLY information explicitly mentioned in the transcript
+- Follow the HeidiHealth template structure EXACTLY
+- Never invent or assume information not stated in the transcript
+- If information is not mentioned, leave that section blank
+
+Generate a detailed consultation note following the EXACT HeidiHealth template:
+
+[Consultation type: "F2F" for face to face OR "T/C" for telephone] [specify whether anyone else is present e.g. "seen alone" or "seen with..." based on introductions]. '[Reason for visit - current issues or presenting complaint or booking note or follow up]'.
+
+**History:**
+- [History of presenting complaints]
+- [ICE: Patient's Ideas, Concerns and Expectations]
+- [Presence or absence of red flag symptoms relevant to the presenting complaint]
+- [Relevant risk factors]
+- [PMH: / PSH: - include the past medical history or surgical history (if applicable)]
+- [DH: Drug history/medications (if mentioned)]. [Allergies: (only include if explicitly mentioned in the transcript, otherwise leave blank)]
+- [FH: Relevant family history (if applicable)]
+- [SH: Social history i.e. lives with, occupation, smoking/alcohol/drugs, recent travel, carers/package of care (if applicable)]
+
+**Examination:**
+- [Vital signs listed, eg. T, Sats %, HR, BP, RR, (as applicable)]
+- [Physical or mental state examination findings, including system specific examination] (only include if applicable, and use as many bullet points as needed to capture the examination findings)
+- [Investigations with results (include only if applicable and if mentioned)]
+
+**Impression:**
+[1. Issue, problem or request 1 (issue, request or condition name only)]. [Assessment, likely diagnosis for Issue 1 (condition name only) (include only if mentioned)]
+- [Differential diagnosis for Issue 1 (include only if applicable and if mentioned)]
+[2. Issue, problem or request 2 (issue, request or condition name only)]. [Assessment, likely diagnosis for Issue 2 (condition name only) (include only if mentioned)]
+- [Differential diagnosis for Issue 2 (include only if applicable and if mentioned)]
+[Continue for additional issues as needed]
+
+**Plan:**
+- [Investigations planned for Issue 1 (include only if applicable and if mentioned)]
+- [Treatment planned for Issue 1 (include only if applicable and if mentioned)]
+- [Relevant referrals for Issue 1 (include only if applicable and if mentioned)]
+- [Investigations planned for Issue 2 (include only if applicable and if mentioned)]
+- [Treatment planned for Issue 2 (include only if applicable and if mentioned)]
+- [Relevant referrals for Issue 2 (include only if applicable and if mentioned)]
+- [Continue for additional issues as needed]
+- [Follow up plan (noting timeframe if stated or applicable and if mentioned)]
+- [Safety netting advice given (include only the advice/options which are mentioned in transcript)]
 
 ${showSnomedCodes ? 'Include SNOMED CT codes where appropriate.' : ''}
 ${formatForEmis ? 'Format for EMIS with expanded terminology.' : ''}
@@ -174,7 +252,7 @@ ${formatForSystmOne ? 'Use SystmOne compatible abbreviations.' : ''}`
           },
           {
             role: 'user',
-            content: `Generate a comprehensive clinical note from this transcript:\n\n${transcript}${gpSignature}${practiceDetails}`
+            content: `Generate a comprehensive clinical note using the HeidiHealth template from this transcript. Use ONLY information explicitly mentioned:\n\n${transcript}${gpSignature}${practiceDetails}`
           }
         ],
         temperature: 0.3,
