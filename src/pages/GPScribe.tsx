@@ -13,11 +13,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Mic, MicOff, Wifi, WifiOff, Brain, Copy, Download, Mail, Save, Play, Pause, FileText, ChevronDown, ChevronUp, Lightbulb, AlertTriangle, BookOpen, Shield, BarChart3, Edit, Check, X, Send, Settings, Languages, Volume2, VolumeX, Stethoscope, Eye, EyeOff, Maximize2, RotateCcw } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
-import { BrowserSpeechTranscriber, TranscriptData as BrowserTranscriptData } from '@/utils/BrowserSpeechTranscriber';
-import { iPhoneWhisperTranscriber, TranscriptData as iPhoneTranscriptData } from '@/utils/iPhoneWhisperTranscriber';
-import { DesktopWhisperTranscriber, TranscriptData as DesktopTranscriptData } from '@/utils/DesktopWhisperTranscriber';
+import { UnifiedAudioCapture } from "@/utils/UnifiedAudioCapture";
 
-  // Enhanced transcript data interface for advanced transcription
+// Simple transcript data interface for single session mode
 interface TranscriptData {
   text: string;
   speaker: string;
@@ -104,9 +102,6 @@ const Index = () => {
   const [isCleaningTranscript, setIsCleaningTranscript] = useState(false);
   const [completedConsultation, setCompletedConsultation] = useState<any>(null);
   
-  // Debug and status states
-  const [debugLog, setDebugLog] = useState<string[]>([]);
-  
   // New consultation setup states
   const [consultationType, setConsultationType] = useState<"face-to-face" | "telephone">("face-to-face");
   const [translationLanguage, setTranslationLanguage] = useState<string>('none');
@@ -164,14 +159,7 @@ const Index = () => {
   });
   
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  
-  // Advanced transcription refs - copied from MeetingRecorder
-  const browserTranscriberRef = useRef<BrowserSpeechTranscriber | null>(null);
-  const iPhoneTranscriberRef = useRef<iPhoneWhisperTranscriber | null>(null);
-  const desktopTranscriberRef = useRef<DesktopWhisperTranscriber | null>(null);
-  const micAudioStreamRef = useRef<MediaStream | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const transciberRef = useRef<UnifiedAudioCapture | null>(null);
 
   const outputLevels = [
     { value: 1, label: "Code", description: "GP shorthand only (e.g., 'URTI, 2/7, safety-netted')" },
@@ -430,12 +418,12 @@ const Index = () => {
     const newMutedState = !isMicMuted;
     setIsMicMuted(newMutedState);
     
-    if (isRecording) {
+    if (transciberRef.current && isRecording) {
       if (newMutedState) {
-        console.log('🔇 Microphone muted - consultation recording continues');
-        // In consultation mode, we don't pause - just indicate muted state
+        console.log('🔇 Microphone muted - single session mode continues recording');
+        // In single session mode, we don't pause - just mute the mic effect
       } else {
-        console.log('🎤 Microphone unmuted - consultation recording continues');
+        console.log('🎤 Microphone unmuted - single session mode continues');
       }
     }
   };
@@ -459,7 +447,7 @@ const Index = () => {
     }
   };
 
-  // Enhanced transcript handling with proper chunk accumulation
+  // Single session mode - only process final transcripts
   const handleTranscript = (transcriptData: TranscriptData) => {
     console.log('🔄 handleTranscript called with:', {
       textLength: transcriptData.text?.length || 0,
@@ -468,98 +456,15 @@ const Index = () => {
       speaker: transcriptData.speaker
     });
     
-    // Update ticker tape for live transcription
-    if (transcriptData.text && transcriptData.text.trim() && tickerEnabled) {
-      const truncatedText = transcriptData.text.length > 100 
-        ? transcriptData.text.substring(0, 100) + "..." 
-        : transcriptData.text;
-      
-      setTickerText(truncatedText);
-      setShowTicker(true);
-      
-      // Auto-hide ticker after 3 seconds if no new text
-      setTimeout(() => {
-        setShowTicker(false);
-      }, 3000);
-    }
-
-    // Update transcripts array - FIXED to properly accumulate chunks
-    setRealtimeTranscripts(prev => {
-      // Only remove non-final transcripts from the same speaker to avoid duplicates
-      // Keep ALL final transcripts (each chunk is a separate final transcript)
-      const filtered = prev.filter(t => 
-        !(t.speaker === transcriptData.speaker && !t.isFinal)
-      );
-      
-      // If this is a final transcript, always add it (don't replace previous final ones)
-      const newTranscripts = [...filtered, transcriptData];
-      
-      console.log('🔍 Adding transcript:', transcriptData.isFinal ? 'FINAL' : 'interim', `(${transcriptData.text.length} chars)`);
-      console.log('🔍 Total transcripts after add:', newTranscripts.length);
-      console.log('🔍 Final transcripts count:', newTranscripts.filter(t => t.isFinal).length);
-      
-      return newTranscripts;
-    });
-    
-    // Process final/complete session transcripts for main transcript - FIXED accumulation
+    // Only process final/complete session transcripts in single session mode
     if (transcriptData.isCompleteSession || transcriptData.isFinal) {
-      console.log('📝 Processing final transcript chunk:', transcriptData.text);
-      
-      // Use a functional update to get the latest state
-      setRealtimeTranscripts(currentTranscripts => {
-        // Get all final transcripts including this new one
-        const allFinalTranscripts = currentTranscripts.filter(t => t.isFinal);
-        if (!allFinalTranscripts.find(t => t.text === transcriptData.text)) {
-          allFinalTranscripts.push(transcriptData);
-        }
-        
-        console.log('📝 Processing', allFinalTranscripts.length, 'final transcript chunks');
-        allFinalTranscripts.forEach((t, i) => {
-          console.log(`📝 Chunk ${i + 1} (${t.text.length} chars):`, t.text.substring(0, 50) + '...');
-        });
-        
-        // Sort by timestamp to maintain chronological order
-        const sortedTranscripts = allFinalTranscripts.sort((a, b) => 
-          new Date(a.timestamp || 0).getTime() - new Date(b.timestamp || 0).getTime()
-        );
-        
-        // Combine all transcripts with a space separator - FIXED to accumulate properly
-        const combinedTranscript = sortedTranscripts.map(t => t.text.trim()).join(' ');
-        
-        console.log('📝 Combined transcript from', sortedTranscripts.length, 'chunks');
-        console.log('📝 Total combined length:', combinedTranscript.length, 'chars');
-        console.log('📝 Combined content preview:', combinedTranscript.substring(0, 200) + '...');
-        
-        // Clean the transcript
-        const cleanedTranscript = combinedTranscript
-          .replace(/Thank you for watching\.?\s*/gi, '')
-          .replace(/Thanks for watching\.?\s*/gi, '')
-          .trim();
-        
-        console.log('📝 Final cleaned transcript length:', cleanedTranscript.length);
-        
-        // Update the main transcript state
-        setTranscript(cleanedTranscript);
-        
-        // Update word count based on combined transcript
-        const words = cleanedTranscript.split(' ').filter(word => word.length > 0);
-        setWordCount(words.length);
-        console.log('✅ Transcript updated - word count:', words.length);
-        
-        // Process translation if enabled
-        if (isTranslationEnabled) {
-          processQuickTranslation(transcriptData);
-        }
-        
-        return currentTranscripts;
-      });
+      console.log('📝 Processing final transcript:', transcriptData.text);
+      setTranscript(transcriptData.text);
+      const words = transcriptData.text.split(' ').filter(word => word.length > 0);
+      setWordCount(words.length);
+      console.log('✅ Transcript set - word count:', words.length);
     } else {
-      console.log('⏳ Processing interim transcript for ticker');
-      
-      // Process translation for interim transcripts too if enabled
-      if (isTranslationEnabled) {
-        processQuickTranslation(transcriptData);
-      }
+      console.log('⏳ Ignoring partial transcript in single session mode');
     }
   };
   const debouncedGenerateGuidance = (text: string) => {
@@ -633,165 +538,20 @@ const Index = () => {
     queueMicrotask(() => setConnectionStatus(status));
   };
 
-  // Debug logging function
-  const addDebugLog = (message: string) => {
-    const timestamp = new Date().toLocaleTimeString();
-    setDebugLog(prev => [...prev.slice(-99), `[${timestamp}] ${message}`]);
-    console.log(message);
-  };
-
-  // Browser compatibility check - copied from MeetingRecorder
-  const checkBrowserSupport = () => {
-    const isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
-    const isEdge = /Edg/.test(navigator.userAgent);
-    const isFirefox = /Firefox/.test(navigator.userAgent);
-    const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    
-    const hasDisplayMedia = navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia;
-    const hasUserMedia = navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
-    const hasMediaRecorder = typeof MediaRecorder !== 'undefined';
-    
-    return {
-      isSupported: hasDisplayMedia && hasUserMedia && hasMediaRecorder,
-      isRecommendedBrowser: isChrome || isEdge || isFirefox,
-      browserName: isChrome ? 'Chrome' : isEdge ? 'Edge' : isFirefox ? 'Firefox' : isSafari ? 'Safari' : 'Unknown',
-      isSafari,
-      isIOS,
-      isMobile
-    };
-  };
-
-  // Handle different transcription types
-  const handleBrowserTranscript = (data: BrowserTranscriptData) => {
-    const transcriptData: TranscriptData = {
-      text: data.text,
-      speaker: data.speaker || 'Speaker',
-      confidence: data.confidence,
-      timestamp: new Date().toISOString(),
-      isFinal: data.is_final,
-      isCompleteSession: false
-    };
-    handleTranscript(transcriptData);
-  };
-
-  const handleiPhoneTranscript = (data: iPhoneTranscriptData) => {
-    const transcriptData: TranscriptData = {
-      text: data.text,
-      speaker: data.speaker || 'Speaker',
-      confidence: data.confidence,
-      timestamp: new Date().toISOString(),
-      isFinal: data.is_final,
-      isCompleteSession: false
-    };
-    handleTranscript(transcriptData);
-  };
-
-  const handleDesktopTranscript = (data: DesktopTranscriptData) => {
-    const transcriptData: TranscriptData = {
-      text: data.text,
-      speaker: data.speaker || 'Speaker',
-      confidence: data.confidence,
-      timestamp: new Date().toISOString(),
-      isFinal: data.is_final,
-      isCompleteSession: false
-    };
-    handleTranscript(transcriptData);
-  };
-
-  // Enhanced microphone transcription - copied from MeetingRecorder
-  const startMicrophoneTranscription = async () => {
-    console.log('🎤 Starting enhanced microphone transcription...');
-    
-    const browserSupport = checkBrowserSupport();
-    console.log('Browser support:', browserSupport);
-    
-    if (browserSupport.isIOS) {
-      // Use iPhone Whisper transcription for iOS devices
-      console.log('📱 Using iPhone Whisper transcription for iOS device...');
-      try {
-        await startIPhoneWhisperTranscription();
-        console.log('✅ iPhone Whisper transcription started successfully');
-      } catch (error) {
-        console.error('❌ iPhone Whisper transcription failed:', error);
-        console.log('🔄 Falling back to desktop Whisper transcription...');
-        toast.info('iPhone transcription failed. Falling back to desktop transcription.');
-        
-        // Fallback to desktop Whisper transcription
-        await startDesktopWhisperTranscription();
-      }
-    } else {
-      // Use desktop Whisper transcription for better accuracy
-      console.log('🖥️ Using Desktop Whisper transcription for desktop/non-iOS device');
-      await startDesktopWhisperTranscription();
-    }
-  };
-
-  // iPhone Whisper transcription
-  const startIPhoneWhisperTranscription = async () => {
-    console.log('📱 Starting iPhone Whisper transcription...');
-    
-    const transcriber = new iPhoneWhisperTranscriber(
-      handleiPhoneTranscript,
-      handleTranscriptionError,
-      handleStatusChange
-    );
-
-    await transcriber.startTranscription();
-    iPhoneTranscriberRef.current = transcriber;
-    
-    console.log('✅ iPhone Whisper transcriber started');
-  };
-
-  // Desktop Whisper transcription with 15-second chunking
-  const startDesktopWhisperTranscription = async () => {
-    console.log('🖥️ Starting Desktop Whisper transcription with 15-second chunks...');
-    addDebugLog('🖥️ Starting Desktop Whisper transcription...');
-    
-    const transcriber = new DesktopWhisperTranscriber(
-      handleDesktopTranscript,
-      handleTranscriptionError,
-      handleStatusChange
-    );
-
-    // Set 15-second chunking for optimal consultation transcription
-    await transcriber.startTranscription(); // Use default settings
-    desktopTranscriberRef.current = transcriber;
-    
-    console.log('✅ Desktop Whisper transcriber started with 15-second chunking');
-    addDebugLog('✅ Desktop Whisper transcriber started with 15-second chunking');
-  };
-
-  // Browser speech transcription fallback
-  const startBrowserSpeechTranscription = async () => {
-    console.log('🌐 Starting browser speech transcription...');
-    
-    const transcriber = new BrowserSpeechTranscriber(
-      handleBrowserTranscript,
-      handleTranscriptionError,
-      handleStatusChange
-    );
-
-    await transcriber.startTranscription();
-    browserTranscriberRef.current = transcriber;
-    
-    console.log('✅ Browser speech transcriber started');
-  };
-
   const startRecording = async () => {
     try {
-      console.log('🚀 Starting consultation recording with enhanced transcription...');
+      transciberRef.current = new UnifiedAudioCapture(
+        handleTranscript,
+        handleTranscriptionError,
+        handleStatusChange
+      );
       
-      // Start enhanced microphone transcription
-      await startMicrophoneTranscription();
+      await transciberRef.current.startCapture('mic-only'); // Use mic-only for single session mode
       
       setIsRecording(true);
       setIsPaused(false);
       setTranscript(""); // Clear previous transcript
-      setRealtimeTranscripts([]); // Clear previous realtime transcripts
       setDuration(0); // Reset duration counter
-      setConnectionStatus("Connected");
       console.log("Starting recording - duration reset to 0");
       
       intervalRef.current = setInterval(() => {
@@ -803,13 +563,9 @@ const Index = () => {
       }, 1000);
 
       // Recording started for consultation
-      toast.success('Consultation recording started with enhanced transcription!');
 
-    } catch (error: any) {
-      console.error("Failed to start recording:", error);
-      toast.error(error.message || 'Failed to start consultation recording');
-      setIsRecording(false);
-      setConnectionStatus("Error");
+    } catch (error) {
+      console.error("Failed to start recording");
     }
   };
 
@@ -822,7 +578,7 @@ const Index = () => {
     }
   };
 
-  const stopRecording = async () => {
+  const stopRecording = () => {
     console.log("stopRecording called");
     console.log("Current duration when stopping:", duration);
     console.log("Duration state:", duration);
@@ -841,37 +597,11 @@ const Index = () => {
     setIsRecording(false);
     setIsPaused(false);
     
-    // Stop enhanced transcription services
-    console.log("🛑 Stopping consultation recording...");
-    
-    // Stop microphone stream
-    if (micAudioStreamRef.current) {
-      micAudioStreamRef.current.getTracks().forEach(track => track.stop());
-      micAudioStreamRef.current = null;
-    }
-    
-    // Stop browser transcriber
-    if (browserTranscriberRef.current) {
-      browserTranscriberRef.current.stopTranscription();
-      browserTranscriberRef.current = null;
-    }
-    
-    // Stop iPhone transcriber
-    if (iPhoneTranscriberRef.current) {
-      iPhoneTranscriberRef.current.stopTranscription();
-      iPhoneTranscriberRef.current = null;
-    }
-    
-    // Stop desktop transcriber
-    if (desktopTranscriberRef.current) {
-      await desktopTranscriberRef.current.stopTranscription();
-      desktopTranscriberRef.current = null;
-    }
-    
-    // Stop audio context
-    if (audioContextRef.current) {
-      audioContextRef.current.close();
-      audioContextRef.current = null;
+    // Stop the unified audio capture 
+    if (transciberRef.current) {
+      console.log("🛑 Stopping single session recording...");
+      transciberRef.current.stopCapture(); // This will trigger the final transcription
+      transciberRef.current = null;
     }
     
     // Conditional delay based on recording duration

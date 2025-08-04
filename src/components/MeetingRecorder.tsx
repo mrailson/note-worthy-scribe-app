@@ -1685,9 +1685,6 @@ export const MeetingRecorder = ({
           )
         `)
         .eq('user_id', user.id)
-        .not('meeting_type', 'eq', 'gp-consultation') // Exclude GP consultations
-        .not('meeting_type', 'eq', 'consultation') // Exclude consultations  
-        .not('title', 'ilike', '%GP Consultation%') // Exclude by title pattern
         .order('created_at', { ascending: false })
         .limit(10);
 

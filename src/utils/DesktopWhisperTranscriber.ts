@@ -43,11 +43,10 @@ export class DesktopWhisperTranscriber {
       this.onStatusChange('Starting desktop Whisper transcription...');
       console.log('🖥️ Starting Desktop Whisper transcription...');
 
-      // Request microphone access with strict microphone-only settings
+      // Request microphone access with desktop-optimized settings
       this.stream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          deviceId: 'default', // Use default microphone only
-          sampleRate: 16000, // Standard rate for speech
+          sampleRate: 24000, // Higher quality for desktop
           channelCount: 1,
           echoCancellation: true,
           noiseSuppression: true,
@@ -198,38 +197,7 @@ export class DesktopWhisperTranscriber {
       }
 
       if (data.text && data.text.trim()) {
-        const rawText = data.text.trim();
-        
-        // Only filter out exact matches of common system audio artifacts - very conservative filtering
-        const isSystemArtifact = (
-          rawText === "This meeting is being recorded in English." ||
-          rawText === "This meeting is being recorded." ||
-          rawText === "Please use headphones or earphones for better experience." ||
-          rawText === "Please use earphones or headphones for better experience." ||
-          rawText === "Meeting recording in progress." ||
-          rawText === "Recording started." ||
-          rawText === "Recording in English."
-        );
-        
-        // Additional check for exact repetitive content only (same sentence repeated 4+ times in a row)
-        let isExactRepetition = false;
-        if (rawText.includes('.')) {
-          const sentences = rawText.split('.').map(s => s.trim()).filter(s => s);
-          if (sentences.length >= 4) {
-            const firstSentence = sentences[0].toLowerCase();
-            const allIdentical = sentences.every(s => s.toLowerCase() === firstSentence);
-            if (allIdentical) {
-              isExactRepetition = true;
-            }
-          }
-        }
-        
-        if (isSystemArtifact || isExactRepetition) {
-          console.log(`🚫 Filtering out system artifact/repetition: "${rawText}"`);
-          return; // Skip this transcription
-        }
-        
-        const cleanText = rawText;
+        const cleanText = data.text.trim();
         
         // Store transcription internally
         this.allTranscriptions.push(cleanText);
