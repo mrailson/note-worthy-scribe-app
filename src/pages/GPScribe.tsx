@@ -657,26 +657,27 @@ const Index = () => {
       
       console.log("Duration check passed, proceeding with navigation...");
       
-      // Auto-generate summary if there's meaningful content and navigate to consultation summary
+      // Navigate immediately to consultation summary without waiting for generation
+      console.log("Navigating immediately to consultation summary...");
+      const consultationData = {
+        id: `consultation-${Date.now()}`,
+        title: `GP Consultation - ${format(new Date(), "do MMMM yyyy 'at' h.mm a")}`,
+        type: consultationType,
+        transcript: transcript || '',
+        duration: formatDuration(duration),
+        wordCount: transcript ? transcript.split(' ').filter(word => word.length > 0).length : 0,
+        startTime: new Date().toISOString(),
+        isExample: false
+      };
+      
+      console.log("Navigating with data:", consultationData);
+      navigate('/consultation-summary', { state: consultationData });
+      
+      // Start background generation if there's meaningful content
       if (transcript && transcript.trim().length > 50) {
-        console.log("Generating summary...");
-        setTimeout(() => generateSummary(), 100); // Reduced delay for faster response
-      } else {
-        console.log("Navigating directly to consultation summary...");
-        // Even if no meaningful content, navigate to consultation summary with basic data
-        const consultationData = {
-          id: `consultation-${Date.now()}`,
-          title: `GP Consultation - ${format(new Date(), "do MMMM yyyy 'at' h.mm a")}`,
-          type: 'gp_consultation',
-          transcript: transcript || '',
-          duration: formatDuration(duration),
-          wordCount: transcript ? transcript.split(' ').filter(word => word.length > 0).length : 0,
-          startTime: new Date().toISOString(),
-          isExample: false
-        };
-        
-        console.log("Navigating with data:", consultationData);
-        navigate('/consultation-summary', { state: consultationData });
+        console.log("Starting background generation...");
+        // Don't await this - let it run in background
+        generateSummaryBackground();
       }
     }, delayTime);
   };
@@ -880,6 +881,44 @@ const Index = () => {
       console.error(`Error generating summary: ${error.message}`);
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  // Background generation that doesn't block navigation
+  const generateSummaryBackground = async () => {
+    const transcriptToUse = cleanedTranscript || transcript;
+    
+    if (!transcriptToUse.trim()) {
+      console.error("No transcript available to generate summary");
+      return;
+    }
+
+    console.log("Starting background generation of consultation notes...");
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-gp-consultation-notes', {
+        body: {
+          transcript: transcriptToUse,
+          outputLevel,
+          showSnomedCodes,
+          formatForEmis,
+          formatForSystmOne,
+          consultationType: consultationType,
+          userId: user?.id
+        }
+      });
+
+      if (error) throw error;
+
+      // Save to history for future reference
+      await saveToHistory(data);
+      
+      console.log("Background generation completed successfully");
+      toast.success("Consultation notes generated and saved to history");
+      
+    } catch (error: any) {
+      console.error(`Error generating summary in background: ${error.message}`);
+      toast.error("Failed to generate consultation notes in background");
     }
   };
 
