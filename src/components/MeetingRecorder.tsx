@@ -1438,64 +1438,33 @@ export const MeetingRecorder = ({
     const needsAudioBackup = shouldCreateAudioBackup(wordCount, duration);
     console.log(`📊 Audio backup needed: ${needsAudioBackup}`);
     
-    // Wait for any pending transcriptions with more aggressive polling
-    console.log('🔍 DEBUG: Waiting for any final transcriptions...');
-    let previousTranscriptCount = realtimeTranscripts.filter(t => t.isFinal).length;
-    let stableCount = 0;
-    const maxWaitTime = 15000; // Maximum 15 seconds
-    const startWaitTime = Date.now();
+    // Instead of complex polling, use a more reliable approach:
+    // Wait for the transcriber to fully stop and process final chunks
+    console.log('🔍 DEBUG: Waiting for transcriber to fully stop...');
     
-    while (Date.now() - startWaitTime < maxWaitTime && stableCount < 5) {
-      await new Promise(resolve => setTimeout(resolve, 500)); // Check every 500ms instead of 1000ms
-      const currentTranscriptCount = realtimeTranscripts.filter(t => t.isFinal).length;
-      
-      if (currentTranscriptCount === previousTranscriptCount) {
-        stableCount++;
-        console.log(`🔍 DEBUG: Transcript count stable (${currentTranscriptCount}) for ${stableCount}/5 checks`);
-      } else {
-        console.log(`🔍 DEBUG: New transcript received! Count: ${previousTranscriptCount} → ${currentTranscriptCount}`);
-        console.log(`🔍 DEBUG: Latest transcript: "${realtimeTranscripts[realtimeTranscripts.length - 1]?.text.substring(0, 100)}..."`);
-        previousTranscriptCount = currentTranscriptCount;
-        stableCount = 0;
-      }
-    }
+    // Give extra time for any final transcriptions to complete
+    await new Promise(resolve => setTimeout(resolve, 5000));
     
-    console.log(`🔍 DEBUG: Finished waiting after ${Date.now() - startWaitTime}ms, final count: ${realtimeTranscripts.filter(t => t.isFinal).length}`);
+    // Get final transcript from the accumulated transcript state instead of relying on individual chunks
+    let finalTranscript = transcript.trim();
     
-    // Get ALL transcripts to combine them manually at stop time
-    const allFinalTranscripts = realtimeTranscripts.filter(t => t.isFinal);
-    console.log('🔍 DEBUG: All final transcripts at stop time:', allFinalTranscripts.length);
-    allFinalTranscripts.forEach((t, i) => {
-      console.log(`🔍 DEBUG: Transcript ${i + 1}: ${t.text.length} chars - "${t.text.substring(0, 100)}..."`);
-    });
-    
-    // ALSO get all transcripts regardless of final status for comparison
+    // If the main transcript seems incomplete, also check realtimeTranscripts as backup
     const allTranscripts = realtimeTranscripts;
-    console.log('🔍 DEBUG: ALL transcripts (final + non-final):', allTranscripts.length);
-    allTranscripts.forEach((t, i) => {
-      console.log(`🔍 DEBUG: All-Transcript ${i + 1} (final:${t.isFinal}): ${t.text.length} chars - "${t.text.substring(0, 100)}..."`);
-    });
+    console.log(`🔍 DEBUG: Main transcript length: ${finalTranscript.length}`);
+    console.log(`🔍 DEBUG: Available transcript chunks: ${allTranscripts.length}`);
     
-    // Manually combine all transcripts at stop time (don't rely on state or ref)
-    let finalCombinedTranscript = '';
-    if (allFinalTranscripts.length === 0) {
-      // If no final transcripts, use ALL transcripts
-      console.log('🔍 DEBUG: No final transcripts found, using all transcripts');
-      const sortedAllTranscripts = allTranscripts.sort((a, b) => 
+    // If we have transcript chunks and the main transcript is short, combine them
+    if (allTranscripts.length > 0 && finalTranscript.length < 500) {
+      console.log('🔍 DEBUG: Main transcript seems short, combining chunks...');
+      const sortedTranscripts = allTranscripts.sort((a, b) => 
         new Date(a.timestamp || 0).getTime() - new Date(b.timestamp || 0).getTime()
       );
-      finalCombinedTranscript = sortedAllTranscripts.map(t => t.text.trim()).join(' ');
-    } else if (allFinalTranscripts.length === 1) {
-      finalCombinedTranscript = allFinalTranscripts[0].text;
-    } else {
-      const sortedTranscripts = allFinalTranscripts.sort((a, b) => 
-        new Date(a.timestamp || 0).getTime() - new Date(b.timestamp || 0).getTime()
-      );
-      finalCombinedTranscript = sortedTranscripts.map(t => t.text.trim()).join(' ');
+      finalTranscript = sortedTranscripts.map(t => t.text.trim()).join(' ');
+      console.log(`🔍 DEBUG: Combined transcript length: ${finalTranscript.length}`);
     }
     
     // Clean the final transcript
-    const currentTranscript = finalCombinedTranscript
+    const currentTranscript = finalTranscript
       .replace(/Thank you for watching\.?\s*/gi, '')
       .replace(/Thanks for watching\.?\s*/gi, '')
       .trim();
