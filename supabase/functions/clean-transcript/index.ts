@@ -26,6 +26,8 @@ serve(async (req) => {
     }
 
     console.log('Cleaning transcript for:', meetingTitle || 'Meeting');
+    console.log('🔍 Input transcript length:', rawTranscript.length);
+    console.log('🔍 Input transcript ending:', rawTranscript.slice(-200));
 
     const systemPrompt = `You are an expert transcript cleaner and formatter. Your task is to take raw, unformatted speech-to-text transcripts and transform them into clean, readable, professional text. 
 
@@ -58,6 +60,10 @@ Do NOT:
 - Add speaker labels or names
 - Create bullet points unless the speaker clearly indicated them
 - Make assumptions about who said what
+- Remove or truncate any part of the conversation
+- Cut off the transcript early
+
+CRITICAL: You MUST preserve the ENTIRE conversation. Do not truncate, shorten, or cut off any part of the transcript. Return the complete cleaned version of the entire input.
 
 Return only the cleaned transcript without any additional commentary.`;
 
@@ -72,7 +78,7 @@ ${rawTranscript}`;
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini', // Use the correct model
+        model: 'gpt-4.1-2025-04-14', // Revert to correct model
         messages: [
           {
             role: 'system',
@@ -84,7 +90,7 @@ ${rawTranscript}`;
           }
         ],
         temperature: 0.3, // Lower temperature for more consistent formatting
-        max_tokens: 16384 // Maximum for gpt-4o-mini to handle very long transcripts
+        max_tokens: 16384 // Maximum output tokens
       }),
     });
 
@@ -98,6 +104,8 @@ ${rawTranscript}`;
     const cleanedTranscript = data.choices[0].message.content;
 
     console.log('Successfully cleaned transcript');
+    console.log('🔍 Output transcript length:', cleanedTranscript.length);
+    console.log('🔍 Output transcript ending:', cleanedTranscript.slice(-200));
 
     return new Response(JSON.stringify({ 
       cleanedTranscript,
