@@ -105,6 +105,10 @@ export default function ConsultationSummary() {
 
   // Patient copy sub-tab state
   const [patientCopyTab, setPatientCopyTab] = useState("sms"); // "sms" or "email"
+  
+  // Transcript sub-tab state  
+  const [transcriptTab, setTranscriptTab] = useState("original"); // "original" or "tidied"
+  const [cleanedTranscript, setCleanedTranscript] = useState("");
 
   // Ask AI state
   const [isAskAIOpen, setIsAskAIOpen] = useState(false);
@@ -168,6 +172,13 @@ export default function ConsultationSummary() {
       navigate('/gp-scribe');
     }
   }, [location.state, navigate]);
+
+  // Generate cleaned transcript when tidied tab is first accessed
+  useEffect(() => {
+    if (transcriptTab === "tidied" && !cleanedTranscript && consultationData?.transcript) {
+      generateCleanedTranscript();
+    }
+  }, [transcriptTab, cleanedTranscript, consultationData?.transcript]);
 
   // Generate different note levels based on the original content
   const generateNoteLevelContent = (originalContent: string, level: number): string => {
@@ -343,6 +354,31 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
     } catch (error: any) {
       console.error('Error generating notes:', error);
       toast.error('Failed to generate consultation notes');
+    }
+  };
+
+  // Generate cleaned transcript
+  const generateCleanedTranscript = async () => {
+    if (!consultationData?.transcript) return;
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('clean-transcript', {
+        body: {
+          transcript: consultationData.transcript,
+          consultationType: consultationData.type || 'gp_consultation'
+        }
+      });
+
+      if (error) {
+        console.error('Error cleaning transcript:', error);
+        toast.error('Failed to clean transcript');
+        return;
+      }
+
+      setCleanedTranscript(data.cleanedTranscript || 'No cleaned transcript available');
+    } catch (error: any) {
+      console.error('Error cleaning transcript:', error);
+      toast.error('Failed to clean transcript');
     }
   };
 
@@ -1621,11 +1657,50 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                   </Button>
                 </CollapsibleTrigger>
                 <CollapsibleContent className="mt-3 sm:mt-4">
-                  <div className="bg-muted/30 rounded-lg p-3 sm:p-4 border max-h-[50vh] sm:max-h-[400px] overflow-y-auto">
-                    <pre className="whitespace-pre-wrap text-xs sm:text-sm font-mono leading-relaxed">
-                      {consultationData.transcript}
-                    </pre>
-                  </div>
+                  {/* Transcript Sub-tabs */}
+                  <Tabs value={transcriptTab} onValueChange={setTranscriptTab} className="w-full">
+                    <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-1 rounded-xl mb-4">
+                      <TabsTrigger 
+                        value="original" 
+                        className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-blue-700 data-[state=active]:font-semibold"
+                      >
+                        <FileText className="h-4 w-4 mr-2" />
+                        Original
+                      </TabsTrigger>
+                      <TabsTrigger 
+                        value="tidied" 
+                        className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-blue-700 data-[state=active]:font-semibold"
+                      >
+                        <Sparkles className="h-4 w-4 mr-2" />
+                        Tidied
+                      </TabsTrigger>
+                    </TabsList>
+
+                    {/* Original Transcript */}
+                    <TabsContent value="original">
+                      <div className="bg-muted/30 rounded-lg p-3 sm:p-4 border max-h-[50vh] sm:max-h-[400px] overflow-y-auto">
+                        <pre className="whitespace-pre-wrap text-xs sm:text-sm font-mono leading-relaxed">
+                          {consultationData.transcript}
+                        </pre>
+                      </div>
+                    </TabsContent>
+
+                    {/* Tidied Transcript */}
+                    <TabsContent value="tidied">
+                      <div className="bg-muted/30 rounded-lg p-3 sm:p-4 border max-h-[50vh] sm:max-h-[400px] overflow-y-auto">
+                        {cleanedTranscript ? (
+                          <div className="whitespace-pre-wrap text-xs sm:text-sm leading-relaxed">
+                            {cleanedTranscript}
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-center py-8">
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                            <span className="ml-2 text-sm text-muted-foreground">Tidying transcript...</span>
+                          </div>
+                        )}
+                      </div>
+                    </TabsContent>
+                  </Tabs>
                 </CollapsibleContent>
               </Collapsible>
             </div>
