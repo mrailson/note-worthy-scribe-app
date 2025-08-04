@@ -1141,7 +1141,7 @@ export const MeetingRecorder = ({
         text: data.text,
         is_final: true,
         confidence: 0.95,
-        speaker: 'Mixed Audio'
+        speaker: 'Speaker'
       });
 
     } catch (error) {

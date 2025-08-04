@@ -420,7 +420,7 @@ export class RealtimeTranscriber {
                 this.onStatusChange('Transcription active');
                 this.onTranscript({
                   text: text,
-                  speaker: 'Mixed Audio',
+                  speaker: 'Speaker',
                   confidence: result.confidence || 0.85,
                   timestamp: new Date().toISOString(),
                   isFinal: true,
