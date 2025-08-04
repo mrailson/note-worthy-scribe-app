@@ -213,20 +213,19 @@ export class UnifiedAudioCapture {
       if (event.data.size > 0) {
         this.audioChunks.push(event.data);
         console.log(`Audio chunk ${this.audioChunks.length} collected:`, event.data.size, 'bytes');
-        
-        // Don't process until we have a substantial chunk for better context
-        // Let the scheduled processing handle large chunks for accuracy
+        // Collecting all audio for end-of-session transcription
       }
     };
 
     this.mediaRecorder.onstop = () => {
+      // Only transcribe when recording actually stops (end of session)
+      console.log('Recording stopped - processing complete session audio');
       this.processAudioChunks();
     };
 
-    // Start recording with data collection optimized for larger chunks
-    this.mediaRecorder.start(1000); // Collect data every second for large chunk processing
+    // Start continuous recording - no scheduled stops
+    this.mediaRecorder.start(); // Continuous recording until manually stopped
     this.isRecording = true;
-    this.scheduleProcessing();
   }
 
   private isLikelyHallucination(text: string): boolean {
@@ -267,22 +266,8 @@ export class UnifiedAudioCapture {
   }
 
   private scheduleProcessing() {
-    if (!this.isRecording) return;
-
-    // Use much larger chunks for better context and accuracy
-    setTimeout(() => {
-      if (this.isRecording && this.mediaRecorder?.state === 'recording') {
-        console.log('Stopping current recording chunk for processing...');
-        this.mediaRecorder.stop();
-        
-        // Restart recording immediately with no gap
-        setTimeout(() => {
-          if (this.isRecording && this.combinedStream) {
-            this.startRecording();
-          }
-        }, 50); // Small delay to ensure clean chunk separation
-      }
-    }, 45000); // 45-second chunks for much better context and accuracy
+    // No chunking - we'll transcribe everything at the end for maximum accuracy
+    console.log('Single session recording mode - no chunking scheduled');
   }
 
   private async processAudioChunks() {
@@ -298,9 +283,9 @@ export class UnifiedAudioCapture {
       // Clear chunks for next batch
       this.audioChunks = [];
 
-      // Only process substantial chunks (45-second chunks should be much larger)
-      if (audioBlob.size < 50000) { // Increased threshold for larger chunks
-        console.log('Skipping small audio chunk (likely silence or very brief speech)');
+      // Process all audio at end of session regardless of size
+      if (audioBlob.size < 100) { // Only skip if truly empty
+        console.log('Skipping empty audio chunk');
         return;
       }
 
