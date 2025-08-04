@@ -376,10 +376,18 @@ export const MeetingRecorder = ({
 
     // Update transcripts array
     setRealtimeTranscripts(prev => {
+      // Only remove non-final transcripts from the same speaker to avoid duplicates
+      // Keep ALL final transcripts (each chunk is a separate final transcript)
       const filtered = prev.filter(t => 
         !(t.speaker === transcriptData.speaker && !t.isFinal)
       );
+      
+      // If this is a final transcript, always add it (don't replace previous final ones)
       const newTranscripts = [...filtered, transcriptData];
+      
+      console.log('🔍 Adding transcript:', transcriptData.isFinal ? 'FINAL' : 'interim', `(${transcriptData.text.length} chars)`);
+      console.log('🔍 Total transcripts after add:', newTranscripts.length);
+      console.log('🔍 Final transcripts count:', newTranscripts.filter(t => t.isFinal).length);
       
       // Calculate speaker count from the new array
       const speakers = new Set(newTranscripts.map(t => t.speaker));
