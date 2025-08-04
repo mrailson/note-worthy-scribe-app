@@ -1776,7 +1776,6 @@ export const MeetingRecorder = ({
             overview: meeting.meeting_overviews?.overview || null
           };
           
-          // Debug log to check overview data
           console.log('Meeting with overview:', {
             id: meeting.id,
             title: meeting.title,
@@ -1796,6 +1795,114 @@ export const MeetingRecorder = ({
       setLoadingHistory(false);
     }
   };
+
+  // Reset function for easy testing
+  const resetRecorder = async () => {
+    addDebugLog('🔄 Resetting recorder...');
+    console.log('Resetting recorder...');
+    
+    try {
+      // Stop recording if it's active
+      if (isRecording) {
+        await stopRecording();
+      }
+      
+      // Clear all state
+      setDuration(0);
+      setTranscript("");
+      setRealtimeTranscripts([]);
+      setConnectionStatus("Disconnected");
+      setSpeakerCount(0);
+      setWordCount(0);
+      setStartTime("");
+      setLiveSummary("");
+      setDebugLog([]);
+      setTestTranscripts([]);
+      setTickerText("");
+      setShowTicker(false);
+      
+      // Reset meeting settings to defaults
+      setMeetingSettings({
+        title: "General Meeting",
+        description: "",
+        meetingType: "general"
+      });
+      
+      // Clear audio streams
+      if (micAudioStreamRef.current) {
+        micAudioStreamRef.current.getTracks().forEach(track => track.stop());
+        micAudioStreamRef.current = null;
+      }
+      
+      if (screenStreamRef.current) {
+        screenStreamRef.current.getTracks().forEach(track => track.stop());
+        screenStreamRef.current = null;
+      }
+      
+      if (audioBackupStream.current) {
+        audioBackupStream.current.getTracks().forEach(track => track.stop());
+        audioBackupStream.current = null;
+      }
+      
+      // Clear timers
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      
+      if (autoSaveRef.current) {
+        clearTimeout(autoSaveRef.current);
+        autoSaveRef.current = null;
+      }
+      
+      // Clear transcriber refs
+      browserTranscriberRef.current = null;
+      iPhoneTranscriberRef.current = null;
+      desktopTranscriberRef.current = null;
+      
+      // Clear session storage
+      sessionStorage.removeItem('currentSessionId');
+      
+      // Reset component state
+      setIsRecording(false);
+      
+      // Notify parent components
+      onTranscriptUpdate("");
+      onDurationUpdate("00:00");
+      onWordCountUpdate(0);
+      
+      toast.success('Recorder reset successfully');
+      addDebugLog('✅ Recorder reset complete');
+      
+    } catch (error: any) {
+      console.error('Error resetting recorder:', error);
+      addDebugLog(`❌ Reset error: ${error.message}`);
+      toast.error('Failed to reset recorder');
+    }
+  };
+
+  // Load history when user changes or component mounts
+  useEffect(() => {
+    if (user) {
+      loadMeetingHistory();
+    }
+  }, [user]);
+
+  // Filter meetings based on search query
+  useEffect(() => {
+    let filtered = meetings;
+    
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = meetings.filter(meeting =>
+        meeting.title.toLowerCase().includes(query) ||
+        meeting.description?.toLowerCase().includes(query) ||
+        meeting.meeting_type.toLowerCase().includes(query)
+      );
+    }
+    
+    setFilteredMeetings(filtered);
+  }, [meetings, searchQuery]);
 
   // Load history when user changes or component mounts
   useEffect(() => {
@@ -1997,7 +2104,7 @@ export const MeetingRecorder = ({
 
                 <div className="text-center">
                   {!isRecording ? (
-                    <div className="space-y-2">
+                    <div className="space-y-4">
                       <Button 
                         onClick={startRecording}
                         size="lg"
@@ -2005,6 +2112,16 @@ export const MeetingRecorder = ({
                       >
                         <Mic className="h-5 w-5 mr-2" />
                         Start Recording
+                      </Button>
+                      
+                      <Button 
+                        onClick={resetRecorder}
+                        variant="outline"
+                        size="sm"
+                        className="text-orange-600 border-orange-300 hover:bg-orange-50 hover:border-orange-400 transition-colors"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Reset Recorder
                       </Button>
                     </div>
                   ) : (
