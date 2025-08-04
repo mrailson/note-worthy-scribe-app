@@ -456,33 +456,6 @@ const Index = () => {
   const debouncedGenerateGuidance = (text: string) => {
     console.log('Single session mode - guidance disabled during recording');
   };
-        
-        // Basic immediate cleaning for better readability
-        const quickCleanedTranscript = performQuickCleaning(rawTranscript);
-        setTranscript(quickCleanedTranscript);
-        
-        const words = quickCleanedTranscript.split(' ').filter(word => word.length > 0);
-        setWordCount(words.length);
-        
-        // Auto-clean transcript when it reaches meaningful length
-        if (quickCleanedTranscript.length > 300) {
-          debounceAutoCleaning(quickCleanedTranscript);
-        }
-        
-        // Auto-trigger guidance if enabled and transcript is meaningful
-        if (autoGuidance && quickCleanedTranscript.length > 200 && words.length > 30) {
-          debounceGuidance(quickCleanedTranscript);
-        }
-      }
-      
-      // Process translation immediately for both partial and final transcripts
-      if (isTranslationEnabled && translationLanguage !== 'none' && transcriptData.text.trim().length > 10) {
-        processQuickTranslation(transcriptData);
-      }
-      
-      return newTranscripts;
-    });
-  };
 
   // Quick cleaning function for immediate text improvement
   const performQuickCleaning = (text: string): string => {
