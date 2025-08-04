@@ -465,8 +465,12 @@ const Index = () => {
       if (transcriptData.isFinal) {
         const finalTranscripts = newTranscripts.filter(t => t.isFinal);
         const rawTranscript = finalTranscripts
-          .map(t => t.text)
-          .join(' ');
+          .map(t => t.text.trim())
+          .join(' ')
+          .replace(/\s+/g, ' ') // Fix multiple spaces
+          .replace(/\.\s*([a-z])/g, '. $1') // Fix sentence spacing
+          .replace(/([a-z])\.\s*([A-Z])/g, '$1. $2') // Ensure proper sentence breaks
+          .trim();
         
         // Basic immediate cleaning for better readability
         const quickCleanedTranscript = performQuickCleaning(rawTranscript);
@@ -503,6 +507,18 @@ const Index = () => {
       .replace(/([,.!?;:])\s+/g, '$1 ')
       // Fix multiple spaces
       .replace(/\s+/g, ' ')
+      // Fix broken sentences from chunking (e.g., "word. New" should be "word. New")
+      .replace(/([a-z])\.\s*([A-Z])/g, '$1. $2')
+      // Fix incomplete words at chunk boundaries (basic pattern matching)
+      .replace(/\b([a-z]+)\s+([a-z]{1,3})\b/g, (match, word1, word2) => {
+        // If second word is very short and could be completion of first word
+        if (word2.length <= 3 && !['a', 'an', 'at', 'be', 'by', 'do', 'go', 'he', 'if', 'in', 'is', 'it', 'me', 'my', 'no', 'of', 'on', 'or', 'so', 'to', 'up', 'we'].includes(word2)) {
+          return word1 + word2;
+        }
+        return match;
+      })
+      // Fix sentence fragments caused by chunking
+      .replace(/\.\s*([a-z])/g, (match, letter) => '. ' + letter.toUpperCase())
       // Capitalize sentences
       .replace(/(^|[.!?]\s+)([a-z])/g, (match, p1, p2) => p1 + p2.toUpperCase())
       // Fix common speech recognition errors
