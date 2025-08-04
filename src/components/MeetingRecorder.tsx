@@ -1452,12 +1452,15 @@ export const MeetingRecorder = ({
     
     // Get session ID from storage (reliable even if transcriber is cleaned up)
     let sessionId = sessionStorage.getItem('currentSessionId') || '';
+    console.log(`🔍 DEBUG: Session ID from storage: "${sessionId}"`);
     
     // Also try to get from transcriber if available
     if (desktopTranscriberRef.current) {
       const transcriberSessionId = desktopTranscriberRef.current.getSessionId();
+      console.log(`🔍 DEBUG: Session ID from transcriber: "${transcriberSessionId}"`);
       if (transcriberSessionId) {
         sessionId = transcriberSessionId;
+        console.log(`🔍 DEBUG: Using transcriber session ID: "${sessionId}"`);
       }
       
       // Try transcriber method first
@@ -1482,10 +1485,12 @@ export const MeetingRecorder = ({
         if (!error && data && data.length > 0) {
           finalTranscript = data.map(chunk => chunk.transcription_text).join(' ').trim();
           console.log(`🔍 DEBUG: Database transcript direct query: ${finalTranscript.length} chars, ${data.length} chunks`);
+          console.log(`🔍 DEBUG: Chunk details:`, data.map(chunk => `Chunk ${chunk.chunk_number}: ${chunk.transcription_text.substring(0, 50)}...`));
           console.log(`🔍 DEBUG: Direct query preview: "${finalTranscript.substring(0, 200)}..."`);
           console.log(`🔍 DEBUG: Direct query ending: "${finalTranscript.slice(-200)}"`);
         } else {
           console.log('🔍 DEBUG: No chunks found in database for session:', sessionId, 'Error:', error);
+          console.log('🔍 DEBUG: Query data result:', data);
         }
       } catch (dbError) {
         console.error('❌ Direct database query failed:', dbError);
