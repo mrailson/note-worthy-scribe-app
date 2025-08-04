@@ -201,7 +201,7 @@ export class DesktopWhisperTranscriber {
     }
   }
 
-  async stopTranscription() {
+  async stopTranscription(): Promise<void> {
     console.log('🛑 Stopping desktop Whisper transcription...');
     
     if (this.transcriptionTimeout) {
@@ -220,11 +220,13 @@ export class DesktopWhisperTranscriber {
     // Now stop the recording flag
     this.isRecording = false;
 
-    // Force process any remaining audio chunks
+    // Force process any remaining audio chunks and wait for completion
     if (this.audioChunks.length > 0) {
       console.log(`🔄 Processing final audio chunk (${this.audioChunks.length} chunks)...`);
       this.chunkCount++; // Increment for final chunk
       await this.processAudioChunks();
+      // Additional wait to ensure transcription callback is processed
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
     if (this.stream) {
@@ -237,6 +239,8 @@ export class DesktopWhisperTranscriber {
     this.overlapBuffer = [];
     this.chunkCount = 0;
     this.onStatusChange('Stopped');
+    
+    console.log('✅ Desktop Whisper transcription fully stopped');
   }
 
   isActive(): boolean {

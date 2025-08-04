@@ -1352,9 +1352,11 @@ export const MeetingRecorder = ({
       iPhoneTranscriberRef.current = null;
     }
     
-    // Stop desktop transcriber
+    // Stop desktop transcriber and wait for final processing
     if (desktopTranscriberRef.current) {
-      desktopTranscriberRef.current.stopTranscription();
+      await desktopTranscriberRef.current.stopTranscription();
+      // Give extra time for final transcription to be processed
+      await new Promise(resolve => setTimeout(resolve, 1000));
       desktopTranscriberRef.current = null;
     }
     
