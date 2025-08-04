@@ -271,10 +271,14 @@ export class DesktopWhisperTranscriber {
       this.chunkCount++; // Increment for final chunk
       await this.processAudioChunks();
       // Additional wait to ensure transcription callback is processed
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Increased wait time
+      await new Promise(resolve => setTimeout(resolve, 3000)); // Wait for database save
     } else {
       console.log('🔍 DEBUG: No remaining audio chunks to process');
     }
+
+    // Wait for any pending database operations to complete
+    console.log('🔍 DEBUG: Waiting for pending database operations...');
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
     if (this.stream) {
       this.stream.getTracks().forEach(track => track.stop());
