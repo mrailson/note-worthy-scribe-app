@@ -387,9 +387,39 @@ export const MeetingRecorder = ({
       // Update main transcript if this is final
       if (transcriptData.isFinal) {
         const finalTranscripts = newTranscripts.filter(t => t.isFinal);
-        const rawTranscript = finalTranscripts
-          .map(t => t.text)  // Remove speaker labels
-          .join(' ');
+        
+        // For desktop transcriber chunks that overlap, use the longest transcript
+        // as it likely contains the most complete content
+        let rawTranscript = '';
+        if (finalTranscripts.length === 1) {
+          rawTranscript = finalTranscripts[0].text;
+        } else {
+          // Find the longest transcript (most complete)
+          const longestTranscript = finalTranscripts.reduce((longest, current) => 
+            current.text.length > longest.text.length ? current : longest
+          );
+          
+          // Check if the longest transcript contains most of the content from others
+          const longestText = longestTranscript.text.toLowerCase();
+          const otherTranscripts = finalTranscripts.filter(t => t !== longestTranscript);
+          
+          // If other transcripts are mostly contained within the longest one, use only the longest
+          const isOverlapping = otherTranscripts.every(transcript => {
+            const transcriptWords = transcript.text.toLowerCase().split(/\s+/);
+            const matchingWords = transcriptWords.filter(word => 
+              longestText.includes(word) && word.length > 2
+            );
+            return matchingWords.length / transcriptWords.length > 0.6; // 60% overlap threshold
+          });
+          
+          if (isOverlapping) {
+            // Use only the longest transcript as it contains the most complete content
+            rawTranscript = longestTranscript.text;
+          } else {
+            // Non-overlapping content, combine them
+            rawTranscript = finalTranscripts.map(t => t.text).join(' ');
+          }
+        }
         
         // Remove hallucinated phrases from transcript
         const cleanedTranscript = rawTranscript
