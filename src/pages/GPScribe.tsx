@@ -449,12 +449,20 @@ const Index = () => {
 
   // Single session mode - only process final transcripts
   const handleTranscript = (transcriptData: TranscriptData) => {
+    console.log('🔄 handleTranscript called with:', {
+      textLength: transcriptData.text?.length || 0,
+      isFinal: transcriptData.isFinal,
+      isCompleteSession: transcriptData.isCompleteSession,
+      speaker: transcriptData.speaker
+    });
+    
     // Only process final/complete session transcripts in single session mode
     if (transcriptData.isCompleteSession || transcriptData.isFinal) {
       console.log('📝 Processing final transcript:', transcriptData.text);
       setTranscript(transcriptData.text);
       const words = transcriptData.text.split(' ').filter(word => word.length > 0);
       setWordCount(words.length);
+      console.log('✅ Transcript set - word count:', words.length);
     } else {
       console.log('⏳ Ignoring partial transcript in single session mode');
     }
