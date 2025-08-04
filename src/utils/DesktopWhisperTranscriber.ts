@@ -273,7 +273,7 @@ export class DesktopWhisperTranscriber {
     // Force process any remaining audio chunks and wait for completion
     console.log(`🔍 DEBUG: Checking for remaining chunks - audioChunks.length: ${this.audioChunks.length}`);
     if (this.audioChunks.length > 0) {
-      console.log(`🔄 Processing final audio chunk (${this.audioChunks.length} chunks)...`);
+      console.log(`🔄 Processing final audio chunk (${this.audioChunks.length} chunks)... Current chunk count: ${this.chunkCount}`);
       await this.processAudioChunks();
       // Increment chunk count for the final chunk since it bypassed the onstop callback
       this.chunkCount++;
