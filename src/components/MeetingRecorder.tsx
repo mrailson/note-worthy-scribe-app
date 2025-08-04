@@ -406,16 +406,6 @@ export const MeetingRecorder = ({
 
     // Process final transcripts separately to avoid duplicate processing
     if (transcriptData.isFinal) {
-      setRealtimeTranscripts(current => {
-        const finalTranscripts = current.filter(t => t.isFinal);
-        
-        console.log('📝 Processing final transcripts:', finalTranscripts.length);
-        finalTranscripts.forEach((t, i) => {
-          console.log(`📝 Transcript ${i + 1} (${t.text.length} chars):`, t.text.substring(0, 100) + '...');
-        });
-        
-    // Process final transcripts separately to avoid duplicate processing
-    if (transcriptData.isFinal) {
       // Use a timeout to ensure the state has been updated
       setTimeout(() => {
         setRealtimeTranscripts(currentTranscripts => {
@@ -477,17 +467,8 @@ export const MeetingRecorder = ({
   };
 
   const handleBrowserTranscript = (data: BrowserTranscriptData) => {
-    // Remove hallucinated phrases from browser transcription
-    const cleanedText = data.text
-      .replace(/Thank you for watching\.?\s*/gi, '')
-      .replace(/Thanks for watching\.?\s*/gi, '')
-      .trim();
-    
-    // Skip empty transcripts after cleaning
-    if (!cleanedText) return;
-    
     const transcriptData: TranscriptData = {
-      text: cleanedText,
+      text: data.text,
       speaker: data.speaker || 'Speaker',
       confidence: data.confidence,
       timestamp: new Date().toISOString(),
@@ -2368,3 +2349,5 @@ export const MeetingRecorder = ({
     </div>
   );
 };
+
+export default MeetingRecorder;
