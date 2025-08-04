@@ -546,7 +546,16 @@ export const MeetingRecorder = ({
     
     if (browserSupport.isIOS) {
       // Use iPhone Whisper transcription for iOS devices
-      await startIPhoneWhisperTranscription();
+      try {
+        await startIPhoneWhisperTranscription();
+      } catch (error) {
+        addDebugLog(`❌ iPhone Whisper transcription failed: ${error.message}`);
+        addDebugLog('🔄 Falling back to browser speech recognition...');
+        toast.info('iPhone transcription failed. Falling back to browser speech recognition.');
+        
+        // Fallback to browser speech recognition
+        await startBrowserMicrophoneTranscription();
+      }
     } else {
       // Use browser speech recognition for desktop
       await startBrowserMicrophoneTranscription();
