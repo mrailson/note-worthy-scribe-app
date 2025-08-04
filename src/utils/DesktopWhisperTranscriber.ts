@@ -18,6 +18,7 @@ export class DesktopWhisperTranscriber {
   private allTranscriptions: string[] = []; // Store all transcriptions directly
   private sessionId: string; // Unique session ID for this recording
   private meetingId: string | null = null; // Meeting ID to associate chunks
+  private finalTranscript = ''; // Accumulated final transcript with smart merging
 
   constructor(
     private onTranscription: (data: TranscriptData) => void,
@@ -29,6 +30,41 @@ export class DesktopWhisperTranscriber {
 
   private generateSessionId(): string {
     return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  private smartMerge(oldText: string, newText: string): string {
+    if (!oldText) return newText;
+    if (!newText) return oldText;
+    
+    // Check for overlap at the end of oldText and beginning of newText
+    const overlapLength = Math.min(oldText.length, newText.length);
+    for (let i = overlapLength; i > 0; i--) {
+      if (oldText.endsWith(newText.slice(0, i))) {
+        return oldText + newText.slice(i);
+      }
+    }
+    return oldText + " " + newText;
+  }
+
+  private checkAudioQuality(audioData: Uint8Array): boolean {
+    // Simple RMS calculation for noise detection
+    let sum = 0;
+    let min = 0;
+    let max = 0;
+    
+    for (let i = 0; i < audioData.length; i += 2) {
+      const sample = (audioData[i + 1] << 8) | audioData[i];
+      const normalized = sample / 32768;
+      sum += normalized * normalized;
+      min = Math.min(min, normalized);
+      max = Math.max(max, normalized);
+    }
+    
+    const rms = Math.sqrt(sum / (audioData.length / 2));
+    const dynamicRange = max - min;
+    
+    // Filter out silence and low-quality audio
+    return rms >= 0.005 && dynamicRange >= 0.02;
   }
 
   setMeetingId(meetingId: string): void {
@@ -130,8 +166,8 @@ export class DesktopWhisperTranscriber {
       // First chunk: 20 seconds
       nextInterval = 20000;
     } else {
-      // Subsequent chunks: 45 seconds
-      nextInterval = 45000;
+      // Subsequent chunks: 30 seconds (reduced from 45 for shorter overlap)
+      nextInterval = 30000;
     }
 
     console.log(`🖥️ Scheduling chunk ${this.chunkCount + 1} in ${nextInterval/1000} seconds`);
@@ -165,8 +201,8 @@ export class DesktopWhisperTranscriber {
       const audioBlob = new Blob(currentChunks, { type: this.audioChunks[0].type });
       console.log(`🖥️ Audio blob size: ${audioBlob.size} bytes`);
       
-      // Store last portion of current chunks for next overlap
-      const overlapSize = Math.ceil(this.audioChunks.length * 0.2);
+      // Store last portion of current chunks for next overlap (reduced overlap)
+      const overlapSize = Math.ceil(this.audioChunks.length * 0.1);
       this.overlapBuffer = this.audioChunks.slice(-overlapSize);
       
       this.audioChunks = []; // Clear current chunks after processing
@@ -180,6 +216,12 @@ export class DesktopWhisperTranscriber {
       // Convert blob to base64
       const arrayBuffer = await audioBlob.arrayBuffer();
       const uint8Array = new Uint8Array(arrayBuffer);
+      
+      // Check audio quality before sending
+      if (!this.checkAudioQuality(uint8Array)) {
+        console.log(`🔇 Skipping low-quality audio chunk ${currentChunkNumber}`);
+        return;
+      }
       
       // Convert to base64 in chunks to prevent memory issues
       let binary = '';
@@ -206,9 +248,13 @@ export class DesktopWhisperTranscriber {
       if (data.text && data.text.trim()) {
         const cleanText = data.text.trim();
         
+        // Use smart merge to avoid duplicates
+        this.finalTranscript = this.smartMerge(this.finalTranscript, cleanText);
+        
         // Store transcription internally
         this.allTranscriptions.push(cleanText);
         console.log(`📝 Stored transcription ${this.allTranscriptions.length}: "${cleanText.substring(0, 100)}..."`);
+        console.log(`📝 Final transcript length: ${this.finalTranscript.length} chars`);
         
         // Store in database if meeting ID is set
         if (this.meetingId) {
@@ -310,13 +356,10 @@ export class DesktopWhisperTranscriber {
 
   getCompleteTranscript(): string {
     console.log(`📋 Getting complete transcript from ${this.allTranscriptions.length} chunks`);
-    this.allTranscriptions.forEach((text, i) => {
-      console.log(`📋 Chunk ${i + 1}: "${text.substring(0, 100)}..."`);
-    });
+    console.log(`📋 Using smart-merged transcript: ${this.finalTranscript.length} characters`);
     
-    const completeText = this.allTranscriptions.join(' ').trim();
-    console.log(`📋 Complete transcript length: ${completeText.length} characters`);
-    return completeText;
+    // Return the smart-merged transcript instead of simple join
+    return this.finalTranscript || this.allTranscriptions.join(' ').trim();
   }
 
   async getCompleteTranscriptFromDatabase(): Promise<string> {
@@ -359,7 +402,8 @@ export class DesktopWhisperTranscriber {
 
   clearTranscriptions(): void {
     this.allTranscriptions = [];
-    console.log('🧹 Cleared internal transcriptions');
+    this.finalTranscript = '';
+    console.log('🧹 Cleared internal transcriptions and final transcript');
   }
 
   getSessionId(): string {

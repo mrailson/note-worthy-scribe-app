@@ -43,7 +43,7 @@ serve(async (req) => {
     formData.append('language', 'en');
     // Add prompt to encourage English-only output and reduce hallucinations
     formData.append('prompt', 'This is a professional meeting or consultation recording in English. Please transcribe only clear English speech and ignore background noise, music, or unclear audio.');
-    // Set temperature to 0 for more consistent output
+    // Force temperature to 0 for deterministic output
     formData.append('temperature', '0');
 
     console.log('📡 Sending to OpenAI Whisper...');
