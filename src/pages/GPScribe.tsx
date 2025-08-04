@@ -465,8 +465,8 @@ const Index = () => {
       if (transcriptData.isFinal) {
         const finalTranscripts = newTranscripts.filter(t => t.isFinal);
         const rawTranscript = finalTranscripts
-          .map(t => `${t.speaker}: ${t.text}`)
-          .join('\n');
+          .map(t => t.text)
+          .join(' ');
         
         // Basic immediate cleaning for better readability
         const quickCleanedTranscript = performQuickCleaning(rawTranscript);
