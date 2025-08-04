@@ -132,11 +132,12 @@ serve(async (req) => {
 
 CRITICAL INSTRUCTIONS:
 - Use ONLY information explicitly mentioned in the transcript
-- If information for any section is not mentioned, leave that section blank or omit it entirely
+- If information for any section is not mentioned, COMPLETELY OMIT that section - do not include empty headers
 - Never invent patient details, symptoms, examination findings, diagnoses, or treatments
 - Follow the EXACT HeidiHealth template structure below
 - DO NOT include any header with practice details, patient details, or dates
 - Start directly with the consultation type and presenting complaint
+- Only include section headers (like "- FH:", "- SH:", "- Vital signs:") if there is actual content to put under them
 
 TEMPLATE STRUCTURE TO FOLLOW:
 
@@ -209,9 +210,10 @@ CRITICAL INSTRUCTIONS:
 - Use ONLY information explicitly mentioned in the transcript
 - Follow the HeidiHealth template structure EXACTLY
 - Never invent or assume information not stated in the transcript
-- If information is not mentioned, leave that section blank
+- If information is not mentioned, COMPLETELY OMIT that section - do not include empty headers
 - DO NOT include any header with practice details, patient details, or dates
 - Start directly with the consultation type and presenting complaint
+- Only include section headers (like "- FH:", "- SH:", "- Vital signs:") if there is actual content to put under them
 
 Generate a detailed consultation note following the EXACT HeidiHealth template:
 
