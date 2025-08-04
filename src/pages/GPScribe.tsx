@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { format } from "date-fns";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -665,7 +666,7 @@ const Index = () => {
         // Even if no meaningful content, navigate to consultation summary with basic data
         const consultationData = {
           id: `consultation-${Date.now()}`,
-          title: `GP Consultation - ${new Date().toLocaleDateString()}`,
+          title: `GP Consultation - ${format(new Date(), "do MMMM yyyy 'at' h.mm a")}`,
           type: 'gp_consultation',
           transcript: transcript || '',
           duration: formatDuration(duration),
@@ -857,7 +858,7 @@ const Index = () => {
       // Navigate to consultation summary with the generated data
       const consultationData = {
         id: `consultation-${Date.now()}`,
-        title: `GP Consultation - ${new Date().toLocaleDateString()}`,
+        title: `GP Consultation - ${format(new Date(), "do MMMM yyyy 'at' h.mm a")}`,
         type: 'gp_consultation',
         transcript: transcript,
         duration: formatDuration(duration),
@@ -891,7 +892,7 @@ const Index = () => {
         .from('meetings')
         .insert({
           user_id: user.id,
-          title: `GP Consultation - ${new Date().toLocaleDateString()}`,
+          title: `GP Consultation - ${format(new Date(), "do MMMM yyyy 'at' h.mm a")}`,
           description: "GP Scribe consultation notes",
           meeting_type: "gp_consultation",
           duration_minutes: Math.ceil(duration / 60),
