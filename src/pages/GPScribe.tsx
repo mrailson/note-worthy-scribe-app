@@ -594,9 +594,15 @@ const Index = () => {
       setIsRecording(true);
       setIsPaused(false);
       setRealtimeTranscripts([]);
+      setDuration(0); // Reset duration counter
+      console.log("Starting recording - duration reset to 0");
       
       intervalRef.current = setInterval(() => {
-        setDuration(prev => prev + 1);
+        setDuration(prev => {
+          const newDuration = prev + 1;
+          console.log("Duration updated to:", newDuration);
+          return newDuration;
+        });
       }, 1000);
 
       // Recording started for consultation
@@ -617,6 +623,9 @@ const Index = () => {
 
   const stopRecording = () => {
     console.log("stopRecording called");
+    console.log("Current duration when stopping:", duration);
+    console.log("Duration state:", duration);
+    console.log("IntervalRef status:", intervalRef.current ? "active" : "null");
     
     // Set status to indicate we're finalizing
     setConnectionStatus("Finalizing...");
@@ -650,14 +659,17 @@ const Index = () => {
     setTimeout(() => {
       setConnectionStatus("Stopped");
       console.log("Transcript length:", transcript ? transcript.trim().length : 0);
-      console.log("Recording duration:", duration, "seconds");
+      console.log("Recording duration for navigation check:", duration, "seconds");
       
       // Check if recording is too short (under 30 seconds)
       if (duration < 30) {
         console.log("Recording too short (under 30 seconds), staying on current page");
+        console.log("Duration value:", duration, "Type:", typeof duration);
         toast.error("Recording too short. Please record for at least 30 seconds for meaningful consultation notes.");
         return;
       }
+      
+      console.log("Duration check passed, proceeding with navigation...");
       
       // Auto-generate summary if there's meaningful content and navigate to consultation summary
       if (transcript && transcript.trim().length > 50) {
