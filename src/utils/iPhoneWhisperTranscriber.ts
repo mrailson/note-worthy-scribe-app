@@ -77,7 +77,7 @@ export class iPhoneWhisperTranscriber {
         this.onError('Recording error occurred');
       };
 
-      // Start recording and process in chunks every 35 seconds with overlap
+      // Start recording and process in chunks every 60 seconds with overlap
       this.isRecording = true;
       this.startChunkedRecording();
       
@@ -96,7 +96,7 @@ export class iPhoneWhisperTranscriber {
     // Start recording
     this.mediaRecorder.start();
     
-    // Process chunks every 35 seconds (clinical quality)
+    // Process chunks every 60 seconds (clinical quality)
     this.transcriptionInterval = setInterval(() => {
       if (this.mediaRecorder && this.isRecording && this.mediaRecorder.state === 'recording') {
         this.mediaRecorder.stop();
@@ -107,7 +107,7 @@ export class iPhoneWhisperTranscriber {
           }
         }, 100);
       }
-    }, 35000);
+    }, 60000);
   }
 
   private async processAudioChunks() {
