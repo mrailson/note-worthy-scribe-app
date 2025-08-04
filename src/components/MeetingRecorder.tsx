@@ -467,6 +467,24 @@ export const MeetingRecorder = ({
   };
 
   const handleBrowserTranscript = (data: BrowserTranscriptData) => {
+    // Filter out common AI hallucinations
+    const hallucinations = [
+      /thank you.*watching/i,
+      /thanks.*watching/i,
+      /thank you.*everyone.*staying/i,
+      /thank you.*for.*staying/i,
+      /thank you.*after.*surgery/i,
+      /staying.*after.*surgery/i,
+      /everyone.*staying.*after.*surgery/i
+    ];
+    
+    const isHallucination = hallucinations.some(pattern => pattern.test(data.text));
+    
+    if (isHallucination) {
+      console.log('🚫 Filtered hallucination:', data.text);
+      return;
+    }
+    
     const transcriptData: TranscriptData = {
       text: data.text,
       speaker: data.speaker || 'Speaker',
