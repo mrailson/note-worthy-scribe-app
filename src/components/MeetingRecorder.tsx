@@ -26,7 +26,6 @@ import { NotewellAIAnimation } from "@/components/NotewellAIAnimation";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "sonner";
 
 import { BrowserSpeechTranscriber, TranscriptData as BrowserTranscriptData } from '@/utils/BrowserSpeechTranscriber';
 import { iPhoneWhisperTranscriber, TranscriptData as iPhoneTranscriptData } from '@/utils/iPhoneWhisperTranscriber';
@@ -496,7 +495,7 @@ export const MeetingRecorder = ({
   const handleLiveSummary = (summary: string) => {
     setLiveSummary(summary);
     addDebugLog(`📄 Summary generated (${summary.length} chars)`);
-    toast.success("Live summary updated!");
+    console.log("Live summary updated!");
   };
 
 
@@ -609,7 +608,7 @@ export const MeetingRecorder = ({
         console.error('❌ iPhone Whisper transcription failed:', error);
         addDebugLog(`❌ iPhone Whisper transcription failed: ${error.message}`);
         addDebugLog('🔄 Falling back to browser speech recognition...');
-        toast.info('iPhone transcription failed. Falling back to browser speech recognition.');
+        console.log('iPhone transcription failed. Falling back to browser speech recognition.');
         
         // Fallback to desktop Whisper transcription
         await startDesktopWhisperTranscription();
@@ -1105,7 +1104,7 @@ export const MeetingRecorder = ({
               addDebugLog('📋 Meeting summary generated - check console for details');
             }
             
-            toast.success('Meeting processed! Check transcript below.');
+            console.log('Meeting processed! Check transcript below.');
             
           } else {
             throw new Error(data.error || 'Processing failed');
@@ -1113,7 +1112,7 @@ export const MeetingRecorder = ({
 
         } catch (uploadError) {
           addDebugLog(`❌ Upload/Processing failed: ${uploadError.message}`);
-          toast.error(`Processing failed: ${uploadError.message}`);
+          console.error(`Processing failed: ${uploadError.message}`);
         }
       };
 
@@ -1156,7 +1155,7 @@ export const MeetingRecorder = ({
       // Try fallback to microphone-only mode
       if (error.name === 'NotSupportedError' || error.message.includes('not supported')) {
         addDebugLog('🔄 Attempting fallback to microphone-only recording...');
-        toast.info('Dual audio not supported. Falling back to microphone-only recording.');
+        console.log('Dual audio not supported. Falling back to microphone-only recording.');
         
         try {
           // Fallback to simple microphone recording
@@ -1170,21 +1169,21 @@ export const MeetingRecorder = ({
       
       // Provide specific, helpful error messages
       if (error.name === 'NotAllowedError') {
-        toast.error('Permission denied. Please allow screen sharing and microphone access when prompted.');
+        console.error('Permission denied. Please allow screen sharing and microphone access when prompted.');
         addDebugLog('💡 Tip: Click the address bar and enable camera/microphone permissions for this site');
       } else if (error.name === 'NotFoundError') {
-        toast.error('No audio source found. Please ensure your microphone is connected and working.');
+        console.error('No audio source found. Please ensure your microphone is connected and working.');
       } else if (error.name === 'NotSupportedError') {
-        toast.error('Screen audio capture not supported in this browser. Please try Chrome or Edge, or use microphone-only mode.');
+        console.error('Screen audio capture not supported in this browser. Please try Chrome or Edge, or use microphone-only mode.');
         addDebugLog('💡 Tip: Try using the regular "Microphone Only" recording mode instead');
       } else if (error.name === 'AbortError') {
-        toast.error('Recording was cancelled. Please try again and select a window/tab to share.');
+        console.error('Recording was cancelled. Please try again and select a window/tab to share.');
       } else if (error.message.includes('audio')) {
-        toast.error('Audio capture failed. Please check your audio settings and try again.');
+        console.error('Audio capture failed. Please check your audio settings and try again.');
       } else if (error.message.includes('browser')) {
-        toast.error(error.message);
+        console.error(error.message);
       } else {
-        toast.error(`Recording failed: ${error.message}`);
+        console.error(`Recording failed: ${error.message}`);
       }
       
       // Reset recording state
@@ -1251,11 +1250,11 @@ export const MeetingRecorder = ({
       }, 1000);
 
       const successMessage = 'Test recording started with microphone!';
-      toast.success(successMessage);
+      console.log(successMessage);
     } catch (error: any) {
       console.error('Failed to start test recording:', error);
       addDebugLog(`❌ Failed to start test: ${error.message}`);
-      toast.error(error.message || 'Failed to start test recording');
+      console.error(error.message || 'Failed to start test recording');
       setIsRecording(false);
       setConnectionStatus("Error");
     }
@@ -1302,12 +1301,12 @@ export const MeetingRecorder = ({
       setIsRecording(false);
       setConnectionStatus("Disconnected");
       addDebugLog('✅ Test recording stopped');
-      toast.success('Test recording stopped successfully');
+      console.log('Test recording stopped successfully');
       
     } catch (error: any) {
       console.error('Failed to stop test recording:', error);
       addDebugLog(`❌ Failed to stop test: ${error.message}`);
-      toast.error('Failed to stop test recording');
+      console.error('Failed to stop test recording');
     }
   };
 
@@ -1354,11 +1353,11 @@ export const MeetingRecorder = ({
       }, 1000);
 
       const successMessage = 'Recording started with microphone!';
-      toast.success(successMessage);
+      console.log(successMessage);
     } catch (error: any) {
       console.error('Failed to start recording:', error);
       addDebugLog(`❌ Failed to start: ${error.message}`);
-      toast.error(error.message || 'Failed to start recording');
+      console.error(error.message || 'Failed to start recording');
       setIsRecording(false);
       setConnectionStatus("Error");
     }
@@ -1463,17 +1462,17 @@ export const MeetingRecorder = ({
     localStorage.removeItem('unsaved_meeting');
     
     console.log('Recording stopped');
-    toast.success('Recording stopped');
+    console.log('Recording stopped');
     
     // Check if recording has at least 10 seconds of content
     if (duration < 10) {
-      toast.error('Recording too short. Minimum 10 seconds required.');
+      console.error('Recording too short. Minimum 10 seconds required.');
       return;
     }
 
     // Check if there's meaningful transcript content (at least 20 words)
     if (wordCount < 20) {
-      toast.error('Recording too short. Minimum 20 words required.');
+      console.error('Recording too short. Minimum 20 words required.');
       return;
     }
     
@@ -1629,7 +1628,7 @@ export const MeetingRecorder = ({
         };
 
         setIsGeneratingNotes(false);
-        toast.success('Meeting notes generated successfully!');
+        console.log('Meeting notes generated successfully!');
         
         // Navigate to meeting summary with data and generated notes
         navigate('/meeting-summary', { state: finalMeetingData });
@@ -1639,7 +1638,7 @@ export const MeetingRecorder = ({
     } catch (error) {
       console.error('Error generating meeting notes:', error);
       setIsGeneratingNotes(false);
-      toast.error('Failed to generate meeting notes. Proceeding without AI notes.');
+      console.error('Failed to generate meeting notes. Proceeding without AI notes.');
       
       // Still navigate to meeting summary even if note generation fails
       navigate('/meeting-summary', { state: meetingData });
@@ -1741,7 +1740,7 @@ export const MeetingRecorder = ({
       setMeetings(meetingsWithCounts);
     } catch (error) {
       console.error('Error loading meeting history:', error);
-      toast.error('Failed to load meeting history');
+      console.error('Failed to load meeting history');
     } finally {
       setLoadingHistory(false);
     }
@@ -1805,11 +1804,11 @@ export const MeetingRecorder = ({
 
       if (error) throw error;
 
-      toast.success('Meeting deleted successfully');
+      console.log('Meeting deleted successfully');
       loadMeetingHistory(); // Reload the list
     } catch (error) {
       console.error('Error deleting meeting:', error);
-      toast.error('Failed to delete meeting');
+      console.error('Failed to delete meeting');
     }
   };
 
@@ -1840,14 +1839,14 @@ export const MeetingRecorder = ({
 
       if (error) throw error;
 
-      toast.success(`${selectedMeetings.length} meetings deleted successfully`);
+      console.log(`${selectedMeetings.length} meetings deleted successfully`);
       
       setSelectedMeetings([]);
       setIsSelectMode(false);
       loadMeetingHistory();
     } catch (error: any) {
       console.error("Error deleting selected meetings:", error.message);
-      toast.error("Failed to delete selected meetings");
+      console.error("Failed to delete selected meetings");
     }
   };
 
@@ -1860,7 +1859,7 @@ export const MeetingRecorder = ({
 
       if (error) throw error;
 
-      toast.success("All meetings deleted successfully");
+      console.log("All meetings deleted successfully");
       
       setDeleteConfirmation("");
       setSelectedMeetings([]);
@@ -1868,7 +1867,7 @@ export const MeetingRecorder = ({
       loadMeetingHistory();
     } catch (error: any) {
       console.error("Error deleting all meetings:", error.message);
-      toast.error("Failed to delete all meetings");
+      console.error("Failed to delete all meetings");
     }
   };
 

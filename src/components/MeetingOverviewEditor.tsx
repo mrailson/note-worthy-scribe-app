@@ -4,7 +4,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Edit, Save, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 
 interface MeetingOverviewEditorProps {
   meetingId: string;
@@ -25,7 +24,7 @@ export const MeetingOverviewEditor = ({
 
   const handleSave = async () => {
     if (!overview.trim()) {
-      toast.error("Overview cannot be empty");
+      console.error("Overview cannot be empty");
       return;
     }
 
@@ -59,12 +58,12 @@ export const MeetingOverviewEditor = ({
         if (error) throw error;
       }
 
-      toast.success("Meeting overview saved successfully");
+      console.log("Meeting overview saved successfully");
       setIsEditing(false);
       onOverviewChange?.(overview.trim());
     } catch (error: any) {
       console.error("Error saving overview:", error);
-      toast.error("Failed to save overview");
+      console.error("Failed to save overview");
     } finally {
       setSaving(false);
     }

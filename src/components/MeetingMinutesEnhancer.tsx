@@ -23,7 +23,6 @@ import {
   Upload
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 import { SpeechToText } from "@/components/SpeechToText";
 import { useDropzone } from 'react-dropzone';
 
@@ -119,7 +118,7 @@ export function MeetingMinutesEnhancer({
   // Undo function to restore previous version
   const handleUndo = () => {
     if (contentVersions.length === 0) {
-      toast.error("No previous version to restore");
+      console.error("No previous version to restore");
       return;
     }
 
@@ -129,7 +128,7 @@ export function MeetingMinutesEnhancer({
     // Remove the restored version from history
     setContentVersions(prev => prev.slice(0, -1));
     
-    toast.success("Restored to previous version");
+    console.log("Restored to previous version");
   };
 
   // Handle file upload
@@ -146,10 +145,10 @@ export function MeetingMinutesEnhancer({
             type: file.type
           });
         } catch (error) {
-          toast.error(`Failed to read ${file.name}`);
+          console.error(`Failed to read ${file.name}`);
         }
       } else {
-        toast.error(`Unsupported file type: ${file.name}`);
+        console.error(`Unsupported file type: ${file.name}`);
       }
     }
     
@@ -158,20 +157,20 @@ export function MeetingMinutesEnhancer({
     if (newFiles.length > 0) {
       const contextFromFiles = newFiles.map(f => `From ${f.name}: ${f.content}`).join('\n\n');
       setAdditionalContext(prev => prev ? `${prev}\n\n${contextFromFiles}` : contextFromFiles);
-      toast.success(`Added ${newFiles.length} file(s) to context`);
+      console.log(`Added ${newFiles.length} file(s) to context`);
     }
   };
 
   // Handle speech input for instructions
   const handleSpeechInput = (text: string) => {
     setCustomRequest(prev => prev ? `${prev} ${text}` : text);
-    toast.success("Speech added to instructions");
+    console.log("Speech added to instructions");
   };
 
   // Handle speech input for context
   const handleContextSpeechInput = (text: string) => {
     setAdditionalContext(prev => prev ? `${prev} ${text}` : text);
-    toast.success("Speech added to context");
+    console.log("Speech added to context");
   };
 
   // Dropzone for file upload
@@ -188,17 +187,17 @@ export function MeetingMinutesEnhancer({
 
   const handleEnhancement = async () => {
     if (!enhancementType) {
-      toast.error("Please select an enhancement type");
+      console.error("Please select an enhancement type");
       return;
     }
 
     if ((enhancementType === 'replace_content' || enhancementType === 'custom') && !customRequest.trim()) {
-      toast.error("Please provide specific instructions for this enhancement type");
+      console.error("Please provide specific instructions for this enhancement type");
       return;
     }
 
     if (!originalContent.trim()) {
-      toast.error("No content to enhance");
+      console.error("No content to enhance");
       return;
     }
 
@@ -237,7 +236,7 @@ export function MeetingMinutesEnhancer({
 
       // Show success message
       const selectedOption = enhancementOptions.find(opt => opt.value === enhancementType);
-      toast.success(`Enhancement complete: ${selectedOption?.label}`);
+      console.log(`Enhancement complete: ${selectedOption?.label}`);
 
       // Reset form
       setEnhancementType("");
@@ -246,7 +245,7 @@ export function MeetingMinutesEnhancer({
       
     } catch (error) {
       console.error('Error enhancing meeting minutes:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to enhance meeting minutes');
+      console.error(error instanceof Error ? error.message : 'Failed to enhance meeting minutes');
     } finally {
       setIsEnhancing(false);
     }

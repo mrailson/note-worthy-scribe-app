@@ -23,7 +23,6 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "sonner";
 import { FileImporter, ImportedTranscript } from "@/utils/FileImporter";
 
 interface MeetingSettingsProps {
@@ -174,7 +173,7 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
 
     // Check if file is audio
     if (!file.type.startsWith('audio/')) {
-      toast.error('Please select a valid audio file');
+      console.error('Please select a valid audio file');
       event.target.value = '';
       return;
     }
@@ -186,10 +185,10 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
         onAudioImported(file);
       }
 
-      toast.success(`Audio file imported: ${file.name}`);
+      console.log(`Audio file imported: ${file.name}`);
     } catch (error) {
       console.error('Error importing audio file:', error);
-      toast.error(`Failed to import audio file: ${error}`);
+      console.error(`Failed to import audio file: ${error}`);
     } finally {
       setIsImporting(false);
       // Reset the input so the same file can be selected again
@@ -206,7 +205,7 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
     const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
     
     if (!supportedTypes.includes(fileExtension)) {
-      toast.error('Please select a valid document file (.txt, .doc, .docx, .pdf)');
+      console.error('Please select a valid document file (.txt, .doc, .docx, .pdf)');
       event.target.value = '';
       return;
     }
@@ -234,10 +233,10 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
         onTranscriptImported(importedTranscript);
       }
 
-      toast.success(`Transcript imported: ${file.name}${importedTranscript.wordCount ? ` (${importedTranscript.wordCount} words)` : ''}`);
+      console.log(`Transcript imported: ${file.name}${importedTranscript.wordCount ? ` (${importedTranscript.wordCount} words)` : ''}`);
     } catch (error) {
       console.error('Error importing transcript file:', error);
-      toast.error(`Failed to import transcript: ${error}`);
+      console.error(`Failed to import transcript: ${error}`);
     } finally {
       setIsImportingTranscript(false);
       // Reset the input so the same file can be selected again
