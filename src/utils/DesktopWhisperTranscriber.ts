@@ -85,10 +85,10 @@ export class DesktopWhisperTranscriber {
 
       this.mediaRecorder.onstop = async () => {
         if (this.audioChunks.length > 0) {
+          // Increment chunk count BEFORE processing to ensure unique numbering
+          const currentChunk = this.chunkCount++;
+          console.log(`🔍 DEBUG: Processing scheduled chunk ${currentChunk}, next will be ${this.chunkCount}`);
           await this.processAudioChunks();
-          // Increment chunk count after successful processing
-          this.chunkCount++;
-          console.log(`🔍 DEBUG: Incremented chunk count to ${this.chunkCount} after scheduled processing`);
         }
       };
 
@@ -274,11 +274,11 @@ export class DesktopWhisperTranscriber {
     // Force process any remaining audio chunks and wait for completion
     console.log(`🔍 DEBUG: Checking for remaining chunks - audioChunks.length: ${this.audioChunks.length}`);
     if (this.audioChunks.length > 0) {
-      console.log(`🔄 Processing final audio chunk (${this.audioChunks.length} chunks)... Current chunk count: ${this.chunkCount}`);
+      // Increment chunk count BEFORE processing to ensure unique numbering
+      const finalChunk = this.chunkCount++;
+      console.log(`🔄 Processing final audio chunk ${finalChunk} (${this.audioChunks.length} audio chunks)... Next chunk would be: ${this.chunkCount}`);
       await this.processAudioChunks();
-      // Increment chunk count for the final chunk since it bypassed the onstop callback
-      this.chunkCount++;
-      console.log(`🔍 DEBUG: Final chunk processed and stored as chunk ${this.chunkCount - 1}, total chunks: ${this.chunkCount}`);
+      console.log(`🔍 DEBUG: Final chunk ${finalChunk} processed and stored`);
       // Additional wait to ensure transcription callback is processed
       await new Promise(resolve => setTimeout(resolve, 3000)); // Wait for database save
     } else {
