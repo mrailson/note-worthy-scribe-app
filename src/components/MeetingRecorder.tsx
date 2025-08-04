@@ -382,6 +382,18 @@ export const MeetingRecorder = ({
         !(t.speaker === transcriptData.speaker && !t.isFinal)
       );
       
+      // Check if this exact transcript is already in the array to prevent duplicates
+      const isDuplicate = filtered.some(t => 
+        t.text === transcriptData.text && 
+        t.isFinal === transcriptData.isFinal && 
+        t.speaker === transcriptData.speaker
+      );
+      
+      if (isDuplicate) {
+        console.log('🔍 Skipping duplicate transcript');
+        return prev;
+      }
+      
       // If this is a final transcript, always add it (don't replace previous final ones)
       const newTranscripts = [...filtered, transcriptData];
       
@@ -389,63 +401,79 @@ export const MeetingRecorder = ({
       console.log('🔍 Total transcripts after add:', newTranscripts.length);
       console.log('🔍 Final transcripts count:', newTranscripts.filter(t => t.isFinal).length);
       
-      // Calculate speaker count from the new array
-      const speakers = new Set(newTranscripts.map(t => t.speaker));
-      setSpeakerCount(speakers.size);
-      
-      // Update main transcript if this is final
-      if (transcriptData.isFinal) {
-        const finalTranscripts = newTranscripts.filter(t => t.isFinal);
+      return newTranscripts;
+    });
+
+    // Process final transcripts separately to avoid duplicate processing
+    if (transcriptData.isFinal) {
+      setRealtimeTranscripts(current => {
+        const finalTranscripts = current.filter(t => t.isFinal);
         
         console.log('📝 Processing final transcripts:', finalTranscripts.length);
         finalTranscripts.forEach((t, i) => {
           console.log(`📝 Transcript ${i + 1} (${t.text.length} chars):`, t.text.substring(0, 100) + '...');
         });
         
-        // Combine all final transcripts to build the complete conversation
-        // Each chunk from the desktop transcriber is a separate part of the conversation
-        let rawTranscript = '';
-        if (finalTranscripts.length === 0) {
-          rawTranscript = '';
-        } else if (finalTranscripts.length === 1) {
-          rawTranscript = finalTranscripts[0].text;
-        } else {
-          // Sort by timestamp to maintain chronological order
-          const sortedByTime = finalTranscripts.sort((a, b) => 
-            new Date(a.timestamp || 0).getTime() - new Date(b.timestamp || 0).getTime()
-          );
+    // Process final transcripts separately to avoid duplicate processing
+    if (transcriptData.isFinal) {
+      // Use a timeout to ensure the state has been updated
+      setTimeout(() => {
+        setRealtimeTranscripts(currentTranscripts => {
+          const finalTranscripts = currentTranscripts.filter(t => t.isFinal);
           
-          // Concatenate all transcripts with a space separator
-          rawTranscript = sortedByTime.map(t => t.text.trim()).join(' ');
+          console.log('📝 Processing final transcripts:', finalTranscripts.length);
+          finalTranscripts.forEach((t, i) => {
+            console.log(`📝 Transcript ${i + 1} (${t.text.length} chars):`, t.text.substring(0, 100) + '...');
+          });
           
-          console.log('📝 Combined transcript from', sortedByTime.length, 'chunks');
-          console.log('📝 Total combined length:', rawTranscript.length, 'chars');
-          console.log('📝 Combined content preview:', rawTranscript.substring(0, 200) + '...');
-        }
-        
-        // Remove hallucinated phrases from transcript
-        const cleanedTranscript = rawTranscript
-          .replace(/Thank you for watching\.?\s*/gi, '')
-          .replace(/Thanks for watching\.?\s*/gi, '')
-          .trim();
-        
-        console.log('📝 Final cleaned transcript length:', cleanedTranscript.length);
-        console.log('📝 Final transcript ends with:', cleanedTranscript.slice(-100));
-        
-        // Store the latest complete transcript in a ref for immediate access
-        latestCompleteTranscriptRef.current = cleanedTranscript;
-        
-        setTranscript(cleanedTranscript);
-        onTranscriptUpdate(cleanedTranscript);
-        
-        // Update word count
-        const words = cleanedTranscript.split(' ').filter(word => word.length > 0);
-        setWordCount(words.length);
-        onWordCountUpdate(words.length);
-      }
-      
-      return newTranscripts;
-    });
+          // Combine all final transcripts to build the complete conversation
+          let rawTranscript = '';
+          if (finalTranscripts.length === 0) {
+            rawTranscript = '';
+          } else if (finalTranscripts.length === 1) {
+            rawTranscript = finalTranscripts[0].text;
+          } else {
+            // Sort by timestamp to maintain chronological order
+            const sortedByTime = finalTranscripts.sort((a, b) => 
+              new Date(a.timestamp || 0).getTime() - new Date(b.timestamp || 0).getTime()
+            );
+            
+            // Concatenate all transcripts with a space separator
+            rawTranscript = sortedByTime.map(t => t.text.trim()).join(' ');
+            
+            console.log('📝 Combined transcript from', finalTranscripts.length, 'chunks');
+            console.log('📝 Total combined length:', rawTranscript.length, 'chars');
+            console.log('📝 Combined content preview:', rawTranscript.substring(0, 100) + '...');
+          }
+          
+          // Remove hallucinated phrases from transcript
+          const cleanedTranscript = rawTranscript
+            .replace(/Thank you for watching\.?\s*/gi, '')
+            .replace(/Thanks for watching\.?\s*/gi, '')
+            .trim();
+          
+          console.log('📝 Final cleaned transcript length:', cleanedTranscript.length);
+          console.log('📝 Final transcript ends with:', cleanedTranscript.slice(-100));
+          
+          // Store the latest complete transcript in a ref for immediate access
+          latestCompleteTranscriptRef.current = cleanedTranscript;
+          
+          setTranscript(cleanedTranscript);
+          onTranscriptUpdate(cleanedTranscript);
+          
+          // Update word count
+          const words = cleanedTranscript.split(' ').filter(word => word.length > 0);
+          setWordCount(words.length);
+          onWordCountUpdate(words.length);
+          
+          return currentTranscripts;
+        });
+      }, 0);
+    }
+
+    // Calculate speaker count
+    const speakers = new Set(realtimeTranscripts.map(t => t.speaker));
+    setSpeakerCount(speakers.size);
   };
 
   const handleBrowserTranscript = (data: BrowserTranscriptData) => {
