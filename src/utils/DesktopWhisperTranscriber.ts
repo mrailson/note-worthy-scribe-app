@@ -155,13 +155,14 @@ export class DesktopWhisperTranscriber {
     if (this.audioChunks.length === 0) return;
 
     try {
-      console.log(`🖥️ Processing audio chunk ${this.chunkCount}`);
+      console.log(`🖥️ Processing audio chunk ${this.chunkCount} - audioChunks: ${this.audioChunks.length}, meetingId: ${this.meetingId}`);
       
       // Create overlap: keep last portion of previous chunk for continuity
       const currentChunks = [...this.overlapBuffer, ...this.audioChunks];
       
       // Combine all chunks including overlap
       const audioBlob = new Blob(currentChunks, { type: this.audioChunks[0].type });
+      console.log(`🖥️ Audio blob size: ${audioBlob.size} bytes`);
       
       // Store last portion of current chunks for next overlap
       const overlapSize = Math.ceil(this.audioChunks.length * 0.2);
@@ -171,7 +172,7 @@ export class DesktopWhisperTranscriber {
 
       // Skip very small audio chunks - but don't increment chunk count
       if (audioBlob.size < 20000) {
-        console.log('🖥️ Skipping small audio chunk - no increment');
+        console.log(`🖥️ Skipping small audio chunk (${audioBlob.size} bytes) - no increment`);
         return;
       }
 
