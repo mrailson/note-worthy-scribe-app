@@ -140,11 +140,7 @@ export const RealtimeSpeechToText: React.FC<RealtimeSpeechToTextProps> = ({
       console.log('Recording started successfully');
       toast.success('Recording started - speak now');
       
-      // Auto-stop after 10 seconds to prevent infinite recording
-      recordingTimeoutRef.current = window.setTimeout(() => {
-        console.log('Auto-stopping recording after 10 seconds');
-        stopRecording();
-      }, 10000);
+      // No auto-stop timeout for medical consultations - let recording continue until manually stopped
       
     } catch (error) {
       console.error('Error starting recording:', error);
