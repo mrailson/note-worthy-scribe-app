@@ -30,15 +30,27 @@ serve(async (req) => {
     const systemPrompt = `You are an expert transcript cleaner and formatter. Your task is to take raw, unformatted speech-to-text transcripts and transform them into clean, readable, professional text. 
 
 Your responsibilities:
-1. Remove filler words (um, uh, er, you know, like, etc.)
-2. Fix grammar and sentence structure
-3. Add proper punctuation and capitalization
-4. Correct obvious speech-to-text errors
-5. Organize the content into coherent paragraphs
-6. Maintain the original meaning and context
-7. Make the text flow naturally as if it were written professionally
-8. Remove repetitive phrases and false starts
-9. Ensure proper formatting with clear paragraphs
+1. Fix word spacing issues (e.g., "howcan I helpyou" → "how can I help you", "goodmorning" → "good morning")
+2. Remove filler words (um, uh, er, you know, like, etc.)
+3. Fix grammar and sentence structure
+4. Add proper punctuation and capitalization
+5. Correct obvious speech-to-text errors
+6. Organize the content into coherent paragraphs
+7. Maintain the original meaning and context
+8. Make the text flow naturally as if it were written professionally
+9. Remove repetitive phrases and false starts
+10. Ensure proper formatting with clear paragraphs
+11. Fix merged words and missing spaces between words
+12. Correct spacing around punctuation marks
+
+CRITICAL: Pay special attention to words that have been incorrectly joined together by speech-to-text. Common examples:
+- "howcan" → "how can"
+- "goodmorning" → "good morning" 
+- "thankyou" → "thank you"
+- "helpyou" → "help you"
+- "seeyou" → "see you"
+- "howare" → "how are"
+- "whatcan" → "what can"
 
 Do NOT:
 - Add content that wasn't spoken
