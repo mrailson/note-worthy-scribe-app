@@ -97,6 +97,7 @@ export const MeetingRecorder = ({
   const { user } = useAuth();
   
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const latestCompleteTranscriptRef = useRef<string>('');
   const autoSaveRef = useRef<NodeJS.Timeout | null>(null);
   const browserAudioStreamRef = useRef<MediaStream | null>(null);
   const micAudioStreamRef = useRef<MediaStream | null>(null);
@@ -422,6 +423,9 @@ export const MeetingRecorder = ({
         
         console.log('📝 Final cleaned transcript length:', cleanedTranscript.length);
         console.log('📝 Final transcript ends with:', cleanedTranscript.slice(-100));
+        
+        // Store the latest complete transcript in a ref for immediate access
+        latestCompleteTranscriptRef.current = cleanedTranscript;
         
         setTranscript(cleanedTranscript);
         onTranscriptUpdate(cleanedTranscript);
@@ -1429,8 +1433,8 @@ export const MeetingRecorder = ({
     // Wait additional time to ensure all final transcripts are processed
     await new Promise(resolve => setTimeout(resolve, 2000));
     
-    // Get the most up-to-date transcript after waiting
-    const currentTranscript = transcript;
+    // Use the latest complete transcript from ref (immediate access, not state)
+    const currentTranscript = latestCompleteTranscriptRef.current || transcript;
     console.log('📝 Using transcript for summary:', currentTranscript.length, 'characters');
     console.log('📝 Transcript preview:', currentTranscript.substring(0, 200) + '...');
     console.log('📝 Transcript ending:', currentTranscript.slice(-200));
