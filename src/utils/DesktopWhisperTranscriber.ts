@@ -270,7 +270,9 @@ export class DesktopWhisperTranscriber {
     console.log(`🔍 DEBUG: Checking for remaining chunks - audioChunks.length: ${this.audioChunks.length}`);
     if (this.audioChunks.length > 0) {
       console.log(`🔄 Processing final audio chunk (${this.audioChunks.length} chunks)...`);
-      this.chunkCount++; // Increment for final chunk
+      // Increment chunk count for the final chunk since the timeout was cancelled
+      this.chunkCount++;
+      console.log(`🔍 DEBUG: Incremented to chunk number ${this.chunkCount} for final chunk`);
       await this.processAudioChunks();
       // Additional wait to ensure transcription callback is processed
       await new Promise(resolve => setTimeout(resolve, 3000)); // Wait for database save
