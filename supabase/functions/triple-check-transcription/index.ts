@@ -40,32 +40,39 @@ serve(async (req) => {
 
     console.log("Audio data size:", audioData.length, "bytes");
 
-    // PASS 1: Standard medical transcription
+    // PASS 1: Ultra-conservative medical transcription
     const transcription1 = await performTranscription(audioData, OPENAI_API_KEY, {
       temperature: 0,
-      prompt: 'This is a medical consultation between a GP doctor and patient. Please transcribe accurately including medical terms like angina, ramipril, medications, dosages, and symptoms.',
-      name: 'Pass 1 (Medical Context)'
+      prompt: 'Medical consultation. CRITICAL: Include EVERY word spoken. Medication names: ramipril, amlodipine, atenolol. Family history: "dad had heart attack in his 60s" (NOT sixth). NEVER omit patient medication responses. Include complete greetings: "Good morning, thanks for coming in today".',
+      name: 'Pass 1 (Complete)'
     });
 
-    // PASS 2: Conservative transcription focused on accuracy
+    // PASS 2: Medication-focused transcription
     const transcription2 = await performTranscription(audioData, OPENAI_API_KEY, {
-      temperature: 0.1,
-      prompt: 'Medical consultation transcription. Key terms: angina, ramipril, 5mg, chest pain, heart attack, blood pressure, ECG, 999. Be extremely careful with medical terminology.',
-      name: 'Pass 2 (Conservative)'
+      temperature: 0,
+      prompt: 'GP consultation focusing on medication details. ESSENTIAL: When GP asks "what medications are you on" capture the FULL patient response including drug names, dosages like "ramipril 5mg once daily". Family history: 60s NOT sixth. Angina NOT injection/injustice.',
+      name: 'Pass 2 (Medication)'
     });
 
-    // PASS 3: High-confidence transcription with medical vocabulary
+    // PASS 3: Sentence structure and continuity focus
     const transcription3 = await performTranscription(audioData, OPENAI_API_KEY, {
-      temperature: 0.2,
-      prompt: 'GP consultation. Critical medical terms to recognize: angina (NOT injection/injustice), ramipril (heart medication), chest pain clinic, ECG, blood tests, call 999 immediately. Transcribe exactly what is said.',
-      name: 'Pass 3 (Medical Vocab)'
+      temperature: 0,
+      prompt: 'Medical transcription with perfect sentence flow. Key corrections: "angina" never "injection", "his 60s" never "his sixth", maintain complete sentences like "ECG today and blood tests", include all medication responses completely.',
+      name: 'Pass 3 (Structure)'
     });
 
-    console.log("All three transcription passes completed");
+    // PASS 4: Final verification pass
+    const transcription4 = await performTranscription(audioData, OPENAI_API_KEY, {
+      temperature: 0,
+      prompt: 'Final verification pass. Must include: complete greetings, all medication names and doses, family history with "60s", proper medical terms (angina not injection), complete GP plans including ECG and blood tests.',
+      name: 'Pass 4 (Verification)'
+    });
+
+    console.log("All four transcription passes completed");
 
     // VALIDATION & CROSS-CHECKING
     const validatedResult = await validateAndMergeTranscriptions(
-      [transcription1, transcription2, transcription3],
+      [transcription1, transcription2, transcription3, transcription4],
       OPENAI_API_KEY
     );
 
@@ -158,33 +165,36 @@ async function validateAndMergeTranscriptions(transcriptions: any[], apiKey: str
 
   // Use GPT-4 to cross-validate and merge the best transcriptions
   const validationPrompt = `
-You are a medical transcription validator. Review these 3 transcription attempts of the same GP consultation audio and create the most accurate final version.
+You are a medical transcription expert. Review these ${validTranscriptions.length} transcription attempts and create the most clinically accurate final version.
 
-CRITICAL MEDICAL TERMS TO WATCH FOR:
-- "angina" (NOT injection, injustice, or similar)
-- "ramipril" (heart medication, often 5mg)
-- "chest pain clinic" 
-- "ECG" or "blood tests"
-- "call 999 immediately"
-- Medication dosages (like "5mg once daily")
+CRITICAL FIXES NEEDED:
+- "angina" NEVER "injection/injustice/inflection"  
+- "60s" NEVER "sixth"
+- Include COMPLETE greetings: "Good morning, thanks for coming in today"
+- Include ALL medication responses: "ramipril 5mg once daily" etc.
+- Complete sentences: "ECG today and blood tests" not broken fragments
+- Family history: "My dad had a heart attack in his 60s"
 
-TRANSCRIPTION 1 (Confidence: ${validTranscriptions[0]?.confidence.toFixed(2)}):
+TRANSCRIPTION 1 (${validTranscriptions[0]?.source}, Confidence: ${validTranscriptions[0]?.confidence.toFixed(2)}):
 ${validTranscriptions[0]?.text}
 
-TRANSCRIPTION 2 (Confidence: ${validTranscriptions[1]?.confidence.toFixed(2)}):
+TRANSCRIPTION 2 (${validTranscriptions[1]?.source}, Confidence: ${validTranscriptions[1]?.confidence.toFixed(2)}):
 ${validTranscriptions[1]?.text || 'N/A'}
 
-TRANSCRIPTION 3 (Confidence: ${validTranscriptions[2]?.confidence.toFixed(2)}):
+TRANSCRIPTION 3 (${validTranscriptions[2]?.source}, Confidence: ${validTranscriptions[2]?.confidence.toFixed(2)}):
 ${validTranscriptions[2]?.text || 'N/A'}
 
-INSTRUCTIONS:
-1. Identify the most accurate medical terms across all versions
-2. Fix obvious medical misheards (e.g., "injustice" should be "angina")
-3. Include ALL important medical details (medications, dosages, plans)
-4. Maintain natural conversation flow
-5. Flag any critical medical term inconsistencies
+TRANSCRIPTION 4 (${validTranscriptions[3]?.source}, Confidence: ${validTranscriptions[3]?.confidence.toFixed(2)}):
+${validTranscriptions[3]?.text || 'N/A'}
 
-Return ONLY the corrected final transcription, nothing else.`;
+ESSENTIAL RULES:
+1. Include EVERY spoken word from ALL speakers
+2. When GP asks "what medications", include patient's complete response  
+3. Fix all medical misheards using context
+4. Maintain proper conversation flow and complete sentences
+5. Never omit greetings, medications, or safety advice
+
+Return ONLY the corrected complete transcription.`;
 
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
