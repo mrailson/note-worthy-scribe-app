@@ -436,10 +436,17 @@ export const MeetingRecorder = ({
             console.log('📝 Combined content preview:', rawTranscript.substring(0, 100) + '...');
           }
           
-          // Remove hallucinated phrases from transcript
+          // Remove hallucinated phrases and repetitive patterns from transcript
           const cleanedTranscript = rawTranscript
             .replace(/Thank you for watching\.?\s*/gi, '')
             .replace(/Thanks for watching\.?\s*/gi, '')
+            .replace(/This meeting is being recorded in English\.?\s*/gi, '')
+            .replace(/and may not be suitable for all audiences\.?\s*/gi, '')
+            .replace(/Please use headphones or earphones for better experience\.?\s*/gi, '')
+            // Remove excessive repetition (same word repeated more than 3 times)
+            .replace(/\b(\w+)(\s+\1){3,}/gi, '$1')
+            // Remove excessive "Bye" repetitions
+            .replace(/(Bye\.?\s*){4,}/gi, 'Bye. ')
             .trim();
           
           console.log('📝 Final cleaned transcript length:', cleanedTranscript.length);
