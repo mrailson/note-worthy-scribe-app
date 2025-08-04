@@ -1480,134 +1480,17 @@ const Index = () => {
                               
                                {/* Original Text */}
                                <div className="mb-2">
-                                 <div className="flex items-center justify-between">
-                                   <p className="text-xs font-medium text-muted-foreground">
-                                     {translation.speaker === 'GP' ? 'English:' : `${HEALTHCARE_LANGUAGES.find(l => l.code === translationLanguage)?.name}:`}
-                                   </p>
-                                   <div className="flex items-center gap-1">
-                                     {/* Repeat Original Text */}
-                                     <Button
-                                       size="sm"
-                                       variant="ghost"
-                                       className="h-5 w-5 p-0 hover:bg-black/10"
-                                       title={`Repeat in ${translation.speaker === 'GP' ? 'English' : HEALTHCARE_LANGUAGES.find(l => l.code === translationLanguage)?.name}`}
-                                       onClick={async () => {
-                                         if (translation.speaker === 'GP') {
-                                           // Play original GP text in English using browser speech
-                                           const utterance = new SpeechSynthesisUtterance(translation.originalText);
-                                            utterance.lang = 'en-GB';
-                                           speechSynthesis.speak(utterance);
-                                           toast.success('Repeating in English');
-                                         } else {
-                                           // Play patient text in their language
-                                           await speakTranslation(translation.originalText, translationLanguage, translation.id + '-orig-repeat');
-                                           toast.success(`Repeating in ${HEALTHCARE_LANGUAGES.find(l => l.code === translationLanguage)?.name}`);
-                                         }
-                                       }}
-                                     >
-                                       <Volume2 className="h-2.5 w-2.5 text-muted-foreground" />
-                                     </Button>
-                                     
-                                     {/* Incorrect Original Text Button - Only for GP */}
-                                     {translation.speaker === 'GP' && (
-                                       <Button
-                                         size="sm"
-                                         variant="ghost"
-                                         className="h-5 w-5 p-0 hover:bg-red-50 text-orange-500 hover:text-red-500"
-                                         title="Mark original transcription as incorrect"
-                                         onClick={() => {
-                                           const confirmed = window.confirm('Mark this original transcription as incorrect?');
-                                           if (confirmed) {
-                                             console.log('Incorrect original transcription marked:', translation.originalText);
-                                             toast.success('Original transcription marked as incorrect');
-                                           }
-                                         }}
-                                       >
-                                         <AlertTriangle className="h-2.5 w-2.5" />
-                                       </Button>
-                                     )}
-                                   </div>
-                                 </div>
+                                 <p className="text-xs font-medium text-muted-foreground">
+                                   {translation.speaker === 'GP' ? 'English:' : `${HEALTHCARE_LANGUAGES.find(l => l.code === translationLanguage)?.name}:`}
+                                 </p>
                                  <p className="text-sm">{translation.originalText}</p>
                                </div>
                                
                                {/* Translated Text */}
                                <div>
-                                 <div className="flex items-center justify-between">
-                                   <p className="text-xs font-medium text-muted-foreground">
-                                     {translation.speaker === 'GP' ? `${HEALTHCARE_LANGUAGES.find(l => l.code === translationLanguage)?.name}:` : 'English:'}
-                                   </p>
-                                   <div className="flex items-center gap-1">
-                                     {/* Repeat Translated Text */}
-                                     <Button
-                                       size="sm"
-                                       variant="ghost"
-                                       className="h-5 w-5 p-0 hover:bg-black/10"
-                                       title={`Repeat in ${translation.speaker === 'GP' ? HEALTHCARE_LANGUAGES.find(l => l.code === translationLanguage)?.name : 'English'}`}
-                                       onClick={async () => {
-                                         if (translation.speaker === 'GP') {
-                                           // Play GP translation in target language
-                                           await speakTranslation(translation.translatedText, translationLanguage, translation.id + '-trans-repeat');
-                                           toast.success(`Repeating in ${HEALTHCARE_LANGUAGES.find(l => l.code === translationLanguage)?.name}`);
-                                         } else {
-                                           // Play patient translation in English using browser speech
-                                           const utterance = new SpeechSynthesisUtterance(translation.translatedText);
-                                            utterance.lang = 'en-GB';
-                                           speechSynthesis.speak(utterance);
-                                           toast.success('Repeating in English');
-                                         }
-                                       }}
-                                     >
-                                       <Volume2 className="h-2.5 w-2.5 text-primary" />
-                                     </Button>
-                                     
-                                     {/* Incorrect Translation Button - Only for translations */}
-                                     <Button
-                                       size="sm"
-                                       variant="ghost"
-                                       className="h-5 w-5 p-0 hover:bg-red-50 text-orange-500 hover:text-red-500"
-                                       title="Mark translation as incorrect"
-                                       onClick={async () => {
-                                         try {
-                                           const confirmed = window.confirm('Mark this translation as incorrect? An apology will be spoken.');
-                                           if (!confirmed) return;
-                                           
-                                           // Speak apology in the appropriate language
-                                           const apologyMessage = "I am sorry, that translation was incorrect.";
-                                           
-                                           if (translation.speaker === 'GP') {
-                                             // GP translation is wrong, apologize in target language
-                                             const { data, error } = await supabase.functions.invoke('translate-text', {
-                                               body: {
-                                                 text: apologyMessage,
-                                                 targetLanguage: translationLanguage,
-                                                 sourceLanguage: 'en'
-                                               }
-                                             });
-                                             
-                                             if (!error && data.translatedText) {
-                                               await speakTranslation(data.translatedText, translationLanguage, 'apology-' + Date.now());
-                                             }
-                                           } else {
-                                             // Patient translation is wrong, apologize in English
-                                             const utterance = new SpeechSynthesisUtterance(apologyMessage);
-                                             utterance.lang = 'en-GB';
-                                             speechSynthesis.speak(utterance);
-                                           }
-                                           
-                                           console.log('Incorrect translation marked:', translation.translatedText);
-                                           toast.success('Translation marked as incorrect. Apology spoken.');
-                                           
-                                         } catch (error) {
-                                           console.error('Error handling incorrect translation:', error);
-                                           toast.error('Failed to process request');
-                                         }
-                                       }}
-                                     >
-                                       <AlertTriangle className="h-2.5 w-2.5" />
-                                     </Button>
-                                   </div>
-                                 </div>
+                                 <p className="text-xs font-medium text-muted-foreground">
+                                   {translation.speaker === 'GP' ? `${HEALTHCARE_LANGUAGES.find(l => l.code === translationLanguage)?.name}:` : 'English:'}
+                                 </p>
                                  <p className="text-sm font-semibold text-primary">{translation.translatedText}</p>
                                </div>
                             </div>
