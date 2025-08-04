@@ -656,10 +656,10 @@ export const MeetingRecorder = ({
         stream = await navigator.mediaDevices.getDisplayMedia({
           video: true, // Need video for screen share to work properly
           audio: {
-            echoCancellation: false,
-            noiseSuppression: false,
-            autoGainControl: false,
-            sampleRate: 48000
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+            sampleRate: 44100
           }
         });
         
@@ -678,15 +678,14 @@ export const MeetingRecorder = ({
         addDebugLog(`❌ Screen share failed: ${screenError.message}`);
         addDebugLog('🎤 Using enhanced microphone with custom audio processing...');
         
-        // Fallback to microphone with custom audio processing
+        // Fallback to microphone with standard settings
         stream = await navigator.mediaDevices.getUserMedia({
           audio: {
-            echoCancellation: false,
-            noiseSuppression: false,
-            autoGainControl: false,
-            sampleRate: 48000,
-            channelCount: 2,
-            sampleSize: 16
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+            sampleRate: 44100,
+            channelCount: 1
           }
         });
         
@@ -740,12 +739,12 @@ export const MeetingRecorder = ({
     
     try {
       // Create audio context for processing
-      const audioContext = new AudioContext({ sampleRate: 24000 });
+      const audioContext = new AudioContext({ sampleRate: 44100 });
       const source = audioContext.createMediaStreamSource(stream);
       
-      // Create a gain node to amplify speaker audio
+      // Create a gain node with normal amplification
       const gainNode = audioContext.createGain();
-      gainNode.gain.value = 10.0; // Much higher amplification for speaker audio
+      gainNode.gain.value = 1.0; // Normal gain level
       
       // Create a processor for chunked audio processing
       const processor = audioContext.createScriptProcessor(4096, 1, 1);
