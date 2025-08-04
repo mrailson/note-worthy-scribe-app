@@ -1540,24 +1540,30 @@ export const MeetingRecorder = ({
     setIsGeneratingNotes(true);
 
     try {
-      // First, clean the transcript using AI
+      // First, clean the transcript using AI - but skip for longer transcripts to avoid truncation
       let cleanedTranscript = currentTranscript;
-      try {
-        const { data: cleanTranscriptData, error: cleanError } = await supabase.functions.invoke('clean-transcript', {
-          body: {
-            rawTranscript: currentTranscript,
-            meetingTitle: meetingData.title
-          }
-        });
+      
+      // Only clean shorter transcripts to avoid token limit truncation
+      if (currentTranscript.length < 3000) {
+        try {
+          const { data: cleanTranscriptData, error: cleanError } = await supabase.functions.invoke('clean-transcript', {
+            body: {
+              rawTranscript: currentTranscript,
+              meetingTitle: meetingData.title
+            }
+          });
 
-        if (!cleanError && cleanTranscriptData?.cleanedTranscript) {
-          cleanedTranscript = cleanTranscriptData.cleanedTranscript;
-          console.log('Transcript cleaned successfully');
-        } else {
-          console.warn('Failed to clean transcript, using original:', cleanError);
+          if (!cleanError && cleanTranscriptData?.cleanedTranscript) {
+            cleanedTranscript = cleanTranscriptData.cleanedTranscript;
+            console.log('Transcript cleaned successfully');
+          } else {
+            console.warn('Failed to clean transcript, using original:', cleanError);
+          }
+        } catch (cleanTranscriptError) {
+          console.warn('Error cleaning transcript, using original:', cleanTranscriptError);
         }
-      } catch (cleanTranscriptError) {
-        console.warn('Error cleaning transcript, using original:', cleanTranscriptError);
+      } else {
+        console.log('Skipping transcript cleaning for longer transcript to avoid truncation');
       }
 
       // Update meeting data with cleaned transcript
