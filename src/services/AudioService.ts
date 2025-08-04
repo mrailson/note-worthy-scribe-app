@@ -42,20 +42,9 @@ export class AudioService {
         audio: defaultOptions
       });
 
-      // Try to get system audio (optional)
-      try {
-        this.systemStream = await navigator.mediaDevices.getDisplayMedia({
-          video: false,
-          audio: {
-            sampleRate: defaultOptions.sampleRate,
-            channelCount: defaultOptions.channelCount,
-            echoCancellation: false,
-            noiseSuppression: false
-          }
-        });
-      } catch (error) {
-        console.log('System audio not available, using microphone only');
-      }
+      // For now, we'll skip system audio to avoid complications with screen sharing dialogs
+      // Users can enable this later if needed
+      console.log('Using microphone audio only');
 
       // Create mixed stream if both available
       const finalStream = this.systemStream 

@@ -152,12 +152,14 @@ export const useMeetingRecorder = (options: UseMeetingRecorderOptions = {}) => {
 
   // Start recording
   const startRecording = useCallback(async () => {
+    console.log('startRecording called');
     if (!user) {
       toast.error('Please log in to start recording');
       return;
     }
 
     try {
+      console.log('Setting state to recording and connecting');
       setState(prev => ({ ...prev, isRecording: true, connectionStatus: 'connecting' }));
       
       // Create new meeting
@@ -173,13 +175,19 @@ export const useMeetingRecorder = (options: UseMeetingRecorderOptions = {}) => {
         speakerCount: 1
       };
 
+      console.log('Creating meeting...');
       const meetingId = await meetingServiceRef.current!.createMeeting(meetingData);
+      console.log('Meeting created:', meetingId);
       
       // Start audio capture
+      console.log('Starting audio capture...');
       await audioServiceRef.current!.startCapture();
+      console.log('Audio capture started');
       
       // Start transcription
+      console.log('Starting transcription...');
       await transcriptionServiceRef.current!.startTranscription();
+      console.log('Transcription started');
 
       // Start duration timer
       startTimeRef.current = new Date();
@@ -192,6 +200,8 @@ export const useMeetingRecorder = (options: UseMeetingRecorderOptions = {}) => {
         autoSaveMeeting();
       }, 30000); // Auto-save every 30 seconds
 
+      console.log('Recording fully started, updating connection status');
+      setState(prev => ({ ...prev, connectionStatus: 'connected' }));
       toast.success('Recording started');
 
     } catch (error) {
