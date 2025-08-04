@@ -209,12 +209,16 @@ export class DesktopWhisperTranscriber {
         // Store in database if meeting ID is set
         if (this.meetingId) {
           try {
+            // Increment chunk count before storing to ensure correct sequence
+            const currentChunkNumber = this.chunkCount++;
+            console.log(`🔍 DEBUG: Storing chunk ${currentChunkNumber}`);
+            
             const { error: dbError } = await supabase
               .from('meeting_transcription_chunks')
               .insert({
                 meeting_id: this.meetingId,
                 session_id: this.sessionId,
-                chunk_number: this.chunkCount,
+                chunk_number: currentChunkNumber,
                 transcription_text: cleanText,
                 confidence: 0.9,
                 user_id: (await supabase.auth.getUser()).data.user?.id
@@ -223,7 +227,7 @@ export class DesktopWhisperTranscriber {
             if (dbError) {
               console.error('❌ Failed to store chunk in database:', dbError);
             } else {
-              console.log(`💾 Chunk ${this.chunkCount} stored in database`);
+              console.log(`💾 Chunk ${currentChunkNumber} stored in database`);
             }
           } catch (error) {
             console.error('❌ Database storage error:', error);
@@ -270,9 +274,7 @@ export class DesktopWhisperTranscriber {
     console.log(`🔍 DEBUG: Checking for remaining chunks - audioChunks.length: ${this.audioChunks.length}`);
     if (this.audioChunks.length > 0) {
       console.log(`🔄 Processing final audio chunk (${this.audioChunks.length} chunks)...`);
-      // Increment chunk count for the final chunk since the timeout was cancelled
-      this.chunkCount++;
-      console.log(`🔍 DEBUG: Incremented to chunk number ${this.chunkCount} for final chunk`);
+      // Don't increment here - let processAudioChunks handle the increment
       await this.processAudioChunks();
       // Additional wait to ensure transcription callback is processed
       await new Promise(resolve => setTimeout(resolve, 3000)); // Wait for database save
