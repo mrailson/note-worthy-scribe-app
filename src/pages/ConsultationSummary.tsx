@@ -352,64 +352,41 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
     }
 
     // Clean and parse the content to extract key points
-    const cleanContent = content.replace(/\*\*/g, '').replace(/###|##|#/g, '').trim();
+    let cleanContent = content.replace(/\*\*/g, '').replace(/###|##|#/g, '').trim();
+    
+    // Remove unwanted phrases
+    cleanContent = cleanContent.replace(/Patient Summary of Consultation/gi, '');
+    cleanContent = cleanContent.replace(/Summary of Consultation/gi, '');
+    cleanContent = cleanContent.replace(/Patient Summary/gi, '');
+    
     const lines = cleanContent.split('\n').filter(line => line.trim() !== '' && line.length > 10);
     
-    // Extract diagnosis/assessment from content
-    const assessmentLines = lines.filter(line => {
+    // Find the most relevant content from the patient copy
+    const meaningfulLines = lines.filter(line => {
       const lower = line.toLowerCase();
-      return lower.includes('assessment') || lower.includes('diagnosis') || lower.includes('impression') ||
-             lower.includes('likely') || lower.includes('suspected') || lower.includes('condition');
-    });
-    
-    // Extract treatment/plan from content
-    const treatmentLines = lines.filter(line => {
-      const lower = line.toLowerCase();
-      return lower.includes('treatment') || lower.includes('plan') || lower.includes('medication') ||
-             lower.includes('prescribed') || lower.includes('take') || lower.includes('continue');
-    });
-
-    // Extract follow-up information
-    const followUpLines = lines.filter(line => {
-      const lower = line.toLowerCase();
-      return lower.includes('follow') || lower.includes('review') || lower.includes('appointment');
+      // Skip header-like content
+      if (lower.includes('dear patient') || lower.includes('thank you') || lower.includes('best wishes')) {
+        return false;
+      }
+      // Look for actual consultation content
+      return line.length > 20 && !line.startsWith('•') && !line.includes(':');
     });
 
     // Build summary starting with greeting
     let smsText = "Hi, thank you for your consultation. ";
     
-    // Add assessment/diagnosis if available and meaningful
-    if (assessmentLines.length > 0) {
-      const assessment = assessmentLines[0].replace(/^.*?:/, '').trim();
-      if (assessment.length > 10) {
-        smsText += `We discussed ${assessment.substring(0, 80)}. `;
-      }
-    }
-    
-    // Add treatment if available and meaningful
-    if (treatmentLines.length > 0) {
-      const treatment = treatmentLines[0].replace(/^.*?:/, '').trim();
-      if (treatment.length > 10) {
-        smsText += `${treatment.substring(0, 60)}. `;
-      }
-    }
-    
-    // Add follow-up if available and meaningful
-    if (followUpLines.length > 0) {
-      const followUp = followUpLines[0].replace(/^.*?:/, '').trim();
-      if (followUp.length > 10) {
-        smsText += `${followUp.substring(0, 40)}. `;
-      }
-    }
-    
-    // If no specific content was found, add generic summary from first meaningful lines
-    if (smsText === "Hi, thank you for your consultation. ") {
-      const meaningfulLines = lines.slice(0, 2).map(line => line.replace(/^.*?:/, '').trim()).filter(line => line.length > 15);
-      if (meaningfulLines.length > 0) {
-        smsText += `We discussed your ${meaningfulLines[0].substring(0, 80)}. `;
+    // Use the first meaningful line if available
+    if (meaningfulLines.length > 0) {
+      let summary = meaningfulLines[0].trim();
+      // Clean up any remaining formatting
+      summary = summary.replace(/^(We discussed|Today we|During your visit)/i, '').trim();
+      if (summary.length > 15) {
+        smsText += `${summary.substring(0, 100)}. `;
       } else {
-        smsText += "We reviewed your health concerns and discussed next steps. ";
+        smsText += "We reviewed your health concerns and discussed your treatment plan. ";
       }
+    } else {
+      smsText += "We reviewed your health concerns and discussed your treatment plan. ";
     }
     
     // Always end with contact instruction
