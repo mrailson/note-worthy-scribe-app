@@ -1438,28 +1438,29 @@ export const MeetingRecorder = ({
     const needsAudioBackup = shouldCreateAudioBackup(wordCount, duration);
     console.log(`📊 Audio backup needed: ${needsAudioBackup}`);
     
-    // Wait for any pending transcriptions with polling
+    // Wait for any pending transcriptions with more aggressive polling
     console.log('🔍 DEBUG: Waiting for any final transcriptions...');
     let previousTranscriptCount = realtimeTranscripts.filter(t => t.isFinal).length;
     let stableCount = 0;
-    const maxWaitTime = 10000; // Maximum 10 seconds
+    const maxWaitTime = 15000; // Maximum 15 seconds
     const startWaitTime = Date.now();
     
-    while (Date.now() - startWaitTime < maxWaitTime && stableCount < 3) {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+    while (Date.now() - startWaitTime < maxWaitTime && stableCount < 5) {
+      await new Promise(resolve => setTimeout(resolve, 500)); // Check every 500ms instead of 1000ms
       const currentTranscriptCount = realtimeTranscripts.filter(t => t.isFinal).length;
       
       if (currentTranscriptCount === previousTranscriptCount) {
         stableCount++;
-        console.log(`🔍 DEBUG: Transcript count stable (${currentTranscriptCount}) for ${stableCount}/3 checks`);
+        console.log(`🔍 DEBUG: Transcript count stable (${currentTranscriptCount}) for ${stableCount}/5 checks`);
       } else {
         console.log(`🔍 DEBUG: New transcript received! Count: ${previousTranscriptCount} → ${currentTranscriptCount}`);
+        console.log(`🔍 DEBUG: Latest transcript: "${realtimeTranscripts[realtimeTranscripts.length - 1]?.text.substring(0, 100)}..."`);
         previousTranscriptCount = currentTranscriptCount;
         stableCount = 0;
       }
     }
     
-    console.log(`🔍 DEBUG: Finished waiting after ${Date.now() - startWaitTime}ms`);
+    console.log(`🔍 DEBUG: Finished waiting after ${Date.now() - startWaitTime}ms, final count: ${realtimeTranscripts.filter(t => t.isFinal).length}`);
     
     // Get ALL transcripts to combine them manually at stop time
     const allFinalTranscripts = realtimeTranscripts.filter(t => t.isFinal);
