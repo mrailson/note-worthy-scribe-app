@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import { mergeTranscripts, cleanFinalTranscript } from '@/utils/TranscriptMerger';
 import { useNavigate } from "react-router-dom";
 import { format, startOfDay, addMinutes } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -93,7 +92,6 @@ export const MeetingRecorder = ({
     description: "",
     meetingType: "general"
   });
-  const [combinedTranscript, setCombinedTranscript] = useState('');
   
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -384,18 +382,6 @@ export const MeetingRecorder = ({
         !(t.speaker === transcriptData.speaker && !t.isFinal)
       );
       
-      // Check if this exact transcript is already in the array to prevent duplicates
-      const isDuplicate = filtered.some(t => 
-        t.text === transcriptData.text && 
-        t.isFinal === transcriptData.isFinal && 
-        t.speaker === transcriptData.speaker
-      );
-      
-      if (isDuplicate) {
-        console.log('🔍 Skipping duplicate transcript');
-        return prev;
-      }
-      
       // If this is a final transcript, always add it (don't replace previous final ones)
       const newTranscripts = [...filtered, transcriptData];
       
@@ -403,71 +389,77 @@ export const MeetingRecorder = ({
       console.log('🔍 Total transcripts after add:', newTranscripts.length);
       console.log('🔍 Final transcripts count:', newTranscripts.filter(t => t.isFinal).length);
       
+      // Calculate speaker count from the new array
+      const speakers = new Set(newTranscripts.map(t => t.speaker));
+      setSpeakerCount(speakers.size);
+      
+      // Update main transcript if this is final
+      if (transcriptData.isFinal) {
+        const finalTranscripts = newTranscripts.filter(t => t.isFinal);
+        
+        console.log('📝 Processing final transcripts:', finalTranscripts.length);
+        finalTranscripts.forEach((t, i) => {
+          console.log(`📝 Transcript ${i + 1} (${t.text.length} chars):`, t.text.substring(0, 100) + '...');
+        });
+        
+        // Combine all final transcripts to build the complete conversation
+        // Each chunk from the desktop transcriber is a separate part of the conversation
+        let rawTranscript = '';
+        if (finalTranscripts.length === 0) {
+          rawTranscript = '';
+        } else if (finalTranscripts.length === 1) {
+          rawTranscript = finalTranscripts[0].text;
+        } else {
+          // Sort by timestamp to maintain chronological order
+          const sortedByTime = finalTranscripts.sort((a, b) => 
+            new Date(a.timestamp || 0).getTime() - new Date(b.timestamp || 0).getTime()
+          );
+          
+          // Concatenate all transcripts with a space separator
+          rawTranscript = sortedByTime.map(t => t.text.trim()).join(' ');
+          
+          console.log('📝 Combined transcript from', sortedByTime.length, 'chunks');
+          console.log('📝 Total combined length:', rawTranscript.length, 'chars');
+          console.log('📝 Combined content preview:', rawTranscript.substring(0, 200) + '...');
+        }
+        
+        // Remove hallucinated phrases from transcript
+        const cleanedTranscript = rawTranscript
+          .replace(/Thank you for watching\.?\s*/gi, '')
+          .replace(/Thanks for watching\.?\s*/gi, '')
+          .trim();
+        
+        console.log('📝 Final cleaned transcript length:', cleanedTranscript.length);
+        console.log('📝 Final transcript ends with:', cleanedTranscript.slice(-100));
+        
+        // Store the latest complete transcript in a ref for immediate access
+        latestCompleteTranscriptRef.current = cleanedTranscript;
+        
+        setTranscript(cleanedTranscript);
+        onTranscriptUpdate(cleanedTranscript);
+        
+        // Update word count
+        const words = cleanedTranscript.split(' ').filter(word => word.length > 0);
+        setWordCount(words.length);
+        onWordCountUpdate(words.length);
+      }
+      
       return newTranscripts;
     });
-
-    // Process final transcripts separately to avoid duplicate processing
-    if (transcriptData.isFinal) {
-      // Use a timeout to ensure the state has been updated
-      setTimeout(() => {
-        setRealtimeTranscripts(currentTranscripts => {
-          const finalTranscripts = currentTranscripts.filter(t => t.isFinal);
-          
-          console.log('📝 Processing final transcripts:', finalTranscripts.length);
-          finalTranscripts.forEach((t, i) => {
-            console.log(`📝 Transcript ${i + 1} (${t.text.length} chars):`, t.text.substring(0, 100) + '...');
-          });
-          
-          // Combine all final transcripts to build the complete conversation
-          let rawTranscript = '';
-          if (finalTranscripts.length === 0) {
-            rawTranscript = '';
-          } else if (finalTranscripts.length === 1) {
-            rawTranscript = finalTranscripts[0].text;
-          } else {
-            // Sort by timestamp to maintain chronological order
-            const sortedByTime = finalTranscripts.sort((a, b) => 
-              new Date(a.timestamp || 0).getTime() - new Date(b.timestamp || 0).getTime()
-            );
-            
-            // Concatenate all transcripts with a space separator
-            rawTranscript = sortedByTime.map(t => t.text.trim()).join(' ');
-            
-            console.log('📝 Combined transcript from', finalTranscripts.length, 'chunks');
-            console.log('📝 Total combined length:', rawTranscript.length, 'chars');
-            console.log('📝 Combined content preview:', rawTranscript.substring(0, 100) + '...');
-          }
-          
-          // Clean transcript using the new utility function
-          const cleanedTranscript = cleanFinalTranscript(rawTranscript);
-          
-          console.log('📝 Final cleaned transcript length:', cleanedTranscript.length);
-          console.log('📝 Final transcript ends with:', cleanedTranscript.slice(-100));
-          
-          // Store the latest complete transcript in a ref for immediate access
-          latestCompleteTranscriptRef.current = cleanedTranscript;
-          
-          setTranscript(cleanedTranscript);
-          onTranscriptUpdate(cleanedTranscript);
-          
-          // Update word count
-          const words = cleanedTranscript.split(' ').filter(word => word.length > 0);
-          setWordCount(words.length);
-          onWordCountUpdate(words.length);
-          
-          return currentTranscripts;
-        });
-      }, 0);
-    }
-
-    // Calculate speaker count
-    const speakers = new Set(realtimeTranscripts.map(t => t.speaker));
-    setSpeakerCount(speakers.size);
   };
 
   const handleBrowserTranscript = (data: BrowserTranscriptData) => {
+    // Remove hallucinated phrases from browser transcription
+    const cleanedText = data.text
+      .replace(/Thank you for watching\.?\s*/gi, '')
+      .replace(/Thanks for watching\.?\s*/gi, '')
+      .trim();
+    
+    // Skip empty transcripts after cleaning
+    if (!cleanedText) return;
+    
     const transcriptData: TranscriptData = {
-      text: data.text,
+      text: cleanedText,
       speaker: data.speaker || 'Speaker',
       confidence: data.confidence,
       timestamp: new Date().toISOString(),
@@ -509,10 +501,6 @@ export const MeetingRecorder = ({
 
 
   const processAudioChunk = async (audioBlob: Blob) => {
-    console.log('🔍 CHUNK DEBUG: processAudioChunk called', { 
-      blobSize: audioBlob.size, 
-      chunkNumber: Date.now() 
-    });
     if (audioBlob.size === 0) return;
     
     try {
@@ -529,13 +517,9 @@ export const MeetingRecorder = ({
       }
       const base64Audio = btoa(binary);
 
-      // Send to speech-to-text edge function with context
+      // Send to speech-to-text edge function with optimized settings
       const { data, error } = await supabase.functions.invoke('speech-to-text', {
-        body: { 
-          audio: base64Audio,
-          previousTranscript: combinedTranscript.slice(-500), // Last 500 chars for context
-          meetingType: meetingSettings.meetingType || 'general'
-        }
+        body: { audio: base64Audio }
       });
 
       if (error) {
@@ -544,13 +528,8 @@ export const MeetingRecorder = ({
       }
 
       if (data?.text && data.text.trim() && !data.filtered) {
-        const newText = data.text.trim();
-        
-        // Merge with existing transcript intelligently to avoid duplication
-        setCombinedTranscript(prev => mergeTranscripts(prev, newText));
-        
         const transcriptData: TranscriptData = {
-          text: newText,
+          text: data.text.trim(),
           speaker: `Speaker ${speakerCount + 1}`,
           confidence: data.confidence || 0.8,
           timestamp: new Date().toISOString(),
@@ -558,9 +537,6 @@ export const MeetingRecorder = ({
         };
         
         handleTranscript(transcriptData);
-        
-        // Update word count
-        setWordCount(prev => prev + newText.split(' ').length);
       }
     } catch (error) {
       console.error('Error processing audio chunk:', error);
@@ -646,136 +622,94 @@ export const MeetingRecorder = ({
     }
   };
 
-  // Enhanced computer audio transcription with better system audio capture
+  // Computer audio transcription for Teams/Zoom meetings using enhanced audio processing
   const startComputerAudioTranscription = async () => {
-    addDebugLog('💻 Starting enhanced computer audio capture...');
+    addDebugLog('💻 Starting computer audio capture via screen share...');
     
     try {
+      // Try screen sharing with audio first
       let stream: MediaStream;
-      let audioSource = 'unknown';
+      let useCustomProcessing = false;
       
-      // Method 1: Try audio-only screen capture first (most reliable for system audio)
       try {
-        addDebugLog('🔊 Attempting audio-only system capture...');
+        addDebugLog('🖥️ Requesting screen share with audio...');
         stream = await navigator.mediaDevices.getDisplayMedia({
-          video: false,
-          audio: {
-            echoCancellation: false,  // Important: disable for system audio
-            noiseSuppression: false,  // Important: disable for system audio
-            autoGainControl: false,   // Important: disable for system audio
-            sampleRate: 48000,        // Higher sample rate for better quality
-            channelCount: 2           // Stereo for system audio
-          }
-        });
-        audioSource = 'system-audio-only';
-        addDebugLog('✅ Audio-only system capture successful');
-      } catch (audioOnlyError) {
-        addDebugLog(`❌ Audio-only failed: ${audioOnlyError.message}`);
-        
-        // Method 2: Try video + audio screen capture, then remove video
-        try {
-          addDebugLog('🖥️ Attempting video+audio screen capture...');
-          stream = await navigator.mediaDevices.getDisplayMedia({
-            video: {
-              width: { ideal: 1 },     // Minimal video to reduce overhead
-              height: { ideal: 1 }
-            },
-            audio: {
-              echoCancellation: false,
-              noiseSuppression: false,
-              autoGainControl: false,
-              sampleRate: 48000,
-              channelCount: 2
-            }
-          });
-          
-          // Remove video tracks to save bandwidth
-          const videoTracks = stream.getVideoTracks();
-          videoTracks.forEach(track => {
-            stream.removeTrack(track);
-            track.stop();
-          });
-          
-          audioSource = 'system-video-removed';
-          addDebugLog('✅ Video+audio capture successful, video tracks removed');
-        } catch (videoAudioError) {
-          addDebugLog(`❌ Video+audio failed: ${videoAudioError.message}`);
-          
-          // Method 3: Fallback to high-quality microphone
-          addDebugLog('🎤 Falling back to high-quality microphone...');
-          stream = await navigator.mediaDevices.getUserMedia({
-            audio: {
-              echoCancellation: false,
-              noiseSuppression: false,
-              autoGainControl: false,
-              sampleRate: 48000,
-              channelCount: 1
-            }
-          });
-          audioSource = 'microphone-fallback';
-        }
-      }
-      
-      screenStreamRef.current = stream;
-      
-      // Verify audio tracks
-      const audioTracks = stream.getAudioTracks();
-      if (audioTracks.length === 0) {
-        throw new Error('No audio tracks available');
-      }
-      
-      addDebugLog(`🔊 Audio source: ${audioSource}, tracks: ${audioTracks.length}`);
-      
-      // Log detailed audio track info
-      audioTracks.forEach((track, index) => {
-        const settings = track.getSettings();
-        addDebugLog(`🎵 Track ${index}: ${settings.sampleRate}Hz, ${settings.channelCount}ch, ${track.label}`);
-      });
-      
-      // Start transcription with the captured audio
-      if (audioSource.startsWith('system')) {
-        // For system audio, use desktop transcription for best accuracy
-        addDebugLog('🖥️ Using Desktop Whisper for system audio...');
-        const transcriber = new DesktopWhisperTranscriber(
-          handleBrowserTranscript,
-          handleTranscriptionError,
-          handleStatusChange
-        );
-        
-        await transcriber.startTranscription();
-        desktopTranscriberRef.current = transcriber;
-        
-        addDebugLog(`✅ System audio transcription started (${audioSource})`);
-      } else {
-        // For microphone fallback, use custom processing
-        addDebugLog('🎤 Using custom processing for microphone audio...');
-        await startCustomAudioProcessing(stream);
-        addDebugLog('✅ Microphone transcription started with custom processing');
-      }
-      
-    } catch (error: any) {
-      addDebugLog(`❌ Computer audio setup failed: ${error.message}`);
-      console.error('❌ Computer audio setup failed:', error);
-      
-      // Ultimate fallback to basic microphone
-      addDebugLog('🔄 Falling back to basic microphone transcription...');
-      try {
-        const fallbackStream = await navigator.mediaDevices.getUserMedia({
+          video: true, // Need video for screen share to work properly
           audio: {
             echoCancellation: false,
             noiseSuppression: false,
             autoGainControl: false,
-            sampleRate: 16000,
-            channelCount: 1
+            sampleRate: 48000
           }
         });
         
-        micAudioStreamRef.current = fallbackStream;
-        await startCustomAudioProcessing(fallbackStream);
-        addDebugLog('✅ Fallback microphone transcription started');
-      } catch (fallbackError: any) {
-        addDebugLog(`❌ Fallback failed: ${fallbackError.message}`);
-        throw fallbackError;
+        addDebugLog('✅ Screen audio access granted');
+        screenStreamRef.current = stream;
+        
+        // Check if we actually got audio tracks
+        const audioTracks = stream.getAudioTracks();
+        if (audioTracks.length === 0) {
+          throw new Error('No audio tracks in screen share');
+        }
+        
+        addDebugLog(`🔊 Audio tracks found: ${audioTracks.length}`);
+        
+      } catch (screenError) {
+        addDebugLog(`❌ Screen share failed: ${screenError.message}`);
+        addDebugLog('🎤 Using enhanced microphone with custom audio processing...');
+        
+        // Fallback to microphone with custom audio processing
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false,
+            sampleRate: 48000,
+            channelCount: 2,
+            sampleSize: 16
+          }
+        });
+        
+        addDebugLog('✅ Enhanced microphone access granted');
+        micAudioStreamRef.current = stream;
+        useCustomProcessing = true;
+      }
+
+      if (useCustomProcessing) {
+        // Use custom audio processing for better speaker audio capture
+        await startCustomAudioProcessing(stream);
+      } else {
+        // Use browser speech recognition for screen audio
+        const transcriber = new BrowserSpeechTranscriber(
+          handleBrowserTranscript,
+          handleTranscriptionError,
+          handleStatusChange,
+          handleLiveSummary
+        );
+
+        await transcriber.startTranscription();
+        browserTranscriberRef.current = transcriber;
+      }
+      
+      addDebugLog('✅ Computer audio transcription started successfully');
+      
+      if (screenStreamRef.current) {
+        addDebugLog('💡 Screen audio capture active - should pick up Teams/YouTube audio');
+      } else {
+        addDebugLog('💡 Using enhanced microphone processing - optimized for speaker audio capture');
+      }
+      
+      console.log('Recording started with computer audio transcription');
+      
+    } catch (error) {
+      addDebugLog(`❌ Computer audio setup failed: ${error.message}`);
+      
+      if (error.name === 'NotAllowedError') {
+        throw new Error('Permission denied. Please allow screen sharing or microphone access to capture Teams/YouTube audio.');
+      } else if (error.name === 'NotFoundError') {
+        throw new Error('No audio devices found. Please check your system audio settings.');
+      } else {
+        throw new Error(`Computer audio setup failed: ${error.message}. Try using microphone mode instead.`);
       }
     }
   };
@@ -786,12 +720,12 @@ export const MeetingRecorder = ({
     
     try {
       // Create audio context for processing
-      const audioContext = new AudioContext({ sampleRate: 44100 });
+      const audioContext = new AudioContext({ sampleRate: 24000 });
       const source = audioContext.createMediaStreamSource(stream);
       
-      // Create a gain node with normal amplification
+      // Create a gain node to amplify speaker audio
       const gainNode = audioContext.createGain();
-      gainNode.gain.value = 1.0; // Normal gain level
+      gainNode.gain.value = 10.0; // Much higher amplification for speaker audio
       
       // Create a processor for chunked audio processing
       const processor = audioContext.createScriptProcessor(4096, 1, 1);
@@ -808,15 +742,8 @@ export const MeetingRecorder = ({
         audioBuffer.push(new Float32Array(inputData));
         bufferDuration += inputBuffer.duration;
         
-        console.log('🔍 AUDIO DEBUG: Buffer duration', { 
-          bufferDuration, 
-          targetDuration, 
-          audioBufferLength: audioBuffer.length 
-        });
-        
         // Process when we have enough audio
         if (bufferDuration >= targetDuration) {
-          console.log('🔍 AUDIO DEBUG: Processing 3-second chunk', { bufferDuration });
           processAudioBuffer(audioBuffer, audioContext.sampleRate);
           audioBuffer = [];
           bufferDuration = 0;
@@ -841,11 +768,6 @@ export const MeetingRecorder = ({
 
   // Process audio buffer and send to speech-to-text API
   const processAudioBuffer = async (audioBuffer: Float32Array[], sampleRate: number) => {
-    console.log('🔍 BUFFER DEBUG: processAudioBuffer called', { 
-      chunks: audioBuffer.length, 
-      sampleRate,
-      timestamp: Date.now()
-    });
     try {
       // Combine all audio chunks
       const totalLength = audioBuffer.reduce((acc, chunk) => acc + chunk.length, 0);
@@ -857,33 +779,16 @@ export const MeetingRecorder = ({
         offset += chunk.length;
       }
       
-      // Check if audio chunk should be processed
+      // Check if audio has sufficient volume (speaker audio detection)
       const rms = Math.sqrt(combinedBuffer.reduce((acc, val) => acc + val * val, 0) / combinedBuffer.length);
-      const maxVal = Math.max(...combinedBuffer);
-      const minVal = Math.min(...combinedBuffer);
-      const dynamicRange = maxVal - minVal;
+      const volumeThreshold = 0.001; // Much lower threshold for weak speaker audio
       
-      // Improved chunk filtering function
-      const shouldSendChunk = (rms: number, dynamicRange: number): boolean => {
-        const rmsThreshold = 0.005; // Recommended
-        const minDynamicRange = 0.02; // Recommended
-
-        if (rms < rmsThreshold) {
-          addDebugLog(`❌ Skipping chunk: Low RMS (${rms.toFixed(6)})`);
-          return false;
-        }
-        if (dynamicRange < minDynamicRange) {
-          addDebugLog(`❌ Skipping chunk: Low dynamic range (${dynamicRange.toFixed(6)})`);
-          return false;
-        }
-        return true;
-      };
-      
-      if (!shouldSendChunk(rms, dynamicRange)) {
+      if (rms < volumeThreshold) {
+        addDebugLog(`🔇 Audio too quiet (RMS: ${rms.toFixed(6)}) - likely no speaker audio`);
         return;
       }
       
-      addDebugLog(`🔊 Processing audio chunk (RMS: ${rms.toFixed(4)}, Range: ${dynamicRange.toFixed(4)})`);
+      addDebugLog(`🔊 Processing audio chunk (RMS: ${rms.toFixed(4)})`);
       
       // Convert to WAV format
       const wavBuffer = encodeWAV(combinedBuffer, sampleRate);
@@ -1148,11 +1053,10 @@ export const MeetingRecorder = ({
       const audioChunks: Blob[] = [];
       
       mediaRecorder.ondataavailable = (event) => {
-        console.log('🔍 RECORDER DEBUG: MediaRecorder data available:', {
+        console.log('MediaRecorder data available:', {
           dataSize: event.data.size,
           type: event.data.type,
-          timestamp: new Date().toISOString(),
-          chunkCount: audioChunks.length + 1
+          timestamp: new Date().toISOString()
         });
         
         if (event.data.size > 0) {
@@ -1296,11 +1200,7 @@ export const MeetingRecorder = ({
       addDebugLog('🤖 Sending audio to transcription service...');
       
       const { data, error } = await supabase.functions.invoke('speech-to-text', {
-        body: { 
-          audio: base64Audio,
-          previousTranscript: combinedTranscript.slice(-500),
-          meetingType: meetingSettings.meetingType || 'general'
-        }
+        body: { audio: base64Audio }
       });
 
       if (error) throw error;
@@ -1691,27 +1591,9 @@ export const MeetingRecorder = ({
     setIsGeneratingNotes(true);
 
     try {
-      // Use proper ChatGPT-based cleaning for medical transcript deduplication
-      console.log('Using ChatGPT-based transcript cleaning for medical accuracy');
-      
-      const { data: cleaningResult, error: cleaningError } = await supabase.functions.invoke('clean-transcript', {
-        body: {
-          rawTranscript: currentTranscript,
-          meetingTitle: initialSettings?.title || 'Medical Consultation'
-        }
-      });
-
+      // Temporarily bypass transcript cleaning to avoid truncation
       let cleanedTranscript = currentTranscript;
-      
-      if (cleaningError) {
-        console.error('Transcript cleaning failed:', cleaningError);
-        console.log('Using original transcript due to cleaning error');
-      } else if (cleaningResult?.cleanedTranscript) {
-        cleanedTranscript = cleaningResult.cleanedTranscript;
-        console.log(`✅ Transcript cleaned successfully: ${cleaningResult.originalLength} → ${cleaningResult.cleanedLength} chars`);
-      } else {
-        console.log('No cleaned transcript returned, using original');
-      }
+      console.log('Skipping transcript cleaning to avoid truncation - using original transcript');
 
       // Update meeting data with cleaned transcript
       const enhancedMeetingData = {
@@ -1844,6 +1726,7 @@ export const MeetingRecorder = ({
             overview: meeting.meeting_overviews?.overview || null
           };
           
+          // Debug log to check overview data
           console.log('Meeting with overview:', {
             id: meeting.id,
             title: meeting.title,
@@ -1863,114 +1746,6 @@ export const MeetingRecorder = ({
       setLoadingHistory(false);
     }
   };
-
-  // Reset function for easy testing
-  const resetRecorder = async () => {
-    addDebugLog('🔄 Resetting recorder...');
-    console.log('Resetting recorder...');
-    
-    try {
-      // Stop recording if it's active
-      if (isRecording) {
-        await stopRecording();
-      }
-      
-      // Clear all state
-      setDuration(0);
-      setTranscript("");
-      setRealtimeTranscripts([]);
-      setConnectionStatus("Disconnected");
-      setSpeakerCount(0);
-      setWordCount(0);
-      setStartTime("");
-      setLiveSummary("");
-      setDebugLog([]);
-      setTestTranscripts([]);
-      setTickerText("");
-      setShowTicker(false);
-      
-      // Reset meeting settings to defaults
-      setMeetingSettings({
-        title: "General Meeting",
-        description: "",
-        meetingType: "general"
-      });
-      
-      // Clear audio streams
-      if (micAudioStreamRef.current) {
-        micAudioStreamRef.current.getTracks().forEach(track => track.stop());
-        micAudioStreamRef.current = null;
-      }
-      
-      if (screenStreamRef.current) {
-        screenStreamRef.current.getTracks().forEach(track => track.stop());
-        screenStreamRef.current = null;
-      }
-      
-      if (audioBackupStream.current) {
-        audioBackupStream.current.getTracks().forEach(track => track.stop());
-        audioBackupStream.current = null;
-      }
-      
-      // Clear timers
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-      
-      if (autoSaveRef.current) {
-        clearTimeout(autoSaveRef.current);
-        autoSaveRef.current = null;
-      }
-      
-      // Clear transcriber refs
-      browserTranscriberRef.current = null;
-      iPhoneTranscriberRef.current = null;
-      desktopTranscriberRef.current = null;
-      
-      // Clear session storage
-      sessionStorage.removeItem('currentSessionId');
-      
-      // Reset component state
-      setIsRecording(false);
-      
-      // Notify parent components
-      onTranscriptUpdate("");
-      onDurationUpdate("00:00");
-      onWordCountUpdate(0);
-      
-      toast.success('Recorder reset successfully');
-      addDebugLog('✅ Recorder reset complete');
-      
-    } catch (error: any) {
-      console.error('Error resetting recorder:', error);
-      addDebugLog(`❌ Reset error: ${error.message}`);
-      toast.error('Failed to reset recorder');
-    }
-  };
-
-  // Load history when user changes or component mounts
-  useEffect(() => {
-    if (user) {
-      loadMeetingHistory();
-    }
-  }, [user]);
-
-  // Filter meetings based on search query
-  useEffect(() => {
-    let filtered = meetings;
-    
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = meetings.filter(meeting =>
-        meeting.title.toLowerCase().includes(query) ||
-        meeting.description?.toLowerCase().includes(query) ||
-        meeting.meeting_type.toLowerCase().includes(query)
-      );
-    }
-    
-    setFilteredMeetings(filtered);
-  }, [meetings, searchQuery]);
 
   // Load history when user changes or component mounts
   useEffect(() => {
@@ -2172,7 +1947,7 @@ export const MeetingRecorder = ({
 
                 <div className="text-center">
                   {!isRecording ? (
-                    <div className="space-y-4">
+                    <div className="space-y-2">
                       <Button 
                         onClick={startRecording}
                         size="lg"
@@ -2180,16 +1955,6 @@ export const MeetingRecorder = ({
                       >
                         <Mic className="h-5 w-5 mr-2" />
                         Start Recording
-                      </Button>
-                      
-                      <Button 
-                        onClick={resetRecorder}
-                        variant="outline"
-                        size="sm"
-                        className="text-orange-600 border-orange-300 hover:bg-orange-50 hover:border-orange-400 transition-colors"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Reset Recorder
                       </Button>
                     </div>
                   ) : (
@@ -2557,5 +2322,3 @@ export const MeetingRecorder = ({
     </div>
   );
 };
-
-export default MeetingRecorder;

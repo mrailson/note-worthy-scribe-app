@@ -29,42 +29,45 @@ serve(async (req) => {
     console.log('🔍 Input transcript length:', rawTranscript.length);
     console.log('🔍 Input transcript ending:', rawTranscript.slice(-200));
 
-    const systemPrompt = `You are an expert medical transcript cleaner and formatter. Your task is to take raw, duplicated, and poorly formatted medical consultation transcripts and transform them into clean, readable, professional clinical documentation.
+    const systemPrompt = `You are an expert transcript cleaner and formatter. Your task is to take raw, unformatted speech-to-text transcripts and transform them into clean, readable, professional text. 
 
 Your responsibilities:
-1. Remove ALL duplicate content while preserving the complete conversation
-2. Maintain proper chronological order of the consultation
-3. Fix grammar, punctuation, and sentence structure
-4. Ensure all clinical information is preserved exactly once
-5. Create natural dialogue flow between doctor and patient
-6. Fix speech-to-text errors and merged words
-7. Standardize medical terminology and formatting
-8. Remove filler words and false starts
+1. Fix word spacing issues (e.g., "howcan I helpyou" → "how can I help you", "goodmorning" → "good morning")
+2. Remove filler words (um, uh, er, you know, like, etc.)
+3. Fix grammar and sentence structure
+4. Add proper punctuation and capitalization
+5. Correct obvious speech-to-text errors
+6. Organize the content into coherent paragraphs
+7. Maintain the original meaning and context
+8. Make the text flow naturally as if it were written professionally
+9. Remove repetitive phrases and false starts
+10. Ensure proper formatting with clear paragraphs
+11. Fix merged words and missing spaces between words
+12. Correct spacing around punctuation marks
 
-CRITICAL MEDICAL SAFETY REQUIREMENTS:
-- NEVER remove or alter any clinical information (symptoms, medications, history, advice)
-- NEVER change medical terminology or dosages
-- NEVER omit safety-netting advice or emergency instructions
-- PRESERVE all diagnostic information and management plans
-- Maintain the original meaning of all medical content
+CRITICAL: Pay special attention to words that have been incorrectly joined together by speech-to-text. Common examples:
+- "howcan" → "how can"
+- "goodmorning" → "good morning" 
+- "thankyou" → "thank you"
+- "helpyou" → "help you"
+- "seeyou" → "see you"
+- "howare" → "how are"
+- "whatcan" → "what can"
 
-DEDUPLICATION RULES:
-- Remove repeated dialogue blocks completely
-- If information appears multiple times, keep only the first occurrence in logical order
-- Merge fragmented conversations into proper sequence
-- Remove overlapping content from chunk boundaries
-- Ensure each piece of information appears exactly once
+Do NOT:
+- Add content that wasn't spoken
+- Change the essential meaning
+- Add speaker labels or names
+- Create bullet points unless the speaker clearly indicated them
+- Make assumptions about who said what
+- Remove or truncate any part of the conversation
+- Cut off the transcript early
 
-OUTPUT FORMAT:
-- Present as clean dialogue between doctor and patient
-- Use proper punctuation and capitalization
-- Maintain natural conversation flow
-- No speaker labels needed, just clean dialogue
-- Each statement on a new line for clarity
+CRITICAL: You MUST preserve the ENTIRE conversation. Do not truncate, shorten, or cut off any part of the transcript. Return the complete cleaned version of the entire input.
 
-Return ONLY the cleaned transcript without any commentary or explanation.`;
+Return only the cleaned transcript without any additional commentary.`;
 
-    const userPrompt = `Please clean and deduplicate this medical consultation transcript, removing all duplicate content while preserving every piece of clinical information exactly once:
+    const userPrompt = `Please clean and format this raw transcript:
 
 ${rawTranscript}`;
 
@@ -75,7 +78,7 @@ ${rawTranscript}`;
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'gpt-4.1-2025-04-14', // Revert to correct model
         messages: [
           {
             role: 'system',
@@ -86,8 +89,8 @@ ${rawTranscript}`;
             content: userPrompt
           }
         ],
-        temperature: 0.1, // Very low temperature for consistent, accurate cleaning
-        max_tokens: 4096
+        temperature: 0.3, // Lower temperature for more consistent formatting
+        max_tokens: 16384 // Maximum output tokens
       }),
     });
 

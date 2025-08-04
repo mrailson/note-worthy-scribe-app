@@ -20,7 +20,7 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured');
     }
 
-    const { audio, previousTranscript, meetingType } = await req.json();
+    const { audio } = await req.json();
     if (!audio) {
       throw new Error('No audio data provided');
     }
@@ -34,29 +34,17 @@ serve(async (req) => {
       audioArray[i] = binaryAudio.charCodeAt(i);
     }
     
-    // Skip empty or tiny chunks (50KB minimum to prevent hallucinations)
-    if (audioArray.length < 50000) {
-      console.warn('⚠️ Skipping small/silent audio chunk:', audioArray.length, 'bytes');
-      return new Response(JSON.stringify({ text: '' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-    
     // Create blob and form data
     const audioBlob = new Blob([audioArray], { type: 'audio/webm' });
     const formData = new FormData();
     formData.append('file', audioBlob, 'audio.webm');
     formData.append('model', 'whisper-1');
-    formData.append('language', 'en'); // Force English
-    formData.append('temperature', '0'); // No creativity, just accurate transcription
-    
-    // Context-aware initial prompt to guide Whisper
-    const contextPrompt = meetingType === 'consultation' 
-      ? 'This is a GP consultation transcription between doctor and patient discussing medical symptoms and treatments.'
-      : previousTranscript ? `Previous context: ${previousTranscript.slice(-200)}` // Last 200 chars for context
-      : 'This is a medical meeting transcription.';
-    
-    formData.append('prompt', contextPrompt);
+    // Force English language to reduce hallucinations
+    formData.append('language', 'en');
+    // Add prompt to encourage English-only output and reduce hallucinations
+    formData.append('prompt', 'This is a professional meeting or consultation recording in English. Please transcribe only clear English speech and ignore background noise, music, or unclear audio.');
+    // Set temperature to 0 for more consistent output
+    formData.append('temperature', '0');
 
     console.log('📡 Sending to OpenAI Whisper...');
     
@@ -77,31 +65,14 @@ serve(async (req) => {
     const result = await response.json();
     console.log('✅ Transcription successful:', result.text);
 
-    // Clean up transcription result
+    // Remove the prompt text that sometimes appears in transcription results
     let cleanText = result.text || '';
-    
-    // Remove common hallucinations and repetitive phrases
-    const hallucinations = [
-      /^Silence\.?\s*/gi,
-      /\bSilence\.\s*/gi,
-      /Thank you for watching\.?\s*/gi,
-      /Thanks for watching\.?\s*/gi,
-      /Please subscribe\.?\s*/gi,
-      /Like and subscribe\.?\s*/gi,
-      /Professional English meeting\.?\s*/gi,
-      /This meeting is being recorded\.?\s*/gi,
-      /\b(?:Subtitles|Caption(?:s)?)\s+by\.?\s*/gi,
-      /\b(?:Music|Background music)\b\.?\s*/gi,
-    ];
-    
-    // Apply all hallucination filters
-    hallucinations.forEach(pattern => {
-      cleanText = cleanText.replace(pattern, '');
-    });
-    
-    // Remove excessive repetition (same word/phrase 3+ times)
-    cleanText = cleanText.replace(/\b(\w+(?:\s+\w+)*)\s+\1\s+\1(?:\s+\1)*\b/gi, '$1');
-    
+    // Remove various forms of the prompt text that might appear
+    cleanText = cleanText.replace(/Please transcribe only clear English speech and ignore background noise[,\s]*music[,\s]*or unclear audio\.?\s*/gi, '');
+    cleanText = cleanText.replace(/This is a professional meeting or consultation recording in English\.?\s*/gi, '');
+    // Remove hallucinated phrases from silence
+    cleanText = cleanText.replace(/Thank you for watching\.?\s*/gi, '');
+    cleanText = cleanText.replace(/Thanks for watching\.?\s*/gi, '');
     cleanText = cleanText.trim();
     
     return new Response(JSON.stringify({ 
