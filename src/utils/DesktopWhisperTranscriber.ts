@@ -43,10 +43,11 @@ export class DesktopWhisperTranscriber {
       this.onStatusChange('Starting desktop Whisper transcription...');
       console.log('🖥️ Starting Desktop Whisper transcription...');
 
-      // Request microphone access with desktop-optimized settings
+      // Request microphone access with strict microphone-only settings
       this.stream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          sampleRate: 24000, // Higher quality for desktop
+          deviceId: 'default', // Use default microphone only
+          sampleRate: 16000, // Standard rate for speech
           channelCount: 1,
           echoCancellation: true,
           noiseSuppression: true,
@@ -197,7 +198,37 @@ export class DesktopWhisperTranscriber {
       }
 
       if (data.text && data.text.trim()) {
-        const cleanText = data.text.trim();
+        const rawText = data.text.trim();
+        
+        // Filter out common hallucinations and system audio artifacts
+        const hallucinations = [
+          /^This meeting is being recorded in English\.?$/i,
+          /^This meeting is being recorded\.?$/i,
+          /^Please use (headphones|earphones) or (earphones|headphones) for better experience\.?$/i,
+          /^Meeting recording in progress\.?$/i,
+          /^Recording started\.?$/i,
+          /^Recording in English\.?$/i
+        ];
+        
+        // Check if this is likely a hallucination
+        const isHallucination = hallucinations.some(pattern => pattern.test(rawText));
+        
+        if (isHallucination) {
+          console.log(`🚫 Filtering out hallucination: "${rawText}"`);
+          return; // Skip this transcription
+        }
+        
+        // Additional check for repetitive content
+        if (rawText.split('.').filter(sentence => sentence.trim()).length > 1) {
+          const sentences = rawText.split('.').filter(sentence => sentence.trim());
+          const uniqueSentences = new Set(sentences.map(s => s.trim().toLowerCase()));
+          if (uniqueSentences.size === 1 && sentences.length > 2) {
+            console.log(`🚫 Filtering out repetitive content: "${rawText}"`);
+            return; // Skip repetitive transcriptions
+          }
+        }
+        
+        const cleanText = rawText;
         
         // Store transcription internally
         this.allTranscriptions.push(cleanText);
