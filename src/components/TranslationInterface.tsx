@@ -76,6 +76,7 @@ export const TranslationInterface = ({ transcript, isRecording, onLanguageChange
   const audioQueue = useRef<Array<{text: string, id: string}>>([]);
   const isProcessingAudio = useRef(false);
   const lastTranscriptLength = useRef(0);
+  const lastTranslatedContent = useRef<string>('');
 
   const handleLanguageSelect = (languageCode: string) => {
     setSelectedLanguage(languageCode);
@@ -252,7 +253,10 @@ export const TranslationInterface = ({ transcript, isRecording, onLanguageChange
     });
 
     const currentLength = transcript.length;
-    if (currentLength <= lastTranscriptLength.current) return;
+    if (currentLength <= lastTranscriptLength.current) {
+      console.log('No new content, skipping translation');
+      return;
+    }
 
     // Clear any existing timer
     const timer = setTimeout(() => {
@@ -303,12 +307,22 @@ export const TranslationInterface = ({ transcript, isRecording, onLanguageChange
         
         console.log('Content to translate:', contentToTranslate);
         
+        // Check if we've already translated this exact content
+        if (contentToTranslate === lastTranslatedContent.current) {
+          console.log('Already translated this content, skipping to prevent duplication');
+          setIsTranslating(false);
+          return;
+        }
+        
         // Only translate if we have meaningful content
         if (contentToTranslate.length < 3) {
           console.log('Content too short, skipping translation');
           setIsTranslating(false);
           return;
         }
+
+        // Update last translated content
+        lastTranslatedContent.current = contentToTranslate;
 
         try {
           console.log('Calling translation service...');
