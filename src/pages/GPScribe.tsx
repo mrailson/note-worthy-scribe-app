@@ -1495,7 +1495,7 @@ const Index = () => {
                                          if (translation.speaker === 'GP') {
                                            // Play original GP text in English using browser speech
                                            const utterance = new SpeechSynthesisUtterance(translation.originalText);
-                                           utterance.lang = 'en-US';
+                                            utterance.lang = 'en-GB';
                                            speechSynthesis.speak(utterance);
                                            toast.success('Repeating in English');
                                          } else {
@@ -1552,7 +1552,7 @@ const Index = () => {
                                          } else {
                                            // Play patient translation in English using browser speech
                                            const utterance = new SpeechSynthesisUtterance(translation.translatedText);
-                                           utterance.lang = 'en-US';
+                                            utterance.lang = 'en-GB';
                                            speechSynthesis.speak(utterance);
                                            toast.success('Repeating in English');
                                          }
@@ -1591,7 +1591,7 @@ const Index = () => {
                                            } else {
                                              // Patient translation is wrong, apologize in English
                                              const utterance = new SpeechSynthesisUtterance(apologyMessage);
-                                             utterance.lang = 'en-US';
+                                             utterance.lang = 'en-GB';
                                              speechSynthesis.speak(utterance);
                                            }
                                            
