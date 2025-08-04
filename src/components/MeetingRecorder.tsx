@@ -642,44 +642,121 @@ export const MeetingRecorder = ({
     }
   };
 
-  // Computer audio transcription for Teams/Zoom meetings using enhanced audio processing
+  // Enhanced computer audio transcription with better system audio capture
   const startComputerAudioTranscription = async () => {
-    addDebugLog('💻 Starting computer audio capture via screen share...');
+    addDebugLog('💻 Starting enhanced computer audio capture...');
     
     try {
-      // Try screen sharing with audio first
       let stream: MediaStream;
-      let useCustomProcessing = false;
+      let audioSource = 'unknown';
       
+      // Method 1: Try audio-only screen capture first (most reliable for system audio)
       try {
-        addDebugLog('🖥️ Requesting screen share with audio...');
+        addDebugLog('🔊 Attempting audio-only system capture...');
         stream = await navigator.mediaDevices.getDisplayMedia({
-          video: true, // Need video for screen share to work properly
+          video: false,
           audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-            sampleRate: 44100
+            echoCancellation: false,  // Important: disable for system audio
+            noiseSuppression: false,  // Important: disable for system audio
+            autoGainControl: false,   // Important: disable for system audio
+            sampleRate: 48000,        // Higher sample rate for better quality
+            channelCount: 2           // Stereo for system audio
           }
         });
+        audioSource = 'system-audio-only';
+        addDebugLog('✅ Audio-only system capture successful');
+      } catch (audioOnlyError) {
+        addDebugLog(`❌ Audio-only failed: ${audioOnlyError.message}`);
         
-        addDebugLog('✅ Screen audio access granted');
-        screenStreamRef.current = stream;
-        
-        // Check if we actually got audio tracks
-        const audioTracks = stream.getAudioTracks();
-        if (audioTracks.length === 0) {
-          throw new Error('No audio tracks in screen share');
+        // Method 2: Try video + audio screen capture, then remove video
+        try {
+          addDebugLog('🖥️ Attempting video+audio screen capture...');
+          stream = await navigator.mediaDevices.getDisplayMedia({
+            video: {
+              width: { ideal: 1 },     // Minimal video to reduce overhead
+              height: { ideal: 1 }
+            },
+            audio: {
+              echoCancellation: false,
+              noiseSuppression: false,
+              autoGainControl: false,
+              sampleRate: 48000,
+              channelCount: 2
+            }
+          });
+          
+          // Remove video tracks to save bandwidth
+          const videoTracks = stream.getVideoTracks();
+          videoTracks.forEach(track => {
+            stream.removeTrack(track);
+            track.stop();
+          });
+          
+          audioSource = 'system-video-removed';
+          addDebugLog('✅ Video+audio capture successful, video tracks removed');
+        } catch (videoAudioError) {
+          addDebugLog(`❌ Video+audio failed: ${videoAudioError.message}`);
+          
+          // Method 3: Fallback to high-quality microphone
+          addDebugLog('🎤 Falling back to high-quality microphone...');
+          stream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: false,
+              noiseSuppression: false,
+              autoGainControl: false,
+              sampleRate: 48000,
+              channelCount: 1
+            }
+          });
+          audioSource = 'microphone-fallback';
         }
+      }
+      
+      screenStreamRef.current = stream;
+      
+      // Verify audio tracks
+      const audioTracks = stream.getAudioTracks();
+      if (audioTracks.length === 0) {
+        throw new Error('No audio tracks available');
+      }
+      
+      addDebugLog(`🔊 Audio source: ${audioSource}, tracks: ${audioTracks.length}`);
+      
+      // Log detailed audio track info
+      audioTracks.forEach((track, index) => {
+        const settings = track.getSettings();
+        addDebugLog(`🎵 Track ${index}: ${settings.sampleRate}Hz, ${settings.channelCount}ch, ${track.label}`);
+      });
+      
+      // Start transcription with the captured audio
+      if (audioSource.startsWith('system')) {
+        // For system audio, use desktop transcription for best accuracy
+        addDebugLog('🖥️ Using Desktop Whisper for system audio...');
+        const transcriber = new DesktopWhisperTranscriber(
+          handleBrowserTranscript,
+          handleTranscriptionError,
+          handleStatusChange
+        );
         
-        addDebugLog(`🔊 Audio tracks found: ${audioTracks.length}`);
+        await transcriber.startTranscription();
+        desktopTranscriberRef.current = transcriber;
         
-      } catch (screenError) {
-        addDebugLog(`❌ Screen share failed: ${screenError.message}`);
-        addDebugLog('🎤 Using enhanced microphone with custom audio processing...');
-        
-        // Fallback to microphone with original working settings
-        stream = await navigator.mediaDevices.getUserMedia({
+        addDebugLog(`✅ System audio transcription started (${audioSource})`);
+      } else {
+        // For microphone fallback, use custom processing
+        addDebugLog('🎤 Using custom processing for microphone audio...');
+        await startCustomAudioProcessing(stream);
+        addDebugLog('✅ Microphone transcription started with custom processing');
+      }
+      
+    } catch (error: any) {
+      addDebugLog(`❌ Computer audio setup failed: ${error.message}`);
+      console.error('❌ Computer audio setup failed:', error);
+      
+      // Ultimate fallback to basic microphone
+      addDebugLog('🔄 Falling back to basic microphone transcription...');
+      try {
+        const fallbackStream = await navigator.mediaDevices.getUserMedia({
           audio: {
             echoCancellation: false,
             noiseSuppression: false,
@@ -689,46 +766,12 @@ export const MeetingRecorder = ({
           }
         });
         
-        addDebugLog('✅ Enhanced microphone access granted');
-        micAudioStreamRef.current = stream;
-        useCustomProcessing = true;
-      }
-
-      if (useCustomProcessing) {
-        // Use custom audio processing for better speaker audio capture
-        await startCustomAudioProcessing(stream);
-      } else {
-        // Use browser speech recognition for screen audio
-        const transcriber = new BrowserSpeechTranscriber(
-          handleBrowserTranscript,
-          handleTranscriptionError,
-          handleStatusChange,
-          handleLiveSummary
-        );
-
-        await transcriber.startTranscription();
-        browserTranscriberRef.current = transcriber;
-      }
-      
-      addDebugLog('✅ Computer audio transcription started successfully');
-      
-      if (screenStreamRef.current) {
-        addDebugLog('💡 Screen audio capture active - should pick up Teams/YouTube audio');
-      } else {
-        addDebugLog('💡 Using enhanced microphone processing - optimized for speaker audio capture');
-      }
-      
-      console.log('Recording started with computer audio transcription');
-      
-    } catch (error) {
-      addDebugLog(`❌ Computer audio setup failed: ${error.message}`);
-      
-      if (error.name === 'NotAllowedError') {
-        throw new Error('Permission denied. Please allow screen sharing or microphone access to capture Teams/YouTube audio.');
-      } else if (error.name === 'NotFoundError') {
-        throw new Error('No audio devices found. Please check your system audio settings.');
-      } else {
-        throw new Error(`Computer audio setup failed: ${error.message}. Try using microphone mode instead.`);
+        micAudioStreamRef.current = fallbackStream;
+        await startCustomAudioProcessing(fallbackStream);
+        addDebugLog('✅ Fallback microphone transcription started');
+      } catch (fallbackError: any) {
+        addDebugLog(`❌ Fallback failed: ${fallbackError.message}`);
+        throw fallbackError;
       }
     }
   };
@@ -812,7 +855,7 @@ export const MeetingRecorder = ({
       
       // Check if audio has sufficient volume (speaker audio detection)
       const rms = Math.sqrt(combinedBuffer.reduce((acc, val) => acc + val * val, 0) / combinedBuffer.length);
-      const volumeThreshold = 0.001; // Standard threshold
+      const volumeThreshold = 0.00001; // Much lower threshold for system audio
       
       if (rms < volumeThreshold) {
         addDebugLog(`🔇 Audio too quiet (RMS: ${rms.toFixed(6)}) - likely no speaker audio`);
