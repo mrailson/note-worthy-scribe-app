@@ -950,9 +950,8 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                 >
                   <div className="flex items-center gap-1">
                     <BookOpen className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                    <span className="hidden xs:inline sm:hidden">Review</span>
                     <span className="hidden sm:inline">Review & Recommendations</span>
-                    <span className="xs:hidden">Rev</span>
+                    <span className="sm:hidden">Review</span>
                     {consultationScore !== null && (
                       <div className="flex items-center ml-1">
                         {(() => {
