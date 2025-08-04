@@ -545,11 +545,12 @@ const Index = () => {
 
   const stopRecording = () => {
     console.log("stopRecording called");
-    if (transciberRef.current) {
-      transciberRef.current.stopTranscription();
-      transciberRef.current = null;
-    }
     
+    // Set status to indicate we're finalizing
+    setConnectionStatus("Finalizing...");
+    toast.success("Recording stopped - finalizing transcript...");
+    
+    // Stop the timer first
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
@@ -557,31 +558,39 @@ const Index = () => {
     
     setIsRecording(false);
     setIsPaused(false);
-    toast.success("Recording stopped");
     
-    console.log("Transcript length:", transcript ? transcript.trim().length : 0);
-    
-    // Auto-generate summary if there's meaningful content and navigate to consultation summary
-    if (transcript && transcript.trim().length > 50) {
-      console.log("Generating summary...");
-      setTimeout(() => generateSummary(), 1000);
-    } else {
-      console.log("Navigating directly to consultation summary...");
-      // Even if no meaningful content, navigate to consultation summary with basic data
-      const consultationData = {
-        id: `consultation-${Date.now()}`,
-        title: `GP Consultation - ${new Date().toLocaleDateString()}`,
-        type: 'gp_consultation',
-        transcript: transcript || '',
-        duration: formatDuration(duration),
-        wordCount: transcript ? transcript.split(' ').filter(word => word.length > 0).length : 0,
-        startTime: new Date().toISOString(),
-        isExample: false
-      };
+    // Allow extra time for any remaining transcript data to be processed
+    setTimeout(() => {
+      if (transciberRef.current) {
+        transciberRef.current.stopTranscription();
+        transciberRef.current = null;
+      }
       
-      console.log("Navigating with data:", consultationData);
-      navigate('/consultation-summary', { state: consultationData });
-    }
+      setConnectionStatus("Stopped");
+      console.log("Transcript length:", transcript ? transcript.trim().length : 0);
+      
+      // Auto-generate summary if there's meaningful content and navigate to consultation summary
+      if (transcript && transcript.trim().length > 50) {
+        console.log("Generating summary...");
+        setTimeout(() => generateSummary(), 1000);
+      } else {
+        console.log("Navigating directly to consultation summary...");
+        // Even if no meaningful content, navigate to consultation summary with basic data
+        const consultationData = {
+          id: `consultation-${Date.now()}`,
+          title: `GP Consultation - ${new Date().toLocaleDateString()}`,
+          type: 'gp_consultation',
+          transcript: transcript || '',
+          duration: formatDuration(duration),
+          wordCount: transcript ? transcript.split(' ').filter(word => word.length > 0).length : 0,
+          startTime: new Date().toISOString(),
+          isExample: false
+        };
+        
+        console.log("Navigating with data:", consultationData);
+        navigate('/consultation-summary', { state: consultationData });
+      }
+    }, 3000); // Wait 3 seconds to capture any remaining transcript
   };
 
   const loadExample = (exampleId: string) => {
