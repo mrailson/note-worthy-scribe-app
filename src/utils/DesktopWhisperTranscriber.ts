@@ -206,23 +206,27 @@ export class DesktopWhisperTranscriber {
 
   async stopTranscription() {
     console.log('🛑 Stopping desktop Whisper transcription...');
-    this.isRecording = false;
-
+    
     if (this.transcriptionTimeout) {
       clearTimeout(this.transcriptionTimeout);
       this.transcriptionTimeout = null;
     }
 
-    // Process any remaining audio chunks before stopping
-    if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+    // Stop recording and wait for final data
+    if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
+      console.log('🔄 Stopping final recording chunk...');
       this.mediaRecorder.stop();
-      // Wait a moment for the final ondataavailable event
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Wait longer for the final ondataavailable event
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
 
-    // Process final chunk if any audio data remains
+    // Now stop the recording flag
+    this.isRecording = false;
+
+    // Force process any remaining audio chunks
     if (this.audioChunks.length > 0) {
-      console.log('🔄 Processing final audio chunk before stopping...');
+      console.log(`🔄 Processing final audio chunk (${this.audioChunks.length} chunks)...`);
+      this.chunkCount++; // Increment for final chunk
       await this.processAudioChunks();
     }
 
