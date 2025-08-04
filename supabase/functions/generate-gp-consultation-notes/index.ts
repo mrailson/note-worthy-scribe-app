@@ -17,6 +17,7 @@ interface RequestBody {
   showSnomedCodes: boolean;
   formatForEmis: boolean;
   formatForSystmOne: boolean;
+  consultationType?: string;
   userId?: string;
 }
 
@@ -70,7 +71,7 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured');
     }
 
-    const { transcript, outputLevel, showSnomedCodes, formatForEmis, formatForSystmOne, userId }: RequestBody = await req.json();
+    const { transcript, outputLevel, showSnomedCodes, formatForEmis, formatForSystmOne, consultationType, userId }: RequestBody = await req.json();
 
     if (!transcript || transcript.trim().length < 10) {
       throw new Error('Valid transcript is required');
@@ -115,6 +116,11 @@ serve(async (req) => {
     }
 
     const styleInstructions = getStyleInstructions(outputLevel, showSnomedCodes, formatForEmis, formatForSystmOne);
+    
+    // Format consultation type for display
+    const formattedConsultationType = consultationType === "face-to-face" ? "Face to Face" : 
+                                    consultationType === "telephone" ? "Telephone Consultation" : 
+                                    "Face to Face"; // default
 
     // Generate GP Summary
     const gpSummaryResponse = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -141,7 +147,7 @@ CRITICAL INSTRUCTIONS:
 
 TEMPLATE STRUCTURE TO FOLLOW:
 
-[Consultation type: "F2F" for face to face OR "T/C" for telephone] [specify whether anyone else is present e.g. "seen alone" or "seen with..." based on introductions]. '[Reason for visit - current issues or presenting complaint or booking note or follow up]'.
+${formattedConsultationType} [specify whether anyone else is present e.g. "seen alone" or "seen with..." based on introductions]. '[Reason for visit - current issues or presenting complaint or booking note or follow up]'.
 
 **History:**
 - [History of presenting complaints]
@@ -217,7 +223,7 @@ CRITICAL INSTRUCTIONS:
 
 Generate a detailed consultation note following the EXACT HeidiHealth template:
 
-[Consultation type: "F2F" for face to face OR "T/C" for telephone] [specify whether anyone else is present e.g. "seen alone" or "seen with..." based on introductions]. '[Reason for visit - current issues or presenting complaint or booking note or follow up]'.
+${formattedConsultationType} [specify whether anyone else is present e.g. "seen alone" or "seen with..." based on introductions]. '[Reason for visit - current issues or presenting complaint or booking note or follow up]'.
 
 **History:**
 - [History of presenting complaints]

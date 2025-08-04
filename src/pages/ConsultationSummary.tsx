@@ -313,6 +313,7 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
           showSnomedCodes: false,
           formatForEmis: false,
           formatForSystmOne: false,
+          consultationType: consultationData?.type || 'face-to-face',
           userId: user.id
         }
       });
