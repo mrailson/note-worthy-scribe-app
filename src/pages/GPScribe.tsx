@@ -559,17 +559,18 @@ const Index = () => {
     setIsRecording(false);
     setIsPaused(false);
     
-    // Force immediate processing of any remaining audio chunks
-    if (transciberRef.current) {
-      // Stop the current media recorder to trigger processing
-      if (transciberRef.current.isActive()) {
-        console.log("Forcing final audio chunk processing...");
-        transciberRef.current.stopTranscription();
+    // Immediately flush any remaining audio for processing
+    if (transciberRef.current && transciberRef.current.isActive()) {
+      console.log("Flushing final audio chunk...");
+      // Call flush method to immediately process remaining audio
+      if (typeof transciberRef.current.flushAudio === 'function') {
+        transciberRef.current.flushAudio();
       }
+      transciberRef.current.stopTranscription();
       transciberRef.current = null;
     }
     
-    // Allow extra time for final transcript processing (up to 15 seconds since chunks are 10s)
+    // Reduced delay since we're using 3-second chunks now (3s chunk + 2s processing buffer)
     setTimeout(() => {
       setConnectionStatus("Stopped");
       console.log("Transcript length:", transcript ? transcript.trim().length : 0);
@@ -595,7 +596,7 @@ const Index = () => {
         console.log("Navigating with data:", consultationData);
         navigate('/consultation-summary', { state: consultationData });
       }
-    }, 15000); // Wait 15 seconds to ensure final chunk processing (10s chunk + 5s transcription)
+    }, 5000); // Reduced from 15s to 5s (3s chunk + 2s buffer)
   };
 
   const loadExample = (exampleId: string) => {

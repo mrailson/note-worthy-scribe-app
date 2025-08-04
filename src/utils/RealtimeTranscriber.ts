@@ -331,7 +331,7 @@ export class RealtimeTranscriber {
           }
         }, 100);
       }
-    }, 10000); // 10 seconds
+    }, 3000); // 3 seconds instead of 10
   }
 
   private async processAudioChunks() {
@@ -462,8 +462,12 @@ export class RealtimeTranscriber {
     this.isRecording = false;
     this.onStatusChange('Stopping...');
 
-    if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
-      this.mediaRecorder.stop();
+    // Immediately process any remaining audio chunks
+    if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
+      this.mediaRecorder.stop(); // This will trigger processing
+    } else if (this.audioChunks.length > 0) {
+      // Process any chunks that haven't been processed yet
+      this.processAudioChunks();
     }
 
     if (this.stream) {
@@ -481,6 +485,13 @@ export class RealtimeTranscriber {
     this.dataArray = null;
     this.audioChunks = [];
     this.onStatusChange('Stopped');
+  }
+
+  // Add a flush method for immediate processing
+  flushAudio() {
+    if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
+      this.mediaRecorder.stop(); // This will trigger processing of current chunk
+    }
   }
 
   pauseTranscription() {
