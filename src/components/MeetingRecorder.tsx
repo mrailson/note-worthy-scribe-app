@@ -1463,7 +1463,7 @@ export const MeetingRecorder = ({
         console.log(`🔍 DEBUG: Using transcriber session ID: "${sessionId}"`);
       }
       
-      // Try transcriber method first
+      // Try transcriber method first - this should give us the complete database transcript
       finalTranscript = await desktopTranscriberRef.current.getCompleteTranscriptFromDatabase();
       console.log(`🔍 DEBUG: Database transcript from transcriber: ${finalTranscript.length} chars`);
       if (finalTranscript) {
@@ -1494,6 +1494,19 @@ export const MeetingRecorder = ({
         }
       } catch (dbError) {
         console.error('❌ Direct database query failed:', dbError);
+      }
+    }
+    
+    // If database methods failed, fall back to combining in-memory final transcripts
+    // but use the most recent complete transcript only
+    if (!finalTranscript) {
+      console.log('🔍 DEBUG: No database transcript available, using in-memory transcripts');
+      const finalTranscripts = realtimeTranscripts.filter(t => t.isFinal);
+      if (finalTranscripts.length > 0) {
+        // Use only the last (most complete) final transcript to avoid duplication
+        const mostRecentTranscript = finalTranscripts[finalTranscripts.length - 1];
+        finalTranscript = mostRecentTranscript.text.trim();
+        console.log(`🔍 DEBUG: Using most recent final transcript: ${finalTranscript.length} chars`);
       }
     }
     
