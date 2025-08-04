@@ -1401,21 +1401,82 @@ const Index = () => {
                                   : 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800'
                               }`}
                             >
-                              <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-2">
-                                  <span className={`px-2 py-1 rounded text-xs font-bold text-white ${
-                                    translation.speaker === 'GP' ? 'bg-blue-600' : 'bg-green-600'
-                                  }`}>
-                                    {translation.speaker}
-                                  </span>
-                                  <span className="text-xs text-muted-foreground">
-                                    {translation.timestamp.toLocaleTimeString()}
-                                  </span>
-                                  {playedTranslations.has(translation.id) && (
-                                    <span className="text-xs text-green-600 font-medium">✓ Played</span>
-                                  )}
-                                </div>
-                              </div>
+                               <div className="flex items-center justify-between mb-2">
+                                 <div className="flex items-center gap-2">
+                                   <span className={`px-2 py-1 rounded text-xs font-bold text-white ${
+                                     translation.speaker === 'GP' ? 'bg-blue-600' : 'bg-green-600'
+                                   }`}>
+                                     {translation.speaker}
+                                   </span>
+                                   <span className="text-xs text-muted-foreground">
+                                     {translation.timestamp.toLocaleTimeString()}
+                                   </span>
+                                   {playedTranslations.has(translation.id) && (
+                                     <span className="text-xs text-green-600 font-medium">✓ Played</span>
+                                   )}
+                                 </div>
+                                 
+                                 {/* Action buttons */}
+                                 <div className="flex items-center gap-1">
+                                   {/* Repeat Speaker Button */}
+                                   <Button
+                                     size="sm"
+                                     variant="ghost"
+                                     className="h-6 w-6 p-0 hover:bg-black/10"
+                                     title="Repeat translation"
+                                     onClick={async () => {
+                                       // Repeat the translated text
+                                       await speakTranslation(translation.translatedText, translationLanguage, translation.id + '-repeat');
+                                       toast.success('Repeating translation');
+                                     }}
+                                   >
+                                     <Volume2 className="h-3 w-3 text-primary" />
+                                   </Button>
+                                   
+                                   {/* Incorrect Translation Button - Only show for GP translations */}
+                                   {translation.speaker === 'GP' && (
+                                     <Button
+                                       size="sm"
+                                       variant="ghost"
+                                       className="h-6 w-6 p-0 hover:bg-red-50 text-orange-600 hover:text-red-600"
+                                       title="Mark as incorrect translation"
+                                       onClick={async () => {
+                                         try {
+                                           // Show confirmation
+                                           const confirmed = window.confirm('Mark this translation as incorrect? This will help improve future translations.');
+                                           if (!confirmed) return;
+                                           
+                                           // Speak apology in the target language
+                                           const apologyMessage = "I am sorry, that translation was incorrect. Let me try again.";
+                                           
+                                           // Translate the apology message
+                                           const { data, error } = await supabase.functions.invoke('translate-text', {
+                                             body: {
+                                               text: apologyMessage,
+                                               targetLanguage: translationLanguage,
+                                               sourceLanguage: 'en'
+                                             }
+                                           });
+                                           
+                                           if (!error && data.translatedText) {
+                                             await speakTranslation(data.translatedText, translationLanguage, 'apology-' + Date.now());
+                                           }
+                                           
+                                           // Mark translation for improvement (could log to analytics)
+                                           console.log('Incorrect translation marked:', translation);
+                                           toast.success('Marked as incorrect. Apology spoken in ' + HEALTHCARE_LANGUAGES.find(l => l.code === translationLanguage)?.name);
+                                           
+                                         } catch (error) {
+                                           console.error('Error handling incorrect translation:', error);
+                                           toast.error('Failed to process incorrect translation request');
+                                         }
+                                       }}
+                                     >
+                                       <AlertTriangle className="h-3 w-3" />
+                                     </Button>
+                                   )}
+                                 </div>
+                               </div>
                               
                               {/* Original Text */}
                               <div className="mb-2">
