@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams, useLocation, useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { LoginForm } from "@/components/LoginForm";
-import { MeetingRecorderContainer } from "@/components/MeetingRecorderContainer";
+import { MeetingRecorder } from "@/components/MeetingRecorder";
 import { MeetingSettings } from "@/components/MeetingSettings";
 import { LiveTranscript } from "@/components/LiveTranscript";
 import { MeetingSummary } from "@/components/MeetingSummary";
@@ -203,7 +203,7 @@ const Index = () => {
       <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 lg:py-8 space-y-4 sm:space-y-6 max-w-4xl">
         <>
           {/* Meeting Recorder with integrated tabs */}
-          <MeetingRecorderContainer
+          <MeetingRecorder
             onTranscriptUpdate={setTranscript}
             onDurationUpdate={setDuration}
             onWordCountUpdate={setWordCount}

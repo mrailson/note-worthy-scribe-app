@@ -32,6 +32,7 @@ import {
 import { format } from "date-fns";
 import { MeetingOverviewEditor } from "@/components/MeetingOverviewEditor";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface Meeting {
   id: string;
@@ -80,7 +81,7 @@ export const MeetingHistoryList = ({
   // Handle audio backup download
   const handleAudioBackup = async (meeting: Meeting) => {
     if (!meeting.audio_backup_path) {
-      console.error('No audio backup available for this meeting');
+      toast.error('No audio backup available for this meeting');
       return;
     }
 
@@ -105,10 +106,10 @@ export const MeetingHistoryList = ({
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       
-      console.log('Audio backup downloaded successfully');
+      toast.success('Audio backup downloaded successfully');
     } catch (error) {
       console.error('Error downloading audio backup:', error);
-      console.error('Failed to download audio backup');
+      toast.error('Failed to download audio backup');
     }
   };
   
