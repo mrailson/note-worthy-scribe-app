@@ -131,7 +131,6 @@ export class DesktopWhisperTranscriber {
 
     this.transcriptionTimeout = setTimeout(() => {
       if (this.mediaRecorder && this.isRecording && this.mediaRecorder.state === 'recording') {
-        console.log(`🖥️ Stopping chunk ${this.chunkCount} for processing`);
         this.mediaRecorder.stop();
         
         // Start new recording immediately after a brief pause
@@ -196,13 +195,6 @@ export class DesktopWhisperTranscriber {
         this.onError('Transcription failed');
         return;
       }
-
-      console.log(`🔍 DEBUG: Whisper API response for chunk ${currentChunkNumber}:`, { 
-        hasData: !!data, 
-        hasText: !!data?.text, 
-        textLength: data?.text?.length || 0,
-        rawText: data?.text || 'NO_TEXT'
-      });
 
       if (data.text && data.text.trim()) {
         const cleanText = data.text.trim();

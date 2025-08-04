@@ -72,7 +72,6 @@ export const MeetingRecorder = ({
   const [tickerText, setTickerText] = useState<string>("");
   const [showTicker, setShowTicker] = useState(false);
   const [tickerEnabled, setTickerEnabled] = useState(true);
-  const [isClosingRecording, setIsClosingRecording] = useState(false);
   
   
   // Meeting history state
@@ -1366,10 +1365,6 @@ export const MeetingRecorder = ({
   };
 
   const stopRecording = async () => {
-    // Set closing state for 5 seconds
-    setIsClosingRecording(true);
-    setTimeout(() => setIsClosingRecording(false), 5000);
-    
     addDebugLog('🛑 Stopping recording...');
     console.log('Stopping recording...');
     
@@ -1947,7 +1942,7 @@ export const MeetingRecorder = ({
                     <div className="text-2xl font-bold text-primary mb-1">
                       {wordCount}
                     </div>
-                    <div className="text-xs font-medium text-muted-foreground">Word Count</div>
+                    <div className="text-xs font-medium text-muted-foreground">Word Count (updated each minute)</div>
                   </div>
                   
                   {/* Connection Status */}
@@ -2028,21 +2023,9 @@ export const MeetingRecorder = ({
                         variant="destructive"
                         size="lg"
                         className="shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 px-8 py-4 text-base font-semibold rounded-lg"
-                        disabled={isClosingRecording}
                       >
                         <Square className="h-5 w-5 mr-2" />
-                        {isClosingRecording ? (
-                          <span className="flex items-center">
-                            Closing Recording service
-                            <span className="inline-flex ml-1">
-                              <span className="animate-pulse delay-0">.</span>
-                              <span className="animate-pulse delay-150">.</span>
-                              <span className="animate-pulse delay-300">.</span>
-                            </span>
-                          </span>
-                        ) : (
-                          'Stop Recording'
-                        )}
+                        Stop Recording
                       </Button>
                     </div>
                   )}

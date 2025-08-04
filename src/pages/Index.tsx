@@ -211,6 +211,17 @@ const Index = () => {
           />
 
 
+          {/* Show Summary Button when there's content */}
+          {transcript && (
+            <div className="flex justify-center pt-4">
+              <button
+                onClick={handleViewSummary}
+                className="w-full sm:w-auto px-6 py-4 bg-gradient-primary text-white rounded-lg hover:bg-primary-hover shadow-medium transition-all text-lg font-medium touch-manipulation min-h-[48px]"
+              >
+                View Meeting Summary
+              </button>
+            </div>
+          )}
         </>
       </div>
     </div>
