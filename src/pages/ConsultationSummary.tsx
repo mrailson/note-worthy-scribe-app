@@ -439,21 +439,21 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
         <h4 class="font-bold text-primary">What we discussed:</h4>
         <div class="ml-4 space-y-1">
           ${discussedContent.length > 0 ? 
-            discussedContent.map(item => `<p>• ${formatLine(item)}</p>`).join('') : 
+            formatAndFilter(discussedContent).map(item => `<p>• ${item}</p>`).join('') : 
             '<p>• Your health concerns were reviewed during the consultation</p>'
           }
         </div>
       </div>
       
-      ${actionLines.length > 0 ? `
+      ${formatAndFilter(actionLines).length > 0 ? `
       <div class="space-y-2">
         <h4 class="font-bold text-primary">Treatment and medications:</h4>
         <div class="ml-4 space-y-1">
-          ${actionLines.map(item => `<p>• ${formatLine(item)}</p>`).join('')}
+          ${formatAndFilter(actionLines).map(item => `<p>• ${item}</p>`).join('')}
         </div>
       </div>` : ''}
       
-      ${followUpContent.length > 0 ? `
+      ${formatAndFilter(followUpContent).length > 0 ? `
       <div class="space-y-2">
         <h4 class="font-bold text-primary">Follow-up:</h4>
         <div class="ml-4 space-y-1">
@@ -461,11 +461,11 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
         </div>
       </div>` : ''}
       
-      ${safetyContent.length > 0 ? `
+      ${formatAndFilter(safetyContent).length > 0 ? `
       <div class="space-y-2">
         <h4 class="font-bold text-primary">Important advice:</h4>
         <div class="ml-4 space-y-1">
-          ${safetyContent.map(item => `<p>• ${formatLine(item)}</p>`).join('')}
+          ${formatAndFilter(safetyContent).map(item => `<p>• ${item}</p>`).join('')}
         </div>
       </div>` : ''}
       
