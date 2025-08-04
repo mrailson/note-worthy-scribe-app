@@ -14,11 +14,17 @@ interface TranscriptionResult {
   raw_response: any;
 }
 
+interface ProcessingMetrics {
+  processingTime: number;
+  fileSize: number;
+}
+
 export const MP3TranscriptionTest = () => {
   const [file, setFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<TranscriptionResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [metrics, setMetrics] = useState<ProcessingMetrics | null>(null);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
@@ -40,6 +46,9 @@ export const MP3TranscriptionTest = () => {
     setIsProcessing(true);
     setError(null);
     setResult(null);
+    setMetrics(null);
+
+    const startTime = performance.now();
 
     try {
       const formData = new FormData();
@@ -57,7 +66,14 @@ export const MP3TranscriptionTest = () => {
         throw new Error(data.error);
       }
 
+      const endTime = performance.now();
+      const processingTime = endTime - startTime;
+
       setResult(data);
+      setMetrics({
+        processingTime: processingTime / 1000, // Convert to seconds
+        fileSize: file.size
+      });
     } catch (err) {
       console.error('Transcription error:', err);
       setError(err instanceof Error ? err.message : 'Failed to process audio file');
@@ -131,12 +147,23 @@ export const MP3TranscriptionTest = () => {
             <CardTitle>Transcription Results</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {metrics && (
+              <Alert>
+                <AlertDescription>
+                  <strong>Whisper Processing Time:</strong> {metrics.processingTime.toFixed(2)}s 
+                  <span className="text-muted-foreground ml-2">
+                    ({(metrics.fileSize / (1024 * 1024)).toFixed(2)} MB file)
+                  </span>
+                </AlertDescription>
+              </Alert>
+            )}
+            
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <strong>Confidence:</strong> {(result.confidence * 100).toFixed(1)}%
               </div>
               <div>
-                <strong>Duration:</strong> {result.duration?.toFixed(1)}s
+                <strong>Audio Duration:</strong> {result.duration?.toFixed(1)}s
               </div>
               <div>
                 <strong>Language:</strong> {result.language}
