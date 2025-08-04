@@ -351,18 +351,53 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
       return "Hi, thank you for attending your consultation today. We've reviewed your condition and discussed next steps. Please take any prescribed medications as directed and contact us if you have concerns.";
     }
 
-    const lines = content.split('\n').filter(line => line.trim() !== '');
-    const mainPoints = lines.slice(0, 3).map(line => 
-      line.replace(/\*\*/g, '').replace(/###|##|#/g, '').replace(/^.*?:/, '').trim()
-    ).filter(point => point.length > 10);
-
-    let smsText = "Hi, thank you for your consultation today. ";
+    // Clean and parse the content to extract key points
+    const cleanContent = content.replace(/\*\*/g, '').replace(/###|##|#/g, '').trim();
+    const lines = cleanContent.split('\n').filter(line => line.trim() !== '' && line.length > 10);
     
-    if (mainPoints.length > 0) {
-      smsText += mainPoints[0].substring(0, 100) + ". ";
+    // Extract diagnosis/assessment from content
+    const assessmentLines = lines.filter(line => {
+      const lower = line.toLowerCase();
+      return lower.includes('assessment') || lower.includes('diagnosis') || lower.includes('impression') ||
+             lower.includes('likely') || lower.includes('suspected') || lower.includes('condition');
+    });
+    
+    // Extract treatment/plan from content
+    const treatmentLines = lines.filter(line => {
+      const lower = line.toLowerCase();
+      return lower.includes('treatment') || lower.includes('plan') || lower.includes('medication') ||
+             lower.includes('prescribed') || lower.includes('take') || lower.includes('continue');
+    });
+
+    // Extract follow-up information
+    const followUpLines = lines.filter(line => {
+      const lower = line.toLowerCase();
+      return lower.includes('follow') || lower.includes('review') || lower.includes('appointment');
+    });
+
+    // Build summary starting with greeting
+    let smsText = "Hi, thank you for your consultation. ";
+    
+    // Add assessment/diagnosis if available
+    if (assessmentLines.length > 0) {
+      const assessment = assessmentLines[0].replace(/^.*?:/, '').trim().substring(0, 80);
+      smsText += `We discussed ${assessment}. `;
     }
     
-    smsText += "Please contact us if you have any concerns.";
+    // Add treatment if available
+    if (treatmentLines.length > 0) {
+      const treatment = treatmentLines[0].replace(/^.*?:/, '').trim().substring(0, 60);
+      smsText += `${treatment}. `;
+    }
+    
+    // Add follow-up if available
+    if (followUpLines.length > 0) {
+      const followUp = followUpLines[0].replace(/^.*?:/, '').trim().substring(0, 40);
+      smsText += `${followUp}. `;
+    }
+    
+    // Always end with contact instruction
+    smsText += "Contact us with any concerns.";
     
     // Trim to max 50 words
     const words = smsText.split(' ');
