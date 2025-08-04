@@ -38,6 +38,7 @@ import { SafeMessageRenderer } from "@/components/SafeMessageRenderer";
 import { Header } from "@/components/Header";
 import { FormattedReviewContent } from "@/components/FormattedReviewContent";
 import { AIResponsePanel } from "@/components/AIResponsePanel";
+import { NotewellAIAnimation } from "@/components/NotewellAIAnimation";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import jsPDF from "jspdf";
@@ -124,6 +125,7 @@ export default function ConsultationSummary() {
   const [isAILoading, setIsAILoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [isGeneratingNotes, setIsGeneratingNotes] = useState(false);
 
   const noteLevels = ["Shorthand", "Standard", "Detailed"];
 
@@ -317,6 +319,8 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
   const generateNotesFromTranscript = async (transcript: string) => {
     if (!user) return;
     
+    setIsGeneratingNotes(true);
+    
     try {
       const { data, error } = await supabase.functions.invoke('generate-gp-consultation-notes', {
         body: {
@@ -354,6 +358,8 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
     } catch (error: any) {
       console.error('Error generating notes:', error);
       toast.error('Failed to generate consultation notes');
+    } finally {
+      setIsGeneratingNotes(false);
     }
   };
 
@@ -953,6 +959,7 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
 
   return (
     <div className="min-h-screen bg-gradient-background">
+      <NotewellAIAnimation isVisible={isGeneratingNotes} />
       <Header onNewMeeting={() => navigate('/')} />
       <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 max-w-6xl">
         
