@@ -200,32 +200,35 @@ export class DesktopWhisperTranscriber {
       if (data.text && data.text.trim()) {
         const rawText = data.text.trim();
         
-        // Filter out common hallucinations and system audio artifacts
+        // Filter out common hallucinations and system audio artifacts - but only if they're the ONLY content
         const hallucinations = [
-          /^This meeting is being recorded in English\.?$/i,
-          /^This meeting is being recorded\.?$/i,
-          /^Please use (headphones|earphones) or (earphones|headphones) for better experience\.?$/i,
-          /^Meeting recording in progress\.?$/i,
-          /^Recording started\.?$/i,
-          /^Recording in English\.?$/i
+          /^This meeting is being recorded in English\.?\s*$/i,
+          /^This meeting is being recorded\.?\s*$/i,
+          /^Please use (headphones|earphones) or (earphones|headphones) for better experience\.?\s*$/i,
+          /^Meeting recording in progress\.?\s*$/i,
+          /^Recording started\.?\s*$/i,
+          /^Recording in English\.?\s*$/i
         ];
         
-        // Check if this is likely a hallucination
-        const isHallucination = hallucinations.some(pattern => pattern.test(rawText));
+        // Only filter if the ENTIRE text matches a hallucination pattern
+        const isOnlyHallucination = hallucinations.some(pattern => pattern.test(rawText));
         
-        if (isHallucination) {
-          console.log(`🚫 Filtering out hallucination: "${rawText}"`);
-          return; // Skip this transcription
+        // Additional check for repetitive content (same sentence repeated 3+ times)
+        let isRepetitive = false;
+        if (rawText.includes('.')) {
+          const sentences = rawText.split('.').filter(sentence => sentence.trim());
+          if (sentences.length >= 3) {
+            const firstSentence = sentences[0].trim().toLowerCase();
+            const allSame = sentences.every(s => s.trim().toLowerCase() === firstSentence);
+            if (allSame) {
+              isRepetitive = true;
+            }
+          }
         }
         
-        // Additional check for repetitive content
-        if (rawText.split('.').filter(sentence => sentence.trim()).length > 1) {
-          const sentences = rawText.split('.').filter(sentence => sentence.trim());
-          const uniqueSentences = new Set(sentences.map(s => s.trim().toLowerCase()));
-          if (uniqueSentences.size === 1 && sentences.length > 2) {
-            console.log(`🚫 Filtering out repetitive content: "${rawText}"`);
-            return; // Skip repetitive transcriptions
-          }
+        if (isOnlyHallucination || isRepetitive) {
+          console.log(`🚫 Filtering out hallucination/repetitive content: "${rawText}"`);
+          return; // Skip this transcription
         }
         
         const cleanText = rawText;
