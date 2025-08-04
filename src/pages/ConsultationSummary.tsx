@@ -929,7 +929,7 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                 >
                   <Users className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                   <span className="hidden xs:inline sm:hidden">GP</span>
-                  <span className="hidden sm:inline">GP Summary</span>
+                  <span className="hidden sm:inline">Consultation Summary</span>
                   <span className="xs:hidden">Summary</span>
                 </TabsTrigger>
                 <TabsTrigger 
