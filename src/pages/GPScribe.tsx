@@ -650,6 +650,14 @@ const Index = () => {
     setTimeout(() => {
       setConnectionStatus("Stopped");
       console.log("Transcript length:", transcript ? transcript.trim().length : 0);
+      console.log("Recording duration:", duration, "seconds");
+      
+      // Check if recording is too short (under 30 seconds)
+      if (duration < 30) {
+        console.log("Recording too short (under 30 seconds), staying on current page");
+        toast.error("Recording too short. Please record for at least 30 seconds for meaningful consultation notes.");
+        return;
+      }
       
       // Auto-generate summary if there's meaningful content and navigate to consultation summary
       if (transcript && transcript.trim().length > 50) {
