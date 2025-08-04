@@ -449,7 +449,9 @@ export const MeetingRecorder = ({
           latestCompleteTranscriptRef.current = cleanedTranscript;
           
           setTranscript(cleanedTranscript);
+          console.log('🔍 UI DEBUG: setTranscript called with length:', cleanedTranscript.length);
           onTranscriptUpdate(cleanedTranscript);
+          console.log('🔍 UI DEBUG: onTranscriptUpdate called');
           
           // Update word count
           const words = cleanedTranscript.split(' ').filter(word => word.length > 0);
@@ -2106,7 +2108,11 @@ export const MeetingRecorder = ({
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {realtimeTranscripts.length > 0 ? (
+              {(() => {
+                console.log('🔍 UI RENDER DEBUG: realtimeTranscripts.length:', realtimeTranscripts.length);
+                console.log('🔍 UI RENDER DEBUG: First few transcripts:', realtimeTranscripts.slice(0, 3).map(t => t.text.substring(0, 50)));
+                return realtimeTranscripts.length > 0;
+              })() ? (
                 <div className="space-y-3 max-h-96 overflow-y-auto">
                   {(() => {
                     // Deduplicate transcripts by removing overlapping content
