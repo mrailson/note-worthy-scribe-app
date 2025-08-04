@@ -212,12 +212,10 @@ export class UnifiedAudioCapture {
     this.mediaRecorder.ondataavailable = (event) => {
       if (event.data.size > 0) {
         this.audioChunks.push(event.data);
-        console.log('Audio chunk received:', event.data.size, 'bytes');
+        console.log(`Audio chunk ${this.audioChunks.length} collected:`, event.data.size, 'bytes');
         
-        // Process more aggressively to catch early speech
-        if (this.audioChunks.length >= 2) {
-          this.processAudioChunks();
-        }
+        // Don't process until we have a substantial chunk for better context
+        // Let the scheduled processing handle large chunks for accuracy
       }
     };
 
@@ -225,8 +223,8 @@ export class UnifiedAudioCapture {
       this.processAudioChunks();
     };
 
-    // Start recording with immediate data collection - shorter intervals to catch speech start
-    this.mediaRecorder.start(100); // Collect data every 100ms for very responsive capture
+    // Start recording with data collection optimized for larger chunks
+    this.mediaRecorder.start(1000); // Collect data every second for large chunk processing
     this.isRecording = true;
     this.scheduleProcessing();
   }
@@ -271,10 +269,10 @@ export class UnifiedAudioCapture {
   private scheduleProcessing() {
     if (!this.isRecording) return;
 
-    // Use overlapping chunks to prevent missing words
+    // Use much larger chunks for better context and accuracy
     setTimeout(() => {
       if (this.isRecording && this.mediaRecorder?.state === 'recording') {
-        console.log('Stopping recording for processing...');
+        console.log('Stopping current recording chunk for processing...');
         this.mediaRecorder.stop();
         
         // Restart recording immediately with no gap
@@ -282,9 +280,9 @@ export class UnifiedAudioCapture {
           if (this.isRecording && this.combinedStream) {
             this.startRecording();
           }
-        }, 10); // Minimal delay to prevent gaps
+        }, 50); // Small delay to ensure clean chunk separation
       }
-    }, 6000); // Longer chunks for better context and accuracy
+    }, 45000); // 45-second chunks for much better context and accuracy
   }
 
   private async processAudioChunks() {
@@ -295,16 +293,18 @@ export class UnifiedAudioCapture {
 
     try {
       const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
-      console.log('Processing audio blob:', audioBlob.size, 'bytes');
+      console.log('Processing audio blob:', audioBlob.size, 'bytes,', this.audioChunks.length, 'chunks');
       
       // Clear chunks for next batch
       this.audioChunks = [];
 
-      // Accept smaller chunks to avoid missing brief but important words
-      if (audioBlob.size < 400) {
-        console.log('Skipping very small audio chunk (likely silence)');
+      // Only process substantial chunks (45-second chunks should be much larger)
+      if (audioBlob.size < 50000) { // Increased threshold for larger chunks
+        console.log('Skipping small audio chunk (likely silence or very brief speech)');
         return;
       }
+
+      console.log('Sending audio to transcription service...');
 
       // Convert to base64
       const arrayBuffer = await audioBlob.arrayBuffer();
