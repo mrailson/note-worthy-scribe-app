@@ -220,40 +220,59 @@ export const TranslationInterface = ({ transcript, isRecording, onLanguageChange
     if (currentLength <= lastTranscriptLength.current) return;
 
     const newContent = transcript.slice(lastTranscriptLength.current);
-    lastTranscriptLength.current = currentLength;
-
-    // Extract new sentences/phrases (split by periods, questions, exclamations)
-    const sentences = newContent.split(/[.!?]+/).filter(s => s.trim().length > 10);
     
-    if (sentences.length === 0) return;
+    // For real-time translation, we want to translate more frequently
+    // Check if we have enough new content (5+ words) or complete sentences
+    const wordCount = newContent.trim().split(/\s+/).length;
+    const hasCompleteSentence = /[.!?]+/.test(newContent);
+    
+    // Only translate if we have either:
+    // 1. A complete sentence with punctuation, OR
+    // 2. At least 5 new words of content
+    if (!hasCompleteSentence && wordCount < 5) return;
+    
+    lastTranscriptLength.current = currentLength;
 
     const translateNewContent = async () => {
       setIsTranslating(true);
       
-      for (const sentence of sentences) {
-        const trimmed = sentence.trim();
-        if (trimmed.length < 10) continue;
-
-        try {
-          const translated = await translateText(trimmed, selectedLanguage);
-          const entry: TranslationEntry = {
-            id: Date.now().toString() + Math.random(),
-            original: trimmed,
-            translated,
-            speaker: trimmed.toLowerCase().includes('patient') ? 'Patient' : 'GP',
-            timestamp: new Date(),
-            languageCode: selectedLanguage
-          };
-          
-          setTranslations(prev => [entry, ...prev]);
-          
-          // Auto-speak if enabled
-          if (autoSpeak && translated.trim().length > 0) {
-            audioQueue.current.push({ text: translated, id: entry.id });
-          }
-        } catch (error) {
-          console.error('Translation failed:', error);
+      let contentToTranslate = newContent.trim();
+      
+      // If we have complete sentences, extract them
+      if (hasCompleteSentence) {
+        const sentences = newContent.split(/[.!?]+/).filter(s => s.trim().length > 5);
+        if (sentences.length > 0) {
+          contentToTranslate = sentences[sentences.length - 1].trim(); // Get the last complete sentence
         }
+      }
+      
+      // Only translate if we have meaningful content
+      if (contentToTranslate.length < 5) {
+        setIsTranslating(false);
+        return;
+      }
+
+      try {
+        const translated = await translateText(contentToTranslate, selectedLanguage);
+        const entry: TranslationEntry = {
+          id: Date.now().toString() + Math.random(),
+          original: contentToTranslate,
+          translated,
+          speaker: contentToTranslate.toLowerCase().includes('patient') ? 'Patient' : 'GP',
+          timestamp: new Date(),
+          languageCode: selectedLanguage
+        };
+        
+        // Replace the previous translation to always show the latest
+        setTranslations(prev => [entry]);
+        
+        // Auto-speak if enabled
+        if (autoSpeak && translated.trim().length > 0) {
+          // Clear the audio queue and add the new translation
+          audioQueue.current = [{ text: translated, id: entry.id }];
+        }
+      } catch (error) {
+        console.error('Translation failed:', error);
       }
       
       setIsTranslating(false);
