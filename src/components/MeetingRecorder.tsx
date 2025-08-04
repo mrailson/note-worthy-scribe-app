@@ -1438,8 +1438,28 @@ export const MeetingRecorder = ({
     const needsAudioBackup = shouldCreateAudioBackup(wordCount, duration);
     console.log(`📊 Audio backup needed: ${needsAudioBackup}`);
     
-    // Wait additional time to ensure all final transcripts are processed
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    // Wait for any pending transcriptions with polling
+    console.log('🔍 DEBUG: Waiting for any final transcriptions...');
+    let previousTranscriptCount = realtimeTranscripts.filter(t => t.isFinal).length;
+    let stableCount = 0;
+    const maxWaitTime = 10000; // Maximum 10 seconds
+    const startWaitTime = Date.now();
+    
+    while (Date.now() - startWaitTime < maxWaitTime && stableCount < 3) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      const currentTranscriptCount = realtimeTranscripts.filter(t => t.isFinal).length;
+      
+      if (currentTranscriptCount === previousTranscriptCount) {
+        stableCount++;
+        console.log(`🔍 DEBUG: Transcript count stable (${currentTranscriptCount}) for ${stableCount}/3 checks`);
+      } else {
+        console.log(`🔍 DEBUG: New transcript received! Count: ${previousTranscriptCount} → ${currentTranscriptCount}`);
+        previousTranscriptCount = currentTranscriptCount;
+        stableCount = 0;
+      }
+    }
+    
+    console.log(`🔍 DEBUG: Finished waiting after ${Date.now() - startWaitTime}ms`);
     
     // Get ALL transcripts to combine them manually at stop time
     const allFinalTranscripts = realtimeTranscripts.filter(t => t.isFinal);
