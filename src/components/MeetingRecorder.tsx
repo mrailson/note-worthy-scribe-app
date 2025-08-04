@@ -1331,8 +1331,9 @@ export const MeetingRecorder = ({
       setStartTime(generateMeetingTimestamp());
       setConnectionStatus("Connected");
       
-      // Generate a temporary meeting ID for this session and set it on the transcriber (use proper UUID)
+      // Generate and store temporary meeting ID for this session
       const tempMeetingId = crypto.randomUUID();
+      sessionStorage.setItem('currentSessionId', tempMeetingId); // Store for later retrieval
       if (desktopTranscriberRef.current) {
         desktopTranscriberRef.current.setMeetingId(tempMeetingId);
         console.log(`🔗 Set temporary meeting ID: ${tempMeetingId}`);
@@ -1448,11 +1449,18 @@ export const MeetingRecorder = ({
     // Get transcript directly from the database instead of relying on state
     console.log('🔍 DEBUG: Getting transcript from database...');
     let finalTranscript = '';
-    let sessionId = '';
     
-    // Get session ID before transcriber is potentially cleaned up
+    // Get session ID from storage (reliable even if transcriber is cleaned up)
+    let sessionId = sessionStorage.getItem('currentSessionId') || '';
+    
+    // Also try to get from transcriber if available
     if (desktopTranscriberRef.current) {
-      sessionId = desktopTranscriberRef.current.getSessionId();
+      const transcriberSessionId = desktopTranscriberRef.current.getSessionId();
+      if (transcriberSessionId) {
+        sessionId = transcriberSessionId;
+      }
+      
+      // Try transcriber method first
       finalTranscript = await desktopTranscriberRef.current.getCompleteTranscriptFromDatabase();
       console.log(`🔍 DEBUG: Database transcript from transcriber: ${finalTranscript.length} chars`);
       if (finalTranscript) {
@@ -1461,7 +1469,7 @@ export const MeetingRecorder = ({
       }
     }
     
-    // If transcriber didn't return transcript but we have session ID, query database directly
+    // If transcriber didn't return transcript, query database directly with session ID
     if (!finalTranscript && sessionId) {
       try {
         console.log(`🔍 DEBUG: Querying database directly for session: ${sessionId}`);
@@ -1477,12 +1485,15 @@ export const MeetingRecorder = ({
           console.log(`🔍 DEBUG: Direct query preview: "${finalTranscript.substring(0, 200)}..."`);
           console.log(`🔍 DEBUG: Direct query ending: "${finalTranscript.slice(-200)}"`);
         } else {
-          console.log('🔍 DEBUG: No chunks found in database for session:', sessionId);
+          console.log('🔍 DEBUG: No chunks found in database for session:', sessionId, 'Error:', error);
         }
       } catch (dbError) {
         console.error('❌ Direct database query failed:', dbError);
       }
     }
+    
+    // Clean up session storage
+    sessionStorage.removeItem('currentSessionId');
     
     // Final fallback to state-based transcript
     if (!finalTranscript) {
