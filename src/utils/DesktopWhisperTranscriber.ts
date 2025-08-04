@@ -33,7 +33,9 @@ export class DesktopWhisperTranscriber {
 
   setMeetingId(meetingId: string): void {
     this.meetingId = meetingId;
-    console.log(`📋 Set meeting ID: ${meetingId} for session: ${this.sessionId}`);
+    // Use the meeting ID as the session ID to ensure consistency
+    this.sessionId = meetingId;
+    console.log(`📋 Set meeting ID: ${meetingId} and session ID: ${this.sessionId}`);
   }
 
   async startTranscription() {
