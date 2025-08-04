@@ -1,13 +1,15 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MeetingSettings } from "@/components/MeetingSettings";
-import { MeetingHistoryList } from "@/components/MeetingHistoryList";
-import { AudioControls } from "@/components/AudioControls";
-import { TranscriptDisplay } from "@/components/TranscriptDisplay";
-import { useMeetingRecorder } from "@/hooks/useMeetingRecorder";
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { EnhancedMeetingRecorder } from "./EnhancedMeetingRecorder";
+
+interface MeetingRecorderContainerProps {
+  onTranscriptUpdate: (transcript: string) => void;
+  onDurationUpdate: (duration: string) => void;
+  onWordCountUpdate: (count: number) => void;
+  initialSettings?: {
+    title: string;
+    description: string;
+    meetingType: string;
+  };
+}
 import { toast } from "sonner";
 
 interface MeetingRecorderContainerProps {
