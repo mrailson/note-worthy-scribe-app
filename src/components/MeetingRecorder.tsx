@@ -1558,7 +1558,7 @@ export const MeetingRecorder = ({
       const enhancedMeetingData = {
         ...meetingData,
         transcript: cleanedTranscript,
-        rawTranscript: transcript // Keep original for reference
+        rawTranscript: currentTranscript // Use the complete database transcript, not the partial state
       };
       
       console.log('🔍 DEBUG: About to send to generate-meeting-minutes:');
