@@ -41,8 +41,8 @@ serve(async (req) => {
     formData.append('model', 'whisper-1');
     // Force English language to reduce hallucinations
     formData.append('language', 'en');
-    // Add prompt to encourage English-only output and reduce hallucinations
-    formData.append('prompt', 'This is a professional meeting or consultation recording in English. Please transcribe only clear English speech and ignore background noise, music, or unclear audio.');
+    // Use minimal prompt to reduce hallucinations
+    formData.append('prompt', 'Professional English meeting.');
     // Set temperature to 0 for more consistent output
     formData.append('temperature', '0');
 
@@ -65,14 +65,31 @@ serve(async (req) => {
     const result = await response.json();
     console.log('✅ Transcription successful:', result.text);
 
-    // Remove the prompt text that sometimes appears in transcription results
+    // Clean up transcription result
     let cleanText = result.text || '';
-    // Remove various forms of the prompt text that might appear
-    cleanText = cleanText.replace(/Please transcribe only clear English speech and ignore background noise[,\s]*music[,\s]*or unclear audio\.?\s*/gi, '');
-    cleanText = cleanText.replace(/This is a professional meeting or consultation recording in English\.?\s*/gi, '');
-    // Remove hallucinated phrases from silence
-    cleanText = cleanText.replace(/Thank you for watching\.?\s*/gi, '');
-    cleanText = cleanText.replace(/Thanks for watching\.?\s*/gi, '');
+    
+    // Remove common hallucinations and repetitive phrases
+    const hallucinations = [
+      /^Silence\.?\s*/gi,
+      /\bSilence\.\s*/gi,
+      /Thank you for watching\.?\s*/gi,
+      /Thanks for watching\.?\s*/gi,
+      /Please subscribe\.?\s*/gi,
+      /Like and subscribe\.?\s*/gi,
+      /Professional English meeting\.?\s*/gi,
+      /This meeting is being recorded\.?\s*/gi,
+      /\b(?:Subtitles|Caption(?:s)?)\s+by\.?\s*/gi,
+      /\b(?:Music|Background music)\b\.?\s*/gi,
+    ];
+    
+    // Apply all hallucination filters
+    hallucinations.forEach(pattern => {
+      cleanText = cleanText.replace(pattern, '');
+    });
+    
+    // Remove excessive repetition (same word/phrase 3+ times)
+    cleanText = cleanText.replace(/\b(\w+(?:\s+\w+)*)\s+\1\s+\1(?:\s+\1)*\b/gi, '$1');
+    
     cleanText = cleanText.trim();
     
     return new Response(JSON.stringify({ 
