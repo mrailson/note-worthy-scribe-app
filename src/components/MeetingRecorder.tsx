@@ -1381,8 +1381,8 @@ export const MeetingRecorder = ({
     // Stop desktop transcriber and wait for final processing
     if (desktopTranscriberRef.current) {
       await desktopTranscriberRef.current.stopTranscription();
-      // Give extra time for final transcription to be processed
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Give extra time for final transcription to be processed and combined
+      await new Promise(resolve => setTimeout(resolve, 3000));
       desktopTranscriberRef.current = null;
     }
     
@@ -1426,12 +1426,21 @@ export const MeetingRecorder = ({
     const needsAudioBackup = shouldCreateAudioBackup(wordCount, duration);
     console.log(`📊 Audio backup needed: ${needsAudioBackup}`);
     
+    // Wait additional time to ensure all final transcripts are processed
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Get the most up-to-date transcript after waiting
+    const currentTranscript = transcript;
+    console.log('📝 Using transcript for summary:', currentTranscript.length, 'characters');
+    console.log('📝 Transcript preview:', currentTranscript.substring(0, 200) + '...');
+    console.log('📝 Transcript ending:', currentTranscript.slice(-200));
+    
     // Prepare meeting data
     const meetingData = {
       title: initialSettings?.title || 'General Meeting',
       duration: formatDuration(duration),
       wordCount: wordCount,
-      transcript: transcript,
+      transcript: currentTranscript,
       speakerCount: speakerCount,
       startTime: startTime,
       startedBy: user?.email || 'Unknown User',
