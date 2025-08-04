@@ -656,10 +656,10 @@ export const MeetingRecorder = ({
         stream = await navigator.mediaDevices.getDisplayMedia({
           video: true, // Need video for screen share to work properly
           audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-            sampleRate: 44100
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false,
+            sampleRate: 16000
           }
         });
         
@@ -678,13 +678,13 @@ export const MeetingRecorder = ({
         addDebugLog(`❌ Screen share failed: ${screenError.message}`);
         addDebugLog('🎤 Using enhanced microphone with custom audio processing...');
         
-        // Fallback to microphone with standard settings
+        // Fallback to microphone with original working settings
         stream = await navigator.mediaDevices.getUserMedia({
           audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-            sampleRate: 44100,
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false,
+            sampleRate: 16000,
             channelCount: 1
           }
         });
@@ -810,14 +810,12 @@ export const MeetingRecorder = ({
         offset += chunk.length;
       }
       
-      // Check if audio has sufficient volume
+      // Check if audio has sufficient volume (speaker audio detection)
       const rms = Math.sqrt(combinedBuffer.reduce((acc, val) => acc + val * val, 0) / combinedBuffer.length);
-      const volumeThreshold = 0.0001; // Lower threshold to capture more audio
-      
-      console.log(`🔊 Audio RMS: ${rms.toFixed(6)}, threshold: ${volumeThreshold}`);
+      const volumeThreshold = 0.001; // Standard threshold
       
       if (rms < volumeThreshold) {
-        addDebugLog(`🔇 Audio too quiet (RMS: ${rms.toFixed(6)}) - skipping`);
+        addDebugLog(`🔇 Audio too quiet (RMS: ${rms.toFixed(6)}) - likely no speaker audio`);
         return;
       }
       
