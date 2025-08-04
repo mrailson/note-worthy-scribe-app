@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Mic, MicOff, Wifi, WifiOff, Brain, Copy, Download, Mail, Save, Play, Pause, FileText, ChevronDown, ChevronUp, Lightbulb, AlertTriangle, BookOpen, Shield, BarChart3, Edit, Check, X, Send, Settings, Languages, Volume2, VolumeX, Stethoscope, Eye, EyeOff, Maximize2 } from "lucide-react";
+import { Mic, MicOff, Wifi, WifiOff, Brain, Copy, Download, Mail, Save, Play, Pause, FileText, ChevronDown, ChevronUp, Lightbulb, AlertTriangle, BookOpen, Shield, BarChart3, Edit, Check, X, Send, Settings, Languages, Volume2, VolumeX, Stethoscope, Eye, EyeOff, Maximize2, RotateCcw } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 import { RealtimeTranscriber, TranscriptData } from "@/utils/RealtimeTranscriber";
@@ -680,6 +680,46 @@ const Index = () => {
     }, delayTime);
   };
 
+  const resetSession = () => {
+    // Stop recording if active
+    if (isRecording) {
+      stopRecording();
+    }
+    
+    // Clear all transcription data
+    setTranscript("");
+    setCleanedTranscript("");
+    setRealtimeTranscripts([]);
+    setDuration(0);
+    setWordCount(0);
+    
+    // Clear generated content
+    setGpSummary("");
+    setFullNote("");
+    setPatientCopy("");
+    setTraineeFeedback("");
+    setReferralLetter("");
+    
+    // Reset UI states
+    setIsTranscriptOpen(false);
+    setIsTranslationCollapsed(true);
+    setActiveTab("consultation");
+    
+    // Reset translation data
+    setTranslations([]);
+    setPlayedTranslations(new Set());
+    
+    // Reset guidance
+    setGuidance(null);
+    setIsGuidanceLoading(false);
+    
+    // Reset connection status
+    setConnectionStatus("Disconnected");
+    
+    console.log("Session reset - all data cleared");
+    toast.success("Session reset successfully");
+  };
+
   const loadExample = (exampleId: string) => {
     const example = consultationExamples.find(ex => ex.id === exampleId);
     if (example) {
@@ -1139,10 +1179,23 @@ const Index = () => {
                   <FileText className="h-5 w-5 text-primary" />
                   GP Scribe - Consultation Notes
                 </span>
-                <Badge variant={getConnectionStatusColor() as any} className="flex items-center gap-1 text-xs">
-                  {getConnectionStatusIcon()}
-                  <span className="hidden sm:inline">{connectionStatus}</span>
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge variant={getConnectionStatusColor() as any} className="flex items-center gap-1 text-xs">
+                    {getConnectionStatusIcon()}
+                    <span className="hidden sm:inline">{connectionStatus}</span>
+                  </Badge>
+                  {connectionStatus === "Disconnected" && (
+                    <Button
+                      onClick={resetSession}
+                      variant="outline"
+                      size="sm"
+                      className="text-xs px-3 py-1 h-6"
+                    >
+                      <RotateCcw className="h-3 w-3 mr-1" />
+                      Reset
+                    </Button>
+                  )}
+                </div>
               </CardTitle>
             </CardHeader>
             
