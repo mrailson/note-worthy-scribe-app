@@ -204,10 +204,7 @@ const Index = () => {
         <>
           {/* Meeting Recorder with integrated tabs */}
           <MeetingRecorder
-            onTranscriptUpdate={(newTranscript) => {
-              console.log('🔍 INDEX DEBUG: onTranscriptUpdate received:', newTranscript.length, 'chars');
-              setTranscript(newTranscript);
-            }}
+            onTranscriptUpdate={setTranscript}
             onDurationUpdate={setDuration}
             onWordCountUpdate={setWordCount}
             initialSettings={meetingSettings}
