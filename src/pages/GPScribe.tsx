@@ -13,7 +13,17 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Mic, MicOff, Wifi, WifiOff, Brain, Copy, Download, Mail, Save, Play, Pause, FileText, ChevronDown, ChevronUp, Lightbulb, AlertTriangle, BookOpen, Shield, BarChart3, Edit, Check, X, Send, Settings, Languages, Volume2, VolumeX, Stethoscope, Eye, EyeOff, Maximize2, RotateCcw } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
-import { RealtimeTranscriber, TranscriptData } from "@/utils/RealtimeTranscriber";
+import { UnifiedAudioCapture } from "@/utils/UnifiedAudioCapture";
+
+// Simple transcript data interface for single session mode
+interface TranscriptData {
+  text: string;
+  speaker: string;
+  confidence: number;
+  timestamp: string;
+  isFinal: boolean;
+  isCompleteSession?: boolean;
+}
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
@@ -149,7 +159,7 @@ const Index = () => {
   });
   
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const transciberRef = useRef<RealtimeTranscriber | null>(null);
+  const transciberRef = useRef<UnifiedAudioCapture | null>(null);
 
   const outputLevels = [
     { value: 1, label: "Code", description: "GP shorthand only (e.g., 'URTI, 2/7, safety-netted')" },
@@ -410,14 +420,11 @@ const Index = () => {
     
     if (transciberRef.current && isRecording) {
       if (newMutedState) {
-        transciberRef.current.pauseTranscription();
-        // Microphone muted - stopped listening
+        console.log('🔇 Microphone muted - single session mode continues recording');
+        // In single session mode, we don't pause - just mute the mic effect
       } else {
-        transciberRef.current.resumeTranscription();
-        // Microphone unmuted - resumed listening
+        console.log('🎤 Microphone unmuted - single session mode continues');
       }
-    } else {
-      // Microphone muted/unmuted
     }
   };
 
@@ -440,23 +447,12 @@ const Index = () => {
     }
   };
 
+  // DISABLED - No live transcription in single session mode
   const handleTranscript = (transcriptData: TranscriptData) => {
-    if (isPaused || isMicMuted) return;
-    
-    // Update ticker tape for live transcription
-    if (transcriptData.text && transcriptData.text.trim() && tickerEnabled) {
-      const truncatedText = transcriptData.text.length > 100 
-        ? transcriptData.text.substring(0, 100) + "..." 
-        : transcriptData.text;
-      
-      setTickerText(truncatedText);
-      setShowTicker(true);
-      
-      // Auto-hide ticker after 3 seconds if no new text
-      setTimeout(() => {
-        setShowTicker(false);
-      }, 3000);
-    }
+    // Do nothing - live transcription disabled for single session mode
+    console.log('🚫 Live transcription disabled - single session mode only');
+    return;
+  };
     
     setRealtimeTranscripts(prev => {
       const filtered = prev.filter(t => 
@@ -570,17 +566,17 @@ const Index = () => {
 
   const startRecording = async () => {
     try {
-      transciberRef.current = new RealtimeTranscriber(
+      transciberRef.current = new UnifiedAudioCapture(
         handleTranscript,
         handleTranscriptionError,
         handleStatusChange
       );
       
-      await transciberRef.current.startTranscription();
+      await transciberRef.current.startCapture('mic-only'); // Use mic-only for single session mode
       
       setIsRecording(true);
       setIsPaused(false);
-      setRealtimeTranscripts([]);
+      setTranscript(""); // Clear previous transcript
       setDuration(0); // Reset duration counter
       console.log("Starting recording - duration reset to 0");
       
@@ -627,14 +623,10 @@ const Index = () => {
     setIsRecording(false);
     setIsPaused(false);
     
-    // Immediately flush any remaining audio for processing
-    if (transciberRef.current && transciberRef.current.isActive()) {
-      console.log("Flushing final audio chunk...");
-      // Call flush method to immediately process remaining audio
-      if (typeof transciberRef.current.flushAudio === 'function') {
-        transciberRef.current.flushAudio();
-      }
-      transciberRef.current.stopTranscription();
+    // Stop the unified audio capture 
+    if (transciberRef.current) {
+      console.log("🛑 Stopping single session recording...");
+      transciberRef.current.stopCapture(); // This will trigger the final transcription
       transciberRef.current = null;
     }
     
