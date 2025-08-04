@@ -88,7 +88,7 @@ export class DesktopWhisperTranscriber {
           // Increment chunk count BEFORE processing to ensure unique numbering
           const currentChunk = this.chunkCount++;
           console.log(`🔍 DEBUG: Processing scheduled chunk ${currentChunk}, next will be ${this.chunkCount}`);
-          await this.processAudioChunks();
+          await this.processAudioChunks(currentChunk);
         }
       };
 
@@ -151,11 +151,12 @@ export class DesktopWhisperTranscriber {
     }, nextInterval);
   }
 
-  private async processAudioChunks() {
+  private async processAudioChunks(chunkNumber?: number) {
     if (this.audioChunks.length === 0) return;
 
     try {
-      console.log(`🖥️ Processing audio chunk ${this.chunkCount} - audioChunks: ${this.audioChunks.length}, meetingId: ${this.meetingId}`);
+      const currentChunkNumber = chunkNumber ?? this.chunkCount;
+      console.log(`🖥️ Processing audio chunk ${currentChunkNumber} - audioChunks: ${this.audioChunks.length}, meetingId: ${this.meetingId}`);
       
       // Create overlap: keep last portion of previous chunk for continuity
       const currentChunks = [...this.overlapBuffer, ...this.audioChunks];
@@ -212,14 +213,14 @@ export class DesktopWhisperTranscriber {
         // Store in database if meeting ID is set
         if (this.meetingId) {
           try {
-            console.log(`🔍 DEBUG: Storing chunk ${this.chunkCount}`);
+            console.log(`🔍 DEBUG: Storing chunk ${currentChunkNumber}`);
             
             const { error: dbError } = await supabase
               .from('meeting_transcription_chunks')
               .insert({
                 meeting_id: this.meetingId,
                 session_id: this.sessionId,
-                chunk_number: this.chunkCount,
+                chunk_number: currentChunkNumber,
                 transcription_text: cleanText,
                 confidence: 0.9,
                 user_id: (await supabase.auth.getUser()).data.user?.id
@@ -228,7 +229,7 @@ export class DesktopWhisperTranscriber {
             if (dbError) {
               console.error('❌ Failed to store chunk in database:', dbError);
             } else {
-              console.log(`💾 Chunk ${this.chunkCount} stored in database`);
+              console.log(`💾 Chunk ${currentChunkNumber} stored in database`);
             }
           } catch (error) {
             console.error('❌ Database storage error:', error);
@@ -277,7 +278,7 @@ export class DesktopWhisperTranscriber {
       // Increment chunk count BEFORE processing to ensure unique numbering
       const finalChunk = this.chunkCount++;
       console.log(`🔄 Processing final audio chunk ${finalChunk} (${this.audioChunks.length} audio chunks)... Next chunk would be: ${this.chunkCount}`);
-      await this.processAudioChunks();
+      await this.processAudioChunks(finalChunk);
       console.log(`🔍 DEBUG: Final chunk ${finalChunk} processed and stored`);
       // Additional wait to ensure transcription callback is processed
       await new Promise(resolve => setTimeout(resolve, 3000)); // Wait for database save
