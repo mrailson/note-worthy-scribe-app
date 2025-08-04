@@ -1448,14 +1448,45 @@ export const MeetingRecorder = ({
     // Get transcript directly from the database instead of relying on state
     console.log('🔍 DEBUG: Getting transcript from database...');
     let finalTranscript = '';
+    let sessionId = '';
     
+    // Get session ID before transcriber is potentially cleaned up
     if (desktopTranscriberRef.current) {
+      sessionId = desktopTranscriberRef.current.getSessionId();
       finalTranscript = await desktopTranscriberRef.current.getCompleteTranscriptFromDatabase();
-      console.log(`🔍 DEBUG: Database transcript: ${finalTranscript.length} chars`);
-      console.log(`🔍 DEBUG: Database transcript preview: "${finalTranscript.substring(0, 200)}..."`);
-      console.log(`🔍 DEBUG: Database transcript ending: "${finalTranscript.slice(-200)}"`);
-    } else {
-      console.log('🔍 DEBUG: No transcriber available, falling back to state');
+      console.log(`🔍 DEBUG: Database transcript from transcriber: ${finalTranscript.length} chars`);
+      if (finalTranscript) {
+        console.log(`🔍 DEBUG: Database transcript preview: "${finalTranscript.substring(0, 200)}..."`);
+        console.log(`🔍 DEBUG: Database transcript ending: "${finalTranscript.slice(-200)}"`);
+      }
+    }
+    
+    // If transcriber didn't return transcript but we have session ID, query database directly
+    if (!finalTranscript && sessionId) {
+      try {
+        console.log(`🔍 DEBUG: Querying database directly for session: ${sessionId}`);
+        const { data, error } = await supabase
+          .from('meeting_transcription_chunks')
+          .select('transcription_text, chunk_number')
+          .eq('session_id', sessionId)
+          .order('chunk_number');
+
+        if (!error && data && data.length > 0) {
+          finalTranscript = data.map(chunk => chunk.transcription_text).join(' ').trim();
+          console.log(`🔍 DEBUG: Database transcript direct query: ${finalTranscript.length} chars, ${data.length} chunks`);
+          console.log(`🔍 DEBUG: Direct query preview: "${finalTranscript.substring(0, 200)}..."`);
+          console.log(`🔍 DEBUG: Direct query ending: "${finalTranscript.slice(-200)}"`);
+        } else {
+          console.log('🔍 DEBUG: No chunks found in database for session:', sessionId);
+        }
+      } catch (dbError) {
+        console.error('❌ Direct database query failed:', dbError);
+      }
+    }
+    
+    // Final fallback to state-based transcript
+    if (!finalTranscript) {
+      console.log('🔍 DEBUG: No database transcript available, falling back to state');
       finalTranscript = transcript.trim();
     }
     
