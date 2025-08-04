@@ -331,7 +331,7 @@ export class RealtimeTranscriber {
           }
         }, 100);
       }
-    }, 3000); // 3 seconds instead of 10
+    }, 5000); // Increased from 3s to 5s for better context
   }
 
   private async processAudioChunks() {
@@ -348,9 +348,9 @@ export class RealtimeTranscriber {
       // Clear chunks for next batch
       this.audioChunks = [];
 
-      // Skip very small audio files (less than 5KB to ensure meaningful content)
-      if (audioBlob.size < 5000) {
-        console.log('Skipping small audio chunk:', audioBlob.size, 'bytes');
+      // Skip very small audio files (reduced threshold for better capture)
+      if (audioBlob.size < 3000) {
+        console.log('⚠️ Skipping very small audio chunk:', audioBlob.size, 'bytes');
         return;
       }
 
@@ -377,7 +377,9 @@ export class RealtimeTranscriber {
 
           if (response.ok) {
             const result = await response.json();
-            console.log('Transcription API response:', result);
+            console.log('🎤 AUDIO CHUNK:', audioBlob.size, 'bytes');
+            console.log('🎯 WHISPER RESPONSE:', result);
+            console.log('📝 TRANSCRIBED TEXT:', result.text);
             
             // Reject transcriptions with high no_speech_prob (likely hallucinations)
             const noSpeechProb = result.segments?.[0]?.no_speech_prob || 0;

@@ -668,7 +668,7 @@ const Index = () => {
         console.log("Navigating with data:", consultationData);
         navigate('/consultation-summary', { state: consultationData });
       }
-    }, 5000); // Reduced from 15s to 5s (3s chunk + 2s buffer)
+    }, 7000); // Increased from 5s to 7s to match 5s chunks + buffer
   };
 
   const loadExample = (exampleId: string) => {
