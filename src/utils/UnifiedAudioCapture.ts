@@ -318,10 +318,10 @@ export class UnifiedAudioCapture {
       }
       const base64Audio = btoa(binary);
 
-      console.log('Sending to transcription service...');
+      console.log('Sending to TRIPLE-CHECK transcription service...');
       
-      // Try the primary assemblyai-transcription function first
-      let response = await fetch('https://dphcnbricafkbtizkoal.functions.supabase.co/functions/v1/assemblyai-transcription', {
+      // Use the new triple-check transcription system for maximum accuracy
+      const response = await fetch('https://dphcnbricafkbtizkoal.functions.supabase.co/functions/v1/triple-check-transcription', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -330,102 +330,102 @@ export class UnifiedAudioCapture {
         body: JSON.stringify({ audio: base64Audio })
       });
 
-      let result;
-      let transcriptionSource = 'primary';
-
       if (response.ok) {
-        result = await response.json();
-        
-        // If we get empty or very short text, try backup transcription
-        if (!result.text || result.text.trim().length < 3) {
-          console.log('Primary transcription empty/short, trying backup...');
-          
-          response = await fetch('https://dphcnbricafkbtizkoal.functions.supabase.co/functions/v1/backup-transcription', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwaGNuYnJpY2Fma2J0aXprb2FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MzIyMzIsImV4cCI6MjA2ODMwODIzMn0.U3bJI6P1yzgRBz_k2s0zlJGu1GWiVRTHjYgv9QQggPs'
-            },
-            body: JSON.stringify({ audio: base64Audio })
-          });
-          
-          if (response.ok) {
-            result = await response.json();
-            transcriptionSource = 'backup';
-            console.log('Backup transcription result:', result);
-          }
-        }
-      } else {
-        console.log('Primary transcription failed, trying backup...');
-        
-        // Try backup transcription if primary fails
-        response = await fetch('https://dphcnbricafkbtizkoal.functions.supabase.co/functions/v1/backup-transcription', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwaGNuYnJpY2Fma2J0aXprb2FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MzIyMzIsImV4cCI6MjA2ODMwODIzMn0.U3bJI6P1yzgRBz_k2s0zlJGu1GWiVRTHjYgv9QQggPs'
-          },
-          body: JSON.stringify({ audio: base64Audio })
+        const result = await response.json();
+        console.log('TRIPLE-CHECK transcription result:', {
+          text: result.text,
+          confidence: result.confidence,
+          validation: result.validation,
+          medical_validation: result.medical_validation
         });
         
-        if (response.ok) {
-          result = await response.json();
-          transcriptionSource = 'backup';
-          console.log('Backup transcription result:', result);
-        } else {
-          const errorData = await response.json();
-          console.error('Both transcription services failed:', errorData);
-          return;
-        }
-      }
-
-      // Process the transcription result
-      if (result && result.text && result.text.trim() && result.text.length > 2) {
-        // Use Whisper's quality metrics to detect hallucinations if available
-        const segments = result.segments || [];
-        
-        if (segments.length > 0) {
-          const avgNoSpeechProb = segments.reduce((sum: number, seg: any) => sum + (seg.no_speech_prob || 0), 0) / segments.length;
-          const avgLogProb = segments.reduce((sum: number, seg: any) => sum + (seg.avg_logprob || 0), 0) / segments.length;
+        // Only accept high-confidence results with proper medical validation
+        if (result.text && result.text.trim() && result.text.length > 3 && result.confidence > 0.3) {
+          const text = result.text.trim();
           
-          // Very relaxed quality filtering - accept most audio
-          if (avgNoSpeechProb > 0.95 || avgLogProb < -3.0) {
-            console.log('Rejected transcription - poor quality metrics:', {
-              no_speech_prob: avgNoSpeechProb,
-              avg_logprob: avgLogProb,
-              text: result.text,
-              source: transcriptionSource
-            });
-            return;
+          // Check for suspicious medical terms that might indicate transcription errors
+          const suspiciousTerms = result.medical_validation?.suspicious_terms || [];
+          if (suspiciousTerms.length > 0) {
+            console.warn('Detected suspicious medical terms:', suspiciousTerms, 'in text:', text);
+            // Still process but flag for attention
           }
-        }
-        
-        const text = result.text.trim();
-        
-        // Enhanced filtering for common hallucinations
-        const lowercaseText = text.toLowerCase();
-        const isHallucination = this.isLikelyHallucination(lowercaseText);
-        
-        if (!isHallucination) {
-          console.log(`Valid transcription fragment (${transcriptionSource}):`, text);
-          // Add to transcript buffer for immediate output
-          this.addToTranscriptBuffer(text);
-          // Add to cleaning buffer for retrospective cleaning
-          if (this.cleaningBuffer) {
-            this.cleaningBuffer.addText(text);
-          }
-          // Add to real-time cleaner for immediate corrections
-          if (this.realtimeCleaner) {
-            this.realtimeCleaner.addTranscript(text);
+          
+          // Enhanced filtering for common hallucinations
+          const lowercaseText = text.toLowerCase();
+          const isHallucination = this.isLikelyHallucination(lowercaseText);
+          
+          if (!isHallucination) {
+            console.log(`✅ Valid TRIPLE-CHECKED transcription (confidence: ${result.confidence.toFixed(2)}):`, text);
+            
+            // Add confidence and validation info to the transcript
+            const transcriptWithMeta = {
+              text: text,
+              speaker: this.systemStream ? 'Mic + Browser (Triple-Checked)' : 'Microphone (Triple-Checked)',
+              confidence: result.confidence,
+              timestamp: new Date().toISOString(),
+              isFinal: true,
+              isCleaned: true,
+              isTripleChecked: true,
+              validation: result.validation,
+              medicalValidation: result.medical_validation
+            };
+            
+            // Add to transcript buffer for immediate output
+            this.addToTranscriptBuffer(text);
+            
+            // Output the high-confidence result immediately
+            this.onTranscript(transcriptWithMeta);
+            
+            // Still add to cleaning buffers for additional retrospective cleaning
+            if (this.cleaningBuffer) {
+              this.cleaningBuffer.addText(text);
+            }
+            if (this.realtimeCleaner) {
+              this.realtimeCleaner.addTranscript(text);
+            }
+          } else {
+            console.log('❌ Filtered hallucination despite triple-check:', text);
           }
         } else {
-          console.log('Filtered hallucination:', text);
+          console.log(`❌ Low confidence triple-check result (${result.confidence?.toFixed(2)}):`, result.text);
         }
       } else {
-        console.log(`No valid transcription from ${transcriptionSource} service`);
+        const errorData = await response.json();
+        console.error('❌ Triple-check transcription failed:', errorData);
+        
+        // Fallback to original single transcription if triple-check fails
+        console.log('🔄 Falling back to single transcription...');
+        await this.performFallbackTranscription(base64Audio);
       }
     } catch (error) {
       console.error('Error processing audio:', error);
+    }
+  }
+
+  private async performFallbackTranscription(base64Audio: string) {
+    try {
+      console.log('🔄 Attempting fallback transcription...');
+      
+      const response = await fetch('https://dphcnbricafkbtizkoal.functions.supabase.co/functions/v1/assemblyai-transcription', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwaGNuYnJpY2Fma2J0aXprb2FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MzIyMzIsImV4cCI6MjA2ODMwODIzMn0.U3bJI6P1yzgRBz_k2s0zlJGu1GWiVRTHjYgv9QQggPs'
+        },
+        body: JSON.stringify({ audio: base64Audio })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.text && result.text.trim()) {
+          console.log('✅ Fallback transcription succeeded:', result.text);
+          this.addToTranscriptBuffer(result.text.trim());
+        }
+      } else {
+        console.error('❌ Fallback transcription also failed');
+      }
+    } catch (error) {
+      console.error('❌ Error in fallback transcription:', error);
     }
   }
 

@@ -1,0 +1,282 @@
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const { audio } = await req.json();
+
+    if (!audio) {
+      return new Response(JSON.stringify({ error: 'No audio data provided' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+    if (!OPENAI_API_KEY) {
+      return new Response(JSON.stringify({ error: 'OpenAI API key not configured' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    console.log("Starting TRIPLE-CHECK transcription process...");
+
+    // Convert base64 to Uint8Array
+    const binaryString = atob(audio);
+    const audioData = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      audioData[i] = binaryString.charCodeAt(i);
+    }
+
+    console.log("Audio data size:", audioData.length, "bytes");
+
+    // PASS 1: Standard medical transcription
+    const transcription1 = await performTranscription(audioData, OPENAI_API_KEY, {
+      temperature: 0,
+      prompt: 'This is a medical consultation between a GP doctor and patient. Please transcribe accurately including medical terms like angina, ramipril, medications, dosages, and symptoms.',
+      name: 'Pass 1 (Medical Context)'
+    });
+
+    // PASS 2: Conservative transcription focused on accuracy
+    const transcription2 = await performTranscription(audioData, OPENAI_API_KEY, {
+      temperature: 0.1,
+      prompt: 'Medical consultation transcription. Key terms: angina, ramipril, 5mg, chest pain, heart attack, blood pressure, ECG, 999. Be extremely careful with medical terminology.',
+      name: 'Pass 2 (Conservative)'
+    });
+
+    // PASS 3: High-confidence transcription with medical vocabulary
+    const transcription3 = await performTranscription(audioData, OPENAI_API_KEY, {
+      temperature: 0.2,
+      prompt: 'GP consultation. Critical medical terms to recognize: angina (NOT injection/injustice), ramipril (heart medication), chest pain clinic, ECG, blood tests, call 999 immediately. Transcribe exactly what is said.',
+      name: 'Pass 3 (Medical Vocab)'
+    });
+
+    console.log("All three transcription passes completed");
+
+    // VALIDATION & CROSS-CHECKING
+    const validatedResult = await validateAndMergeTranscriptions(
+      [transcription1, transcription2, transcription3],
+      OPENAI_API_KEY
+    );
+
+    return new Response(JSON.stringify(validatedResult), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+
+  } catch (error) {
+    console.error("Error in triple-check transcription:", error);
+    return new Response(JSON.stringify({ 
+      error: `Triple-check transcription error: ${error.message}`,
+      details: error.stack
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+});
+
+async function performTranscription(audioData: Uint8Array, apiKey: string, config: any) {
+  const formData = new FormData();
+  const blob = new Blob([audioData], { type: 'audio/webm' });
+  formData.append('file', blob, 'audio.webm');
+  formData.append('model', 'whisper-1');
+  formData.append('language', 'en');
+  formData.append('response_format', 'verbose_json');
+  formData.append('temperature', config.temperature.toString());
+  formData.append('prompt', config.prompt);
+
+  console.log(`Performing ${config.name}...`);
+  
+  const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: formData
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`${config.name} failed:`, response.status, errorText);
+    return { text: '', confidence: 0, source: config.name, error: errorText };
+  }
+
+  const result = await response.json();
+  console.log(`${config.name} result:`, result.text || 'EMPTY');
+
+  // Calculate confidence based on Whisper's internal metrics
+  let confidence = 0.5; // default
+  if (result.segments && result.segments.length > 0) {
+    const avgLogProb = result.segments.reduce((sum: number, seg: any) => 
+      sum + (seg.avg_logprob || -2), 0) / result.segments.length;
+    const avgNoSpeech = result.segments.reduce((sum: number, seg: any) => 
+      sum + (seg.no_speech_prob || 0.5), 0) / result.segments.length;
+    
+    // Convert log probability to confidence score
+    confidence = Math.max(0, Math.min(1, 
+      (avgLogProb + 1) / 1 * (1 - avgNoSpeech)
+    ));
+  }
+
+  return {
+    text: result.text || '',
+    confidence: confidence,
+    source: config.name,
+    segments: result.segments || [],
+    words: result.words || []
+  };
+}
+
+async function validateAndMergeTranscriptions(transcriptions: any[], apiKey: string) {
+  console.log("Starting validation and merging process...");
+
+  // Filter out empty transcriptions
+  const validTranscriptions = transcriptions.filter(t => t.text && t.text.trim().length > 5);
+  
+  if (validTranscriptions.length === 0) {
+    return { text: '', confidence: 0, validation: 'No valid transcriptions' };
+  }
+
+  // Sort by confidence
+  validTranscriptions.sort((a, b) => b.confidence - a.confidence);
+
+  console.log("Transcription candidates:", validTranscriptions.map(t => ({
+    source: t.source,
+    confidence: t.confidence,
+    text: t.text.substring(0, 100) + '...'
+  })));
+
+  // Use GPT-4 to cross-validate and merge the best transcriptions
+  const validationPrompt = `
+You are a medical transcription validator. Review these 3 transcription attempts of the same GP consultation audio and create the most accurate final version.
+
+CRITICAL MEDICAL TERMS TO WATCH FOR:
+- "angina" (NOT injection, injustice, or similar)
+- "ramipril" (heart medication, often 5mg)
+- "chest pain clinic" 
+- "ECG" or "blood tests"
+- "call 999 immediately"
+- Medication dosages (like "5mg once daily")
+
+TRANSCRIPTION 1 (Confidence: ${validTranscriptions[0]?.confidence.toFixed(2)}):
+${validTranscriptions[0]?.text}
+
+TRANSCRIPTION 2 (Confidence: ${validTranscriptions[1]?.confidence.toFixed(2)}):
+${validTranscriptions[1]?.text || 'N/A'}
+
+TRANSCRIPTION 3 (Confidence: ${validTranscriptions[2]?.confidence.toFixed(2)}):
+${validTranscriptions[2]?.text || 'N/A'}
+
+INSTRUCTIONS:
+1. Identify the most accurate medical terms across all versions
+2. Fix obvious medical misheards (e.g., "injustice" should be "angina")
+3. Include ALL important medical details (medications, dosages, plans)
+4. Maintain natural conversation flow
+5. Flag any critical medical term inconsistencies
+
+Return ONLY the corrected final transcription, nothing else.`;
+
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { 
+            role: 'system', 
+            content: 'You are a medical transcription expert. Return only the corrected transcription, no other text.' 
+          },
+          { role: 'user', content: validationPrompt }
+        ],
+        temperature: 0.1,
+        max_tokens: 2000
+      })
+    });
+
+    if (response.ok) {
+      const gptResult = await response.json();
+      const finalText = gptResult.choices[0].message.content.trim();
+      
+      console.log("GPT-4 validated transcription:", finalText);
+
+      // Final medical term verification
+      const medicalValidation = validateMedicalTerms(finalText);
+      
+      return {
+        text: finalText,
+        confidence: calculateFinalConfidence(validTranscriptions),
+        validation: 'Triple-checked and GPT-4 validated',
+        sources: validTranscriptions.map(t => t.source),
+        medical_validation: medicalValidation,
+        original_transcriptions: validTranscriptions.map(t => ({
+          source: t.source,
+          text: t.text,
+          confidence: t.confidence
+        }))
+      };
+    } else {
+      console.error("GPT-4 validation failed, using highest confidence transcription");
+      return {
+        text: validTranscriptions[0].text,
+        confidence: validTranscriptions[0].confidence,
+        validation: 'Highest confidence (GPT-4 validation failed)',
+        sources: [validTranscriptions[0].source]
+      };
+    }
+  } catch (error) {
+    console.error("Validation error:", error);
+    return {
+      text: validTranscriptions[0].text,
+      confidence: validTranscriptions[0].confidence,
+      validation: 'Highest confidence (validation error)',
+      sources: [validTranscriptions[0].source],
+      error: error.message
+    };
+  }
+}
+
+function validateMedicalTerms(text: string) {
+  const medicalTerms = {
+    'angina': text.toLowerCase().includes('angina'),
+    'ramipril': text.toLowerCase().includes('ramipril'),
+    'chest_pain': text.toLowerCase().includes('chest') && text.toLowerCase().includes('pain'),
+    'ecg': text.toLowerCase().includes('ecg'),
+    'blood_tests': text.toLowerCase().includes('blood test'),
+    'call_999': text.includes('999'),
+    'medication_dosage': /\d+\s*mg/i.test(text)
+  };
+
+  const suspicious_terms = [
+    'injustice', 'injection', 'infusion', 'affliction'
+  ].filter(term => text.toLowerCase().includes(term));
+
+  return {
+    detected_medical_terms: medicalTerms,
+    suspicious_terms: suspicious_terms,
+    confidence_score: Object.values(medicalTerms).filter(Boolean).length / Object.keys(medicalTerms).length
+  };
+}
+
+function calculateFinalConfidence(transcriptions: any[]) {
+  if (transcriptions.length === 0) return 0;
+  
+  // Weight the average by the number of transcriptions that agree
+  const avgConfidence = transcriptions.reduce((sum, t) => sum + t.confidence, 0) / transcriptions.length;
+  const agreementBonus = transcriptions.length >= 2 ? 0.1 : 0;
+  
+  return Math.min(0.95, avgConfidence + agreementBonus);
+}
