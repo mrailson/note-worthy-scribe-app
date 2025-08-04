@@ -1368,9 +1368,7 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                 ) : referralContent ? (
                   <div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
                     <div className="prose prose-sm max-w-none dark:prose-invert">
-                      <div className="ai-response-content space-y-3 whitespace-pre-wrap">
-                        {referralContent}
-                      </div>
+                      <SafeMessageRenderer content={referralContent} className="ai-response-content space-y-3" />
                     </div>
                   </div>
                 ) : (
