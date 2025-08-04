@@ -319,15 +319,6 @@ export const MeetingHistoryList = ({
 
               {/* Action Buttons - Mobile Optimized */}
               <div className="flex flex-col sm:flex-row gap-2 sm:gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onViewSummary(meeting.id)}
-                  className="flex items-center justify-center gap-2 flex-1 sm:flex-none touch-manipulation min-h-[44px]"
-                >
-                  <Eye className="h-4 w-4" />
-                  <span>View Meeting Notes</span>
-                </Button>
                 
                 <Button
                   variant="outline"

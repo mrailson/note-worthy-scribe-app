@@ -84,7 +84,7 @@ ${rawTranscript}`;
           }
         ],
         temperature: 0.3, // Lower temperature for more consistent formatting
-        max_tokens: 8000 // Increased to handle longer transcripts
+        max_tokens: 16000 // Generous limit to handle very long transcripts
       }),
     });
 
