@@ -459,7 +459,7 @@ const Index = () => {
     }
   };
 
-  // Enhanced transcript handling with ticker and word count
+  // Enhanced transcript handling with proper chunk accumulation
   const handleTranscript = (transcriptData: TranscriptData) => {
     console.log('🔄 handleTranscript called with:', {
       textLength: transcriptData.text?.length || 0,
@@ -483,59 +483,76 @@ const Index = () => {
       }, 3000);
     }
 
-    // Update transcripts array for consultation processing
+    // Update transcripts array - FIXED to properly accumulate chunks
     setRealtimeTranscripts(prev => {
-      // Filter out non-final transcripts from the same speaker to avoid duplicates
+      // Only remove non-final transcripts from the same speaker to avoid duplicates
+      // Keep ALL final transcripts (each chunk is a separate final transcript)
       const filtered = prev.filter(t => 
         !(t.speaker === transcriptData.speaker && !t.isFinal)
       );
       
-      // Add new transcript
+      // If this is a final transcript, always add it (don't replace previous final ones)
       const newTranscripts = [...filtered, transcriptData];
       
       console.log('🔍 Adding transcript:', transcriptData.isFinal ? 'FINAL' : 'interim', `(${transcriptData.text.length} chars)`);
-      
-      // Calculate speaker count from the new array
-      const speakers = new Set(newTranscripts.map(t => t.speaker));
+      console.log('🔍 Total transcripts after add:', newTranscripts.length);
+      console.log('🔍 Final transcripts count:', newTranscripts.filter(t => t.isFinal).length);
       
       return newTranscripts;
     });
     
-    // Process final/complete session transcripts for main transcript
+    // Process final/complete session transcripts for main transcript - FIXED accumulation
     if (transcriptData.isCompleteSession || transcriptData.isFinal) {
-      console.log('📝 Processing final transcript:', transcriptData.text);
+      console.log('📝 Processing final transcript chunk:', transcriptData.text);
       
-      // Get current final transcripts
-      const finalTranscripts = realtimeTranscripts.filter(t => t.isFinal);
-      
-      // Combine all final transcripts including this new one
-      const allFinalTranscripts = [...finalTranscripts, transcriptData];
-      
-      // Sort by timestamp to maintain chronological order
-      const sortedTranscripts = allFinalTranscripts.sort((a, b) => 
-        new Date(a.timestamp || 0).getTime() - new Date(b.timestamp || 0).getTime()
-      );
-      
-      // Combine into single transcript
-      const combinedTranscript = sortedTranscripts.map(t => t.text.trim()).join(' ');
-      
-      // Clean the transcript
-      const cleanedTranscript = combinedTranscript
-        .replace(/Thank you for watching\.?\s*/gi, '')
-        .replace(/Thanks for watching\.?\s*/gi, '')
-        .trim();
-      
-      setTranscript(cleanedTranscript);
-      
-      // Update word count
-      const words = cleanedTranscript.split(' ').filter(word => word.length > 0);
-      setWordCount(words.length);
-      console.log('✅ Transcript updated - word count:', words.length);
-      
-      // Process translation if enabled
-      if (isTranslationEnabled) {
-        processQuickTranslation(transcriptData);
-      }
+      // Use a functional update to get the latest state
+      setRealtimeTranscripts(currentTranscripts => {
+        // Get all final transcripts including this new one
+        const allFinalTranscripts = currentTranscripts.filter(t => t.isFinal);
+        if (!allFinalTranscripts.find(t => t.text === transcriptData.text)) {
+          allFinalTranscripts.push(transcriptData);
+        }
+        
+        console.log('📝 Processing', allFinalTranscripts.length, 'final transcript chunks');
+        allFinalTranscripts.forEach((t, i) => {
+          console.log(`📝 Chunk ${i + 1} (${t.text.length} chars):`, t.text.substring(0, 50) + '...');
+        });
+        
+        // Sort by timestamp to maintain chronological order
+        const sortedTranscripts = allFinalTranscripts.sort((a, b) => 
+          new Date(a.timestamp || 0).getTime() - new Date(b.timestamp || 0).getTime()
+        );
+        
+        // Combine all transcripts with a space separator - FIXED to accumulate properly
+        const combinedTranscript = sortedTranscripts.map(t => t.text.trim()).join(' ');
+        
+        console.log('📝 Combined transcript from', sortedTranscripts.length, 'chunks');
+        console.log('📝 Total combined length:', combinedTranscript.length, 'chars');
+        console.log('📝 Combined content preview:', combinedTranscript.substring(0, 200) + '...');
+        
+        // Clean the transcript
+        const cleanedTranscript = combinedTranscript
+          .replace(/Thank you for watching\.?\s*/gi, '')
+          .replace(/Thanks for watching\.?\s*/gi, '')
+          .trim();
+        
+        console.log('📝 Final cleaned transcript length:', cleanedTranscript.length);
+        
+        // Update the main transcript state
+        setTranscript(cleanedTranscript);
+        
+        // Update word count based on combined transcript
+        const words = cleanedTranscript.split(' ').filter(word => word.length > 0);
+        setWordCount(words.length);
+        console.log('✅ Transcript updated - word count:', words.length);
+        
+        // Process translation if enabled
+        if (isTranslationEnabled) {
+          processQuickTranslation(transcriptData);
+        }
+        
+        return currentTranscripts;
+      });
     } else {
       console.log('⏳ Processing interim transcript for ticker');
       
