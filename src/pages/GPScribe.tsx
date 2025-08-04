@@ -1313,22 +1313,52 @@ const Index = () => {
                               className="h-6 w-6 p-0 bg-primary/10 border-primary/20 hover:bg-primary/20"
                               title="Expand translation view for patient"
                               onClick={() => {
-                                // We'll create a simple modal/dialog here
+                                // Create modal with REAL translation data
                                 const modal = document.createElement('div');
                                 modal.className = 'fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4';
+                                
+                                const currentTranslation = translations.length > 0 ? translations[translations.length - 1] : null;
+                                const languageInfo = HEALTHCARE_LANGUAGES.find(l => l.code === translationLanguage);
+                                
                                 modal.innerHTML = `
-                                  <div class="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6 relative">
-                                    <button class="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded" onclick="this.closest('.fixed').remove()">✕</button>
-                                    <h2 class="text-2xl font-bold mb-4 flex items-center gap-2">
-                                      🌐 Live Translation: ${HEALTHCARE_LANGUAGES.find(l => l.code === translationLanguage)?.flag} ${HEALTHCARE_LANGUAGES.find(l => l.code === translationLanguage)?.name}
+                                  <div class="bg-white dark:bg-gray-900 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6 relative">
+                                    <button class="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded text-2xl" onclick="this.closest('.fixed').remove()">&times;</button>
+                                    <h2 class="text-2xl font-bold mb-6 flex items-center gap-3 text-gray-900 dark:text-white">
+                                      🌐 Live Translation: ${languageInfo?.flag || '🌐'} ${languageInfo?.name || 'Unknown'}
                                     </h2>
-                                    <div class="border-2 border-blue-200 rounded-xl p-8 min-h-[400px] bg-gradient-to-br from-blue-50 to-purple-50">
-                                      <div class="text-center text-gray-500 py-16">
-                                        <div class="text-6xl mb-4">🌐</div>
-                                        <p class="text-2xl mb-2">Waiting for translation...</p>
-                                        <p class="text-lg">The translated text will appear here in large format</p>
-                                        <p class="text-sm mt-4">Start speaking to see live translations</p>
-                                      </div>
+                                    <div class="border-2 border-blue-200 dark:border-blue-700 rounded-xl p-8 min-h-[400px] bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950">
+                                      ${currentTranslation ? `
+                                        <div class="space-y-6">
+                                          <!-- Speaker Badge -->
+                                          <div class="flex items-center justify-between">
+                                            <span class="px-4 py-2 rounded-full text-sm font-medium ${currentTranslation.speaker === 'GP' ? 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100' : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100'}">${currentTranslation.speaker}</span>
+                                            <span class="text-sm text-gray-500 dark:text-gray-400">${new Date(currentTranslation.timestamp).toLocaleTimeString()}</span>
+                                          </div>
+                                          
+                                          <!-- Original Text -->
+                                          <div class="bg-gray-50 dark:bg-gray-800 rounded-xl p-6">
+                                            <div class="text-lg font-medium text-gray-600 dark:text-gray-300 mb-3">English Original:</div>
+                                            <div class="text-2xl leading-relaxed text-gray-900 dark:text-white">${currentTranslation.original}</div>
+                                          </div>
+                                          
+                                          <!-- Translated Text -->
+                                          <div class="bg-blue-50 dark:bg-blue-900 border-2 border-blue-200 dark:border-blue-700 rounded-xl p-8">
+                                            <div class="text-xl font-medium text-blue-700 dark:text-blue-300 mb-4 flex items-center gap-3">
+                                              ${languageInfo?.flag || '🌐'} ${languageInfo?.name || 'Translation'}:
+                                            </div>
+                                            <div class="text-4xl leading-relaxed font-medium text-gray-900 dark:text-white text-center py-4">
+                                              ${currentTranslation.translated}
+                                            </div>
+                                          </div>
+                                        </div>
+                                      ` : `
+                                        <div class="text-center text-gray-500 dark:text-gray-400 py-16">
+                                          <div class="text-6xl mb-4">🌐</div>
+                                          <p class="text-2xl mb-2">Waiting for translation...</p>
+                                          <p class="text-lg">The translated text will appear here in large format</p>
+                                          <p class="text-sm mt-4">Start speaking to see live translations</p>
+                                        </div>
+                                      `}
                                     </div>
                                   </div>
                                 `;
