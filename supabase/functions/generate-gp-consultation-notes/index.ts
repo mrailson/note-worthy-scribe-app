@@ -135,6 +135,8 @@ CRITICAL INSTRUCTIONS:
 - If information for any section is not mentioned, leave that section blank or omit it entirely
 - Never invent patient details, symptoms, examination findings, diagnoses, or treatments
 - Follow the EXACT HeidiHealth template structure below
+- DO NOT include any header with practice details, patient details, or dates
+- Start directly with the consultation type and presenting complaint
 
 TEMPLATE STRUCTURE TO FOLLOW:
 
@@ -208,6 +210,8 @@ CRITICAL INSTRUCTIONS:
 - Follow the HeidiHealth template structure EXACTLY
 - Never invent or assume information not stated in the transcript
 - If information is not mentioned, leave that section blank
+- DO NOT include any header with practice details, patient details, or dates
+- Start directly with the consultation type and presenting complaint
 
 Generate a detailed consultation note following the EXACT HeidiHealth template:
 
@@ -252,7 +256,7 @@ ${formatForSystmOne ? 'Use SystmOne compatible abbreviations.' : ''}`
           },
           {
             role: 'user',
-            content: `Generate a comprehensive clinical note using the HeidiHealth template from this transcript. Use ONLY information explicitly mentioned:\n\n${transcript}${gpSignature}${practiceDetails}`
+            content: `Generate a comprehensive clinical note using the HeidiHealth template from this transcript. Use ONLY information explicitly mentioned:\n\n${transcript}`
           }
         ],
         temperature: 0.3,

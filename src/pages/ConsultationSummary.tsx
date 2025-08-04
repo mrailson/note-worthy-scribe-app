@@ -183,12 +183,8 @@ export default function ConsultationSummary() {
   };
 
   const generateStandardNotes = (content: string): string => {
-    // Enhanced standard format with better structure
-    let standardContent = "**CLINICAL CONSULTATION NOTES**\n\n";
-    standardContent += content;
-    standardContent += "\n\n---\n*Standard clinical documentation format*";
-    
-    return standardContent;
+    // Return content without additional header formatting
+    return content;
   };
 
   const generateDetailedNotes = (content: string): string => {
