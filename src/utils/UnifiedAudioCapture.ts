@@ -278,7 +278,8 @@ export class UnifiedAudioCapture {
 
     try {
       const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
-      console.log('Processing audio blob:', audioBlob.size, 'bytes,', this.audioChunks.length, 'chunks');
+      const totalChunks = this.audioChunks.length;
+      console.log('Processing audio blob:', audioBlob.size, 'bytes,', totalChunks, 'chunks');
       
       // Clear chunks for next batch
       this.audioChunks = [];
@@ -289,7 +290,10 @@ export class UnifiedAudioCapture {
         return;
       }
 
-      console.log('Sending audio to transcription service...');
+      const startTime = Date.now();
+      console.log('🎵 SINGLE SESSION TRANSCRIPTION - Starting Whisper processing...');
+      console.log('📏 Audio file size:', audioBlob.size, 'bytes', `(${(audioBlob.size / 1024 / 1024).toFixed(2)} MB)`);
+      console.log('⏱️ Total recording chunks collected:', totalChunks);
 
       // Convert to base64
       const arrayBuffer = await audioBlob.arrayBuffer();
@@ -303,9 +307,9 @@ export class UnifiedAudioCapture {
       }
       const base64Audio = btoa(binary);
 
-      console.log('Sending to TRIPLE-CHECK transcription service...');
+      console.log('🔄 Sending complete session audio to Whisper...');
       
-      // Use the new triple-check transcription system for maximum accuracy
+      // Use direct Whisper transcription for the complete session
       const response = await fetch('https://dphcnbricafkbtizkoal.functions.supabase.co/functions/v1/triple-check-transcription', {
         method: 'POST',
         headers: {
@@ -315,83 +319,54 @@ export class UnifiedAudioCapture {
         body: JSON.stringify({ audio: base64Audio })
       });
 
+      const endTime = Date.now();
+      const processingTime = endTime - startTime;
+      
+      console.log('⏱️ Whisper processing completed in:', processingTime, 'ms', `(${(processingTime / 1000).toFixed(1)}s)`);
+
       if (response.ok) {
         const result = await response.json();
-        console.log('TRIPLE-CHECK transcription result:', {
-          text: result.text,
-          confidence: result.confidence,
-          validation: result.validation,
-          medical_validation: result.medical_validation
-        });
+        const transcriptionText = result.text || '';
         
-        // Only accept high-confidence results with proper medical validation
-        if (result.text && result.text.trim() && result.text.length > 3 && result.confidence > 0.3) {
-          const text = result.text.trim();
-          
-          // Check for suspicious medical terms that might indicate transcription errors
-          const suspiciousTerms = result.medical_validation?.suspicious_terms || [];
-          if (suspiciousTerms.length > 0) {
-            console.warn('Detected suspicious medical terms:', suspiciousTerms, 'in text:', text);
-            // Still process but flag for attention
-          }
-          
-          // Enhanced filtering for common hallucinations
-          const lowercaseText = text.toLowerCase();
-          const isHallucination = this.isLikelyHallucination(lowercaseText);
-          
-          if (!isHallucination) {
-            console.log(`✅ Valid TRIPLE-CHECKED transcription (confidence: ${result.confidence.toFixed(2)}):`, text);
-            
-            // Add confidence and validation info to the transcript
-            const transcriptWithMeta = {
-              text: text,
-              speaker: this.systemStream ? 'Mic + Browser (Triple-Checked)' : 'Microphone (Triple-Checked)',
-              confidence: result.confidence,
-              timestamp: new Date().toISOString(),
-              isFinal: true,
-              isCleaned: true,
-              isTripleChecked: true,
-              validation: result.validation,
-              medicalValidation: result.medical_validation
-            };
-            
-            // Add to transcript buffer for immediate output
-            this.addToTranscriptBuffer(text);
-            
-            // Output the high-confidence result immediately
-            this.onTranscript(transcriptWithMeta);
-            
-            // Still add to cleaning buffers for additional retrospective cleaning
-            if (this.cleaningBuffer) {
-              this.cleaningBuffer.addText(text);
-            }
-            if (this.realtimeCleaner) {
-              this.realtimeCleaner.addTranscript(text);
-            }
-          } else {
-            console.log('❌ Filtered hallucination despite triple-check:', text);
-          }
-        } else {
-          console.log(`❌ Low confidence triple-check result (${result.confidence?.toFixed(2)}):`, result.text);
+        console.log('✅ WHISPER TRANSCRIPTION COMPLETE:', {
+          fileSize: `${audioBlob.size} bytes (${(audioBlob.size / 1024 / 1024).toFixed(2)} MB)`,
+          processingTime: `${processingTime}ms (${(processingTime / 1000).toFixed(1)}s)`,
+          textLength: transcriptionText.length,
+          confidence: result.confidence || 'N/A',
+          validation: result.validation || 'N/A'
+        });
+
+        // Trigger transcript update
+        if (this.onTranscript) {
+          this.onTranscript({
+            text: transcriptionText,
+            speaker: this.systemStream ? 'Mic + Browser (Complete Session)' : 'Microphone (Complete Session)',
+            confidence: result.confidence || 0.95,
+            timestamp: new Date().toISOString(),
+            isFinal: true,
+            isCompleteSession: true
+          });
         }
       } else {
-        const errorData = await response.json();
-        console.error('❌ Triple-check transcription failed:', errorData);
+        const errorText = await response.text();
+        console.error('❌ Whisper transcription failed:', response.status, errorText);
         
-        // Fallback to original single transcription if triple-check fails
-        console.log('🔄 Falling back to single transcription...');
-        await this.performFallbackTranscription(base64Audio);
+        // Fall back to a simpler direct Whisper call if triple-check fails
+        console.log('🔄 Falling back to direct Whisper...');
+        await this.fallbackDirectWhisper(base64Audio, audioBlob.size, startTime);
       }
+      
     } catch (error) {
       console.error('Error processing audio:', error);
     }
   }
 
-  private async performFallbackTranscription(base64Audio: string) {
+  private async fallbackDirectWhisper(base64Audio: string, fileSize: number, startTime: number) {
     try {
-      console.log('🔄 Attempting fallback transcription...');
+      console.log('🔄 Using fallback direct Whisper transcription...');
       
-      const response = await fetch('https://dphcnbricafkbtizkoal.functions.supabase.co/functions/v1/assemblyai-transcription', {
+      // Use the test-mp3-transcription function for direct Whisper
+      const response = await fetch('https://dphcnbricafkbtizkoal.functions.supabase.co/functions/v1/test-mp3-transcription', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -400,17 +375,34 @@ export class UnifiedAudioCapture {
         body: JSON.stringify({ audio: base64Audio })
       });
 
+      const endTime = Date.now();
+      const processingTime = endTime - startTime;
+      
       if (response.ok) {
         const result = await response.json();
-        if (result.text && result.text.trim()) {
-          console.log('✅ Fallback transcription succeeded:', result.text);
-          this.addToTranscriptBuffer(result.text.trim());
+        const transcriptionText = result.text || '';
+        
+        console.log('✅ FALLBACK WHISPER TRANSCRIPTION COMPLETE:', {
+          fileSize: `${fileSize} bytes (${(fileSize / 1024 / 1024).toFixed(2)} MB)`,
+          processingTime: `${processingTime}ms (${(processingTime / 1000).toFixed(1)}s)`,
+          textLength: transcriptionText.length
+        });
+
+        if (this.onTranscript && transcriptionText) {
+          this.onTranscript({
+            text: transcriptionText,
+            speaker: this.systemStream ? 'Mic + Browser (Fallback)' : 'Microphone (Fallback)',
+            confidence: 0.85,
+            timestamp: new Date().toISOString(),
+            isFinal: true,
+            isCompleteSession: true
+          });
         }
       } else {
-        console.error('❌ Fallback transcription also failed');
+        console.error('❌ Fallback Whisper also failed:', response.status);
       }
     } catch (error) {
-      console.error('❌ Error in fallback transcription:', error);
+      console.error('❌ Error in fallback Whisper:', error);
     }
   }
 
