@@ -59,6 +59,12 @@ interface ConsultationData {
     traineeFeedback: string;
     guidance: any;
   };
+  generatedData?: {
+    gpSummary: string;
+    fullNote: string;
+    patientCopy: string;
+    traineeFeedback: string;
+  };
 }
 
 export default function ConsultationSummary() {
@@ -136,6 +142,26 @@ export default function ConsultationSummary() {
           patientCopy: data.exampleData.patientCopy,
           traineeFeedback: data.exampleData.traineeFeedback
         });
+      }
+      // Load generated data from real consultation
+      else if (data.generatedData) {
+        setContent({
+          gpSummary: data.generatedData.gpSummary,
+          fullNote: data.generatedData.fullNote,
+          patientCopy: data.generatedData.patientCopy,
+          traineeFeedback: data.generatedData.traineeFeedback
+        });
+        
+        setEditContent({
+          gpSummary: data.generatedData.gpSummary,
+          fullNote: data.generatedData.fullNote,
+          patientCopy: data.generatedData.patientCopy,
+          traineeFeedback: data.generatedData.traineeFeedback
+        });
+      }
+      // If no generated data available, generate from transcript
+      else if (data.transcript && data.transcript.trim().length > 50) {
+        generateNotesFromTranscript(data.transcript);
       }
     } else {
       navigate('/gp-scribe');
@@ -277,6 +303,49 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
     
     // Return max 4 most relevant codes
     return codes.slice(0, 4);
+  };
+
+  // Generate notes from transcript using Supabase function
+  const generateNotesFromTranscript = async (transcript: string) => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-gp-consultation-notes', {
+        body: {
+          transcript: transcript,
+          outputLevel: 'standard',
+          showSnomedCodes: false,
+          formatForEmis: false,
+          formatForSystmOne: false,
+          userId: user.id
+        }
+      });
+
+      if (error) {
+        console.error('Error generating notes:', error);
+        toast.error('Failed to generate consultation notes');
+        return;
+      }
+
+      setContent({
+        gpSummary: data.gpSummary || "No GP summary generated",
+        fullNote: data.fullNote || "No full notes generated", 
+        patientCopy: data.patientCopy || "No patient copy generated",
+        traineeFeedback: data.traineeFeedback || "No trainee feedback generated"
+      });
+      
+      setEditContent({
+        gpSummary: data.gpSummary || "",
+        fullNote: data.fullNote || "",
+        patientCopy: data.patientCopy || "",
+        traineeFeedback: data.traineeFeedback || ""
+      });
+      
+      toast.success('Consultation notes generated successfully');
+    } catch (error: any) {
+      console.error('Error generating notes:', error);
+      toast.error('Failed to generate consultation notes');
+    }
   };
 
   // Generate SMS version (max 50 words)

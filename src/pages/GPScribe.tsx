@@ -637,7 +637,7 @@ const Index = () => {
     }
     
     // Conditional delay based on recording duration
-    const delayTime = duration > 60 ? 1000 : 3000; // 1s if over 1 minute, 3s otherwise
+    const delayTime = 1000; // Reduced delay to 1 second for better user experience
     console.log(`Recording duration: ${duration}s, using ${delayTime/1000}s delay`);
     
     // Reduced delay since we're using 5-second chunks now
@@ -659,7 +659,7 @@ const Index = () => {
       // Auto-generate summary if there's meaningful content and navigate to consultation summary
       if (transcript && transcript.trim().length > 50) {
         console.log("Generating summary...");
-        setTimeout(() => generateSummary(), 1000);
+        setTimeout(() => generateSummary(), 100); // Reduced delay for faster response
       } else {
         console.log("Navigating directly to consultation summary...");
         // Even if no meaningful content, navigate to consultation summary with basic data
