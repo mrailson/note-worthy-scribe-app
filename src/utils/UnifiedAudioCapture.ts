@@ -45,46 +45,12 @@ export class UnifiedAudioCapture {
       // Step 4: Start recording
       this.startRecording();
       
-      // Step 5: Initialize both cleaning systems
-      this.cleaningBuffer = TranscriptCleaner.createBufferedCleaner(
-        (cleanedText) => {
-          console.log('📝 Retrospectively cleaned transcript:', cleanedText);
-          this.onTranscript({
-            text: cleanedText,
-            speaker: this.systemStream ? 'Mic + Browser (Deep Cleaned)' : 'Microphone (Deep Cleaned)',
-            confidence: 0.95,
-            timestamp: new Date().toISOString(),
-            isFinal: true,
-            isCleaned: true
-          });
-        },
-        8000 // Clean every 8 seconds for clinical accuracy
-      );
+      // SINGLE SESSION MODE - No real-time processing
+      console.log('🎵 SINGLE SESSION MODE: Recording continuously until stop - no real-time transcription');
       
-      // Real-time cleaner for immediate corrections
-      this.realtimeCleaner = new RealtimeTranscriptCleaner(
-        (cleanedText, context) => {
-          console.log('🔧 Real-time cleaned transcript:', cleanedText);
-          this.onTranscript({
-            text: cleanedText,
-            speaker: this.systemStream ? 'Mic + Browser (RT Cleaned)' : 'Microphone (RT Cleaned)',
-            confidence: 0.90,
-            timestamp: new Date().toISOString(),
-            isFinal: true,
-            isCleaned: true,
-            isRealTimeCleaned: true
-          });
-        }
-      );
-      
-      // Step 6: Send an immediate test to verify the system is working
-      setTimeout(() => {
-        this.sendTestAudio();
-      }, 2000);
-      
-      const statusMessage = mode === 'mic-browser' ? 'Recording microphone + browser audio' : 'Recording microphone only';
+      const statusMessage = mode === 'mic-browser' ? 'Recording microphone + browser audio (session mode)' : 'Recording microphone only (session mode)';
       this.onStatusChange(statusMessage);
-      console.log('Unified audio capture started successfully');
+      console.log('Unified audio capture started successfully - session recording mode');
       
     } catch (error) {
       console.error('Failed to start audio capture:', error);
@@ -406,73 +372,9 @@ export class UnifiedAudioCapture {
     }
   }
 
+  // DISABLED - No test audio in single session mode
   private async sendTestAudio() {
-    // Send a small test audio to verify the system is working
-    // This creates a very brief silent audio to test the pipeline
-    try {
-      console.log('Sending test audio to verify system...');
-      
-      // Create a minimal test audio (1 second of silence)
-      const sampleRate = 24000;
-      const duration = 1; // 1 second
-      const numSamples = sampleRate * duration;
-      
-      // Create minimal audio data
-      const audioData = new ArrayBuffer(44 + numSamples * 2);
-      const view = new DataView(audioData);
-      
-      // WAV header
-      const writeString = (offset: number, string: string) => {
-        for (let i = 0; i < string.length; i++) {
-          view.setUint8(offset + i, string.charCodeAt(i));
-        }
-      };
-      
-      writeString(0, 'RIFF');
-      view.setUint32(4, 36 + numSamples * 2, true);
-      writeString(8, 'WAVE');
-      writeString(12, 'fmt ');
-      view.setUint32(16, 16, true);
-      view.setUint16(20, 1, true);
-      view.setUint16(22, 1, true);
-      view.setUint32(24, sampleRate, true);
-      view.setUint32(28, sampleRate * 2, true);
-      view.setUint16(32, 2, true);
-      view.setUint16(34, 16, true);
-      writeString(36, 'data');
-      view.setUint32(40, numSamples * 2, true);
-      
-      const uint8Array = new Uint8Array(audioData);
-      let binary = '';
-      for (let i = 0; i < uint8Array.length; i += 0x8000) {
-        const chunk = uint8Array.subarray(i, Math.min(i + 0x8000, uint8Array.length));
-        binary += String.fromCharCode.apply(null, Array.from(chunk));
-      }
-      const base64Audio = btoa(binary);
-
-      const response = await fetch('https://dphcnbricafkbtizkoal.functions.supabase.co/functions/v1/speech-to-text', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwaGNuYnJpY2Fma2J0aXprb2FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MzIyMzIsImV4cCI6MjA2ODMwODIzMn0.U3bJI6P1yzgRBz_k2s0zlJGu1GWiVRTHjYgv9QQggPs'
-        },
-        body: JSON.stringify({ audio: base64Audio })
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        console.log('Audio transcription system verified and ready!');
-        this.onTranscript({
-          text: 'Audio transcription system ready ✓',
-          speaker: 'System',
-          confidence: 1.0,
-          timestamp: new Date().toISOString(),
-          isFinal: true
-        });
-      }
-    } catch (error) {
-      console.error('Test audio failed:', error);
-    }
+    console.log('🎵 Test audio disabled in single session mode');
   }
 
   
@@ -567,20 +469,12 @@ export class UnifiedAudioCapture {
   }
 
   stopCapture() {
-    console.log('Stopping audio capture');
+    console.log('🛑 Stopping audio capture - SINGLE SESSION MODE');
     this.isRecording = false;
-    this.onStatusChange('Stopping...');
+    this.onStatusChange('Processing complete session...');
 
-    // Flush any remaining transcript fragments
-    this.flushTranscriptBuffer();
-    
-    // Flush both cleaning buffers for final processing
-    if (this.cleaningBuffer) {
-      this.cleaningBuffer.flush();
-    }
-    if (this.realtimeCleaner) {
-      this.realtimeCleaner.flush();
-    }
+    // SINGLE SESSION MODE - no real-time buffers to flush
+    console.log('🎵 Single session mode - processing complete audio session');
     
     // Clear any pending assembly timer
     if (this.transcriptAssemblyTimer) {
