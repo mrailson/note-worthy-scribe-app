@@ -643,7 +643,7 @@ const Index = () => {
     }
     
     // Conditional delay based on recording duration
-    const delayTime = duration > 60 ? 1000 : 7000; // 1s if over 1 minute, 7s otherwise
+    const delayTime = duration > 60 ? 1000 : 3000; // 1s if over 1 minute, 3s otherwise
     console.log(`Recording duration: ${duration}s, using ${delayTime/1000}s delay`);
     
     // Reduced delay since we're using 5-second chunks now
