@@ -221,10 +221,10 @@ const Index = () => {
     setTranslationLanguage(languageCode);
     setIsTranslationEnabled(languageCode !== 'none');
     if (languageCode !== 'none') {
-      toast.success(`Translation enabled for ${HEALTHCARE_LANGUAGES.find(l => l.code === languageCode)?.name}`);
+      // Translation enabled
     } else {
       setTranslations([]);
-      toast.success("Translation disabled");
+      // Translation disabled
     }
   };
 
@@ -241,7 +241,7 @@ const Index = () => {
       if (error) throw error;
       return data.translatedText;
     } catch (error: any) {
-      toast.error(`Translation failed: ${error.message}`);
+      console.error(`Translation failed: ${error.message}`);
       return text;
     }
   };
@@ -409,13 +409,13 @@ const Index = () => {
     if (transciberRef.current && isRecording) {
       if (newMutedState) {
         transciberRef.current.pauseTranscription();
-        toast.success("Microphone muted - stopped listening");
+        // Microphone muted - stopped listening
       } else {
         transciberRef.current.resumeTranscription();
-        toast.success("Microphone unmuted - resumed listening");
+        // Microphone unmuted - resumed listening
       }
     } else {
-      toast.success(newMutedState ? "Microphone muted" : "Microphone unmuted");
+      // Microphone muted/unmuted
     }
   };
 
@@ -432,9 +432,9 @@ const Index = () => {
       }
       audioQueueRef.current = [];
       setIsCurrentlyPlaying(false);
-      toast.success("Translation audio muted");
+      // Translation audio muted
     } else {
-      toast.success("Translation audio unmuted");
+      // Translation audio unmuted
     }
   };
 
@@ -536,7 +536,7 @@ const Index = () => {
         if (data.cleanedTranscript && data.cleanedTranscript !== text) {
           setCleanedTranscript(data.cleanedTranscript);
           setTranscript(data.cleanedTranscript); // Update the main transcript with cleaned version
-          toast.success("Transcript automatically tidied up!");
+          // Transcript automatically tidied up
         }
       } catch (error: any) {
         console.error("Error auto-cleaning transcript:", error);
@@ -557,7 +557,7 @@ const Index = () => {
   };
 
   const handleTranscriptionError = (error: string) => {
-    toast.error(`Transcription Error: ${error}`);
+    console.error(`Transcription Error: ${error}`);
     setConnectionStatus("Error");
   };
 
@@ -583,19 +583,19 @@ const Index = () => {
         setDuration(prev => prev + 1);
       }, 1000);
 
-      toast.success(`Recording started for ${consultationType} consultation`);
+      // Recording started for consultation
 
     } catch (error) {
-      toast.error("Failed to start recording");
+      console.error("Failed to start recording");
     }
   };
 
   const pauseRecording = () => {
     setIsPaused(!isPaused);
     if (!isPaused) {
-      toast.success("Recording paused");
+      // Recording paused
     } else {
-      toast.success("Recording resumed");
+      // Recording resumed
     }
   };
 
@@ -604,7 +604,7 @@ const Index = () => {
     
     // Set status to indicate we're finalizing
     setConnectionStatus("Finalizing...");
-    toast.success("Recording stopped - finalizing transcript...");
+    // Recording stopped - finalizing transcript
     
     // Stop the timer first
     if (intervalRef.current) {
@@ -677,7 +677,7 @@ const Index = () => {
         }
       };
       
-      toast.success(`Loading example: ${example.title}`);
+      // Loading example
       
       // Navigate to consultation summary view
       navigate('/consultation-summary', { state: consultationData });
@@ -687,7 +687,7 @@ const Index = () => {
   const generateGuidance = async (transcriptText?: string) => {
     const textToAnalyze = transcriptText || transcript;
     if (!textToAnalyze.trim()) {
-      toast.error("No transcript available for guidance");
+      console.error("No transcript available for guidance");
       return;
     }
 
@@ -704,13 +704,13 @@ const Index = () => {
 
       setGuidance(data);
       
-      if (!transcriptText) { // Only show toast for manual requests
-        toast.success("Consultation guidance generated");
+      if (!transcriptText) { // Only show console log for manual requests
+        console.log("Consultation guidance generated");
       }
     } catch (error: any) {
       console.error('Error generating guidance:', error);
       if (!transcriptText) { // Only show error for manual requests
-        toast.error(`Error generating guidance: ${error.message}`);
+        console.error(`Error generating guidance: ${error.message}`);
       }
     } finally {
       setIsGuidanceLoading(false);
@@ -720,7 +720,7 @@ const Index = () => {
   // Clean transcript with AI
   const cleanTranscript = async () => {
     if (!transcript || transcript.length < 10) {
-      toast.error("No transcript available to clean");
+      console.error("No transcript available to clean");
       return;
     }
 
@@ -737,10 +737,10 @@ const Index = () => {
       if (error) throw error;
 
       setCleanedTranscript(data.cleanedTranscript);
-      toast.success("Transcript cleaned successfully!");
+      // Transcript cleaned successfully
     } catch (error: any) {
       console.error("Error cleaning transcript:", error);
-      toast.error(`Failed to clean transcript: ${error.message}`);
+      console.error(`Failed to clean transcript: ${error.message}`);
     } finally {
       setIsCleaningTranscript(false);
     }
@@ -750,7 +750,7 @@ const Index = () => {
     const transcriptToUse = cleanedTranscript || transcript;
     
     if (!transcriptToUse.trim()) {
-      toast.error("No transcript available to generate summary");
+      console.error("No transcript available to generate summary");
       return;
     }
 
@@ -809,9 +809,9 @@ const Index = () => {
       
       console.log("Navigation data:", consultationData);
       navigate('/consultation-summary', { state: consultationData });
-      toast.success("Clinical summary generated successfully");
+      // Clinical summary generated successfully
     } catch (error: any) {
-      toast.error(`Error generating summary: ${error.message}`);
+      console.error(`Error generating summary: ${error.message}`);
     } finally {
       setIsGenerating(false);
     }
@@ -870,9 +870,9 @@ const Index = () => {
       // Remove markdown formatting for clipboard
       const cleanText = text.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1');
       await navigator.clipboard.writeText(cleanText);
-      toast.success("Copied to clipboard");
+      // Copied to clipboard
     } catch (error) {
-      toast.error("Failed to copy to clipboard");
+      console.error("Failed to copy to clipboard");
     }
   };
 
@@ -937,7 +937,7 @@ const Index = () => {
       [section]: false
     }));
     
-    toast.success("Changes saved");
+    // Changes saved
   };
 
   const cancelEdit = (section: keyof typeof editStates) => {
@@ -949,7 +949,7 @@ const Index = () => {
 
   const generateReferralLetter = async () => {
     if (!transcript.trim()) {
-      toast.error("No transcript available for referral letter");
+      console.error("No transcript available for referral letter");
       return;
     }
 
@@ -973,9 +973,9 @@ const Index = () => {
         referralLetter: data.referralLetter || ""
       }));
       
-      toast.success("Referral letter generated");
+      // Referral letter generated
     } catch (error: any) {
-      toast.error(`Error generating referral letter: ${error.message}`);
+      console.error(`Error generating referral letter: ${error.message}`);
     } finally {
       setIsGenerating(false);
     }
@@ -988,7 +988,7 @@ const Index = () => {
     const splitText = doc.splitTextToSize(cleanContent, 180);
     doc.text(splitText, 10, 10);
     doc.save(`${filename}.pdf`);
-    toast.success("PDF downloaded");
+    // PDF downloaded
   };
 
   const getConnectionStatusIcon = () => {
