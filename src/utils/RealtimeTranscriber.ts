@@ -9,6 +9,11 @@ export class RealtimeTranscriber {
   private dataArray: Uint8Array | null = null;
   private silenceThreshold = 30; // Minimum volume threshold
   private hasDetectedSpeech = false;
+  
+  // New properties for overlapping validation
+  private audioBuffer: Array<{blob: Blob, timestamp: number, transcription?: string}> = [];
+  private validationInterval: NodeJS.Timeout | null = null;
+  private lastValidationTime = 0;
 
   constructor(
     private onTranscript: (transcript: TranscriptData) => void,
@@ -21,6 +26,9 @@ export class RealtimeTranscriber {
       this.onStatusChange('Setting up audio capture...');
       await this.startAudioCapture();
       this.onStatusChange('Listening for speech...');
+      
+      // Start validation timer for every 20 seconds
+      this.startValidationTimer();
     } catch (error) {
       console.error('Failed to start transcription:', error);
       this.onError('Failed to start transcription: ' + error.message);
@@ -345,6 +353,14 @@ export class RealtimeTranscriber {
       const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
       console.log(`Processing audio blob: ${audioBlob.size} bytes, ${this.audioChunks.length} chunks`);
       
+      // Store in buffer for validation with timestamp
+      const timestamp = Date.now();
+      this.audioBuffer.push({ blob: audioBlob, timestamp });
+      
+      // Keep only last 25 seconds of audio (buffer for validation)
+      const cutoffTime = timestamp - 25000;
+      this.audioBuffer = this.audioBuffer.filter(item => item.timestamp > cutoffTime);
+      
       // Clear chunks for next batch
       this.audioChunks = [];
 
@@ -420,6 +436,13 @@ export class RealtimeTranscriber {
               if (!isHallucination && !isRepetitive && text.length > 2) {
                 console.log('Valid transcription received:', text);
                 this.onStatusChange('Transcription active');
+                
+                // Store transcription in buffer for validation
+                const currentBufferItem = this.audioBuffer[this.audioBuffer.length - 1];
+                if (currentBufferItem) {
+                  currentBufferItem.transcription = text;
+                }
+                
                 this.onTranscript({
                   text: text,
                   speaker: 'Speaker',
@@ -461,32 +484,36 @@ export class RealtimeTranscriber {
   }
 
   stopTranscription() {
+    console.log('Stopping transcription...');
     this.isRecording = false;
-    this.onStatusChange('Stopping...');
-
-    // Immediately process any remaining audio chunks
-    if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
-      this.mediaRecorder.stop(); // This will trigger processing
-    } else if (this.audioChunks.length > 0) {
-      // Process any chunks that haven't been processed yet
-      this.processAudioChunks();
+    
+    if (this.validationInterval) {
+      clearInterval(this.validationInterval);
+      this.validationInterval = null;
     }
-
+    
+    if (this.mediaRecorder?.state === 'recording') {
+      this.mediaRecorder.stop();
+    }
+    
     if (this.stream) {
       this.stream.getTracks().forEach(track => track.stop());
       this.stream = null;
     }
-
+    
     if (this.audioContext) {
       this.audioContext.close();
       this.audioContext = null;
     }
-
-    this.mediaRecorder = null;
+    
     this.analyser = null;
     this.dataArray = null;
+    this.mediaRecorder = null;
     this.audioChunks = [];
+    this.audioBuffer = [];
+    this.hasDetectedSpeech = false;
     this.onStatusChange('Stopped');
+    console.log('Transcription stopped');
   }
 
   // Add a flush method for immediate processing
@@ -510,8 +537,115 @@ export class RealtimeTranscriber {
     }
   }
 
-  isActive() {
+  isActive(): boolean {
     return this.isRecording;
+  }
+
+  private startValidationTimer() {
+    this.validationInterval = setInterval(() => {
+      this.performOverlappingValidation();
+    }, 20000); // Every 20 seconds
+  }
+
+  private async performOverlappingValidation() {
+    if (this.audioBuffer.length < 2) return;
+    
+    const now = Date.now();
+    
+    // Get audio from last 20 seconds for re-transcription
+    const twentySecondsAgo = now - 20000;
+    const validationChunks = this.audioBuffer.filter(item => 
+      item.timestamp >= twentySecondsAgo && item.transcription
+    );
+    
+    if (validationChunks.length === 0) return;
+    
+    console.log(`🔍 Starting validation: Re-transcribing ${validationChunks.length} chunks from last 20 seconds`);
+    
+    try {
+      // Combine the validation chunks into one audio blob
+      const validationBlobs = validationChunks.map(chunk => chunk.blob);
+      const combinedBlob = new Blob(validationBlobs, { type: 'audio/webm' });
+      
+      // Skip if too small
+      if (combinedBlob.size < 5000) return;
+      
+      // Get the combined original transcription
+      const originalText = validationChunks
+        .map(chunk => chunk.transcription || '')
+        .join(' ')
+        .trim();
+      
+      if (!originalText) return;
+      
+      // Re-transcribe the combined audio
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const base64Data = (reader.result as string).split(',')[1];
+          
+          const response = await fetch('https://dphcnbricafkbtizkoal.functions.supabase.co/functions/v1/assemblyai-transcription', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwaGNuYnJpY2Fqa2J0aXprb2FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MzIyMzIsImV4cCI6MjA2ODMwODIzMn0.U3bJI6P1yzgRBz_k2s0zlJGu1GWiVRTHjYgv9QQggPs'
+            },
+            body: JSON.stringify({ audio: base64Data })
+          });
+          
+          if (response.ok) {
+            const result = await response.json();
+            const validatedText = result.text?.trim();
+            
+            if (validatedText && validatedText.length > 10) {
+              // Compare with original transcription
+              const similarity = this.calculateSimilarity(originalText, validatedText);
+              console.log(`📊 Validation results:`);
+              console.log(`   Original: "${originalText}"`);
+              console.log(`   Validated: "${validatedText}"`);
+              console.log(`   Similarity: ${(similarity * 100).toFixed(1)}%`);
+              
+              // If transcriptions differ significantly, send correction
+              if (similarity < 0.85 && validatedText.length > originalText.length * 0.7) {
+                console.log('🔧 Sending transcription correction...');
+                this.onTranscript({
+                  text: `[CORRECTED] ${validatedText}`,
+                  speaker: 'System',
+                  confidence: 0.95,
+                  timestamp: new Date().toISOString(),
+                  isFinal: true,
+                  words: result.words || []
+                });
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Validation transcription error:', error);
+        }
+      };
+      
+      reader.readAsDataURL(combinedBlob);
+      
+    } catch (error) {
+      console.error('Error during overlapping validation:', error);
+    }
+  }
+
+  private calculateSimilarity(str1: string, str2: string): number {
+    const words1 = str1.toLowerCase().split(/\s+/);
+    const words2 = str2.toLowerCase().split(/\s+/);
+    
+    const longer = words1.length > words2.length ? words1 : words2;
+    const shorter = words1.length > words2.length ? words2 : words1;
+    
+    if (longer.length === 0) return 1.0;
+    
+    let matches = 0;
+    shorter.forEach(word => {
+      if (longer.includes(word)) matches++;
+    });
+    
+    return matches / longer.length;
   }
 }
 
