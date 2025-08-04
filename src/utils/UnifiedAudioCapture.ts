@@ -275,8 +275,8 @@ export class UnifiedAudioCapture {
 
       console.log('🔄 Sending complete session audio to Whisper...');
       
-      // Use direct Whisper transcription for the complete session
-      const response = await fetch('https://dphcnbricafkbtizkoal.functions.supabase.co/functions/v1/triple-check-transcription', {
+      // Use direct Whisper transcription for faster processing
+      const response = await fetch('https://dphcnbricafkbtizkoal.functions.supabase.co/functions/v1/test-mp3-transcription', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -317,8 +317,8 @@ export class UnifiedAudioCapture {
         const errorText = await response.text();
         console.error('❌ Whisper transcription failed:', response.status, errorText);
         
-        // Fall back to a simpler direct Whisper call if triple-check fails
-        console.log('🔄 Falling back to direct Whisper...');
+        // Try alternative transcription method if first attempt fails
+        console.log('🔄 Trying alternative transcription approach...');
         await this.fallbackDirectWhisper(base64Audio, audioBlob.size, startTime);
       }
       
