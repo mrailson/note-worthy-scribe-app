@@ -1185,7 +1185,7 @@ const Index = () => {
                     {getConnectionStatusIcon()}
                     <span className="hidden sm:inline">{connectionStatus}</span>
                   </Badge>
-                  {connectionStatus === "Disconnected" && (
+                  {(connectionStatus === "Disconnected" || connectionStatus === "Stopped") && (
                     <Button
                       onClick={resetSession}
                       variant="outline"
