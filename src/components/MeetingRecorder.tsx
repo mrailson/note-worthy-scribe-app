@@ -810,12 +810,14 @@ export const MeetingRecorder = ({
         offset += chunk.length;
       }
       
-      // Check if audio has sufficient volume (speaker audio detection)
+      // Check if audio has sufficient volume
       const rms = Math.sqrt(combinedBuffer.reduce((acc, val) => acc + val * val, 0) / combinedBuffer.length);
-      const volumeThreshold = 0.001; // Much lower threshold for weak speaker audio
+      const volumeThreshold = 0.0001; // Lower threshold to capture more audio
+      
+      console.log(`🔊 Audio RMS: ${rms.toFixed(6)}, threshold: ${volumeThreshold}`);
       
       if (rms < volumeThreshold) {
-        addDebugLog(`🔇 Audio too quiet (RMS: ${rms.toFixed(6)}) - likely no speaker audio`);
+        addDebugLog(`🔇 Audio too quiet (RMS: ${rms.toFixed(6)}) - skipping`);
         return;
       }
       
