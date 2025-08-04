@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Mic, MicOff, Wifi, WifiOff, Brain, Copy, Download, Mail, Save, Play, Pause, FileText, ChevronDown, ChevronUp, Lightbulb, AlertTriangle, BookOpen, Shield, BarChart3, Edit, Check, X, Send, Settings, Languages, Volume2, VolumeX, Stethoscope, Eye, EyeOff } from "lucide-react";
+import { Mic, MicOff, Wifi, WifiOff, Brain, Copy, Download, Mail, Save, Play, Pause, FileText, ChevronDown, ChevronUp, Lightbulb, AlertTriangle, BookOpen, Shield, BarChart3, Edit, Check, X, Send, Settings, Languages, Volume2, VolumeX, Stethoscope, Eye, EyeOff, Maximize2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 import { RealtimeTranscriber, TranscriptData } from "@/utils/RealtimeTranscriber";
@@ -1306,20 +1306,45 @@ const Index = () => {
                                   </span>
                                 </div>
                           <div className="flex items-center gap-2">
+                            {/* EXPAND BUTTON - this is the right place! */}
                             <Button
                               size="sm"
-                              variant="ghost"
-                              onClick={toggleMicMute}
-                              className={`h-6 w-6 p-0 ${isMicMuted ? 'text-red-500' : 'text-muted-foreground'}`}
-                              title={isMicMuted ? 'Unmute microphone' : 'Mute microphone'}
+                              variant="outline"
+                              className="h-6 w-6 p-0 bg-primary/10 border-primary/20 hover:bg-primary/20"
+                              title="Expand translation view for patient"
+                              onClick={() => {
+                                // We'll create a simple modal/dialog here
+                                const modal = document.createElement('div');
+                                modal.className = 'fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4';
+                                modal.innerHTML = `
+                                  <div class="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6 relative">
+                                    <button class="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded" onclick="this.closest('.fixed').remove()">✕</button>
+                                    <h2 class="text-2xl font-bold mb-4 flex items-center gap-2">
+                                      🌐 Live Translation: ${HEALTHCARE_LANGUAGES.find(l => l.code === translationLanguage)?.flag} ${HEALTHCARE_LANGUAGES.find(l => l.code === translationLanguage)?.name}
+                                    </h2>
+                                    <div class="border-2 border-blue-200 rounded-xl p-8 min-h-[400px] bg-gradient-to-br from-blue-50 to-purple-50">
+                                      <div class="text-center text-gray-500 py-16">
+                                        <div class="text-6xl mb-4">🌐</div>
+                                        <p class="text-2xl mb-2">Waiting for translation...</p>
+                                        <p class="text-lg">The translated text will appear here in large format</p>
+                                        <p class="text-sm mt-4">Start speaking to see live translations</p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                `;
+                                document.body.appendChild(modal);
+                                modal.onclick = (e) => {
+                                  if (e.target === modal) modal.remove();
+                                };
+                              }}
                             >
-                              {isMicMuted ? <MicOff className="h-3 w-3" /> : <Mic className="h-3 w-3" />}
+                              <Maximize2 className="h-3 w-3" />
                             </Button>
                             <Button
                               size="sm"
                               variant="ghost"
                               onClick={toggleMicMute}
-                              className="h-6 w-6 p-0"
+                              className={`h-6 w-6 p-0 ${isMicMuted ? 'text-red-500' : 'text-muted-foreground'}`}
                               title={isMicMuted ? 'Unmute microphone' : 'Mute microphone'}
                             >
                               {isMicMuted ? <MicOff className="h-3 w-3" /> : <Mic className="h-3 w-3" />}
