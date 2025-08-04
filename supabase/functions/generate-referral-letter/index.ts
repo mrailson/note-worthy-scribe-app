@@ -127,6 +127,11 @@ serve(async (req) => {
 - Include date and reference numbers (use placeholders)
 - Use **bold** formatting for section headings
 
+**What NOT to include:**
+- Patient advice sections (e.g., "Important Advice", "If patient experiences...")
+- Emergency instructions or "call 999" advice
+- Patient education content
+
 **Clinical Context:**
 Use the provided GP summary and full clinical note to ensure consistency and completeness.`
           },
