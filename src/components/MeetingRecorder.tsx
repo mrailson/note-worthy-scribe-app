@@ -1500,6 +1500,10 @@ export const MeetingRecorder = ({
     // Clean up session storage
     sessionStorage.removeItem('currentSessionId');
     
+    console.log('🔍 DEBUG: Final transcript after database retrieval:', finalTranscript.length, 'chars');
+    console.log('🔍 DEBUG: Final transcript preview:', finalTranscript.substring(0, 200));
+    console.log('🔍 DEBUG: Final transcript ending:', finalTranscript.slice(-200));
+    
     // Final fallback to state-based transcript
     if (!finalTranscript) {
       console.log('🔍 DEBUG: No database transcript available, falling back to state');
@@ -1511,6 +1515,8 @@ export const MeetingRecorder = ({
       .replace(/Thank you for watching\.?\s*/gi, '')
       .replace(/Thanks for watching\.?\s*/gi, '')
       .trim();
+    
+    console.log('🔍 DEBUG: After cleaning - currentTranscript length:', currentTranscript.length, 'chars');
     
     console.log('🔍 DEBUG: Final transcript to use for summary:');
     console.log('🔍 DEBUG: Length:', currentTranscript.length, 'characters');
