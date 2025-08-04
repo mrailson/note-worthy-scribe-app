@@ -30,6 +30,7 @@ import { toast } from "sonner";
 
 import { BrowserSpeechTranscriber, TranscriptData as BrowserTranscriptData } from '@/utils/BrowserSpeechTranscriber';
 import { iPhoneWhisperTranscriber, TranscriptData as iPhoneTranscriptData } from '@/utils/iPhoneWhisperTranscriber';
+import { DesktopWhisperTranscriber, TranscriptData as DesktopTranscriptData } from '@/utils/DesktopWhisperTranscriber';
 
 interface TranscriptData {
   text: string;
@@ -263,6 +264,7 @@ export const MeetingRecorder = ({
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const browserTranscriberRef = useRef<BrowserSpeechTranscriber | null>(null);
   const iPhoneTranscriberRef = useRef<iPhoneWhisperTranscriber | null>(null);
+  const desktopTranscriberRef = useRef<DesktopWhisperTranscriber | null>(null);
   const screenStreamRef = useRef<MediaStream | null>(null);
   const enhancedAudioCaptureRef = useRef<any>(null);
 
@@ -526,19 +528,18 @@ export const MeetingRecorder = ({
     }
   };
 
-  // Browser speech transcription with microphone (fallback)
-  const startBrowserMicrophoneTranscription = async () => {
-    addDebugLog('🎤 Starting microphone speech recognition...');
+  // Desktop Whisper transcription for better accuracy
+  const startDesktopWhisperTranscription = async () => {
+    addDebugLog('🖥️ Starting Desktop Whisper transcription...');
     
-    const transcriber = new BrowserSpeechTranscriber(
+    const transcriber = new DesktopWhisperTranscriber(
       handleBrowserTranscript,
       handleTranscriptionError,
-      handleStatusChange,
-      handleLiveSummary
+      handleStatusChange
     );
 
     await transcriber.startTranscription();
-    browserTranscriberRef.current = transcriber;
+    desktopTranscriberRef.current = transcriber;
     
     addDebugLog('✅ Microphone speech recognition started successfully');
     console.log('Recording started with microphone speech recognition');
@@ -572,14 +573,14 @@ export const MeetingRecorder = ({
         addDebugLog('🔄 Falling back to browser speech recognition...');
         toast.info('iPhone transcription failed. Falling back to browser speech recognition.');
         
-        // Fallback to browser speech recognition
-        await startBrowserMicrophoneTranscription();
+        // Fallback to desktop Whisper transcription
+        await startDesktopWhisperTranscription();
       }
     } else {
-      // Use browser speech recognition for desktop
-      console.log('🖥️ Using browser speech recognition for desktop/non-iOS device');
-      addDebugLog('🖥️ Using browser speech recognition for desktop/non-iOS device');
-      await startBrowserMicrophoneTranscription();
+      // Use desktop Whisper transcription for better accuracy
+      console.log('🖥️ Using Desktop Whisper transcription for desktop/non-iOS device');
+      addDebugLog('🖥️ Using Desktop Whisper transcription for desktop/non-iOS device');
+      await startDesktopWhisperTranscription();
     }
   };
 
@@ -1250,6 +1251,10 @@ export const MeetingRecorder = ({
         iPhoneTranscriberRef.current.stopTranscription();
       }
       
+      if (desktopTranscriberRef.current) {
+        desktopTranscriberRef.current.stopTranscription();
+      }
+      
       // Clear timer
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
@@ -1345,6 +1350,12 @@ export const MeetingRecorder = ({
     if (iPhoneTranscriberRef.current) {
       iPhoneTranscriberRef.current.stopTranscription();
       iPhoneTranscriberRef.current = null;
+    }
+    
+    // Stop desktop transcriber
+    if (desktopTranscriberRef.current) {
+      desktopTranscriberRef.current.stopTranscription();
+      desktopTranscriberRef.current = null;
     }
     
     // Stop enhanced audio capture
