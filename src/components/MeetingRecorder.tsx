@@ -388,37 +388,26 @@ export const MeetingRecorder = ({
       if (transcriptData.isFinal) {
         const finalTranscripts = newTranscripts.filter(t => t.isFinal);
         
-        // For desktop transcriber chunks that overlap, use the longest transcript
-        // as it likely contains the most complete content
+        console.log('📝 Processing final transcripts:', finalTranscripts.length);
+        finalTranscripts.forEach((t, i) => {
+          console.log(`📝 Transcript ${i + 1} (${t.text.length} chars):`, t.text.substring(0, 100) + '...');
+        });
+        
+        // Always use the most recent (last) transcript as it contains the most up-to-date content
+        // The desktop transcriber sends cumulative chunks, so the latest one has the complete conversation
         let rawTranscript = '';
-        if (finalTranscripts.length === 1) {
+        if (finalTranscripts.length === 0) {
+          rawTranscript = '';
+        } else if (finalTranscripts.length === 1) {
           rawTranscript = finalTranscripts[0].text;
         } else {
-          // Find the longest transcript (most complete)
-          const longestTranscript = finalTranscripts.reduce((longest, current) => 
-            current.text.length > longest.text.length ? current : longest
-          );
+          // Sort by text length (longest first) and take the longest one
+          // This ensures we get the most complete transcript
+          const sortedByLength = finalTranscripts.sort((a, b) => b.text.length - a.text.length);
+          rawTranscript = sortedByLength[0].text;
           
-          // Check if the longest transcript contains most of the content from others
-          const longestText = longestTranscript.text.toLowerCase();
-          const otherTranscripts = finalTranscripts.filter(t => t !== longestTranscript);
-          
-          // If other transcripts are mostly contained within the longest one, use only the longest
-          const isOverlapping = otherTranscripts.every(transcript => {
-            const transcriptWords = transcript.text.toLowerCase().split(/\s+/);
-            const matchingWords = transcriptWords.filter(word => 
-              longestText.includes(word) && word.length > 2
-            );
-            return matchingWords.length / transcriptWords.length > 0.6; // 60% overlap threshold
-          });
-          
-          if (isOverlapping) {
-            // Use only the longest transcript as it contains the most complete content
-            rawTranscript = longestTranscript.text;
-          } else {
-            // Non-overlapping content, combine them
-            rawTranscript = finalTranscripts.map(t => t.text).join(' ');
-          }
+          console.log('📝 Selected longest transcript:', sortedByLength[0].text.length, 'chars');
+          console.log('📝 Content preview:', sortedByLength[0].text.substring(0, 200) + '...');
         }
         
         // Remove hallucinated phrases from transcript
@@ -426,6 +415,9 @@ export const MeetingRecorder = ({
           .replace(/Thank you for watching\.?\s*/gi, '')
           .replace(/Thanks for watching\.?\s*/gi, '')
           .trim();
+        
+        console.log('📝 Final cleaned transcript length:', cleanedTranscript.length);
+        console.log('📝 Final transcript ends with:', cleanedTranscript.slice(-100));
         
         setTranscript(cleanedTranscript);
         onTranscriptUpdate(cleanedTranscript);
