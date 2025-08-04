@@ -368,7 +368,7 @@ export const TranslationInterface = ({ transcript, isRecording, onLanguageChange
             )}
           </div>
           
-          <ScrollArea className="h-[400px] w-full border rounded-lg p-4">
+          <div className="border rounded-lg p-4 min-h-[200px]">
             {translations.length === 0 ? (
               <div className="text-center text-muted-foreground py-8">
                 <Languages className="h-8 w-8 mx-auto mb-2 opacity-50" />
@@ -376,25 +376,27 @@ export const TranslationInterface = ({ transcript, isRecording, onLanguageChange
               </div>
             ) : (
               <div className="space-y-4">
-                {translations.map((entry) => (
-                  <div key={entry.id} className="space-y-2">
+                {/* Show only the latest translation */}
+                {translations.slice(0, 1).map((entry) => (
+                  <div key={entry.id} className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <Badge variant={entry.speaker === 'GP' ? 'default' : 'secondary'}>
+                      <Badge variant={entry.speaker === 'GP' ? 'default' : 'secondary'} className="text-sm">
                         {entry.speaker}
                       </Badge>
                       <span className="text-xs text-muted-foreground">
-                        {entry.timestamp.toLocaleTimeString()}
+                        Latest • {entry.timestamp.toLocaleTimeString()}
                       </span>
                     </div>
                     
-                    <div className="bg-muted/50 rounded-lg p-3 space-y-2">
-                      <div className="text-sm">
-                        <strong>English:</strong> {entry.original}
+                    <div className="bg-muted/30 rounded-lg p-4 space-y-3">
+                      <div className="text-sm text-muted-foreground">
+                        <strong>English:</strong> 
+                        <div className="mt-1 text-foreground">{entry.original}</div>
                       </div>
                       <Separator />
-                      <div className="text-sm">
+                      <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <strong>{selectedLang?.name}:</strong>
+                          <strong className="text-sm text-muted-foreground">{selectedLang?.name}:</strong>
                           <Button
                             variant="ghost"
                             size="sm"
@@ -408,16 +410,24 @@ export const TranslationInterface = ({ transcript, isRecording, onLanguageChange
                             )}
                           </Button>
                         </div>
-                        <div className="text-base font-medium mt-1">
+                        <div className="text-lg font-medium text-foreground">
                           {entry.translated}
                         </div>
                       </div>
                     </div>
+                    
+                    {translations.length > 1 && (
+                      <div className="text-center">
+                        <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                          {translations.length - 1} previous translation{translations.length > 2 ? 's' : ''}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
             )}
-          </ScrollArea>
+          </div>
           
           <audio ref={audioRef} className="hidden" />
         </div>
