@@ -1433,11 +1433,36 @@ export const MeetingRecorder = ({
     // Wait additional time to ensure all final transcripts are processed
     await new Promise(resolve => setTimeout(resolve, 2000));
     
-    // Use the latest complete transcript from ref (immediate access, not state)
-    const currentTranscript = latestCompleteTranscriptRef.current || transcript;
-    console.log('📝 Using transcript for summary:', currentTranscript.length, 'characters');
-    console.log('📝 Transcript preview:', currentTranscript.substring(0, 200) + '...');
-    console.log('📝 Transcript ending:', currentTranscript.slice(-200));
+    // Get ALL transcripts to combine them manually at stop time
+    const allFinalTranscripts = realtimeTranscripts.filter(t => t.isFinal);
+    console.log('🔍 DEBUG: All final transcripts at stop time:', allFinalTranscripts.length);
+    allFinalTranscripts.forEach((t, i) => {
+      console.log(`🔍 DEBUG: Transcript ${i + 1}: ${t.text.length} chars - "${t.text.substring(0, 100)}..."`);
+    });
+    
+    // Manually combine all transcripts at stop time (don't rely on state or ref)
+    let finalCombinedTranscript = '';
+    if (allFinalTranscripts.length === 0) {
+      finalCombinedTranscript = transcript; // Fallback to state
+    } else if (allFinalTranscripts.length === 1) {
+      finalCombinedTranscript = allFinalTranscripts[0].text;
+    } else {
+      const sortedTranscripts = allFinalTranscripts.sort((a, b) => 
+        new Date(a.timestamp || 0).getTime() - new Date(b.timestamp || 0).getTime()
+      );
+      finalCombinedTranscript = sortedTranscripts.map(t => t.text.trim()).join(' ');
+    }
+    
+    // Clean the final transcript
+    const currentTranscript = finalCombinedTranscript
+      .replace(/Thank you for watching\.?\s*/gi, '')
+      .replace(/Thanks for watching\.?\s*/gi, '')
+      .trim();
+    
+    console.log('🔍 DEBUG: Final transcript to use for summary:');
+    console.log('🔍 DEBUG: Length:', currentTranscript.length, 'characters');
+    console.log('🔍 DEBUG: First 200 chars:', currentTranscript.substring(0, 200));
+    console.log('🔍 DEBUG: Last 200 chars:', currentTranscript.slice(-200));
     
     // Prepare meeting data
     const meetingData = {
@@ -1482,6 +1507,10 @@ export const MeetingRecorder = ({
         transcript: cleanedTranscript,
         rawTranscript: transcript // Keep original for reference
       };
+      
+      console.log('🔍 DEBUG: About to send to generate-meeting-minutes:');
+      console.log('🔍 DEBUG: Transcript length:', cleanedTranscript.length);
+      console.log('🔍 DEBUG: Transcript ending:', cleanedTranscript.slice(-200));
 
       // Call the generate-meeting-minutes edge function with cleaned transcript
       const { data: minutesData, error } = await supabase.functions.invoke('generate-meeting-minutes', {
