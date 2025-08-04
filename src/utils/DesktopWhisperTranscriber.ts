@@ -196,6 +196,13 @@ export class DesktopWhisperTranscriber {
         return;
       }
 
+      console.log(`🔍 DEBUG: Whisper API response for chunk ${currentChunkNumber}:`, { 
+        hasData: !!data, 
+        hasText: !!data?.text, 
+        textLength: data?.text?.length || 0,
+        rawText: data?.text || 'NO_TEXT'
+      });
+
       if (data.text && data.text.trim()) {
         const cleanText = data.text.trim();
         
