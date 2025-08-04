@@ -447,11 +447,17 @@ const Index = () => {
     }
   };
 
-  // DISABLED - No live transcription in single session mode
+  // Single session mode - only process final transcripts
   const handleTranscript = (transcriptData: TranscriptData) => {
-    // Do nothing - live transcription disabled for single session mode
-    console.log('🚫 Live transcription disabled - single session mode only');
-    return;
+    // Only process final/complete session transcripts in single session mode
+    if (transcriptData.isCompleteSession || transcriptData.isFinal) {
+      console.log('📝 Processing final transcript:', transcriptData.text);
+      setTranscript(transcriptData.text);
+      const words = transcriptData.text.split(' ').filter(word => word.length > 0);
+      setWordCount(words.length);
+    } else {
+      console.log('⏳ Ignoring partial transcript in single session mode');
+    }
   };
   const debouncedGenerateGuidance = (text: string) => {
     console.log('Single session mode - guidance disabled during recording');
