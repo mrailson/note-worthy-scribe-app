@@ -1489,6 +1489,12 @@ export const MeetingRecorder = ({
     setIsGeneratingNotes(true);
 
     try {
+      // TEMPORARILY SKIP CLEANING TO TEST IF IT'S THE CULPRIT
+      let cleanedTranscript = currentTranscript;
+      console.log('🔍 BYPASSING clean-transcript function for testing');
+      console.log('🔍 Using raw transcript directly:', cleanedTranscript.length, 'chars');
+      
+      /*
       // First, clean the transcript using AI
       let cleanedTranscript = transcript;
       try {
@@ -1508,6 +1514,7 @@ export const MeetingRecorder = ({
       } catch (cleanTranscriptError) {
         console.warn('Error cleaning transcript, using original:', cleanTranscriptError);
       }
+      */
 
       // Update meeting data with cleaned transcript
       const enhancedMeetingData = {
