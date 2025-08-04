@@ -509,27 +509,12 @@ const Index = () => {
       .replace(/\s+/g, ' ')
       // Fix broken sentences from chunking (e.g., "word. New" should be "word. New")
       .replace(/([a-z])\.\s*([A-Z])/g, '$1. $2')
-      // Fix incomplete words at chunk boundaries (basic pattern matching)
-      .replace(/\b([a-z]+)\s+([a-z]{1,3})\b/g, (match, word1, word2) => {
-        // If second word is very short and could be completion of first word
-        if (word2.length <= 3 && !['a', 'an', 'at', 'be', 'by', 'do', 'go', 'he', 'if', 'in', 'is', 'it', 'me', 'my', 'no', 'of', 'on', 'or', 'so', 'to', 'up', 'we'].includes(word2)) {
-          return word1 + word2;
-        }
-        return match;
-      })
-      // Fix sentence fragments caused by chunking
-      .replace(/\.\s*([a-z])/g, (match, letter) => '. ' + letter.toUpperCase())
-      // Capitalize sentences
-      .replace(/(^|[.!?]\s+)([a-z])/g, (match, p1, p2) => p1 + p2.toUpperCase())
-      // Fix common speech recognition errors
-      .replace(/\bum\b/gi, '')
-      .replace(/\buh\b/gi, '')
-      .replace(/\ber\b/gi, '')
-      // Remove excessive repetition
-      .replace(/(\b\w+\b)\s+\1\s+\1/gi, '$1')
+      // Remove basic filler words and clean up
+      .replace(/\b(uh|um|er|ah)\b/gi, '')
+      // Fix multiple spaces again after removals
+      .replace(/\s+/g, ' ')
       .trim();
   };
-
   // Debounced auto-cleaning function
   const autoCleanTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const debounceAutoCleaning = (text: string) => {
