@@ -506,6 +506,7 @@ export const MeetingRecorder = ({
   // iPhone-optimized transcription using Whisper AI
   const startIPhoneWhisperTranscription = async () => {
     try {
+      console.log('📱 Creating iPhone Whisper transcriber instance...');
       addDebugLog('📱 Starting iPhone Whisper transcription...');
       iPhoneTranscriberRef.current = new iPhoneWhisperTranscriber(
         handleBrowserTranscript, // Same handler works for both
@@ -513,9 +514,12 @@ export const MeetingRecorder = ({
         handleStatusChange
       );
       
+      console.log('📱 Starting transcription...');
       await iPhoneTranscriberRef.current.startTranscription();
+      console.log('✅ iPhone Whisper transcription started successfully');
       addDebugLog('✅ iPhone Whisper transcription started');
     } catch (error) {
+      console.error('❌ iPhone Whisper transcription error:', error);
       addDebugLog(`❌ Failed to start iPhone transcription: ${error}`);
       console.error('Failed to start iPhone transcription:', error);
       throw error;
@@ -544,11 +548,26 @@ export const MeetingRecorder = ({
   const startMicrophoneTranscription = async () => {
     const browserSupport = checkBrowserSupport();
     
+    // Debug: Log browser detection results
+    console.log('🔍 Browser detection results:', {
+      isIOS: browserSupport.isIOS,
+      isSafari: browserSupport.isSafari,
+      isMobile: browserSupport.isMobile,
+      browserName: browserSupport.browserName,
+      userAgent: navigator.userAgent
+    });
+    addDebugLog(`🔍 Detected browser: ${browserSupport.browserName} (iOS: ${browserSupport.isIOS})`);
+    
     if (browserSupport.isIOS) {
       // Use iPhone Whisper transcription for iOS devices
+      console.log('📱 Attempting iPhone Whisper transcription...');
+      addDebugLog('📱 Attempting iPhone Whisper transcription for iOS device...');
       try {
         await startIPhoneWhisperTranscription();
+        console.log('✅ iPhone Whisper transcription started successfully');
+        addDebugLog('✅ iPhone Whisper transcription started successfully');
       } catch (error) {
+        console.error('❌ iPhone Whisper transcription failed:', error);
         addDebugLog(`❌ iPhone Whisper transcription failed: ${error.message}`);
         addDebugLog('🔄 Falling back to browser speech recognition...');
         toast.info('iPhone transcription failed. Falling back to browser speech recognition.');
@@ -558,6 +577,8 @@ export const MeetingRecorder = ({
       }
     } else {
       // Use browser speech recognition for desktop
+      console.log('🖥️ Using browser speech recognition for desktop/non-iOS device');
+      addDebugLog('🖥️ Using browser speech recognition for desktop/non-iOS device');
       await startBrowserMicrophoneTranscription();
     }
   };
