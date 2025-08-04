@@ -1344,20 +1344,20 @@ const Index = () => {
                               size="sm"
                               variant="ghost"
                               onClick={toggleMicMute}
-                              className={`h-6 w-6 p-0 ${isMicMuted ? 'text-red-500' : 'text-muted-foreground'}`}
+                              className={`h-6 w-6 p-0 ${isMicMuted ? 'text-red-500 bg-red-50 hover:bg-red-100' : 'text-muted-foreground hover:bg-muted'}`}
                               title={isMicMuted ? 'Unmute microphone' : 'Mute microphone'}
                             >
                               {isMicMuted ? <MicOff className="h-3 w-3" /> : <Mic className="h-3 w-3" />}
                             </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={handleSpeakerMuteToggle}
-                              className="h-6 w-6 p-0"
-                              title={isMuted ? 'Unmute speaker' : 'Mute speaker'}
-                            >
-                              {isMuted ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
-                            </Button>
+                             <Button
+                               size="sm"
+                               variant="ghost"
+                               onClick={handleSpeakerMuteToggle}
+                               className={`h-6 w-6 p-0 ${isMuted ? 'text-red-500 bg-red-50 hover:bg-red-100' : 'text-muted-foreground hover:bg-muted'}`}
+                               title={isMuted ? 'Unmute speaker' : 'Mute speaker'}
+                             >
+                               {isMuted ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
+                             </Button>
                           </div>
                         </div>
                         
