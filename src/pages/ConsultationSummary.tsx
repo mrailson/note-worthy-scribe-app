@@ -378,10 +378,34 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
     // Use the first meaningful line if available
     if (meaningfulLines.length > 0) {
       let summary = meaningfulLines[0].trim();
-      // Clean up any remaining formatting
+      // Clean up any remaining formatting and incomplete words
       summary = summary.replace(/^(We discussed|Today we|During your visit)/i, '').trim();
+      
+      // Ensure we have complete sentences by checking for proper endings
       if (summary.length > 15) {
-        smsText += `${summary.substring(0, 100)}. `;
+        // Find the last complete sentence within reasonable length
+        const sentences = summary.split(/[.!?]+/);
+        let completeSummary = '';
+        let wordCount = 0;
+        
+        for (const sentence of sentences) {
+          const trimmed = sentence.trim();
+          if (trimmed.length > 0) {
+            const words = trimmed.split(' ');
+            if (wordCount + words.length <= 30) { // Keep it reasonable for SMS
+              completeSummary += (completeSummary ? '. ' : '') + trimmed;
+              wordCount += words.length;
+            } else {
+              break;
+            }
+          }
+        }
+        
+        if (completeSummary && completeSummary.length > 15) {
+          smsText += `${completeSummary}. `;
+        } else {
+          smsText += "We reviewed your health concerns and discussed your treatment plan. ";
+        }
       } else {
         smsText += "We reviewed your health concerns and discussed your treatment plan. ";
       }
