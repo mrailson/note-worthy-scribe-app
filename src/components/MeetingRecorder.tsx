@@ -855,14 +855,19 @@ export const MeetingRecorder = ({
       
       // Check if audio has sufficient volume (speaker audio detection)
       const rms = Math.sqrt(combinedBuffer.reduce((acc, val) => acc + val * val, 0) / combinedBuffer.length);
-      const volumeThreshold = 0.00001; // Much lower threshold for system audio
+      const volumeThreshold = 0.005; // Higher threshold to prevent hallucinations
       
-      if (rms < volumeThreshold) {
-        addDebugLog(`🔇 Audio too quiet (RMS: ${rms.toFixed(6)}) - likely no speaker audio`);
+      // Also check for audio variation (not just noise)
+      const maxVal = Math.max(...combinedBuffer);
+      const minVal = Math.min(...combinedBuffer);
+      const dynamicRange = maxVal - minVal;
+      
+      if (rms < volumeThreshold || dynamicRange < 0.01) {
+        addDebugLog(`🔇 Audio too quiet or monotonous (RMS: ${rms.toFixed(6)}, Range: ${dynamicRange.toFixed(6)}) - likely to cause hallucinations`);
         return;
       }
       
-      addDebugLog(`🔊 Processing audio chunk (RMS: ${rms.toFixed(4)})`);
+      addDebugLog(`🔊 Processing audio chunk (RMS: ${rms.toFixed(4)}, Range: ${dynamicRange.toFixed(4)})`);
       
       // Convert to WAV format
       const wavBuffer = encodeWAV(combinedBuffer, sampleRate);
