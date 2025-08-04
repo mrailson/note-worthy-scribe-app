@@ -245,50 +245,76 @@ export const TranslationInterface = ({ transcript, isRecording, onLanguageChange
   useEffect(() => {
     if (!isTranslationEnabled || !selectedLanguage || !autoTranslate || !transcript) return;
 
+    console.log('Translation useEffect triggered:', { 
+      transcript: transcript.slice(-100), 
+      length: transcript.length, 
+      lastLength: lastTranscriptLength.current 
+    });
+
     const currentLength = transcript.length;
     if (currentLength <= lastTranscriptLength.current) return;
 
-    // Use a timer to wait for pauses in speech before translating
-    const translationTimer = setTimeout(() => {
+    // Clear any existing timer
+    const timer = setTimeout(() => {
       const newContent = transcript.slice(lastTranscriptLength.current);
       
-      // Only translate if we have meaningful content (10+ characters)
+      console.log('Processing new content for translation:', { 
+        newContent: newContent.slice(-50), 
+        length: newContent.length 
+      });
+      
+      // Only translate if we have meaningful content (8+ characters)
       // and either complete sentences or substantial phrases
       const trimmedContent = newContent.trim();
       const hasCompleteSentence = /[.!?]+\s*$/.test(trimmedContent);
-      const hasSubstantialContent = trimmedContent.length >= 15;
-      const wordCount = trimmedContent.split(/\s+/).length;
+      const hasSubstantialContent = trimmedContent.length >= 8;
+      const wordCount = trimmedContent.split(/\s+/).filter(word => word.length > 0).length;
+      
+      console.log('Translation criteria check:', {
+        hasCompleteSentence,
+        hasSubstantialContent,
+        wordCount,
+        trimmedContent: trimmedContent.slice(-30)
+      });
       
       // Only translate if we have:
       // 1. A complete sentence with punctuation, OR
-      // 2. At least 15 characters AND 4+ words (substantial phrase)
-      if (!hasCompleteSentence && (!hasSubstantialContent || wordCount < 4)) {
+      // 2. At least 8 characters AND 3+ words (substantial phrase)
+      if (!hasCompleteSentence && (!hasSubstantialContent || wordCount < 3)) {
+        console.log('Skipping translation - criteria not met');
         return;
       }
       
       lastTranscriptLength.current = currentLength;
 
       const translateNewContent = async () => {
+        console.log('Starting translation process...');
         setIsTranslating(true);
         
         let contentToTranslate = trimmedContent;
         
         // If we have complete sentences, extract the last complete one
         if (hasCompleteSentence) {
-          const sentences = trimmedContent.split(/[.!?]+/).filter(s => s.trim().length > 5);
+          const sentences = trimmedContent.split(/[.!?]+/).filter(s => s.trim().length > 3);
           if (sentences.length > 0) {
             contentToTranslate = sentences[sentences.length - 1].trim();
           }
         }
         
+        console.log('Content to translate:', contentToTranslate);
+        
         // Only translate if we have meaningful content
-        if (contentToTranslate.length < 8) {
+        if (contentToTranslate.length < 3) {
+          console.log('Content too short, skipping translation');
           setIsTranslating(false);
           return;
         }
 
         try {
+          console.log('Calling translation service...');
           const translated = await translateText(contentToTranslate, selectedLanguage);
+          console.log('Translation received:', translated);
+          
           const entry: TranslationEntry = {
             id: Date.now().toString() + Math.random(),
             original: contentToTranslate,
@@ -303,6 +329,7 @@ export const TranslationInterface = ({ transcript, isRecording, onLanguageChange
           
           // Auto-speak if enabled
           if (autoSpeak && translated.trim().length > 0) {
+            console.log('Adding to audio queue:', translated.slice(0, 50));
             // Clear the audio queue and add the new translation
             audioQueue.current = [{ text: translated, id: entry.id }];
           }
@@ -314,9 +341,9 @@ export const TranslationInterface = ({ transcript, isRecording, onLanguageChange
       };
 
       translateNewContent();
-    }, 2000); // Wait 2 seconds after speech stops before translating
+    }, 1500); // Reduced to 1.5 seconds for faster response
 
-    return () => clearTimeout(translationTimer);
+    return () => clearTimeout(timer);
   }, [transcript, isTranslationEnabled, selectedLanguage, autoTranslate]);
 
   // Process audio queue when new items are added
