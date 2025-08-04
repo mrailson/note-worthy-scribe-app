@@ -1470,11 +1470,7 @@ export const MeetingRecorder = ({
       return;
     }
 
-    // Check if there's meaningful transcript content (at least 20 words)
-    if (wordCount < 20) {
-      console.error('Recording too short. Minimum 20 words required.');
-      return;
-    }
+    // Removed minimum word count validation
     
     // Check if audio backup is needed based on word count vs duration
     const needsAudioBackup = shouldCreateAudioBackup(wordCount, duration);
