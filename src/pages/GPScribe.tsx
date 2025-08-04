@@ -727,9 +727,10 @@ const Index = () => {
     console.log('✅ iPhone Whisper transcriber started');
   };
 
-  // Desktop Whisper transcription  
+  // Desktop Whisper transcription with 15-second chunking
   const startDesktopWhisperTranscription = async () => {
-    console.log('🖥️ Starting Desktop Whisper transcription...');
+    console.log('🖥️ Starting Desktop Whisper transcription with 15-second chunks...');
+    addDebugLog('🖥️ Starting Desktop Whisper transcription...');
     
     const transcriber = new DesktopWhisperTranscriber(
       handleDesktopTranscript,
@@ -737,10 +738,12 @@ const Index = () => {
       handleStatusChange
     );
 
-    await transcriber.startTranscription();
+    // Set 15-second chunking for optimal consultation transcription
+    await transcriber.startTranscription(); // Use default settings
     desktopTranscriberRef.current = transcriber;
     
-    console.log('✅ Desktop Whisper transcriber started');
+    console.log('✅ Desktop Whisper transcriber started with 15-second chunking');
+    addDebugLog('✅ Desktop Whisper transcriber started with 15-second chunking');
   };
 
   // Browser speech transcription fallback
