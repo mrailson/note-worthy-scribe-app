@@ -88,6 +88,7 @@ export class DesktopWhisperTranscriber {
           await this.processAudioChunks();
           // Increment chunk count after successful processing
           this.chunkCount++;
+          console.log(`🔍 DEBUG: Incremented chunk count to ${this.chunkCount} after scheduled processing`);
         }
       };
 
@@ -276,7 +277,7 @@ export class DesktopWhisperTranscriber {
       await this.processAudioChunks();
       // Increment chunk count for the final chunk since it bypassed the onstop callback
       this.chunkCount++;
-      console.log(`🔍 DEBUG: Final chunk processed, incremented count to ${this.chunkCount}`);
+      console.log(`🔍 DEBUG: Final chunk processed and stored as chunk ${this.chunkCount - 1}, total chunks: ${this.chunkCount}`);
       // Additional wait to ensure transcription callback is processed
       await new Promise(resolve => setTimeout(resolve, 3000)); // Wait for database save
     } else {
@@ -343,8 +344,8 @@ export class DesktopWhisperTranscriber {
       }
 
       const completeText = data.map(chunk => chunk.transcription_text).join(' ').trim();
-      console.log(`📋 Complete transcript from database: ${completeText.length} characters, ${data.length} chunks`);
-      console.log(`📋 Database transcript preview: "${completeText.substring(0, 200)}..."`);
+      console.log(`🔍 DEBUG: Database transcript direct query: ${completeText.length} chars, ${data.length} chunks`);
+      console.log(`🔍 DEBUG: Chunk details: [${data.map((chunk, i) => `"Chunk ${chunk.chunk_number}: ${chunk.transcription_text.substring(0, 50)}..."`).join(', ')}]`);
       console.log(`📋 Database transcript ending: "${completeText.slice(-200)}"`);
       
       return completeText;
