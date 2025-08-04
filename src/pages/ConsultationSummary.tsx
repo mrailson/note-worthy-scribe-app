@@ -378,22 +378,38 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
     // Build summary starting with greeting
     let smsText = "Hi, thank you for your consultation. ";
     
-    // Add assessment/diagnosis if available
+    // Add assessment/diagnosis if available and meaningful
     if (assessmentLines.length > 0) {
-      const assessment = assessmentLines[0].replace(/^.*?:/, '').trim().substring(0, 80);
-      smsText += `We discussed ${assessment}. `;
+      const assessment = assessmentLines[0].replace(/^.*?:/, '').trim();
+      if (assessment.length > 10) {
+        smsText += `We discussed ${assessment.substring(0, 80)}. `;
+      }
     }
     
-    // Add treatment if available
+    // Add treatment if available and meaningful
     if (treatmentLines.length > 0) {
-      const treatment = treatmentLines[0].replace(/^.*?:/, '').trim().substring(0, 60);
-      smsText += `${treatment}. `;
+      const treatment = treatmentLines[0].replace(/^.*?:/, '').trim();
+      if (treatment.length > 10) {
+        smsText += `${treatment.substring(0, 60)}. `;
+      }
     }
     
-    // Add follow-up if available
+    // Add follow-up if available and meaningful
     if (followUpLines.length > 0) {
-      const followUp = followUpLines[0].replace(/^.*?:/, '').trim().substring(0, 40);
-      smsText += `${followUp}. `;
+      const followUp = followUpLines[0].replace(/^.*?:/, '').trim();
+      if (followUp.length > 10) {
+        smsText += `${followUp.substring(0, 40)}. `;
+      }
+    }
+    
+    // If no specific content was found, add generic summary from first meaningful lines
+    if (smsText === "Hi, thank you for your consultation. ") {
+      const meaningfulLines = lines.slice(0, 2).map(line => line.replace(/^.*?:/, '').trim()).filter(line => line.length > 15);
+      if (meaningfulLines.length > 0) {
+        smsText += `We discussed your ${meaningfulLines[0].substring(0, 80)}. `;
+      } else {
+        smsText += "We reviewed your health concerns and discussed next steps. ";
+      }
     }
     
     // Always end with contact instruction
