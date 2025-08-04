@@ -124,15 +124,8 @@ export class DesktopWhisperTranscriber {
   private scheduleNextChunk() {
     if (!this.isRecording) return;
 
-    let nextInterval: number;
-    
-    if (this.chunkCount === 0) {
-      // First chunk: 20 seconds
-      nextInterval = 20000;
-    } else {
-      // Subsequent chunks: 45 seconds
-      nextInterval = 45000;
-    }
+    // Use 15 seconds for all chunks consistently
+    const nextInterval = 15000;
 
     console.log(`🖥️ Scheduling chunk ${this.chunkCount + 1} in ${nextInterval/1000} seconds`);
 
