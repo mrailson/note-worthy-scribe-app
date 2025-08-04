@@ -72,7 +72,7 @@ ${rawTranscript}`;
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4.1-2025-04-14',
+        model: 'gpt-4o-mini', // Use the correct model
         messages: [
           {
             role: 'system',
@@ -84,7 +84,7 @@ ${rawTranscript}`;
           }
         ],
         temperature: 0.3, // Lower temperature for more consistent formatting
-        max_tokens: 16000 // Generous limit to handle very long transcripts
+        max_tokens: 16384 // Maximum for gpt-4o-mini to handle very long transcripts
       }),
     });
 
