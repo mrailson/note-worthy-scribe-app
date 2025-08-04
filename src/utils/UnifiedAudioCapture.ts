@@ -1,4 +1,5 @@
 import { TranscriptCleaner } from './TranscriptCleaner';
+import { RealtimeTranscriptCleaner } from './RealtimeTranscriptCleaner';
 
 export class UnifiedAudioCapture {
   private audioContext: AudioContext | null = null;
@@ -14,6 +15,7 @@ export class UnifiedAudioCapture {
   private lastTranscriptTime = Date.now();
   private transcriptAssemblyTimer: NodeJS.Timeout | null = null;
   private cleaningBuffer: any = null;
+  private realtimeCleaner: RealtimeTranscriptCleaner | null = null;
 
   constructor(
     private onTranscript: (transcript: any) => void,
@@ -43,20 +45,36 @@ export class UnifiedAudioCapture {
       // Step 4: Start recording
       this.startRecording();
       
-      // Step 5: Initialize the cleaning buffer for retrospective cleaning
+      // Step 5: Initialize both cleaning systems
       this.cleaningBuffer = TranscriptCleaner.createBufferedCleaner(
         (cleanedText) => {
           console.log('📝 Retrospectively cleaned transcript:', cleanedText);
           this.onTranscript({
             text: cleanedText,
-            speaker: this.systemStream ? 'Mic + Browser (Cleaned)' : 'Microphone (Cleaned)',
+            speaker: this.systemStream ? 'Mic + Browser (Deep Cleaned)' : 'Microphone (Deep Cleaned)',
             confidence: 0.95,
             timestamp: new Date().toISOString(),
             isFinal: true,
             isCleaned: true
           });
         },
-        7000 // Clean every 7 seconds for clinical accuracy
+        8000 // Clean every 8 seconds for clinical accuracy
+      );
+      
+      // Real-time cleaner for immediate corrections
+      this.realtimeCleaner = new RealtimeTranscriptCleaner(
+        (cleanedText, context) => {
+          console.log('🔧 Real-time cleaned transcript:', cleanedText);
+          this.onTranscript({
+            text: cleanedText,
+            speaker: this.systemStream ? 'Mic + Browser (RT Cleaned)' : 'Microphone (RT Cleaned)',
+            confidence: 0.90,
+            timestamp: new Date().toISOString(),
+            isFinal: true,
+            isCleaned: true,
+            isRealTimeCleaned: true
+          });
+        }
       );
       
       // Step 6: Send an immediate test to verify the system is working
@@ -195,6 +213,11 @@ export class UnifiedAudioCapture {
       if (event.data.size > 0) {
         this.audioChunks.push(event.data);
         console.log('Audio chunk received:', event.data.size, 'bytes');
+        
+        // Process immediately if we have enough data
+        if (this.audioChunks.length >= 3) {
+          this.processAudioChunks();
+        }
       }
     };
 
@@ -202,8 +225,8 @@ export class UnifiedAudioCapture {
       this.processAudioChunks();
     };
 
-    // Start recording with immediate data collection and longer initial buffer
-    this.mediaRecorder.start(500); // Collect data every 500ms to prevent loss
+    // Start recording with immediate data collection
+    this.mediaRecorder.start(300); // Collect data every 300ms for more responsive capture
     this.isRecording = true;
     this.scheduleProcessing();
   }
@@ -248,20 +271,20 @@ export class UnifiedAudioCapture {
   private scheduleProcessing() {
     if (!this.isRecording) return;
 
-    // Use longer chunks for better transcription accuracy
+    // Use overlapping chunks to prevent missing words
     setTimeout(() => {
       if (this.isRecording && this.mediaRecorder?.state === 'recording') {
         console.log('Stopping recording for processing...');
         this.mediaRecorder.stop();
         
-        // Restart recording immediately to minimize gaps
+        // Restart recording immediately with no gap
         setTimeout(() => {
           if (this.isRecording && this.combinedStream) {
             this.startRecording();
           }
-        }, 50); // Minimal delay to prevent gaps
+        }, 10); // Minimal delay to prevent gaps
       }
-    }, 4000); // Process every 4 seconds for better accuracy
+    }, 6000); // Longer chunks for better context and accuracy
   }
 
   private async processAudioChunks() {
@@ -277,9 +300,9 @@ export class UnifiedAudioCapture {
       // Clear chunks for next batch
       this.audioChunks = [];
 
-      // Skip very small files (likely silence) - reduced threshold to capture more audio
-      if (audioBlob.size < 1500) {
-        console.log('Skipping small audio chunk');
+      // Skip very small files (likely silence) but lower threshold
+      if (audioBlob.size < 800) {
+        console.log('Skipping very small audio chunk');
         return;
       }
 
@@ -319,9 +342,9 @@ export class UnifiedAudioCapture {
             const avgNoSpeechProb = segments.reduce((sum: number, seg: any) => sum + (seg.no_speech_prob || 0), 0) / segments.length;
             const avgLogProb = segments.reduce((sum: number, seg: any) => sum + (seg.avg_logprob || 0), 0) / segments.length;
             
-            // Much more relaxed quality filtering - only reject obvious silence
-            if (avgNoSpeechProb > 0.98 || avgLogProb < -2.5) {
-              console.log('Rejected transcription - very poor quality metrics:', {
+            // Very relaxed quality filtering - accept most audio
+            if (avgNoSpeechProb > 0.95 || avgLogProb < -3.0) {
+              console.log('Rejected transcription - poor quality metrics:', {
                 no_speech_prob: avgNoSpeechProb,
                 avg_logprob: avgLogProb,
                 text: result.text
@@ -340,9 +363,13 @@ export class UnifiedAudioCapture {
             console.log('Valid transcription fragment:', text);
             // Add to transcript buffer for immediate output
             this.addToTranscriptBuffer(text);
-            // Also add to cleaning buffer for retrospective cleaning
+            // Add to cleaning buffer for retrospective cleaning
             if (this.cleaningBuffer) {
               this.cleaningBuffer.addText(text);
+            }
+            // Add to real-time cleaner for immediate corrections
+            if (this.realtimeCleaner) {
+              this.realtimeCleaner.addTranscript(text);
             }
           } else {
             console.log('Filtered hallucination:', text);
@@ -445,7 +472,7 @@ export class UnifiedAudioCapture {
     // Set a timer to assemble transcript after a pause in speech
     this.transcriptAssemblyTimer = setTimeout(() => {
       this.assembleAndOutputTranscript();
-    }, 2000); // Wait 2 seconds after last fragment for faster output
+    }, 1500); // Wait 1.5 seconds after last fragment for faster output
   }
 
   private assembleAndOutputTranscript() {
@@ -525,9 +552,12 @@ export class UnifiedAudioCapture {
     // Flush any remaining transcript fragments
     this.flushTranscriptBuffer();
     
-    // Flush the cleaning buffer for final retrospective cleaning
+    // Flush both cleaning buffers for final processing
     if (this.cleaningBuffer) {
       this.cleaningBuffer.flush();
+    }
+    if (this.realtimeCleaner) {
+      this.realtimeCleaner.flush();
     }
     
     // Clear any pending assembly timer
