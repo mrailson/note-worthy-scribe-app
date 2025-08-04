@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { mergeTranscripts, cleanFinalTranscript } from '@/utils/TranscriptMerger';
 import { useNavigate } from "react-router-dom";
 import { format, startOfDay, addMinutes } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -92,6 +93,7 @@ export const MeetingRecorder = ({
     description: "",
     meetingType: "general"
   });
+  const [combinedTranscript, setCombinedTranscript] = useState('');
   
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -436,18 +438,8 @@ export const MeetingRecorder = ({
             console.log('📝 Combined content preview:', rawTranscript.substring(0, 100) + '...');
           }
           
-          // Remove hallucinated phrases and repetitive patterns from transcript
-          const cleanedTranscript = rawTranscript
-            .replace(/Thank you for watching\.?\s*/gi, '')
-            .replace(/Thanks for watching\.?\s*/gi, '')
-            .replace(/This meeting is being recorded in English\.?\s*/gi, '')
-            .replace(/and may not be suitable for all audiences\.?\s*/gi, '')
-            .replace(/Please use headphones or earphones for better experience\.?\s*/gi, '')
-            // Remove excessive repetition (same word repeated more than 3 times)
-            .replace(/\b(\w+)(\s+\1){3,}/gi, '$1')
-            // Remove excessive "Bye" repetitions
-            .replace(/(Bye\.?\s*){4,}/gi, 'Bye. ')
-            .trim();
+          // Clean transcript using the new utility function
+          const cleanedTranscript = cleanFinalTranscript(rawTranscript);
           
           console.log('📝 Final cleaned transcript length:', cleanedTranscript.length);
           console.log('📝 Final transcript ends with:', cleanedTranscript.slice(-100));
@@ -537,9 +529,13 @@ export const MeetingRecorder = ({
       }
       const base64Audio = btoa(binary);
 
-      // Send to speech-to-text edge function with optimized settings
+      // Send to speech-to-text edge function with context
       const { data, error } = await supabase.functions.invoke('speech-to-text', {
-        body: { audio: base64Audio }
+        body: { 
+          audio: base64Audio,
+          previousTranscript: combinedTranscript.slice(-500), // Last 500 chars for context
+          meetingType: meetingSettings.meetingType || 'general'
+        }
       });
 
       if (error) {
@@ -548,8 +544,13 @@ export const MeetingRecorder = ({
       }
 
       if (data?.text && data.text.trim() && !data.filtered) {
+        const newText = data.text.trim();
+        
+        // Merge with existing transcript intelligently to avoid duplication
+        setCombinedTranscript(prev => mergeTranscripts(prev, newText));
+        
         const transcriptData: TranscriptData = {
-          text: data.text.trim(),
+          text: newText,
           speaker: `Speaker ${speakerCount + 1}`,
           confidence: data.confidence || 0.8,
           timestamp: new Date().toISOString(),
@@ -557,6 +558,9 @@ export const MeetingRecorder = ({
         };
         
         handleTranscript(transcriptData);
+        
+        // Update word count
+        setWordCount(prev => prev + newText.split(' ').length);
       }
     } catch (error) {
       console.error('Error processing audio chunk:', error);
@@ -1292,7 +1296,11 @@ export const MeetingRecorder = ({
       addDebugLog('🤖 Sending audio to transcription service...');
       
       const { data, error } = await supabase.functions.invoke('speech-to-text', {
-        body: { audio: base64Audio }
+        body: { 
+          audio: base64Audio,
+          previousTranscript: combinedTranscript.slice(-500),
+          meetingType: meetingSettings.meetingType || 'general'
+        }
       });
 
       if (error) throw error;

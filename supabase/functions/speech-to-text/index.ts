@@ -20,7 +20,7 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured');
     }
 
-    const { audio } = await req.json();
+    const { audio, previousTranscript, meetingType } = await req.json();
     if (!audio) {
       throw new Error('No audio data provided');
     }
@@ -34,17 +34,29 @@ serve(async (req) => {
       audioArray[i] = binaryAudio.charCodeAt(i);
     }
     
+    // Skip empty or tiny chunks (50KB minimum to prevent hallucinations)
+    if (audioArray.length < 50000) {
+      console.warn('⚠️ Skipping small/silent audio chunk:', audioArray.length, 'bytes');
+      return new Response(JSON.stringify({ text: '' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
     // Create blob and form data
     const audioBlob = new Blob([audioArray], { type: 'audio/webm' });
     const formData = new FormData();
     formData.append('file', audioBlob, 'audio.webm');
     formData.append('model', 'whisper-1');
-    // Force English language to reduce hallucinations
-    formData.append('language', 'en');
-    // Use minimal prompt to reduce hallucinations
-    formData.append('prompt', 'Professional English meeting.');
-    // Set temperature to 0 for more consistent output
-    formData.append('temperature', '0');
+    formData.append('language', 'en'); // Force English
+    formData.append('temperature', '0'); // No creativity, just accurate transcription
+    
+    // Context-aware initial prompt to guide Whisper
+    const contextPrompt = meetingType === 'consultation' 
+      ? 'This is a GP consultation transcription between doctor and patient discussing medical symptoms and treatments.'
+      : previousTranscript ? `Previous context: ${previousTranscript.slice(-200)}` // Last 200 chars for context
+      : 'This is a medical meeting transcription.';
+    
+    formData.append('prompt', contextPrompt);
 
     console.log('📡 Sending to OpenAI Whisper...');
     
