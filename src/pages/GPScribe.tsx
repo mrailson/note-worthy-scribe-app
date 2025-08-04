@@ -642,7 +642,11 @@ const Index = () => {
       transciberRef.current = null;
     }
     
-    // Reduced delay since we're using 3-second chunks now (3s chunk + 2s processing buffer)
+    // Conditional delay based on recording duration
+    const delayTime = duration > 60 ? 1000 : 7000; // 1s if over 1 minute, 7s otherwise
+    console.log(`Recording duration: ${duration}s, using ${delayTime/1000}s delay`);
+    
+    // Reduced delay since we're using 5-second chunks now
     setTimeout(() => {
       setConnectionStatus("Stopped");
       console.log("Transcript length:", transcript ? transcript.trim().length : 0);
@@ -668,7 +672,7 @@ const Index = () => {
         console.log("Navigating with data:", consultationData);
         navigate('/consultation-summary', { state: consultationData });
       }
-    }, 7000); // Increased from 5s to 7s to match 5s chunks + buffer
+    }, delayTime);
   };
 
   const loadExample = (exampleId: string) => {
