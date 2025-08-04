@@ -16,12 +16,25 @@ export class DesktopWhisperTranscriber {
   private overlapBuffer: Blob[] = [];
   private chunkCount = 0;
   private allTranscriptions: string[] = []; // Store all transcriptions directly
+  private sessionId: string; // Unique session ID for this recording
+  private meetingId: string | null = null; // Meeting ID to associate chunks
 
   constructor(
     private onTranscription: (data: TranscriptData) => void,
     private onError: (error: string) => void,
     private onStatusChange: (status: string) => void
-  ) {}
+  ) {
+    this.sessionId = this.generateSessionId();
+  }
+
+  private generateSessionId(): string {
+    return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  setMeetingId(meetingId: string): void {
+    this.meetingId = meetingId;
+    console.log(`📋 Set meeting ID: ${meetingId} for session: ${this.sessionId}`);
+  }
 
   async startTranscription() {
     try {
@@ -191,6 +204,30 @@ export class DesktopWhisperTranscriber {
         this.allTranscriptions.push(cleanText);
         console.log(`📝 Stored transcription ${this.allTranscriptions.length}: "${cleanText.substring(0, 100)}..."`);
         
+        // Store in database if meeting ID is set
+        if (this.meetingId) {
+          try {
+            const { error: dbError } = await supabase
+              .from('meeting_transcription_chunks')
+              .insert({
+                meeting_id: this.meetingId,
+                session_id: this.sessionId,
+                chunk_number: this.chunkCount,
+                transcription_text: cleanText,
+                confidence: 0.9,
+                user_id: (await supabase.auth.getUser()).data.user?.id
+              });
+
+            if (dbError) {
+              console.error('❌ Failed to store chunk in database:', dbError);
+            } else {
+              console.log(`💾 Chunk ${this.chunkCount} stored in database`);
+            }
+          } catch (error) {
+            console.error('❌ Database storage error:', error);
+          }
+        }
+        
         const transcriptData: TranscriptData = {
           text: cleanText,
           is_final: true,
@@ -268,8 +305,50 @@ export class DesktopWhisperTranscriber {
     return completeText;
   }
 
+  async getCompleteTranscriptFromDatabase(): Promise<string> {
+    if (!this.meetingId) {
+      console.log('📋 No meeting ID set, falling back to memory transcript');
+      return this.getCompleteTranscript();
+    }
+
+    try {
+      console.log(`📋 Getting complete transcript from database for meeting ${this.meetingId}, session ${this.sessionId}`);
+      
+      const { data, error } = await supabase
+        .from('meeting_transcription_chunks')
+        .select('transcription_text, chunk_number')
+        .eq('meeting_id', this.meetingId)
+        .eq('session_id', this.sessionId)
+        .order('chunk_number');
+
+      if (error) {
+        console.error('❌ Failed to get transcript from database:', error);
+        return this.getCompleteTranscript(); // Fallback to memory
+      }
+
+      if (!data || data.length === 0) {
+        console.log('📋 No transcript chunks found in database, using memory transcript');
+        return this.getCompleteTranscript();
+      }
+
+      const completeText = data.map(chunk => chunk.transcription_text).join(' ').trim();
+      console.log(`📋 Complete transcript from database: ${completeText.length} characters, ${data.length} chunks`);
+      console.log(`📋 Database transcript preview: "${completeText.substring(0, 200)}..."`);
+      console.log(`📋 Database transcript ending: "${completeText.slice(-200)}"`);
+      
+      return completeText;
+    } catch (error) {
+      console.error('❌ Error getting transcript from database:', error);
+      return this.getCompleteTranscript(); // Fallback to memory
+    }
+  }
+
   clearTranscriptions(): void {
     this.allTranscriptions = [];
     console.log('🧹 Cleared internal transcriptions');
+  }
+
+  getSessionId(): string {
+    return this.sessionId;
   }
 }

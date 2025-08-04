@@ -1331,6 +1331,13 @@ export const MeetingRecorder = ({
       setStartTime(generateMeetingTimestamp());
       setConnectionStatus("Connected");
       
+      // Generate a temporary meeting ID for this session and set it on the transcriber
+      const tempMeetingId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      if (desktopTranscriberRef.current) {
+        desktopTranscriberRef.current.setMeetingId(tempMeetingId);
+        console.log(`🔗 Set temporary meeting ID: ${tempMeetingId}`);
+      }
+      
       addDebugLog('✅ Recording started successfully');
       
       // Start duration timer
@@ -1438,15 +1445,15 @@ export const MeetingRecorder = ({
     const needsAudioBackup = shouldCreateAudioBackup(wordCount, duration);
     console.log(`📊 Audio backup needed: ${needsAudioBackup}`);
     
-    // Get transcript directly from the transcriber instead of relying on state
-    console.log('🔍 DEBUG: Getting transcript directly from transcriber...');
+    // Get transcript directly from the database instead of relying on state
+    console.log('🔍 DEBUG: Getting transcript from database...');
     let finalTranscript = '';
     
     if (desktopTranscriberRef.current) {
-      finalTranscript = desktopTranscriberRef.current.getCompleteTranscript();
-      console.log(`🔍 DEBUG: Direct transcript from transcriber: ${finalTranscript.length} chars`);
-      console.log(`🔍 DEBUG: Direct transcript preview: "${finalTranscript.substring(0, 200)}..."`);
-      console.log(`🔍 DEBUG: Direct transcript ending: "${finalTranscript.slice(-200)}"`);
+      finalTranscript = await desktopTranscriberRef.current.getCompleteTranscriptFromDatabase();
+      console.log(`🔍 DEBUG: Database transcript: ${finalTranscript.length} chars`);
+      console.log(`🔍 DEBUG: Database transcript preview: "${finalTranscript.substring(0, 200)}..."`);
+      console.log(`🔍 DEBUG: Database transcript ending: "${finalTranscript.slice(-200)}"`);
     } else {
       console.log('🔍 DEBUG: No transcriber available, falling back to state');
       finalTranscript = transcript.trim();

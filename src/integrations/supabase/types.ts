@@ -1904,6 +1904,39 @@ export type Database = {
           },
         ]
       }
+      meeting_transcription_chunks: {
+        Row: {
+          chunk_number: number
+          confidence: number | null
+          created_at: string
+          id: string
+          meeting_id: string
+          session_id: string
+          transcription_text: string
+          user_id: string
+        }
+        Insert: {
+          chunk_number: number
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          meeting_id: string
+          session_id: string
+          transcription_text: string
+          user_id: string
+        }
+        Update: {
+          chunk_number?: number
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          meeting_id?: string
+          session_id?: string
+          transcription_text?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       meeting_transcripts: {
         Row: {
           confidence_score: number | null
@@ -3076,6 +3109,10 @@ export type Database = {
       }
       generate_incident_reference: {
         Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      get_combined_transcript: {
+        Args: { p_meeting_id: string; p_session_id: string }
         Returns: string
       }
       get_complaint_compliance_summary: {
