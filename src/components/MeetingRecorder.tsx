@@ -1759,7 +1759,7 @@ export const MeetingRecorder = ({
                     <div className="text-2xl font-bold text-primary mb-1">
                       {wordCount}
                     </div>
-                    <div className="text-xs font-medium text-muted-foreground">Words Count (updated each minute)</div>
+                    <div className="text-xs font-medium text-muted-foreground">Word Count (updated each minute)</div>
                   </div>
                   
                   {/* Connection Status */}
