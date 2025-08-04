@@ -212,6 +212,35 @@ export const TranslationInterface = ({ transcript, isRecording, onLanguageChange
     }
   };
 
+  const handleIncorrectTranslation = async () => {
+    if (!selectedLanguage || translations.length === 0) return;
+    
+    try {
+      setIsTranslating(true);
+      const apologyMessage = "I am sorry, that last translation was incorrect, I will repeat it now.";
+      const translatedApology = await translateText(apologyMessage, selectedLanguage);
+      
+      // Speak the apology in the local language
+      if (!isMuted) {
+        await speakTranslation(translatedApology, selectedLanguage, 'apology-' + Date.now());
+      }
+      
+      // Then repeat the last translation
+      const lastTranslation = translations[0];
+      if (lastTranslation && autoSpeak && !isMuted) {
+        setTimeout(() => {
+          speakTranslation(lastTranslation.translated, selectedLanguage, lastTranslation.id);
+        }, 1000); // Wait 1 second before repeating
+      }
+      
+      toast.success('Apology spoken in ' + HEALTHCARE_LANGUAGES.find(l => l.code === selectedLanguage)?.name);
+    } catch (error: any) {
+      toast.error(`Failed to speak apology: ${error.message}`);
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+
   // Auto-translate new transcript content
   useEffect(() => {
     if (!isTranslationEnabled || !selectedLanguage || !autoTranslate || !transcript) return;
@@ -456,6 +485,21 @@ export const TranslationInterface = ({ transcript, isRecording, onLanguageChange
               </div>
             )}
           </div>
+          
+          {/* Incorrect Translation Button */}
+          {translations.length > 0 && (
+            <div className="flex justify-center">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleIncorrectTranslation}
+                disabled={isTranslating || isSpeaking}
+                className="text-orange-600 border-orange-200 hover:bg-orange-50"
+              >
+                Incorrect Translation
+              </Button>
+            </div>
+          )}
           
           <audio ref={audioRef} className="hidden" />
         </div>
