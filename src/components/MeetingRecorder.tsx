@@ -393,21 +393,25 @@ export const MeetingRecorder = ({
           console.log(`📝 Transcript ${i + 1} (${t.text.length} chars):`, t.text.substring(0, 100) + '...');
         });
         
-        // Always use the most recent (last) transcript as it contains the most up-to-date content
-        // The desktop transcriber sends cumulative chunks, so the latest one has the complete conversation
+        // Combine all final transcripts to build the complete conversation
+        // Each chunk from the desktop transcriber is a separate part of the conversation
         let rawTranscript = '';
         if (finalTranscripts.length === 0) {
           rawTranscript = '';
         } else if (finalTranscripts.length === 1) {
           rawTranscript = finalTranscripts[0].text;
         } else {
-          // Sort by text length (longest first) and take the longest one
-          // This ensures we get the most complete transcript
-          const sortedByLength = finalTranscripts.sort((a, b) => b.text.length - a.text.length);
-          rawTranscript = sortedByLength[0].text;
+          // Sort by timestamp to maintain chronological order
+          const sortedByTime = finalTranscripts.sort((a, b) => 
+            new Date(a.timestamp || 0).getTime() - new Date(b.timestamp || 0).getTime()
+          );
           
-          console.log('📝 Selected longest transcript:', sortedByLength[0].text.length, 'chars');
-          console.log('📝 Content preview:', sortedByLength[0].text.substring(0, 200) + '...');
+          // Concatenate all transcripts with a space separator
+          rawTranscript = sortedByTime.map(t => t.text.trim()).join(' ');
+          
+          console.log('📝 Combined transcript from', sortedByTime.length, 'chunks');
+          console.log('📝 Total combined length:', rawTranscript.length, 'chars');
+          console.log('📝 Combined content preview:', rawTranscript.substring(0, 200) + '...');
         }
         
         // Remove hallucinated phrases from transcript
