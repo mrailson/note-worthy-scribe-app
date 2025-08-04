@@ -925,9 +925,8 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                   className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-blue-700 data-[state=active]:font-semibold min-h-[44px] px-2 text-xs sm:text-sm"
                 >
                   <Users className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                  <span className="hidden xs:inline sm:hidden">GP</span>
                   <span className="hidden sm:inline">Consultation Summary</span>
-                  <span className="xs:hidden">Summary</span>
+                  <span className="sm:hidden">Summary</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="patient-copy" 
