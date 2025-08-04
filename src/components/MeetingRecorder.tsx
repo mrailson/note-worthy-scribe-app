@@ -656,10 +656,10 @@ export const MeetingRecorder = ({
         stream = await navigator.mediaDevices.getDisplayMedia({
           video: true, // Need video for screen share to work properly
           audio: {
-            echoCancellation: false,
-            noiseSuppression: false,
-            autoGainControl: false,
-            sampleRate: 16000
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+            sampleRate: 44100
           }
         });
         
