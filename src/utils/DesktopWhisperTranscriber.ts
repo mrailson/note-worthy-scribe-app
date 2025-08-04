@@ -86,6 +86,8 @@ export class DesktopWhisperTranscriber {
       this.mediaRecorder.onstop = async () => {
         if (this.audioChunks.length > 0) {
           await this.processAudioChunks();
+          // Increment chunk count after successful processing
+          this.chunkCount++;
         }
       };
 
@@ -136,7 +138,6 @@ export class DesktopWhisperTranscriber {
     this.transcriptionTimeout = setTimeout(() => {
       if (this.mediaRecorder && this.isRecording && this.mediaRecorder.state === 'recording') {
         this.mediaRecorder.stop();
-        this.chunkCount++;
         
         // Start new recording immediately after a brief pause
         setTimeout(() => {
@@ -167,9 +168,9 @@ export class DesktopWhisperTranscriber {
       
       this.audioChunks = []; // Clear current chunks after processing
 
-      // Skip very small audio chunks
+      // Skip very small audio chunks - but don't increment chunk count
       if (audioBlob.size < 20000) {
-        console.log('🖥️ Skipping small audio chunk');
+        console.log('🖥️ Skipping small audio chunk - no increment');
         return;
       }
 
@@ -209,16 +210,14 @@ export class DesktopWhisperTranscriber {
         // Store in database if meeting ID is set
         if (this.meetingId) {
           try {
-            // Increment chunk count before storing to ensure correct sequence
-            const currentChunkNumber = this.chunkCount++;
-            console.log(`🔍 DEBUG: Storing chunk ${currentChunkNumber}`);
+            console.log(`🔍 DEBUG: Storing chunk ${this.chunkCount}`);
             
             const { error: dbError } = await supabase
               .from('meeting_transcription_chunks')
               .insert({
                 meeting_id: this.meetingId,
                 session_id: this.sessionId,
-                chunk_number: currentChunkNumber,
+                chunk_number: this.chunkCount,
                 transcription_text: cleanText,
                 confidence: 0.9,
                 user_id: (await supabase.auth.getUser()).data.user?.id
@@ -227,7 +226,7 @@ export class DesktopWhisperTranscriber {
             if (dbError) {
               console.error('❌ Failed to store chunk in database:', dbError);
             } else {
-              console.log(`💾 Chunk ${currentChunkNumber} stored in database`);
+              console.log(`💾 Chunk ${this.chunkCount} stored in database`);
             }
           } catch (error) {
             console.error('❌ Database storage error:', error);
@@ -274,8 +273,10 @@ export class DesktopWhisperTranscriber {
     console.log(`🔍 DEBUG: Checking for remaining chunks - audioChunks.length: ${this.audioChunks.length}`);
     if (this.audioChunks.length > 0) {
       console.log(`🔄 Processing final audio chunk (${this.audioChunks.length} chunks)...`);
-      // Don't increment here - let processAudioChunks handle the increment
       await this.processAudioChunks();
+      // Increment chunk count for the final chunk since it bypassed the onstop callback
+      this.chunkCount++;
+      console.log(`🔍 DEBUG: Final chunk processed, incremented count to ${this.chunkCount}`);
       // Additional wait to ensure transcription callback is processed
       await new Promise(resolve => setTimeout(resolve, 3000)); // Wait for database save
     } else {
