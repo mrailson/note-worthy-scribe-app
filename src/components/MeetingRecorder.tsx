@@ -67,7 +67,7 @@ export const MeetingRecorder = ({
   const [liveSummary, setLiveSummary] = useState<string>("");
   const [debugLog, setDebugLog] = useState<string[]>([]);
   const [testTranscripts, setTestTranscripts] = useState<string[]>([]);
-  const [recordingMode, setRecordingMode] = useState<'microphone' | 'computer-audio'>('microphone');
+  
   const [tickerText, setTickerText] = useState<string>("");
   const [showTicker, setShowTicker] = useState(false);
   const [tickerEnabled, setTickerEnabled] = useState(true);
@@ -1181,20 +1181,15 @@ export const MeetingRecorder = ({
 
   const startTestRecording = async () => {
     try {
-      const modeText = recordingMode === 'computer-audio' ? 'dual audio (system + microphone)' : 'microphone';
-      addDebugLog(`🚀 Starting test recording with ${modeText}...`);
-      console.log(`Starting test recording with ${modeText}...`);
+      addDebugLog('🚀 Starting test recording with microphone...');
+      console.log('Starting test recording with microphone...');
       
       // Clear previous debug logs and test transcripts
       setDebugLog([]);
       setTestTranscripts([]);
       
-      // Choose recording method based on mode
-      if (recordingMode === 'computer-audio') {
-        await startTestMode(); // Use our new advanced dual audio function
-      } else {
-        await startMicrophoneTranscription();
-      }
+      // Always use microphone transcription
+      await startMicrophoneTranscription();
       
       setIsRecording(true);
       setRealtimeTranscripts([]);
@@ -1216,9 +1211,7 @@ export const MeetingRecorder = ({
         });
       }, 1000);
 
-      const successMessage = recordingMode === 'computer-audio' ? 
-        'Test recording started with dual audio capture!' : 
-        'Test recording started with microphone!';
+      const successMessage = 'Test recording started with microphone!';
       toast.success(successMessage);
     } catch (error: any) {
       console.error('Failed to start test recording:', error);
@@ -1277,9 +1270,8 @@ export const MeetingRecorder = ({
 
   const startRecording = async () => {
     try {
-      const modeText = recordingMode === 'computer-audio' ? 'computer audio for Teams/Zoom' : 'microphone';
-      addDebugLog(`🚀 Starting recording with ${modeText}...`);
-      console.log(`Starting recording with ${modeText}...`);
+      addDebugLog('🚀 Starting recording with microphone...');
+      console.log('Starting recording with microphone...');
       
       // Clear previous debug logs and test transcripts
       setDebugLog([]);
@@ -1287,12 +1279,8 @@ export const MeetingRecorder = ({
       
       // Start audio backup recording
       await startAudioBackup();
-      // Choose transcription method based on recording mode
-      if (recordingMode === 'computer-audio') {
-        await startComputerAudioTranscription();
-      } else {
-        await startMicrophoneTranscription();
-      }
+      // Always use microphone transcription
+      await startMicrophoneTranscription();
       
       setIsRecording(true);
       setRealtimeTranscripts([]);
@@ -1314,9 +1302,7 @@ export const MeetingRecorder = ({
         });
       }, 1000);
 
-      const successMessage = recordingMode === 'computer-audio' ? 
-        'Recording started with computer audio for Teams/Zoom!' : 
-        'Recording started with microphone!';
+      const successMessage = 'Recording started with microphone!';
       toast.success(successMessage);
     } catch (error: any) {
       console.error('Failed to start recording:', error);
@@ -1782,52 +1768,6 @@ export const MeetingRecorder = ({
             {/* Compact Recording Controls */}
             <Card className="shadow-lg">
               <CardContent className="pt-4 pb-4">
-                {/* Recording Mode Selection - Hidden on iPhone */}
-                {!isRecording && !checkBrowserSupport().isIOS && (
-                  <div className="space-y-3 mb-4 flex flex-col items-center">
-                    <label className="text-sm font-medium">Recording Source:</label>
-                    <Select value={recordingMode} onValueChange={(value: 'microphone' | 'computer-audio') => setRecordingMode(value)}>
-                      <SelectTrigger className="w-[50%] bg-background/50 border-border/50">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-background border border-border shadow-lg z-50">
-                        <SelectItem value="microphone" className="flex items-center gap-2">
-                          <div className="flex items-center gap-2">
-                            <Mic className="h-4 w-4" />
-                            <div>
-                              <div className="font-medium">Microphone</div>
-                              <div className="text-xs text-muted-foreground">Record from your microphone</div>
-                            </div>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="computer-audio" className="flex items-center gap-2">
-                          <div className="flex items-center gap-2">
-                            <Headphones className="h-4 w-4" />
-                            <div className="flex-1">
-                              <div className="font-medium">Teams/Zoom Meeting</div>
-                              <div className="text-xs text-muted-foreground">Capture computer audio from Teams/Zoom</div>
-                            </div>
-                          </div>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                    
-                    {recordingMode === 'computer-audio' && (
-                      <div className="p-3 bg-red-50/50 border border-red-200/50 rounded-lg dark:bg-red-900/20 dark:border-red-700/50">
-                        <div className="flex items-start gap-2">
-                          <Video className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
-                          <div className="text-xs text-red-700 dark:text-red-300">
-                            <strong className="text-red-800 dark:text-red-200">🚧 Development Notice:</strong> 
-                            <br />• This feature is currently being developed
-                            <br />• Expected release: <strong>10th August 2025</strong>
-                            <br />• Please use your <strong>SmartPhone Notewell Version</strong> or <strong>Teams own recording service</strong> to record Teams meetings in the meantime
-                            <br />• You can still use microphone mode for general audio recording (ie Face 2 Face or via conference phone etc)
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
 
                 <div className="text-center">
                   {!isRecording ? (
@@ -1835,23 +1775,10 @@ export const MeetingRecorder = ({
                       <Button 
                         onClick={startRecording}
                         size="lg"
-                        disabled={recordingMode === 'computer-audio'}
-                        className={`${recordingMode === 'computer-audio' 
-                          ? 'bg-gray-400 cursor-not-allowed opacity-50' 
-                          : 'bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary'
-                        } text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 px-8 py-4 text-base font-semibold rounded-lg`}
+                        className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 px-8 py-4 text-base font-semibold rounded-lg"
                       >
-                        {recordingMode === 'computer-audio' ? (
-                          <>
-                            <Headphones className="h-5 w-5 mr-2" />
-                            Start Recording Teams/Zoom (Coming Soon)
-                          </>
-                        ) : (
-                          <>
-                            <Mic className="h-5 w-5 mr-2" />
-                            Start Recording
-                          </>
-                        )}
+                        <Mic className="h-5 w-5 mr-2" />
+                        Start Recording
                       </Button>
                     </div>
                   ) : (
