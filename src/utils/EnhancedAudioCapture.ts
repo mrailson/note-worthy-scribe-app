@@ -144,35 +144,46 @@ export class EnhancedAudioCapture {
 
   private monitorForNewAudio(destination: MediaStreamAudioDestinationNode) {
     const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        mutation.addedNodes.forEach((node) => {
-          if (node.nodeType === Node.ELEMENT_NODE) {
-            const element = node as Element;
-            const mediaElements = element.querySelectorAll('audio, video');
-            
-            mediaElements.forEach((media) => {
-              const mediaElement = media as HTMLMediaElement;
-              // Wait a bit for the element to start playing
-              setTimeout(() => {
-                if (!mediaElement.paused && mediaElement.currentTime > 0 && !mediaElement.muted) {
-                  try {
-                    console.log('New active media element detected');
-                    const mediaSource = this.audioContext!.createMediaElementSource(mediaElement);
-                    const mediaGain = this.audioContext!.createGain();
-                    mediaGain.gain.value = 1.2;
-                    
-                    mediaSource.connect(mediaGain);
-                    mediaGain.connect(destination);
-                    mediaGain.connect(this.audioContext!.destination);
-                  } catch (error) {
-                    console.log('Could not connect new media element:', error);
-                  }
+      try {
+        mutations.forEach((mutation) => {
+          // Only process added nodes to avoid issues with removed nodes
+          if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+            mutation.addedNodes.forEach((node) => {
+              // Ensure it's an element node before processing
+              if (node.nodeType === Node.ELEMENT_NODE && node instanceof Element) {
+                try {
+                  const mediaElements = node.querySelectorAll('audio, video');
+                  
+                  mediaElements.forEach((media) => {
+                    const mediaElement = media as HTMLMediaElement;
+                    // Wait a bit for the element to start playing
+                    setTimeout(() => {
+                      if (!mediaElement.paused && mediaElement.currentTime > 0 && !mediaElement.muted) {
+                        try {
+                          console.log('New active media element detected');
+                          const mediaSource = this.audioContext!.createMediaElementSource(mediaElement);
+                          const mediaGain = this.audioContext!.createGain();
+                          mediaGain.gain.value = 1.2;
+                          
+                          mediaSource.connect(mediaGain);
+                          mediaGain.connect(destination);
+                          mediaGain.connect(this.audioContext!.destination);
+                        } catch (error) {
+                          console.log('Could not connect new media element:', error);
+                        }
+                      }
+                    }, 1000);
+                  });
+                } catch (elementError) {
+                  console.log('Error processing element:', elementError);
                 }
-              }, 1000);
+              }
             });
           }
         });
-      });
+      } catch (mutationError) {
+        console.log('Error processing mutation:', mutationError);
+      }
     });
 
     observer.observe(document.body, {
