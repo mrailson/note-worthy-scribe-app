@@ -35,6 +35,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { SafeMessageRenderer } from "@/components/SafeMessageRenderer";
+import { Header } from "@/components/Header";
 import { FormattedReviewContent } from "@/components/FormattedReviewContent";
 import { AIResponsePanel } from "@/components/AIResponsePanel";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -916,6 +917,7 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
 
   return (
     <div className="min-h-screen bg-gradient-background">
+      <Header onNewMeeting={() => navigate('/')} />
       <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 max-w-6xl">
         
         {/* Header - Mobile Optimized */}
