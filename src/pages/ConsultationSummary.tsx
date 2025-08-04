@@ -941,18 +941,17 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
           </div>
           
           <div>
-            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-primary flex items-center gap-2">
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-primary flex items-center gap-2 flex-wrap">
               <Stethoscope className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6" />
               <span className="break-words">{consultationData.title}</span>
+              <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground ml-auto">
+                <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span>{consultationData.duration}</span>
+                <Badge variant="outline" className="text-xs">
+                  {consultationData.wordCount} words
+                </Badge>
+              </div>
             </h1>
-          </div>
-          
-          <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
-            <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
-            <span>{consultationData.duration}</span>
-            <Badge variant="outline" className="text-xs">
-              {consultationData.wordCount} words
-            </Badge>
           </div>
         </div>
 
