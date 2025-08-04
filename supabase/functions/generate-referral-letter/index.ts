@@ -109,7 +109,6 @@ serve(async (req) => {
 
 **Essential Components:**
 - Patient demographics (use placeholder if not in transcript)
-- Referring practice details
 - Specialist service being referred to (determine from consultation)
 - Clear reason for referral
 - Relevant clinical history
@@ -118,16 +117,17 @@ serve(async (req) => {
 - Investigation results (if any)
 - Specific questions for the specialist
 - Urgency level
-- GP contact details
 
 **Format Requirements:**
 - Use formal NHS referral letter format
 - Professional medical language
 - Clear, structured layout with headings
-- Include date and reference numbers (use placeholders)
 - Use **bold** formatting for section headings
 
 **What NOT to include:**
+- Referring GP details (name, qualifications, GMC number)
+- Practice contact information (name, address, phone, email)
+- Date of referral fields
 - Patient advice sections (e.g., "Important Advice", "If patient experiences...")
 - Emergency instructions or "call 999" advice
 - Patient education content
