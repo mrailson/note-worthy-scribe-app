@@ -1468,10 +1468,22 @@ export const MeetingRecorder = ({
       console.log(`🔍 DEBUG: Transcript ${i + 1}: ${t.text.length} chars - "${t.text.substring(0, 100)}..."`);
     });
     
+    // ALSO get all transcripts regardless of final status for comparison
+    const allTranscripts = realtimeTranscripts;
+    console.log('🔍 DEBUG: ALL transcripts (final + non-final):', allTranscripts.length);
+    allTranscripts.forEach((t, i) => {
+      console.log(`🔍 DEBUG: All-Transcript ${i + 1} (final:${t.isFinal}): ${t.text.length} chars - "${t.text.substring(0, 100)}..."`);
+    });
+    
     // Manually combine all transcripts at stop time (don't rely on state or ref)
     let finalCombinedTranscript = '';
     if (allFinalTranscripts.length === 0) {
-      finalCombinedTranscript = transcript; // Fallback to state
+      // If no final transcripts, use ALL transcripts
+      console.log('🔍 DEBUG: No final transcripts found, using all transcripts');
+      const sortedAllTranscripts = allTranscripts.sort((a, b) => 
+        new Date(a.timestamp || 0).getTime() - new Date(b.timestamp || 0).getTime()
+      );
+      finalCombinedTranscript = sortedAllTranscripts.map(t => t.text.trim()).join(' ');
     } else if (allFinalTranscripts.length === 1) {
       finalCombinedTranscript = allFinalTranscripts[0].text;
     } else {
