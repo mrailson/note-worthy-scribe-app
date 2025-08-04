@@ -1403,46 +1403,9 @@ export const MeetingRecorder = ({
       iPhoneTranscriberRef.current = null;
     }
     
-    // Stop desktop transcriber and wait for final processing
+    // Stop desktop transcriber
     if (desktopTranscriberRef.current) {
       await desktopTranscriberRef.current.stopTranscription();
-      
-      // Wait for all audio chunks to be processed and stored in database
-      const sessionId = desktopTranscriberRef.current.getSessionId();
-      console.log('🔍 Waiting for all transcription chunks to complete...');
-      
-      // Poll the database to check if more chunks are being added
-      let lastChunkCount = 0;
-      let stableCount = 0;
-      const maxWaitTime = 15000; // Maximum 15 seconds
-      const startTime = Date.now();
-      
-      while (Date.now() - startTime < maxWaitTime && stableCount < 3) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        try {
-          const { data } = await supabase
-            .from('meeting_transcription_chunks')
-            .select('chunk_number')
-            .eq('session_id', sessionId);
-          
-          const currentChunkCount = data?.length || 0;
-          console.log(`🔍 Chunks in database: ${currentChunkCount}`);
-          
-          if (currentChunkCount === lastChunkCount) {
-            stableCount++;
-            console.log(`🔍 Chunk count stable for ${stableCount} seconds`);
-          } else {
-            stableCount = 0;
-            lastChunkCount = currentChunkCount;
-          }
-        } catch (error) {
-          console.error('Error checking chunk count:', error);
-          break;
-        }
-      }
-      
-      console.log('🔍 Transcription processing complete, proceeding with summary');
       desktopTranscriberRef.current = null;
     }
     
