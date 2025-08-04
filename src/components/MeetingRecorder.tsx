@@ -853,17 +853,29 @@ export const MeetingRecorder = ({
         offset += chunk.length;
       }
       
-      // Check if audio has sufficient volume (speaker audio detection)
+      // Check if audio chunk should be processed
       const rms = Math.sqrt(combinedBuffer.reduce((acc, val) => acc + val * val, 0) / combinedBuffer.length);
-      const volumeThreshold = 0.005; // Higher threshold to prevent hallucinations
-      
-      // Also check for audio variation (not just noise)
       const maxVal = Math.max(...combinedBuffer);
       const minVal = Math.min(...combinedBuffer);
       const dynamicRange = maxVal - minVal;
       
-      if (rms < volumeThreshold || dynamicRange < 0.01) {
-        addDebugLog(`🔇 Audio too quiet or monotonous (RMS: ${rms.toFixed(6)}, Range: ${dynamicRange.toFixed(6)}) - likely to cause hallucinations`);
+      // Improved chunk filtering function
+      const shouldSendChunk = (rms: number, dynamicRange: number): boolean => {
+        const rmsThreshold = 0.005; // Recommended
+        const minDynamicRange = 0.02; // Recommended
+
+        if (rms < rmsThreshold) {
+          addDebugLog(`❌ Skipping chunk: Low RMS (${rms.toFixed(6)})`);
+          return false;
+        }
+        if (dynamicRange < minDynamicRange) {
+          addDebugLog(`❌ Skipping chunk: Low dynamic range (${dynamicRange.toFixed(6)})`);
+          return false;
+        }
+        return true;
+      };
+      
+      if (!shouldSendChunk(rms, dynamicRange)) {
         return;
       }
       
