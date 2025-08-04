@@ -640,7 +640,152 @@ export const TranslationInterface = ({ transcript, isRecording, onLanguageChange
             )}
           </div>
           
-          <div className="border rounded-lg p-4 min-h-[200px]">
+          <div className="border rounded-lg p-4 min-h-[200px] relative">
+            {/* Add expand button to the translation display area */}
+            <div className="absolute top-3 right-3 z-10">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 w-8 p-0 bg-background/80 backdrop-blur-sm"
+                    title="Expand translation view"
+                  >
+                    <Maximize2 className="h-4 w-4" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl max-h-[90vh] w-[90vw]">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-3 text-2xl">
+                      <Languages className="h-6 w-6" />
+                      Live Translation: {selectedLang?.flag} {selectedLang?.name}
+                    </DialogTitle>
+                  </DialogHeader>
+                  
+                  <div className="space-y-6 py-4">
+                    {/* Status indicators in expanded view */}
+                    <div className="flex items-center justify-center gap-6 text-lg">
+                      {isTranslating && (
+                        <div className="flex items-center gap-3 text-blue-600">
+                          <Loader2 className="h-6 w-6 animate-spin" />
+                          Translating...
+                        </div>
+                      )}
+                      {isSpeaking && (
+                        <div className="flex items-center gap-3 text-emerald-600">
+                          <Volume2 className="h-6 w-6 animate-pulse" />
+                          Speaking translation...
+                        </div>
+                      )}
+                      {!isTranslating && !isSpeaking && translations.length > 0 && (
+                        <div className="flex items-center gap-3 text-green-600">
+                          <Clock className="h-6 w-6" />
+                          Ready for next translation
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Large translation display */}
+                    <div className="border-2 border-accent/30 rounded-xl p-8 min-h-[400px] bg-gradient-to-br from-background to-muted/20">
+                      {translations.length === 0 ? (
+                        <div className="text-center text-muted-foreground py-16">
+                          <Languages className="h-16 w-16 mx-auto mb-4 opacity-30" />
+                          <p className="text-2xl mb-2">Waiting for translation...</p>
+                          <p className="text-lg">The translated text will appear here in large format</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-8">
+                          {translations.slice(0, 1).map((entry) => (
+                            <div key={entry.id} className="space-y-6">
+                              {/* Speaker and timestamp */}
+                              <div className="flex items-center justify-between">
+                                <Badge 
+                                  variant={entry.speaker === 'GP' ? 'default' : 'secondary'} 
+                                  className="text-lg px-4 py-2"
+                                >
+                                  {entry.speaker}
+                                </Badge>
+                                <span className="text-base text-muted-foreground">
+                                  {entry.timestamp.toLocaleTimeString()}
+                                </span>
+                              </div>
+                              
+                              {/* Original text */}
+                              <div className="bg-muted/40 rounded-xl p-6">
+                                <div className="text-lg font-medium text-muted-foreground mb-3">
+                                  English Original:
+                                </div>
+                                <div className="text-2xl leading-relaxed text-foreground">
+                                  {entry.original}
+                                </div>
+                              </div>
+                              
+                              {/* Translated text - the main focus */}
+                              <div className="bg-primary/5 border-2 border-primary/20 rounded-xl p-8">
+                                <div className="flex items-center justify-between mb-4">
+                                  <div className="text-xl font-medium text-primary flex items-center gap-3">
+                                    {selectedLang?.flag} {selectedLang?.name} Translation:
+                                  </div>
+                                  <Button
+                                    variant="outline"
+                                    size="lg"
+                                    onClick={() => playTranslation(entry.translated, entry.languageCode, entry.id)}
+                                    className="h-12 w-12 p-0"
+                                  >
+                                    {isPlaying === entry.id ? (
+                                      <VolumeX className="h-6 w-6" />
+                                    ) : (
+                                      <Volume2 className="h-6 w-6" />
+                                    )}
+                                  </Button>
+                                </div>
+                                <div className="text-4xl leading-relaxed font-medium text-foreground text-center py-4">
+                                  {entry.translated}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Controls in expanded view */}
+                    {translations.length > 0 && (
+                      <div className="flex justify-center gap-4">
+                        <Button
+                          variant="outline"
+                          size="lg"
+                          onClick={handleIncorrectTranslation}
+                          disabled={isTranslating || isSpeaking}
+                          className="text-orange-600 border-orange-200 hover:bg-orange-50 px-6"
+                        >
+                          Incorrect Translation
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="lg"
+                          onClick={() => setIsMuted(!isMuted)}
+                          className="px-6"
+                        >
+                          {isMuted ? (
+                            <>
+                              <VolumeX className="h-5 w-5 mr-2" />
+                              Unmute Audio
+                            </>
+                          ) : (
+                            <>
+                              <Volume2 className="h-5 w-5 mr-2" />
+                              Mute Audio
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+
             {translations.length === 0 ? (
               <div className="text-center text-muted-foreground py-8">
                 <Languages className="h-8 w-8 mx-auto mb-2 opacity-50" />
