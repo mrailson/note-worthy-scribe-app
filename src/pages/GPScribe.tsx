@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import jsPDF from 'jspdf';
 import { consultationExamples, type ConsultationExample } from "@/data/consultationExamples";
 import { TranslationInterface } from "@/components/TranslationInterface";
+import { MP3TranscriptionTest } from "@/components/MP3TranscriptionTest";
 import { ConsultationHistory } from "@/components/ConsultationHistory";
 import { PatientTranslationView } from "@/components/PatientTranslationView";
 import { SafeMessageRenderer } from "@/components/SafeMessageRenderer";
@@ -1177,7 +1178,7 @@ const Index = () => {
         
         {/* Tab Navigation */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-5 p-1 rounded-xl">
+          <TabsList className="grid w-full grid-cols-6 p-1 rounded-xl">
             <TabsTrigger 
               value="consultation" 
               className="rounded-lg transition-all duration-200 font-medium"
@@ -1207,6 +1208,12 @@ const Index = () => {
               className="rounded-lg transition-all duration-200 font-medium"
             >
               GP Genie
+            </TabsTrigger>
+            <TabsTrigger 
+              value="test-mp3" 
+              className="rounded-lg transition-all duration-200 font-medium"
+            >
+              Test MP3
             </TabsTrigger>
           </TabsList>
 
@@ -2528,6 +2535,10 @@ const Index = () => {
           
           <TabsContent value="gp-genie" className="space-y-6">
             <GPGenieVoiceAgent />
+          </TabsContent>
+          
+          <TabsContent value="test-mp3" className="space-y-6">
+            <MP3TranscriptionTest />
           </TabsContent>
         </Tabs>
       </div>
