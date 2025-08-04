@@ -214,8 +214,8 @@ export class UnifiedAudioCapture {
         this.audioChunks.push(event.data);
         console.log('Audio chunk received:', event.data.size, 'bytes');
         
-        // Process immediately if we have enough data
-        if (this.audioChunks.length >= 3) {
+        // Process more aggressively to catch early speech
+        if (this.audioChunks.length >= 2) {
           this.processAudioChunks();
         }
       }
@@ -225,8 +225,8 @@ export class UnifiedAudioCapture {
       this.processAudioChunks();
     };
 
-    // Start recording with immediate data collection
-    this.mediaRecorder.start(300); // Collect data every 300ms for more responsive capture
+    // Start recording with immediate data collection - shorter intervals to catch speech start
+    this.mediaRecorder.start(100); // Collect data every 100ms for very responsive capture
     this.isRecording = true;
     this.scheduleProcessing();
   }
@@ -300,9 +300,9 @@ export class UnifiedAudioCapture {
       // Clear chunks for next batch
       this.audioChunks = [];
 
-      // Skip very small files (likely silence) but lower threshold
-      if (audioBlob.size < 800) {
-        console.log('Skipping very small audio chunk');
+      // Accept smaller chunks to avoid missing brief but important words
+      if (audioBlob.size < 400) {
+        console.log('Skipping very small audio chunk (likely silence)');
         return;
       }
 
@@ -320,8 +320,8 @@ export class UnifiedAudioCapture {
 
       console.log('Sending to transcription service...');
       
-      // Use the more accurate assemblyai-transcription function
-      const response = await fetch('https://dphcnbricafkbtizkoal.functions.supabase.co/functions/v1/assemblyai-transcription', {
+      // Try the primary assemblyai-transcription function first
+      let response = await fetch('https://dphcnbricafkbtizkoal.functions.supabase.co/functions/v1/assemblyai-transcription', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -330,54 +330,99 @@ export class UnifiedAudioCapture {
         body: JSON.stringify({ audio: base64Audio })
       });
 
+      let result;
+      let transcriptionSource = 'primary';
+
       if (response.ok) {
-        const result = await response.json();
-        console.log('Transcription result:', result);
+        result = await response.json();
         
-        if (result.text && result.text.trim() && result.text.length > 2) {
-          // Use Whisper's quality metrics to detect hallucinations
-          const segments = result.segments || [];
+        // If we get empty or very short text, try backup transcription
+        if (!result.text || result.text.trim().length < 3) {
+          console.log('Primary transcription empty/short, trying backup...');
           
-          if (segments.length > 0) {
-            const avgNoSpeechProb = segments.reduce((sum: number, seg: any) => sum + (seg.no_speech_prob || 0), 0) / segments.length;
-            const avgLogProb = segments.reduce((sum: number, seg: any) => sum + (seg.avg_logprob || 0), 0) / segments.length;
-            
-            // Very relaxed quality filtering - accept most audio
-            if (avgNoSpeechProb > 0.95 || avgLogProb < -3.0) {
-              console.log('Rejected transcription - poor quality metrics:', {
-                no_speech_prob: avgNoSpeechProb,
-                avg_logprob: avgLogProb,
-                text: result.text
-              });
-              return;
-            }
-          }
+          response = await fetch('https://dphcnbricafkbtizkoal.functions.supabase.co/functions/v1/backup-transcription', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwaGNuYnJpY2Fma2J0aXprb2FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MzIyMzIsImV4cCI6MjA2ODMwODIzMn0.U3bJI6P1yzgRBz_k2s0zlJGu1GWiVRTHjYgv9QQggPs'
+            },
+            body: JSON.stringify({ audio: base64Audio })
+          });
           
-          const text = result.text.trim();
-          
-          // Enhanced filtering for common hallucinations
-          const lowercaseText = text.toLowerCase();
-          const isHallucination = this.isLikelyHallucination(lowercaseText);
-          
-          if (!isHallucination) {
-            console.log('Valid transcription fragment:', text);
-            // Add to transcript buffer for immediate output
-            this.addToTranscriptBuffer(text);
-            // Add to cleaning buffer for retrospective cleaning
-            if (this.cleaningBuffer) {
-              this.cleaningBuffer.addText(text);
-            }
-            // Add to real-time cleaner for immediate corrections
-            if (this.realtimeCleaner) {
-              this.realtimeCleaner.addTranscript(text);
-            }
-          } else {
-            console.log('Filtered hallucination:', text);
+          if (response.ok) {
+            result = await response.json();
+            transcriptionSource = 'backup';
+            console.log('Backup transcription result:', result);
           }
         }
       } else {
-        const errorData = await response.json();
-        console.error('Transcription error:', errorData);
+        console.log('Primary transcription failed, trying backup...');
+        
+        // Try backup transcription if primary fails
+        response = await fetch('https://dphcnbricafkbtizkoal.functions.supabase.co/functions/v1/backup-transcription', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwaGNuYnJpY2Fma2J0aXprb2FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MzIyMzIsImV4cCI6MjA2ODMwODIzMn0.U3bJI6P1yzgRBz_k2s0zlJGu1GWiVRTHjYgv9QQggPs'
+          },
+          body: JSON.stringify({ audio: base64Audio })
+        });
+        
+        if (response.ok) {
+          result = await response.json();
+          transcriptionSource = 'backup';
+          console.log('Backup transcription result:', result);
+        } else {
+          const errorData = await response.json();
+          console.error('Both transcription services failed:', errorData);
+          return;
+        }
+      }
+
+      // Process the transcription result
+      if (result && result.text && result.text.trim() && result.text.length > 2) {
+        // Use Whisper's quality metrics to detect hallucinations if available
+        const segments = result.segments || [];
+        
+        if (segments.length > 0) {
+          const avgNoSpeechProb = segments.reduce((sum: number, seg: any) => sum + (seg.no_speech_prob || 0), 0) / segments.length;
+          const avgLogProb = segments.reduce((sum: number, seg: any) => sum + (seg.avg_logprob || 0), 0) / segments.length;
+          
+          // Very relaxed quality filtering - accept most audio
+          if (avgNoSpeechProb > 0.95 || avgLogProb < -3.0) {
+            console.log('Rejected transcription - poor quality metrics:', {
+              no_speech_prob: avgNoSpeechProb,
+              avg_logprob: avgLogProb,
+              text: result.text,
+              source: transcriptionSource
+            });
+            return;
+          }
+        }
+        
+        const text = result.text.trim();
+        
+        // Enhanced filtering for common hallucinations
+        const lowercaseText = text.toLowerCase();
+        const isHallucination = this.isLikelyHallucination(lowercaseText);
+        
+        if (!isHallucination) {
+          console.log(`Valid transcription fragment (${transcriptionSource}):`, text);
+          // Add to transcript buffer for immediate output
+          this.addToTranscriptBuffer(text);
+          // Add to cleaning buffer for retrospective cleaning
+          if (this.cleaningBuffer) {
+            this.cleaningBuffer.addText(text);
+          }
+          // Add to real-time cleaner for immediate corrections
+          if (this.realtimeCleaner) {
+            this.realtimeCleaner.addTranscript(text);
+          }
+        } else {
+          console.log('Filtered hallucination:', text);
+        }
+      } else {
+        console.log(`No valid transcription from ${transcriptionSource} service`);
       }
     } catch (error) {
       console.error('Error processing audio:', error);
