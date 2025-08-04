@@ -13,6 +13,7 @@ export class iPhoneWhisperTranscriber {
   private isRecording = false;
   private audioChunks: Blob[] = [];
   private transcriptionInterval: NodeJS.Timeout | null = null;
+  private overlapBuffer: Blob[] = [];
 
   constructor(
     private onTranscription: (data: TranscriptData) => void,
@@ -76,7 +77,7 @@ export class iPhoneWhisperTranscriber {
         this.onError('Recording error occurred');
       };
 
-      // Start recording and process in chunks every 5 seconds
+      // Start recording and process in chunks every 35 seconds with overlap
       this.isRecording = true;
       this.startChunkedRecording();
       
@@ -95,7 +96,7 @@ export class iPhoneWhisperTranscriber {
     // Start recording
     this.mediaRecorder.start();
     
-    // Process chunks every 5 seconds
+    // Process chunks every 35 seconds (clinical quality)
     this.transcriptionInterval = setInterval(() => {
       if (this.mediaRecorder && this.isRecording && this.mediaRecorder.state === 'recording') {
         this.mediaRecorder.stop();
@@ -106,19 +107,28 @@ export class iPhoneWhisperTranscriber {
           }
         }, 100);
       }
-    }, 5000);
+    }, 35000);
   }
 
   private async processAudioChunks() {
     if (this.audioChunks.length === 0) return;
 
     try {
-      // Combine all chunks into one blob
-      const audioBlob = new Blob(this.audioChunks, { type: this.audioChunks[0].type });
-      this.audioChunks = []; // Clear chunks after processing
+      // Create overlap: keep last 8 seconds of previous chunk (roughly 25% overlap for 35s chunks)
+      const currentChunks = [...this.overlapBuffer, ...this.audioChunks];
+      
+      // Combine all chunks including overlap
+      const audioBlob = new Blob(currentChunks, { type: this.audioChunks[0].type });
+      
+      // Store last ~8 seconds of current chunks for next overlap
+      // Estimate: last 25% of chunks for 8-second overlap
+      const overlapSize = Math.ceil(this.audioChunks.length * 0.25);
+      this.overlapBuffer = this.audioChunks.slice(-overlapSize);
+      
+      this.audioChunks = []; // Clear current chunks after processing
 
-      // Skip very small audio chunks (less than 1 second of audio)
-      if (audioBlob.size < 8000) {
+      // Skip very small audio chunks (less than 5 seconds for clinical quality)
+      if (audioBlob.size < 40000) {
         console.log('📱 Skipping small audio chunk');
         return;
       }
