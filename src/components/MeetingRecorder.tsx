@@ -510,6 +510,10 @@ export const MeetingRecorder = ({
 
 
   const processAudioChunk = async (audioBlob: Blob) => {
+    console.log('🔍 CHUNK DEBUG: processAudioChunk called', { 
+      blobSize: audioBlob.size, 
+      chunkNumber: Date.now() 
+    });
     if (audioBlob.size === 0) return;
     
     try {
@@ -751,8 +755,15 @@ export const MeetingRecorder = ({
         audioBuffer.push(new Float32Array(inputData));
         bufferDuration += inputBuffer.duration;
         
+        console.log('🔍 AUDIO DEBUG: Buffer duration', { 
+          bufferDuration, 
+          targetDuration, 
+          audioBufferLength: audioBuffer.length 
+        });
+        
         // Process when we have enough audio
         if (bufferDuration >= targetDuration) {
+          console.log('🔍 AUDIO DEBUG: Processing 3-second chunk', { bufferDuration });
           processAudioBuffer(audioBuffer, audioContext.sampleRate);
           audioBuffer = [];
           bufferDuration = 0;
@@ -777,6 +788,11 @@ export const MeetingRecorder = ({
 
   // Process audio buffer and send to speech-to-text API
   const processAudioBuffer = async (audioBuffer: Float32Array[], sampleRate: number) => {
+    console.log('🔍 BUFFER DEBUG: processAudioBuffer called', { 
+      chunks: audioBuffer.length, 
+      sampleRate,
+      timestamp: Date.now()
+    });
     try {
       // Combine all audio chunks
       const totalLength = audioBuffer.reduce((acc, chunk) => acc + chunk.length, 0);
@@ -1062,10 +1078,11 @@ export const MeetingRecorder = ({
       const audioChunks: Blob[] = [];
       
       mediaRecorder.ondataavailable = (event) => {
-        console.log('MediaRecorder data available:', {
+        console.log('🔍 RECORDER DEBUG: MediaRecorder data available:', {
           dataSize: event.data.size,
           type: event.data.type,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          chunkCount: audioChunks.length + 1
         });
         
         if (event.data.size > 0) {
