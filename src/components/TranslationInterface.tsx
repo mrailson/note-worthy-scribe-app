@@ -77,6 +77,8 @@ export const TranslationInterface = ({ transcript, isRecording, onLanguageChange
   const isProcessingAudio = useRef(false);
   const lastTranscriptLength = useRef(0);
   const lastTranslatedContent = useRef<string>('');
+  const translationTimer = useRef<NodeJS.Timeout | null>(null);
+  const isTranslationInProgress = useRef(false);
 
   const handleLanguageSelect = (languageCode: string) => {
     setSelectedLanguage(languageCode);
@@ -249,7 +251,8 @@ export const TranslationInterface = ({ transcript, isRecording, onLanguageChange
     console.log('Translation useEffect triggered:', { 
       transcript: transcript.slice(-100), 
       length: transcript.length, 
-      lastLength: lastTranscriptLength.current 
+      lastLength: lastTranscriptLength.current,
+      isInProgress: isTranslationInProgress.current
     });
 
     const currentLength = transcript.length;
@@ -258,8 +261,26 @@ export const TranslationInterface = ({ transcript, isRecording, onLanguageChange
       return;
     }
 
-    // Clear any existing timer
-    const timer = setTimeout(() => {
+    // Prevent multiple simultaneous translations
+    if (isTranslationInProgress.current) {
+      console.log('Translation already in progress, skipping');
+      return;
+    }
+
+    // Clear any existing timer to prevent multiple timers
+    if (translationTimer.current) {
+      clearTimeout(translationTimer.current);
+      translationTimer.current = null;
+    }
+
+    // Set new timer
+    translationTimer.current = setTimeout(() => {
+      // Double-check we're not already processing and state hasn't changed
+      if (isTranslationInProgress.current || !isTranslationEnabled || !selectedLanguage || !autoTranslate) {
+        console.log('State changed during timer, aborting translation');
+        return;
+      }
+
       const newContent = transcript.slice(lastTranscriptLength.current);
       
       console.log('Processing new content for translation:', { 
@@ -289,6 +310,8 @@ export const TranslationInterface = ({ transcript, isRecording, onLanguageChange
         return;
       }
       
+      // Mark as in progress to prevent duplicates
+      isTranslationInProgress.current = true;
       lastTranscriptLength.current = currentLength;
 
       const translateNewContent = async () => {
@@ -311,6 +334,7 @@ export const TranslationInterface = ({ transcript, isRecording, onLanguageChange
         if (contentToTranslate === lastTranslatedContent.current) {
           console.log('Already translated this content, skipping to prevent duplication');
           setIsTranslating(false);
+          isTranslationInProgress.current = false;
           return;
         }
         
@@ -318,6 +342,7 @@ export const TranslationInterface = ({ transcript, isRecording, onLanguageChange
         if (contentToTranslate.length < 3) {
           console.log('Content too short, skipping translation');
           setIsTranslating(false);
+          isTranslationInProgress.current = false;
           return;
         }
 
@@ -352,12 +377,18 @@ export const TranslationInterface = ({ transcript, isRecording, onLanguageChange
         }
         
         setIsTranslating(false);
+        isTranslationInProgress.current = false;
       };
 
       translateNewContent();
     }, 1500); // Reduced to 1.5 seconds for faster response
 
-    return () => clearTimeout(timer);
+    return () => {
+      if (translationTimer.current) {
+        clearTimeout(translationTimer.current);
+        translationTimer.current = null;
+      }
+    };
   }, [transcript, isTranslationEnabled, selectedLanguage, autoTranslate]);
 
   // Process audio queue when new items are added
