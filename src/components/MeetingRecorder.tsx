@@ -1489,18 +1489,12 @@ export const MeetingRecorder = ({
     setIsGeneratingNotes(true);
 
     try {
-      // TEMPORARILY SKIP CLEANING TO TEST IF IT'S THE CULPRIT
-      let cleanedTranscript = currentTranscript;
-      console.log('🔍 BYPASSING clean-transcript function for testing');
-      console.log('🔍 Using raw transcript directly:', cleanedTranscript.length, 'chars');
-      
-      /*
       // First, clean the transcript using AI
-      let cleanedTranscript = transcript;
+      let cleanedTranscript = currentTranscript;
       try {
         const { data: cleanTranscriptData, error: cleanError } = await supabase.functions.invoke('clean-transcript', {
           body: {
-            rawTranscript: transcript,
+            rawTranscript: currentTranscript,
             meetingTitle: meetingData.title
           }
         });
@@ -1514,7 +1508,6 @@ export const MeetingRecorder = ({
       } catch (cleanTranscriptError) {
         console.warn('Error cleaning transcript, using original:', cleanTranscriptError);
       }
-      */
 
       // Update meeting data with cleaned transcript
       const enhancedMeetingData = {
@@ -1526,6 +1519,7 @@ export const MeetingRecorder = ({
       console.log('🔍 DEBUG: About to send to generate-meeting-minutes:');
       console.log('🔍 DEBUG: Transcript length:', cleanedTranscript.length);
       console.log('🔍 DEBUG: Transcript ending:', cleanedTranscript.slice(-200));
+      console.log('🔍 DEBUG: Full transcript for inspection:', cleanedTranscript);
 
       // Call the generate-meeting-minutes edge function with cleaned transcript
       const { data: minutesData, error } = await supabase.functions.invoke('generate-meeting-minutes', {
