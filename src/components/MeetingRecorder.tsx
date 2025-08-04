@@ -1446,6 +1446,9 @@ export const MeetingRecorder = ({
     const needsAudioBackup = shouldCreateAudioBackup(wordCount, duration);
     console.log(`📊 Audio backup needed: ${needsAudioBackup}`);
     
+    // STOP all real-time processing immediately to prevent interference
+    setRealtimeTranscripts([]); // Clear any pending real-time transcripts
+    
     // Get transcript directly from the database instead of relying on state
     console.log('🔍 DEBUG: Getting transcript from database...');
     let finalTranscript = '';
