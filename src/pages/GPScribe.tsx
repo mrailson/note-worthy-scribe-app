@@ -464,18 +464,25 @@ const Index = () => {
       
       if (transcriptData.isFinal) {
         const finalTranscripts = newTranscripts.filter(t => t.isFinal);
-        const fullTranscript = finalTranscripts
+        const rawTranscript = finalTranscripts
           .map(t => `${t.speaker}: ${t.text}`)
           .join('\n');
         
-        setTranscript(fullTranscript);
+        // Basic immediate cleaning for better readability
+        const quickCleanedTranscript = performQuickCleaning(rawTranscript);
+        setTranscript(quickCleanedTranscript);
         
-        const words = fullTranscript.split(' ').filter(word => word.length > 0);
+        const words = quickCleanedTranscript.split(' ').filter(word => word.length > 0);
         setWordCount(words.length);
         
+        // Auto-clean transcript when it reaches meaningful length
+        if (quickCleanedTranscript.length > 300) {
+          debounceAutoCleaning(quickCleanedTranscript);
+        }
+        
         // Auto-trigger guidance if enabled and transcript is meaningful
-        if (autoGuidance && fullTranscript.length > 200 && words.length > 30) {
-          debounceGuidance(fullTranscript);
+        if (autoGuidance && quickCleanedTranscript.length > 200 && words.length > 30) {
+          debounceGuidance(quickCleanedTranscript);
         }
       }
       
@@ -486,6 +493,55 @@ const Index = () => {
       
       return newTranscripts;
     });
+  };
+
+  // Quick cleaning function for immediate text improvement
+  const performQuickCleaning = (text: string): string => {
+    return text
+      // Fix spacing around punctuation
+      .replace(/\s+([,.!?;:])/g, '$1')
+      .replace(/([,.!?;:])\s+/g, '$1 ')
+      // Fix multiple spaces
+      .replace(/\s+/g, ' ')
+      // Capitalize sentences
+      .replace(/(^|[.!?]\s+)([a-z])/g, (match, p1, p2) => p1 + p2.toUpperCase())
+      // Fix common speech recognition errors
+      .replace(/\bum\b/gi, '')
+      .replace(/\buh\b/gi, '')
+      .replace(/\ber\b/gi, '')
+      // Remove excessive repetition
+      .replace(/(\b\w+\b)\s+\1\s+\1/gi, '$1')
+      .trim();
+  };
+
+  // Debounced auto-cleaning function
+  const autoCleanTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const debounceAutoCleaning = (text: string) => {
+    if (autoCleanTimeoutRef.current) {
+      clearTimeout(autoCleanTimeoutRef.current);
+    }
+    
+    autoCleanTimeoutRef.current = setTimeout(async () => {
+      console.log('Auto-cleaning transcript...');
+      try {
+        const { data, error } = await supabase.functions.invoke('clean-transcript', {
+          body: {
+            rawTranscript: text,
+            meetingTitle: `GP Consultation - ${consultationType}`
+          }
+        });
+
+        if (error) throw error;
+
+        if (data.cleanedTranscript && data.cleanedTranscript !== text) {
+          setCleanedTranscript(data.cleanedTranscript);
+          setTranscript(data.cleanedTranscript); // Update the main transcript with cleaned version
+          toast.success("Transcript automatically tidied up!");
+        }
+      } catch (error: any) {
+        console.error("Error auto-cleaning transcript:", error);
+      }
+    }, 10000); // Wait 10 seconds after transcript stops changing
   };
 
   // Debounced guidance function to avoid too many API calls
