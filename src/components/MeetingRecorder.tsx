@@ -1591,9 +1591,27 @@ export const MeetingRecorder = ({
     setIsGeneratingNotes(true);
 
     try {
-      // Temporarily bypass transcript cleaning to avoid truncation
+      // Use proper ChatGPT-based cleaning for medical transcript deduplication
+      console.log('Using ChatGPT-based transcript cleaning for medical accuracy');
+      
+      const { data: cleaningResult, error: cleaningError } = await supabase.functions.invoke('clean-transcript', {
+        body: {
+          rawTranscript: currentTranscript,
+          meetingTitle: initialSettings?.title || 'Medical Consultation'
+        }
+      });
+
       let cleanedTranscript = currentTranscript;
-      console.log('Skipping transcript cleaning to avoid truncation - using original transcript');
+      
+      if (cleaningError) {
+        console.error('Transcript cleaning failed:', cleaningError);
+        console.log('Using original transcript due to cleaning error');
+      } else if (cleaningResult?.cleanedTranscript) {
+        cleanedTranscript = cleaningResult.cleanedTranscript;
+        console.log(`✅ Transcript cleaned successfully: ${cleaningResult.originalLength} → ${cleaningResult.cleanedLength} chars`);
+      } else {
+        console.log('No cleaned transcript returned, using original');
+      }
 
       // Update meeting data with cleaned transcript
       const enhancedMeetingData = {
