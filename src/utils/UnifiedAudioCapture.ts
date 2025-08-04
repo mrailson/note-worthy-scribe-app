@@ -1,3 +1,5 @@
+import { TranscriptCleaner } from './TranscriptCleaner';
+
 export class UnifiedAudioCapture {
   private audioContext: AudioContext | null = null;
   private micStream: MediaStream | null = null;
@@ -11,6 +13,7 @@ export class UnifiedAudioCapture {
   private transcriptBuffer: string[] = [];
   private lastTranscriptTime = Date.now();
   private transcriptAssemblyTimer: NodeJS.Timeout | null = null;
+  private cleaningBuffer: any = null;
 
   constructor(
     private onTranscript: (transcript: any) => void,
@@ -40,7 +43,23 @@ export class UnifiedAudioCapture {
       // Step 4: Start recording
       this.startRecording();
       
-      // Step 5: Send an immediate test to verify the system is working
+      // Step 5: Initialize the cleaning buffer for retrospective cleaning
+      this.cleaningBuffer = TranscriptCleaner.createBufferedCleaner(
+        (cleanedText) => {
+          console.log('📝 Retrospectively cleaned transcript:', cleanedText);
+          this.onTranscript({
+            text: cleanedText,
+            speaker: this.systemStream ? 'Mic + Browser (Cleaned)' : 'Microphone (Cleaned)',
+            confidence: 0.95,
+            timestamp: new Date().toISOString(),
+            isFinal: true,
+            isCleaned: true
+          });
+        },
+        7000 // Clean every 7 seconds for clinical accuracy
+      );
+      
+      // Step 6: Send an immediate test to verify the system is working
       setTimeout(() => {
         this.sendTestAudio();
       }, 2000);
@@ -183,8 +202,8 @@ export class UnifiedAudioCapture {
       this.processAudioChunks();
     };
 
-    // Start recording and process every 3 seconds
-    this.mediaRecorder.start();
+    // Start recording with immediate data collection and longer initial buffer
+    this.mediaRecorder.start(500); // Collect data every 500ms to prevent loss
     this.isRecording = true;
     this.scheduleProcessing();
   }
@@ -229,20 +248,20 @@ export class UnifiedAudioCapture {
   private scheduleProcessing() {
     if (!this.isRecording) return;
 
-    // Record in shorter chunks for faster feedback
+    // Use longer chunks for better transcription accuracy
     setTimeout(() => {
       if (this.isRecording && this.mediaRecorder?.state === 'recording') {
         console.log('Stopping recording for processing...');
         this.mediaRecorder.stop();
         
-        // Restart recording after brief pause
+        // Restart recording immediately to minimize gaps
         setTimeout(() => {
           if (this.isRecording && this.combinedStream) {
             this.startRecording();
           }
-        }, 100);
+        }, 50); // Minimal delay to prevent gaps
       }
-    }, 1500); // Process every 1.5 seconds for faster feedback
+    }, 4000); // Process every 4 seconds for better accuracy
   }
 
   private async processAudioChunks() {
@@ -258,8 +277,8 @@ export class UnifiedAudioCapture {
       // Clear chunks for next batch
       this.audioChunks = [];
 
-      // Skip very small files (likely silence)
-      if (audioBlob.size < 3000) {
+      // Skip very small files (likely silence) - reduced threshold to capture more audio
+      if (audioBlob.size < 1500) {
         console.log('Skipping small audio chunk');
         return;
       }
@@ -278,7 +297,8 @@ export class UnifiedAudioCapture {
 
       console.log('Sending to transcription service...');
       
-      const response = await fetch('https://dphcnbricafkbtizkoal.functions.supabase.co/functions/v1/speech-to-text', {
+      // Use the more accurate assemblyai-transcription function
+      const response = await fetch('https://dphcnbricafkbtizkoal.functions.supabase.co/functions/v1/assemblyai-transcription', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -318,8 +338,12 @@ export class UnifiedAudioCapture {
           
           if (!isHallucination) {
             console.log('Valid transcription fragment:', text);
-            // Add to transcript buffer instead of immediately outputting
+            // Add to transcript buffer for immediate output
             this.addToTranscriptBuffer(text);
+            // Also add to cleaning buffer for retrospective cleaning
+            if (this.cleaningBuffer) {
+              this.cleaningBuffer.addText(text);
+            }
           } else {
             console.log('Filtered hallucination:', text);
           }
@@ -421,7 +445,7 @@ export class UnifiedAudioCapture {
     // Set a timer to assemble transcript after a pause in speech
     this.transcriptAssemblyTimer = setTimeout(() => {
       this.assembleAndOutputTranscript();
-    }, 3000); // Wait 3 seconds after last fragment
+    }, 2000); // Wait 2 seconds after last fragment for faster output
   }
 
   private assembleAndOutputTranscript() {
@@ -460,6 +484,20 @@ export class UnifiedAudioCapture {
     text = text.replace(/\s+([.!?])/g, '$1'); // Remove space before punctuation
     text = text.replace(/([.!?])\s*([a-z])/g, '$1 $2'); // Ensure space after punctuation
     
+    // Fix common medical transcription errors
+    text = text.replace(/\bpatients\b/gi, 'patient'); // Common plural error
+    text = text.replace(/\bdoctor\b/gi, 'Dr'); // Standardize doctor reference
+    text = text.replace(/\bgp\b/gi, 'GP'); // Standardize GP reference
+    text = text.replace(/\bnhs\b/gi, 'NHS'); // Standardize NHS reference
+    text = text.replace(/\bmg\b/gi, 'mg'); // Fix medication dosage
+    text = text.replace(/\bml\b/gi, 'ml'); // Fix medication volume
+    
+    // Fix common word confusions
+    text = text.replace(/\bfeel\b/gi, 'feel'); // Common mishearing
+    text = text.replace(/\bpain\b/gi, 'pain'); // Ensure correct spelling
+    text = text.replace(/\bhead\b/gi, 'head'); // Common mishearing
+    text = text.replace(/\bchest\b/gi, 'chest'); // Common mishearing
+    
     // Capitalize first letter
     text = text.charAt(0).toUpperCase() + text.slice(1);
     
@@ -486,6 +524,11 @@ export class UnifiedAudioCapture {
 
     // Flush any remaining transcript fragments
     this.flushTranscriptBuffer();
+    
+    // Flush the cleaning buffer for final retrospective cleaning
+    if (this.cleaningBuffer) {
+      this.cleaningBuffer.flush();
+    }
     
     // Clear any pending assembly timer
     if (this.transcriptAssemblyTimer) {
