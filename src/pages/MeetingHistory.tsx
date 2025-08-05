@@ -34,8 +34,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
-
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 interface Meeting {
   id: string;
@@ -124,8 +123,8 @@ const calculateTextSimilarity = (text1: string, text2: string): number => {
 const MeetingHistory = () => {
   const { user } = useAuth();
   const isMobile = useIsMobile();
-  
   const navigate = useNavigate();
+  const location = useLocation();
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [filteredMeetings, setFilteredMeetings] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(true);
@@ -680,6 +679,18 @@ const MeetingHistory = () => {
       fetchMeetings();
     }
   }, [user]);
+
+  // Handle auto-opening transcript dialog when navigated from MeetingRecorder
+  useEffect(() => {
+    const state = location.state as any;
+    if (state?.viewTranscript && state?.openDialog) {
+      // Wait for meetings to load, then open the transcript
+      const timer = setTimeout(() => {
+        handleViewTranscript(state.viewTranscript);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [location.state]);
 
   useEffect(() => {
     filterMeetings();

@@ -1870,7 +1870,7 @@ export const MeetingRecorder = ({
   };
 
   const handleViewTranscript = (meetingId: string) => {
-    navigate('/meeting-history', { state: { viewTranscript: meetingId } });
+    navigate('/meeting-history', { state: { viewTranscript: meetingId, openDialog: true } });
   };
 
   const handleDeleteMeeting = async (meetingId: string) => {
