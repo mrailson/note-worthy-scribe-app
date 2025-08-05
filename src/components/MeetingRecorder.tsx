@@ -1972,7 +1972,7 @@ export const MeetingRecorder = ({
     <div className="space-y-6">
       {/* Tabbed Interface */}
       <Tabs defaultValue="recorder" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="recorder" className="flex items-center gap-2">
             <Mic style={{ width: '20px', height: '20px', color: '#0066cc', display: 'block' }} />
             <span className="hidden sm:inline">Meeting Recorder</span>
