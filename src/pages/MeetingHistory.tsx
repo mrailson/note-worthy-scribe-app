@@ -53,34 +53,58 @@ interface Meeting {
   summary_exists?: boolean;
 }
 
-// Helper function to deduplicate transcript segments
+// Helper function to deduplicate transcript segments with more aggressive deduplication
 const deduplicateTranscript = (segments: string[]): string => {
   if (!segments || segments.length === 0) return '';
   
-  const cleanedSegments: string[] = [];
-  let previousContent = '';
+  // First, clean each segment
+  const cleanedSegments = segments
+    .map(segment => segment.trim())
+    .filter(segment => segment.length > 0);
   
-  for (const segment of segments) {
-    const trimmedSegment = segment.trim();
-    if (!trimmedSegment) continue;
+  if (cleanedSegments.length === 0) return '';
+  if (cleanedSegments.length === 1) return cleanedSegments[0];
+  
+  // Join all segments and then split by sentences to find duplicates
+  const fullText = cleanedSegments.join(' ');
+  
+  // Split into sentences and remove duplicates
+  const sentences = fullText.split(/[.!?]+/)
+    .map(s => s.trim())
+    .filter(s => s.length > 0);
+  
+  const uniqueSentences: string[] = [];
+  const seenSentences = new Set<string>();
+  
+  for (const sentence of sentences) {
+    const normalized = sentence.toLowerCase().replace(/\s+/g, ' ').trim();
     
-    // Check if this segment is substantially different from the previous one
-    if (trimmedSegment !== previousContent && !isSubstantiallyDuplicate(trimmedSegment, previousContent)) {
-      cleanedSegments.push(trimmedSegment);
-      previousContent = trimmedSegment;
+    // Skip if we've seen this exact sentence or a very similar one
+    if (!seenSentences.has(normalized) && !isAlreadyIncluded(normalized, uniqueSentences)) {
+      uniqueSentences.push(sentence);
+      seenSentences.add(normalized);
     }
   }
   
-  return cleanedSegments.join(' ');
+  return uniqueSentences.join('. ').trim() + (uniqueSentences.length > 0 ? '.' : '');
 };
 
-// Helper function to check if two text segments are substantially duplicate
-const isSubstantiallyDuplicate = (text1: string, text2: string): boolean => {
-  if (!text1 || !text2) return false;
-  
-  // If one text contains the other with at least 80% overlap, consider it duplicate
-  const similarity = calculateTextSimilarity(text1, text2);
-  return similarity > 0.8;
+// More aggressive duplicate detection
+const isAlreadyIncluded = (newSentence: string, existingSentences: string[]): boolean => {
+  for (const existing of existingSentences) {
+    const existingNormalized = existing.toLowerCase().replace(/\s+/g, ' ').trim();
+    
+    // Check if sentences are too similar (90% overlap)
+    if (calculateTextSimilarity(newSentence, existingNormalized) > 0.9) {
+      return true;
+    }
+    
+    // Check if one sentence contains the other
+    if (newSentence.includes(existingNormalized) || existingNormalized.includes(newSentence)) {
+      return true;
+    }
+  }
+  return false;
 };
 
 // Helper function to calculate text similarity
@@ -277,8 +301,16 @@ const MeetingHistory = () => {
 
       if (transcriptError) throw transcriptError;
 
+      // Debug: Log the raw transcripts to see what we're getting from DB
+      console.log('Raw transcripts from DB:', transcripts?.length, 'records');
+      transcripts?.forEach((t, i) => {
+        console.log(`Transcript ${i}:`, t.content.substring(0, 100) + '...');
+      });
+
       // Deduplicate and clean transcript content
       const fullTranscript = deduplicateTranscript(transcripts?.map(t => t.content) || []);
+      
+      console.log('After deduplication, transcript length:', fullTranscript.length, 'chars');
       
       // Set all data before opening dialog
       setViewingTranscript(fullTranscript);
