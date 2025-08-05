@@ -102,11 +102,18 @@ export const MeetingRecorder = ({
   const autoSaveRef = useRef<NodeJS.Timeout | null>(null);
   const browserAudioStreamRef = useRef<MediaStream | null>(null);
   const micAudioStreamRef = useRef<MediaStream | null>(null);
-  
+
   // Audio backup recording refs
   const audioBackupRecorder = useRef<MediaRecorder | null>(null);
   const audioBackupChunks = useRef<Blob[]>([]);
   const audioBackupStream = useRef<MediaStream | null>(null);
+
+  // Audio segment recording refs
+  const audioSegmentRecorder = useRef<MediaRecorder | null>(null);
+  const audioSegmentChunks = useRef<Blob[]>([]);
+  const segmentIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const currentSegmentNumber = useRef<number>(1);
+  const segmentStartTime = useRef<Date>(new Date());
 
   // Function to round time to nearest 15 minutes
   const roundToNearest15Minutes = (date: Date): Date => {
@@ -236,6 +243,135 @@ export const MeetingRecorder = ({
     } catch (error) {
       console.error('❌ Failed to upload audio backup:', error);
       return null;
+    }
+  };
+
+  // Audio segment recording functions
+  const startAudioSegmentRecording = async (meetingId: string) => {
+    try {
+      console.log('🎵 Starting audio segment recording...');
+      
+      // Get microphone stream for segment recording
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          sampleRate: 44100,
+          channelCount: 2,
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false
+        }
+      });
+
+      audioSegmentChunks.current = [];
+      audioSegmentRecorder.current = new MediaRecorder(stream, {
+        mimeType: 'audio/webm;codecs=opus'
+      });
+
+      audioSegmentRecorder.current.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioSegmentChunks.current.push(event.data);
+        }
+      };
+
+      audioSegmentRecorder.current.start(1000); // Collect data every second
+      segmentStartTime.current = new Date();
+      currentSegmentNumber.current = 1;
+      
+      // Set up 10-minute interval to save segments
+      segmentIntervalRef.current = setInterval(() => {
+        saveCurrentSegment(meetingId);
+      }, 10 * 60 * 1000); // 10 minutes
+
+      console.log('✅ Audio segment recording started');
+      
+    } catch (error) {
+      console.error('❌ Failed to start audio segment recording:', error);
+    }
+  };
+
+  const saveCurrentSegment = async (meetingId: string) => {
+    try {
+      if (!audioSegmentRecorder.current || audioSegmentChunks.current.length === 0) {
+        return;
+      }
+
+      console.log(`🎵 Saving audio segment ${currentSegmentNumber.current}...`);
+      
+      // Create blob from current chunks
+      const segmentBlob = new Blob(audioSegmentChunks.current, { type: 'audio/webm' });
+      const segmentEndTime = new Date();
+      
+      // Upload segment to storage
+      const fileName = `${user?.id}/${meetingId}_segment_${currentSegmentNumber.current}.webm`;
+      
+      const { data: storageData, error: storageError } = await supabase.storage
+        .from('meeting-audio-segments')
+        .upload(fileName, segmentBlob, {
+          contentType: 'audio/webm',
+          upsert: false
+        });
+
+      if (storageError) {
+        throw storageError;
+      }
+
+      // Save segment metadata to database
+      const { error: dbError } = await supabase
+        .from('meeting_audio_segments')
+        .insert({
+          meeting_id: meetingId,
+          segment_number: currentSegmentNumber.current,
+          start_time: segmentStartTime.current.toISOString(),
+          end_time: segmentEndTime.toISOString(),
+          file_path: storageData.path,
+          file_size: segmentBlob.size,
+          duration_seconds: Math.floor((segmentEndTime.getTime() - segmentStartTime.current.getTime()) / 1000)
+        });
+
+      if (dbError) {
+        throw dbError;
+      }
+
+      console.log(`✅ Audio segment ${currentSegmentNumber.current} saved successfully`);
+      
+      // Reset for next segment
+      audioSegmentChunks.current = [];
+      currentSegmentNumber.current++;
+      segmentStartTime.current = new Date();
+      
+    } catch (error) {
+      console.error('❌ Failed to save audio segment:', error);
+    }
+  };
+
+  const stopAudioSegmentRecording = async (meetingId: string) => {
+    try {
+      console.log('🛑 Stopping audio segment recording...');
+      
+      // Clear interval
+      if (segmentIntervalRef.current) {
+        clearInterval(segmentIntervalRef.current);
+        segmentIntervalRef.current = null;
+      }
+
+      // Save final partial segment if there's any data
+      if (audioSegmentChunks.current.length > 0) {
+        await saveCurrentSegment(meetingId);
+      }
+
+      // Stop recorder
+      if (audioSegmentRecorder.current && audioSegmentRecorder.current.state !== 'inactive') {
+        audioSegmentRecorder.current.stop();
+        audioSegmentRecorder.current.stream?.getTracks().forEach(track => track.stop());
+      }
+
+      audioSegmentRecorder.current = null;
+      audioSegmentChunks.current = [];
+      
+      console.log('✅ Audio segment recording stopped');
+      
+    } catch (error) {
+      console.error('❌ Failed to stop audio segment recording:', error);
     }
   };
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -1339,6 +1475,9 @@ export const MeetingRecorder = ({
         desktopTranscriberRef.current.setMeetingId(tempMeetingId);
         console.log(`🔗 Set temporary meeting ID: ${tempMeetingId}`);
       }
+
+      // Start audio segment recording
+      await startAudioSegmentRecording(tempMeetingId);
       
       addDebugLog('✅ Recording started successfully');
       
