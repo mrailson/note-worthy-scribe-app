@@ -65,7 +65,7 @@ async function callClaude(messages: Message[], systemPrompt: string, files?: Upl
       'anthropic-version': '2023-06-01'
     },
     body: JSON.stringify({
-      model: 'claude-3-5-sonnet-20241022',
+      model: 'claude-sonnet-4-20250514',
       max_tokens: 4000,
       system: systemPrompt,
       messages: claudeMessages
@@ -122,7 +122,7 @@ async function callGPT(messages: Message[], systemPrompt: string, files?: Upload
       'Authorization': `Bearer ${openaiApiKey}`
     },
     body: JSON.stringify({
-      model: 'gpt-4.1-2025-04-14',
+      model: 'gpt-4-turbo',
       messages: gptMessages,
       max_tokens: 4000,
       temperature: 0.7
