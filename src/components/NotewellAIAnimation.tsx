@@ -59,7 +59,7 @@ export const NotewellAIAnimation = ({ isVisible }: NotewellAIAnimationProps) => 
           
           <div className="flex items-center justify-center gap-2 text-muted-foreground">
             <FileText className="h-4 w-4" />
-            <span>Generating meeting notes{dots}</span>
+            <span>Generating consultation notes{dots}</span>
           </div>
           
           <div className="text-sm text-muted-foreground">
