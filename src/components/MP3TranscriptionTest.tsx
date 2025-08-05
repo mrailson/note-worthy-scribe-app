@@ -19,7 +19,11 @@ interface ProcessingMetrics {
   fileSize: number;
 }
 
-export const MP3TranscriptionTest = () => {
+interface MP3TranscriptionTestProps {
+  onTranscriptReceived?: (transcript: string) => void;
+}
+
+export const MP3TranscriptionTest = ({ onTranscriptReceived }: MP3TranscriptionTestProps) => {
   const [file, setFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<TranscriptionResult | null>(null);
@@ -74,6 +78,11 @@ export const MP3TranscriptionTest = () => {
         processingTime: processingTime / 1000, // Convert to seconds
         fileSize: file.size
       });
+
+      // Pass transcript to parent component
+      if (onTranscriptReceived && data.text) {
+        onTranscriptReceived(data.text);
+      }
     } catch (err) {
       console.error('Transcription error:', err);
       setError(err instanceof Error ? err.message : 'Failed to process audio file');

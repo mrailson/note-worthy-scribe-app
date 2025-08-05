@@ -2504,7 +2504,7 @@ const Index = () => {
           </TabsContent>
           
           <TabsContent value="test-mp3" className="space-y-6">
-            <MP3TranscriptionTest />
+            <MP3TranscriptionTest onTranscriptReceived={setTranscript} />
           </TabsContent>
         </Tabs>
       </div>
