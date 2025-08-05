@@ -1468,7 +1468,7 @@ const Index = () => {
                               <SelectTrigger className="bg-background">
                                 <SelectValue placeholder="Select translation language" />
                               </SelectTrigger>
-                              <SelectContent className="max-h-60">
+                              <SelectContent className="max-h-60" position="item-aligned" side="bottom" align="start">
                                 {HEALTHCARE_LANGUAGES.map((language) => (
                                   <SelectItem key={language.code} value={language.code}>
                                     <div className="flex items-center gap-2">
