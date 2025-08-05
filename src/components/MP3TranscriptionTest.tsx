@@ -184,7 +184,7 @@ export const MP3TranscriptionTest = ({ onTranscriptReceived }: MP3TranscriptionT
 
             <div className="space-y-2">
               <strong>Transcribed Text:</strong>
-              <div className="p-4 bg-muted rounded-lg whitespace-pre-wrap">
+              <div className="p-4 bg-muted rounded-lg whitespace-pre-wrap text-sm leading-relaxed">
                 {result.text || 'No text transcribed'}
               </div>
             </div>
