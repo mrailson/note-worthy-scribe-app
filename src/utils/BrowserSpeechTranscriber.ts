@@ -68,16 +68,16 @@ export class BrowserSpeechTranscriber {
           if (transcript.trim()) {
             console.log('📝 Transcription:', transcript, 'Final:', result.isFinal);
             
-            // Only process final results to avoid duplicate interim results
-            if (result.isFinal) {
-              const transcriptData: TranscriptData = {
-                text: transcript,
-                is_final: true, // Always mark as final since we're only processing finals
-                confidence: result[0].confidence || 0.9,
-                speaker: 'Speaker'
-              };
+            const transcriptData: TranscriptData = {
+              text: transcript,
+              is_final: result.isFinal,
+              confidence: result[0].confidence || 0.9,
+              speaker: 'Speaker'
+            };
 
-              // Filter out likely hallucinations
+            // Process both interim and final results for better UX
+            // Filter out likely hallucinations only for final results
+            if (result.isFinal) {
               if (!this.isLikelyHallucination(transcript.toLowerCase())) {
                 this.onTranscription(transcriptData);
                 
@@ -88,6 +88,9 @@ export class BrowserSpeechTranscriber {
               } else {
                 console.log('🚫 Filtered hallucination:', transcript);
               }
+            } else {
+              // Send interim results for live display
+              this.onTranscription(transcriptData);
             }
           }
         }

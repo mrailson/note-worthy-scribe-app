@@ -32,6 +32,7 @@ import { toast } from "sonner";
 import { BrowserSpeechTranscriber, TranscriptData as BrowserTranscriptData } from '@/utils/BrowserSpeechTranscriber';
 import { iPhoneWhisperTranscriber, TranscriptData as iPhoneTranscriptData } from '@/utils/iPhoneWhisperTranscriber';
 import { DesktopWhisperTranscriber, TranscriptData as DesktopTranscriptData } from '@/utils/DesktopWhisperTranscriber';
+import { IncrementalTranscriptHandler, IncrementalTranscriptData } from '@/utils/IncrementalTranscriptHandler';
 
 interface TranscriptData {
   text: string;
@@ -102,6 +103,7 @@ export const MeetingRecorder = ({
   const autoSaveRef = useRef<NodeJS.Timeout | null>(null);
   const browserAudioStreamRef = useRef<MediaStream | null>(null);
   const micAudioStreamRef = useRef<MediaStream | null>(null);
+  const transcriptHandler = useRef<IncrementalTranscriptHandler | null>(null);
 
   // Audio backup recording refs
   const audioBackupRecorder = useRef<MediaRecorder | null>(null);
@@ -495,115 +497,93 @@ export const MeetingRecorder = ({
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Initialize transcript handler
+  useEffect(() => {
+    transcriptHandler.current = new IncrementalTranscriptHandler(
+      (fullTranscript: string) => {
+        // Update main transcript state
+        setTranscript(fullTranscript);
+        onTranscriptUpdate(fullTranscript);
+        latestCompleteTranscriptRef.current = fullTranscript;
+        
+        // Update word count
+        const words = fullTranscript.split(' ').filter(word => word.length > 0);
+        setWordCount(words.length);
+        onWordCountUpdate(words.length);
+        
+        console.log('📝 Transcript updated:', fullTranscript.length, 'chars');
+      },
+      (interimText: string) => {
+        // Handle interim updates for ticker
+        if (interimText.trim() && tickerEnabled) {
+          const truncatedText = interimText.length > 100 
+            ? interimText.substring(0, 100) + "..." 
+            : interimText;
+          
+          setTickerText(truncatedText);
+          setShowTicker(true);
+          
+          // Auto-hide ticker after 3 seconds
+          setTimeout(() => {
+            setShowTicker(false);
+          }, 3000);
+        }
+      }
+    );
+  }, [onTranscriptUpdate, onWordCountUpdate, tickerEnabled]);
+
   const handleTranscript = (transcriptData: TranscriptData) => {
-    // Update ticker tape for live transcription
-    if (transcriptData.text && transcriptData.text.trim() && tickerEnabled) {
-      const truncatedText = transcriptData.text.length > 100 
-        ? transcriptData.text.substring(0, 100) + "..." 
-        : transcriptData.text;
-      
-      setTickerText(truncatedText);
-      setShowTicker(true);
-      
-      // Auto-hide ticker after 3 seconds if no new text
-      setTimeout(() => {
-        setShowTicker(false);
-      }, 3000);
+    // Convert to incremental transcript format
+    const incrementalData: IncrementalTranscriptData = {
+      text: transcriptData.text,
+      is_final: transcriptData.isFinal,
+      confidence: transcriptData.confidence,
+      timestamp: transcriptData.timestamp,
+      speaker: transcriptData.speaker,
+      segment_id: `${transcriptData.speaker}_${transcriptData.timestamp}_${Date.now()}`
+    };
+
+    // Process through incremental handler
+    if (transcriptHandler.current) {
+      transcriptHandler.current.processTranscript(incrementalData);
     }
 
-    // Update transcripts array
+    // Update transcripts array for display
     setRealtimeTranscripts(prev => {
-      // Only remove non-final transcripts from the same speaker to avoid duplicates
-      // Keep ALL final transcripts (each chunk is a separate final transcript)
+      // Only keep recent transcripts for display (last 50 segments)
+      const maxSegments = 50;
       const filtered = prev.filter(t => 
         !(t.speaker === transcriptData.speaker && !t.isFinal)
       );
       
-      // If this is a final transcript, always add it (don't replace previous final ones)
       const newTranscripts = [...filtered, transcriptData];
       
-      console.log('🔍 Adding transcript:', transcriptData.isFinal ? 'FINAL' : 'interim', `(${transcriptData.text.length} chars)`);
-      console.log('🔍 Total transcripts after add:', newTranscripts.length);
-      console.log('🔍 Final transcripts count:', newTranscripts.filter(t => t.isFinal).length);
+      // Keep only the most recent segments
+      const trimmed = newTranscripts.slice(-maxSegments);
       
-      // Calculate speaker count from the new array
-      const speakers = new Set(newTranscripts.map(t => t.speaker));
+      // Calculate speaker count
+      const speakers = new Set(trimmed.map(t => t.speaker));
       setSpeakerCount(speakers.size);
       
-      // Update main transcript if this is final
-      if (transcriptData.isFinal) {
-        const finalTranscripts = newTranscripts.filter(t => t.isFinal);
-        
-        console.log('📝 Processing final transcripts:', finalTranscripts.length);
-        finalTranscripts.forEach((t, i) => {
-          console.log(`📝 Transcript ${i + 1} (${t.text.length} chars):`, t.text.substring(0, 100) + '...');
-        });
-        
-        // Combine all final transcripts to build the complete conversation
-        // Each chunk from the desktop transcriber is a separate part of the conversation
-        let rawTranscript = '';
-        if (finalTranscripts.length === 0) {
-          rawTranscript = '';
-        } else if (finalTranscripts.length === 1) {
-          rawTranscript = finalTranscripts[0].text;
-        } else {
-          // Sort by timestamp to maintain chronological order
-          const sortedByTime = finalTranscripts.sort((a, b) => 
-            new Date(a.timestamp || 0).getTime() - new Date(b.timestamp || 0).getTime()
-          );
-          
-          // Concatenate all transcripts with a space separator
-          rawTranscript = sortedByTime.map(t => t.text.trim()).join(' ');
-          
-          console.log('📝 Combined transcript from', sortedByTime.length, 'chunks');
-          console.log('📝 Total combined length:', rawTranscript.length, 'chars');
-          console.log('📝 Combined content preview:', rawTranscript.substring(0, 200) + '...');
-        }
-        
-        // Remove hallucinated phrases from transcript
-        const cleanedTranscript = rawTranscript
-          .replace(/Thank you for watching\.?\s*/gi, '')
-          .replace(/Thanks for watching\.?\s*/gi, '')
-          .trim();
-        
-        console.log('📝 Final cleaned transcript length:', cleanedTranscript.length);
-        console.log('📝 Final transcript ends with:', cleanedTranscript.slice(-100));
-        
-        // Store the latest complete transcript in a ref for immediate access
-        latestCompleteTranscriptRef.current = cleanedTranscript;
-        
-        setTranscript(cleanedTranscript);
-        onTranscriptUpdate(cleanedTranscript);
-        
-        // Update word count
-        const words = cleanedTranscript.split(' ').filter(word => word.length > 0);
-        setWordCount(words.length);
-        onWordCountUpdate(words.length);
-      }
+      console.log('🔍 Adding transcript:', transcriptData.isFinal ? 'FINAL' : 'interim', `(${transcriptData.text.length} chars)`);
       
-      return newTranscripts;
+      return trimmed;
     });
   };
 
   const handleBrowserTranscript = (data: BrowserTranscriptData) => {
-    // Remove hallucinated phrases from browser transcription
-    const cleanedText = data.text
-      .replace(/Thank you for watching\.?\s*/gi, '')
-      .replace(/Thanks for watching\.?\s*/gi, '')
-      .trim();
-    
-    // Skip empty transcripts after cleaning
-    if (!cleanedText) return;
+    // Skip empty transcripts
+    if (!data.text || !data.text.trim()) return;
     
     const transcriptData: TranscriptData = {
-      text: cleanedText,
+      text: data.text.trim(),
       speaker: data.speaker || 'Speaker',
-      confidence: data.confidence,
+      confidence: data.confidence || 0.9,
       timestamp: new Date().toISOString(),
       isFinal: data.is_final
     };
     
-    addDebugLog(`🎙️ ${data.is_final ? 'Final' : 'Interim'}: "${data.text}" (${Math.round(data.confidence * 100)}%)`);
+    addDebugLog(`🎙️ ${data.is_final ? 'Final' : 'Interim'}: "${data.text.substring(0, 50)}..." (${Math.round((data.confidence || 0.9) * 100)}%)`);
     setTestTranscripts(prev => [...prev.slice(-9), data.text]);
     
     handleTranscript(transcriptData);
@@ -1456,6 +1436,11 @@ export const MeetingRecorder = ({
       // Clear previous debug logs and test transcripts
       setDebugLog([]);
       setTestTranscripts([]);
+      
+      // Clear transcript handler
+      if (transcriptHandler.current) {
+        transcriptHandler.current.clear();
+      }
       
       // Start audio backup recording
       await startAudioBackup();
