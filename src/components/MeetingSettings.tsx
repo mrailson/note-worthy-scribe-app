@@ -181,15 +181,54 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
 
     setIsImporting(true);
     try {
-      // Notify parent component about the imported audio
+      // Convert audio file to base64 for transcription
+      const arrayBuffer = await file.arrayBuffer();
+      const base64Audio = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+
+      // Send to speech-to-text function for transcription
+      const { data, error } = await supabase.functions.invoke('speech-to-text', {
+        body: { 
+          audio: base64Audio,
+          filename: file.name
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Failed to transcribe audio');
+      }
+
+      if (data?.text) {
+        // Create an ImportedTranscript object with the transcription
+        const importedTranscript: ImportedTranscript = {
+          content: data.text,
+          wordCount: data.text.split(/\s+/).length,
+          extractedSettings: {
+            title: file.name.replace(/\.[^/.]+$/, ''), // Remove file extension
+            description: '',
+            attendees: '',
+            agenda: '',
+            date: format(new Date(), 'yyyy-MM-dd')
+          }
+        };
+
+        // Notify parent component about the transcribed content
+        if (onTranscriptImported) {
+          onTranscriptImported(importedTranscript);
+        }
+
+        toast.success(`Audio transcribed successfully: ${file.name} (${importedTranscript.wordCount} words)`);
+      } else {
+        throw new Error('No transcription received');
+      }
+
+      // Also notify parent component about the original audio file
       if (onAudioImported) {
         onAudioImported(file);
       }
 
-      toast.success(`Audio file imported: ${file.name}`);
     } catch (error) {
-      console.error('Error importing audio file:', error);
-      toast.error(`Failed to import audio file: ${error}`);
+      console.error('Error importing/transcribing audio file:', error);
+      toast.error(`Failed to transcribe audio: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsImporting(false);
       // Reset the input so the same file can be selected again
