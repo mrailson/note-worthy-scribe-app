@@ -1868,13 +1868,65 @@ export const MeetingRecorder = ({
           cleanedLength: cleaningResult.cleanedLength
         });
       }
+
+      // Identify speakers using AI
+      toast.info('Identifying speakers with AI...');
       
-      // Set the cleaned text as the main transcript
-      setTranscript(finalTranscript);
-      onTranscriptUpdate(finalTranscript);
+      let enhancedTranscript = finalTranscript;
+      let speakerIdentification = null;
+      
+      try {
+        const { data: speakerResult, error: speakerError } = await supabase.functions.invoke('identify-speakers', {
+          body: {
+            transcript: finalTranscript,
+            meetingTitle: meetingSettings.title || 'Imported Audio Meeting',
+            agenda: meetingSettings.description
+          }
+        });
+
+        if (speakerError) {
+          console.error('Error identifying speakers:', speakerError);
+          toast.warning('Speaker identification failed, proceeding with default speakers');
+        } else if (speakerResult?.success) {
+          console.log('🎭 Speakers identified:', speakerResult.identification);
+          
+          const identification = speakerResult.identification;
+          speakerIdentification = identification;
+          
+          // Show identification results to user
+          if (identification.meetingType === 'consultation') {
+            toast.success('Medical consultation detected - GP and Patient identified!');
+          } else if (identification.meetingType === 'meeting') {
+            toast.success(`Meeting detected with ${identification.speakers.length} speakers identified!`);
+          }
+
+          // Update the transcript with identified speaker labels
+          if (identification.speakers.length > 0) {
+            // Create a mapping of generic speakers to identified roles
+            const speakerMapping = new Map();
+            identification.speakers.forEach((speaker, index) => {
+              speakerMapping.set(`Speaker ${index + 1}`, speaker.role);
+              speakerMapping.set(`Speaker${index + 1}`, speaker.role);
+            });
+
+            // Replace speaker labels in transcript
+            speakerMapping.forEach((role, originalSpeaker) => {
+              const regex = new RegExp(`\\b${originalSpeaker}\\b`, 'gi');
+              enhancedTranscript = enhancedTranscript.replace(regex, role);
+            });
+          }
+        }
+      } catch (speakerError) {
+        console.error('Speaker identification failed:', speakerError);
+        toast.warning('Speaker identification failed, using original transcript');
+      }
+      
+      // Set the enhanced text as the main transcript
+      setTranscript(enhancedTranscript);
+      onTranscriptUpdate(enhancedTranscript);
       
       // Update word count
-      const words = finalTranscript.split(' ').filter(word => word.length > 0);
+      const words = enhancedTranscript.split(' ').filter(word => word.length > 0);
       setWordCount(words.length);
       onWordCountUpdate(words.length);
       
@@ -1901,10 +1953,10 @@ export const MeetingRecorder = ({
           title: meetingSettings.title || 'Imported Audio Meeting',
           description: meetingSettings.description || '',
           meeting_type: meetingSettings.meetingType || 'general',
-          transcript: finalTranscript,
+          transcript: enhancedTranscript,
           duration: formatDuration(estimatedDurationSeconds),
           word_count: words.length,
-          speaker_count: 1,
+          speaker_count: speakerIdentification?.speakers?.length || 1,
           start_time: format(now, 'HH:mm'),
           started_by: user?.email || 'Unknown User',
           timestamp: generateMeetingTimestamp(),
@@ -1926,11 +1978,12 @@ export const MeetingRecorder = ({
         title: meetingSettings.title || 'Imported Audio Meeting',
         duration: formatDuration(estimatedDurationSeconds),
         wordCount: words.length,
-        transcript: finalTranscript,
-        speakerCount: 1,
+        transcript: enhancedTranscript,
+        speakerCount: speakerIdentification?.speakers?.length || 1,
         startTime: format(now, 'HH:mm'),
         startedBy: user?.email || 'Unknown User',
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        speakerIdentification
       };
 
       // Remove any unsaved meeting since this is a completed import
