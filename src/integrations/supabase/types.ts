@@ -3468,6 +3468,7 @@ export type Database = {
       }
       log_security_event: {
         Args:
+          | { event_type: string; event_data: Json }
           | {
               p_event_type: string
               p_severity?: string
@@ -3478,7 +3479,7 @@ export type Database = {
               p_event_details?: Json
             }
           | { p_event_type: string; p_user_id: string; p_details?: Json }
-        Returns: string
+        Returns: undefined
       }
       log_system_activity: {
         Args: {
