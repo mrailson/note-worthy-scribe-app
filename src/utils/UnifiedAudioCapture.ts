@@ -229,12 +229,19 @@ export class UnifiedAudioCapture {
       'thank you', 'thanks', 'thank you very much', 
       'thank you for listening', 'thank you for joining',
       'thank you for watching', 'thank you for your time',
-      'good night', 'goodnight', 'good morning', 'good afternoon'
+      'good night', 'goodnight', 'good morning', 'good afternoon',
+      'unclear audio', 'or unclear audio'
     ];
 
     // Religious/Arabic phrases that Whisper hallucinates
     const religiousPatterns = [
       'bi hurmati', 'muhammad', 'al-mustafa', 'surat', 'al-fatiha', 'bismillah'
+    ];
+
+    // Audio quality hallucinations
+    const audioQualityPatterns = [
+      'unclear audio', 'poor audio', 'bad audio', 'no audio',
+      'audio unclear', 'inaudible', 'muffled audio'
     ];
 
     // Check exact matches
@@ -247,8 +254,42 @@ export class UnifiedAudioCapture {
       return true;
     }
 
-    // Only filter extremely repetitive patterns (same word 4+ times)
+    // Check for audio quality hallucinations
+    if (audioQualityPatterns.some(pattern => text.toLowerCase().includes(pattern))) {
+      return true;
+    }
+
+    // Check for repetitive patterns (same phrase 3+ times)
+    const lowerText = text.toLowerCase();
+    if (lowerText.includes('or unclear audio') && (lowerText.match(/or unclear audio/g) || []).length >= 3) {
+      console.log('🚫 Detected "or unclear audio" hallucination pattern');
+      return true;
+    }
+
+    // Check for any repetitive short phrases (2-4 words repeated 3+ times)
     const words = text.split(' ');
+    if (words.length >= 6) {
+      for (let phraseLength = 2; phraseLength <= 4; phraseLength++) {
+        for (let i = 0; i <= words.length - phraseLength * 3; i++) {
+          const phrase = words.slice(i, i + phraseLength).join(' ').toLowerCase();
+          let count = 0;
+          for (let j = i; j <= words.length - phraseLength; j += phraseLength) {
+            const testPhrase = words.slice(j, j + phraseLength).join(' ').toLowerCase();
+            if (testPhrase === phrase) {
+              count++;
+            } else {
+              break;
+            }
+          }
+          if (count >= 3) {
+            console.log('🚫 Detected repetitive phrase hallucination:', phrase);
+            return true;
+          }
+        }
+      }
+    }
+
+    // Filter extremely repetitive single words (same word 4+ times)
     if (words.length >= 4) {
       const uniqueWords = new Set(words.map(w => w.toLowerCase()));
       if (uniqueWords.size === 1) {
@@ -322,7 +363,19 @@ export class UnifiedAudioCapture {
           validation: result.validation || 'N/A'
         });
 
-        // Trigger transcript update
+        // Check for hallucinations before processing
+        if (this.isLikelyHallucination(transcriptionText)) {
+          console.log('🚫 Filtering out hallucinated transcription:', transcriptionText.substring(0, 100) + '...');
+          return;
+        }
+
+        // Check if transcription is too short or empty
+        if (!transcriptionText || transcriptionText.trim().length < 3) {
+          console.log('🚫 Skipping empty or very short transcription');
+          return;
+        }
+
+        // Trigger transcript update only if valid
         if (this.onTranscript) {
           this.onTranscript({
             text: transcriptionText,
