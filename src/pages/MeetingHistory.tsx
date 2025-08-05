@@ -1532,20 +1532,6 @@ const MeetingHistory = () => {
                 )}
               </div>
 
-              {/* Simplified transcript display - no view options */}
-              <div className="border rounded-lg p-3 sm:p-4 bg-background max-h-[50vh] overflow-y-auto">
-                {cleanedTranscript ? (
-                  <div className="prose max-w-none prose-sm sm:prose">
-                    <div className="whitespace-pre-wrap text-xs sm:text-sm leading-relaxed">
-                      {cleanedTranscript}
-                    </div>
-                  </div>
-                ) : (
-                  <pre className="whitespace-pre-wrap text-xs sm:text-sm font-mono text-muted-foreground leading-relaxed">
-                    {viewingTranscript || "No transcript available for this meeting."}
-                  </pre>
-                )}
-              </div>
             </div>
             
             <DialogFooter className="pt-2 sm:pt-4">
