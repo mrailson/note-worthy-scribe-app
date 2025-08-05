@@ -730,6 +730,8 @@ Always provide practical, actionable advice that follows NHS guidelines and best
         
         if (!trimmedLine) return;
         
+        console.log("DEBUG Word Export - Processing line:", trimmedLine);
+        
         // Check for headings (markdown or formatted)
         if (trimmedLine.startsWith('#')) {
           const headingText = trimmedLine.replace(/^#+\s*/, '');
@@ -747,16 +749,17 @@ Always provide practical, actionable advice that follows NHS guidelines and best
             })
           );
         }
-        // Check if it's a section heading (all caps, ends with colon, or markdown heading format)
+        // Check if it's a section heading (including numbered headings with markdown)
         else if ((trimmedLine === trimmedLine.toUpperCase() && trimmedLine.length > 5 && trimmedLine.length < 80) || 
                  (trimmedLine.endsWith(':') && trimmedLine.length < 80 && !trimmedLine.startsWith('•') && !trimmedLine.startsWith('☑') && !trimmedLine.startsWith('☐')) ||
-                 (trimmedLine.match(/^\d+\.\s*\*\*[^*]+?\*\*$/))) { // Handle numbered headings like "1. **Background**"
+                 (trimmedLine.match(/^\d+\.\s*\*\*[^*]+?\*\*$/)) ||  // Handle numbered headings like "1. **Background**"
+                 (trimmedLine.match(/^[A-Z]\.\s*\*\*[^*]+?\*\*$/))) { // Handle lettered headings like "A. **NHS England**"
           
           // Extract heading text and remove markdown formatting for Word display
           let headingText = trimmedLine;
-          if (headingText.match(/^\d+\.\s*\*\*[^*]+?\*\*$/)) {
-            // Extract from numbered bold heading format
-            headingText = headingText.replace(/^\d+\.\s*\*\*([^*]+?)\*\*$/, '$1');
+          if (headingText.match(/^\d+\.\s*\*\*[^*]+?\*\*$/) || headingText.match(/^[A-Z]\.\s*\*\*[^*]+?\*\*$/)) {
+            // Extract from numbered/lettered bold heading format
+            headingText = headingText.replace(/^[A-Z0-9]\.\s*\*\*([^*]+?)\*\*$/, '$1');
           } else {
             // Remove any residual markdown
             headingText = headingText.replace(/\*\*/g, '').replace(/:/g, '');
@@ -819,8 +822,8 @@ Always provide practical, actionable advice that follows NHS guidelines and best
             })
           );
         }
-        // Handle numbered lists
-        else if (trimmedLine.match(/^\d+\./)) {
+        // Handle numbered lists (but not if they contain markdown formatting like **text**)
+        else if (trimmedLine.match(/^\d+\./) && !trimmedLine.includes('**')) {
           const numberedText = trimmedLine.replace(/^\d+\.\s*/, '');
           paragraphs.push(
             new Paragraph({
