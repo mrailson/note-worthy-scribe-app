@@ -747,14 +747,26 @@ Always provide practical, actionable advice that follows NHS guidelines and best
             })
           );
         }
-        // Check if it's a section heading (all caps or ends with colon)
+        // Check if it's a section heading (all caps, ends with colon, or markdown heading format)
         else if ((trimmedLine === trimmedLine.toUpperCase() && trimmedLine.length > 5 && trimmedLine.length < 80) || 
-                 (trimmedLine.endsWith(':') && trimmedLine.length < 80 && !trimmedLine.startsWith('•') && !trimmedLine.startsWith('☑') && !trimmedLine.startsWith('☐'))) {
+                 (trimmedLine.endsWith(':') && trimmedLine.length < 80 && !trimmedLine.startsWith('•') && !trimmedLine.startsWith('☑') && !trimmedLine.startsWith('☐')) ||
+                 (trimmedLine.match(/^\d+\.\s*\*\*[^*]+?\*\*$/))) { // Handle numbered headings like "1. **Background**"
+          
+          // Extract heading text and remove markdown formatting for Word display
+          let headingText = trimmedLine;
+          if (headingText.match(/^\d+\.\s*\*\*[^*]+?\*\*$/)) {
+            // Extract from numbered bold heading format
+            headingText = headingText.replace(/^\d+\.\s*\*\*([^*]+?)\*\*$/, '$1');
+          } else {
+            // Remove any residual markdown
+            headingText = headingText.replace(/\*\*/g, '').replace(/:/g, '');
+          }
+          
           paragraphs.push(
             new Paragraph({
               children: [
                 new TextRun({
-                  text: trimmedLine,
+                  text: headingText,
                   bold: true,
                   size: 28, // 14pt
                   color: "005EB8" // NHS Light Blue
@@ -831,30 +843,83 @@ Always provide practical, actionable advice that follows NHS guidelines and best
           const processFormattedText = (text: string) => {
             const children: any[] = [];
             
-            // Split text by bold patterns and process each part
-            const parts = text.split(/(\*\*[^*]+?\*\*)/);
+            // More comprehensive pattern to handle bold, italic, and mixed formatting
+            const formatPattern = /(\*\*\*[^*]+?\*\*\*|\*\*[^*]+?\*\*|\*[^*]+?\*|`[^`]+?`)/g;
+            let lastIndex = 0;
+            let match;
             
-            parts.forEach(part => {
-              if (part.startsWith('**') && part.endsWith('**')) {
-                // This is a bold section - remove the asterisks and make it bold
-                const boldText = part.slice(2, -2);
-                if (boldText) {
+            while ((match = formatPattern.exec(text)) !== null) {
+              // Add any plain text before this match
+              if (match.index > lastIndex) {
+                const plainText = text.substring(lastIndex, match.index);
+                if (plainText) {
                   children.push(new TextRun({
-                    text: boldText,
-                    size: 24,
-                    bold: true
+                    text: plainText,
+                    size: 24
                   }));
                 }
-              } else if (part) {
-                // This is regular text
+              }
+              
+              const matchedText = match[0];
+              
+              // Handle bold and italic (***text***)
+              if (matchedText.startsWith('***') && matchedText.endsWith('***')) {
+                const content = matchedText.slice(3, -3);
                 children.push(new TextRun({
-                  text: part,
+                  text: content,
+                  size: 24,
+                  bold: true,
+                  italics: true
+                }));
+              }
+              // Handle bold (**text**)
+              else if (matchedText.startsWith('**') && matchedText.endsWith('**')) {
+                const content = matchedText.slice(2, -2);
+                children.push(new TextRun({
+                  text: content,
+                  size: 24,
+                  bold: true
+                }));
+              }
+              // Handle italic (*text*)
+              else if (matchedText.startsWith('*') && matchedText.endsWith('*')) {
+                const content = matchedText.slice(1, -1);
+                children.push(new TextRun({
+                  text: content,
+                  size: 24,
+                  italics: true
+                }));
+              }
+              // Handle code (`text`)
+              else if (matchedText.startsWith('`') && matchedText.endsWith('`')) {
+                const content = matchedText.slice(1, -1);
+                children.push(new TextRun({
+                  text: content,
+                  size: 22,
+                  font: "Courier New",
+                  shading: {
+                    type: "clear",
+                    color: "f6f8fa",
+                    fill: "f6f8fa"
+                  }
+                }));
+              }
+              
+              lastIndex = formatPattern.lastIndex;
+            }
+            
+            // Add any remaining plain text after the last match
+            if (lastIndex < text.length) {
+              const remainingText = text.substring(lastIndex);
+              if (remainingText) {
+                children.push(new TextRun({
+                  text: remainingText,
                   size: 24
                 }));
               }
-            });
+            }
             
-            // If no parts were processed (shouldn't happen), add the entire text as plain
+            // If no formatting patterns were found, add the entire text as plain
             if (children.length === 0) {
               children.push(new TextRun({
                 text: text,
