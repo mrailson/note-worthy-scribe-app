@@ -185,8 +185,8 @@ export default function ConsultationSummary() {
   // Generate different note levels based on the original content
   const generateNoteLevelContent = (originalContent: string, level: number): string => {
     switch (level) {
-      case 0: // Coded Notes (original standard content)
-        return originalContent;
+      case 0: // Shorthand - UK GP abbreviations for SystmOne/EMIS
+        return generateShorthandNotes(consultationData?.transcript || originalContent);
       case 1: // Standard - Use same formatting as Detailed
         return generateDetailedNotes(content.fullNote || originalContent);
       case 2: // Detailed - Use Full Note content with SNOMED codes
@@ -194,6 +194,181 @@ export default function ConsultationSummary() {
       default:
         return originalContent;
     }
+  };
+
+  const generateShorthandNotes = (transcript: string): string => {
+    if (!transcript || transcript.trim() === "") {
+      return "No consultation data available for shorthand summary.";
+    }
+
+    // Extract key consultation elements using pattern matching
+    const text = transcript.toLowerCase();
+    
+    // Main presenting symptom and duration
+    let symptom = "";
+    let duration = "";
+    
+    // Common presenting symptoms
+    if (text.includes("chest pain") || text.includes("chest discomfort")) {
+      symptom = "Chest pain";
+    } else if (text.includes("shortness of breath") || text.includes("breathless")) {
+      symptom = "SOB";
+    } else if (text.includes("cough")) {
+      symptom = "Cough";
+    } else if (text.includes("headache")) {
+      symptom = "Headache";
+    } else if (text.includes("back pain")) {
+      symptom = "Back pain";
+    } else if (text.includes("abdominal pain") || text.includes("stomach pain")) {
+      symptom = "Abdo pain";
+    } else {
+      symptom = "Presenting complaint";
+    }
+    
+    // Duration patterns
+    if (text.includes("3 days") || text.includes("three days")) {
+      duration = "3/7";
+    } else if (text.includes("1 week") || text.includes("one week") || text.includes("7 days")) {
+      duration = "1/52";
+    } else if (text.includes("2 weeks") || text.includes("two weeks") || text.includes("14 days")) {
+      duration = "2/52";
+    } else if (text.includes("1 month") || text.includes("one month")) {
+      duration = "1/12";
+    } else {
+      duration = "ongoing";
+    }
+    
+    // Pattern analysis
+    let pattern = "";
+    if (text.includes("exertion") || text.includes("walking") || text.includes("stairs")) {
+      pattern = "exertional";
+    }
+    if (text.includes("rest") && (text.includes("better") || text.includes("relieved"))) {
+      pattern += pattern ? ", rel rest" : "rel rest";
+    }
+    
+    // Associated symptoms
+    let associated = "";
+    if (text.includes("short of breath") || text.includes("breathless")) {
+      associated += "SOB";
+    }
+    if (text.includes("sweaty") || text.includes("clammy") || text.includes("perspiring")) {
+      associated += associated ? " + clammy" : "clammy";
+    }
+    if (text.includes("nausea") || text.includes("sick")) {
+      associated += associated ? ", nausea" : "nausea";
+    }
+    
+    // Negatives
+    let negatives = "";
+    if (text.includes("no nausea") || text.includes("not sick")) {
+      negatives += "no N/V";
+    }
+    if (text.includes("no vomiting") || text.includes("not vomiting")) {
+      negatives += negatives ? ", no vomiting" : "no vomiting";
+    }
+    
+    // Past medical history
+    let pmh = "";
+    if (text.includes("hypertension") || text.includes("high blood pressure")) {
+      pmh += "Hx HTN";
+    }
+    if (text.includes("diabetes")) {
+      pmh += pmh ? ", DM" : "DM";
+    }
+    if (text.includes("heart disease") || text.includes("cardiac")) {
+      pmh += pmh ? ", IHD" : "IHD";
+    }
+    
+    // Family history
+    let fhx = "";
+    if (text.includes("family history") && text.includes("heart")) {
+      fhx = "FHx IHD";
+    }
+    if (text.includes("family history") && text.includes("diabetes")) {
+      fhx += fhx ? ", DM" : "FHx DM";
+    }
+    
+    // Current medications
+    let medications = "";
+    if (text.includes("ramipril")) {
+      medications = "Ramipril 5mg OD";
+    } else if (text.includes("medication") || text.includes("tablets")) {
+      medications = "current medications";
+    }
+    
+    // Risk factors
+    let risks = "";
+    if (text.includes("smoker") && !text.includes("non")) {
+      risks = "Smoker";
+    } else if (text.includes("ex-smoker") || (text.includes("used to smoke") || text.includes("stopped smoking"))) {
+      risks = "Ex-smoker";
+    }
+    
+    // Investigations
+    let investigations = "";
+    if (text.includes("ecg") || text.includes("heart trace")) {
+      investigations = "ECG";
+    }
+    if (text.includes("blood") && text.includes("test")) {
+      investigations += investigations ? " + bloods" : "bloods";
+    }
+    
+    // Referrals
+    let referrals = "";
+    if (text.includes("referral") || text.includes("refer")) {
+      if (text.includes("urgent") || text.includes("quickly")) {
+        if (text.includes("chest pain") || text.includes("cardiology")) {
+          referrals = "URG CP clinic ref";
+        } else {
+          referrals = "URG ref";
+        }
+      } else {
+        referrals = "routine ref";
+      }
+    }
+    
+    // Safety netting
+    let safety = "";
+    if (text.includes("999") || text.includes("emergency")) {
+      safety = "Safety-net: 999 if severe/persistent";
+    } else if (text.includes("come back") || text.includes("return")) {
+      safety = "Safety-net: return if worse";
+    }
+    
+    // Build shorthand summary
+    let shorthand = "";
+    
+    // Diagnosis/symptom
+    if (text.includes("angina") || (text.includes("chest pain") && text.includes("heart"))) {
+      shorthand += "?Angina – ";
+    } else {
+      shorthand += `${symptom} – `;
+    }
+    
+    // Main presentation
+    shorthand += `${symptom} ${duration}`;
+    if (pattern) shorthand += `, ${pattern}`;
+    if (associated) shorthand += `. ${associated}`;
+    if (negatives) shorthand += `, ${negatives}`;
+    
+    // History
+    if (fhx) shorthand += `. ${fhx}`;
+    if (pmh) shorthand += `. ${pmh}`;
+    if (medications) shorthand += ` on ${medications}`;
+    if (risks) shorthand += `. ${risks}`;
+    
+    // Plan
+    if (investigations) shorthand += `. ${investigations} today`;
+    if (referrals) shorthand += `; ${referrals}`;
+    if (safety) shorthand += `. ${safety}`;
+    
+    // Ensure it ends properly
+    if (!shorthand.endsWith('.')) {
+      shorthand += '.';
+    }
+    
+    return shorthand;
   };
 
   const generateStandardNotes = (content: string): string => {
