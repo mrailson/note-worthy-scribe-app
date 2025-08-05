@@ -2076,7 +2076,7 @@ const Index = () => {
                         className="w-full bg-gradient-primary hover:bg-primary-hover shadow-subtle text-lg font-medium py-4"
                       >
                         <Brain className="h-5 w-5 mr-3" />
-                        {isGenerating ? "Generating Clinical Summary..." : "🧠 Generate Clinical Summary"}
+                        {isGenerating ? "Generating consultation notes..." : "🧠 Generate Clinical Summary"}
                       </Button>
                     </CardContent>
                   </Card>
