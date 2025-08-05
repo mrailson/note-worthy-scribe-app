@@ -53,6 +53,50 @@ interface Meeting {
   summary_exists?: boolean;
 }
 
+// Helper function to deduplicate transcript segments
+const deduplicateTranscript = (segments: string[]): string => {
+  if (!segments || segments.length === 0) return '';
+  
+  const cleanedSegments: string[] = [];
+  let previousContent = '';
+  
+  for (const segment of segments) {
+    const trimmedSegment = segment.trim();
+    if (!trimmedSegment) continue;
+    
+    // Check if this segment is substantially different from the previous one
+    if (trimmedSegment !== previousContent && !isSubstantiallyDuplicate(trimmedSegment, previousContent)) {
+      cleanedSegments.push(trimmedSegment);
+      previousContent = trimmedSegment;
+    }
+  }
+  
+  return cleanedSegments.join(' ');
+};
+
+// Helper function to check if two text segments are substantially duplicate
+const isSubstantiallyDuplicate = (text1: string, text2: string): boolean => {
+  if (!text1 || !text2) return false;
+  
+  // If one text contains the other with at least 80% overlap, consider it duplicate
+  const similarity = calculateTextSimilarity(text1, text2);
+  return similarity > 0.8;
+};
+
+// Helper function to calculate text similarity
+const calculateTextSimilarity = (text1: string, text2: string): number => {
+  const words1 = text1.toLowerCase().split(/\s+/);
+  const words2 = text2.toLowerCase().split(/\s+/);
+  
+  if (words1.length === 0 && words2.length === 0) return 1;
+  if (words1.length === 0 || words2.length === 0) return 0;
+  
+  const intersection = words1.filter(word => words2.includes(word));
+  const union = [...new Set([...words1, ...words2])];
+  
+  return intersection.length / union.length;
+};
+
 const MeetingHistory = () => {
   const { user } = useAuth();
   const isMobile = useIsMobile();
@@ -136,7 +180,7 @@ const MeetingHistory = () => {
         .eq('meeting_id', meetingId)
         .maybeSingle();
 
-      const fullTranscript = transcripts?.map(t => t.content).join(' ') || '';
+      const fullTranscript = deduplicateTranscript(transcripts?.map(t => t.content) || []);
       
       setSelectedMeeting(meeting);
       setMeetingTranscript(fullTranscript);
@@ -233,7 +277,8 @@ const MeetingHistory = () => {
 
       if (transcriptError) throw transcriptError;
 
-      const fullTranscript = transcripts?.map(t => t.content).join(' ') || '';
+      // Deduplicate and clean transcript content
+      const fullTranscript = deduplicateTranscript(transcripts?.map(t => t.content) || []);
       
       // Set all data before opening dialog
       setViewingTranscript(fullTranscript);
