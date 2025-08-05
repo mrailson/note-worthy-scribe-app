@@ -11,6 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 import { 
   Send, 
@@ -46,12 +47,15 @@ import {
   X,
   Loader2,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Expand,
+  Minimize
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { LoginForm } from '@/components/LoginForm';
 import { SpeechToText } from '@/components/SpeechToText';
 import MessageRenderer from '@/components/MessageRenderer';
+import { toast } from '@/hooks/use-toast';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
 import { saveAs } from 'file-saver';
 import PptxGenJS from 'pptxgenjs';
@@ -124,6 +128,7 @@ const AI4PMService = () => {
   const [includePracticeBranding, setIncludePracticeBranding] = useState(true);
   const [practiceDetails, setPracticeDetails] = useState<any>(null);
   const [isModelSelectorCollapsed, setIsModelSelectorCollapsed] = useState(true); // Collapsed by default
+  const [expandedMessage, setExpandedMessage] = useState<Message | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const scrollToBottom = () => {
@@ -1375,6 +1380,15 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                                 <Button
                                   variant="outline"
                                   size="sm"
+                                  onClick={() => setExpandedMessage(message)}
+                                  className="min-h-[44px] text-xs touch-manipulation"
+                                >
+                                  <Expand className="h-3 w-3 mr-1" />
+                                  Expand Full Screen
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
                                   onClick={() => generateWordDocument(message.content, 'AI Generated Document')}
                                   className="min-h-[44px] text-xs touch-manipulation"
                                 >
@@ -2043,6 +2057,74 @@ Always provide practical, actionable advice that follows NHS guidelines and best
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Full Screen Message Modal */}
+      <Dialog open={!!expandedMessage} onOpenChange={(open) => !open && setExpandedMessage(null)}>
+        <DialogContent className="max-w-[95vw] max-h-[95vh] w-full h-full">
+          <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-4 border-b">
+            <DialogTitle className="flex items-center gap-2">
+              <Bot className="h-5 w-5" />
+              AI Response - Full Screen View
+            </DialogTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setExpandedMessage(null)}
+              className="h-8 w-8 p-0"
+            >
+              <Minimize className="h-4 w-4" />
+            </Button>
+          </DialogHeader>
+          
+          <div className="flex-1 overflow-hidden">
+            <ScrollArea className="h-full max-h-[calc(95vh-120px)]">
+              <div className="p-4">
+                {expandedMessage && (
+                  <MessageRenderer message={expandedMessage} />
+                )}
+              </div>
+            </ScrollArea>
+          </div>
+          
+          {/* Action buttons for expanded view */}
+          {expandedMessage && (
+            <div className="border-t pt-4">
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard.writeText(expandedMessage.content);
+                    toast({
+                      title: "Success",
+                      description: "Message copied to clipboard",
+                    });
+                  }}
+                >
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => generateWordDocument(expandedMessage.content, 'AI Generated Document')}
+                >
+                  <FileDown className="h-4 w-4 mr-2" />
+                  Export as Word
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => generatePowerPoint(expandedMessage.content, 'AI Generated Presentation')}
+                >
+                  <Presentation className="h-4 w-4 mr-2" />
+                  Create PowerPoint
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
