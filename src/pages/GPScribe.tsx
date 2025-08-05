@@ -447,6 +447,109 @@ const Index = () => {
     }
   };
 
+  // Handler for imported audio transcripts with speaker identification
+  const handleImportedTranscript = async (importedText: string) => {
+    try {
+      console.log('📁 Processing imported transcript for GP Scribe...');
+      
+      // Clean the transcript using GPT-4
+      toast.info('Cleaning transcript with AI...');
+      
+      const { data: cleaningResult, error: cleaningError } = await supabase.functions.invoke('clean-transcript', {
+        body: {
+          rawTranscript: importedText,
+          meetingTitle: 'GP Consultation'
+        }
+      });
+
+      if (cleaningError) {
+        console.error('Error cleaning transcript:', cleaningError);
+        toast.error('Failed to clean transcript, using original');
+      }
+
+      const cleanedText = cleaningResult?.cleanedTranscript || importedText;
+      
+      if (cleaningResult?.cleanedTranscript) {
+        toast.success('Transcript cleaned and formatted!');
+        console.log('📝 Transcript cleaned:', {
+          originalLength: cleaningResult.originalLength,
+          cleanedLength: cleaningResult.cleanedLength
+        });
+      }
+
+      // Identify speakers using AI for GP consultation
+      toast.info('Identifying GP and Patient with AI...');
+      
+      let enhancedTranscript = cleanedText;
+      
+      try {
+        const { data: speakerResult, error: speakerError } = await supabase.functions.invoke('identify-speakers', {
+          body: {
+            transcript: cleanedText,
+            meetingTitle: 'GP Consultation',
+            agenda: 'Medical consultation between healthcare provider and patient'
+          }
+        });
+
+        if (speakerError) {
+          console.error('Error identifying speakers:', speakerError);
+          toast.warning('Speaker identification failed, proceeding with original transcript');
+        } else if (speakerResult?.success) {
+          console.log('🎭 Speakers identified:', speakerResult.identification);
+          
+          const identification = speakerResult.identification;
+          
+          // Show identification results to user
+          if (identification.meetingType === 'consultation') {
+            toast.success('Medical consultation detected - GP and Patient identified!');
+            
+            // Update the transcript with identified speaker labels
+            if (identification.speakers.length > 0) {
+              // Create a mapping of generic speakers to identified roles
+              const speakerMapping = new Map();
+              identification.speakers.forEach((speaker, index) => {
+                speakerMapping.set(`Speaker ${index + 1}`, speaker.role);
+                speakerMapping.set(`Speaker${index + 1}`, speaker.role);
+              });
+
+              // Replace speaker labels in transcript
+              speakerMapping.forEach((role, originalSpeaker) => {
+                const regex = new RegExp(`\\b${originalSpeaker}\\b`, 'gi');
+                enhancedTranscript = enhancedTranscript.replace(regex, role);
+              });
+              
+              console.log('🎯 Enhanced transcript with speaker identification');
+            }
+          } else {
+            toast.info('Transcript processed - may not be a medical consultation');
+          }
+        }
+      } catch (speakerError) {
+        console.error('Speaker identification failed:', speakerError);
+        toast.warning('Speaker identification failed, using cleaned transcript');
+      }
+      
+      // Set the enhanced transcript
+      setTranscript(enhancedTranscript);
+      setCleanedTranscript(enhancedTranscript);
+      
+      // Update word count
+      const words = enhancedTranscript.split(' ').filter(word => word.length > 0);
+      setWordCount(words.length);
+      
+      toast.success(`Audio imported and processed! ${words.length} words, speakers identified.`);
+      
+      // Auto-trigger consultation processing if we have a good transcript
+      if (words.length > 50) {
+        processTranslation(enhancedTranscript);
+      }
+      
+    } catch (error: any) {
+      console.error('Error processing imported transcript:', error);
+      toast.error('Failed to process imported audio');
+    }
+  };
+
   // Single session mode - only process final transcripts
   const handleTranscript = (transcriptData: TranscriptData) => {
     console.log('🔄 handleTranscript called with:', {
@@ -1179,7 +1282,7 @@ const Index = () => {
               value="test-mp3" 
               className="rounded-lg transition-all duration-200 font-medium"
             >
-              Test MP3
+              Audio Import + AI
             </TabsTrigger>
           </TabsList>
 
@@ -2504,7 +2607,21 @@ const Index = () => {
           </TabsContent>
           
           <TabsContent value="test-mp3" className="space-y-6">
-            <MP3TranscriptionTest onTranscriptReceived={setTranscript} />
+            <Card className="border-accent/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Stethoscope className="h-5 w-5" />
+                  Audio Import with AI Speaker Recognition
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Upload audio files and automatically identify GP and Patient speakers using advanced AI analysis.
+                  Perfect for consultations that need proper speaker attribution for clinical notes.
+                </p>
+              </CardHeader>
+              <CardContent>
+                <MP3TranscriptionTest onTranscriptReceived={handleImportedTranscript} />
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>
