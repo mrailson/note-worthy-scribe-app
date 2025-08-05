@@ -102,8 +102,7 @@ const MeetingHistory = () => {
   const [currentMeetingForTranscript, setCurrentMeetingForTranscript] = useState<Meeting | null>(null);
   const [isSavingCleanedTranscript, setIsSavingCleanedTranscript] = useState(false);
   
-  // Collapsible action controls for mobile (collapsed by default on mobile)
-  const [actionsExpanded, setActionsExpanded] = useState(!isMobile);
+  // Collapsible action controls for mobile (removed - no longer needed)
 
   const handleNewMeeting = () => {
     navigate("/");
@@ -285,11 +284,54 @@ const MeetingHistory = () => {
       }
 
       setCleanedTranscript(cleanData.cleanedTranscript);
-      console.log(`Transcript cleaned for "${currentMeetingForTranscript.title}"`);
+      
+      // Auto-save the cleaned transcript
+      await saveCleanedTranscriptAutomatically(cleanData.cleanedTranscript);
+      
+      console.log(`Transcript cleaned and auto-saved for "${currentMeetingForTranscript.title}"`);
     } catch (error) {
       console.error('Error cleaning transcript:', error);
     } finally {
       setIsCleaningTranscript(false);
+    }
+  };
+
+  const saveCleanedTranscriptAutomatically = async (cleanedContent: string) => {
+    if (!cleanedContent || !currentMeetingForTranscript) return;
+    
+    try {
+      // First, delete all existing transcript records for this meeting
+      const { error: deleteError } = await supabase
+        .from('meeting_transcripts')
+        .delete()
+        .eq('meeting_id', currentMeetingForTranscript.id);
+
+      if (deleteError) throw deleteError;
+
+      // Then, insert a single new record with the cleaned transcript
+      const { error: insertError } = await supabase
+        .from('meeting_transcripts')
+        .insert({
+          meeting_id: currentMeetingForTranscript.id,
+          content: cleanedContent,
+          speaker_name: 'AI Cleaned Transcript',
+          timestamp_seconds: 0,
+          confidence_score: 1.0,
+          created_at: new Date().toISOString()
+        });
+
+      if (insertError) throw insertError;
+
+      setViewingTranscript(cleanedContent); // Update the original to match cleaned
+      
+      // Also update the main meeting transcript if this meeting is currently selected
+      if (selectedMeeting?.id === currentMeetingForTranscript.id) {
+        setMeetingTranscript(cleanedContent);
+      }
+      
+      console.log('✅ Cleaned transcript auto-saved successfully');
+    } catch (error) {
+      console.error('Error auto-saving cleaned transcript:', error);
     }
   };
 
@@ -1357,85 +1399,48 @@ const MeetingHistory = () => {
                 </div>
               </div>
 
-              {/* Collapsible Action Bar */}
-              <Collapsible 
-                open={actionsExpanded} 
-                onOpenChange={setActionsExpanded}
-                className="w-full"
-              >
-                <CollapsibleTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    className="w-full justify-between touch-manipulation min-h-[44px] mb-2"
-                  >
-                    <span className="text-xs sm:text-sm">
-                      {actionsExpanded ? 'Hide Actions' : 'Show AI Tools & Export'}
-                    </span>
-                    <ChevronDown className={`h-4 w-4 transition-transform ${actionsExpanded ? 'rotate-180' : ''}`} />
-                  </Button>
-                </CollapsibleTrigger>
+              {/* Action Bar - Always visible */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap gap-2 p-3 sm:p-4 bg-muted/30 rounded-lg border">
+                <Button
+                  onClick={cleanCurrentTranscript}
+                  disabled={isCleaningTranscript || !viewingTranscript}
+                  variant="outline"
+                  size="sm"
+                  className="w-full lg:w-auto touch-manipulation min-h-[44px] text-xs sm:text-sm"
+                >
+                  {isCleaningTranscript ? (
+                    <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
+                  )}
+                  {isCleaningTranscript ? 'Cleaning & Auto-saving...' : 'Clean with AI'}
+                </Button>
                 
-                <CollapsibleContent className="space-y-3">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap gap-2 p-3 sm:p-4 bg-muted/30 rounded-lg border">
-                    <Button
-                      onClick={cleanCurrentTranscript}
-                      disabled={isCleaningTranscript || !viewingTranscript}
-                      variant="outline"
-                      size="sm"
-                      className="w-full lg:w-auto touch-manipulation min-h-[44px] text-xs sm:text-sm"
-                    >
-                      {isCleaningTranscript ? (
-                        <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
-                      )}
-                      {isCleaningTranscript ? 'Cleaning...' : 'Clean with AI'}
-                    </Button>
-                    
-                    {cleanedTranscript && (
-                      <Button
-                        onClick={saveCleanedTranscript}
-                        disabled={isSavingCleanedTranscript}
-                        variant="outline"
-                        size="sm"
-                        className="w-full lg:w-auto touch-manipulation min-h-[44px] text-xs sm:text-sm"
-                      >
-                        {isSavingCleanedTranscript ? (
-                          <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4 mr-2 animate-spin" />
-                        ) : (
-                          <Save className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
-                        )}
-                        {isSavingCleanedTranscript ? 'Saving...' : 'Save Cleaned'}
-                      </Button>
-                    )}
-                    
-                    <Button
-                      onClick={downloadTranscriptAsWord}
-                      disabled={!viewingTranscript}
-                      variant="outline"
-                      size="sm"
-                      className="w-full lg:w-auto touch-manipulation min-h-[44px] text-xs sm:text-sm"
-                    >
-                      <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
-                      <span className="sm:hidden">Word</span>
-                      <span className="hidden sm:inline">Download Word</span>
-                    </Button>
-                    
-                    <Button
-                      onClick={copyTranscriptToClipboard}
-                      variant="outline"
-                      size="sm"
-                      className="w-full lg:w-auto touch-manipulation min-h-[44px] text-xs sm:text-sm"
-                    >
-                      <Copy className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
-                      <span className="sm:hidden">Copy</span>
-                      <span className="hidden sm:inline">Copy {cleanedTranscript ? 'Cleaned' : 'Original'}</span>
-                    </Button>
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
+                <Button
+                  onClick={downloadTranscriptAsWord}
+                  disabled={!viewingTranscript}
+                  variant="outline"
+                  size="sm"
+                  className="w-full lg:w-auto touch-manipulation min-h-[44px] text-xs sm:text-sm"
+                >
+                  <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
+                  <span className="sm:hidden">Word</span>
+                  <span className="hidden sm:inline">Download Word</span>
+                </Button>
+                
+                <Button
+                  onClick={copyTranscriptToClipboard}
+                  variant="outline"
+                  size="sm"
+                  className="w-full lg:w-auto touch-manipulation min-h-[44px] text-xs sm:text-sm"
+                >
+                  <Copy className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
+                  <span className="sm:hidden">Copy</span>
+                  <span className="hidden sm:inline">Copy {cleanedTranscript ? 'Cleaned' : 'Original'}</span>
+                </Button>
+              </div>
 
-              {/* Transcript Display - Always Visible */}
+              {/* Simplified transcript display */}
               <div className="border rounded-lg p-3 sm:p-4 bg-background max-h-[50vh] sm:max-h-[55vh] overflow-y-auto">
                 {cleanedTranscript ? (
                   <div className="prose max-w-none prose-sm sm:prose">
@@ -1450,78 +1455,20 @@ const MeetingHistory = () => {
                 )}
               </div>
 
-              {/* Tab Controls - Inside Collapsible */}
-              <Collapsible 
-                open={actionsExpanded} 
-                onOpenChange={setActionsExpanded}
-                className="w-full"
-              >
-                <CollapsibleTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    className="w-full justify-between touch-manipulation min-h-[44px]"
-                  >
-                    <span className="text-xs sm:text-sm">
-                      {actionsExpanded ? 'Hide View Options' : 'Show Current & Compare Views'}
-                    </span>
-                    <ChevronDown className={`h-4 w-4 transition-transform ${actionsExpanded ? 'rotate-180' : ''}`} />
-                  </Button>
-                </CollapsibleTrigger>
-                
-                <CollapsibleContent className="space-y-3 mt-3">
-                  {/* Tab Controls */}
-                  <Tabs defaultValue="display" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2 h-auto">
-                      <TabsTrigger value="display" className="text-xs sm:text-sm py-2 sm:py-3">
-                        {cleanedTranscript ? 'Cleaned' : 'Current'}
-                      </TabsTrigger>
-                      <TabsTrigger value="comparison" disabled={!cleanedTranscript} className="text-xs sm:text-sm py-2 sm:py-3">
-                        Compare
-                      </TabsTrigger>
-                    </TabsList>
-                    
-                    <TabsContent value="display" className="space-y-4 mt-3">
-                      <div className="border rounded-lg p-3 sm:p-4 bg-background max-h-[45vh] sm:max-h-[50vh] overflow-y-auto">
-                        {cleanedTranscript ? (
-                          <div className="prose max-w-none prose-sm sm:prose">
-                            <div className="whitespace-pre-wrap text-xs sm:text-sm leading-relaxed">
-                              {cleanedTranscript}
-                            </div>
-                          </div>
-                        ) : (
-                          <pre className="whitespace-pre-wrap text-xs sm:text-sm font-mono text-muted-foreground leading-relaxed">
-                            {viewingTranscript || "No transcript available for this meeting."}
-                          </pre>
-                        )}
-                      </div>
-                    </TabsContent>
-                    
-                    <TabsContent value="comparison" className="space-y-4 mt-3">
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
-                        <div className="space-y-2">
-                          <h4 className="text-xs sm:text-sm font-medium text-muted-foreground">Original Transcript</h4>
-                          <div className="border rounded-lg p-3 sm:p-4 bg-muted/30 max-h-[40vh] sm:max-h-[45vh] overflow-y-auto">
-                            <pre className="whitespace-pre-wrap text-xs sm:text-sm font-mono text-muted-foreground leading-relaxed">
-                              {viewingTranscript}
-                            </pre>
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <h4 className="text-xs sm:text-sm font-medium text-green-700 dark:text-green-400">AI Cleaned Transcript</h4>
-                          <div className="border rounded-lg p-3 sm:p-4 bg-green-50/50 dark:bg-green-950/30 max-h-[40vh] sm:max-h-[45vh] overflow-y-auto">
-                            <div className="prose max-w-none prose-sm sm:prose">
-                              <div className="whitespace-pre-wrap text-xs sm:text-sm leading-relaxed">
-                                {cleanedTranscript}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </TabsContent>
-                  </Tabs>
-                </CollapsibleContent>
-              </Collapsible>
+              {/* Simplified transcript display - no view options */}
+              <div className="border rounded-lg p-3 sm:p-4 bg-background max-h-[50vh] overflow-y-auto">
+                {cleanedTranscript ? (
+                  <div className="prose max-w-none prose-sm sm:prose">
+                    <div className="whitespace-pre-wrap text-xs sm:text-sm leading-relaxed">
+                      {cleanedTranscript}
+                    </div>
+                  </div>
+                ) : (
+                  <pre className="whitespace-pre-wrap text-xs sm:text-sm font-mono text-muted-foreground leading-relaxed">
+                    {viewingTranscript || "No transcript available for this meeting."}
+                  </pre>
+                )}
+              </div>
             </div>
             
             <DialogFooter className="pt-2 sm:pt-4">
