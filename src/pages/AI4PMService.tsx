@@ -1178,6 +1178,13 @@ Always provide practical, actionable advice that follows NHS guidelines and best
     );
   }
 
+  // Debug logging for messages
+  console.log("DEBUG: Current messages:", messages.map(m => ({ 
+    role: m.role, 
+    contentLength: m.content?.length || 0,
+    hasContent: !!m.content 
+  })));
+
   if (!user) {
     return (
       <div className="min-h-screen bg-gradient-background">
