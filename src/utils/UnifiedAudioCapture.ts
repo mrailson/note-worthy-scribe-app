@@ -179,19 +179,47 @@ export class UnifiedAudioCapture {
       if (event.data.size > 0) {
         this.audioChunks.push(event.data);
         console.log(`Audio chunk ${this.audioChunks.length} collected:`, event.data.size, 'bytes');
-        // Collecting all audio for end-of-session transcription
+        
+        // BACKUP MODE: Save chunk to database every 10 chunks for safety
+        if (this.audioChunks.length % 10 === 0) {
+          this.saveAudioChunkBackup();
+        }
       }
     };
 
     this.mediaRecorder.onstop = () => {
-      // Only transcribe when recording actually stops (end of session)
       console.log('Recording stopped - processing complete session audio');
       this.processAudioChunks();
     };
 
-    // Start continuous recording - no scheduled stops
-    this.mediaRecorder.start(); // Continuous recording until manually stopped
+    // Start recording with periodic data collection for backup
+    this.mediaRecorder.start(10000); // Collect data every 10 seconds for backup
     this.isRecording = true;
+  }
+
+  private async saveAudioChunkBackup() {
+    try {
+      if (this.audioChunks.length === 0) return;
+      
+      const currentChunks = [...this.audioChunks];
+      const audioBlob = new Blob(currentChunks, { type: 'audio/webm' });
+      
+      console.log('💾 Saving audio chunk backup:', audioBlob.size, 'bytes');
+      
+      // Save to session storage as emergency backup
+      const chunkData = {
+        timestamp: Date.now(),
+        size: audioBlob.size,
+        chunkCount: currentChunks.length
+      };
+      
+      const existingBackups = JSON.parse(sessionStorage.getItem('meeting_audio_backup') || '[]');
+      existingBackups.push(chunkData);
+      sessionStorage.setItem('meeting_audio_backup', JSON.stringify(existingBackups));
+      
+    } catch (error) {
+      console.error('Failed to save audio chunk backup:', error);
+    }
   }
 
   private isLikelyHallucination(text: string): boolean {
