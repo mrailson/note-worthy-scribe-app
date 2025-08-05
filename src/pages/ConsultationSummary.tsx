@@ -1245,17 +1245,17 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
               <TabsContent value="gp-summary" className="space-y-4 mt-6">
                 {/* Combined Control Row */}
                 <div className="bg-gradient-to-r from-primary/5 to-accent/5 rounded-lg p-3 sm:p-4 border border-primary/20">
-                  <div className="flex flex-col gap-4">
+                  <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4">
                     {/* Detail Level Slider */}
-                    <div className="flex flex-col gap-3">
+                    <div className="flex items-center gap-3 min-w-0 flex-shrink-0">
                       <div className="flex items-center gap-2">
                         <Settings className="h-3 w-3 sm:h-4 sm:w-4 text-primary" />
-                        <span className="text-xs sm:text-sm font-medium text-primary">Detail Level:</span>
+                        <span className="text-xs sm:text-sm font-medium text-primary whitespace-nowrap">Detail:</span>
                         <Badge variant="outline" className="bg-background text-xs">
                           {noteLevels[noteLevel[0]]}
                         </Badge>
                       </div>
-                      <div className="w-full">
+                      <div className="w-20 sm:w-24">
                         <Slider
                           value={noteLevel}
                           onValueChange={setNoteLevel}
@@ -1264,28 +1264,64 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                           step={1}
                           className="w-full"
                         />
-                        <div className="flex justify-between text-xs text-muted-foreground mt-1 px-1">
-                          <span>Shorthand</span>
-                          <span>Standard</span>
-                          <span>Detailed</span>
-                        </div>
                       </div>
                     </div>
 
-                    {/* Ask AI Assistant */}
-                    <div className="w-full">
+                    {/* Action Buttons - Compact Layout */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleCopy(getCurrentGPSummary(), "GP Summary")}
+                        className="touch-manipulation min-h-[36px] px-3"
+                      >
+                        <Copy className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                        Copy
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleWordExport(getCurrentGPSummary(), `GP-Summary-${consultationData?.title || 'consultation'}`)}
+                        className="touch-manipulation min-h-[36px] px-3"
+                      >
+                        <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                        Doc
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={editStates.gpSummary ? "default" : "outline"}
+                        onClick={() => handleEditToggle("gpSummary")}
+                        className="touch-manipulation min-h-[36px] px-3"
+                      >
+                        {editStates.gpSummary ? (
+                          <>
+                            <Save className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                            Save
+                          </>
+                        ) : (
+                          <>
+                            <Edit3 className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                            Edit
+                          </>
+                        )}
+                      </Button>
+                    </div>
+
+                    {/* Ask AI Assistant - Compact */}
+                    <div className="ml-auto">
                       <Collapsible open={isAskAIOpen} onOpenChange={setIsAskAIOpen}>
                         <CollapsibleTrigger asChild>
                           <Button 
                             variant="outline" 
-                            className="w-full touch-manipulation min-h-[44px]"
+                            size="sm"
+                            className="touch-manipulation min-h-[36px] px-3"
                           >
                             <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 mr-2 text-violet-600" />
-                            <span className="text-violet-700 dark:text-violet-300 text-sm">Ask AI Assistant</span>
+                            <span className="text-violet-700 dark:text-violet-300 text-sm whitespace-nowrap">Ask AI</span>
                             {isAskAIOpen ? <ChevronUp className="h-3 w-3 sm:h-4 sm:w-4 ml-2" /> : <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4 ml-2" />}
                           </Button>
                         </CollapsibleTrigger>
-                        <CollapsibleContent className="absolute z-10 mt-2 w-80 lg:w-96 bg-background border border-border rounded-lg shadow-lg p-4">
+                        <CollapsibleContent className="absolute z-10 mt-2 w-80 lg:w-96 bg-background border border-border rounded-lg shadow-lg p-4 right-0">
                           <div className="space-y-3">
                             <p className="text-sm text-muted-foreground">
                               Ask the AI to analyze your consultation, create referral letters, suggest improvements, or check for missing information.
@@ -1371,47 +1407,6 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
                           </div>
                         </CollapsibleContent>
                       </Collapsible>
-                    </div>
-
-                    {/* Action Buttons - Mobile Optimized */}
-                    <div className="flex flex-col sm:flex-row gap-2 flex-none">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleCopy(getCurrentGPSummary(), "GP Summary")}
-                        className="touch-manipulation min-h-[44px] flex-1 sm:flex-none"
-                      >
-                        <Copy className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                        Copy
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleWordExport(getCurrentGPSummary(), `GP-Summary-${consultationData?.title || 'consultation'}`)}
-                        className="touch-manipulation min-h-[44px] flex-1 sm:flex-none"
-                      >
-                        <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                        <span className="hidden xs:inline">Word</span>
-                        <span className="xs:hidden">Doc</span>
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant={editStates.gpSummary ? "default" : "outline"}
-                        onClick={() => handleEditToggle("gpSummary")}
-                        className="touch-manipulation min-h-[44px] flex-1 sm:flex-none"
-                      >
-                        {editStates.gpSummary ? (
-                          <>
-                            <Save className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                            Save
-                          </>
-                        ) : (
-                          <>
-                            <Edit3 className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
-                            Edit
-                          </>
-                        )}
-                      </Button>
                     </div>
                   </div>
                 </div>
