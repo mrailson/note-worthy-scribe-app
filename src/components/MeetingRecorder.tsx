@@ -1843,12 +1843,38 @@ export const MeetingRecorder = ({
     try {
       console.log('📁 Processing imported transcript...');
       
-      // Set the imported text as the main transcript
-      setTranscript(importedText);
-      onTranscriptUpdate(importedText);
+      // Clean the transcript using GPT-4
+      toast.info('Cleaning transcript with AI...');
+      
+      const { data: cleaningResult, error: cleaningError } = await supabase.functions.invoke('clean-transcript', {
+        body: {
+          rawTranscript: importedText,
+          meetingTitle: meetingSettings.title || 'Imported Audio Meeting'
+        }
+      });
+
+      if (cleaningError) {
+        console.error('Error cleaning transcript:', cleaningError);
+        toast.error('Failed to clean transcript, using original');
+        // Continue with original transcript if cleaning fails
+      }
+
+      const finalTranscript = cleaningResult?.cleanedTranscript || importedText;
+      
+      if (cleaningResult?.cleanedTranscript) {
+        toast.success('Transcript cleaned and formatted!');
+        console.log('📝 Transcript cleaned:', {
+          originalLength: cleaningResult.originalLength,
+          cleanedLength: cleaningResult.cleanedLength
+        });
+      }
+      
+      // Set the cleaned text as the main transcript
+      setTranscript(finalTranscript);
+      onTranscriptUpdate(finalTranscript);
       
       // Update word count
-      const words = importedText.split(' ').filter(word => word.length > 0);
+      const words = finalTranscript.split(' ').filter(word => word.length > 0);
       setWordCount(words.length);
       onWordCountUpdate(words.length);
       
@@ -1875,7 +1901,7 @@ export const MeetingRecorder = ({
           title: meetingSettings.title || 'Imported Audio Meeting',
           description: meetingSettings.description || '',
           meeting_type: meetingSettings.meetingType || 'general',
-          transcript: importedText,
+          transcript: finalTranscript,
           duration: formatDuration(estimatedDurationSeconds),
           word_count: words.length,
           speaker_count: 1,
@@ -1900,7 +1926,7 @@ export const MeetingRecorder = ({
         title: meetingSettings.title || 'Imported Audio Meeting',
         duration: formatDuration(estimatedDurationSeconds),
         wordCount: words.length,
-        transcript: importedText,
+        transcript: finalTranscript,
         speakerCount: 1,
         startTime: format(now, 'HH:mm'),
         startedBy: user?.email || 'Unknown User',
