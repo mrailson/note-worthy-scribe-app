@@ -31,15 +31,16 @@ interface UploadedFile {
 
 interface MessageRendererProps {
   message: Message;
+  disableTruncation?: boolean;
 }
 
-const MessageRenderer: React.FC<MessageRendererProps> = ({ message }) => {
+const MessageRenderer: React.FC<MessageRendererProps> = ({ message, disableTruncation = false }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [showFullContent, setShowFullContent] = useState(false);
+  const [showFullContent, setShowFullContent] = useState(disableTruncation);
   
   const maxPreviewLength = 500;
   const isLongMessage = message.content.length > maxPreviewLength;
-  const shouldTruncate = isLongMessage && !showFullContent;
+  const shouldTruncate = !disableTruncation && isLongMessage && !showFullContent;
   
   const displayContent = shouldTruncate 
     ? message.content.substring(0, maxPreviewLength) + '...'
@@ -279,7 +280,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({ message }) => {
             )}
             
             {/* Show More/Less button for long messages */}
-            {isLongMessage && (
+            {!disableTruncation && isLongMessage && (
               <Button
                 variant="ghost"
                 size="sm"

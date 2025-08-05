@@ -2087,7 +2087,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
             <ScrollArea className="h-full max-h-[calc(95vh-120px)]">
               <div className="p-4">
                 {expandedMessage && (
-                  <MessageRenderer message={expandedMessage} />
+                  <MessageRenderer message={expandedMessage} disableTruncation={true} />
                 )}
               </div>
             </ScrollArea>
