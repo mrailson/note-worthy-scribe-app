@@ -559,8 +559,8 @@ const Index = () => {
       // Start background generation since we have processed content
       if (enhancedTranscript && enhancedTranscript.trim().length > 50) {
         console.log("Starting background generation for imported consultation...");
-        // Don't await this - let it run in background
-        generateSummaryBackground();
+        // Don't await this - let it run in background with imported flag
+        generateSummaryBackground(true);
       }
       
       // Auto-trigger consultation processing if we have a good transcript
@@ -979,7 +979,7 @@ const Index = () => {
   };
 
   // Background generation that doesn't block navigation
-  const generateSummaryBackground = async () => {
+  const generateSummaryBackground = async (isImported: boolean = false) => {
     const transcriptToUse = cleanedTranscript || transcript;
     
     if (!transcriptToUse.trim()) {
@@ -1005,7 +1005,7 @@ const Index = () => {
       if (error) throw error;
 
       // Save to history for future reference
-      await saveToHistory(data);
+      await saveToHistory(data, isImported);
       
       console.log("Background generation completed successfully");
       toast.success("Consultation notes generated and saved to history");
@@ -1016,17 +1016,21 @@ const Index = () => {
     }
   };
 
-  const saveToHistory = async (summaryData: any) => {
+  const saveToHistory = async (summaryData: any, isImported: boolean = false) => {
     if (!user) return;
 
     try {
       // Create meeting record
+      const title = isImported 
+        ? `GP Consultation (Imported) - ${format(new Date(), "do MMMM yyyy 'at' h.mm a")}`
+        : `GP Consultation - ${format(new Date(), "do MMMM yyyy 'at' h.mm a")}`;
+        
       const { data: meeting, error: meetingError } = await supabase
         .from('meetings')
         .insert({
           user_id: user.id,
-          title: `GP Consultation - ${format(new Date(), "do MMMM yyyy 'at' h.mm a")}`,
-          description: "GP Scribe consultation notes",
+          title: title,
+          description: isImported ? "GP Scribe consultation notes (Imported Audio)" : "GP Scribe consultation notes",
           meeting_type: "gp_consultation",
           duration_minutes: Math.ceil(duration / 60),
           status: "completed"
@@ -1037,12 +1041,13 @@ const Index = () => {
       if (meetingError) throw meetingError;
 
       // Save transcript
-      if (transcript) {
+      const transcriptToSave = cleanedTranscript || transcript;
+      if (transcriptToSave) {
         await supabase
           .from('meeting_transcripts')
           .insert({
             meeting_id: meeting.id,
-            content: transcript,
+            content: transcriptToSave,
             speaker_name: "Consultation",
             timestamp_seconds: 0
           });
@@ -1059,8 +1064,11 @@ const Index = () => {
           next_steps: summaryData.traineeFeedback ? [summaryData.traineeFeedback] : []
         });
 
+      console.log(`✅ Consultation saved to history: ${title}`);
+
     } catch (error: any) {
       console.error('Error saving to history:', error);
+      toast.error('Failed to save consultation to history');
     }
   };
 
