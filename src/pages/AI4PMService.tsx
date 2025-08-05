@@ -730,11 +730,14 @@ Always provide practical, actionable advice that follows NHS guidelines and best
         
         if (!trimmedLine) return;
         
+        // Skip separator lines
+        if (trimmedLine === '---' || trimmedLine === '___') return;
+        
         console.log("DEBUG Word Export - Processing line:", trimmedLine);
         
         // Check for headings (markdown or formatted)
         if (trimmedLine.startsWith('#')) {
-          const headingText = trimmedLine.replace(/^#+\s*/, '');
+          const headingText = trimmedLine.replace(/^#+\s*/, '').replace(/\*\*/g, ''); // Remove # and ** formatting
           paragraphs.push(
             new Paragraph({
               children: [
@@ -845,6 +848,17 @@ Always provide practical, actionable advice that follows NHS guidelines and best
         else {
           const processFormattedText = (text: string) => {
             const children: any[] = [];
+            
+            // Handle the special case where the entire line is bold
+            if (text.match(/^\*\*[^*]+\*\*$/)) {
+              const boldText = text.slice(2, -2);
+              children.push(new TextRun({
+                text: boldText,
+                size: 24,
+                bold: true
+              }));
+              return children;
+            }
             
             // More comprehensive pattern to handle bold, italic, and mixed formatting
             const formatPattern = /(\*\*\*[^*]+?\*\*\*|\*\*[^*]+?\*\*|\*[^*]+?\*|`[^`]+?`)/g;
