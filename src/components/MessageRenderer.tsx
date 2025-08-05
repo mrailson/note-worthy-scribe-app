@@ -91,6 +91,97 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({ message }) => {
     const sections = content.split(/\n\n+/);
     
     return sections.map((section, index) => {
+      // Check if section contains a table (has pipe characters and header separator)
+      if (section.includes('|') && section.includes('---')) {
+        const lines = section.split('\n').filter(line => line.trim());
+        
+        // Find table boundaries
+        let tableStart = -1;
+        let tableEnd = -1;
+        let tableTitle = '';
+        
+        for (let i = 0; i < lines.length; i++) {
+          if (lines[i].includes('|') && !lines[i].includes('---')) {
+            if (tableStart === -1) {
+              // Check if previous line is a title
+              if (i > 0 && !lines[i-1].includes('|')) {
+                tableTitle = lines[i-1];
+                tableStart = i;
+              } else {
+                tableStart = i;
+              }
+            }
+            tableEnd = i;
+          } else if (lines[i].includes('---') && lines[i].includes('|')) {
+            // This is a header separator, skip it
+            continue;
+          }
+        }
+        
+        if (tableStart !== -1 && tableEnd !== -1) {
+          const tableLines = lines.slice(tableStart, tableEnd + 1);
+          const headerLine = tableLines[0];
+          const dataLines = tableLines.slice(1).filter(line => !line.includes('---'));
+          
+          if (headerLine && headerLine.includes('|')) {
+            const headers = headerLine.split('|')
+              .map(h => h.trim())
+              .filter(h => h.length > 0);
+            
+            return (
+              <div key={index} className="mb-6">
+                {tableTitle && (
+                  <h4 className="font-semibold text-base mb-3 text-foreground">
+                    {parseMarkdown(tableTitle)}
+                  </h4>
+                )}
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse border border-border rounded-lg">
+                    <thead>
+                      <tr className="bg-muted/50">
+                        {headers.map((header, headerIndex) => (
+                          <th 
+                            key={headerIndex} 
+                            className="border border-border px-3 py-2 text-left text-sm font-semibold text-foreground"
+                          >
+                            {parseMarkdown(header)}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dataLines.map((line, rowIndex) => {
+                        const cells = line.split('|')
+                          .map(cell => cell.trim())
+                          .filter(cell => cell.length > 0 || true); // Keep empty cells
+                        
+                        // Ensure we have the same number of cells as headers
+                        while (cells.length < headers.length) {
+                          cells.push('');
+                        }
+                        
+                        return (
+                          <tr key={rowIndex} className="hover:bg-muted/30">
+                            {cells.slice(0, headers.length).map((cell, cellIndex) => (
+                              <td 
+                                key={cellIndex} 
+                                className="border border-border px-3 py-2 text-sm text-foreground"
+                              >
+                                {cell.trim() || '\u00A0'} {/* Non-breaking space for empty cells */}
+                              </td>
+                            ))}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            );
+          }
+        }
+      }
+      
       // Check if section is a list
       if (section.includes('\n-') || section.includes('\n•') || section.includes('\n*')) {
         const lines = section.split('\n');
