@@ -187,8 +187,8 @@ export default function ConsultationSummary() {
     switch (level) {
       case 0: // Shorthand - UK GP abbreviations for SystmOne/EMIS
         return generateShorthandNotes(consultationData?.transcript || originalContent);
-      case 1: // Standard - Use same formatting as Detailed
-        return generateDetailedNotes(content.fullNote || originalContent);
+      case 1: // Standard - Original content without extra formatting
+        return originalContent;
       case 2: // Detailed - Use Full Note content with SNOMED codes
         return generateDetailedNotesWithSNOMED(content.fullNote || originalContent);
       default:
