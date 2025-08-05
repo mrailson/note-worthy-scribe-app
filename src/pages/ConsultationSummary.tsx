@@ -1177,10 +1177,24 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
         <Card className="shadow-medium border-accent/20 mb-6">
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
-              <span className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-primary" />
-                Consultation Notes & Feedback
-              </span>
+              <div className="flex items-center gap-2">
+                <Stethoscope className="h-5 w-5 text-primary" />
+                <div className="flex flex-col">
+                  <span className="text-base sm:text-lg font-semibold">
+                    {consultationData.title}
+                  </span>
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                    <div className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      <span>{consultationData.duration}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <FileText className="h-3 w-3" />
+                      <span>{consultationData.wordCount} words</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
               <Badge variant="outline" className="bg-gradient-primary text-primary-foreground">
                 {consultationData.type}
               </Badge>
