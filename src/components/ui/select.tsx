@@ -75,11 +75,15 @@ const SelectContent = React.forwardRef<
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
-        "relative z-[100] max-h-96 min-w-[8rem] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-lg data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
-        // Mobile optimizations
-        "touch-manipulation select-none",
+        "relative z-[9999] max-h-96 min-w-[8rem] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-lg data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
+        // Mobile optimizations - prevent bleeding
+        "touch-manipulation select-none overscroll-none",
+        // Viewport containment for mobile
+        "max-w-[calc(100vw-2rem)] sm:max-w-none",
         // Ensure proper sizing on mobile
-        "sm:max-h-96 max-h-[50vh] sm:min-w-[8rem] min-w-[12rem]",
+        "sm:max-h-96 max-h-[40vh] sm:min-w-[8rem] min-w-[calc(100vw-3rem)]",
+        // Prevent horizontal bleeding on small screens
+        "left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0",
         position === "popper" &&
           "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
         className
