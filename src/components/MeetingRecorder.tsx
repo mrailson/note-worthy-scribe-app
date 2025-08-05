@@ -317,7 +317,7 @@ export const MeetingRecorder = ({
 
       // Save segment metadata to database
       const { error: dbError } = await supabase
-        .from('meeting_audio_segments')
+        .from('meeting_audio_segments' as any)
         .insert({
           meeting_id: meetingId,
           segment_number: currentSegmentNumber.current,
@@ -326,7 +326,7 @@ export const MeetingRecorder = ({
           file_path: storageData.path,
           file_size: segmentBlob.size,
           duration_seconds: Math.floor((segmentEndTime.getTime() - segmentStartTime.current.getTime()) / 1000)
-        });
+        } as any);
 
       if (dbError) {
         throw dbError;

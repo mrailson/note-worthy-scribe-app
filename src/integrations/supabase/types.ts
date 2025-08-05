@@ -83,6 +83,94 @@ export type Database = {
         }
         Relationships: []
       }
+      audio_chunks: {
+        Row: {
+          audio_blob_path: string | null
+          chunk_number: number
+          created_at: string | null
+          end_time: string
+          file_size: number | null
+          id: string
+          meeting_id: string | null
+          processing_status: string | null
+          start_time: string
+        }
+        Insert: {
+          audio_blob_path?: string | null
+          chunk_number: number
+          created_at?: string | null
+          end_time: string
+          file_size?: number | null
+          id?: string
+          meeting_id?: string | null
+          processing_status?: string | null
+          start_time: string
+        }
+        Update: {
+          audio_blob_path?: string | null
+          chunk_number?: number
+          created_at?: string | null
+          end_time?: string
+          file_size?: number | null
+          id?: string
+          meeting_id?: string | null
+          processing_status?: string | null
+          start_time?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audio_chunks_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audio_sessions: {
+        Row: {
+          created_at: string | null
+          id: string
+          meeting_id: string | null
+          session_end: string | null
+          session_start: string | null
+          status: string | null
+          total_chunks: number | null
+          total_duration_seconds: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          meeting_id?: string | null
+          session_end?: string | null
+          session_start?: string | null
+          status?: string | null
+          total_chunks?: number | null
+          total_duration_seconds?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          meeting_id?: string | null
+          session_end?: string | null
+          session_start?: string | null
+          status?: string | null
+          total_chunks?: number | null
+          total_duration_seconds?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audio_sessions_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bank_holidays_closed_days: {
         Row: {
           created_at: string
@@ -1822,6 +1910,42 @@ export type Database = {
           },
         ]
       }
+      meeting_audio_segments: {
+        Row: {
+          created_at: string
+          duration_seconds: number | null
+          end_time: string
+          file_path: string
+          file_size: number | null
+          id: string
+          meeting_id: string
+          segment_number: number
+          start_time: string
+        }
+        Insert: {
+          created_at?: string
+          duration_seconds?: number | null
+          end_time: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          meeting_id: string
+          segment_number: number
+          start_time: string
+        }
+        Update: {
+          created_at?: string
+          duration_seconds?: number | null
+          end_time?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          meeting_id?: string
+          segment_number?: number
+          start_time?: string
+        }
+        Relationships: []
+      }
       meeting_overviews: {
         Row: {
           created_at: string
@@ -2958,6 +3082,57 @@ export type Database = {
         }
         Relationships: []
       }
+      transcription_chunks: {
+        Row: {
+          audio_chunk_id: string | null
+          chunk_number: number
+          confidence: number | null
+          created_at: string | null
+          id: string
+          language: string | null
+          meeting_id: string | null
+          processing_time_ms: number | null
+          transcript_text: string
+        }
+        Insert: {
+          audio_chunk_id?: string | null
+          chunk_number: number
+          confidence?: number | null
+          created_at?: string | null
+          id?: string
+          language?: string | null
+          meeting_id?: string | null
+          processing_time_ms?: number | null
+          transcript_text: string
+        }
+        Update: {
+          audio_chunk_id?: string | null
+          chunk_number?: number
+          confidence?: number | null
+          created_at?: string | null
+          id?: string
+          language?: string | null
+          meeting_id?: string | null
+          processing_time_ms?: number | null
+          transcript_text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transcription_chunks_audio_chunk_id_fkey"
+            columns: ["audio_chunk_id"]
+            isOneToOne: false
+            referencedRelation: "audio_chunks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transcription_chunks_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_modules: {
         Row: {
           created_at: string
@@ -3143,6 +3318,10 @@ export type Database = {
       }
       get_current_user_id: {
         Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      get_meeting_transcript: {
+        Args: { p_meeting_id: string }
         Returns: string
       }
       get_pcn_manager_practice_ids: {
