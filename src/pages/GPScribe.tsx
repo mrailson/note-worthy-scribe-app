@@ -539,6 +539,30 @@ const Index = () => {
       
       toast.success(`Audio imported and processed! ${words.length} words, speakers identified.`);
       
+      // Navigate to consultation summary with the imported data
+      console.log("Navigating to consultation summary with imported data...");
+      const consultationData = {
+        id: `consultation-import-${Date.now()}`,
+        title: `GP Consultation (Imported) - ${format(new Date(), "do MMMM yyyy 'at' h.mm a")}`,
+        type: consultationType,
+        transcript: enhancedTranscript,
+        duration: '00:00', // Duration not available from imported audio
+        wordCount: words.length,
+        startTime: new Date().toISOString(),
+        isExample: false,
+        isImported: true
+      };
+      
+      console.log("Navigating with imported consultation data:", consultationData);
+      navigate('/consultation-summary', { state: consultationData });
+      
+      // Start background generation since we have processed content
+      if (enhancedTranscript && enhancedTranscript.trim().length > 50) {
+        console.log("Starting background generation for imported consultation...");
+        // Don't await this - let it run in background
+        generateSummaryBackground();
+      }
+      
       // Auto-trigger consultation processing if we have a good transcript
       if (words.length > 50) {
         processTranslation(enhancedTranscript);
