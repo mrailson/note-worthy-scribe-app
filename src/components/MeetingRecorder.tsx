@@ -17,11 +17,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History, Search, Trash2, CheckSquare, SquareIcon, Monitor, Volume2, Waves, Video, Headphones, AlertCircle, Eye, EyeOff } from "lucide-react";
+import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History, Search, Trash2, CheckSquare, SquareIcon, Monitor, Volume2, Waves, Video, Headphones, AlertCircle, Eye, EyeOff, Upload } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { MeetingSettings } from "@/components/MeetingSettings";
 import { MeetingHistoryList } from "@/components/MeetingHistoryList";
+import { MP3TranscriptionTest } from "@/components/MP3TranscriptionTest";
 import { NotewellAIAnimation } from "@/components/NotewellAIAnimation";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -1837,6 +1838,87 @@ export const MeetingRecorder = ({
     }
   };
 
+  // Handler for imported audio transcripts
+  const handleImportedTranscript = async (importedText: string) => {
+    try {
+      console.log('📁 Processing imported transcript...');
+      
+      // Set the imported text as the main transcript
+      setTranscript(importedText);
+      onTranscriptUpdate(importedText);
+      
+      // Update word count
+      const words = importedText.split(' ').filter(word => word.length > 0);
+      setWordCount(words.length);
+      onWordCountUpdate(words.length);
+      
+      // Estimate duration based on word count (average 150 words per minute)
+      const estimatedDurationMinutes = Math.ceil(words.length / 150);
+      const estimatedDurationSeconds = estimatedDurationMinutes * 60;
+      setDuration(estimatedDurationSeconds);
+      onDurationUpdate(formatDuration(estimatedDurationSeconds));
+      
+      // Set start time to current time
+      const now = new Date();
+      setStartTime(format(now, 'HH:mm'));
+      
+      toast.success(`Audio imported and transcribed! ${words.length} words processed.`);
+      
+      // Generate meeting summary automatically
+      setIsGeneratingNotes(true);
+      
+      // Save meeting to database
+      const { data: meeting, error } = await supabase
+        .from('meetings')
+        .insert({
+          user_id: user?.id,
+          title: meetingSettings.title || 'Imported Audio Meeting',
+          description: meetingSettings.description || '',
+          meeting_type: meetingSettings.meetingType || 'general',
+          transcript: importedText,
+          duration: formatDuration(estimatedDurationSeconds),
+          word_count: words.length,
+          speaker_count: 1,
+          start_time: format(now, 'HH:mm'),
+          started_by: user?.email || 'Unknown User',
+          timestamp: generateMeetingTimestamp(),
+          created_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error saving imported meeting:', error);
+        toast.error('Failed to save meeting to database');
+        setIsGeneratingNotes(false);
+        return;
+      }
+
+      // Navigate to meeting summary with the imported data
+      const meetingData = {
+        id: meeting.id,
+        title: meetingSettings.title || 'Imported Audio Meeting',
+        duration: formatDuration(estimatedDurationSeconds),
+        wordCount: words.length,
+        transcript: importedText,
+        speakerCount: 1,
+        startTime: format(now, 'HH:mm'),
+        startedBy: user?.email || 'Unknown User',
+        timestamp: Date.now()
+      };
+
+      // Remove any unsaved meeting since this is a completed import
+      localStorage.removeItem('unsaved_meeting');
+      
+      navigate('/meeting-summary', { state: meetingData });
+      
+    } catch (error: any) {
+      console.error('Error processing imported transcript:', error);
+      toast.error('Failed to process imported audio');
+      setIsGeneratingNotes(false);
+    }
+  };
+
   // Settings handlers
   const handleSettingsChange = (newSettings: any) => {
     setMeetingSettings(newSettings);
@@ -1866,6 +1948,11 @@ export const MeetingRecorder = ({
             <History style={{ width: '20px', height: '20px', color: '#0066cc', display: 'block' }} />
             <span className="hidden sm:inline">Meeting History</span>
             <span className="sm:hidden">History</span>
+          </TabsTrigger>
+          <TabsTrigger value="import" className="flex items-center gap-2">
+            <Upload style={{ width: '20px', height: '20px', color: '#0066cc', display: 'block' }} />
+            <span className="hidden sm:inline">Audio Import</span>
+            <span className="sm:hidden">Import</span>
           </TabsTrigger>
         </TabsList>
 
@@ -2278,6 +2365,21 @@ export const MeetingRecorder = ({
                 selectedMeetings={selectedMeetings}
                 onSelectMeeting={handleSelectMeeting}
               />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Audio Import Tab */}
+        <TabsContent value="import" className="space-y-4 mt-6">
+          <Card className="border-accent/30">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Upload className="h-5 w-5" />
+                Import Audio for Transcription
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <MP3TranscriptionTest onTranscriptReceived={handleImportedTranscript} />
             </CardContent>
           </Card>
         </TabsContent>
