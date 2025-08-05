@@ -16,7 +16,6 @@ import {
   Monitor, 
   ClipboardPaste,
   Upload,
-  Mic,
   FileText,
   Check,
   ChevronsUpDown
@@ -25,6 +24,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { FileImporter, ImportedTranscript } from "@/utils/FileImporter";
+import { MP3TranscriptionTest } from "@/components/MP3TranscriptionTest";
 
 interface MeetingSettingsProps {
   onSettingsChange: (settings: any) => void;
@@ -40,7 +40,6 @@ interface MeetingSettingsProps {
 export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscriptImported, initialSettings }: MeetingSettingsProps) => {
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(true);
-  const [isImporting, setIsImporting] = useState(false);
   const [isImportingTranscript, setIsImportingTranscript] = useState(false);
   const [practiceSearchOpen, setPracticeSearchOpen] = useState(false);
   const [practices, setPractices] = useState<Array<{id: string, name: string, practice_code: string}>>([]);
@@ -168,73 +167,6 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
     return false;
   });
 
-  const handleAudioImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    // Check if file is audio
-    if (!file.type.startsWith('audio/')) {
-      toast.error('Please select a valid audio file');
-      event.target.value = '';
-      return;
-    }
-
-    setIsImporting(true);
-    try {
-      // Convert audio file to base64 for transcription
-      const arrayBuffer = await file.arrayBuffer();
-      const base64Audio = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-
-      // Send to speech-to-text function for transcription
-      const { data, error } = await supabase.functions.invoke('speech-to-text', {
-        body: { 
-          audio: base64Audio,
-          filename: file.name
-        }
-      });
-
-      if (error) {
-        throw new Error(error.message || 'Failed to transcribe audio');
-      }
-
-      if (data?.text) {
-        // Create an ImportedTranscript object with the transcription
-        const importedTranscript: ImportedTranscript = {
-          content: data.text,
-          wordCount: data.text.split(/\s+/).length,
-          extractedSettings: {
-            title: file.name.replace(/\.[^/.]+$/, ''), // Remove file extension
-            description: '',
-            attendees: '',
-            agenda: '',
-            date: format(new Date(), 'yyyy-MM-dd')
-          }
-        };
-
-        // Notify parent component about the transcribed content
-        if (onTranscriptImported) {
-          onTranscriptImported(importedTranscript);
-        }
-
-        toast.success(`Audio transcribed successfully: ${file.name} (${importedTranscript.wordCount} words)`);
-      } else {
-        throw new Error('No transcription received');
-      }
-
-      // Also notify parent component about the original audio file
-      if (onAudioImported) {
-        onAudioImported(file);
-      }
-
-    } catch (error) {
-      console.error('Error importing/transcribing audio file:', error);
-      toast.error(`Failed to transcribe audio: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      setIsImporting(false);
-      // Reset the input so the same file can be selected again
-      event.target.value = '';
-    }
-  };
 
   const handleTranscriptImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -282,6 +214,30 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
       // Reset the input so the same file can be selected again
       event.target.value = '';
     }
+  };
+
+  const handleTranscriptReceived = (transcriptText: string) => {
+    if (!transcriptText) return;
+
+    // Create an ImportedTranscript object with the transcription
+    const importedTranscript: ImportedTranscript = {
+      content: transcriptText,
+      wordCount: transcriptText.split(/\s+/).length,
+      extractedSettings: {
+        title: 'Audio Recording Transcript',
+        description: '',
+        attendees: '',
+        agenda: '',
+        date: format(new Date(), 'yyyy-MM-dd')
+      }
+    };
+
+    // Notify parent component about the transcribed content
+    if (onTranscriptImported) {
+      onTranscriptImported(importedTranscript);
+    }
+
+    toast.success(`Audio transcribed successfully (${importedTranscript.wordCount} words)`);
   };
 
   const updateSetting = (key: string, value: string) => {
@@ -509,35 +465,10 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
               />
             </div>
 
-            {/* Audio Import Section */}
+            {/* Audio Import Section - Enhanced */}
             <div className="space-y-2">
-              <Label htmlFor="audio-import">Import Audio Recording</Label>
-              <div className="flex gap-2 mb-2">
-                <label htmlFor="audio-import-file" className="flex-1">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="w-full cursor-pointer"
-                    disabled={isImporting}
-                    asChild
-                  >
-                    <span>
-                      <Mic className="h-4 w-4 mr-2" />
-                      {isImporting ? 'Importing...' : 'Import Audio File'}
-                    </span>
-                  </Button>
-                </label>
-                <input
-                  id="audio-import-file"
-                  type="file"
-                  accept="audio/*,.mp3,.wav,.m4a,.mp4,.webm"
-                  onChange={handleAudioImport}
-                  className="hidden"
-                />
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Supports MP3, WAV, M4A, MP4, and WebM audio formats
-              </p>
+              <Label>Import Audio Recording</Label>
+              <MP3TranscriptionTest onTranscriptReceived={handleTranscriptReceived} />
             </div>
 
             {/* Transcript Import Section */}

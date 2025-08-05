@@ -17,12 +17,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History, Search, Trash2, CheckSquare, SquareIcon, Monitor, Volume2, Waves, Video, Headphones, AlertCircle, Eye, EyeOff, Upload } from "lucide-react";
+import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History, Search, Trash2, CheckSquare, SquareIcon, Monitor, Volume2, Waves, Video, Headphones, AlertCircle, Eye, EyeOff } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { MeetingSettings } from "@/components/MeetingSettings";
 import { MeetingHistoryList } from "@/components/MeetingHistoryList";
-import { MP3TranscriptionTest } from "@/components/MP3TranscriptionTest";
+
 import { NotewellAIAnimation } from "@/components/NotewellAIAnimation";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -1962,165 +1962,6 @@ export const MeetingRecorder = ({
     }
   };
 
-  // Handler for imported audio transcripts
-  const handleImportedTranscript = async (importedText: string) => {
-    try {
-      console.log('📁 Processing imported transcript...');
-      
-      // Clean the transcript using GPT-4
-      toast.info('Cleaning transcript with AI...');
-      
-      const { data: cleaningResult, error: cleaningError } = await supabase.functions.invoke('clean-transcript', {
-        body: {
-          rawTranscript: importedText,
-          meetingTitle: meetingSettings.title || 'Imported Audio Meeting'
-        }
-      });
-
-      if (cleaningError) {
-        console.error('Error cleaning transcript:', cleaningError);
-        toast.error('Failed to clean transcript, using original');
-        // Continue with original transcript if cleaning fails
-      }
-
-      const finalTranscript = cleaningResult?.cleanedTranscript || importedText;
-      
-      if (cleaningResult?.cleanedTranscript) {
-        toast.success('Transcript cleaned and formatted!');
-        console.log('📝 Transcript cleaned:', {
-          originalLength: cleaningResult.originalLength,
-          cleanedLength: cleaningResult.cleanedLength
-        });
-      }
-
-      // Identify speakers using AI
-      toast.info('Identifying speakers with AI...');
-      
-      let enhancedTranscript = finalTranscript;
-      let speakerIdentification = null;
-      
-      try {
-        const { data: speakerResult, error: speakerError } = await supabase.functions.invoke('identify-speakers', {
-          body: {
-            transcript: finalTranscript,
-            meetingTitle: meetingSettings.title || 'Imported Audio Meeting',
-            agenda: meetingSettings.description
-          }
-        });
-
-        if (speakerError) {
-          console.error('Error identifying speakers:', speakerError);
-          toast.warning('Speaker identification failed, proceeding with default speakers');
-        } else if (speakerResult?.success) {
-          console.log('🎭 Speakers identified:', speakerResult.identification);
-          
-          const identification = speakerResult.identification;
-          speakerIdentification = identification;
-          
-          // Show identification results to user
-          if (identification.meetingType === 'consultation') {
-            toast.success('Medical consultation detected - GP and Patient identified!');
-          } else if (identification.meetingType === 'meeting') {
-            toast.success(`Meeting detected with ${identification.speakers.length} speakers identified!`);
-          }
-
-          // Update the transcript with identified speaker labels
-          if (identification.speakers.length > 0) {
-            // Create a mapping of generic speakers to identified roles
-            const speakerMapping = new Map();
-            identification.speakers.forEach((speaker, index) => {
-              speakerMapping.set(`Speaker ${index + 1}`, speaker.role);
-              speakerMapping.set(`Speaker${index + 1}`, speaker.role);
-            });
-
-            // Replace speaker labels in transcript
-            speakerMapping.forEach((role, originalSpeaker) => {
-              const regex = new RegExp(`\\b${originalSpeaker}\\b`, 'gi');
-              enhancedTranscript = enhancedTranscript.replace(regex, role);
-            });
-          }
-        }
-      } catch (speakerError) {
-        console.error('Speaker identification failed:', speakerError);
-        toast.warning('Speaker identification failed, using original transcript');
-      }
-      
-      // Set the enhanced text as the main transcript
-      setTranscript(enhancedTranscript);
-      onTranscriptUpdate(enhancedTranscript);
-      
-      // Update word count
-      const words = enhancedTranscript.split(' ').filter(word => word.length > 0);
-      setWordCount(words.length);
-      onWordCountUpdate(words.length);
-      
-      // Estimate duration based on word count (average 150 words per minute)
-      const estimatedDurationMinutes = Math.ceil(words.length / 150);
-      const estimatedDurationSeconds = estimatedDurationMinutes * 60;
-      setDuration(estimatedDurationSeconds);
-      onDurationUpdate(formatDuration(estimatedDurationSeconds));
-      
-      // Set start time to current time
-      const now = new Date();
-      setStartTime(format(now, 'HH:mm'));
-      
-      toast.success(`Audio imported and transcribed! ${words.length} words processed.`);
-      
-      // Generate meeting summary automatically
-      setIsGeneratingNotes(true);
-      
-      // Save meeting to database
-      const { data: meeting, error } = await supabase
-        .from('meetings')
-        .insert({
-          user_id: user?.id,
-          title: meetingSettings.title || 'Imported Audio Meeting',
-          description: meetingSettings.description || '',
-          meeting_type: meetingSettings.meetingType || 'general',
-          transcript: enhancedTranscript,
-          duration: formatDuration(estimatedDurationSeconds),
-          word_count: words.length,
-          speaker_count: speakerIdentification?.speakers?.length || 1,
-          start_time: format(now, 'HH:mm'),
-          started_by: user?.email || 'Unknown User',
-          timestamp: generateMeetingTimestamp(),
-          created_at: new Date().toISOString()
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error saving imported meeting:', error);
-        toast.error('Failed to save meeting to database');
-        setIsGeneratingNotes(false);
-        return;
-      }
-
-      // Navigate to meeting summary with the imported data
-      const meetingData = {
-        id: meeting.id,
-        title: meetingSettings.title || 'Imported Audio Meeting',
-        duration: formatDuration(estimatedDurationSeconds),
-        wordCount: words.length,
-        transcript: enhancedTranscript,
-        speakerCount: speakerIdentification?.speakers?.length || 1,
-        startTime: format(now, 'HH:mm'),
-        startedBy: user?.email || 'Unknown User',
-        timestamp: Date.now(),
-        speakerIdentification
-      };
-
-      // Remove any unsaved meeting since this is a completed import
-      localStorage.removeItem('unsaved_meeting');
-      
-      navigate('/meeting-summary', { state: meetingData });
-      
-    } catch (error: any) {
-      console.error('Error processing imported transcript:', error);
-      toast.error('Failed to process imported audio');
-      setIsGeneratingNotes(false);
-    }
-  };
 
   // Settings handlers
   const handleSettingsChange = (newSettings: any) => {
@@ -2131,7 +1972,7 @@ export const MeetingRecorder = ({
     <div className="space-y-6">
       {/* Tabbed Interface */}
       <Tabs defaultValue="recorder" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="recorder" className="flex items-center gap-2">
             <Mic style={{ width: '20px', height: '20px', color: '#0066cc', display: 'block' }} />
             <span className="hidden sm:inline">Meeting Recorder</span>
@@ -2151,11 +1992,6 @@ export const MeetingRecorder = ({
             <History style={{ width: '20px', height: '20px', color: '#0066cc', display: 'block' }} />
             <span className="hidden sm:inline">Meeting History</span>
             <span className="sm:hidden">History</span>
-          </TabsTrigger>
-          <TabsTrigger value="import" className="flex items-center gap-2">
-            <Upload style={{ width: '20px', height: '20px', color: '#0066cc', display: 'block' }} />
-            <span className="hidden sm:inline">Audio Import</span>
-            <span className="sm:hidden">Import</span>
           </TabsTrigger>
         </TabsList>
 
@@ -2572,20 +2408,6 @@ export const MeetingRecorder = ({
           </Card>
         </TabsContent>
 
-        {/* Audio Import Tab */}
-        <TabsContent value="import" className="space-y-4 mt-6">
-          <Card className="border-accent/30">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Upload className="h-5 w-5" />
-                Import Audio for Transcription
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <MP3TranscriptionTest onTranscriptReceived={handleImportedTranscript} />
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
       
       <NotewellAIAnimation isVisible={isGeneratingNotes} />
