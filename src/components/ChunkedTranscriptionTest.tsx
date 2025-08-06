@@ -84,8 +84,8 @@ const ChunkedTranscriptionTest = () => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          transcript: rawTranscript,
-          type: 'Chunked Test Recording'
+          rawTranscript: rawTranscript,
+          meetingTitle: 'Chunked Test Recording'
         })
       });
 
