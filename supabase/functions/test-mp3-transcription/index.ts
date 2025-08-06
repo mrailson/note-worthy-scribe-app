@@ -48,7 +48,8 @@ serve(async (req) => {
     whisperFormData.append('language', 'en');
     whisperFormData.append('response_format', 'verbose_json');
     whisperFormData.append('temperature', '0');
-    whisperFormData.append('prompt', 'This is a medical consultation between a GP doctor and patient. Please transcribe accurately including medical terms like angina, ramipril, medications, dosages, and symptoms.');
+    // Remove the prompt to prevent hallucinations - let Whisper transcribe without context
+    // whisperFormData.append('prompt', '');
 
     console.log("Sending MP3 to OpenAI Whisper API...");
     
