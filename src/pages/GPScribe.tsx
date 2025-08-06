@@ -13,7 +13,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Mic, MicOff, Wifi, WifiOff, Brain, Copy, Download, Mail, Save, Play, Pause, FileText, ChevronDown, ChevronUp, Lightbulb, AlertTriangle, BookOpen, Shield, BarChart3, Edit, Check, X, Send, Settings, Languages, Volume2, VolumeX, Stethoscope, Eye, EyeOff, Maximize2, RotateCcw } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
-import { UnifiedAudioCapture } from "@/utils/UnifiedAudioCapture";
+// Import GP Scribe specific components (separated from Meeting Recorder)
+import { GPScribeRecorder } from "@/components/GPScribeRecorder";
+import { useGPScribeRecording } from "@/hooks/useGPScribeRecording";
 
 // Simple transcript data interface for single session mode
 interface TranscriptData {
@@ -157,9 +159,8 @@ const Index = () => {
     traineeFeedback: "",
     referralLetter: ""
   });
-  
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const transciberRef = useRef<UnifiedAudioCapture | null>(null);
+  // GP Scribe recording using separated system
+  const recording = useGPScribeRecording();
 
   const outputLevels = [
     { value: 1, label: "Code", description: "GP shorthand only (e.g., 'URTI, 2/7, safety-netted')" },
