@@ -125,6 +125,7 @@ serve(async (req) => {
 - Use **bold** formatting for section headings
 
 **What NOT to include:**
+- Patient address or contact details
 - Referring GP details (name, qualifications, GMC number)
 - Practice contact information (name, address, phone, email)
 - Date of referral fields
@@ -146,7 +147,7 @@ ${transcript}
 ${gpSummary}
 
 **Full Clinical Note:**
-${fullNote}${gpSignature}${practiceDetails}
+${fullNote}
 
 Please determine the most appropriate specialist service from the consultation content and generate a comprehensive referral letter.`
           }
