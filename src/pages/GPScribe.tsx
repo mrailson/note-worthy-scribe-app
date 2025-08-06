@@ -898,10 +898,19 @@ const Index = () => {
       if (error) throw error;
 
       setCleanedTranscript(data.cleanedTranscript);
+      
+      // Also update the main transcript with the cleaned version 
+      // so it gets saved when the consultation is saved to history
+      setTranscript(data.cleanedTranscript);
+      
+      console.log('✅ Transcript cleaned and updated in session');
+      toast.success('Transcript cleaned successfully!');
+      
       // Transcript cleaned successfully
     } catch (error: any) {
       console.error("Error cleaning transcript:", error);
       console.error(`Failed to clean transcript: ${error.message}`);
+      toast.error('Failed to clean transcript');
     } finally {
       setIsCleaningTranscript(false);
     }
