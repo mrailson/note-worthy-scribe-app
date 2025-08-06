@@ -137,9 +137,8 @@ export const MP3TranscriptionTest = ({ onTranscriptReceived }: MP3TranscriptionT
           meeting_id: meeting.id,
           chunk_number: 1,
           transcript_text: result.text,
-          start_timestamp: 0,
-          end_timestamp: result.duration || 0,
-          confidence_score: result.confidence || 0.8
+          confidence: result.confidence || 0.8,
+          language: result.language || 'en'
         });
 
       if (transcriptError) {
