@@ -419,7 +419,7 @@ const Index = () => {
     const newMutedState = !isMicMuted;
     setIsMicMuted(newMutedState);
     
-    if (transciberRef.current && isRecording) {
+    // GP Scribe separated system handles muting internally
       if (newMutedState) {
         console.log('🔇 Microphone muted - single session mode continues recording');
         // In single session mode, we don't pause - just mute the mic effect
@@ -666,13 +666,7 @@ const Index = () => {
     queueMicrotask(() => setConnectionStatus(status));
   };
 
-  const startRecording = async () => {
-    try {
-      transciberRef.current = new UnifiedAudioCapture(
-        handleTranscript,
-        handleTranscriptionError,
-        handleStatusChange
-      );
+  // REMOVED: Old recording functions - now using GPScribeRecorder
       
       await transciberRef.current.startCapture('mic-only'); // Use mic-only for single session mode
       
