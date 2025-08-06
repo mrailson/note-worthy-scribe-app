@@ -837,6 +837,7 @@ const MeetingHistory = () => {
           meeting_overviews(overview)
         `)
         .eq('user_id', user?.id)
+        .neq('meeting_type', 'gp_consultation')
         .order('created_at', { ascending: false })
         .limit(10); // Limit initial load for performance
 
