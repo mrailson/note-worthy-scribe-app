@@ -988,6 +988,9 @@ const Index = () => {
     }
 
     console.log("Starting background generation of consultation notes...");
+    console.log("Transcript length:", transcriptToUse.length);
+    console.log("User ID:", user?.id);
+    console.log("Is imported:", isImported);
     
     try {
       const { data, error } = await supabase.functions.invoke('generate-gp-consultation-notes', {
@@ -1002,9 +1005,12 @@ const Index = () => {
         }
       });
 
+      console.log("Edge function response:", { data, error });
+
       if (error) throw error;
 
       // Save to history for future reference
+      console.log("About to save to history with data:", data);
       await saveToHistory(data, isImported);
       
       console.log("Background generation completed successfully");
@@ -1012,12 +1018,18 @@ const Index = () => {
       
     } catch (error: any) {
       console.error(`Error generating summary in background: ${error.message}`);
+      console.error("Full error object:", error);
       toast.error("Failed to generate consultation notes in background");
     }
   };
 
   const saveToHistory = async (summaryData: any, isImported: boolean = false) => {
-    if (!user) return;
+    if (!user) {
+      console.error("No user available to save history");
+      return;
+    }
+
+    console.log("Starting saveToHistory with:", { summaryData, isImported, userId: user.id });
 
     try {
       // Create meeting record
@@ -1025,6 +1037,8 @@ const Index = () => {
         ? `GP Consultation (Imported) - ${format(new Date(), "do MMMM yyyy 'at' h.mm a")}`
         : `GP Consultation - ${format(new Date(), "do MMMM yyyy 'at' h.mm a")}`;
         
+      console.log("Creating meeting with title:", title);
+      
       const { data: meeting, error: meetingError } = await supabase
         .from('meetings')
         .insert({
@@ -1038,12 +1052,16 @@ const Index = () => {
         .select()
         .single();
 
+      console.log("Meeting creation result:", { meeting, meetingError });
+
       if (meetingError) throw meetingError;
 
       // Save transcript
       const transcriptToSave = cleanedTranscript || transcript;
+      console.log("Saving transcript, length:", transcriptToSave?.length || 0);
+      
       if (transcriptToSave) {
-        await supabase
+        const { data: transcriptData, error: transcriptError } = await supabase
           .from('meeting_transcripts')
           .insert({
             meeting_id: meeting.id,
@@ -1051,10 +1069,14 @@ const Index = () => {
             speaker_name: "Consultation",
             timestamp_seconds: 0
           });
+          
+        console.log("Transcript save result:", { transcriptData, transcriptError });
+        if (transcriptError) console.error("Transcript save error:", transcriptError);
       }
 
       // Save summary
-      await supabase
+      console.log("Saving summary data:", summaryData);
+      const { data: summaryResult, error: summaryError } = await supabase
         .from('meeting_summaries')
         .insert({
           meeting_id: meeting.id,
@@ -1064,10 +1086,20 @@ const Index = () => {
           next_steps: summaryData.traineeFeedback ? [summaryData.traineeFeedback] : []
         });
 
+      console.log("Summary save result:", { summaryResult, summaryError });
+      if (summaryError) throw summaryError;
+
       console.log(`✅ Consultation saved to history: ${title}`);
+      toast.success("Consultation saved to history successfully!");
 
     } catch (error: any) {
       console.error('Error saving to history:', error);
+      console.error('Error details:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint
+      });
       toast.error('Failed to save consultation to history');
     }
   };
