@@ -1527,9 +1527,13 @@ const Index = () => {
                                   </SelectItem>
                                 ))}
                               </SelectContent>
-                            </Select>
+                             </Select>
+                            </div>
+                           
+                           {/* Developer Test Component - Chunked Transcription Testing */}
+                           <div className="border-t border-muted pt-4 mt-4">
+                             <ChunkedTranscriptionTest />
                            </div>
-                          
                           {/* Live Translation Display */}
                           {isTranslationEnabled && translationLanguage !== 'none' && (
                             <div className="bg-gradient-to-br from-primary/5 to-accent/10 rounded-xl p-4 border-2 border-primary/20 shadow-subtle animate-fade-in">
@@ -1746,17 +1750,9 @@ const Index = () => {
                               </div>
                             </div>
                            )}
-                           
-                           {/* Developer Test Component - Chunked Transcription Testing */}
-                           <div className="border-t border-muted pt-4 mt-4">
-                             <ChunkedTranscriptionTest />
-                           </div>
-                                  </div>
-                                </div>
-                              )}
-                           </div>
-                        </CollapsibleContent>
-                      </Collapsible>
+                         </div>
+                       </CollapsibleContent>
+                     </Collapsible>
 
                     {/* Live Speech Controls and Display - positioned above stats */}
                     {isRecording && (
