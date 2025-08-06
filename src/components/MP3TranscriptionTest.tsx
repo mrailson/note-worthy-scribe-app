@@ -2,8 +2,11 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Upload, FileAudio, Loader2 } from 'lucide-react';
+import { Upload, FileAudio, Loader2, FileText, Calendar } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 interface TranscriptionResult {
   text: string;
@@ -29,6 +32,10 @@ export const MP3TranscriptionTest = ({ onTranscriptReceived }: MP3TranscriptionT
   const [result, setResult] = useState<TranscriptionResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [metrics, setMetrics] = useState<ProcessingMetrics | null>(null);
+  const [isCreatingMeeting, setIsCreatingMeeting] = useState(false);
+  
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
@@ -88,6 +95,89 @@ export const MP3TranscriptionTest = ({ onTranscriptReceived }: MP3TranscriptionT
       setError(err instanceof Error ? err.message : 'Failed to process audio file');
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const createMeetingWithNotes = async () => {
+    if (!result?.text || !user || !file) {
+      toast.error('Missing required data to create meeting');
+      return;
+    }
+
+    setIsCreatingMeeting(true);
+
+    try {
+      // Create meeting record
+      const meetingTitle = file.name.replace(/\.[^/.]+$/, "") || 'Imported Audio Meeting';
+      const meetingStart = new Date().toISOString();
+      
+      const { data: meeting, error: meetingError } = await supabase
+        .from('meetings')
+        .insert({
+          title: meetingTitle,
+          description: `Meeting created from imported audio file: ${file.name}`,
+          meeting_type: 'general',
+          start_time: meetingStart,
+          end_time: new Date(Date.now() + (result.duration || 0) * 1000).toISOString(),
+          duration_minutes: Math.round((result.duration || 0) / 60),
+          status: 'completed',
+          user_id: user.id
+        })
+        .select()
+        .single();
+
+      if (meetingError) {
+        throw new Error(`Failed to create meeting: ${meetingError.message}`);
+      }
+
+      // Store the transcript
+      const { error: transcriptError } = await supabase
+        .from('transcription_chunks')
+        .insert({
+          meeting_id: meeting.id,
+          chunk_number: 1,
+          transcript_text: result.text,
+          start_timestamp: 0,
+          end_timestamp: result.duration || 0,
+          confidence_score: result.confidence || 0.8
+        });
+
+      if (transcriptError) {
+        console.error('Error saving transcript:', transcriptError);
+        // Don't throw error here, meeting creation was successful
+      }
+
+      // Generate meeting minutes using the existing edge function
+      try {
+        const { data: notesData, error: notesError } = await supabase.functions.invoke('generate-meeting-minutes', {
+          body: {
+            meetingId: meeting.id,
+            transcript: result.text,
+            meetingTitle: meetingTitle,
+            meetingDate: new Date().toISOString().split('T')[0],
+            meetingTime: new Date().toLocaleTimeString()
+          }
+        });
+
+        if (notesError) {
+          console.error('Error generating notes:', notesError);
+          toast.error('Meeting created but failed to generate notes. You can generate notes later from the meeting page.');
+        } else {
+          toast.success('Meeting created successfully with AI-generated notes!');
+        }
+      } catch (notesError) {
+        console.error('Error calling notes generation:', notesError);
+        toast.success('Meeting created successfully! You can generate notes from the meeting page.');
+      }
+
+      // Navigate to meeting history
+      navigate('/meeting-history');
+      
+    } catch (error) {
+      console.error('Error creating meeting:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to create meeting');
+    } finally {
+      setIsCreatingMeeting(false);
     }
   };
 
@@ -187,6 +277,35 @@ export const MP3TranscriptionTest = ({ onTranscriptReceived }: MP3TranscriptionT
               <div className="p-4 bg-muted rounded-lg whitespace-pre-wrap text-sm leading-relaxed">
                 {result.text || 'No text transcribed'}
               </div>
+            </div>
+
+            <div className="flex gap-2 pt-4">
+              <Button 
+                onClick={createMeetingWithNotes}
+                disabled={isCreatingMeeting || !user}
+                className="flex-1"
+              >
+                {isCreatingMeeting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating Meeting...
+                  </>
+                ) : (
+                  <>
+                    <FileText className="mr-2 h-4 w-4" />
+                    Create Meeting Notes
+                  </>
+                )}
+              </Button>
+              
+              <Button 
+                variant="outline"
+                onClick={() => navigate('/meeting-history')}
+                disabled={isCreatingMeeting}
+              >
+                <Calendar className="mr-2 h-4 w-4" />
+                View History
+              </Button>
             </div>
 
             {result.segments && result.segments.length > 0 && (
