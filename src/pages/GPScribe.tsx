@@ -32,7 +32,7 @@ import { consultationExamples, type ConsultationExample } from "@/data/consultat
 import { TranslationInterface } from "@/components/TranslationInterface";
 import { MP3TranscriptionTest } from "@/components/MP3TranscriptionTest";
 import { ConsultationHistory } from "@/components/ConsultationHistory";
-import ChunkedTranscriptionTest from '@/components/ChunkedTranscriptionTest';
+
 import { PatientTranslationView } from "@/components/PatientTranslationView";
 import { SafeMessageRenderer } from "@/components/SafeMessageRenderer";
 import AI4GPService from "@/components/AI4GPService";
@@ -1529,11 +1529,6 @@ const Index = () => {
                               </SelectContent>
                              </Select>
                             </div>
-                           
-                           {/* Developer Test Component - Chunked Transcription Testing */}
-                           <div className="border-t border-muted pt-4 mt-4">
-                             <ChunkedTranscriptionTest />
-                           </div>
                           {/* Live Translation Display */}
                           {isTranslationEnabled && translationLanguage !== 'none' && (
                             <div className="bg-gradient-to-br from-primary/5 to-accent/10 rounded-xl p-4 border-2 border-primary/20 shadow-subtle animate-fade-in">
@@ -1797,8 +1792,9 @@ const Index = () => {
                         <div className="text-2xl font-bold text-primary">{wordCount}</div>
                         <div className="text-sm text-muted-foreground">Words</div>
                       </div>
-                    </div>
-                    </div>
+                     </div>
+                     </div>
+                   </div>
 
                   {/* Right Side - Recording Button */}
                   <div className="lg:border-l lg:border-primary/20 lg:pl-6 flex flex-col items-center">
@@ -1844,11 +1840,11 @@ const Index = () => {
                           </span>
                         </div>
                       )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
+                     </div>
+                   </div>
+                 </div>
+               </div>
+             </CardContent>
           </Card>
         </TabsContent>
 
