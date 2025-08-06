@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { SafeMessageRenderer } from "@/components/SafeMessageRenderer";
 import { Header } from "@/components/Header";
 import { MeetingHistoryList } from "@/components/MeetingHistoryList";
 import { MeetingSearchBar, SearchFilters } from "@/components/MeetingSearchBar";
@@ -1327,13 +1328,11 @@ const MeetingHistory = () => {
                 {/* Meeting Notes Section */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold">Meeting Notes</h3>
-                  {meetingSummary ? (
-                    <div className="prose max-w-none">
-                      <pre className="whitespace-pre-wrap text-sm bg-muted p-4 rounded-lg border">
-                        {meetingSummary}
-                      </pre>
-                    </div>
-                  ) : (
+                   {meetingSummary ? (
+                     <div className="prose max-w-none">
+                       <SafeMessageRenderer content={meetingSummary} />
+                     </div>
+                   ) : (
                     <div className="text-center py-8 bg-muted/50 rounded-lg border">
                       <p className="text-muted-foreground mb-4">No AI-generated notes available for this meeting.</p>
                       <Button 
