@@ -347,15 +347,6 @@ export const MeetingHistoryList = ({
                   </Button>
                 )}
                 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onEdit(meeting.id)}
-                  className="flex items-center justify-center gap-2 flex-1 sm:flex-none touch-manipulation min-h-[44px]"
-                >
-                  <Edit className="h-4 w-4" />
-                  <span>Edit Meeting Name</span>
-                </Button>
                 
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
