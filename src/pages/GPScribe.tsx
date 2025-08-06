@@ -32,7 +32,7 @@ import { consultationExamples, type ConsultationExample } from "@/data/consultat
 import { TranslationInterface } from "@/components/TranslationInterface";
 import { MP3TranscriptionTest } from "@/components/MP3TranscriptionTest";
 import { ConsultationHistory } from "@/components/ConsultationHistory";
-
+import ChunkedTranscriptionTest from '@/components/ChunkedTranscriptionTest';
 import { PatientTranslationView } from "@/components/PatientTranslationView";
 import { SafeMessageRenderer } from "@/components/SafeMessageRenderer";
 import AI4GPService from "@/components/AI4GPService";
@@ -1527,8 +1527,9 @@ const Index = () => {
                                   </SelectItem>
                                 ))}
                               </SelectContent>
-                             </Select>
-                            </div>
+                            </Select>
+                           </div>
+                          
                           {/* Live Translation Display */}
                           {isTranslationEnabled && translationLanguage !== 'none' && (
                             <div className="bg-gradient-to-br from-primary/5 to-accent/10 rounded-xl p-4 border-2 border-primary/20 shadow-subtle animate-fade-in">
@@ -1744,10 +1745,13 @@ const Index = () => {
                                 <span className="text-xs">Translating...</span>
                               </div>
                             </div>
-                           )}
-                         </div>
-                       </CollapsibleContent>
-                     </Collapsible>
+                          )}
+                                 </div>
+                               </div>
+                             )}
+                          </div>
+                        </CollapsibleContent>
+                      </Collapsible>
 
                     {/* Live Speech Controls and Display - positioned above stats */}
                     {isRecording && (
@@ -1792,9 +1796,11 @@ const Index = () => {
                         <div className="text-2xl font-bold text-primary">{wordCount}</div>
                         <div className="text-sm text-muted-foreground">Words</div>
                       </div>
-                     </div>
-                     </div>
-                   </div>
+                    </div>
+                  
+                  {/* Test Component for Chunked Transcription */}
+                  <ChunkedTranscriptionTest />
+                  </div>
 
                   {/* Right Side - Recording Button */}
                   <div className="lg:border-l lg:border-primary/20 lg:pl-6 flex flex-col items-center">
@@ -1840,11 +1846,11 @@ const Index = () => {
                           </span>
                         </div>
                       )}
-                     </div>
-                   </div>
-                 </div>
-               </div>
-             </CardContent>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
           </Card>
         </TabsContent>
 
