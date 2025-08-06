@@ -167,15 +167,45 @@ export class UnifiedAudioCapture {
       throw new Error('No audio stream available for recording');
     }
 
-    // Use supported audio format with preference for Whisper-compatible formats
-    let options: MediaRecorderOptions = {};
+    // Use sophisticated format detection like MeetingRecorder
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
     
-    if (MediaRecorder.isTypeSupported('audio/wav')) {
-      options = { mimeType: 'audio/wav' };
-    } else if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
-      options = { mimeType: 'audio/webm;codecs=opus' };
-    } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
-      options = { mimeType: 'audio/mp4' };
+    let mimeType = 'audio/webm;codecs=opus'; // Default that works well with Whisper
+    let bitrate = 128000;
+    
+    console.log('🎵 Detecting optimal audio format...', { isIOS, isSafari });
+    
+    if (isIOS || isSafari) {
+      // iOS Safari prefers mp4 format
+      const iosFormats = ['audio/mp4', 'audio/mp4;codecs=mp4a.40.2', 'audio/aac'];
+      for (const format of iosFormats) {
+        if (MediaRecorder.isTypeSupported(format)) {
+          mimeType = format;
+          console.log(`📱 iOS optimized format selected: ${format}`);
+          break;
+        }
+      }
+    } else {
+      // Standard desktop browser formats - prioritize Whisper-compatible ones
+      const standardFormats = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'];
+      for (const format of standardFormats) {
+        if (MediaRecorder.isTypeSupported(format)) {
+          mimeType = format;
+          console.log(`🖥️ Desktop format selected: ${format}`);
+          break;
+        }
+      }
+    }
+    
+    // Fallback to default if nothing is supported
+    let options: MediaRecorderOptions = {};
+    if (MediaRecorder.isTypeSupported(mimeType)) {
+      options.mimeType = mimeType;
+      options.audioBitsPerSecond = bitrate;
+      console.log('✅ Using MediaRecorder options:', options);
+    } else {
+      console.log('⚠️ Using browser default audio format - no MIME type specified');
     }
 
     this.mediaRecorder = new MediaRecorder(this.combinedStream, options);
@@ -338,13 +368,30 @@ export class UnifiedAudioCapture {
 
       console.log('🔄 Sending complete session audio to Whisper...');
       
-      // Create FormData with the audio file for the edge function
+      // Create FormData with proper format handling for OpenAI Whisper
       const formData = new FormData();
-      // Use the actual blob type rather than forcing it to be wav
-      const actualMimeType = audioBlob.type || 'audio/webm';
-      const extension = actualMimeType.includes('wav') ? '.wav' : 
-                       actualMimeType.includes('mp4') ? '.mp4' : '.webm';
-      const audioFile = new File([audioBlob], `consultation${extension}`, { type: actualMimeType });
+      
+      // Ensure we're using the correct MIME type for OpenAI Whisper compatibility
+      const actualMimeType = audioBlob.type || 'audio/webm;codecs=opus';
+      console.log('🎵 Sending audio to Whisper:', {
+        originalType: audioBlob.type,
+        finalType: actualMimeType,
+        size: audioBlob.size
+      });
+      
+      // Create file with Whisper-compatible extension and MIME type
+      let extension = '.webm';
+      let finalMimeType = actualMimeType;
+      
+      if (actualMimeType.includes('mp4') || actualMimeType.includes('aac')) {
+        extension = '.mp4';
+      } else if (actualMimeType.includes('ogg')) {
+        extension = '.ogg';
+      } else if (actualMimeType.includes('wav')) {
+        extension = '.wav';
+      }
+      
+      const audioFile = new File([audioBlob], `consultation${extension}`, { type: finalMimeType });
       formData.append('audio', audioFile);
 
       // Use direct Whisper transcription for faster processing
