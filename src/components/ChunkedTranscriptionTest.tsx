@@ -14,6 +14,7 @@ const ChunkedTranscriptionTest = () => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const chunkTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isRecordingRef = useRef<boolean>(false);
   const { toast } = useToast();
 
   const processAudioChunk = async (audioBlob: Blob, chunkNumber: number) => {
@@ -132,43 +133,16 @@ const ChunkedTranscriptionTest = () => {
       });
 
       streamRef.current = stream;
+      setIsRecording(true);
+      isRecordingRef.current = true;
+      setTranscriptSegments([]);
+      setCurrentChunk(0);
 
-      // Set up MediaRecorder with optimal format
+      let chunkCount = 0;
       let mimeType = 'audio/webm;codecs=opus';
       if (!MediaRecorder.isTypeSupported(mimeType)) {
         mimeType = 'audio/webm';
       }
-
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType,
-        audioBitsPerSecond: 128000
-      });
-
-      mediaRecorderRef.current = mediaRecorder;
-      let audioChunks: Blob[] = [];
-      let chunkCount = 0;
-
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunks.push(event.data);
-        }
-      };
-
-      mediaRecorder.onstop = () => {
-        if (audioChunks.length > 0) {
-          const audioBlob = new Blob(audioChunks, { type: mimeType });
-          chunkCount++;
-          setCurrentChunk(chunkCount);
-          processAudioChunk(audioBlob, chunkCount);
-          audioChunks = [];
-        }
-      };
-
-      // Start recording and set up 5-second chunking
-      mediaRecorder.start();
-      setIsRecording(true);
-      setTranscriptSegments([]);
-      setCurrentChunk(0);
 
       console.log('🎙️ Started continuous chunked recording with 5-second intervals');
       toast({
@@ -176,41 +150,67 @@ const ChunkedTranscriptionTest = () => {
         description: "Recording will continue until manually stopped"
       });
 
-      // Set up 5-second chunk timer
-      const startChunkTimer = () => {
-        chunkTimerRef.current = setTimeout(() => {
-          if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-            mediaRecorderRef.current.stop();
-            // Restart immediately for next chunk (continuous recording)
-            setTimeout(() => {
-              if (streamRef.current && isRecording) {
-                mediaRecorderRef.current = new MediaRecorder(streamRef.current, {
-                  mimeType,
-                  audioBitsPerSecond: 128000
-                });
-                mediaRecorderRef.current.ondataavailable = (event) => {
-                  if (event.data.size > 0) {
-                    audioChunks.push(event.data);
-                  }
-                };
-                mediaRecorderRef.current.onstop = () => {
-                  if (audioChunks.length > 0) {
-                    const audioBlob = new Blob(audioChunks, { type: mimeType });
-                    chunkCount++;
-                    setCurrentChunk(chunkCount);
-                    processAudioChunk(audioBlob, chunkCount);
-                    audioChunks = [];
-                  }
-                };
-                mediaRecorderRef.current.start();
-                startChunkTimer(); // Continue the cycle
-              }
-            }, 100);
+      // Function to create and start a new recorder
+      const createRecorder = () => {
+        if (!streamRef.current) return null;
+
+        const recorder = new MediaRecorder(streamRef.current, {
+          mimeType,
+          audioBitsPerSecond: 128000
+        });
+
+        let audioChunks: Blob[] = [];
+
+        recorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            audioChunks.push(event.data);
           }
-        }, 5000);
+        };
+
+        recorder.onstop = () => {
+          if (audioChunks.length > 0) {
+            const audioBlob = new Blob(audioChunks, { type: mimeType });
+            chunkCount++;
+            setCurrentChunk(chunkCount);
+            processAudioChunk(audioBlob, chunkCount);
+            audioChunks = [];
+          }
+          
+          // Start next chunk if still recording
+          setTimeout(() => {
+            if (streamRef.current && isRecordingRef.current) {
+              const nextRecorder = createRecorder();
+              if (nextRecorder) {
+                mediaRecorderRef.current = nextRecorder;
+                nextRecorder.start();
+                
+                // Schedule this recorder to stop in 5 seconds
+                chunkTimerRef.current = setTimeout(() => {
+                  if (nextRecorder.state === 'recording') {
+                    nextRecorder.stop();
+                  }
+                }, 5000);
+              }
+            }
+          }, 100);
+        };
+
+        return recorder;
       };
 
-      startChunkTimer();
+      // Start the first recorder
+      const firstRecorder = createRecorder();
+      if (firstRecorder) {
+        mediaRecorderRef.current = firstRecorder;
+        firstRecorder.start();
+        
+        // Schedule first chunk to stop in 5 seconds
+        chunkTimerRef.current = setTimeout(() => {
+          if (firstRecorder.state === 'recording') {
+            firstRecorder.stop();
+          }
+        }, 5000);
+      }
 
     } catch (error) {
       console.error('Error starting chunked recording:', error);
@@ -239,6 +239,7 @@ const ChunkedTranscriptionTest = () => {
 
     mediaRecorderRef.current = null;
     setIsRecording(false);
+    isRecordingRef.current = false;
     
     console.log('🛑 Stopped chunked recording');
     toast({
