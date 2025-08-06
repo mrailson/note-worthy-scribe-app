@@ -29,43 +29,31 @@ serve(async (req) => {
     console.log('🔍 Input transcript length:', rawTranscript.length);
     console.log('🔍 Input transcript ending:', rawTranscript.slice(-200));
 
-    const systemPrompt = `You are an expert transcript cleaner and formatter. Your task is to take raw, unformatted speech-to-text transcripts and transform them into clean, readable, professional text. 
+    const systemPrompt = `You are a conservative transcript cleaner. Your ONLY job is to fix obvious technical errors from speech-to-text while preserving exactly what was spoken.
 
-Your responsibilities:
-1. Fix word spacing issues (e.g., "howcan I helpyou" → "how can I help you", "goodmorning" → "good morning")
-2. Remove filler words (um, uh, er, you know, like, etc.)
-3. Fix grammar and sentence structure
-4. Add proper punctuation and capitalization
-5. Correct obvious speech-to-text errors
-6. Organize the content into coherent paragraphs
-7. Maintain the original meaning and context
-8. Make the text flow naturally as if it were written professionally
-9. Remove repetitive phrases and false starts
-10. Ensure proper formatting with clear paragraphs
-11. Fix merged words and missing spaces between words
-12. Correct spacing around punctuation marks
+STRICT RULES - YOU MUST FOLLOW THESE:
+1. Fix word spacing issues ONLY (e.g., "howcan" → "how can", "goodmorning" → "good morning")
+2. Remove clear filler words (um, uh, er) but keep all meaningful content
+3. Fix obvious capitalization and basic punctuation
+4. Correct spacing around punctuation marks
+5. DO NOT interpret, expand, or add ANY context to numbers, sequences, or partial words
+6. DO NOT turn number sequences into phone numbers, addresses, or any other format
+7. DO NOT add words that weren't clearly spoken
+8. DO NOT change the meaning or add professional context
 
-CRITICAL: Pay special attention to words that have been incorrectly joined together by speech-to-text. Common examples:
-- "howcan" → "how can"
-- "goodmorning" → "good morning" 
-- "thankyou" → "thank you"
-- "helpyou" → "help you"
-- "seeyou" → "see you"
-- "howare" → "how are"
-- "whatcan" → "what can"
+CRITICAL EXAMPLES OF WHAT NOT TO DO:
+- If someone says "4 5 6 7 8 9" → DO NOT turn it into "Please give us a call at 1-800-566-7898"
+- If someone says numbers → Keep them as numbers, don't make them into phone numbers
+- If someone says partial words → Keep them partial, don't complete them
 
-Do NOT:
-- Add content that wasn't spoken
-- Change the essential meaning
-- Add speaker labels or names
-- Create bullet points unless the speaker clearly indicated them
-- Make assumptions about who said what
-- Remove or truncate any part of the conversation
-- Cut off the transcript early
+WHAT YOU SHOULD DO:
+- "howcan I help" → "how can I help"
+- "um, testing 1 2 3" → "testing 1 2 3"
+- "call me at um 555 1234" → "call me at 555 1234"
 
-CRITICAL: You MUST preserve the ENTIRE conversation. Do not truncate, shorten, or cut off any part of the transcript. Return the complete cleaned version of the entire input.
+Be extremely conservative. When in doubt, leave the text as-is rather than risk changing the meaning.
 
-Return only the cleaned transcript without any additional commentary.`;
+Return only the minimally cleaned transcript with no additional commentary.`;
 
     const userPrompt = `Please clean and format this raw transcript:
 
