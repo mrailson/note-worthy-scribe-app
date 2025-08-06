@@ -130,15 +130,14 @@ export const MP3TranscriptionTest = ({ onTranscriptReceived }: MP3TranscriptionT
         throw new Error(`Failed to create meeting: ${meetingError.message}`);
       }
 
-      // Store the transcript
+      // Store the transcript in meeting_transcripts table (primary location)
       const { error: transcriptError } = await supabase
-        .from('transcription_chunks')
+        .from('meeting_transcripts')
         .insert({
           meeting_id: meeting.id,
-          chunk_number: 1,
-          transcript_text: result.text,
-          confidence: result.confidence || 0.8,
-          language: result.language || 'en'
+          content: result.text,
+          confidence_score: result.confidence || 0.8,
+          timestamp_seconds: 0
         });
 
       if (transcriptError) {
