@@ -1046,7 +1046,7 @@ const Index = () => {
           title: title,
           description: isImported ? "GP Scribe consultation notes (Imported Audio)" : "GP Scribe consultation notes",
           meeting_type: "gp_consultation",
-          duration_minutes: Math.ceil(duration / 60),
+          duration_minutes: isImported ? 0 : Math.ceil(duration / 60),
           status: "completed"
         })
         .select()
