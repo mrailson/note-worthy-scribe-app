@@ -326,20 +326,6 @@ export const MeetingHistoryList = ({
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    onViewTranscript(meeting.id);
-                  }}
-                  className="flex items-center justify-center gap-2 flex-1 sm:flex-none touch-manipulation min-h-[44px]"
-                >
-                  <FileTextIcon className="h-4 w-4" />
-                  <span>View Transcript</span>
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
                     onViewSummary(meeting.id);
                   }}
                   className="flex items-center justify-center gap-2 flex-1 sm:flex-none touch-manipulation min-h-[44px] text-primary hover:text-primary"
@@ -368,7 +354,7 @@ export const MeetingHistoryList = ({
                   className="flex items-center justify-center gap-2 flex-1 sm:flex-none touch-manipulation min-h-[44px]"
                 >
                   <Edit className="h-4 w-4" />
-                  <span>Edit</span>
+                  <span>Edit Meeting Name</span>
                 </Button>
                 
                 <AlertDialog>
