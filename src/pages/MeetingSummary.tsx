@@ -443,7 +443,7 @@ export default function MeetingSummary() {
   }, [meetingData?.id]);
 
   const continueMeeting = () => {
-    navigate('/', { state: { continueMeeting: true, meetingData } });
+    navigate('/meeting-history');
   };
 
   // Format content for email with proper HTML formatting
