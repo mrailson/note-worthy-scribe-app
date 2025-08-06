@@ -21,37 +21,55 @@ serve(async (req) => {
       throw new Error('Transcript is required');
     }
 
-    const prompt = `Please analyze the following meeting transcript and create detailed meeting notes using the format below. Ensure the notes are thorough, clear, and well-structured, with as much detail as possible extracted from the transcript. Use a professional but accessible tone.
+    const prompt = `Please analyze the following meeting transcript and create professional meeting minutes. Extract all relevant information from the transcript and present it in a clear, structured format. Do NOT use placeholder text - only include information that is actually present in the transcript.
 
-Meeting Minutes Format:
+Format the output as follows:
 
-Meeting Minutes
-Date: ${meetingDate || '[Insert date from transcript or placeholder]'}
-Time: ${meetingTime || '[Insert time if mentioned or placeholder]'}
-Location: [Insert location or note 'Not specified']
+# Meeting Minutes
 
-1️⃣ Attendees
-List all participants mentioned in the transcript. Include full names and roles if possible.
+**Date:** ${meetingDate || 'Not specified'}
+**Time:** ${meetingTime || 'Not specified'}  
+**Meeting:** ${meetingTitle || 'General Meeting'}
+**Location:** [Extract from transcript if mentioned, otherwise write "Not specified"]
 
-2️⃣ Agenda
-Summarize the agenda items discussed in the meeting. If no formal agenda is stated, infer logical agenda points based on the transcript flow.
+## 1️⃣ Attendees
+List all participants mentioned by name in the transcript. If no specific names are mentioned, write "Participants identified by voice/role" and list any roles mentioned (e.g., "Practice Manager", "GP", "Receptionist").
 
-3️⃣ Discussion Summary
-Provide a detailed, topic-by-topic or agenda-based summary of the meeting. Use bullet points or short paragraphs. Include key arguments, concerns, decisions, and insights shared by participants.
+## 2️⃣ Meeting Agenda & Topics Discussed
+Summarize the main topics and agenda items that were actually discussed in the meeting based on the transcript content.
 
-4️⃣ Actions / Decisions
-List all action items and decisions. For each, include:
-• What the action or decision is
-• Who is responsible
-• Any mentioned deadlines or follow-ups
+## 3️⃣ Key Discussion Points
+Provide a detailed summary of the main discussions, organized by topic. Include:
+- Important points raised by participants
+- Concerns or issues discussed
+- Ideas and suggestions shared
+- Any relevant background information mentioned
 
-5️⃣ Next Meeting
-If discussed, mention the date/time of the next meeting. If not, state "Not discussed."
+## 4️⃣ Decisions Made
+List all decisions that were made during the meeting. For each decision, include:
+- What was decided
+- The reasoning behind the decision (if discussed)
+- Who was involved in making the decision
 
-Instructions:
-• Prioritize clarity, accuracy, and detail.
-• Do not invent content—only use what is available in the transcript.
-• If any part is unclear or missing, indicate it respectfully.
+## 5️⃣ Action Items
+List all action items and tasks assigned during the meeting:
+- **Task:** [Description of the action item]
+- **Assigned to:** [Person or role responsible]
+- **Deadline:** [If mentioned, otherwise "To be determined"]
+
+## 6️⃣ Next Steps
+Summarize what will happen next, including:
+- Follow-up meetings planned
+- Next review dates
+- Any ongoing tasks or projects mentioned
+
+**Important Instructions:**
+- Only include information that is actually present in the transcript
+- Do not add placeholder text or make assumptions
+- If a section has no relevant information from the transcript, write "Not discussed in this meeting"
+- Use clear, professional language
+- Organize information logically
+- Extract specific details, names, dates, and numbers when mentioned
 
 Transcript to analyze:
 ${transcript}`;
