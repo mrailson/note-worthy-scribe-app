@@ -291,6 +291,16 @@ export const MeetingHistoryList = ({
                     <div className="flex items-center gap-2 mb-2">
                       {getStatusIcon(meeting.status)}
                       <h3 className="font-semibold text-base sm:text-lg truncate pr-2">{meeting.title}</h3>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEdit(meeting.id);
+                        }}
+                        className="text-muted-foreground hover:text-primary transition-colors p-1 rounded"
+                        title="Edit meeting name"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </button>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <Badge variant="secondary" className="text-xs">
