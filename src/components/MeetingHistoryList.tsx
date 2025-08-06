@@ -66,6 +66,8 @@ interface MeetingHistoryListProps {
   isSelectMode?: boolean;
   selectedMeetings?: string[];
   onSelectMeeting?: (meetingId: string, checked: boolean) => void;
+  // Callback for when a meeting title is updated
+  onMeetingUpdate?: (meetingId: string, updatedTitle: string) => void;
 }
 
 export const MeetingHistoryList = ({ 
@@ -77,7 +79,8 @@ export const MeetingHistoryList = ({
   loading,
   isSelectMode = false,
   selectedMeetings = [],
-  onSelectMeeting
+  onSelectMeeting,
+  onMeetingUpdate
 }: MeetingHistoryListProps) => {
   const [editingMeetingId, setEditingMeetingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState<string>("");
@@ -106,8 +109,10 @@ export const MeetingHistoryList = ({
       setEditingMeetingId(null);
       setEditingTitle("");
       
-      // Trigger a refresh by calling window.location.reload or use a callback
-      window.location.reload();
+      // Notify parent component to update the meeting title locally
+      if (onMeetingUpdate) {
+        onMeetingUpdate(meetingId, editingTitle.trim());
+      }
     } catch (error) {
       console.error('Error updating meeting title:', error);
       toast.error("Failed to update meeting name");

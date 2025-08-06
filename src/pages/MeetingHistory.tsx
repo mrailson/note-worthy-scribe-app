@@ -1558,6 +1558,14 @@ const MeetingHistory = () => {
             isSelectMode={isSelectMode}
             selectedMeetings={selectedMeetings}
             onSelectMeeting={handleSelectMeeting}
+            onMeetingUpdate={(meetingId, updatedTitle) => {
+              // Update the local meetings array
+              setMeetings(prev => prev.map(meeting => 
+                meeting.id === meetingId 
+                  ? { ...meeting, title: updatedTitle }
+                  : meeting
+              ));
+            }}
           />
         )}
 
