@@ -1745,11 +1745,16 @@ const Index = () => {
                                 <span className="text-xs">Translating...</span>
                               </div>
                             </div>
-                          )}
-                                 </div>
-                               </div>
-                             )}
-                          </div>
+                           )}
+                           
+                           {/* Developer Test Component - Chunked Transcription Testing */}
+                           <div className="border-t border-muted pt-4 mt-4">
+                             <ChunkedTranscriptionTest />
+                           </div>
+                                  </div>
+                                </div>
+                              )}
+                           </div>
                         </CollapsibleContent>
                       </Collapsible>
 
@@ -1797,10 +1802,7 @@ const Index = () => {
                         <div className="text-sm text-muted-foreground">Words</div>
                       </div>
                     </div>
-                  
-                  {/* Test Component for Chunked Transcription */}
-                  <ChunkedTranscriptionTest />
-                  </div>
+                    </div>
 
                   {/* Right Side - Recording Button */}
                   <div className="lg:border-l lg:border-primary/20 lg:pl-6 flex flex-col items-center">
