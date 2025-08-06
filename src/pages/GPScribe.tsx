@@ -75,7 +75,7 @@ interface ConsultationGuidance {
   };
 }
 
-const Index = () => {
+const GPScribe = () => {
   const { user, loading } = useAuth();
   
   const navigate = useNavigate();
@@ -666,38 +666,21 @@ const Index = () => {
     queueMicrotask(() => setConnectionStatus(status));
   };
 
-  // REMOVED: Old recording functions - now using GPScribeRecorder
-      
-      await transciberRef.current.startCapture('mic-only'); // Use mic-only for single session mode
-      
-      setIsRecording(true);
-      setIsPaused(false);
-      setTranscript(""); // Clear previous transcript
-      setDuration(0); // Reset duration counter
-      console.log("Starting recording - duration reset to 0");
-      
-      intervalRef.current = setInterval(() => {
-        setDuration(prev => {
-          const newDuration = prev + 1;
-          console.log("Duration updated to:", newDuration);
-          return newDuration;
-        });
-      }, 1000);
+  // All recording functions removed - handled by GPScribeRecorder component
 
-      // Recording started for consultation
-
-    } catch (error) {
-      console.error("Failed to start recording");
-    }
-  };
-
-  const pauseRecording = () => {
-    setIsPaused(!isPaused);
-    if (!isPaused) {
-      // Recording paused
-    } else {
-      // Recording resumed
-    }
+  const resetSession = () => {
+    setTranscript("");
+    setCleanedTranscript("");
+    setDuration(0);
+    setWordCount(0);
+    setConnectionStatus("Disconnected");
+    setGpSummary("");
+    setFullNote("");
+    setPatientCopy("");
+    setTraineeFeedback("");
+    setReferralLetter("");
+    setCompletedConsultation(null);
+    console.log("🔄 GP Scribe session reset");
   };
 
   const stopRecording = () => {
@@ -2688,4 +2671,4 @@ const Index = () => {
   );
 };
 
-export default Index;
+export default GPScribe;
