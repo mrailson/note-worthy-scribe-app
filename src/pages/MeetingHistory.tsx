@@ -187,14 +187,30 @@ const MeetingHistory = () => {
 
       if (meetingError) throw meetingError;
 
-      // Fetch transcript
+      // Fetch transcript from multiple possible sources
+      let fullTranscript = '';
+      
+      // First try meeting_transcripts table (for regular recordings)
       const { data: transcripts, error: transcriptError } = await supabase
         .from('meeting_transcripts')
         .select('*')
         .eq('meeting_id', meetingId)
         .order('timestamp_seconds', { ascending: true });
 
-      if (transcriptError) throw transcriptError;
+      if (transcripts && transcripts.length > 0) {
+        fullTranscript = deduplicateTranscript(transcripts.map(t => t.content));
+      } else {
+        // If no results, try transcription_chunks table (for imported audio)
+        const { data: chunks, error: chunksError } = await supabase
+          .from('transcription_chunks')
+          .select('*')
+          .eq('meeting_id', meetingId)
+          .order('chunk_number', { ascending: true });
+
+        if (chunks && chunks.length > 0) {
+          fullTranscript = chunks.map(chunk => chunk.transcript_text).join(' ');
+        }
+      }
 
       // Fetch existing summary if available
       const { data: summaryData, error: summaryError } = await supabase
@@ -202,19 +218,28 @@ const MeetingHistory = () => {
         .select('*')
         .eq('meeting_id', meetingId)
         .maybeSingle();
-
-      const fullTranscript = deduplicateTranscript(transcripts?.map(t => t.content) || []);
       
       setSelectedMeeting(meeting);
       setMeetingTranscript(fullTranscript);
       setMeetingSummary(summaryData?.summary || '');
+      
+      console.log('📝 Loaded transcript length:', fullTranscript.length);
+      console.log('📝 Has existing summary:', !!summaryData?.summary);
     } catch (error: any) {
       console.error("Error Loading Meeting:", error.message);
     }
   };
 
   const handleGenerateNotes = async () => {
-    if (!selectedMeeting || !meetingTranscript) return;
+    console.log('🔄 Generate Notes clicked');
+    console.log('📝 Selected meeting:', selectedMeeting?.id);
+    console.log('📝 Meeting transcript available:', !!meetingTranscript);
+    console.log('📝 Transcript length:', meetingTranscript?.length);
+    
+    if (!selectedMeeting || !meetingTranscript) {
+      console.log('❌ Missing required data for generating notes');
+      return;
+    }
     
     setIsGeneratingNotes(true);
     try {
