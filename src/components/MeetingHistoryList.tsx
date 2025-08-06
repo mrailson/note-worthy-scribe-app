@@ -33,6 +33,8 @@ import { format } from "date-fns";
 import { MeetingOverviewEditor } from "@/components/MeetingOverviewEditor";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useState } from "react";
+import { Input } from "@/components/ui/input";
 
 interface Meeting {
   id: string;
@@ -77,6 +79,53 @@ export const MeetingHistoryList = ({
   selectedMeetings = [],
   onSelectMeeting
 }: MeetingHistoryListProps) => {
+  const [editingMeetingId, setEditingMeetingId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState<string>("");
+
+  // Handle inline title editing
+  const handleStartEdit = (meetingId: string, currentTitle: string) => {
+    setEditingMeetingId(meetingId);
+    setEditingTitle(currentTitle);
+  };
+
+  const handleSaveTitle = async (meetingId: string) => {
+    if (!editingTitle.trim()) {
+      toast.error("Meeting name cannot be empty");
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('meetings')
+        .update({ title: editingTitle.trim() })
+        .eq('id', meetingId);
+
+      if (error) throw error;
+
+      toast.success("Meeting name updated successfully");
+      setEditingMeetingId(null);
+      setEditingTitle("");
+      
+      // Trigger a refresh by calling window.location.reload or use a callback
+      window.location.reload();
+    } catch (error) {
+      console.error('Error updating meeting title:', error);
+      toast.error("Failed to update meeting name");
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMeetingId(null);
+    setEditingTitle("");
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent, meetingId: string) => {
+    if (e.key === 'Enter') {
+      handleSaveTitle(meetingId);
+    } else if (e.key === 'Escape') {
+      handleCancelEdit();
+    }
+  };
 
   // Handle audio backup download
   const handleAudioBackup = async (meeting: Meeting) => {
@@ -290,17 +339,39 @@ export const MeetingHistoryList = ({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2">
                       {getStatusIcon(meeting.status)}
-                      <h3 className="font-semibold text-base sm:text-lg truncate pr-2">{meeting.title}</h3>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onEdit(meeting.id);
-                        }}
-                        className="text-muted-foreground hover:text-primary transition-colors p-1 rounded"
-                        title="Edit meeting name"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </button>
+                      {editingMeetingId === meeting.id ? (
+                        <div className="flex items-center gap-2 flex-1">
+                          <Input
+                            value={editingTitle}
+                            onChange={(e) => setEditingTitle(e.target.value)}
+                            onKeyDown={(e) => handleKeyPress(e, meeting.id)}
+                            onBlur={() => handleSaveTitle(meeting.id)}
+                            className="text-base sm:text-lg font-semibold h-auto py-1"
+                            autoFocus
+                          />
+                          <button
+                            onClick={() => handleCancelEdit()}
+                            className="text-muted-foreground hover:text-destructive transition-colors p-1 rounded"
+                            title="Cancel edit"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <h3 className="font-semibold text-base sm:text-lg truncate pr-2">{meeting.title}</h3>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleStartEdit(meeting.id, meeting.title);
+                            }}
+                            className="text-muted-foreground hover:text-primary transition-colors p-1 rounded"
+                            title="Edit meeting name"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                        </>
+                      )}
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <Badge variant="secondary" className="text-xs">
