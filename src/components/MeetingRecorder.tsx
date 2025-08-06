@@ -1799,23 +1799,40 @@ export const MeetingRecorder = ({
       // Get transcript counts and summaries for each meeting
       const meetingsWithCounts = await Promise.all(
         (meetingsData || []).map(async (meeting) => {
-          const { count } = await supabase
-            .from('meeting_transcripts')
-            .select('*', { count: 'exact', head: true })
-            .eq('meeting_id', meeting.id);
+          const [transcriptResult, summaryData, transcriptContent] = await Promise.all([
+            supabase
+              .from('meeting_transcripts')
+              .select('*', { count: 'exact', head: true })
+              .eq('meeting_id', meeting.id),
+            
+            supabase
+              .from('meeting_summaries')
+              .select('summary')
+              .eq('meeting_id', meeting.id)
+              .maybeSingle(),
+              
+            supabase
+              .from('meeting_transcripts')
+              .select('content')
+              .eq('meeting_id', meeting.id)
+          ]);
 
-          const { data: summaryData } = await supabase
-            .from('meeting_summaries')
-            .select('summary')
-            .eq('meeting_id', meeting.id)
-            .maybeSingle();
+          // Calculate word count from transcript content
+          let wordCount = 0;
+          if (transcriptContent.data && transcriptContent.data.length > 0) {
+            wordCount = transcriptContent.data.reduce((total, transcript) => {
+              const words = transcript.content.split(/\s+/).filter(word => word.length > 0);
+              return total + words.length;
+            }, 0);
+          }
 
           const meetingWithOverview = {
             ...meeting,
-            transcript_count: count || 0,
-            summary_exists: !!summaryData?.summary,
-            meeting_summary: summaryData?.summary || null,
-            overview: meeting.meeting_overviews?.overview || null
+            transcript_count: transcriptResult.count || 0,
+            summary_exists: !!summaryData.data?.summary,
+            meeting_summary: summaryData.data?.summary || null,
+            overview: meeting.meeting_overviews?.overview || null,
+            word_count: wordCount
           };
           
           // Debug log to check overview data
@@ -1823,7 +1840,8 @@ export const MeetingRecorder = ({
             id: meeting.id,
             title: meeting.title,
             overview: meetingWithOverview.overview,
-            rawOverviews: meeting.meeting_overviews
+            rawOverviews: meeting.meeting_overviews,
+            wordCount: wordCount
           });
           
           return meetingWithOverview;
