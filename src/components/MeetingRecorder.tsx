@@ -51,13 +51,15 @@ interface MeetingRecorderProps {
     description: string;
     meetingType: string;
   };
+  initialActiveTab?: string;
 }
 
 export const MeetingRecorder = ({ 
   onTranscriptUpdate, 
   onDurationUpdate, 
   onWordCountUpdate,
-  initialSettings
+  initialSettings,
+  initialActiveTab
 }: MeetingRecorderProps) => {
   const [isRecording, setIsRecording] = useState(false);
   const [duration, setDuration] = useState(0);
@@ -1971,7 +1973,7 @@ export const MeetingRecorder = ({
   return (
     <div className="space-y-6">
       {/* Tabbed Interface */}
-      <Tabs defaultValue="recorder" className="w-full">
+      <Tabs defaultValue={initialActiveTab || "recorder"} className="w-full">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="recorder" className="flex items-center gap-2">
             <Mic style={{ width: '20px', height: '20px', color: '#0066cc', display: 'block' }} />

@@ -36,7 +36,7 @@ const Index = () => {
   const [currentMeetingId, setCurrentMeetingId] = useState<string | null>(null);
   const [importedTranscript, setImportedTranscript] = useState<ImportedTranscript | null>(null);
 
-  // Check for continue meeting state
+  // Check for continue meeting state and active tab
   useEffect(() => {
     const state = location.state as any;
     if (state?.continueMeeting && state?.meetingData) {
@@ -208,6 +208,7 @@ const Index = () => {
             onDurationUpdate={setDuration}
             onWordCountUpdate={setWordCount}
             initialSettings={meetingSettings}
+            initialActiveTab={location.state?.activeTab}
           />
 
 
