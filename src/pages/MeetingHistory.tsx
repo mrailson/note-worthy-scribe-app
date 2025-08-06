@@ -231,6 +231,96 @@ const MeetingHistory = () => {
     }
   };
 
+  // Enhanced markdown-like rendering function (same as MeetingSummary.tsx)
+  const renderFormattedText = (text: string) => {
+    if (!text) return text;
+    
+    let formatted = text;
+    
+    // Fix attendees section - convert bullet points to comma-separated names and remove "Other" sections
+    formatted = formatted.replace(
+      /(1️⃣ Attendees[\s\S]*?)(?=2️⃣|$)/i,
+      (match) => {
+        let attendeesSection = match;
+        
+        // Remove any "Other" related sections completely
+        attendeesSection = attendeesSection.replace(/Other[^:]*:[\s\S]*?(?=\n\n|2️⃣|$)/gi, '');
+        attendeesSection = attendeesSection.replace(/Other[^:]*[\s\S]*?(?=\n\n|2️⃣|$)/gi, '');
+        
+        // Remove bullet points and convert to comma-separated list
+        attendeesSection = attendeesSection.replace(/^[•\-\*]\s*(.+)$/gm, '$1');
+        
+        // Split into lines and clean up
+        const lines = attendeesSection.split('\n')
+          .map(line => line.trim())
+          .filter(line => line && !line.includes('1️⃣') && !line.toLowerCase().includes('other'))
+          .filter(line => line.length > 2); // Remove very short lines
+        
+        if (lines.length > 0) {
+          // Join names with commas and ensure proper formatting
+          const cleanedNames = lines.join(', ').replace(/,\s*,/g, ',').replace(/,+/g, ',');
+          attendeesSection = `1️⃣ Attendees\n${cleanedNames}\n\n`;
+        }
+        
+        return attendeesSection;
+      }
+    );
+    
+    // Ensure proper spacing between emoji sections
+    formatted = formatted.replace(/(1️⃣|2️⃣|3️⃣|4️⃣|5️⃣)/g, '\n\n$1');
+    
+    // Convert #### headers (level 4)
+    formatted = formatted.replace(/^#### (.*$)/gm, '<h4 class="text-base font-semibold mt-3 mb-2 text-gray-800">$1</h4>');
+    
+    // Convert ### headers (level 3)
+    formatted = formatted.replace(/^### (.*$)/gm, '<h3 class="text-lg font-semibold mt-4 mb-2 text-gray-800">$1</h3>');
+    
+    // Convert ## headers (level 2)
+    formatted = formatted.replace(/^## (.*$)/gm, '<h2 class="text-xl font-semibold mt-6 mb-3 text-gray-800">$1</h2>');
+    
+    // Convert # headers (level 1)
+    formatted = formatted.replace(/^# (.*$)/gm, '<h1 class="text-2xl font-bold mt-8 mb-4 text-gray-800">$1</h1>');
+    
+    // Improve table formatting with minimal top spacing
+    formatted = formatted.replace(/\|(.+)\|/g, (match, content) => {
+      const cells = content.split('|').map(cell => cell.trim());
+      const cellsHtml = cells.map(cell => 
+        `<td class="border border-gray-300 px-3 py-2 text-sm">${cell}</td>`
+      ).join('');
+      return `<tr>${cellsHtml}</tr>`;
+    });
+    
+    // Wrap table rows in proper table structure with minimal spacing before tables
+    formatted = formatted.replace(/(<tr>.*<\/tr>\s*)+/g, (match) => {
+      return `<table class="w-full border-collapse border border-gray-300 mt-1 mb-4">${match}</table>`;
+    });
+    
+    // Remove excessive spacing before tables specifically in section 4
+    formatted = formatted.replace(/(4️⃣[^<]*)<div class="mb-3"><\/div>\s*<table/g, '$1<table');
+    
+    // Convert **bold** to HTML bold
+    formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold">$1</strong>');
+    
+    // Convert *italic* to HTML italic
+    formatted = formatted.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em class="italic">$1</em>');
+    
+    // Convert bullet points with better styling
+    formatted = formatted.replace(/^[•\-\*] (.*$)/gm, '<div class="ml-6 mb-1 flex"><span class="mr-2">•</span><span>$1</span></div>');
+    
+    // Convert numbered lists
+    formatted = formatted.replace(/^(\d+)\. (.*$)/gm, '<div class="ml-6 mb-1 flex"><span class="mr-2 font-medium">$1.</span><span>$2</span></div>');
+    
+    // Convert line breaks to proper spacing with reduced spacing before sections
+    formatted = formatted.replace(/\n\n\n+/g, '\n\n'); // Remove excessive line breaks
+    formatted = formatted.replace(/\n\n/g, '<div class="mb-3"></div>');
+    formatted = formatted.replace(/\n/g, '<br />');
+    
+    // Clean up excessive spacing around emoji sections
+    formatted = formatted.replace(/<div class="mb-3"><\/div>\s*(<div class="mb-3"><\/div>\s*)*(1️⃣|2️⃣|3️⃣|4️⃣|5️⃣)/g, '<div class="mb-4"></div>$2');
+    
+    return formatted;
+  };
+
   const handleGenerateNotes = async () => {
     console.log('🔄 Generate Notes clicked');
     console.log('📝 Selected meeting:', selectedMeeting?.id);
@@ -1330,7 +1420,7 @@ const MeetingHistory = () => {
                   <h3 className="text-lg font-semibold">Meeting Notes</h3>
                    {meetingSummary ? (
                      <div className="prose max-w-none">
-                       <SafeMessageRenderer content={meetingSummary} />
+                       <SafeMessageRenderer content={renderFormattedText(meetingSummary)} />
                      </div>
                    ) : (
                     <div className="text-center py-8 bg-muted/50 rounded-lg border">
