@@ -334,6 +334,20 @@ export const MeetingHistoryList = ({
                   <span>View Transcript</span>
                 </Button>
                 
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onViewSummary(meeting.id);
+                  }}
+                  className="flex items-center justify-center gap-2 flex-1 sm:flex-none touch-manipulation min-h-[44px] text-primary hover:text-primary"
+                >
+                  <FileText className="h-4 w-4" />
+                  <span>View Notes</span>
+                </Button>
+                
                 {/* Audio Backup Button - Only show if audio backup exists */}
                 {meeting.audio_backup_path && (
                   <Button
