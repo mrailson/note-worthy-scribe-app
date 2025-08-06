@@ -1,53 +1,58 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
-import { Header } from "@/components/Header";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Separator } from "@/components/ui/separator";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { AlertCircle, Mic, MicOff, Play, Pause, Square, Volume2, VolumeX, FileText, Settings, MessageSquare, Download, Copy, Edit, Save, X, RotateCcw, Upload, ChevronDown, ChevronUp, Languages, Speaker, Users, Bot, TestTube } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect, useRef } from "react";
 import { format } from "date-fns";
-import { consultationExamples } from "@/data/consultationExamples";
-import { GPScribeRecorder } from "@/components/GPScribeRecorder";
-import { MP3TranscriptionTest } from "@/components/MP3TranscriptionTest";
+import { Header } from "@/components/Header";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Mic, MicOff, Wifi, WifiOff, Brain, Copy, Download, Mail, Save, Play, Pause, FileText, ChevronDown, ChevronUp, Lightbulb, AlertTriangle, BookOpen, Shield, BarChart3, Edit, Check, X, Send, Settings, Languages, Volume2, VolumeX, Stethoscope, Eye, EyeOff, Maximize2, RotateCcw } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
+import { UnifiedAudioCapture } from "@/utils/UnifiedAudioCapture";
+
+// Simple transcript data interface for single session mode
 interface TranscriptData {
   text: string;
-  speaker?: string;
-  timestamp?: string;
-  isFinal?: boolean;
+  speaker: string;
+  confidence: number;
+  timestamp: string;
+  isFinal: boolean;
   isCompleteSession?: boolean;
-  confidence?: number;
 }
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate, useLocation } from "react-router-dom";
+import { toast } from "sonner";
+import jsPDF from 'jspdf';
+import { consultationExamples, type ConsultationExample } from "@/data/consultationExamples";
+import { TranslationInterface } from "@/components/TranslationInterface";
+import { MP3TranscriptionTest } from "@/components/MP3TranscriptionTest";
+import { ConsultationHistory } from "@/components/ConsultationHistory";
+import { PatientTranslationView } from "@/components/PatientTranslationView";
+import { SafeMessageRenderer } from "@/components/SafeMessageRenderer";
+import AI4GPService from "@/components/AI4GPService";
+import GPGenieVoiceAgent from "@/components/GPGenieVoiceAgent";
 
-// Healthcare languages for translation
 const HEALTHCARE_LANGUAGES = [
-  { code: 'none', name: 'No Translation', flag: '🚫', voice: '' },
+  { code: 'none', name: 'No Translation', flag: '🚫' },
   { code: 'ar', name: 'Arabic', flag: '🇸🇦', voice: 'ar-XA-Wavenet-A' },
   { code: 'bn', name: 'Bengali', flag: '🇧🇩', voice: 'bn-IN-Wavenet-A' },
+  { code: 'bg', name: 'Bulgarian', flag: '🇧🇬', voice: 'bg-BG-Standard-A' },
   { code: 'zh', name: 'Chinese (Mandarin)', flag: '🇨🇳', voice: 'cmn-CN-Wavenet-A' },
+  { code: 'hr', name: 'Croatian', flag: '🇭🇷', voice: 'hr-HR-Wavenet-A' },
   { code: 'cs', name: 'Czech', flag: '🇨🇿', voice: 'cs-CZ-Wavenet-A' },
+  { code: 'da', name: 'Danish', flag: '🇩🇰', voice: 'da-DK-Wavenet-A' },
   { code: 'nl', name: 'Dutch', flag: '🇳🇱', voice: 'nl-NL-Wavenet-A' },
-  { code: 'en', name: 'English', flag: '🇺🇸', voice: 'en-US-Wavenet-F' },
-  { code: 'fi', name: 'Finnish', flag: '🇫🇮', voice: 'fi-FI-Wavenet-A' },
   { code: 'fr', name: 'French', flag: '🇫🇷', voice: 'fr-FR-Wavenet-A' },
   { code: 'de', name: 'German', flag: '🇩🇪', voice: 'de-DE-Wavenet-A' },
   { code: 'el', name: 'Greek', flag: '🇬🇷', voice: 'el-GR-Wavenet-A' },
-  { code: 'gu', name: 'Gujarati', flag: '🇮🇳', voice: 'gu-IN-Wavenet-A' },
   { code: 'hi', name: 'Hindi', flag: '🇮🇳', voice: 'hi-IN-Wavenet-A' },
   { code: 'hu', name: 'Hungarian', flag: '🇭🇺', voice: 'hu-HU-Wavenet-A' },
   { code: 'it', name: 'Italian', flag: '🇮🇹', voice: 'it-IT-Wavenet-A' },
-  { code: 'ja', name: 'Japanese', flag: '🇯🇵', voice: 'ja-JP-Wavenet-A' },
-  { code: 'ko', name: 'Korean', flag: '🇰🇷', voice: 'ko-KR-Wavenet-A' },
-  { code: 'pa', name: 'Punjabi', flag: '🇮🇳', voice: 'pa-IN-Wavenet-A' },
   { code: 'pl', name: 'Polish', flag: '🇵🇱', voice: 'pl-PL-Wavenet-A' },
   { code: 'pt', name: 'Portuguese', flag: '🇵🇹', voice: 'pt-PT-Wavenet-A' },
   { code: 'ro', name: 'Romanian', flag: '🇷🇴', voice: 'ro-RO-Wavenet-A' },
@@ -68,7 +73,7 @@ interface ConsultationGuidance {
   };
 }
 
-const GPScribe = () => {
+const Index = () => {
   const { user, loading } = useAuth();
   
   const navigate = useNavigate();
@@ -83,33 +88,155 @@ const GPScribe = () => {
   const [connectionStatus, setConnectionStatus] = useState<string>("Disconnected");
   const [wordCount, setWordCount] = useState(0);
   
-  // Consultation states
-  const [consultationType, setConsultationType] = useState<'face-to-face' | 'telephone' | 'video'>('face-to-face');
+  // UI states
   const [isTranscriptOpen, setIsTranscriptOpen] = useState(false);
+  const [isConfigOpen, setIsConfigOpen] = useState(false);
+  const [isTranslationCollapsed, setIsTranslationCollapsed] = useState(true); // Collapsed by default
+  const [selectedExample, setSelectedExample] = useState<string>("");
+  const [showExamples, setShowExamples] = useState(true);
+  const [activeTab, setActiveTab] = useState("consultation");
+  const [showTicker, setShowTicker] = useState(false);
+  const [tickerEnabled, setTickerEnabled] = useState(true);
+  const [tickerText, setTickerText] = useState<string>("");
   const [cleanedTranscript, setCleanedTranscript] = useState("");
+  const [isCleaningTranscript, setIsCleaningTranscript] = useState(false);
+  const [completedConsultation, setCompletedConsultation] = useState<any>(null);
+  
+  // New consultation setup states
+  const [consultationType, setConsultationType] = useState<"face-to-face" | "telephone">("face-to-face");
+  const [translationLanguage, setTranslationLanguage] = useState<string>('none');
+  const [isTranslationEnabled, setIsTranslationEnabled] = useState(false);
+  const [translations, setTranslations] = useState<any[]>([]);
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [autoSpeak, setAutoSpeak] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isCurrentlyPlaying, setIsCurrentlyPlaying] = useState(false);
+  const [isMicMuted, setIsMicMuted] = useState(false);
+  const [playedTranslations, setPlayedTranslations] = useState<Set<string>>(new Set());
+  
+  // Audio queue management
+  const audioQueueRef = useRef<Array<{text: string, languageCode: string, id: string}>>([]);
+  const currentAudioRef = useRef<HTMLAudioElement | null>(null);
+  
+  // Guidance states - Removed guidance UI but keep for trainee feedback integration
+  const [guidance, setGuidance] = useState<ConsultationGuidance | null>(null);
+  const [isGuidanceLoading, setIsGuidanceLoading] = useState(false);
+  const [autoGuidance, setAutoGuidance] = useState(true);
+  
+  // Output configuration - Will be loaded from user settings
+  const [outputLevel, setOutputLevel] = useState<number>(3); // Default to Standard
+  const [showSnomedCodes, setShowSnomedCodes] = useState(true); // Default to true
+  const [formatForEmis, setFormatForEmis] = useState(true); // Default to true
+  const [formatForSystmOne, setFormatForSystmOne] = useState(false);
+  
+  // User settings loading state
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
+  
+  // Generated outputs
+  const [isGenerating, setIsGenerating] = useState(false);
   const [gpSummary, setGpSummary] = useState("");
   const [fullNote, setFullNote] = useState("");
   const [patientCopy, setPatientCopy] = useState("");
   const [traineeFeedback, setTraineeFeedback] = useState("");
   const [referralLetter, setReferralLetter] = useState("");
-  const [outputLevel, setOutputLevel] = useState("3");
-  const [showSnomedCodes, setShowSnomedCodes] = useState(false);
-  const [formatForEmis, setFormatForEmis] = useState(false);
-  const [formatForSystmOne, setFormatForSystmOne] = useState(false);
-  const [showExamples, setShowExamples] = useState(false);
-  const [activeTab, setActiveTab] = useState("consultation");
-  const [completedConsultation, setCompletedConsultation] = useState<any>(null);
   
-  // User settings - simplified without database calls
-  const [settingsLoaded, setSettingsLoaded] = useState(true);
+  // Edit states
+  const [editStates, setEditStates] = useState({
+    gpSummary: false,
+    fullNote: false,
+    patientCopy: false,
+    traineeFeedback: false,
+    referralLetter: false
+  });
+  
+  // Temporary edit content
+  const [editContent, setEditContent] = useState({
+    gpSummary: "",
+    fullNote: "",
+    patientCopy: "",
+    traineeFeedback: "",
+    referralLetter: ""
+  });
+  
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const transciberRef = useRef<UnifiedAudioCapture | null>(null);
 
+  const outputLevels = [
+    { value: 1, label: "Code", description: "GP shorthand only (e.g., 'URTI, 2/7, safety-netted')" },
+    { value: 2, label: "Brief", description: "Concise summary with key points" },
+    { value: 3, label: "Standard", description: "Complete clinical note" },
+    { value: 4, label: "Detailed", description: "Comprehensive with examination findings" },
+    { value: 5, label: "Full", description: "Complete with patient quotes and context" }
+  ];
+
+  // Format duration as MM:SS
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Load user settings on component mount
+  const loadUserSettings = async () => {
+    if (!user || settingsLoaded) return;
+
+    try {
+      const { data: settings, error } = await supabase
+        .from('gp_scribe_settings')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 = not found
+        console.error('Error loading user settings:', error);
+        return;
+      }
+
+      if (settings) {
+        setOutputLevel(settings.default_output_level);
+        setShowSnomedCodes(settings.default_show_snomed_codes);
+        setFormatForEmis(settings.default_format_for_emis);
+        setFormatForSystmOne(settings.default_format_for_systmone);
+      }
+    } catch (error) {
+      console.error('Error loading user settings:', error);
+    } finally {
+      setSettingsLoaded(true);
+    }
+  };
+
+  // Save user settings when they change
+  const saveUserSettings = async () => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('gp_scribe_settings')
+        .upsert({
+          user_id: user.id,
+          default_output_level: outputLevel,
+          default_show_snomed_codes: showSnomedCodes,
+          default_format_for_emis: formatForEmis,
+          default_format_for_systmone: formatForSystmOne,
+        });
+
+      if (error) {
+        console.error('Error saving user settings:', error);
+      }
+    } catch (error) {
+      console.error('Error saving user settings:', error);
+    }
+  };
+
+  // Translation functions
   const handleLanguageSelect = (languageCode: string) => {
     setTranslationLanguage(languageCode);
-    
+    setIsTranslationEnabled(languageCode !== 'none');
     if (languageCode !== 'none') {
-      setIsTranslationEnabled(true);
+      // Translation enabled
     } else {
-      setIsTranslationEnabled(false);
+      setTranslations([]);
+      // Translation disabled
     }
   };
 
@@ -122,57 +249,61 @@ const GPScribe = () => {
           sourceLanguage
         }
       });
-      
+
       if (error) throw error;
-      return data.translatedText || text;
+      return data.translatedText;
     } catch (error: any) {
-      console.error('Translation error:', error);
+      console.error(`Translation failed: ${error.message}`);
       return text;
     }
   };
 
   const speakTranslation = async (text: string, languageCode: string, id = Date.now().toString()) => {
-    if (isMuted || !autoSpeak) return;
+    if (isMuted || isMicMuted) return;
     
-    const isCurrentlyPlaying = !currentAudioRef.current?.paused;
+    // Add to queue
+    audioQueueRef.current.push({ text, languageCode, id });
     
+    // Process queue if not already playing
     if (!isCurrentlyPlaying) {
       processAudioQueue();
     }
   };
 
   const processAudioQueue = async () => {
-    if (audioQueueRef.current.length === 0) return;
+    if (audioQueueRef.current.length === 0 || isCurrentlyPlaying) return;
     
-    const { text, languageCode } = audioQueueRef.current.shift()!;
+    setIsCurrentlyPlaying(true);
+    const audioItem = audioQueueRef.current.shift()!;
     
     try {
-      const language = HEALTHCARE_LANGUAGES.find(lang => lang.code === languageCode);
+      const language = HEALTHCARE_LANGUAGES.find(l => l.code === audioItem.languageCode);
       if (!language?.voice) {
-        console.error('No voice found for language:', languageCode);
+        processNextInQueue();
         return;
       }
-      
+
       const { data, error } = await supabase.functions.invoke('text-to-speech', {
         body: {
-          text,
-          voice: language.voice,
-          languageCode: languageCode
+          text: audioItem.text,
+          languageCode: audioItem.languageCode,
+          voiceName: language.voice
         }
       });
-      
+
       if (error) throw error;
-      
+
+      // Stop any currently playing audio
       if (currentAudioRef.current) {
         currentAudioRef.current.pause();
         currentAudioRef.current = null;
       }
-      
-      const audio = new Audio(data.audioUrl);
+
+      const audioData = `data:audio/mp3;base64,${data.audioContent}`;
+      const audio = new Audio(audioData);
       currentAudioRef.current = audio;
       
       audio.onended = () => {
-        currentAudioRef.current = null;
         processNextInQueue();
       };
       
@@ -180,90 +311,101 @@ const GPScribe = () => {
         console.error('Audio playback error');
         processNextInQueue();
       };
-      
+
       await audio.play();
     } catch (error: any) {
-      console.error('Text-to-speech error:', error);
+      console.error('TTS Error:', error);
       processNextInQueue();
     }
   };
 
   const processNextInQueue = () => {
-    if (audioQueueRef.current.length > 0) {
-      setTimeout(() => {
-        if (audioQueueRef.current.length > 0) {
-          processAudioQueue();
-        }
-      }, 500);
-    }
+    setIsCurrentlyPlaying(false);
+    currentAudioRef.current = null;
+    
+    // Process next item in queue after a short delay
+    setTimeout(() => {
+      if (audioQueueRef.current.length > 0) {
+        processAudioQueue();
+      }
+    }, 100);
   };
 
   const processTranslation = async (transcriptText: string) => {
-    if (!isTranslationEnabled || translationLanguage === 'none') return;
+    if (!isTranslationEnabled || translationLanguage === 'none' || !transcriptText.trim()) return;
     
     setIsTranslating(true);
     try {
-      const translatedText = await translateText(transcriptText, translationLanguage);
+      const translated = await translateText(transcriptText, translationLanguage);
       const newTranslation = {
         id: Date.now().toString(),
         original: transcriptText,
-        translated: translatedText,
-        language: translationLanguage,
-        timestamp: new Date().toLocaleTimeString(),
-        speaker: 'mixed'
+        translated,
+        speaker: 'Consultation',
+        timestamp: new Date(),
+        languageCode: translationLanguage
       };
       
-      setTranslations(prev => [...prev.slice(-2), newTranslation]);
+      setTranslations(prev => [...prev.slice(-9), newTranslation]); // Keep last 10
       
       if (autoSpeak && !isMuted) {
-        speakTranslation(translatedText, translationLanguage, newTranslation.id);
+        speakTranslation(translated, translationLanguage, newTranslation.id);
       }
     } catch (error) {
-      console.error('Translation processing error:', error);
+      console.error('Translation error:', error);
     } finally {
       setIsTranslating(false);
     }
   };
 
+  // Quick translation for immediate feedback
   const processQuickTranslation = async (transcriptData: TranscriptData) => {
-    if (!isTranslationEnabled || translationLanguage === 'none' || !transcriptData.text?.trim()) {
-      return;
-    }
+    if (!isTranslationEnabled || translationLanguage === 'none' || !transcriptData.text.trim()) return;
     
-    // Determine speaker type for translation context
-    const speakerName = transcriptData.speaker?.toLowerCase() || '';
-    let speakerType: 'GP' | 'Patient' = 'GP';
+    // Detect speaker type from the transcript data
+    const speakerName = transcriptData.speaker.toLowerCase();
+    let detectedSpeaker: 'GP' | 'Patient';
+    let sourceLanguage: string;
+    let targetLanguage: string;
     
+    // Better speaker detection
     if (speakerName.includes('doctor') || speakerName.includes('gp') || speakerName.includes('physician') || speakerName === 'speaker') {
-      speakerType = 'GP';
+      detectedSpeaker = 'GP';
+      sourceLanguage = 'en';
+      targetLanguage = translationLanguage;
     } else {
-      speakerType = 'Patient';
+      detectedSpeaker = 'Patient';
+      sourceLanguage = translationLanguage;
+      targetLanguage = 'en';
     }
     
     setIsTranslating(true);
     
     try {
-      const translatedText = await translateText(transcriptData.text, translationLanguage);
+      const translated = await translateText(transcriptData.text, targetLanguage, sourceLanguage);
       
       const newTranslation = {
-        id: `${Date.now()}-${Math.random()}`,
-        original: transcriptData.text,
-        translated: translatedText,
-        language: translationLanguage,
-        timestamp: new Date().toLocaleTimeString(),
-        speaker: speakerType,
-        isFinal: transcriptData.isFinal || false
+        id: `${Date.now()}-${transcriptData.speaker}`,
+        speaker: detectedSpeaker,
+        originalText: transcriptData.text,
+        translatedText: translated,
+        timestamp: new Date(),
+        languageCode: targetLanguage,
+        sourceLanguageCode: sourceLanguage
       };
       
+      // Replace or add translation for this speaker
       setTranslations(prev => {
-        const updated = [...prev, newTranslation];
-        return updated.slice(-3); // Keep only last 3 translations
+        const filtered = prev.filter(t => !t.id.includes(transcriptData.speaker) || transcriptData.isFinal);
+        return [...filtered.slice(-9), newTranslation];
       });
       
+      // Auto-play only for final transcripts and only if not already played
       if (transcriptData.isFinal && autoSpeak && !isMuted && !playedTranslations.has(newTranslation.id)) {
-        speakTranslation(translatedText, translationLanguage, newTranslation.id);
         setPlayedTranslations(prev => new Set([...prev, newTranslation.id]));
+        speakTranslation(translated, targetLanguage, newTranslation.id);
       }
+      
     } catch (error) {
       console.error('Quick translation error:', error);
     } finally {
@@ -271,247 +413,370 @@ const GPScribe = () => {
     }
   };
 
+  // Microphone mute toggle - actually pause/resume recording
   const toggleMicMute = () => {
-    setIsMuted(prev => {
-      const newMutedState = !prev;
-      
+    const newMutedState = !isMicMuted;
+    setIsMicMuted(newMutedState);
+    
+    if (transciberRef.current && isRecording) {
       if (newMutedState) {
-        // Stop any currently playing audio
-        if (currentAudioRef.current) {
-          currentAudioRef.current.pause();
-          currentAudioRef.current = null;
-        }
+        console.log('🔇 Microphone muted - single session mode continues recording');
+        // In single session mode, we don't pause - just mute the mic effect
       } else {
-        // Resume from queue if available
-        if (audioQueueRef.current.length > 0) {
-          processAudioQueue();
-        }
+        console.log('🎤 Microphone unmuted - single session mode continues');
       }
-      
-      return newMutedState;
-    });
+    }
   };
 
+  // Stop all audio and clear queue when muting - this is for SPEAKER mute
   const handleSpeakerMuteToggle = () => {
-    setIsMuted(prev => {
-      const newMutedState = !prev;
-      
-      if (newMutedState) {
-        // Stop any currently playing audio
-        if (currentAudioRef.current) {
-          currentAudioRef.current.pause();
-          currentAudioRef.current = null;
-          audioQueueRef.current = []; // Clear the queue
-        }
-      } else {
-        // Allow audio to resume normally
-        processAudioQueue();
+    const newMutedState = !isMuted;
+    setIsMuted(newMutedState);
+    
+    if (newMutedState) {
+      // Stop current audio and clear queue
+      if (currentAudioRef.current) {
+        currentAudioRef.current.pause();
+        currentAudioRef.current = null;
       }
-      
-      return newMutedState;
-    });
+      audioQueueRef.current = [];
+      setIsCurrentlyPlaying(false);
+      // Translation audio muted
+    } else {
+      // Translation audio unmuted
+    }
   };
 
+  // Handler for imported audio transcripts with speaker identification
   const handleImportedTranscript = async (importedText: string) => {
     try {
-      console.log('📁 Processing imported transcript:', importedText.length, 'characters');
+      console.log('📁 Processing imported transcript for GP Scribe...');
       
-      // First, clean the transcript
-      setTranscript(importedText);
+      // Clean the transcript using GPT-4
+      toast.info('Cleaning transcript with AI...');
       
       const { data: cleaningResult, error: cleaningError } = await supabase.functions.invoke('clean-transcript', {
         body: {
-          transcript: importedText,
-          speakerLabels: true
+          rawTranscript: importedText,
+          meetingTitle: 'GP Consultation'
         }
       });
-      
+
       if (cleaningError) {
         console.error('Error cleaning transcript:', cleaningError);
-        toast.error("Failed to clean imported transcript");
-        return;
+        toast.error('Failed to clean transcript, using original');
       }
+
+      const cleanedText = cleaningResult?.cleanedTranscript || importedText;
       
       if (cleaningResult?.cleanedTranscript) {
-        setCleanedTranscript(cleaningResult.cleanedTranscript);
+        toast.success('Transcript cleaned and formatted!');
         console.log('📝 Transcript cleaned:', {
-          original: importedText.length,
-          cleaned: cleaningResult.cleanedTranscript.length,
-          speakers: cleaningResult.speakers || []
+          originalLength: cleaningResult.originalLength,
+          cleanedLength: cleaningResult.cleanedLength
         });
       }
+
+      // Identify speakers using AI for GP consultation
+      toast.info('Identifying GP and Patient with AI...');
       
-      // Try to identify speakers in the imported transcript
+      let enhancedTranscript = cleanedText;
+      
       try {
         const { data: speakerResult, error: speakerError } = await supabase.functions.invoke('identify-speakers', {
           body: {
-            transcript: importedText,
-            meetingType: 'consultation'
+            transcript: cleanedText,
+            meetingTitle: 'GP Consultation',
+            agenda: 'Medical consultation between healthcare provider and patient'
           }
         });
-        
+
         if (speakerError) {
-          console.error('Speaker identification error:', speakerError);
+          console.error('Error identifying speakers:', speakerError);
+          toast.warning('Speaker identification failed, proceeding with original transcript');
         } else if (speakerResult?.success) {
-          console.log('🎭 Speaker identification completed:', speakerResult);
+          console.log('🎭 Speakers identified:', speakerResult.identification);
           
           const identification = speakerResult.identification;
+          
+          // Show identification results to user
           if (identification.meetingType === 'consultation') {
-            console.log('✅ Identified as consultation with speakers:', identification.speakers);
+            toast.success('Medical consultation detected - GP and Patient identified!');
             
+            // Update the transcript with identified speaker labels
             if (identification.speakers.length > 0) {
+              // Create a mapping of generic speakers to identified roles
               const speakerMapping = new Map();
-              
               identification.speakers.forEach((speaker, index) => {
-                const role = index === 0 ? 'GP' : 'Patient';
-                speakerMapping.set(speaker, role);
+                speakerMapping.set(`Speaker ${index + 1}`, speaker.role);
+                speakerMapping.set(`Speaker${index + 1}`, speaker.role);
+              });
+
+              // Replace speaker labels in transcript
+              speakerMapping.forEach((role, originalSpeaker) => {
+                const regex = new RegExp(`\\b${originalSpeaker}\\b`, 'gi');
+                enhancedTranscript = enhancedTranscript.replace(regex, role);
               });
               
-              speakerMapping.forEach((role, originalSpeaker) => {
-                console.log(`Mapping: ${originalSpeaker} → ${role}`);
-              });
+              console.log('🎯 Enhanced transcript with speaker identification');
             }
           } else {
-            console.log('ℹ️ Not identified as consultation format');
+            toast.info('Transcript processed - may not be a medical consultation');
           }
         }
       } catch (speakerError) {
         console.error('Speaker identification failed:', speakerError);
+        toast.warning('Speaker identification failed, using cleaned transcript');
       }
       
-      // Set word count and duration estimates
-      const words = importedText.trim().split(/\s+/).filter(word => word.length > 0);
+      // Set the enhanced transcript
+      setTranscript(enhancedTranscript);
+      setCleanedTranscript(enhancedTranscript);
+      
+      // Update word count
+      const words = enhancedTranscript.split(' ').filter(word => word.length > 0);
       setWordCount(words.length);
       
-      // Estimate duration (average speaking rate: 150 words per minute)
-      const estimatedMinutes = Math.ceil(words.length / 150);
-      setDuration(estimatedMinutes * 60);
+      toast.success(`Audio imported and processed! ${words.length} words, speakers identified.`);
       
-      // Create consultation data for navigation
+      // Navigate to consultation summary with the imported data
+      console.log("Navigating to consultation summary with imported data...");
       const consultationData = {
-        id: `imported-consultation-${Date.now()}`,
-        title: `Imported Consultation - ${format(new Date(), "do MMMM yyyy 'at' h.mm a")}`,
+        id: `consultation-import-${Date.now()}`,
+        title: `GP Consultation (Imported) - ${format(new Date(), "do MMMM yyyy 'at' h.mm a")}`,
         type: consultationType,
-        transcript: importedText,
-        cleanedTranscript: cleaningResult?.cleanedTranscript || importedText,
-        duration: formatDuration(estimatedMinutes * 60),
+        transcript: enhancedTranscript,
+        duration: '00:00', // Duration not available from imported audio
         wordCount: words.length,
         startTime: new Date().toISOString(),
         isExample: false,
         isImported: true
       };
       
-      // If we have a substantial transcript, navigate to summary
-      const enhancedTranscript = cleaningResult?.cleanedTranscript || importedText;
+      console.log("Navigating with imported consultation data:", consultationData);
+      navigate('/consultation-summary', { state: consultationData });
+      
+      // Start background generation since we have processed content
       if (enhancedTranscript && enhancedTranscript.trim().length > 50) {
-        console.log('📋 Navigating to consultation summary with imported data');
-        navigate('/consultation-summary', { state: consultationData });
+        console.log("Starting background generation for imported consultation...");
+        // Don't await this - let it run in background with imported flag
+        generateSummaryBackground(true);
       }
       
-      // Show success message
+      // Auto-trigger consultation processing if we have a good transcript
       if (words.length > 50) {
-        toast.success(`Successfully imported consultation with ${words.length} words`);
+        processTranslation(enhancedTranscript);
       }
       
     } catch (error: any) {
       console.error('Error processing imported transcript:', error);
-      toast.error("Failed to process imported file");
+      toast.error('Failed to process imported audio');
     }
   };
 
+  // Single session mode - only process final transcripts
   const handleTranscript = (transcriptData: TranscriptData) => {
     console.log('🔄 handleTranscript called with:', {
-      text: transcriptData.text?.substring(0, 50) + '...',
-      speaker: transcriptData.speaker,
+      textLength: transcriptData.text?.length || 0,
       isFinal: transcriptData.isFinal,
-      isCompleteSession: transcriptData.isCompleteSession
+      isCompleteSession: transcriptData.isCompleteSession,
+      speaker: transcriptData.speaker
     });
     
+    // Only process final/complete session transcripts in single session mode
     if (transcriptData.isCompleteSession || transcriptData.isFinal) {
-      setTranscript(transcriptData.text || '');
-      setWordCount(transcriptData.text ? transcriptData.text.split(' ').filter(word => word.length > 0).length : 0);
+      console.log('📝 Processing final transcript:', transcriptData.text);
+      setTranscript(transcriptData.text);
+      const words = transcriptData.text.split(' ').filter(word => word.length > 0);
+      setWordCount(words.length);
+      console.log('✅ Transcript set - word count:', words.length);
     } else {
-      // Handle interim results for real-time display
-      setRealtimeTranscripts(prev => [...prev.slice(-10), transcriptData]);
+      console.log('⏳ Ignoring partial transcript in single session mode');
     }
   };
-
   const debouncedGenerateGuidance = (text: string) => {
-    // Implementation for real-time guidance generation
-    // This would call the AI to provide consultation guidance
+    console.log('Single session mode - guidance disabled during recording');
   };
 
+  // Quick cleaning function for immediate text improvement
   const performQuickCleaning = (text: string): string => {
-    if (!text || text.length < 10) return text;
-    
     return text
+      // Fix spacing around punctuation
+      .replace(/\s+([,.!?;:])/g, '$1')
+      .replace(/([,.!?;:])\s+/g, '$1 ')
+      // Fix multiple spaces
       .replace(/\s+/g, ' ')
-      .replace(/([.!?])\s*([A-Z])/g, '$1 $2')
-      .replace(/\b(um|uh|er|ah|hmm)\b/gi, '')
-      .replace(/\s{2,}/g, ' ')
-      .replace(/([.!?]){2,}/g, '$1')
-      .replace(/^[.!?]+/, '')
-      .replace(/[.!?]+$/, '.')
+      // Fix broken sentences from chunking (e.g., "word. New" should be "word. New")
+      .replace(/([a-z])\.\s*([A-Z])/g, '$1. $2')
+      // Remove basic filler words and clean up
+      .replace(/\b(uh|um|er|ah)\b/gi, '')
+      // Fix multiple spaces again after removals
+      .replace(/\s+/g, ' ')
       .trim();
   };
-
-  // Refs for audio and timer management
-  const audioQueueRef = useRef<Array<{text: string, languageCode: string}>>([]);
-  const currentAudioRef = useRef<HTMLAudioElement | null>(null);
-  const autoCleanTimeoutRef = useRef<NodeJS.Timeout>();
-  const guidanceTimeoutRef = useRef<NodeJS.Timeout>();
-
+  // Debounced auto-cleaning function
+  const autoCleanTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const debounceAutoCleaning = (text: string) => {
     if (autoCleanTimeoutRef.current) {
       clearTimeout(autoCleanTimeoutRef.current);
     }
     
     autoCleanTimeoutRef.current = setTimeout(async () => {
+      console.log('Auto-cleaning transcript...');
       try {
         const { data, error } = await supabase.functions.invoke('clean-transcript', {
           body: {
-            transcript: text,
-            speakerLabels: true,
-            quickClean: true
+            rawTranscript: text,
+            meetingTitle: `GP Consultation - ${consultationType}`
           }
         });
-        
+
+        if (error) throw error;
+
         if (data.cleanedTranscript && data.cleanedTranscript !== text) {
           setCleanedTranscript(data.cleanedTranscript);
+          setTranscript(data.cleanedTranscript); // Update the main transcript with cleaned version
+          // Transcript automatically tidied up
         }
       } catch (error: any) {
-        console.error('Auto-cleaning error:', error);
+        console.error("Error auto-cleaning transcript:", error);
       }
-    }, 3000);
+    }, 10000); // Wait 10 seconds after transcript stops changing
   };
 
-  const handleUpdateConnectionStatus = (status: string) => {
+  // Debounced guidance function to avoid too many API calls
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const debounceGuidance = (text: string) => {
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+    
+    debounceTimeoutRef.current = setTimeout(() => {
+      generateGuidance(text);
+    }, 5000); // Wait 5 seconds after transcript stops changing
+  };
+
+  const handleTranscriptionError = (error: string) => {
+    console.error(`Transcription Error: ${error}`);
+    setConnectionStatus("Error");
+  };
+
+  const handleStatusChange = (status: string) => {
     queueMicrotask(() => setConnectionStatus(status));
   };
 
-  // All recording functions removed - handled by GPScribeRecorder component
+  const startRecording = async () => {
+    try {
+      transciberRef.current = new UnifiedAudioCapture(
+        handleTranscript,
+        handleTranscriptionError,
+        handleStatusChange
+      );
+      
+      await transciberRef.current.startCapture('mic-only'); // Use mic-only for single session mode
+      
+      setIsRecording(true);
+      setIsPaused(false);
+      setTranscript(""); // Clear previous transcript
+      setDuration(0); // Reset duration counter
+      console.log("Starting recording - duration reset to 0");
+      
+      intervalRef.current = setInterval(() => {
+        setDuration(prev => {
+          const newDuration = prev + 1;
+          console.log("Duration updated to:", newDuration);
+          return newDuration;
+        });
+      }, 1000);
+
+      // Recording started for consultation
+
+    } catch (error) {
+      console.error("Failed to start recording");
+    }
+  };
+
+  const pauseRecording = () => {
+    setIsPaused(!isPaused);
+    if (!isPaused) {
+      // Recording paused
+    } else {
+      // Recording resumed
+    }
+  };
+
+  const stopRecording = () => {
+    console.log("stopRecording called");
+    console.log("Current duration when stopping:", duration);
+    console.log("Duration state:", duration);
+    console.log("IntervalRef status:", intervalRef.current ? "active" : "null");
+    
+    // Set status to indicate we're finalizing
+    setConnectionStatus("Finalizing...");
+    // Recording stopped - finalizing transcript
+    
+    // Stop the timer first
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    
+    setIsRecording(false);
+    setIsPaused(false);
+    
+    // Stop the unified audio capture 
+    if (transciberRef.current) {
+      console.log("🛑 Stopping single session recording...");
+      transciberRef.current.stopCapture(); // This will trigger the final transcription
+      transciberRef.current = null;
+    }
+    
+    // Conditional delay based on recording duration
+    const delayTime = 1000; // Reduced delay to 1 second for better user experience
+    console.log(`Recording duration: ${duration}s, using ${delayTime/1000}s delay`);
+    
+    // Reduced delay since we're using 5-second chunks now
+    setTimeout(() => {
+      setConnectionStatus("Stopped");
+      console.log("Transcript length:", transcript ? transcript.trim().length : 0);
+      console.log("Recording duration for navigation check:", duration, "seconds");
+      
+      // Check if recording is too short (under 30 seconds)
+      if (duration < 30) {
+        console.log("Recording too short (under 30 seconds), staying on current page");
+        console.log("Duration value:", duration, "Type:", typeof duration);
+        toast.error("Recording too short. Please record for at least 30 seconds for meaningful consultation notes.");
+        return;
+      }
+      
+      console.log("Duration check passed, proceeding with navigation...");
+      
+      // Navigate immediately to consultation summary without waiting for generation
+      console.log("Navigating immediately to consultation summary...");
+      const consultationData = {
+        id: `consultation-${Date.now()}`,
+        title: `GP Consultation - ${format(new Date(), "do MMMM yyyy 'at' h.mm a")}`,
+        type: consultationType,
+        transcript: transcript || '',
+        duration: formatDuration(duration),
+        wordCount: transcript ? transcript.split(' ').filter(word => word.length > 0).length : 0,
+        startTime: new Date().toISOString(),
+        isExample: false
+      };
+      
+      console.log("Navigating with data:", consultationData);
+      navigate('/consultation-summary', { state: consultationData });
+      
+      // Start background generation if there's meaningful content
+      if (transcript && transcript.trim().length > 50) {
+        console.log("Starting background generation...");
+        // Don't await this - let it run in background
+        generateSummaryBackground();
+      }
+    }, delayTime);
+  };
 
   const resetSession = () => {
-    setTranscript("");
-    setCleanedTranscript("");
-    setDuration(0);
-    setWordCount(0);
-    setConnectionStatus("Disconnected");
-    setGpSummary("");
-    setFullNote("");
-    setPatientCopy("");
-    setTraineeFeedback("");
-    setReferralLetter("");
-    setCompletedConsultation(null);
-    console.log("🔄 GP Scribe session reset");
-  };
-
-  // Legacy stopRecording function - now handled by GPScribeRecorder component
-  const stopRecording = () => {
-    console.log("stopRecording called - handled by GPScribeRecorder component");
-  };
-
-  const resetSession2 = () => {
     // Stop recording if active
     if (isRecording) {
       stopRecording();
@@ -531,255 +796,479 @@ const GPScribe = () => {
     setTraineeFeedback("");
     setReferralLetter("");
     
-    // Clear translations
+    // Reset UI states
+    setIsTranscriptOpen(false);
+    setIsTranslationCollapsed(true);
+    setActiveTab("consultation");
+    
+    // Reset translation data
     setTranslations([]);
     setPlayedTranslations(new Set());
     
-    // Reset UI states
-    setIsTranscriptOpen(false);
-    setConnectionStatus("Disconnected");
-    setCompletedConsultation(null);
-    
-    // Clear guidance
+    // Reset guidance
     setGuidance(null);
+    setIsGuidanceLoading(false);
     
-    // Clear edit states
-    setEditStates({
-      gpSummary: false,
-      fullNote: false,
-      patientCopy: false,
-      traineeFeedback: false,
-      referralLetter: false
-    });
+    // Reset connection status
+    setConnectionStatus("Disconnected");
     
-    setEditContent({
-      gpSummary: "",
-      fullNote: "",
-      patientCopy: "",
-      traineeFeedback: "",
-      referralLetter: ""
-    });
-    
-    console.log("🔄 Complete session reset");
+    console.log("Session reset - all data cleared");
+    toast.success("Session reset successfully");
   };
 
-  const generateSummaryBackground = async () => {
-    if (!transcript || transcript.trim().length < 50) {
-      console.log("⚠️ Transcript too short for background generation");
+  const loadExample = (exampleId: string) => {
+    const example = consultationExamples.find(ex => ex.id === exampleId);
+    if (example) {
+      // Prepare consultation data for the summary view
+      const consultationData = {
+        id: `example-${exampleId}`,
+        title: example.title,
+        type: example.type,
+        transcript: example.transcript,
+        duration: formatDuration(300), // 5 minutes example duration
+        wordCount: example.transcript.split(' ').filter(word => word.length > 0).length,
+        startTime: new Date().toISOString(),
+        isExample: true,
+        exampleData: {
+          gpSummary: example.expectedNotes.gpSummary,
+          fullNote: example.expectedNotes.fullNote,
+          patientCopy: example.expectedNotes.patientCopy,
+          traineeFeedback: example.traineeFeedback,
+          guidance: null // Will be generated
+        }
+      };
+      
+      // Loading example
+      
+      // Navigate to consultation summary view
+      navigate('/consultation-summary', { state: consultationData });
+    }
+  };
+
+  const generateGuidance = async (transcriptText?: string) => {
+    const textToAnalyze = transcriptText || transcript;
+    if (!textToAnalyze.trim()) {
+      console.error("No transcript available for guidance");
       return;
     }
 
+    setIsGuidanceLoading(true);
+    
     try {
-      console.log("🤖 Starting background summary generation...");
-      
-      const { data, error } = await supabase.functions.invoke('generate-gp-consultation-notes', {
+      const { data, error } = await supabase.functions.invoke('gp-consultation-guidance', {
         body: {
-          transcript: cleanedTranscript || transcript,
-          consultationType,
-          outputLevel: parseInt(outputLevel),
-          includeSnomedCodes: showSnomedCodes,
-          formatForEmis,
-          formatForSystmOne
+          transcript: textToAnalyze
         }
       });
 
-      if (error) {
-        console.error("Background generation error:", error);
-        return;
-      }
+      if (error) throw error;
 
-      if (data) {
-        console.log("✅ Background generation completed");
-        setGpSummary(data.gpSummary || "");
-        setFullNote(data.fullNote || "");
-        setPatientCopy(data.patientCopy || "");
-        setTraineeFeedback(data.traineeFeedback || "");
-        setReferralLetter(data.referralLetter || "");
+      setGuidance(data);
+      
+      if (!transcriptText) { // Only show console log for manual requests
+        console.log("Consultation guidance generated");
       }
-    } catch (error) {
-      console.error("Background generation failed:", error);
+    } catch (error: any) {
+      console.error('Error generating guidance:', error);
+      if (!transcriptText) { // Only show error for manual requests
+        console.error(`Error generating guidance: ${error.message}`);
+      }
+    } finally {
+      setIsGuidanceLoading(false);
     }
   };
 
-  const generateGuidance = async (transcriptText: string) => {
-    if (!transcriptText || transcriptText.trim().length < 100) return;
-    
-    if (guidanceTimeoutRef.current) {
-      clearTimeout(guidanceTimeoutRef.current);
+  // Clean transcript with AI
+  const cleanTranscript = async () => {
+    if (!transcript || transcript.length < 10) {
+      console.error("No transcript available to clean");
+      return;
     }
-    
-    guidanceTimeoutRef.current = setTimeout(async () => {
-      setIsGuidanceLoading(true);
-      try {
-        const { data, error } = await supabase.functions.invoke('gp-consultation-guidance', {
-          body: {
-            transcript: transcriptText,
-            consultationType
-          }
-        });
-        
-        if (error) throw error;
-        
-        if (data) {
-          setGuidance(data);
-        }
-      } catch (error) {
-        console.error('Guidance generation error:', error);
-      } finally {
-        setIsGuidanceLoading(false);
-      }
-    }, 5000); // Wait 5 seconds before generating guidance
-  };
 
-  const downloadAsDocx = async (content: string, filename: string) => {
+    setIsCleaningTranscript(true);
+    
     try {
-      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/generate-docx`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabase.supabaseKey}`,
-        },
-        body: JSON.stringify({ content, filename }),
+      const { data, error } = await supabase.functions.invoke('clean-transcript', {
+        body: {
+          rawTranscript: transcript,
+          meetingTitle: `GP Consultation - ${consultationType}`
+        }
       });
 
-      if (!response.ok) throw new Error('Failed to generate document');
+      if (error) throw error;
 
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.style.display = 'none';
-      a.href = url;
-      a.download = `${filename}.docx`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
-      toast.success(`${filename} downloaded successfully`);
-    } catch (error) {
-      console.error('Download error:', error);
-      toast.error('Failed to download document');
+      setCleanedTranscript(data.cleanedTranscript);
+      // Transcript cleaned successfully
+    } catch (error: any) {
+      console.error("Error cleaning transcript:", error);
+      console.error(`Failed to clean transcript: ${error.message}`);
+    } finally {
+      setIsCleaningTranscript(false);
     }
-  };
-
-  const copyToClipboard = (text: string, type: string) => {
-    navigator.clipboard.writeText(text).then(() => {
-      toast.success(`${type} copied to clipboard`);
-    }).catch((error) => {
-      console.error('Copy failed:', error);
-      toast.error('Failed to copy to clipboard');
-    });
-  };
-
-  const toggleEdit = (section: keyof typeof editStates) => {
-    if (editStates[section]) {
-      // Save the edit
-      const content = editContent[section];
-      switch (section) {
-        case 'gpSummary':
-          setGpSummary(content);
-          break;
-        case 'fullNote':
-          setFullNote(content);
-          break;
-        case 'patientCopy':
-          setPatientCopy(content);
-          break;
-        case 'traineeFeedback':
-          setTraineeFeedback(content);
-          break;
-        case 'referralLetter':
-          setReferralLetter(content);
-          break;
-      }
-      toast.success(`${section.replace(/([A-Z])/g, ' $1').toLowerCase()} updated`);
-    } else {
-      // Start editing - populate with current content
-      const currentContent = {
-        gpSummary,
-        fullNote,
-        patientCopy,
-        traineeFeedback,
-        referralLetter
-      };
-      setEditContent(prev => ({
-        ...prev,
-        [section]: currentContent[section]
-      }));
-    }
-
-    setEditStates(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }));
   };
 
   const generateSummary = async () => {
-    if (!transcript || transcript.trim().length < 50) {
-      toast.error("Please record at least 30 seconds of consultation before generating notes.");
+    const transcriptToUse = cleanedTranscript || transcript;
+    
+    if (!transcriptToUse.trim()) {
+      console.error("No transcript available to generate summary");
       return;
     }
 
+    setIsGenerating(true);
+    
     try {
-      toast.success("Generating consultation notes...");
-      
       const { data, error } = await supabase.functions.invoke('generate-gp-consultation-notes', {
         body: {
-          transcript: cleanedTranscript || transcript,
-          consultationType,
-          outputLevel: parseInt(outputLevel),
-          includeSnomedCodes: showSnomedCodes,
+          transcript: transcriptToUse,
+          outputLevel,
+          showSnomedCodes,
           formatForEmis,
-          formatForSystmOne
+          formatForSystmOne,
+          userId: user?.id
         }
       });
 
-      if (error) {
-        console.error("Generation error:", error);
-        toast.error("Failed to generate consultation notes. Please try again.");
-        return;
-      }
+      if (error) throw error;
 
-      if (data) {
-        setGpSummary(data.gpSummary || "");
-        setFullNote(data.fullNote || "");
-        setPatientCopy(data.patientCopy || "");
-        setTraineeFeedback(data.traineeFeedback || "");
-        setReferralLetter(data.referralLetter || "");
-        
-        toast.success("Consultation notes generated successfully!");
-      }
-    } catch (error) {
-      console.error("Generation failed:", error);
-      toast.error("Failed to generate consultation notes. Please try again.");
+      setGpSummary(data.gpSummary || "");
+      setFullNote(data.fullNote || "");
+      setPatientCopy(data.patientCopy || "");
+      setTraineeFeedback(data.traineeFeedback || "");
+      setReferralLetter(data.referralLetter || "");
+      
+      // Update edit content as well
+      setEditContent({
+        gpSummary: data.gpSummary || "",
+        fullNote: data.fullNote || "",
+        patientCopy: data.patientCopy || "",
+        traineeFeedback: data.traineeFeedback || "",
+        referralLetter: data.referralLetter || ""
+      });
+      
+      // Save to history
+      await saveToHistory(data);
+      
+      console.log("Navigating to consultation summary with generated data...");
+      // Navigate to consultation summary with the generated data
+      const consultationData = {
+        id: `consultation-${Date.now()}`,
+        title: `GP Consultation - ${format(new Date(), "do MMMM yyyy 'at' h.mm a")}`,
+        type: 'gp_consultation',
+        transcript: transcript,
+        duration: formatDuration(duration),
+        wordCount: transcript.split(' ').filter(word => word.length > 0).length,
+        startTime: new Date().toISOString(),
+        isExample: false,
+        generatedData: {
+          gpSummary: data.gpSummary,
+          fullNote: data.fullNote,
+          patientCopy: data.patientCopy,
+          traineeFeedback: data.traineeFeedback
+        }
+      };
+      
+      console.log("Navigation data:", consultationData);
+      navigate('/consultation-summary', { state: consultationData });
+      // Clinical summary generated successfully
+    } catch (error: any) {
+      console.error(`Error generating summary: ${error.message}`);
+    } finally {
+      setIsGenerating(false);
     }
   };
 
-  const loadExampleConsultation = (example: any) => {
-    setTranscript(example.transcript);
-    setCleanedTranscript(example.cleanedTranscript || example.transcript);
-    setDuration(example.duration);
-    setWordCount(example.wordCount);
-    setConsultationType(example.type);
-    setGpSummary(example.gpSummary || "");
-    setFullNote(example.fullNote || "");
-    setPatientCopy(example.patientCopy || "");
-    setTraineeFeedback(example.traineeFeedback || "");
-    setReferralLetter(example.referralLetter || "");
-    setShowExamples(false);
-    setActiveTab("consultation");
-    toast.success(`Loaded example: ${example.title}`);
+  // Background generation that doesn't block navigation
+  const generateSummaryBackground = async (isImported: boolean = false) => {
+    const transcriptToUse = cleanedTranscript || transcript;
+    
+    if (!transcriptToUse.trim()) {
+      console.error("No transcript available to generate summary");
+      return;
+    }
+
+    console.log("Starting background generation of consultation notes...");
+    console.log("Transcript length:", transcriptToUse.length);
+    console.log("User ID:", user?.id);
+    console.log("Is imported:", isImported);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-gp-consultation-notes', {
+        body: {
+          transcript: transcriptToUse,
+          outputLevel,
+          showSnomedCodes,
+          formatForEmis,
+          formatForSystmOne,
+          consultationType: consultationType,
+          userId: user?.id
+        }
+      });
+
+      console.log("Edge function response:", { data, error });
+
+      if (error) throw error;
+
+      // Save to history for future reference
+      console.log("About to save to history with data:", data);
+      await saveToHistory(data, isImported);
+      
+      console.log("Background generation completed successfully");
+      toast.success("Consultation notes generated and saved to history");
+      
+    } catch (error: any) {
+      console.error(`Error generating summary in background: ${error.message}`);
+      console.error("Full error object:", error);
+      toast.error("Failed to generate consultation notes in background");
+    }
   };
 
-  // Generate ticker text
-  const [tickerText, setTickerText] = useState("");
-  const [tickerEnabled, setTickerEnabled] = useState(true);
+  const saveToHistory = async (summaryData: any, isImported: boolean = false) => {
+    if (!user) {
+      console.error("No user available to save history");
+      return;
+    }
+
+    console.log("Starting saveToHistory with:", { summaryData, isImported, userId: user.id });
+
+    try {
+      // Create meeting record
+      const title = isImported 
+        ? `GP Consultation (Imported) - ${format(new Date(), "do MMMM yyyy 'at' h.mm a")}`
+        : `GP Consultation - ${format(new Date(), "do MMMM yyyy 'at' h.mm a")}`;
+        
+      console.log("Creating meeting with title:", title);
+      
+      const { data: meeting, error: meetingError } = await supabase
+        .from('meetings')
+        .insert({
+          user_id: user.id,
+          title: title,
+          description: isImported ? "GP Scribe consultation notes (Imported Audio)" : "GP Scribe consultation notes",
+          meeting_type: "gp_consultation",
+          duration_minutes: isImported ? 0 : Math.ceil(duration / 60),
+          status: "completed"
+        })
+        .select()
+        .single();
+
+      console.log("Meeting creation result:", { meeting, meetingError });
+
+      if (meetingError) throw meetingError;
+
+      // Save transcript
+      const transcriptToSave = cleanedTranscript || transcript;
+      console.log("Saving transcript, length:", transcriptToSave?.length || 0);
+      
+      if (transcriptToSave) {
+        const { data: transcriptData, error: transcriptError } = await supabase
+          .from('meeting_transcripts')
+          .insert({
+            meeting_id: meeting.id,
+            content: transcriptToSave,
+            speaker_name: "Consultation",
+            timestamp_seconds: 0
+          });
+          
+        console.log("Transcript save result:", { transcriptData, transcriptError });
+        if (transcriptError) console.error("Transcript save error:", transcriptError);
+      }
+
+      // Save summary
+      console.log("Saving summary data:", summaryData);
+      const { data: summaryResult, error: summaryError } = await supabase
+        .from('meeting_summaries')
+        .insert({
+          meeting_id: meeting.id,
+          summary: summaryData.gpSummary,
+          key_points: summaryData.fullNote ? [summaryData.fullNote] : [],
+          action_items: summaryData.patientCopy ? [summaryData.patientCopy] : [],
+          next_steps: summaryData.traineeFeedback ? [summaryData.traineeFeedback] : []
+        });
+
+      console.log("Summary save result:", { summaryResult, summaryError });
+      if (summaryError) throw summaryError;
+
+      console.log(`✅ Consultation saved to history: ${title}`);
+      toast.success("Consultation saved to history successfully!");
+
+    } catch (error: any) {
+      console.error('Error saving to history:', error);
+      console.error('Error details:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint
+      });
+      toast.error('Failed to save consultation to history');
+    }
+  };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      // Remove markdown formatting for clipboard
+      const cleanText = text.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1');
+      await navigator.clipboard.writeText(cleanText);
+      // Copied to clipboard
+    } catch (error) {
+      console.error("Failed to copy to clipboard");
+    }
+  };
+
+  // Function to format text for display (convert markdown to JSX)
+  const formatTextForDisplay = (text: string) => {
+    if (!text) return null;
+    
+    // Split by double asterisks for bold
+    const parts = text.split(/(\*\*.*?\*\*)/g);
+    
+    return parts.map((part, index) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={index}>{part.slice(2, -2)}</strong>;
+      }
+      return part;
+    });
+  };
+
+  // Auto-regenerate GP Summary when output level changes
+  const handleOutputLevelChange = async (newLevel: number) => {
+    setOutputLevel(newLevel);
+    
+    // Auto-regenerate if there's content
+    if (transcript && transcript.trim().length > 50) {
+      setTimeout(() => generateSummary(), 500);
+    }
+  };
+
+  // Edit functions
+  const startEdit = (section: keyof typeof editStates) => {
+    const currentContent = {
+      gpSummary,
+      fullNote,
+      patientCopy,
+      traineeFeedback,
+      referralLetter
+    };
+    
+    setEditContent(prev => ({
+      ...prev,
+      [section]: currentContent[section]
+    }));
+    
+    setEditStates(prev => ({
+      ...prev,
+      [section]: true
+    }));
+  };
+
+  const saveEdit = (section: keyof typeof editStates) => {
+    const setters = {
+      gpSummary: setGpSummary,
+      fullNote: setFullNote,
+      patientCopy: setPatientCopy,
+      traineeFeedback: setTraineeFeedback,
+      referralLetter: setReferralLetter
+    };
+    
+    setters[section](editContent[section]);
+    setEditStates(prev => ({
+      ...prev,
+      [section]: false
+    }));
+    
+    // Changes saved
+  };
+
+  const cancelEdit = (section: keyof typeof editStates) => {
+    setEditStates(prev => ({
+      ...prev,
+      [section]: false
+    }));
+  };
+
+  const generateReferralLetter = async () => {
+    if (!transcript.trim()) {
+      console.error("No transcript available for referral letter");
+      return;
+    }
+
+    setIsGenerating(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-referral-letter', {
+        body: {
+          transcript,
+          gpSummary,
+          fullNote,
+          userId: user?.id
+        }
+      });
+
+      if (error) throw error;
+
+      setReferralLetter(data.referralLetter || "");
+      setEditContent(prev => ({
+        ...prev,
+        referralLetter: data.referralLetter || ""
+      }));
+      
+      // Referral letter generated
+    } catch (error: any) {
+      console.error(`Error generating referral letter: ${error.message}`);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const downloadAsPDF = (content: string, filename: string) => {
+    // Remove markdown formatting for PDF
+    const cleanContent = content.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1');
+    const doc = new jsPDF();
+    const splitText = doc.splitTextToSize(cleanContent, 180);
+    doc.text(splitText, 10, 10);
+    doc.save(`${filename}.pdf`);
+    // PDF downloaded
+  };
+
+  const getConnectionStatusIcon = () => {
+    switch (connectionStatus) {
+      case 'Connected':
+      case 'Transcription active':
+        return <Wifi className="h-4 w-4 text-green-500" />;
+      case 'Connecting...':
+        return <Wifi className="h-4 w-4 text-yellow-500 animate-pulse" />;
+      case 'Error':
+        return <WifiOff className="h-4 w-4 text-red-500" />;
+      default:
+        return <WifiOff className="h-4 w-4 text-gray-500" />;
+    }
+  };
+
+  const getConnectionStatusColor = () => {
+    switch (connectionStatus) {
+      case 'Connected':
+      case 'Transcription active':
+        return 'default';
+      case 'Connecting...':
+        return 'secondary';
+      case 'Error':
+        return 'destructive';
+      default:
+        return 'outline';
+    }
+  };
+
+  // Handle navigation state (e.g., returning from consultation summary)
+  useEffect(() => {
+    const navState = location.state as { activeTab?: string } | null;
+    if (navState?.activeTab) {
+      setActiveTab(navState.activeTab);
+    }
+  }, [location.state]);
 
   // Load user settings on component mount
   useEffect(() => {
-    if (user) {
-      loadUserSettings();
-    }
+    loadUserSettings();
   }, [user]);
 
   // Save user settings when they change
@@ -827,967 +1316,1365 @@ const GPScribe = () => {
               value="consultation" 
               className="rounded-lg transition-all duration-200 font-medium"
             >
-              <FileText className="h-4 w-4 mr-1.5" />
-              <span className="hidden sm:inline">Record</span>
+              Consultation
             </TabsTrigger>
-            
-            <TabsTrigger 
-              value="gp-genie" 
-              className="rounded-lg transition-all duration-200 font-medium"
-            >
-              <Bot className="h-4 w-4 mr-1.5" />
-              <span className="hidden sm:inline">GP Genie</span>
-            </TabsTrigger>
-            
             <TabsTrigger 
               value="examples" 
               className="rounded-lg transition-all duration-200 font-medium"
             >
-              <TestTube className="h-4 w-4 mr-1.5" />
-              <span className="hidden sm:inline">Examples</span>
+              Examples
             </TabsTrigger>
-            
             <TabsTrigger 
-              value="settings" 
+              value="history"
               className="rounded-lg transition-all duration-200 font-medium"
             >
-              <Settings className="h-4 w-4 mr-1.5" />
-              <span className="hidden sm:inline">Settings</span>
+              History
             </TabsTrigger>
-            
             <TabsTrigger 
               value="ai4gp" 
               className="rounded-lg transition-all duration-200 font-medium"
             >
-              <MessageSquare className="h-4 w-4 mr-1.5" />
-              <span className="hidden sm:inline">AI4GP</span>
+              AI4GP
             </TabsTrigger>
-            
             <TabsTrigger 
-              value="import" 
+              value="gp-genie" 
               className="rounded-lg transition-all duration-200 font-medium"
             >
-              <Upload className="h-4 w-4 mr-1.5" />
-              <span className="hidden sm:inline">Import</span>
+              GP Genie
+            </TabsTrigger>
+            <TabsTrigger 
+              value="test-mp3" 
+              className="rounded-lg transition-all duration-200 font-medium"
+            >
+              Audio Import + AI
             </TabsTrigger>
           </TabsList>
 
-          {/* GP Scribe Recording Tab */}
-          <TabsContent value="consultation" className="space-y-4 sm:space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-              {/* Recording Panel */}
-              <div className="lg:col-span-2 space-y-4">
-                <Card className="shadow-lg border-0">
-                  <CardHeader className="pb-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <div>
-                        <CardTitle className="text-xl font-bold text-foreground">GP Scribe Recording</CardTitle>
-                        <CardDescription className="text-muted-foreground">
-                          Record and transcribe GP consultations with AI-powered note generation
-                        </CardDescription>
-                      </div>
-                      
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-                        <Select value={consultationType} onValueChange={(value: 'face-to-face' | 'telephone' | 'video') => setConsultationType(value)}>
-                          <SelectTrigger className="w-full sm:w-[160px]">
-                            <SelectValue placeholder="Consultation type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="face-to-face">
-                              <div className="flex items-center">
-                                {consultationType === "face-to-face" && (
-                                  <Users className="h-4 w-4 mr-2" />
-                                )}
-                                Face-to-face
-                              </div>
-                            </SelectItem>
-                            <SelectItem value="telephone">
-                              <div className="flex items-center">
-                                {consultationType === "telephone" && (
-                                  <Users className="h-4 w-4 mr-2" />
-                                )}
-                                Telephone
-                              </div>
-                            </SelectItem>
-                            <SelectItem value="video">Video Call</SelectItem>
-                          </SelectContent>
-                        </Select>
+        {/* Consultation Tab - Recording Interface */}
+        <TabsContent value="consultation" className="space-y-4">
+          <Card className="shadow-medium border-accent/20">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <span className="flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-primary" />
+                  GP Scribe - Consultation Notes
+                </span>
+                <div className="flex items-center gap-2">
+                  <Badge variant={getConnectionStatusColor() as any} className="flex items-center gap-1 text-xs">
+                    {getConnectionStatusIcon()}
+                    <span className="hidden sm:inline">{connectionStatus}</span>
+                  </Badge>
+                  {(connectionStatus === "Disconnected" || connectionStatus === "Stopped") && (
+                    <Button
+                      onClick={resetSession}
+                      variant="outline"
+                      size="sm"
+                      className="text-xs px-3 py-1 h-6"
+                    >
+                      <RotateCcw className="h-3 w-3 mr-1" />
+                      Reset
+                    </Button>
+                  )}
+                </div>
+              </CardTitle>
+            </CardHeader>
+            
+            <CardContent className="space-y-6">
+              {/* Consultation Setup - Enhanced Design */}
+              <div className="bg-gradient-to-br from-primary/5 to-accent/10 rounded-xl p-6 border border-primary/20 shadow-subtle">
+                <div className="flex flex-col lg:flex-row lg:items-start gap-6">
+                  {/* Left Side - Setup Options */}
+                  <div className="flex-1 space-y-6">
+                    {/* Consultation Type */}
+                    <div>
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+                        <h4 className="text-sm font-semibold text-primary flex items-center gap-2">
+                          <FileText className="h-4 w-4" />
+                          Consultation Type
+                        </h4>
+                        <div className="flex gap-3">
+                          <label className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                            consultationType === "face-to-face" 
+                              ? "border-primary bg-primary/10 shadow-sm" 
+                              : "border-border hover:border-primary/50 bg-background"
+                          }`}>
+                            <input
+                              type="radio"
+                              name="consultationType"
+                              value="face-to-face"
+                              checked={consultationType === "face-to-face"}
+                              onChange={(e) => setConsultationType(e.target.value as "face-to-face" | "telephone")}
+                              className="sr-only"
+                            />
+                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                              consultationType === "face-to-face" ? "border-primary" : "border-muted-foreground"
+                            }`}>
+                              {consultationType === "face-to-face" && (
+                                <div className="w-2 h-2 rounded-full bg-primary"></div>
+                              )}
+                            </div>
+                            <span className="text-sm font-medium">Face to Face</span>
+                          </label>
+                          
+                          <label className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                            consultationType === "telephone" 
+                              ? "border-primary bg-primary/10 shadow-sm" 
+                              : "border-border hover:border-primary/50 bg-background"
+                          }`}>
+                            <input
+                              type="radio"
+                              name="consultationType"
+                              value="telephone"
+                              checked={consultationType === "telephone"}
+                              onChange={(e) => setConsultationType(e.target.value as "face-to-face" | "telephone")}
+                              className="sr-only"
+                            />
+                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                              consultationType === "telephone" ? "border-primary" : "border-muted-foreground"
+                            }`}>
+                              {consultationType === "telephone" && (
+                                <div className="w-2 h-2 rounded-full bg-primary"></div>
+                              )}
+                            </div>
+                            <span className="text-sm font-medium">Telephone</span>
+                          </label>
+                        </div>
                       </div>
                     </div>
-                  </CardHeader>
-                  
-                  <CardContent className="space-y-6">
-                    {(connectionStatus === "Disconnected" || connectionStatus === "Stopped") && (
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
-                        <h4 className="font-medium text-blue-900 flex items-center">
-                          <AlertCircle className="h-4 w-4 mr-2" />
-                          GP Scribe Recording Tips
-                        </h4>
-                        <ul className="text-sm text-blue-800 space-y-1 ml-6">
-                          <li>• Ensure clear audio quality for accurate transcription</li>
-                          <li>• Speak naturally during the consultation</li>
-                          <li>• Record for at least 30 seconds for meaningful notes</li>
-                          <li>• The system works best with structured consultations</li>
-                        </ul>
-                      </div>
-                    )}
-                    
-                    {/* New GP Scribe Recorder Component */}
-                    <GPScribeRecorder
-                      onTranscriptUpdate={handleTranscript}
-                      onRecordingComplete={(data) => {
-                        console.log("Recording completed:", data);
-                        setTranscript(data.transcript || "");
-                        setDuration(data.duration || 0);
-                        setWordCount(data.wordCount || 0);
-                      }}
-                      consultationType={consultationType}
-                    />
-                    
-                    {/* Translation Panel */}
-                    <div className="border-t pt-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <h4 className="font-medium text-foreground">Real-time Translation</h4>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setIsTranslationCollapsed(!isTranslationCollapsed)}
-                        >
+
+
+                    {/* Translation Settings - Collapsible */}
+                    <Collapsible open={!isTranslationCollapsed} onOpenChange={(open) => setIsTranslationCollapsed(!open)}>
+                      <CollapsibleTrigger asChild>
+                        <div className="flex items-center justify-between cursor-pointer hover:bg-accent/10 transition-colors rounded-lg p-2">
+                          <h4 className="text-sm font-semibold text-primary flex items-center gap-2">
+                            <Languages className="h-4 w-4" />
+                            Real-time Translation
+                          </h4>
                           {isTranslationCollapsed ? (
                             <ChevronDown className="h-4 w-4" />
                           ) : (
                             <ChevronUp className="h-4 w-4" />
                           )}
-                        </Button>
-                      </div>
-                      
-                      {!isTranslationCollapsed && (
-                        <div className="space-y-3">
-                          {isTranslationEnabled && (
-                            <div className="flex flex-wrap items-center gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={toggleMicMute}
-                              >
-                                {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-                              </Button>
-                              
-                              <div className="flex items-center space-x-2">
-                                <label className="text-sm font-medium">Auto-speak:</label>
-                                <Switch checked={autoSpeak} onCheckedChange={setAutoSpeak} />
-                              </div>
-                            </div>
-                          )}
-                          
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div>
-                              <label className="text-sm font-medium mb-2 block">Translation Language</label>
-                              <Select value={translationLanguage} onValueChange={handleLanguageSelect}>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select language" />
-                                </SelectTrigger>
-                                <SelectContent className="max-h-[200px]">
-                                  {HEALTHCARE_LANGUAGES.map((language) => (
-                                    <SelectItem key={language.code} value={language.code}>
-                                      <span className="mr-2">{language.flag}</span>
-                                      {language.name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </div>
-                          
-                          {isTranslationEnabled && translationLanguage !== 'none' && (
-                            <div className="bg-muted/50 rounded-lg p-3 space-y-2">
-                              <div className="flex items-center justify-between">
-                                <h5 className="font-medium text-sm">Live Translation</h5>
-                                {isTranslating && (
-                                  <div className="flex items-center text-xs text-muted-foreground">
-                                    <div className="animate-spin rounded-full h-3 w-3 border-b border-primary mr-1"></div>
-                                    Translating...
-                                  </div>
-                                )}
-                              </div>
-                              
-                              <div className="space-y-2 max-h-40 overflow-y-auto">
-                                {translations.slice(-3).map((translation) => (
-                                  <div key={translation.id} className="bg-background rounded p-2 text-sm border">
-                                    <div className="flex items-start justify-between mb-1">
-                                      <span className="font-medium text-xs text-muted-foreground flex items-center">
-                                        {translation.speaker === 'GP' ? '🩺' : '👤'} {translation.speaker}
-                                        {playedTranslations.has(translation.id) && (
-                                          <Volume2 className="h-3 w-3 ml-1 text-green-600" />
-                                        )}
-                                      </span>
-                                      <span className="text-xs text-muted-foreground">{translation.timestamp}</span>
-                                    </div>
-                                    
-                                    <div className="space-y-1">
-                                      {translation.speaker === 'GP' && (
-                                        <>
-                                          <p className="text-muted-foreground text-xs">Original: {translation.original}</p>
-                                          <p className="font-medium">Translation: {translation.translated}</p>
-                                        </>
-                                      )}
-                                      {translation.speaker === 'Patient' && (
-                                        <>
-                                          <p className="font-medium">Patient: {translation.translated}</p>
-                                          <p className="text-muted-foreground text-xs">Original: {translation.original}</p>
-                                        </>
-                                      )}
-                                    </div>
-                                    
-                                    <div className="flex justify-end mt-2">
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => speakTranslation(translation.translated, translationLanguage, translation.id)}
-                                        className="h-6 px-2"
-                                      >
-                                        <Volume2 className="h-3 w-3" />
-                                      </Button>
-                                    </div>
-                                  </div>
-                                ))}
-                                
-                                {translations.length === 0 && (
-                                  <p className="text-xs text-muted-foreground text-center py-4">
-                                    Start recording to see live translations
-                                  </p>
-                                )}
-                                
-                                {isTranslating && (
-                                  <div className="flex items-center justify-center py-2">
-                                    <div className="animate-spin rounded-full h-4 w-4 border-b border-primary"></div>
-                                    <span className="ml-2 text-xs text-muted-foreground">Translating...</span>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          )}
                         </div>
-                      )}
-                    </div>
-
-                    {/* Recording Status and Controls */}
-                    {isRecording && (
-                      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
-                            {tickerEnabled ? (
-                              <div className="flex items-center space-x-2">
-                                <div className="animate-pulse h-3 w-3 bg-red-500 rounded-full"></div>
-                                <span className="font-medium text-red-900">RECORDING</span>
-                              </div>
-                            ) : (
-                              <div className="flex items-center space-x-2">
-                                <div className="h-3 w-3 bg-red-500 rounded-full"></div>
-                                <span className="font-medium text-red-900">RECORDING</span>
+                      </CollapsibleTrigger>
+                       <CollapsibleContent>
+                        <div className="space-y-4 mt-3">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                            {isTranslationEnabled && (
+                              <div className="flex items-center gap-4 text-xs">
+                                <label className="flex items-center gap-2">
+                                  <input
+                                    type="checkbox"
+                                    checked={autoSpeak}
+                                    onChange={(e) => setAutoSpeak(e.target.checked)}
+                                    className="rounded"
+                                  />
+                                  Auto-speak
+                                </label>
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={toggleMicMute}
+                                    className="h-6 px-2"
+                                  >
+                                    {isMicMuted ? <MicOff className="h-3 w-3" /> : <Mic className="h-3 w-3" />}
+                                    {isMicMuted ? 'Unmute Mic' : 'Mute Mic'}
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={handleSpeakerMuteToggle}
+                                    className="h-6 px-2"
+                                  >
+                                    {isMuted ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
+                                    {isMuted ? 'Unmute Speaker' : 'Mute Speaker'}
+                                  </Button>
+                                </div>
                               </div>
                             )}
                           </div>
+                          <div className="space-y-3">
+                            <Select value={translationLanguage} onValueChange={handleLanguageSelect}>
+                              <SelectTrigger className="bg-background">
+                                <SelectValue placeholder="Select translation language" />
+                              </SelectTrigger>
+                              <SelectContent className="max-h-60" position="item-aligned" side="bottom" align="start">
+                                {HEALTHCARE_LANGUAGES.map((language) => (
+                                  <SelectItem key={language.code} value={language.code}>
+                                    <div className="flex items-center gap-2">
+                                      <span>{language.flag}</span>
+                                      <span>{language.name}</span>
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                           </div>
                           
-                          {tickerText && (
-                            <div className="flex-1 overflow-hidden mx-4">
-                              <div className="animate-scroll whitespace-nowrap text-sm text-red-800">
-                                {tickerText}
-                              </div>
+                          {/* Live Translation Display */}
+                          {isTranslationEnabled && translationLanguage !== 'none' && (
+                            <div className="bg-gradient-to-br from-primary/5 to-accent/10 rounded-xl p-4 border-2 border-primary/20 shadow-subtle animate-fade-in">
+                              <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-2">
+                                  <Languages className="h-4 w-4 text-primary" />
+                                  <span className="text-sm font-semibold text-primary">
+                                    Live Translation: {HEALTHCARE_LANGUAGES.find(l => l.code === translationLanguage)?.flag} {HEALTHCARE_LANGUAGES.find(l => l.code === translationLanguage)?.name}
+                                  </span>
+                                </div>
+                          <div className="flex items-center gap-2">
+                            {/* EXPAND BUTTON - this is the right place! */}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-6 w-6 p-0 bg-primary/10 border-primary/20 hover:bg-primary/20"
+                              title="Expand translation view for patient"
+                              onClick={() => {
+                                // Create modal with REAL translation data
+                                const modal = document.createElement('div');
+                                modal.className = 'fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4';
+                                
+                                const currentTranslation = translations.length > 0 ? translations[translations.length - 1] : null;
+                                const languageInfo = HEALTHCARE_LANGUAGES.find(l => l.code === translationLanguage);
+                                
+                                modal.innerHTML = `
+                                  <div class="bg-white dark:bg-gray-900 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6 relative">
+                                    <button class="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded text-2xl" onclick="this.closest('.fixed').remove()">&times;</button>
+                                    <h2 class="text-2xl font-bold mb-6 flex items-center gap-3 text-gray-900 dark:text-white">
+                                      🌐 Live Translation: ${languageInfo?.flag || '🌐'} ${languageInfo?.name || 'Unknown'}
+                                    </h2>
+                                    <div class="border-2 border-blue-200 dark:border-blue-700 rounded-xl p-8 min-h-[400px] bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950">
+                                      ${currentTranslation ? `
+                                        <div class="space-y-6">
+                                          <!-- Speaker Badge -->
+                                          <div class="flex items-center justify-between">
+                                            <span class="px-4 py-2 rounded-full text-sm font-medium ${currentTranslation.speaker === 'GP' ? 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100' : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100'}">${currentTranslation.speaker}</span>
+                                            <span class="text-sm text-gray-500 dark:text-gray-400">${new Date(currentTranslation.timestamp).toLocaleTimeString()}</span>
+                                          </div>
+                                          
+                                          <!-- Original Text -->
+                                          <div class="bg-gray-50 dark:bg-gray-800 rounded-xl p-6">
+                                            <div class="text-lg font-medium text-gray-600 dark:text-gray-300 mb-3">English Original:</div>
+                                            <div class="text-2xl leading-relaxed text-gray-900 dark:text-white">${currentTranslation.original}</div>
+                                          </div>
+                                          
+                                          <!-- Translated Text -->
+                                          <div class="bg-blue-50 dark:bg-blue-900 border-2 border-blue-200 dark:border-blue-700 rounded-xl p-8">
+                                            <div class="text-xl font-medium text-blue-700 dark:text-blue-300 mb-4 flex items-center gap-3">
+                                              ${languageInfo?.flag || '🌐'} ${languageInfo?.name || 'Translation'}:
+                                            </div>
+                                            <div class="text-4xl leading-relaxed font-medium text-gray-900 dark:text-white text-center py-4">
+                                              ${currentTranslation.translated}
+                                            </div>
+                                          </div>
+                                        </div>
+                                      ` : `
+                                        <div class="text-center text-gray-500 dark:text-gray-400 py-16">
+                                          <div class="text-6xl mb-4">🌐</div>
+                                          <p class="text-2xl mb-2">Waiting for translation...</p>
+                                          <p class="text-lg">The translated text will appear here in large format</p>
+                                          <p class="text-sm mt-4">Start speaking to see live translations</p>
+                                        </div>
+                                      `}
+                                    </div>
+                                  </div>
+                                `;
+                                document.body.appendChild(modal);
+                                modal.onclick = (e) => {
+                                  if (e.target === modal) modal.remove();
+                                };
+                              }}
+                            >
+                              <Maximize2 className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={toggleMicMute}
+                              className={`h-6 w-6 p-0 ${isMicMuted ? 'text-red-500 bg-red-50 hover:bg-red-100' : 'text-muted-foreground hover:bg-muted'}`}
+                              title={isMicMuted ? 'Unmute microphone' : 'Mute microphone'}
+                            >
+                              {isMicMuted ? <MicOff className="h-3 w-3" /> : <Mic className="h-3 w-3" />}
+                            </Button>
+                             <Button
+                               size="sm"
+                               variant="ghost"
+                               onClick={handleSpeakerMuteToggle}
+                               className={`h-6 w-6 p-0 ${isMuted ? 'text-red-500 bg-red-50 hover:bg-red-100' : 'text-muted-foreground hover:bg-muted'}`}
+                               title={isMuted ? 'Unmute speaker' : 'Mute speaker'}
+                             >
+                               {isMuted ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
+                             </Button>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-3 max-h-40 overflow-y-auto">
+                          {translations.slice(-3).map((translation) => (
+                            <div
+                              key={translation.id}
+                              className={`p-3 rounded-lg border animate-scale-in ${
+                                translation.speaker === 'GP'
+                                  ? 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800'
+                                  : 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800'
+                              }`}
+                            >
+                               <div className="flex items-center justify-between mb-2">
+                                 <div className="flex items-center gap-2">
+                                   <span className={`px-2 py-1 rounded text-xs font-bold text-white ${
+                                     translation.speaker === 'GP' ? 'bg-blue-600' : 'bg-green-600'
+                                   }`}>
+                                     {translation.speaker}
+                                   </span>
+                                   <span className="text-xs text-muted-foreground">
+                                     {translation.timestamp.toLocaleTimeString()}
+                                   </span>
+                                   {playedTranslations.has(translation.id) && (
+                                     <span className="text-xs text-green-600 font-medium">✓ Played</span>
+                                   )}
+                                 </div>
+                                 
+                                 {/* Action buttons */}
+                                 <div className="flex items-center gap-1">
+                                   {/* Repeat Speaker Button */}
+                                   <Button
+                                     size="sm"
+                                     variant="ghost"
+                                     className="h-6 w-6 p-0 hover:bg-black/10"
+                                     title="Repeat translation"
+                                     onClick={async () => {
+                                       // Repeat the translated text
+                                       await speakTranslation(translation.translatedText, translationLanguage, translation.id + '-repeat');
+                                       toast.success('Repeating translation');
+                                     }}
+                                   >
+                                     <Volume2 className="h-3 w-3 text-primary" />
+                                   </Button>
+                                   
+                                   {/* Incorrect Translation Button - Only show for GP translations */}
+                                   {translation.speaker === 'GP' && (
+                                     <Button
+                                       size="sm"
+                                       variant="ghost"
+                                       className="h-6 w-6 p-0 hover:bg-red-50 text-orange-600 hover:text-red-600"
+                                       title="Mark as incorrect translation"
+                                       onClick={async () => {
+                                         try {
+                                           // Show confirmation
+                                           const confirmed = window.confirm('Mark this translation as incorrect? This will help improve future translations.');
+                                           if (!confirmed) return;
+                                           
+                                           // Speak apology in the target language
+                                           const apologyMessage = "I am sorry, that translation was incorrect. Let me try again.";
+                                           
+                                           // Translate the apology message
+                                           const { data, error } = await supabase.functions.invoke('translate-text', {
+                                             body: {
+                                               text: apologyMessage,
+                                               targetLanguage: translationLanguage,
+                                               sourceLanguage: 'en'
+                                             }
+                                           });
+                                           
+                                           if (!error && data.translatedText) {
+                                             await speakTranslation(data.translatedText, translationLanguage, 'apology-' + Date.now());
+                                           }
+                                           
+                                           // Mark translation for improvement (could log to analytics)
+                                           console.log('Incorrect translation marked:', translation);
+                                           toast.success('Marked as incorrect. Apology spoken in ' + HEALTHCARE_LANGUAGES.find(l => l.code === translationLanguage)?.name);
+                                           
+                                         } catch (error) {
+                                           console.error('Error handling incorrect translation:', error);
+                                           toast.error('Failed to process incorrect translation request');
+                                         }
+                                       }}
+                                     >
+                                       <AlertTriangle className="h-3 w-3" />
+                                     </Button>
+                                   )}
+                                 </div>
+                               </div>
+                              
+                               {/* Original Text */}
+                               <div className="mb-2">
+                                 <p className="text-xs font-medium text-muted-foreground">
+                                   {translation.speaker === 'GP' ? 'English:' : `${HEALTHCARE_LANGUAGES.find(l => l.code === translationLanguage)?.name}:`}
+                                 </p>
+                                 <p className="text-sm">{translation.originalText}</p>
+                               </div>
+                               
+                               {/* Translated Text */}
+                               <div>
+                                 <p className="text-xs font-medium text-muted-foreground">
+                                   {translation.speaker === 'GP' ? `${HEALTHCARE_LANGUAGES.find(l => l.code === translationLanguage)?.name}:` : 'English:'}
+                                 </p>
+                                 <p className="text-sm font-semibold text-primary">{translation.translatedText}</p>
+                               </div>
+                            </div>
+                          ))}
+                          
+                          {translations.length === 0 && (
+                            <div className="text-center py-4">
+                              <Languages className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                              <p className="text-sm text-muted-foreground">Start speaking to see translations</p>
                             </div>
                           )}
                           
-                          <div className="text-sm text-red-800 font-mono">
-                            {formatDuration(duration)}
+                          {isTranslating && (
+                            <div className="flex items-center justify-center py-2">
+                              <div className="flex items-center gap-2 text-primary">
+                                <div className="animate-spin h-3 w-3 border-2 border-current border-t-transparent rounded-full"></div>
+                                <span className="text-xs">Translating...</span>
+                              </div>
+                            </div>
+                          )}
+                                 </div>
+                               </div>
+                             )}
                           </div>
+                        </CollapsibleContent>
+                      </Collapsible>
+
+                    {/* Live Speech Controls and Display - positioned above stats */}
+                    {isRecording && (
+                      <>
+                        {/* Eye toggle for live speech */}
+                        <div className="flex items-center justify-center mb-4">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setTickerEnabled(!tickerEnabled)}
+                            className="flex items-center gap-2"
+                          >
+                            {tickerEnabled ? (
+                              <Eye className="h-4 w-4" />
+                            ) : (
+                              <EyeOff className="h-4 w-4" />
+                            )}
+                            <p>{tickerEnabled ? "Hide Live Speech" : "Show Live Speech"}</p>
+                          </Button>
                         </div>
-                      </div>
+                        
+                        {/* Live speech ticker */}
+                        <div className={`transition-all duration-500 mb-4 ${showTicker && tickerEnabled ? 'opacity-100 animate-fade-in' : 'opacity-0'}`}>
+                          {tickerText && (
+                            <div className="bg-background/90 backdrop-blur-sm border border-primary/20 rounded-lg p-3 shadow-subtle">
+                              <p className="text-sm text-primary font-medium animate-pulse text-center">
+                                {tickerText}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </>
                     )}
 
-                    {/* Action Buttons */}
-                    <div className="flex flex-wrap gap-2">
+                    {/* Recording Stats */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-accent/20 rounded-lg p-4 text-center">
+                        <div className="text-2xl font-bold text-primary">{formatDuration(duration)}</div>
+                        <div className="text-sm text-muted-foreground">Duration</div>
+                      </div>
+                      <div className="bg-accent/20 rounded-lg p-4 text-center">
+                        <div className="text-2xl font-bold text-primary">{wordCount}</div>
+                        <div className="text-sm text-muted-foreground">Words</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Side - Recording Button */}
+                  <div className="lg:border-l lg:border-primary/20 lg:pl-6 flex flex-col items-center">
+                    <div className="flex flex-col items-center gap-4">
                       {!isRecording ? (
-                        <Button onClick={resetSession2} variant="outline" size="sm">
-                          <RotateCcw className="h-4 w-4 mr-1" />
-                          Reset Session
+                        <Button 
+                          onClick={startRecording}
+                          className="shadow-elegant px-8 py-6 text-lg font-semibold min-h-[64px] rounded-xl transition-all duration-300 bg-gradient-primary hover:bg-primary-hover hover:shadow-glow hover:scale-105"
+                        >
+                          <Mic className="h-6 w-6 mr-3" />
+                          Start Recording
                         </Button>
-                      ) : null}
+                      ) : (
+                        <div className="flex flex-col gap-3">
+                          <Button 
+                            onClick={pauseRecording}
+                            variant="secondary"
+                            className="shadow-subtle px-8 py-4 text-lg font-medium min-h-[56px] rounded-xl"
+                          >
+                            {isPaused ? <Play className="h-5 w-5 mr-3" /> : <Pause className="h-5 w-5 mr-3" />}
+                            {isPaused ? 'Resume' : 'Pause'}
+                          </Button>
+                          <Button 
+                            onClick={stopRecording}
+                            variant="destructive"
+                            className="shadow-subtle px-8 py-4 text-lg font-medium min-h-[56px] rounded-xl"
+                          >
+                            <MicOff className="h-5 w-5 mr-3" />
+                            Stop Recording
+                          </Button>
+                        </div>
+                      )}
                       
                       {isRecording && (
-                        <Button onClick={resetSession2} variant="destructive" size="sm">
-                          <Square className="h-4 w-4 mr-1" />
-                          Stop & Reset
-                        </Button>
+                        <div className={`flex items-center justify-center gap-3 rounded-lg p-4 mt-4 ${
+                          isMicMuted 
+                            ? "text-red-500 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800" 
+                            : "text-primary bg-accent/20 animate-pulse"
+                        }`}>
+                          <div className={`w-3 h-3 rounded-full ${isMicMuted ? 'bg-red-500' : 'bg-primary'}`}></div>
+                          <span className="text-base font-medium">
+                            {isMicMuted ? "Microphone muted..." : (isPaused ? "Recording paused..." : "Recording consultation...")}
+                          </span>
+                        </div>
                       )}
                     </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Completed Consultation Tab */}
+        <TabsContent value="completed" className="space-y-4">
+          {completedConsultation && (
+            <Card className="shadow-medium border-accent/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Check className="h-5 w-5 text-green-600" />
+                  Consultation Completed
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Summary stats */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="bg-accent/20 rounded-lg p-3">
+                    <div className="text-2xl font-bold text-primary">{completedConsultation.duration}</div>
+                    <div className="text-sm text-muted-foreground">Duration</div>
+                  </div>
+                  <div className="bg-accent/20 rounded-lg p-3">
+                    <div className="text-2xl font-bold text-primary">{completedConsultation.wordCount}</div>
+                    <div className="text-sm text-muted-foreground">Words</div>
+                  </div>
+                  <div className="bg-accent/20 rounded-lg p-3">
+                    <div className="text-2xl font-bold text-primary">{completedConsultation.consultationType}</div>
+                    <div className="text-sm text-muted-foreground">Type</div>
+                  </div>
+                  <div className="bg-accent/20 rounded-lg p-3">
+                    <div className="text-2xl font-bold text-primary">
+                      {new Date(completedConsultation.timestamp).toLocaleTimeString()}
+                    </div>
+                    <div className="text-sm text-muted-foreground">Completed</div>
+                  </div>
+                </div>
+
+                {/* Transcript section with clean option */}
+                <Card className="border-accent/20">
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <FileText className="h-5 w-5" />
+                        Consultation Transcript
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          onClick={cleanTranscript}
+                          disabled={isCleaningTranscript || !transcript}
+                          variant="outline"
+                          size="sm"
+                        >
+                          <Brain className="h-4 w-4 mr-2" />
+                          {isCleaningTranscript ? 'Cleaning...' : 'Clean with AI'}
+                        </Button>
+                        <Button
+                          onClick={() => copyToClipboard(cleanedTranscript || transcript)}
+                          variant="outline"
+                          size="sm"
+                        >
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copy {cleanedTranscript ? 'Cleaned' : 'Original'}
+                        </Button>
+                      </div>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="bg-accent/10 rounded-lg p-4 max-h-64 overflow-y-auto">
+                      <pre className="whitespace-pre-wrap text-sm">
+                        {cleanedTranscript || transcript || 'No transcript available'}
+                      </pre>
+                    </div>
+                    {cleanedTranscript && (
+                      <div className="mt-2 text-xs text-green-600 flex items-center gap-1">
+                        <Check className="h-3 w-3" />
+                        Transcript cleaned with AI
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
-              </div>
 
-              {/* Guidance Panel */}
-              {completedConsultation && (
-                <div className="space-y-4">
-                  <Card className="shadow-lg border-0">
+                {/* Generated notes display */}
+                {(gpSummary || fullNote || patientCopy) && (
+                  <Card className="border-accent/20">
                     <CardHeader>
-                      <CardTitle className="text-lg font-bold text-foreground">Consultation Complete</CardTitle>
-                      <CardDescription>
-                        Recording finished. Generate detailed consultation notes below.
-                      </CardDescription>
+                      <CardTitle className="flex items-center gap-2">
+                        <Brain className="h-5 w-5" />
+                        Generated Clinical Notes
+                      </CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <p className="text-muted-foreground">Duration</p>
-                          <p className="font-medium">{formatDuration(duration)}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Words</p>
-                          <p className="font-medium">{wordCount}</p>
-                        </div>
-                      </div>
-                      
-                      <Button 
-                        onClick={generateSummary} 
-                        className="w-full"
-                        disabled={!transcript || transcript.trim().length < 50}
-                      >
-                        <FileText className="h-4 w-4 mr-2" />
-                        Generate Consultation Notes
-                      </Button>
+                    <CardContent>
+                      <Tabs defaultValue="summary" className="w-full">
+                        <TabsList className="grid w-full grid-cols-4">
+                          <TabsTrigger value="summary">GP Summary</TabsTrigger>
+                          <TabsTrigger value="full">Full Note</TabsTrigger>
+                          <TabsTrigger value="patient">Patient Copy</TabsTrigger>
+                          {traineeFeedback && <TabsTrigger value="trainee">Trainee Feedback</TabsTrigger>}
+                        </TabsList>
+                        
+                        <TabsContent value="summary" className="space-y-4">
+                          <div className="bg-accent/10 rounded-lg p-4">
+                            <SafeMessageRenderer content={gpSummary || 'No GP summary generated'} />
+                          </div>
+                        </TabsContent>
+                        
+                        <TabsContent value="full" className="space-y-4">
+                          <div className="bg-accent/10 rounded-lg p-4">
+                            <SafeMessageRenderer content={fullNote || 'No full note generated'} />
+                          </div>
+                        </TabsContent>
+                        
+                        <TabsContent value="patient" className="space-y-4">
+                          <div className="bg-accent/10 rounded-lg p-4">
+                            <SafeMessageRenderer content={patientCopy || 'No patient copy generated'} />
+                          </div>
+                        </TabsContent>
+                        
+                        {traineeFeedback && (
+                          <TabsContent value="trainee" className="space-y-4">
+                            <div className="bg-accent/10 rounded-lg p-4">
+                              <SafeMessageRenderer content={traineeFeedback} />
+                            </div>
+                          </TabsContent>
+                        )}
+                      </Tabs>
                     </CardContent>
                   </Card>
-                  
-                  {cleanedTranscript && (
-                    <Card className="shadow-lg border-0">
-                      <CardHeader>
-                        <CardTitle className="text-lg font-bold text-foreground">Cleaned Transcript</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <ScrollArea className="h-40 w-full border rounded p-3">
-                          <p className="text-sm whitespace-pre-wrap">{cleanedTranscript}</p>
-                        </ScrollArea>
-                      </CardContent>
-                    </Card>
+                )}
+
+                {/* Action buttons */}
+                <div className="flex flex-wrap gap-3">
+                  <Button
+                    onClick={() => setActiveTab("consultation")}
+                    variant="outline"
+                  >
+                    Start New Consultation
+                  </Button>
+                  <Button
+                    onClick={() => navigate('/consultation-history')}
+                    variant="outline"
+                  >
+                    View History
+                  </Button>
+                  {transcript && (
+                    <Button
+                      onClick={generateSummary}
+                      disabled={isGenerating}
+                      className="bg-gradient-primary hover:bg-primary-hover"
+                    >
+                      <Brain className="h-4 w-4 mr-2" />
+                      {isGenerating ? 'Generating...' : 'Regenerate Notes'}
+                    </Button>
                   )}
                 </div>
-              )}
-            </div>
-            
-            {(gpSummary || fullNote || patientCopy) && (
-              <div className="space-y-6">
-                <Separator />
-                
-                <div>
-                  <h2 className="text-2xl font-bold text-foreground mb-4">Generated Consultation Notes</h2>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+          {/* Tab Content */}
+          <Card className="shadow-medium border-accent/20">
+            <CardContent className="p-6">
+
+              {/* Consultation Examples Tab */}
+              <TabsContent value="examples" className="space-y-4">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold">Typical Consultation Examples - For Training on how the system works.</h3>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowExamples(!showExamples)}
+                    >
+                      {showExamples ? "Hide Examples" : "Show Examples"}
+                    </Button>
+                  </div>
                   
-                  {/* Output Level Selection */}
-                  <div className="mb-6 p-4 bg-muted/50 rounded-lg">
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                      <div className="flex items-center space-x-2">
-                        <label className="text-sm font-medium">Output Detail:</label>
-                        <Select value={outputLevel} onValueChange={setOutputLevel}>
-                          <SelectTrigger className="w-32">
-                            <SelectValue />
+                  {showExamples && (
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {consultationExamples.map((example) => (
+                        <Card key={example.id} className="cursor-pointer hover:shadow-md transition-shadow border-accent/20">
+                          <CardContent className="p-4">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <h4 className="font-medium text-sm sm:text-base">{example.title}</h4>
+                                <p className="text-xs sm:text-sm text-muted-foreground mt-1 line-clamp-2">
+                                  {example.description}
+                                </p>
+                                <div className="flex flex-wrap gap-1 mt-2">
+                                  <Badge variant="secondary" className="text-xs">
+                                    {example.type}
+                                  </Badge>
+                                </div>
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => loadExample(example.id)}
+                                className="ml-2 shrink-0"
+                              >
+                                <Play className="h-3 w-3 mr-1" />
+                                Load
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+
+              {/* Settings Tab - Combined Configuration and Settings */}
+              <TabsContent value="settings" className="space-y-6">
+                <div className="grid gap-6 md:grid-cols-2">
+                  {/* Output Configuration Section */}
+                  <Card className="border-accent/20">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <BarChart3 className="h-5 w-5" />
+                        Output Configuration
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div>
+                        <label className="text-sm font-medium mb-2 block">Output Level</label>
+                        <Select value={outputLevel.toString()} onValueChange={(value) => handleOutputLevelChange(parseInt(value))}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select output level" />
                           </SelectTrigger>
                           <SelectContent>
-                            {[1, 2, 3, 4, 5].map((level) => (
-                              <SelectItem key={level} value={level.toString()}>
-                                Level {level}
+                            {outputLevels.map((level) => (
+                              <SelectItem key={level.value} value={level.value.toString()}>
+                                <div>
+                                  <div className="font-medium">Level {level.value}: {level.label}</div>
+                                  <div className="text-xs text-muted-foreground">{level.description}</div>
+                                </div>
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                       </div>
-                    </div>
-                  </div>
-                  
-                  {/* Generated Content */}
-                  <div className="space-y-6">
-                    {/* GP Summary */}
-                    {gpSummary && (
-                      <Card className="shadow-lg border-0">
-                        <CardHeader>
-                          <div className="flex items-center justify-between">
-                            <CardTitle className="text-lg font-bold text-foreground">GP Summary</CardTitle>
-                            <div className="flex space-x-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => copyToClipboard(gpSummary, 'GP Summary')}
-                              >
-                                <Copy className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => downloadAsDocx(gpSummary, 'GP-Summary')}
-                              >
-                                <Download className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => toggleEdit('gpSummary')}
-                              >
-                                {editStates.gpSummary ? <Save className="h-4 w-4" /> : <Edit className="h-4 w-4" />}
-                              </Button>
-                            </div>
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                          {editStates.gpSummary ? (
-                            <Textarea
-                              value={editContent.gpSummary}
-                              onChange={(e) => setEditContent(prev => ({ ...prev, gpSummary: e.target.value }))}
-                              className="min-h-[200px]"
-                            />
-                          ) : (
-                            <div className="prose prose-sm max-w-none">
-                              <pre className="whitespace-pre-wrap font-sans text-sm">{gpSummary}</pre>
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    )}
 
-                    {/* Full Clinical Note */}
-                    {fullNote && (
-                      <Card className="shadow-lg border-0">
-                        <CardHeader>
-                          <div className="flex items-center justify-between">
-                            <CardTitle className="text-lg font-bold text-foreground">Full Clinical Note</CardTitle>
-                            <div className="flex space-x-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => copyToClipboard(fullNote, 'Full Clinical Note')}
-                              >
-                                <Copy className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => downloadAsDocx(fullNote, 'Full-Clinical-Note')}
-                              >
-                                <Download className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => toggleEdit('fullNote')}
-                              >
-                                {editStates.fullNote ? <Save className="h-4 w-4" /> : <Edit className="h-4 w-4" />}
-                              </Button>
-                            </div>
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                          {editStates.fullNote ? (
-                            <Textarea
-                              value={editContent.fullNote}
-                              onChange={(e) => setEditContent(prev => ({ ...prev, fullNote: e.target.value }))}
-                              className="min-h-[300px]"
-                            />
-                          ) : (
-                            <div className="prose prose-sm max-w-none">
-                              <pre className="whitespace-pre-wrap font-sans text-sm">{fullNote}</pre>
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    )}
-
-                    {/* Patient Copy */}
-                    {patientCopy && (
-                      <Card className="shadow-lg border-0">
-                        <CardHeader>
-                          <div className="flex items-center justify-between">
-                            <CardTitle className="text-lg font-bold text-foreground">Patient Copy</CardTitle>
-                            <div className="flex space-x-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => copyToClipboard(patientCopy, 'Patient Copy')}
-                              >
-                                <Copy className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => downloadAsDocx(patientCopy, 'Patient-Copy')}
-                              >
-                                <Download className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => toggleEdit('patientCopy')}
-                              >
-                                {editStates.patientCopy ? <Save className="h-4 w-4" /> : <Edit className="h-4 w-4" />}
-                              </Button>
-                            </div>
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                          {editStates.patientCopy ? (
-                            <Textarea
-                              value={editContent.patientCopy}
-                              onChange={(e) => setEditContent(prev => ({ ...prev, patientCopy: e.target.value }))}
-                              className="min-h-[200px]"
-                            />
-                          ) : (
-                            <div className="prose prose-sm max-w-none">
-                              <pre className="whitespace-pre-wrap font-sans text-sm">{patientCopy}</pre>
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    )}
-
-                    {/* Trainee Feedback */}
-                    {traineeFeedback && (
-                      <Card className="shadow-lg border-0">
-                        <CardHeader>
-                          <div className="flex items-center justify-between">
-                            <CardTitle className="text-lg font-bold text-foreground">Teaching Feedback</CardTitle>
-                            <div className="flex space-x-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => copyToClipboard(traineeFeedback, 'Teaching Feedback')}
-                              >
-                                <Copy className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => downloadAsDocx(traineeFeedback, 'Teaching-Feedback')}
-                              >
-                                <Download className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => toggleEdit('traineeFeedback')}
-                              >
-                                {editStates.traineeFeedback ? <Save className="h-4 w-4" /> : <Edit className="h-4 w-4" />}
-                              </Button>
-                            </div>
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                          {editStates.traineeFeedback ? (
-                            <Textarea
-                              value={editContent.traineeFeedback}
-                              onChange={(e) => setEditContent(prev => ({ ...prev, traineeFeedback: e.target.value }))}
-                              className="min-h-[200px]"
-                            />
-                          ) : (
-                            <div className="space-y-4">
-                              <div className="prose prose-sm max-w-none">
-                                <pre className="whitespace-pre-wrap font-sans text-sm">{traineeFeedback}</pre>
-                              </div>
-                              
-                              {guidance && (
-                                <div className="border-t pt-4">
-                                  <h4 className="font-medium mb-3">Real-time Consultation Guidance</h4>
-                                  {isGuidanceLoading && (
-                                    <div className="flex items-center text-sm text-muted-foreground mb-3">
-                                      <div className="animate-spin rounded-full h-4 w-4 border-b border-primary mr-2"></div>
-                                      Analyzing consultation...
-                                    </div>
-                                  )}
-                                  
-                                  <div className="space-y-4">
-                                    {guidance.suggestedQuestions.length > 0 && (
-                                      <div>
-                                        <h5 className="font-medium text-sm mb-2">Suggested Questions</h5>
-                                        <ul className="text-sm space-y-1">
-                                          {guidance.suggestedQuestions.map((question, index) => (
-                                            <li key={index} className="flex items-start">
-                                              <span className="text-muted-foreground mr-2">•</span>
-                                              {question}
-                                            </li>
-                                          ))}
-                                        </ul>
-                                      </div>
-                                    )}
-                                    
-                                    {guidance.potentialRedFlags.length > 0 && (
-                                      <div>
-                                        <h5 className="font-medium text-sm mb-2 text-red-600">Potential Red Flags</h5>
-                                        <ul className="text-sm space-y-1">
-                                          {guidance.potentialRedFlags.map((flag, index) => (
-                                            <li key={index} className="flex items-start text-red-600">
-                                              <AlertCircle className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0" />
-                                              {flag}
-                                            </li>
-                                          ))}
-                                        </ul>
-                                      </div>
-                                    )}
-                                    
-                                    {guidance.missedOpportunities.length > 0 && (
-                                      <div>
-                                        <h5 className="font-medium text-sm mb-2">Missed Opportunities</h5>
-                                        <ul className="text-sm space-y-1">
-                                          {guidance.missedOpportunities.map((opportunity, index) => (
-                                            <li key={index} className="flex items-start">
-                                              <span className="text-muted-foreground mr-2">•</span>
-                                              {opportunity}
-                                            </li>
-                                          ))}
-                                        </ul>
-                                      </div>
-                                    )}
-                                    
-                                    {guidance.safetyNetting.length > 0 && (
-                                      <div>
-                                        <h5 className="font-medium text-sm mb-2">Safety Netting</h5>
-                                        <ul className="text-sm space-y-1">
-                                          {guidance.safetyNetting.map((safety, index) => (
-                                            <li key={index} className="flex items-start">
-                                              <span className="text-muted-foreground mr-2">•</span>
-                                              {safety}
-                                            </li>
-                                          ))}
-                                        </ul>
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    )}
-
-                    {/* Referral Letter */}
-                    {referralLetter && (
-                      <Card className="shadow-lg border-0">
-                        <CardHeader>
-                          <div className="flex items-center justify-between">
-                            <CardTitle className="text-lg font-bold text-foreground">Referral Letter</CardTitle>
-                            <div className="flex space-x-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => copyToClipboard(referralLetter, 'Referral Letter')}
-                              >
-                                <Copy className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => downloadAsDocx(referralLetter, 'Referral-Letter')}
-                              >
-                                <Download className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => toggleEdit('referralLetter')}
-                              >
-                                {editStates.referralLetter ? <Save className="h-4 w-4" /> : <Edit className="h-4 w-4" />}
-                              </Button>
-                            </div>
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                          {editStates.referralLetter ? (
-                            <Textarea
-                              value={editContent.referralLetter}
-                              onChange={(e) => setEditContent(prev => ({ ...prev, referralLetter: e.target.value }))}
-                              className="min-h-[300px]"
-                            />
-                          ) : (
-                            <div className="prose prose-sm max-w-none">
-                              <pre className="whitespace-pre-wrap font-sans text-sm">{referralLetter}</pre>
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-          </TabsContent>
-
-          {/* Live Transcript Tab */}
-          {!["gp-genie", "examples", "ai4gp"].includes(activeTab) && (
-            <TabsContent value="transcript" className="space-y-4">
-              <Card className="shadow-lg border-0">
-                <CardHeader>
-                  <CardTitle className="text-lg font-bold text-foreground flex items-center">
-                    <FileText className="h-5 w-5 mr-2" />
-                    Live Transcript
-                    {wordCount > 0 && (
-                      <Badge variant="secondary" className="ml-2">{wordCount} words</Badge>
-                    )}
-                  </CardTitle>
-                  <div className="flex items-center justify-between">
-                    <Button variant="outline" size="sm" onClick={() => setIsTranscriptOpen(!isTranscriptOpen)}>
-                      {isTranscriptOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                </CardHeader>
-                {isTranscriptOpen && (
-                  <CardContent>
-                    {transcript ? (
-                      <ScrollArea className="h-80 w-full border rounded p-4">
-                        <div className="space-y-3">
-                          <div className="prose prose-sm max-w-none">
-                            <p className="whitespace-pre-wrap text-sm">{transcript}</p>
-                          </div>
-                          
-                          {isTranslationEnabled && translationLanguage && translations.length > 0 && (
-                            <div className="border-t pt-3 space-y-2">
-                              <h4 className="font-medium text-sm">Recent Translations</h4>
-                              {translations.slice(-3).map((translation) => (
-                                <div key={translation.id} className="bg-muted/50 rounded p-2 text-sm">
-                                  <div className="flex items-center justify-between mb-1">
-                                    <span className="font-medium text-xs">{translation.speaker}</span>
-                                    <span className="text-xs text-muted-foreground">{translation.timestamp}</span>
-                                  </div>
-                                  <p className="text-muted-foreground">Original: {translation.original}</p>
-                                  <p className="font-medium">Translation: {translation.translated}</p>
-                                </div>
-                              ))}
-                            </div>
-                          )}
+                      <div className="space-y-3">
+                        <h4 className="text-sm font-semibold">Clinical Coding & Formatting</h4>
+                        
+                        <div className="flex items-center space-x-2">
+                          <Checkbox 
+                            id="snomed-codes" 
+                            checked={showSnomedCodes}
+                            onCheckedChange={(checked) => setShowSnomedCodes(checked === true)}
+                          />
+                          <label htmlFor="snomed-codes" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                            Include SNOMED CT codes
+                          </label>
                         </div>
-                      </ScrollArea>
-                    ) : (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                        <p>No transcript available</p>
-                        <p className="text-sm">Start recording to see live transcription</p>
+                        
+                        <div className="flex items-center space-x-2">
+                          <Checkbox 
+                            id="emis-format" 
+                            checked={formatForEmis}
+                            onCheckedChange={(checked) => setFormatForEmis(checked === true)}
+                          />
+                          <label htmlFor="emis-format" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                            Format for EMIS Web
+                          </label>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2">
+                          <Checkbox 
+                            id="systmone-format" 
+                            checked={formatForSystmOne}
+                            onCheckedChange={(checked) => setFormatForSystmOne(checked === true)}
+                          />
+                          <label htmlFor="systmone-format" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                            Format for SystmOne
+                          </label>
+                        </div>
                       </div>
-                    )}
-                  </CardContent>
-                )}
-              </Card>
-            </TabsContent>
-          )}
 
-          {/* Results Tab */}
-          {(gpSummary || fullNote || patientCopy || traineeFeedback || referralLetter) && (
-            <TabsContent value="results" className="space-y-6">
-              <div>
-                <h2 className="text-2xl font-bold text-foreground mb-4">Consultation Notes</h2>
+                      <Button
+                        onClick={generateSummary}
+                        disabled={!transcript.trim() || isGenerating}
+                        className="w-full bg-gradient-primary hover:bg-primary-hover shadow-subtle text-lg font-medium py-4"
+                      >
+                        <Brain className="h-5 w-5 mr-3" />
+                        {isGenerating ? "Generating consultation notes..." : "🧠 Generate Clinical Summary"}
+                      </Button>
+                    </CardContent>
+                  </Card>
+
+                  {/* Practice Settings Section */}
+                  <Card className="border-accent/20">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Settings className="h-5 w-5" />
+                        Practice Settings
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-center py-6">
+                        <h4 className="text-base font-semibold mb-3">GP Scribe Settings</h4>
+                        <p className="text-muted-foreground mb-6 text-sm">
+                          Configure your practice details, specialist services, and GP signature settings.
+                        </p>
+                        <Button
+                          onClick={() => navigate('/gp-scribe/settings')}
+                          className="flex items-center gap-2"
+                        >
+                          <Settings className="h-4 w-4" />
+                          Open Settings
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+
+
+              {/* Consultation History Tab */}
+              <TabsContent value="history" className="space-y-4">
+                <ConsultationHistory />
+              </TabsContent>
+            </CardContent>
+          </Card>
+
+        {/* Transcript - Collapsible (Hidden on GP Genie, Examples, and AI4GP tabs) */}
+        {!["gp-genie", "examples", "ai4gp"].includes(activeTab) && (
+        <Card className="shadow-medium border-accent/20">
+          <Collapsible open={isTranscriptOpen} onOpenChange={setIsTranscriptOpen}>
+            <CollapsibleTrigger asChild>
+              <CardHeader className="cursor-pointer hover:bg-accent/10 transition-colors">
+                <CardTitle className="flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <Mic className="h-5 w-5 text-primary" />
+                    Transcript
+                    {wordCount > 0 && (
+                      <Badge variant="secondary" className="ml-2">
+                        {wordCount} words
+                      </Badge>
+                    )}
+                  </span>
+                  {isTranscriptOpen ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </CardTitle>
+              </CardHeader>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent>
+                <div className="bg-secondary/50 rounded-lg p-4 min-h-[200px] max-h-[400px] overflow-y-auto">
+                  {transcript ? (
+                    <div className="space-y-4">
+                      {/* Original Transcript */}
+                      <div>
+                        <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                          <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                          Original Transcript
+                        </h4>
+                        <pre className="whitespace-pre-wrap text-sm bg-blue-50 dark:bg-blue-950/20 rounded p-3">{transcript}</pre>
+                      </div>
+                      
+                      {/* Translations */}
+                      {isTranslationEnabled && translationLanguage && translations.length > 0 && (
+                        <div>
+                          <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                            <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                            Translation ({HEALTHCARE_LANGUAGES.find(l => l.code === translationLanguage)?.name})
+                            {isTranslating && <span className="text-xs text-muted-foreground">(translating...)</span>}
+                          </h4>
+                          <div className="space-y-2">
+                            {translations.slice(-3).map((translation) => (
+                              <div key={translation.id} className="bg-green-50 dark:bg-green-950/20 rounded p-3">
+                                <div className="flex items-start justify-between">
+                                  <div className="flex-1">
+                                    <p className="text-sm">{translation.translated}</p>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                      {translation.timestamp.toLocaleTimeString()}
+                                    </p>
+                                  </div>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => speakTranslation(translation.translated, translation.languageCode)}
+                                    disabled={isMuted}
+                                    className="h-6 w-6 p-0 ml-2"
+                                  >
+                                    <Volume2 className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground text-center py-8">
+                      Start recording or load an example to see transcription...
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </CollapsibleContent>
+          </Collapsible>
+        </Card>
+        )}
+
+
+        {/* Generated Output */}
+        {(gpSummary || fullNote || patientCopy || traineeFeedback || referralLetter) && (
+          <Card className="shadow-medium border-accent/20">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>Generated Clinical Notes</span>
+                <Button
+                  onClick={generateReferralLetter}
+                  disabled={!transcript.trim() || isGenerating}
+                  variant="outline"
+                  size="sm"
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  {isGenerating ? "Generating..." : "Generate Referral"}
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Tabs defaultValue="summary" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1 h-auto p-1">
+                  <TabsTrigger value="summary" className="min-h-[44px] text-xs sm:text-sm touch-manipulation">
+                    <span className="hidden sm:inline">🟦 GP Summary</span>
+                    <span className="sm:hidden">GP</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="full" className="min-h-[44px] text-xs sm:text-sm touch-manipulation">
+                    <span className="hidden sm:inline">🟨 Full Note</span>
+                    <span className="sm:hidden">Full</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="patient" className="min-h-[44px] text-xs sm:text-sm touch-manipulation">
+                    <span className="hidden sm:inline">🟩 Patient Copy</span>
+                    <span className="sm:hidden">Patient</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="trainee" className="min-h-[44px] text-xs sm:text-sm touch-manipulation">
+                    <span className="hidden lg:inline">🟣 Trainee Feedback</span>
+                    <span className="lg:hidden">Trainee</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="referral" className="min-h-[44px] text-xs sm:text-sm touch-manipulation">
+                    <span className="hidden lg:inline">📄 Referral Letter</span>
+                    <span className="lg:hidden">Referral</span>
+                  </TabsTrigger>
+                </TabsList>
                 
-                <div className="mb-6 p-4 bg-muted/50 rounded-lg">
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                    <div className="flex items-center space-x-2">
-                      <label className="text-sm font-medium">Output Detail:</label>
-                      <Select value={outputLevel} onValueChange={setOutputLevel}>
-                        <SelectTrigger className="w-32">
+                <TabsContent value="summary" className="space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                      <label className="text-xs sm:text-sm font-medium">Quick Pick Level:</label>
+                      <Select value={outputLevel.toString()} onValueChange={(value) => handleOutputLevelChange(parseInt(value))}>
+                        <SelectTrigger className="w-full sm:w-40 min-h-[44px]">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {[1, 2, 3, 4, 5].map((level) => (
-                            <SelectItem key={level} value={level.toString()}>
-                              Level {level}
+                          {outputLevels.map((level) => (
+                            <SelectItem key={level.value} value={level.value.toString()}>
+                              {level.value}: {level.label}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => startEdit('gpSummary')}
+                      disabled={editStates.gpSummary}
+                      className="touch-manipulation min-h-[44px] w-full sm:w-auto"
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit
+                    </Button>
                   </div>
-                </div>
+                  
+                  {editStates.gpSummary ? (
+                    <div className="space-y-2">
+                      <Textarea
+                        value={editContent.gpSummary}
+                        onChange={(e) => setEditContent(prev => ({ ...prev, gpSummary: e.target.value }))}
+                        className="min-h-[200px] bg-blue-50 dark:bg-blue-950/20"
+                      />
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <Button 
+                          size="sm" 
+                          onClick={() => saveEdit('gpSummary')}
+                          className="touch-manipulation min-h-[44px] flex-1 sm:flex-none"
+                        >
+                          <Check className="h-4 w-4 mr-2" />
+                          Save
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => cancelEdit('gpSummary')}
+                          className="touch-manipulation min-h-[44px] flex-1 sm:flex-none"
+                        >
+                          <X className="h-4 w-4 mr-2" />
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-blue-50 dark:bg-blue-950/20 rounded-lg p-4 min-h-[200px] whitespace-pre-wrap">
+                      {formatTextForDisplay(gpSummary) || "No summary generated yet"}
+                    </div>
+                  )}
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Button 
+                      size="sm" 
+                      onClick={() => copyToClipboard(gpSummary)}
+                      className="touch-manipulation min-h-[44px] flex-1 sm:flex-none"
+                    >
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copy
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      onClick={() => downloadAsPDF(gpSummary, 'gp-summary')}
+                      className="touch-manipulation min-h-[44px] flex-1 sm:flex-none"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      PDF
+                    </Button>
+                  </div>
+                </TabsContent>
                 
-                <Button onClick={generateSummary} className="mb-6">
-                  <FileText className="h-4 w-4 mr-2" />
-                  Regenerate Notes
-                </Button>
+                <TabsContent value="full" className="space-y-4">
+                  <div className="flex items-center justify-end mb-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => startEdit('fullNote')}
+                      disabled={editStates.fullNote}
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit
+                    </Button>
+                  </div>
+                  
+                  {editStates.fullNote ? (
+                    <div className="space-y-2">
+                      <Textarea
+                        value={editContent.fullNote}
+                        onChange={(e) => setEditContent(prev => ({ ...prev, fullNote: e.target.value }))}
+                        className="min-h-[200px] bg-yellow-50 dark:bg-yellow-950/20"
+                      />
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={() => saveEdit('fullNote')}>
+                          <Check className="h-4 w-4 mr-2" />
+                          Save
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => cancelEdit('fullNote')}>
+                          <X className="h-4 w-4 mr-2" />
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-yellow-50 dark:bg-yellow-950/20 rounded-lg p-4 min-h-[200px] whitespace-pre-wrap">
+                      {formatTextForDisplay(fullNote) || "No full note generated yet"}
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={() => copyToClipboard(fullNote)}>
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copy
+                    </Button>
+                    <Button size="sm" onClick={() => downloadAsPDF(fullNote, 'full-note')}>
+                      <Download className="h-4 w-4 mr-2" />
+                      PDF
+                    </Button>
+                  </div>
+                </TabsContent>
                 
-                <div className="space-y-6">
-                  {/* All the generated content cards would go here, same as above */}
-                </div>
-              </div>
-            </TabsContent>
-          )}
-
-          {/* GP Genie Tab */}
-          <TabsContent value="gp-genie" className="space-y-4">
-            <Card className="shadow-lg border-0">
-              <CardHeader>
-                <CardTitle className="text-xl font-bold text-foreground flex items-center">
-                  <Bot className="h-6 w-6 mr-2" />
-                  GP Genie - AI Assistant
-                </CardTitle>
-                <CardDescription>
-                  Voice-powered AI assistant for GP consultations and clinical decision support
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <h4 className="font-medium text-blue-900 mb-2">GP Genie Features</h4>
-                  <ul className="text-sm text-blue-800 space-y-1">
-                    <li>• Voice-activated consultation support</li>
-                    <li>• Real-time clinical guidance</li>
-                    <li>• Symptom analysis and differential diagnosis</li>
-                    <li>• Treatment recommendations</li>
-                    <li>• Drug interaction checking</li>
-                  </ul>
-                </div>
+                <TabsContent value="patient" className="space-y-4">
+                  <div className="flex items-center justify-end mb-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => startEdit('patientCopy')}
+                      disabled={editStates.patientCopy}
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit
+                    </Button>
+                  </div>
+                  
+                  {editStates.patientCopy ? (
+                    <div className="space-y-2">
+                      <Textarea
+                        value={editContent.patientCopy}
+                        onChange={(e) => setEditContent(prev => ({ ...prev, patientCopy: e.target.value }))}
+                        className="min-h-[200px] bg-green-50 dark:bg-green-950/20"
+                      />
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={() => saveEdit('patientCopy')}>
+                          <Check className="h-4 w-4 mr-2" />
+                          Save
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => cancelEdit('patientCopy')}>
+                          <X className="h-4 w-4 mr-2" />
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-green-50 dark:bg-green-950/20 rounded-lg p-4 min-h-[200px] whitespace-pre-wrap">
+                      {formatTextForDisplay(patientCopy) || "No patient copy generated yet"}
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={() => copyToClipboard(patientCopy)}>
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copy
+                    </Button>
+                    <Button size="sm" onClick={() => downloadAsPDF(patientCopy, 'patient-copy')}>
+                      <Download className="h-4 w-4 mr-2" />
+                      PDF
+                    </Button>
+                  </div>
+                </TabsContent>
                 
-                <Button className="w-full" size="lg">
-                  <Bot className="h-5 w-5 mr-2" />
-                  Launch GP Genie
-                </Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Examples Tab */}
-          <TabsContent value="examples" className="space-y-4">
-            <Card className="shadow-lg border-0">
-              <CardHeader>
-                <CardTitle className="text-xl font-bold text-foreground">Example Consultations</CardTitle>
-                <CardDescription>
-                  Load pre-recorded consultation examples to test GP Scribe features
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {showExamples && (
-                  <div className="space-y-4 mb-6">
-                    {consultationExamples.map((example) => (
-                      <Card key={example.id} className="border border-muted">
-                        <CardHeader className="pb-3">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <CardTitle className="text-lg">{example.title}</CardTitle>
-                              <CardDescription className="mt-1">
-                                {example.type} • {example.duration} • {example.wordCount} words
-                              </CardDescription>
+                <TabsContent value="trainee" className="space-y-4">
+                  <div className="flex items-center justify-end mb-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => startEdit('traineeFeedback')}
+                      disabled={editStates.traineeFeedback}
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit
+                    </Button>
+                  </div>
+                  
+                  {editStates.traineeFeedback ? (
+                    <div className="space-y-2">
+                      <Textarea
+                        value={editContent.traineeFeedback}
+                        onChange={(e) => setEditContent(prev => ({ ...prev, traineeFeedback: e.target.value }))}
+                        className="min-h-[200px] bg-purple-50 dark:bg-purple-950/20"
+                      />
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={() => saveEdit('traineeFeedback')}>
+                          <Check className="h-4 w-4 mr-2" />
+                          Save
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => cancelEdit('traineeFeedback')}>
+                          <X className="h-4 w-4 mr-2" />
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                       
+                       {/* Consultation Guidance Integration */}
+                      {guidance && (
+                        <div className="space-y-4 border-t pt-4">
+                          <h4 className="font-semibold flex items-center gap-2">
+                            <Brain className="h-5 w-5 text-blue-500" />
+                            Real-time Consultation Analysis
+                            {isGuidanceLoading && (
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                            )}
+                          </h4>
+                          
+                          {/* Consultation Quality Score */}
+                          <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg">
+                            <div className="flex items-center gap-2">
+                              <BarChart3 className="h-5 w-5 text-blue-500" />
+                              <span className="font-medium">Quality Score:</span>
                             </div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => loadExampleConsultation(example)}
-                            >
-                              Load Example
-                            </Button>
+                            <Badge variant="outline" className="text-lg font-semibold">
+                              {guidance.consultationQuality.score}/10
+                            </Badge>
+                            <div className="flex-1 text-sm text-muted-foreground">
+                              {guidance.consultationQuality.feedback}
+                            </div>
                           </div>
-                        </CardHeader>
-                        <CardContent className="pt-0">
-                          <p className="text-sm text-muted-foreground mb-3">
-                            {example.description}
-                          </p>
-                          <div className="flex flex-wrap gap-2">
-                            {example.tags?.map((tag) => (
-                              <Badge key={tag} variant="secondary" className="text-xs">
-                                {tag}
-                              </Badge>
-                            ))}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-                
-                <Button 
-                  variant="outline" 
-                  onClick={() => setShowExamples(!showExamples)}
-                  className="w-full"
-                >
-                  {showExamples ? 'Hide Examples' : 'Show Example Consultations'}
-                </Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
 
-          {/* Settings Tab */}
-          <TabsContent value="settings" className="space-y-4">
-            <Card className="shadow-lg border-0">
-              <CardHeader>
-                <CardTitle className="text-xl font-bold text-foreground">GP Scribe Settings</CardTitle>
-                <CardDescription>
-                  Configure your consultation recording and note generation preferences
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="font-medium mb-3">Note Generation</h4>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <label className="text-sm font-medium">Include SNOMED codes</label>
-                        <Switch checked={showSnomedCodes} onCheckedChange={setShowSnomedCodes} />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <label className="text-sm font-medium">Format for EMIS</label>
-                        <Switch checked={formatForEmis} onCheckedChange={setFormatForEmis} />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <label className="text-sm font-medium">Format for SystmOne</label>
-                        <Switch checked={formatForSystmOne} onCheckedChange={setFormatForSystmOne} />
-                      </div>
+                          <div className="grid gap-4">
+                            {/* Suggested Questions */}
+                            {guidance.suggestedQuestions.length > 0 && (
+                              <div className="space-y-2">
+                                <h5 className="font-medium flex items-center gap-2">
+                                  <Brain className="h-4 w-4 text-blue-500" />
+                                  Suggested Questions
+                                </h5>
+                                <ul className="space-y-1 text-sm">
+                                  {guidance.suggestedQuestions.map((question, index) => (
+                                    <li key={index} className="p-2 bg-blue-50 dark:bg-blue-950/20 rounded">
+                                      • {question}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {/* Red Flags */}
+                            {guidance.potentialRedFlags.length > 0 && (
+                              <div className="space-y-2">
+                                <h5 className="font-medium flex items-center gap-2">
+                                  <AlertTriangle className="h-4 w-4 text-red-500" />
+                                  Potential Red Flags
+                                </h5>
+                                <ul className="space-y-1 text-sm">
+                                  {guidance.potentialRedFlags.map((flag, index) => (
+                                    <li key={index} className="p-2 bg-red-50 dark:bg-red-950/20 rounded">
+                                      ⚠️ {flag}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {/* Missed Opportunities */}
+                            {guidance.missedOpportunities.length > 0 && (
+                              <div className="space-y-2">
+                                <h5 className="font-medium flex items-center gap-2">
+                                  <BookOpen className="h-4 w-4 text-orange-500" />
+                                  Consider Exploring
+                                </h5>
+                                <ul className="space-y-1 text-sm">
+                                  {guidance.missedOpportunities.map((opportunity, index) => (
+                                    <li key={index} className="p-2 bg-orange-50 dark:bg-orange-950/20 rounded">
+                                      💡 {opportunity}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {/* Safety Netting */}
+                            {guidance.safetyNetting.length > 0 && (
+                              <div className="space-y-2">
+                                <h5 className="font-medium flex items-center gap-2">
+                                  <Shield className="h-4 w-4 text-green-500" />
+                                  Safety Netting
+                                </h5>
+                                <ul className="space-y-1 text-sm">
+                                  {guidance.safetyNetting.map((safety, index) => (
+                                    <li key={index} className="p-2 bg-green-50 dark:bg-green-950/20 rounded">
+                                      🛡️ {safety}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
+                  )}
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={() => copyToClipboard(traineeFeedback)}>
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copy
+                    </Button>
+                    <Button size="sm" onClick={() => downloadAsPDF(traineeFeedback, 'trainee-feedback')}>
+                      <Download className="h-4 w-4 mr-2" />
+                      PDF
+                    </Button>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="referral" className="space-y-4">
+                  <div className="flex items-center justify-end mb-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => startEdit('referralLetter')}
+                      disabled={editStates.referralLetter}
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit
+                    </Button>
                   </div>
                   
-                  <Separator />
-                  
-                  <div>
-                    <h4 className="font-medium mb-3">Audio & Recording</h4>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <label className="text-sm font-medium">Auto-transcription cleaning</label>
-                        <Switch checked={true} onCheckedChange={() => {}} />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <label className="text-sm font-medium">Speaker identification</label>
-                        <Switch checked={true} onCheckedChange={() => {}} />
+                  {editStates.referralLetter ? (
+                    <div className="space-y-2">
+                      <Textarea
+                        value={editContent.referralLetter}
+                        onChange={(e) => setEditContent(prev => ({ ...prev, referralLetter: e.target.value }))}
+                        className="min-h-[200px] bg-gray-50 dark:bg-gray-950/20"
+                      />
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={() => saveEdit('referralLetter')}>
+                          <Check className="h-4 w-4 mr-2" />
+                          Save
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => cancelEdit('referralLetter')}>
+                          <X className="h-4 w-4 mr-2" />
+                          Cancel
+                        </Button>
                       </div>
                     </div>
+                  ) : (
+                    <div className="bg-gray-50 dark:bg-gray-950/20 rounded-lg p-4 min-h-[200px] whitespace-pre-wrap">
+                      <SafeMessageRenderer 
+                        content={(referralLetter || "No referral letter generated yet")
+                          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                          .replace(/\n/g, '<br/>') 
+                        }
+                        className="min-h-[200px]"
+                      />
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={() => copyToClipboard(referralLetter)}>
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copy
+                    </Button>
+                    <Button size="sm" onClick={() => downloadAsPDF(referralLetter, 'referral-letter')}>
+                      <Download className="h-4 w-4 mr-2" />
+                      PDF
+                    </Button>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+        )}
+        
+          <TabsContent value="ai4gp" className="space-y-6">
+            <AI4GPService />
           </TabsContent>
-
-          {/* AI4GP Tab */}
-          <TabsContent value="ai4gp" className="space-y-4">
-            <Card className="shadow-lg border-0">
-              <CardHeader>
-                <CardTitle className="text-xl font-bold text-foreground flex items-center">
-                  <MessageSquare className="h-6 w-6 mr-2" />
-                  AI4GP Chat
-                </CardTitle>
-                <CardDescription>
-                  Intelligent AI assistant for clinical decision support and consultation guidance
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
-                  <h4 className="font-medium text-amber-900 mb-2">AI4GP Features</h4>
-                  <ul className="text-sm text-amber-800 space-y-1">
-                    <li>• Clinical decision support</li>
-                    <li>• Diagnosis assistance</li>
-                    <li>• Treatment recommendations</li>
-                    <li>• Clinical guideline reference</li>
-                    <li>• Drug information and interactions</li>
-                  </ul>
-                </div>
-                
-                <Button className="w-full" size="lg">
-                  <MessageSquare className="h-5 w-5 mr-2" />
-                  Launch AI4GP Chat
-                </Button>
-              </CardContent>
-            </Card>
+          
+          <TabsContent value="gp-genie" className="space-y-6">
+            <GPGenieVoiceAgent />
           </TabsContent>
-
-          {/* Audio Import Tab */}
-          <TabsContent value="import" className="space-y-4">
-            <Card className="shadow-lg border-0">
+          
+          <TabsContent value="test-mp3" className="space-y-6">
+            <Card className="border-accent/20">
               <CardHeader>
-                <CardTitle className="text-xl font-bold text-foreground flex items-center">
-                  <Upload className="h-6 w-6 mr-2" />
+                <CardTitle className="flex items-center gap-2">
+                  <Stethoscope className="h-5 w-5" />
                   Audio Import with AI Speaker Recognition
                 </CardTitle>
                 <p className="text-sm text-muted-foreground">
@@ -1806,4 +2693,4 @@ const GPScribe = () => {
   );
 };
 
-export default GPScribe;
+export default Index;
