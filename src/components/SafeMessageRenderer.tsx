@@ -12,8 +12,43 @@ export const SafeMessageRenderer: React.FC<SafeMessageRendererProps> = ({
   className = "",
   tag: Tag = "div" 
 }) => {
+  // Simple markdown-to-HTML conversion for basic formatting
+  const convertMarkdownToHtml = (text: string): string => {
+    return text
+      // Convert **bold** to <strong>
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      // Convert *italic* to <em>
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      // Convert line breaks to <br> tags
+      .replace(/\n\n/g, '</p><p>')
+      .replace(/\n/g, '<br>')
+      // Convert numbered lists (1. 2. etc.)
+      .replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>')
+      // Convert bullet points (- or •)
+      .replace(/^[-•]\s+(.+)$/gm, '<li>$1</li>')
+      // Wrap in paragraphs
+      .replace(/^(.+)$/gm, '<p>$1</p>')
+      // Clean up multiple paragraph tags
+      .replace(/<\/p><p>/g, '</p>\n<p>')
+      // Wrap lists in ul tags
+      .replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>')
+      // Clean up nested lists
+      .replace(/<\/ul>\s*<ul>/g, '')
+      // Remove empty paragraphs
+      .replace(/<p><\/p>/g, '')
+      // Handle headings with numbered prefixes like "1️⃣ **Attendees**"
+      .replace(/\d+️⃣\s*<strong>(.*?)<\/strong>/g, '<h3>$1</h3>')
+      // Handle section numbers like "## 1️⃣ Attendees"
+      .replace(/##\s*\d+️⃣\s*<strong>(.*?)<\/strong>/g, '<h3>$1</h3>')
+      // Convert standalone **Section** headers to h3
+      .replace(/<p><strong>([^<]*?)<\/strong><\/p>/g, '<h3>$1</h3>');
+  };
+
+  // Convert markdown to HTML
+  const htmlContent = convertMarkdownToHtml(content);
+
   // Configure DOMPurify to allow only safe HTML elements and attributes
-  const cleanContent = DOMPurify.sanitize(content, {
+  const cleanContent = DOMPurify.sanitize(htmlContent, {
     ALLOWED_TAGS: [
       'p', 'br', 'strong', 'em', 'u', 'b', 'i', 
       'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
