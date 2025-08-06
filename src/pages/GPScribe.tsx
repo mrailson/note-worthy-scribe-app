@@ -683,75 +683,9 @@ const GPScribe = () => {
     console.log("🔄 GP Scribe session reset");
   };
 
+  // Legacy stopRecording function - now handled by GPScribeRecorder component
   const stopRecording = () => {
-    console.log("stopRecording called");
-    console.log("Current duration when stopping:", duration);
-    console.log("Duration state:", duration);
-    console.log("IntervalRef status:", intervalRef.current ? "active" : "null");
-    
-    // Set status to indicate we're finalizing
-    setConnectionStatus("Finalizing...");
-    // Recording stopped - finalizing transcript
-    
-    // Stop the timer first
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-    
-    setIsRecording(false);
-    setIsPaused(false);
-    
-    // Stop the unified audio capture 
-    if (transciberRef.current) {
-      console.log("🛑 Stopping single session recording...");
-      transciberRef.current.stopCapture(); // This will trigger the final transcription
-      transciberRef.current = null;
-    }
-    
-    // Conditional delay based on recording duration
-    const delayTime = 1000; // Reduced delay to 1 second for better user experience
-    console.log(`Recording duration: ${duration}s, using ${delayTime/1000}s delay`);
-    
-    // Reduced delay since we're using 5-second chunks now
-    setTimeout(() => {
-      setConnectionStatus("Stopped");
-      console.log("Transcript length:", transcript ? transcript.trim().length : 0);
-      console.log("Recording duration for navigation check:", duration, "seconds");
-      
-      // Check if recording is too short (under 30 seconds)
-      if (duration < 30) {
-        console.log("Recording too short (under 30 seconds), staying on current page");
-        console.log("Duration value:", duration, "Type:", typeof duration);
-        toast.error("Recording too short. Please record for at least 30 seconds for meaningful consultation notes.");
-        return;
-      }
-      
-      console.log("Duration check passed, proceeding with navigation...");
-      
-      // Navigate immediately to consultation summary without waiting for generation
-      console.log("Navigating immediately to consultation summary...");
-      const consultationData = {
-        id: `consultation-${Date.now()}`,
-        title: `GP Consultation - ${format(new Date(), "do MMMM yyyy 'at' h.mm a")}`,
-        type: consultationType,
-        transcript: transcript || '',
-        duration: formatDuration(duration),
-        wordCount: transcript ? transcript.split(' ').filter(word => word.length > 0).length : 0,
-        startTime: new Date().toISOString(),
-        isExample: false
-      };
-      
-      console.log("Navigating with data:", consultationData);
-      navigate('/consultation-summary', { state: consultationData });
-      
-      // Start background generation if there's meaningful content
-      if (transcript && transcript.trim().length > 50) {
-        console.log("Starting background generation...");
-        // Don't await this - let it run in background
-        generateSummaryBackground();
-      }
-    }, delayTime);
+    console.log("stopRecording called - handled by GPScribeRecorder component");
   };
 
   const resetSession = () => {
