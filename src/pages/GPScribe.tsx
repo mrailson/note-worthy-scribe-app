@@ -590,8 +590,15 @@ const Index = () => {
       const words = transcriptData.text.split(' ').filter(word => word.length > 0);
       setWordCount(words.length);
       console.log('✅ Transcript set - word count:', words.length);
+    } else if (transcriptData.text && transcriptData.text.length > 0) {
+      // Show partial transcripts in real-time for better UX
+      console.log('⏳ Processing partial transcript:', transcriptData.text.substring(0, 50) + '...');
+      setTranscript(transcriptData.text);
+      const words = transcriptData.text.split(' ').filter(word => word.length > 0);
+      setWordCount(words.length);
+      console.log('📝 Partial transcript updated - word count:', words.length);
     } else {
-      console.log('⏳ Ignoring partial transcript in single session mode');
+      console.log('⏳ Ignoring empty partial transcript in single session mode');
     }
   };
   const debouncedGenerateGuidance = (text: string) => {
