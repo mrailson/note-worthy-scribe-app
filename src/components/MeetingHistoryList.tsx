@@ -53,6 +53,7 @@ interface Meeting {
   audio_backup_path?: string | null;
   audio_backup_created_at?: string | null;
   requires_audio_backup?: boolean;
+  word_count?: number;
 }
 
 interface MeetingHistoryListProps {
@@ -215,6 +216,14 @@ export const MeetingHistoryList = ({
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+  };
+
+  const formatWordCount = (wordCount: number | null) => {
+    if (!wordCount) return null;
+    if (wordCount >= 1000) {
+      return `${(wordCount / 1000).toFixed(1)}k words`;
+    }
+    return `${wordCount} words`;
   };
 
   const generateOverview = (meeting: Meeting) => {
@@ -399,6 +408,13 @@ export const MeetingHistoryList = ({
                   <div className="flex items-center gap-1">
                     <Clock className="h-3 w-3 flex-shrink-0" />
                     <span>{formatDuration(meeting.duration_minutes)}</span>
+                  </div>
+                )}
+
+                {formatWordCount(meeting.word_count) && (
+                  <div className="flex items-center gap-1">
+                    <FileText className="h-3 w-3 flex-shrink-0" />
+                    <span>{formatWordCount(meeting.word_count)}</span>
                   </div>
                 )}
               </div>
