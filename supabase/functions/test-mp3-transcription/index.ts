@@ -30,11 +30,20 @@ serve(async (req) => {
       });
     }
 
-    console.log(`Processing MP3 file: ${audioFile.name}, size: ${audioFile.size} bytes`);
+    console.log(`Processing audio file: ${audioFile.name}, size: ${audioFile.size} bytes, type: ${audioFile.type}`);
+
+    // Create a new file with proper format for Whisper
+    let processedFile = audioFile;
+    
+    // If it's WebM, rename it to ensure Whisper accepts it
+    if (audioFile.type.includes('webm') || audioFile.name.includes('.webm')) {
+      console.log('Converting WebM file for Whisper compatibility...');
+      processedFile = new File([audioFile], 'audio.webm', { type: 'audio/webm' });
+    }
 
     // Prepare form data for OpenAI
     const whisperFormData = new FormData();
-    whisperFormData.append('file', audioFile);
+    whisperFormData.append('file', processedFile);
     whisperFormData.append('model', 'whisper-1');
     whisperFormData.append('language', 'en');
     whisperFormData.append('response_format', 'verbose_json');

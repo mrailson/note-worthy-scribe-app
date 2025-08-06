@@ -167,10 +167,16 @@ export class UnifiedAudioCapture {
       throw new Error('No audio stream available for recording');
     }
 
-    // Use supported audio format
-    const options = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
-      ? { mimeType: 'audio/webm;codecs=opus' }
-      : {};
+    // Use supported audio format with preference for Whisper-compatible formats
+    let options: MediaRecorderOptions = {};
+    
+    if (MediaRecorder.isTypeSupported('audio/wav')) {
+      options = { mimeType: 'audio/wav' };
+    } else if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+      options = { mimeType: 'audio/webm;codecs=opus' };
+    } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+      options = { mimeType: 'audio/mp4' };
+    }
 
     this.mediaRecorder = new MediaRecorder(this.combinedStream, options);
     this.audioChunks = [];
@@ -334,7 +340,11 @@ export class UnifiedAudioCapture {
       
       // Create FormData with the audio file for the edge function
       const formData = new FormData();
-      const audioFile = new File([audioBlob], 'consultation.webm', { type: 'audio/webm' });
+      // Use the actual blob type rather than forcing it to be wav
+      const actualMimeType = audioBlob.type || 'audio/webm';
+      const extension = actualMimeType.includes('wav') ? '.wav' : 
+                       actualMimeType.includes('mp4') ? '.mp4' : '.webm';
+      const audioFile = new File([audioBlob], `consultation${extension}`, { type: actualMimeType });
       formData.append('audio', audioFile);
 
       // Use direct Whisper transcription for faster processing
