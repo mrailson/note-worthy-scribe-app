@@ -179,6 +179,9 @@ const MeetingHistory = () => {
   const [currentMeetingForTranscript, setCurrentMeetingForTranscript] = useState<Meeting | null>(null);
   const [isSavingCleanedTranscript, setIsSavingCleanedTranscript] = useState(false);
   
+  // Mic test service visibility state
+  const [micTestServiceVisible, setMicTestServiceVisible] = useState<boolean>(true);
+  
   // Collapsible action controls for mobile (removed - no longer needed)
 
   const handleNewMeeting = () => {
@@ -798,10 +801,30 @@ const MeetingHistory = () => {
     return `${meeting.title} - ${formattedDate} at ${formattedTime}${meeting.location ? ` (${meeting.location})` : ''}`;
   };
 
+  // Fetch mic test service settings
+  const fetchMicTestServiceSettings = async () => {
+    if (!user) return;
 
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('mic_test_service_visible')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+      
+      if (data?.mic_test_service_visible !== undefined) {
+        setMicTestServiceVisible(data.mic_test_service_visible);
+      }
+    } catch (error) {
+      console.error('Error fetching mic test service settings:', error);
+    }
+  };
   useEffect(() => {
     if (user) {
       fetchMeetings();
+      fetchMicTestServiceSettings();
     }
   }, [user]);
 
@@ -1639,8 +1662,9 @@ const MeetingHistory = () => {
                 }
                 return meeting;
               }));
-            }}
-          />
+             }}
+            showRecordingPlayback={micTestServiceVisible}
+           />
         )}
 
         {/* Enhanced Transcript View Dialog with AI Cleaning - Mobile Optimized */}

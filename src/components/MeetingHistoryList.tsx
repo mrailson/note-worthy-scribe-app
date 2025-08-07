@@ -113,6 +113,8 @@ interface MeetingHistoryListProps {
   onMeetingUpdate?: (meetingId: string, updatedTitle: string) => void;
   // Callback for when documents are uploaded
   onDocumentsUploaded?: (meetingId: string, uploadedFiles: Array<{file_name: string, file_size: number, uploaded_at: string, file_type: string}>) => void;
+  // Recording playback visibility
+  showRecordingPlayback?: boolean;
 }
 
 export const MeetingHistoryList = ({ 
@@ -126,7 +128,8 @@ export const MeetingHistoryList = ({
   selectedMeetings = [],
   onSelectMeeting,
   onMeetingUpdate,
-  onDocumentsUploaded
+  onDocumentsUploaded,
+  showRecordingPlayback = true
 }: MeetingHistoryListProps) => {
   const [editingMeetingId, setEditingMeetingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState<string>("");
@@ -824,8 +827,8 @@ export const MeetingHistoryList = ({
                 </div>
               )}
               
-              {/* Audio Recording Playback - Show if any recording URLs exist */}
-              {(meeting.mixed_audio_url || meeting.left_audio_url || meeting.right_audio_url) && (
+              {/* Audio Recording Playback - Show if any recording URLs exist and showRecordingPlayback is true */}
+              {showRecordingPlayback && (meeting.mixed_audio_url || meeting.left_audio_url || meeting.right_audio_url) && (
                 <Collapsible 
                   open={collapsedAudioSections[meeting.id] === true} 
                   onOpenChange={(open) => setCollapsedAudioSections(prev => ({ ...prev, [meeting.id]: open }))}

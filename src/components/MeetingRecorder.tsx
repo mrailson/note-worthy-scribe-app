@@ -3403,8 +3403,9 @@ export const MeetingRecorder = ({
                     }
                     return meeting;
                   }));
-                }}
-              />
+                 }}
+                showRecordingPlayback={micTestServiceVisible}
+               />
             </CardContent>
           </Card>
         </TabsContent>
