@@ -113,7 +113,12 @@ export const MeetingRecorder = ({
   });
 
   // Reset meeting function
-  const resetMeeting = () => {
+  const resetMeeting = async () => {
+    // Stop any ongoing recordings first
+    if (isRecording) {
+      await stopRecording();
+    }
+    
     setIsRecording(false);
     setDuration(0);
     setTranscript("");
@@ -144,9 +149,20 @@ export const MeetingRecorder = ({
     onDurationUpdate("00:00");
     onWordCountUpdate(0);
     
-    // Stop any ongoing recordings
-    if (isRecording) {
-      stopRecording();
+    // Stop all transcribers
+    if (browserTranscriberRef.current) {
+      browserTranscriberRef.current.stopTranscription();
+      browserTranscriberRef.current = null;
+    }
+    
+    if (iPhoneTranscriberRef.current) {
+      iPhoneTranscriberRef.current.stopTranscription();
+      iPhoneTranscriberRef.current = null;
+    }
+    
+    if (desktopTranscriberRef.current) {
+      await desktopTranscriberRef.current.stopTranscription();
+      desktopTranscriberRef.current = null;
     }
     
     // Clear recording audio if playing
@@ -177,6 +193,11 @@ export const MeetingRecorder = ({
     
     console.log('🔄 Meeting reset completed');
     toast.success("Meeting reset - ready for new recording");
+    
+    // Refresh page after a short delay to let the toast display
+    setTimeout(() => {
+      window.location.reload();
+    }, 1000);
   };
   
   const navigate = useNavigate();
