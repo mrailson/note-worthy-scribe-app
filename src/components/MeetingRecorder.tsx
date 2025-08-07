@@ -22,6 +22,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { MeetingSettings } from "@/components/MeetingSettings";
 import { MeetingHistoryList } from "@/components/MeetingHistoryList";
+import { WhisperHallucinationTestSuite } from "@/components/WhisperHallucinationTestSuite";
 
 import { NotewellAIAnimation } from "@/components/NotewellAIAnimation";
 
@@ -2054,7 +2055,7 @@ export const MeetingRecorder = ({
     <div className="space-y-6">
       {/* Tabbed Interface */}
       <Tabs defaultValue={initialActiveTab || "recorder"} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="recorder" className="flex items-center gap-2">
             <Mic style={{ width: '20px', height: '20px', color: '#0066cc', display: 'block' }} />
             <span className="hidden sm:inline">Meeting Recorder</span>
@@ -2074,6 +2075,11 @@ export const MeetingRecorder = ({
             <History style={{ width: '20px', height: '20px', color: '#0066cc', display: 'block' }} />
             <span className="hidden sm:inline">Meeting History</span>
             <span className="sm:hidden">History</span>
+          </TabsTrigger>
+          <TabsTrigger value="mic-test" className="flex items-center gap-2">
+            <Headphones style={{ width: '20px', height: '20px', color: '#0066cc', display: 'block' }} />
+            <span className="hidden sm:inline">Mic Test Service</span>
+            <span className="sm:hidden">Test</span>
           </TabsTrigger>
         </TabsList>
 
@@ -2511,6 +2517,11 @@ export const MeetingRecorder = ({
               />
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Mic Test Service Tab */}
+        <TabsContent value="mic-test" className="space-y-4 mt-6">
+          <WhisperHallucinationTestSuite />
         </TabsContent>
 
       </Tabs>
