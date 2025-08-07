@@ -109,6 +109,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Force refresh user modules every 5 seconds to catch permission changes
+  useEffect(() => {
+    if (user?.id) {
+      const interval = setInterval(() => {
+        fetchUserModules(user.id);
+      }, 5000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [user?.id]);
+
   const signIn = async (email: string, password: string) => {
     const redirectUrl = `${window.location.origin}/`;
     
