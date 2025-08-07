@@ -122,6 +122,13 @@ export type Database = {
             foreignKeyName: "audio_chunks_meeting_id_fkey"
             columns: ["meeting_id"]
             isOneToOne: false
+            referencedRelation: "accessible_meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audio_chunks_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
             referencedRelation: "meetings"
             referencedColumns: ["id"]
           },
@@ -162,6 +169,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "audio_sessions_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "accessible_meetings"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "audio_sessions_meeting_id_fkey"
             columns: ["meeting_id"]
@@ -2069,6 +2083,64 @@ export type Database = {
             foreignKeyName: "meeting_overviews_meeting_id_fkey"
             columns: ["meeting_id"]
             isOneToOne: true
+            referencedRelation: "accessible_meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_overviews_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: true
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_shares: {
+        Row: {
+          access_level: string
+          created_at: string
+          id: string
+          meeting_id: string
+          message: string | null
+          shared_at: string
+          shared_by: string
+          shared_with_email: string
+          shared_with_user_id: string | null
+        }
+        Insert: {
+          access_level?: string
+          created_at?: string
+          id?: string
+          meeting_id: string
+          message?: string | null
+          shared_at?: string
+          shared_by: string
+          shared_with_email: string
+          shared_with_user_id?: string | null
+        }
+        Update: {
+          access_level?: string
+          created_at?: string
+          id?: string
+          meeting_id?: string
+          message?: string | null
+          shared_at?: string
+          shared_by?: string
+          shared_with_email?: string
+          shared_with_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_shares_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "accessible_meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_shares_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
             referencedRelation: "meetings"
             referencedColumns: ["id"]
           },
@@ -2112,6 +2184,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "meeting_summaries_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: true
+            referencedRelation: "accessible_meetings"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "meeting_summaries_meeting_id_fkey"
             columns: ["meeting_id"]
@@ -2183,6 +2262,13 @@ export type Database = {
           timestamp_seconds?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "meeting_transcripts_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "accessible_meetings"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "meeting_transcripts_meeting_id_fkey"
             columns: ["meeting_id"]
@@ -3233,6 +3319,13 @@ export type Database = {
             foreignKeyName: "transcription_chunks_meeting_id_fkey"
             columns: ["meeting_id"]
             isOneToOne: false
+            referencedRelation: "accessible_meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transcription_chunks_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
             referencedRelation: "meetings"
             referencedColumns: ["id"]
           },
@@ -3371,7 +3464,37 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      accessible_meetings: {
+        Row: {
+          access_level: string | null
+          access_type: string | null
+          audio_backup_created_at: string | null
+          audio_backup_path: string | null
+          created_at: string | null
+          data_retention_date: string | null
+          description: string | null
+          duration_minutes: number | null
+          end_time: string | null
+          format: string | null
+          id: string | null
+          left_audio_url: string | null
+          location: string | null
+          meeting_type: string | null
+          mixed_audio_url: string | null
+          recording_created_at: string | null
+          requires_audio_backup: boolean | null
+          right_audio_url: string | null
+          share_message: string | null
+          shared_at: string | null
+          shared_by: string | null
+          start_time: string | null
+          status: string | null
+          title: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       assign_user_to_practice: {
@@ -3617,6 +3740,10 @@ export type Database = {
       }
       submit_external_response: {
         Args: { access_token_param: string; response_text_param: string }
+        Returns: boolean
+      }
+      user_has_meeting_access: {
+        Args: { p_meeting_id: string; p_user_id?: string }
         Returns: boolean
       }
       user_has_module_access: {
