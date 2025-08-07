@@ -241,6 +241,13 @@ export default function MeetingSummary() {
     const durationParts = data.duration.split(':');
     const totalSeconds = parseInt(durationParts[0]) * 60 + parseInt(durationParts[1]);
     
+    console.log('🔍 Meeting validation:', {
+      duration: data.duration,
+      totalSeconds,
+      transcriptLength: data.transcript?.length,
+      transcriptPreview: data.transcript?.substring(0, 50)
+    });
+    
     if (totalSeconds < 5) {
       console.log('Meeting too short, not saving to database');
       toast.error("Meeting must be at least 5 seconds long to save");
@@ -249,7 +256,7 @@ export default function MeetingSummary() {
     }
 
     if (!data.transcript || data.transcript.trim().length < 10) {
-      console.log('No meaningful transcript content, not saving to database');
+      console.log('No meaningful transcript content, not saving to database. Transcript:', data.transcript?.substring(0, 100));
       toast.error("No meaningful transcript content to save");
       navigate('/');
       return;
@@ -427,7 +434,12 @@ export default function MeetingSummary() {
         .select()
         .single();
 
-       if (meetingError) throw meetingError;
+       if (meetingError) {
+         console.error('❌ Meeting save error:', meetingError);
+         throw meetingError;
+       }
+       
+       console.log('✅ Meeting saved successfully:', meeting);
        
        // Update audio backup metadata with meeting ID if backup was created
        if (audioBackupPath && meeting) {
@@ -460,8 +472,14 @@ export default function MeetingSummary() {
       
       toast.success("Meeting saved successfully");
     } catch (error) {
-      console.error('Error saving meeting:', error);
-      toast.error("Failed to save meeting data");
+      console.error('❌ Error saving meeting:', error);
+      if (error instanceof Error) {
+        console.error('Error details:', {
+          message: error.message,
+          stack: error.stack
+        });
+      }
+      toast.error(`Failed to save meeting data: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsSaving(false);
     }
