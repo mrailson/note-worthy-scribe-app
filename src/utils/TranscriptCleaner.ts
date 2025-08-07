@@ -234,40 +234,94 @@ export class TranscriptCleaner {
    * Remove overlapping dialogue segments that repeat across different speakers
    */
   private removeOverlappingSegments(text: string): string {
-    // Split text into sentences and normalize
-    const sentences = text.split(/[.!?]+/)
+    // First, handle large block duplicates (like entire paragraphs repeated)
+    let cleaned = this.removeLargeBlockDuplicates(text);
+    
+    // Then handle sentence-level duplicates
+    const sentences = cleaned.split(/[.!?]+/)
       .map(s => s.trim())
       .filter(s => s.length > 0);
     
-    if (sentences.length <= 1) return text;
+    if (sentences.length <= 1) return cleaned;
 
-    // Find and remove duplicates, keeping the first occurrence
+    // Remove exact duplicates first
     const uniqueSentences: string[] = [];
-    const seenSentences = new Set<string>();
+    const seenExact = new Set<string>();
 
     for (const sentence of sentences) {
-      const normalized = sentence.toLowerCase()
-        .replace(/speaker\s*/gi, '') // Remove speaker labels
-        .replace(/\s+/g, ' ')
-        .trim();
-      
-      // Skip if we've seen this exact sentence or a very similar one
-      let isDuplicate = false;
-      for (const seen of seenSentences) {
-        // Check for exact match or high similarity (>80% overlap)
-        if (seen === normalized || this.calculateSimilarity(seen, normalized) > 0.8) {
-          isDuplicate = true;
-          break;
-        }
-      }
-
-      if (!isDuplicate && normalized.length > 3) {
-        seenSentences.add(normalized);
+      const normalized = sentence.toLowerCase().trim();
+      if (!seenExact.has(normalized) && normalized.length > 2) {
+        seenExact.add(normalized);
         uniqueSentences.push(sentence);
       }
     }
 
-    return uniqueSentences.join('. ') + (uniqueSentences.length > 0 ? '.' : '');
+    // Now check for similar overlaps
+    const finalSentences: string[] = [];
+    
+    for (let i = 0; i < uniqueSentences.length; i++) {
+      const current = uniqueSentences[i];
+      let isDuplicate = false;
+      
+      // Check against already added sentences
+      for (const existing of finalSentences) {
+        if (this.calculateSimilarity(current.toLowerCase(), existing.toLowerCase()) > 0.85) {
+          console.log(`🚫 Removing similar segment: "${current.substring(0, 50)}..."`);
+          isDuplicate = true;
+          break;
+        }
+      }
+      
+      if (!isDuplicate) {
+        finalSentences.push(current);
+      }
+    }
+
+    const result = finalSentences.join('. ') + (finalSentences.length > 0 ? '.' : '');
+    
+    // Log the deduplication if it made a significant change
+    if (text.length - result.length > 50) {
+      console.log(`🧹 Deduplication removed ${text.length - result.length} characters of overlap`);
+    }
+    
+    return result;
+  }
+
+  /**
+   * Remove large block duplicates (entire paragraphs/sections repeated)
+   */
+  private removeLargeBlockDuplicates(text: string): string {
+    // Split text into chunks by looking for natural breaks
+    const chunks = text.split(/(?:[.!?]\s+){2,}/).filter(chunk => chunk.trim().length > 10);
+    
+    if (chunks.length <= 1) return text;
+    
+    const uniqueChunks: string[] = [];
+    const seenChunks = new Set<string>();
+    
+    for (const chunk of chunks) {
+      const normalized = chunk.toLowerCase()
+        .replace(/\s+/g, ' ')
+        .trim();
+      
+      // Check for exact or very high similarity matches
+      let isDuplicate = false;
+      for (const seen of seenChunks) {
+        const similarity = this.calculateSimilarity(normalized, seen);
+        if (similarity > 0.9) {
+          console.log(`🚫 Removing duplicate block (${Math.round(similarity * 100)}% similar):`, chunk.substring(0, 80) + '...');
+          isDuplicate = true;
+          break;
+        }
+      }
+      
+      if (!isDuplicate) {
+        seenChunks.add(normalized);
+        uniqueChunks.push(chunk.trim());
+      }
+    }
+    
+    return uniqueChunks.join('. ');
   }
 
   /**
