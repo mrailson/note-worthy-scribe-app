@@ -13,7 +13,8 @@ import {
   Users,
   Edit3,
   Plus,
-  X
+  X,
+  FileText
 } from "lucide-react";
 
 interface Speaker {
@@ -36,6 +37,7 @@ export const LiveTranscript = ({
   attendees 
 }: LiveTranscriptProps) => {
   const [isTranscriptOpen, setIsTranscriptOpen] = useState(false);
+  const [isLiveUpdateOpen, setIsLiveUpdateOpen] = useState(false); // New state for live updates
   const [isSpeakersOpen, setIsSpeakersOpen] = useState(false);
   const [speakers, setSpeakers] = useState<Speaker[]>([]);
   const [newSpeakerName, setNewSpeakerName] = useState("");
@@ -45,6 +47,9 @@ export const LiveTranscript = ({
     speaker: string;
     timestamp: string;
   }>>([]);
+  
+  // State for live transcript display
+  const [liveTranscriptText, setLiveTranscriptText] = useState<string>("");
 
   // Generate speaker colors
   const speakerColors = [
@@ -68,6 +73,13 @@ export const LiveTranscript = ({
       setSpeakers(initialSpeakers);
     }
   }, [attendees]);
+
+  // Update live transcript text when transcript prop changes
+  useEffect(() => {
+    if (transcript && transcript.trim()) {
+      setLiveTranscriptText(transcript);
+    }
+  }, [transcript]);
 
   const addSpeaker = () => {
     if (newSpeakerName.trim()) {
@@ -253,24 +265,70 @@ export const LiveTranscript = ({
                 </div>
               )}
 
+              {/* Live Updates Section - Hidden by Default */}
+              <Collapsible open={isLiveUpdateOpen} onOpenChange={setIsLiveUpdateOpen}>
+                <CollapsibleTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="w-full justify-between text-left"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                      <span>Live Transcript Updates</span>
+                      {liveTranscriptText && (
+                        <Badge variant="secondary" className="ml-2">
+                          {liveTranscriptText.split(' ').length} words
+                        </Badge>
+                      )}
+                    </div>
+                    <ChevronDown 
+                      className={`h-4 w-4 transition-transform ${isLiveUpdateOpen ? 'rotate-180' : ''}`}
+                    />
+                  </Button>
+                </CollapsibleTrigger>
+                
+                <CollapsibleContent className="mt-3">
+                  <div className="min-h-[120px] p-4 bg-accent/20 rounded-lg border">
+                    {liveTranscriptText ? (
+                      <div 
+                        className="text-sm leading-relaxed whitespace-pre-wrap transition-all duration-300 ease-in-out"
+                        key={liveTranscriptText.length} // Subtle re-render trigger for smooth updates
+                      >
+                        {formatTranscriptWithTimestamps(liveTranscriptText)}
+                      </div>
+                    ) : (
+                      <div className="text-muted-foreground text-center py-8 space-y-2">
+                        <div className="animate-pulse">
+                          <div className="inline-flex items-center gap-2">
+                            <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce"></div>
+                            <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                            <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                          </div>
+                        </div>
+                        <p className="font-medium">Waiting for speech...</p>
+                        <p className="text-sm text-muted-foreground">
+                          Words will appear here as you speak
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+
+              {/* Full Transcript Archive */}
               <div className="min-h-[200px] p-4 bg-accent/20 rounded-lg border">
+                <div className="flex items-center gap-2 mb-3">
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium text-muted-foreground">Full Transcript Archive</span>
+                </div>
                 {transcript || transcriptSegments.length > 0 ? (
-                  <div className="text-sm leading-relaxed whitespace-pre-wrap">
+                  <div className="text-sm leading-relaxed whitespace-pre-wrap opacity-75">
                     {formatTranscriptWithTimestamps(transcript)}
                   </div>
                 ) : (
-                  <div className="text-muted-foreground text-center py-8 space-y-2">
-                    <div className="animate-pulse">
-                      <div className="inline-flex items-center gap-2">
-                        <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce"></div>
-                        <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                        <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
-                      </div>
-                    </div>
-                    <p className="font-medium">Ready for transcription...</p>
-                    <p className="text-sm text-muted-foreground">
-                      ⚡ <strong>Early Mode Active:</strong> First speech will appear within 5 seconds
-                    </p>
+                  <div className="text-muted-foreground text-center py-8">
+                    Complete transcript will be archived here...
                   </div>
                 )}
               </div>
