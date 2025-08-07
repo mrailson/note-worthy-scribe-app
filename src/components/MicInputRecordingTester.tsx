@@ -283,6 +283,21 @@ const MIC_PROFILES: MicProfile[] = [
       channelCount: 2
     },
     color: 'danger'
+  },
+  {
+    id: 'system6',
+    name: 'Screen Share + Audio Capture',
+    description: 'Full screen share with audio capture (video + audio)',
+    purpose: 'SYSTEM AUDIO: Uses full screen sharing with audio to capture system output - often more reliable than audio-only.',
+    config: {
+      source: 'screen-share-full',
+      noiseCancellation: false,
+      echoCancellation: false,
+      autoGainControl: false,
+      sampleRate: 48000,
+      channelCount: 2
+    },
+    color: 'danger'
   }
 ];
 
@@ -413,7 +428,12 @@ export const MicInputRecordingTester: React.FC = () => {
 
     // Handle special system audio capture methods
     if (profile.config.source === 'screen-audio-capture') {
-      // This will be handled in the recording function with getDisplayMedia
+      // This will be handled in the recording function with getDisplayMedia (audio only)
+      return { audio: false }; // We'll use getDisplayMedia instead
+    }
+
+    if (profile.config.source === 'screen-share-full') {
+      // This will be handled in the recording function with getDisplayMedia (video + audio)
       return { audio: false }; // We'll use getDisplayMedia instead
     }
 
@@ -535,7 +555,7 @@ export const MicInputRecordingTester: React.FC = () => {
         
         // Handle special system audio capture methods
         if (profile.config.source === 'screen-audio-capture') {
-          // Use screen sharing API to capture desktop audio
+          // Use screen sharing API to capture desktop audio only
           stream = await navigator.mediaDevices.getDisplayMedia({
             video: false,
             audio: {
@@ -546,6 +566,24 @@ export const MicInputRecordingTester: React.FC = () => {
               autoGainControl: false
             }
           });
+        } else if (profile.config.source === 'screen-share-full') {
+          // Use full screen sharing (video + audio) to capture desktop audio
+          stream = await navigator.mediaDevices.getDisplayMedia({
+            video: true, // Enable video for full screen sharing
+            audio: {
+              sampleRate: profile.config.sampleRate,
+              channelCount: profile.config.channelCount,
+              echoCancellation: false,
+              noiseSuppression: false,
+              autoGainControl: false
+            }
+          });
+          
+          // Extract only the audio track for recording
+          const audioTracks = stream.getAudioTracks();
+          if (audioTracks.length > 0) {
+            stream = new MediaStream(audioTracks);
+          }
         } else if (profile.config.source === 'virtual-audio-cable') {
           // Try to find virtual audio devices
           stream = await getVirtualAudioDevice(profile);
