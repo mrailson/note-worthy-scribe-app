@@ -79,6 +79,11 @@ export const MeetingRecorder = ({
   const [showTicker, setShowTicker] = useState(false);
   const [tickerEnabled, setTickerEnabled] = useState(true);
   
+  // Transcript snippet state
+  const [transcriptSnippet, setTranscriptSnippet] = useState<string>("");
+  const [showTranscriptSnippet, setShowTranscriptSnippet] = useState(false);
+  const transcriptSnippetIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  
   
   // Meeting history state
   const [meetings, setMeetings] = useState<any[]>([]);
@@ -114,6 +119,8 @@ export const MeetingRecorder = ({
     setTestTranscripts([]);
     setTickerText("");
     setShowTicker(false);
+    setTranscriptSnippet("");
+    setShowTranscriptSnippet(false);
     setSelectedMeetings([]);
     setIsSelectMode(false);
     setDeleteConfirmation("");
@@ -139,6 +146,12 @@ export const MeetingRecorder = ({
       recordingAudioRef.current.currentTime = 0;
     }
     setRecordingAudioUrl(null);
+    
+    // Clear transcript snippet interval
+    if (transcriptSnippetIntervalRef.current) {
+      clearInterval(transcriptSnippetIntervalRef.current);
+      transcriptSnippetIntervalRef.current = null;
+    }
     
     console.log('🔄 Meeting reset completed');
     toast.success("Meeting reset - ready for new recording");
@@ -1746,6 +1759,31 @@ export const MeetingRecorder = ({
     }
   };
 
+  // Start transcript snippet monitoring
+  const startTranscriptSnippetMonitoring = () => {
+    if (transcriptSnippetIntervalRef.current) {
+      clearInterval(transcriptSnippetIntervalRef.current);
+    }
+    
+    transcriptSnippetIntervalRef.current = setInterval(() => {
+      // Get the last 5 seconds worth of transcript from the accumulated transcript
+      const words = latestCompleteTranscriptRef.current.split(' ');
+      const recentWords = words.slice(-50); // Approximate last 5 seconds (10 words per second avg)
+      const snippet = recentWords.join(' ');
+      
+      if (snippet.trim().length > 0) {
+        setTranscriptSnippet(snippet);
+        setShowTranscriptSnippet(true);
+        console.log('📝 Transcript snippet (last 5s):', snippet);
+        
+        // Hide the snippet after 3 seconds
+        setTimeout(() => {
+          setShowTranscriptSnippet(false);
+        }, 3000);
+      }
+    }, 5000); // Every 5 seconds
+  };
+
   const startRecording = async () => {
     try {
       addDebugLog('🚀 Starting recording with microphone...');
@@ -1796,6 +1834,9 @@ export const MeetingRecorder = ({
         });
       }, 1000);
 
+      // Start transcript snippet monitoring
+      startTranscriptSnippetMonitoring();
+
       const successMessage = 'Recording started with microphone!';
       toast.success(successMessage);
     } catch (error: any) {
@@ -1815,6 +1856,12 @@ export const MeetingRecorder = ({
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
+    }
+    
+    // Stop transcript snippet monitoring
+    if (transcriptSnippetIntervalRef.current) {
+      clearInterval(transcriptSnippetIntervalRef.current);
+      transcriptSnippetIntervalRef.current = null;
     }
     
     // Stop microphone stream
@@ -2479,6 +2526,21 @@ export const MeetingRecorder = ({
                               <div className="text-sm text-blue-700 dark:text-blue-300 font-medium">Live Speech:</div>
                               <div className="text-sm text-blue-600 dark:text-blue-400 truncate">
                                 {tickerText || "Listening..."}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Transcript snippet display - shows last 5 seconds every 5 seconds */}
+                      <div className={`transition-all duration-500 ${showTranscriptSnippet ? 'opacity-100 animate-fade-in' : 'opacity-0'}`}>
+                        <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg p-3">
+                          <div className="flex items-center gap-2">
+                            <FileText className="h-4 w-4 text-green-600 dark:text-green-400" />
+                            <div className="flex-1 overflow-hidden">
+                              <div className="text-sm text-green-700 dark:text-green-300 font-medium">Last 5 seconds captured:</div>
+                              <div className="text-sm text-green-600 dark:text-green-400">
+                                {transcriptSnippet || "No speech detected yet..."}
                               </div>
                             </div>
                           </div>
