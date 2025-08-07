@@ -2869,11 +2869,14 @@ export const MeetingRecorder = ({
             <span className="hidden sm:inline">Meeting Recorder</span>
             <span className="sm:hidden">Record</span>
           </TabsTrigger>
-          <TabsTrigger value="transcript" className="flex items-center gap-2">
-            <FileText style={{ width: '20px', height: '20px', color: '#0066cc', display: 'block' }} />
-            <span className="hidden sm:inline">Live Transcript</span>
-            <span className="sm:hidden">Transcript</span>
-          </TabsTrigger>
+          {/* Live Transcript Tab - Hidden on Edge */}
+          {!/Edg/.test(navigator.userAgent) && (
+            <TabsTrigger value="transcript" className="flex items-center gap-2">
+              <FileText style={{ width: '20px', height: '20px', color: '#0066cc', display: 'block' }} />
+              <span className="hidden sm:inline">Live Transcript</span>
+              <span className="sm:hidden">Transcript</span>
+            </TabsTrigger>
+          )}
           <TabsTrigger value="settings" className="flex items-center gap-2">
             <Settings style={{ width: '20px', height: '20px', color: '#0066cc', display: 'block' }} />
             <span className="hidden sm:inline">Meeting Settings</span>
@@ -3237,16 +3240,17 @@ export const MeetingRecorder = ({
         </TabsContent>
 
 
-        {/* Live Transcript Tab */}
-        <TabsContent value="transcript" className="space-y-4 mt-6">
-          <Card className="border-accent/30">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <FileText className="h-5 w-5" />
-                Live Meeting Transcript
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+        {/* Live Transcript Tab - Hidden on Edge */}
+        {!/Edg/.test(navigator.userAgent) && (
+          <TabsContent value="transcript" className="space-y-4 mt-6">
+            <Card className="border-accent/30">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <FileText className="h-5 w-5" />
+                  Live Meeting Transcript
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
               {/* Nested Tabs for Transcript and Removed Segments */}
               <Tabs defaultValue="live-transcript" className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
@@ -3405,6 +3409,7 @@ export const MeetingRecorder = ({
             </CardContent>
           </Card>
         </TabsContent>
+        )}
 
 
         {/* Meeting Settings Tab */}
