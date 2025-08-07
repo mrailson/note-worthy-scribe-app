@@ -2908,14 +2908,14 @@ export const MeetingRecorder = ({
                   {!isRecording ? (
                     <div className="space-y-4">
                       {/* Recording Mode Selector */}
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center justify-center gap-3">
                         <Label className="text-sm font-medium whitespace-nowrap">Recording Mode:</Label>
                         <Select 
                           value={recordingMode} 
                           onValueChange={(value: 'mic-only' | 'mic-and-system') => setRecordingMode(value)}
                           disabled={isRecording}
                         >
-                          <SelectTrigger className="flex-1 bg-background border-border z-50">
+                          <SelectTrigger className="w-48 bg-background border-border z-50">
                             <SelectValue placeholder="Select recording mode" />
                           </SelectTrigger>
                           <SelectContent className="bg-background border-border shadow-lg z-50">
