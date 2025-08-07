@@ -304,12 +304,39 @@ export default function MeetingSummary() {
               upsert: false
             });
 
-          if (uploadError) {
-            console.error('Failed to upload audio backup:', uploadError);
-          } else {
-            audioBackupPath = uploadData.path;
-            console.log('✅ Audio backup uploaded successfully');
-          }
+           if (uploadError) {
+             console.error('Failed to upload audio backup:', uploadError);
+           } else {
+             audioBackupPath = uploadData.path;
+             console.log('✅ Audio backup uploaded successfully');
+             
+             // Calculate duration in seconds from the duration string (format: "MM:SS")
+             const [minutes, seconds] = data.duration.split(':').map(Number);
+             const durationSeconds = (minutes * 60) + seconds;
+             
+             // Calculate expected word count (5000 words per hour)
+             const expectedWords = Math.floor((durationSeconds / 3600) * 5000);
+             const qualityScore = Math.min(data.wordCount / expectedWords, 1.0);
+             
+             // Save backup metadata
+             const { error: metadataError } = await supabase
+               .from('meeting_audio_backups')
+               .insert({
+                 meeting_id: null, // Will be updated after meeting is created
+                 user_id: user.id,
+                 file_path: uploadData.path,
+                 file_size: data.audioBackupBlob.size,
+                 duration_seconds: durationSeconds,
+                 transcription_quality_score: qualityScore,
+                 word_count: data.wordCount,
+                 expected_word_count: expectedWords,
+                 backup_reason: qualityScore < 0.7 ? 'low_word_count' : 'quality_check'
+               });
+               
+             if (metadataError) {
+               console.error('Failed to save backup metadata:', metadataError);
+             }
+           }
         } catch (error) {
           console.error('Error uploading audio backup:', error);
         }
@@ -332,7 +359,19 @@ export default function MeetingSummary() {
         .select()
         .single();
 
-      if (meetingError) throw meetingError;
+       if (meetingError) throw meetingError;
+       
+       // Update audio backup metadata with meeting ID if backup was created
+       if (audioBackupPath && meeting) {
+         const { error: updateError } = await supabase
+           .from('meeting_audio_backups')
+           .update({ meeting_id: meeting.id })
+           .eq('file_path', audioBackupPath);
+           
+         if (updateError) {
+           console.error('Failed to update backup metadata with meeting ID:', updateError);
+         }
+       }
 
       if (data.transcript && meeting) {
         const { error: transcriptError } = await supabase

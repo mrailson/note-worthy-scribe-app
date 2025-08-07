@@ -1910,6 +1910,60 @@ export type Database = {
           },
         ]
       }
+      meeting_audio_backups: {
+        Row: {
+          backup_reason: string | null
+          created_at: string
+          duration_seconds: number | null
+          expected_word_count: number | null
+          file_path: string
+          file_size: number | null
+          id: string
+          is_reprocessed: boolean | null
+          meeting_id: string
+          reprocessed_at: string | null
+          reprocessed_by: string | null
+          transcription_quality_score: number | null
+          updated_at: string
+          user_id: string
+          word_count: number | null
+        }
+        Insert: {
+          backup_reason?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          expected_word_count?: number | null
+          file_path: string
+          file_size?: number | null
+          id?: string
+          is_reprocessed?: boolean | null
+          meeting_id: string
+          reprocessed_at?: string | null
+          reprocessed_by?: string | null
+          transcription_quality_score?: number | null
+          updated_at?: string
+          user_id: string
+          word_count?: number | null
+        }
+        Update: {
+          backup_reason?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          expected_word_count?: number | null
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          is_reprocessed?: boolean | null
+          meeting_id?: string
+          reprocessed_at?: string | null
+          reprocessed_by?: string | null
+          transcription_quality_score?: number | null
+          updated_at?: string
+          user_id?: string
+          word_count?: number | null
+        }
+        Relationships: []
+      }
       meeting_audio_segments: {
         Row: {
           created_at: string

@@ -224,7 +224,7 @@ export const MeetingRecorder = ({
   };
 
   // Upload audio backup to Supabase storage
-  const uploadAudioBackup = async (audioBlob: Blob, meetingId: string): Promise<string | null> => {
+  const uploadAudioBackup = async (audioBlob: Blob, meetingId: string, duration: number, wordCount: number, expectedWords: number): Promise<string | null> => {
     try {
       console.log('📤 Uploading audio backup...');
       
@@ -239,6 +239,28 @@ export const MeetingRecorder = ({
 
       if (error) {
         throw error;
+      }
+
+      // Calculate quality score based on word count vs expected
+      const qualityScore = Math.min(wordCount / expectedWords, 1.0);
+      
+      // Store backup metadata
+      const { error: metadataError } = await supabase
+        .from('meeting_audio_backups')
+        .insert({
+          meeting_id: meetingId,
+          user_id: user?.id,
+          file_path: data.path,
+          file_size: audioBlob.size,
+          duration_seconds: duration,
+          transcription_quality_score: qualityScore,
+          word_count: wordCount,
+          expected_word_count: expectedWords,
+          backup_reason: qualityScore < 0.7 ? 'low_word_count' : 'quality_check'
+        });
+
+      if (metadataError) {
+        console.error('❌ Failed to store backup metadata:', metadataError);
       }
 
       console.log('✅ Audio backup uploaded successfully:', data.path);

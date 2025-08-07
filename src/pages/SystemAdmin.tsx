@@ -40,6 +40,7 @@ import {
   AlertCircle,
   TrendingUp
 } from 'lucide-react';
+import { AudioBackupManager } from '@/components/AudioBackupManager';
 
 interface User {
   user_id: string;
@@ -968,6 +969,18 @@ const SystemAdmin = () => {
                       </SelectContent>
                     </Select>
                   </div>
+                </CardContent>
+              </Card>
+
+              <Card className="md:col-span-2">
+                <CardHeader>
+                  <CardTitle>Audio Backup Management</CardTitle>
+                  <CardDescription>
+                    Manage audio backups for meetings with poor transcription quality (Super Admin only)
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <AudioBackupManager />
                 </CardContent>
               </Card>
             </div>
