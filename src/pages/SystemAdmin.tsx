@@ -79,7 +79,7 @@ interface Neighbourhood {
 }
 
 const SystemAdmin = () => {
-  const { user } = useAuth();
+  const { user, refreshUserModules } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   const [securityTab, setSecurityTab] = useState('monitoring');
   const [loading, setLoading] = useState(false);
@@ -475,26 +475,31 @@ const SystemAdmin = () => {
     console.log('Module access being saved:', userFormData.module_access);
     try {
       if (editingUser) {
-        // Update existing user - use upsert to handle duplicate constraints
-        const { error: upsertError } = await supabase
+        // Update ALL user_roles records for this user (not just one)
+        const { error: updateError } = await supabase
           .from('user_roles')
-          .upsert({
-            user_id: editingUser.user_id,
+          .update({
             meeting_notes_access: userFormData.module_access.meeting_notes_access,
             gp_scribe_access: userFormData.module_access.gp_scribe_access,
             complaints_manager_access: userFormData.module_access.complaints_manager_access,
             complaints_admin_access: userFormData.module_access.complaints_admin_access,
             replywell_access: userFormData.module_access.replywell_access,
             ai_4_pm_access: userFormData.module_access.ai_4_pm_access,
-            role: userFormData.role,
-            practice_id: userFormData.practice_id === 'none' ? null : userFormData.practice_id,
-            assigned_by: user?.id
-          }, {
-            onConflict: 'user_id,role,practice_id',
-            ignoreDuplicates: false
-          });
+          })
+          .eq('user_id', editingUser.user_id);
         
-        if (upsertError) throw upsertError;
+        if (updateError) {
+          console.error('Update error:', updateError);
+          throw updateError;
+        }
+        
+        console.log('Successfully updated all user_roles records for user:', editingUser.user_id);
+        
+        // If we're updating the current user, refresh their permissions immediately
+        if (editingUser.user_id === user?.id) {
+          await refreshUserModules();
+        }
+        
         await fetchUsers(); // Refresh the users list
         toast.success('User updated successfully');
       } else {
