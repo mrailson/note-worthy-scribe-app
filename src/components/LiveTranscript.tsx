@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { transcriptCleaner } from "@/utils/TranscriptCleaner";
 import { 
   MessageSquare, 
   ChevronDown, 
@@ -14,7 +15,9 @@ import {
   Edit3,
   Plus,
   X,
-  FileText
+  FileText,
+  Sparkles,
+  RefreshCw
 } from "lucide-react";
 
 interface Speaker {
@@ -50,6 +53,8 @@ export const LiveTranscript = ({
   
   // State for live transcript display
   const [liveTranscriptText, setLiveTranscriptText] = useState<string>("");
+  const [cleanedTranscript, setCleanedTranscript] = useState<string>("");
+  const [isAutoCleaningEnabled, setIsAutoCleaningEnabled] = useState<boolean>(true);
 
   // Generate speaker colors
   const speakerColors = [
@@ -77,10 +82,19 @@ export const LiveTranscript = ({
   // Update live transcript text when transcript prop changes
   useEffect(() => {
     if (transcript && transcript.trim()) {
-      setLiveTranscriptText(transcript);
+      const newSegment = transcript;
+      
+      if (isAutoCleaningEnabled) {
+        // Use streaming cleaner to build up clean transcript
+        const cleanedNew = transcriptCleaner.cleanStreamingTranscript(cleanedTranscript, newSegment);
+        setCleanedTranscript(cleanedNew);
+        setLiveTranscriptText(cleanedNew); // Show cleaned version
+      } else {
+        setLiveTranscriptText(newSegment); // Show raw version
+      }
     }
     // Don't clear liveTranscriptText when transcript becomes empty - keep last content visible
-  }, [transcript]);
+  }, [transcript, isAutoCleaningEnabled, cleanedTranscript]);
 
   const addSpeaker = () => {
     if (newSpeakerName.trim()) {
@@ -130,17 +144,26 @@ export const LiveTranscript = ({
       return formatTranscriptWithSpeakers();
     }
     
-    // Remove hallucinated phrases from transcript display
-    const cleanedText = text
-      .replace(/Thank you for watching\.?\s*/gi, '')
-      .replace(/Thanks for watching\.?\s*/gi, '')
-      .trim();
+    // Clean transcript using our cleaning service
+    const cleanedText = isAutoCleaningEnabled ? 
+      transcriptCleaner.cleanTranscript(text, {
+        removeHallucinations: true,
+        fixGrammar: true,
+        addPunctuation: true,
+        removeFiller: false,
+        mergeFragments: true
+      }) : text;
     
-    const sentences = cleanedText.split('. ');
-    return sentences.map((sentence, index) => {
-      const timestamp = `${Math.floor(index * 0.5).toString().padStart(2, '0')}:${((index * 30) % 60).toString().padStart(2, '0')}`;
-      return showTimestamps ? `[${timestamp}] ${sentence}` : sentence;
-    }).join('. ');
+    if (showTimestamps) {
+      const sentences = cleanedText.split(/[.!?]+/).filter(s => s.trim());
+      return sentences.map((sentence, index) => {
+        const timestamp = `${Math.floor(index * 0.5).toString().padStart(2, '0')}:${((index * 30) % 60).toString().padStart(2, '0')}`;
+        return `[${timestamp}] ${sentence.trim()}.`;
+      }).join('\n\n');
+    }
+    
+    // Format as paragraphs for better readability
+    return cleanedText.split(/[.!?]+/).filter(s => s.trim()).map(s => s.trim() + '.').join('\n\n');
   };
 
   return (
@@ -182,6 +205,17 @@ export const LiveTranscript = ({
                   >
                     <Users className="h-4 w-4 mr-2" />
                     Speakers ({speakers.length})
+                  </Button>
+
+                  <Button
+                    variant={isAutoCleaningEnabled ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setIsAutoCleaningEnabled(!isAutoCleaningEnabled)}
+                    className="flex items-center gap-2"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    <span className="hidden sm:inline">AI Cleaning</span>
+                    <span className="sm:hidden">Clean</span>
                   </Button>
                 </div>
                 
@@ -266,6 +300,14 @@ export const LiveTranscript = ({
                 </div>
               )}
 
+              {/* Real-time cleaning status */}
+              {isAutoCleaningEnabled && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground p-2 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
+                  <Sparkles className="h-3 w-3 text-green-600" />
+                  <span>AI Cleaning Active: Removing hallucinations, fixing grammar, and improving readability</span>
+                </div>
+              )}
+
               {/* Live Updates Section - Hidden by Default */}
               <Collapsible open={isLiveUpdateOpen} onOpenChange={setIsLiveUpdateOpen}>
                 <CollapsibleTrigger asChild>
@@ -277,6 +319,12 @@ export const LiveTranscript = ({
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                       <span>Live Transcript Updates</span>
+                      {isAutoCleaningEnabled && (
+                        <Badge variant="outline" className="ml-2 text-xs">
+                          <Sparkles className="h-3 w-3 mr-1" />
+                          Cleaned
+                        </Badge>
+                      )}
                       {liveTranscriptText && (
                         <Badge variant="secondary" className="ml-2">
                           {liveTranscriptText.split(' ').length} words
@@ -319,8 +367,17 @@ export const LiveTranscript = ({
                       )}
                     </div>
                     
-                    <div className="mt-2 text-xs text-muted-foreground">
-                      💡 This section updates live as you speak - no disappearing or reappearing
+                    <div className="mt-2 text-xs text-muted-foreground flex items-center gap-2">
+                      {isAutoCleaningEnabled ? (
+                        <>
+                          <Sparkles className="h-3 w-3 text-green-600" />
+                          <span>Text is automatically cleaned and formatted in real-time</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>💡 Raw transcript - enable AI Cleaning above for better formatting</span>
+                        </>
+                      )}
                     </div>
                   </div>
                 </CollapsibleContent>
