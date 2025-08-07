@@ -95,6 +95,9 @@ export const MeetingRecorder = ({
   const [firstTranscriptionReceived, setFirstTranscriptionReceived] = useState(false);
   const transcriptSnippetIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
+  // Recording mode state
+  const [recordingMode, setRecordingMode] = useState<'mic-only' | 'mic-and-system'>('mic-only');
+  
   
   // Meeting history state
   const [meetings, setMeetings] = useState<any[]>([]);
@@ -2807,7 +2810,8 @@ export const MeetingRecorder = ({
   const handleSettingsChange = (newSettings: any) => {
     setMeetingSettings(newSettings);
   };
-
+              
+  // Clean up the stray line
   return (
     <div className="space-y-6">
       {/* Tabbed Interface */}
@@ -2897,6 +2901,56 @@ export const MeetingRecorder = ({
               </CardContent>
             </Card>
 
+            {/* Recording Mode Selector */}
+            <Card className="border-accent/30">
+              <CardContent className="pt-4 pb-4">
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">Recording Mode</Label>
+                  <Select 
+                    value={recordingMode} 
+                    onValueChange={(value: 'mic-only' | 'mic-and-system') => setRecordingMode(value)}
+                    disabled={isRecording}
+                  >
+                    <SelectTrigger className="w-full bg-background border-border z-50">
+                      <SelectValue placeholder="Select recording mode" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background border-border shadow-lg z-50">
+                      <SelectItem value="mic-only" className="cursor-pointer">
+                        <div className="flex items-center gap-2">
+                          <Mic className="h-4 w-4 text-blue-600" />
+                          <div>
+                            <div className="font-medium">Microphone Only</div>
+                            <div className="text-xs text-muted-foreground">Recommended - reduces hallucinations</div>
+                          </div>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="mic-and-system" className="cursor-pointer">
+                        <div className="flex items-center gap-2">
+                          <Monitor className="h-4 w-4 text-green-600" />
+                          <div>
+                            <div className="font-medium">Microphone + System Audio</div>
+                            <div className="text-xs text-muted-foreground">For Teams/Zoom meetings</div>
+                          </div>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
+                  {recordingMode === 'mic-only' && (
+                    <div className="text-xs text-muted-foreground p-2 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+                      ✅ This mode reduces hallucinations by only capturing your microphone
+                    </div>
+                  )}
+                  
+                  {recordingMode === 'mic-and-system' && (
+                    <div className="text-xs text-muted-foreground p-2 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
+                      ⚠️ This mode may pick up background sounds that could cause hallucinations
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Compact Recording Controls */}
             <Card className="shadow-lg">
               <CardContent className="pt-4 pb-4">
@@ -2904,14 +2958,14 @@ export const MeetingRecorder = ({
                 <div className="text-center">
                   {!isRecording ? (
                     <div className="space-y-2">
-                      <Button 
-                        onClick={startRecording}
-                        size="lg"
-                        className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 px-8 py-4 text-base font-semibold rounded-lg"
-                      >
-                        <Mic className="h-5 w-5 mr-2" />
-                        Start Recording
-                      </Button>
+                       <Button 
+                         onClick={startRecording}
+                         size="lg"
+                         className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 px-8 py-4 text-base font-semibold rounded-lg"
+                       >
+                         <Mic className="h-5 w-5 mr-2" />
+                         Start Recording ({recordingMode === 'mic-only' ? 'Mic Only' : 'Mic + System'})
+                       </Button>
                     </div>
                   ) : (
                     <div className="space-y-1">
