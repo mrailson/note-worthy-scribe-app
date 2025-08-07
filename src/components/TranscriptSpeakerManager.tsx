@@ -52,12 +52,23 @@ export const TranscriptSpeakerManager: React.FC<TranscriptSpeakerManagerProps> =
 
   // Parse markdown formatting
   const parseMarkdown = (text: string) => {
-    // Handle **bold** text
-    let parsed = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    // Handle *italic* text
-    parsed = parsed.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>');
+    if (!text || typeof text !== 'string') return '';
+    
+    let parsed = text.trim();
+    
+    // Handle **bold** text (including cases where ** appears at start/end)
+    parsed = parsed.replace(/\*\*(.*?)\*\*/gs, '<strong>$1</strong>');
+    
+    // Handle standalone ** at beginning or end of lines
+    parsed = parsed.replace(/^\*\*\s*/gm, '');
+    parsed = parsed.replace(/\s*\*\*$/gm, '');
+    
+    // Handle *italic* text (but not double asterisks)
+    parsed = parsed.replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g, '<em>$1</em>');
+    
     // Handle line breaks
     parsed = parsed.replace(/\n/g, '<br />');
+    
     return parsed;
   };
 
