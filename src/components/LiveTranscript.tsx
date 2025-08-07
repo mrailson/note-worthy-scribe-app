@@ -79,6 +79,7 @@ export const LiveTranscript = ({
     if (transcript && transcript.trim()) {
       setLiveTranscriptText(transcript);
     }
+    // Don't clear liveTranscriptText when transcript becomes empty - keep last content visible
   }, [transcript]);
 
   const addSpeaker = () => {
@@ -290,28 +291,37 @@ export const LiveTranscript = ({
                 
                 <CollapsibleContent className="mt-3">
                   <div className="min-h-[120px] p-4 bg-accent/20 rounded-lg border">
-                    {liveTranscriptText ? (
-                      <div 
-                        className="text-sm leading-relaxed whitespace-pre-wrap transition-all duration-300 ease-in-out"
-                        key={liveTranscriptText.length} // Subtle re-render trigger for smooth updates
-                      >
-                        {formatTranscriptWithTimestamps(liveTranscriptText)}
-                      </div>
-                    ) : (
-                      <div className="text-muted-foreground text-center py-8 space-y-2">
-                        <div className="animate-pulse">
-                          <div className="inline-flex items-center gap-2">
-                            <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce"></div>
-                            <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                            <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
-                          </div>
-                        </div>
-                        <p className="font-medium">Waiting for speech...</p>
-                        <p className="text-sm text-muted-foreground">
-                          Words will appear here as you speak
-                        </p>
-                      </div>
-                    )}
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                        Most Recent Speech
+                      </span>
+                    </div>
+                    
+                    {/* Always visible container - content updates smoothly */}
+                    <div 
+                      className="text-sm leading-relaxed whitespace-pre-wrap min-h-[60px] p-3 bg-background/50 rounded-md border border-green-200/50"
+                      style={{ 
+                        transition: 'all 0.2s ease-in-out',
+                        // Prevent layout shifts
+                        wordWrap: 'break-word',
+                        overflowWrap: 'break-word'
+                      }}
+                    >
+                      {liveTranscriptText ? (
+                        <span className="text-foreground">
+                          {formatTranscriptWithTimestamps(liveTranscriptText)}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground italic">
+                          Listening for speech... words will appear here as you speak
+                        </span>
+                      )}
+                    </div>
+                    
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      💡 This section updates live as you speak - no disappearing or reappearing
+                    </div>
                   </div>
                 </CollapsibleContent>
               </Collapsible>
