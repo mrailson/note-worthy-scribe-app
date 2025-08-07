@@ -113,6 +113,14 @@ export const MeetingRecorder = ({
   const audioBackupRecorder = useRef<MediaRecorder | null>(null);
   const audioBackupChunks = useRef<Blob[]>([]);
   const audioBackupStream = useRef<MediaStream | null>(null);
+  
+  // First 15 seconds preview refs
+  const previewRecorder = useRef<MediaRecorder | null>(null);
+  const previewChunks = useRef<Blob[]>([]);
+  const previewStream = useRef<MediaStream | null>(null);
+  const [previewAudioUrl, setPreviewAudioUrl] = useState<string | null>(null);
+  const [previewReady, setPreviewReady] = useState(false);
+  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // Audio segment recording refs
   const audioSegmentRecorder = useRef<MediaRecorder | null>(null);
@@ -148,6 +156,69 @@ export const MeetingRecorder = ({
     const now = new Date();
     const roundedTime = roundToNearest15Minutes(now);
     return roundedTime.toISOString();
+  };
+
+  // First 15 seconds preview recording
+  const startPreviewRecording = async () => {
+    try {
+      console.log('🎯 Starting 15-second preview recording...');
+      
+      // Use exact Profile 1 settings for preview
+      const profile1Constraints: MediaStreamConstraints = {
+        audio: {
+          sampleRate: 44100,
+          channelCount: 1,
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false
+        }
+      };
+
+      previewStream.current = await navigator.mediaDevices.getUserMedia(profile1Constraints);
+      previewChunks.current = [];
+      
+      previewRecorder.current = new MediaRecorder(previewStream.current, {
+        mimeType: 'audio/webm;codecs=opus'
+      });
+
+      previewRecorder.current.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          previewChunks.current.push(event.data);
+        }
+      };
+
+      previewRecorder.current.onstop = () => {
+        const previewBlob = new Blob(previewChunks.current, { type: 'audio/webm' });
+        const url = URL.createObjectURL(previewBlob);
+        setPreviewAudioUrl(url);
+        setPreviewReady(true);
+        
+        console.log('✅ 15-second preview ready:', {
+          size: previewBlob.size,
+          duration: '15 seconds'
+        });
+        
+        // Clean up preview stream
+        if (previewStream.current) {
+          previewStream.current.getTracks().forEach(track => track.stop());
+          previewStream.current = null;
+        }
+      };
+
+      previewRecorder.current.start(1000); // Collect data every second
+      
+      // Stop after exactly 15 seconds
+      setTimeout(() => {
+        if (previewRecorder.current && previewRecorder.current.state === 'recording') {
+          previewRecorder.current.stop();
+        }
+      }, 15000);
+
+      console.log('✅ 15-second preview recording started');
+      
+    } catch (error) {
+      console.error('❌ Failed to start preview recording:', error);
+    }
   };
 
   // Audio backup functions
@@ -1665,8 +1736,9 @@ export const MeetingRecorder = ({
         transcriptHandler.current.clear();
       }
       
-      // Start audio backup recording
+      // Start audio backup recording and 15-second preview
       await startAudioBackup();
+      await startPreviewRecording();
       // Always use microphone transcription
       await startMicrophoneTranscription();
       
@@ -2388,10 +2460,58 @@ export const MeetingRecorder = ({
                       >
                         <Square className="h-5 w-5 mr-2" />
                         Stop Recording
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                       </Button>
+                       
+                       {/* 15-Second Preview Player */}
+                       {previewReady && previewAudioUrl && (
+                         <div className="mt-4 p-3 bg-accent/10 rounded-lg border border-accent/20">
+                           <div className="flex items-center gap-3">
+                             <div className="flex items-center gap-2">
+                               <Volume2 className="h-4 w-4 text-accent" />
+                               <span className="text-sm font-medium">First 15 seconds preview:</span>
+                             </div>
+                             <Button
+                               size="sm"
+                               variant="outline"
+                               onClick={() => {
+                                 if (previewAudioRef.current) {
+                                   if (previewAudioRef.current.paused) {
+                                     previewAudioRef.current.play();
+                                   } else {
+                                     previewAudioRef.current.pause();
+                                   }
+                                 }
+                               }}
+                               className="flex items-center gap-2"
+                             >
+                               <Play className="h-3 w-3" />
+                               Test Audio
+                             </Button>
+                           </div>
+                           <audio
+                             ref={previewAudioRef}
+                             src={previewAudioUrl}
+                             controls
+                             className="w-full mt-2 h-8"
+                             preload="metadata"
+                           />
+                         </div>
+                       )}
+                       
+                       {/* Recording in Progress Message */}
+                       {!previewReady && duration < 15 && (
+                         <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                           <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+                             <Clock className="h-4 w-4" />
+                             <span className="text-sm">
+                               15-second preview will be ready in {15 - duration} seconds...
+                             </span>
+                           </div>
+                         </div>
+                       )}
+                      </div>
+                   )}
+                 </div>
 
                 {/* Compact Welcome Message */}
                 {!isRecording && (
