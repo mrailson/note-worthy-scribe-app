@@ -19,7 +19,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History, Search, Trash2, CheckSquare, SquareIcon, Monitor, Volume2, Waves, Video, Headphones, AlertCircle, Eye, EyeOff, RotateCcw, MonitorSpeaker } from "lucide-react";
+import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History, Search, Trash2, CheckSquare, SquareIcon, Monitor, Volume2, Waves, Video, Headphones, AlertCircle, Eye, EyeOff, RotateCcw, MonitorSpeaker, RefreshCw, Sparkles } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { MeetingSettings } from "@/components/MeetingSettings";
@@ -39,6 +39,7 @@ import { iPhoneWhisperTranscriber, TranscriptData as iPhoneTranscriptData } from
 import { DesktopWhisperTranscriber, TranscriptData as DesktopTranscriptData } from '@/utils/DesktopWhisperTranscriber';
 import { IncrementalTranscriptHandler, IncrementalTranscriptData } from '@/utils/IncrementalTranscriptHandler';
 import { StereoAudioCapture } from '@/utils/StereoAudioCapture';
+import { transcriptCleaner, RemovedSegment } from '@/utils/TranscriptCleaner';
 
 interface TranscriptData {
   text: string;
@@ -72,6 +73,17 @@ export const MeetingRecorder = ({
   const [duration, setDuration] = useState(0);
   const [transcript, setTranscript] = useState("");
   const [realtimeTranscripts, setRealtimeTranscripts] = useState<TranscriptData[]>([]);
+  const [removedSegments, setRemovedSegments] = useState<RemovedSegment[]>([]);
+  
+  // Update removed segments periodically
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setRemovedSegments(transcriptCleaner.getRemovedSegments());
+    }, 2000); // Update every 2 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
   const [connectionStatus, setConnectionStatus] = useState<string>("Disconnected");
   const [speakerCount, setSpeakerCount] = useState(0);
   const [wordCount, setWordCount] = useState(0);
@@ -3198,72 +3210,161 @@ export const MeetingRecorder = ({
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {realtimeTranscripts.length > 0 ? (
-                <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {(() => {
-                    // Deduplicate transcripts by removing overlapping content
-                    const deduplicatedTranscripts = realtimeTranscripts.reduce((acc, current, index) => {
-                      if (index === 0) {
-                        acc.push(current);
-                        return acc;
-                      }
-                      
-                      // Check if current text is contained in previous text or vice versa
-                      const previous = acc[acc.length - 1];
-                      const currentText = current.text.trim();
-                      const previousText = previous.text.trim();
-                      
-                      // If current text is longer and contains previous text, replace previous
-                      if (currentText.length > previousText.length && currentText.includes(previousText)) {
-                        acc[acc.length - 1] = current;
-                      }
-                      // If current text is new and doesn't overlap significantly, add it
-                      else if (!previousText.includes(currentText) && !currentText.includes(previousText)) {
-                        acc.push(current);
-                      }
-                      // If texts are similar length, keep the final one
-                      else if (current.isFinal && !previous.isFinal) {
-                        acc[acc.length - 1] = current;
-                      }
-                      
-                      return acc;
-                    }, [] as typeof realtimeTranscripts);
-                    
-                    return deduplicatedTranscripts
-                      .slice()
-                      .reverse()
-                      .map((transcript, index) => (
-                      <div
-                        key={`${transcript.speaker}-${deduplicatedTranscripts.length - 1 - index}`}
-                        className={`p-3 rounded-lg border ${
-                          transcript.isFinal
-                            ? 'bg-accent/20 border-accent/40'
-                            : 'bg-muted/50 border-muted animate-pulse'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2 mb-2">
-                          <Badge variant="outline" className="text-xs">
-                            {transcript.speaker}
-                          </Badge>
-                          {!transcript.isFinal && (
-                            <Badge variant="secondary" className="text-xs">
-                              Live
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-sm leading-relaxed">
-                          {transcript.text}
-                        </p>
+              {/* Nested Tabs for Transcript and Removed Segments */}
+              <Tabs defaultValue="live-transcript" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="live-transcript">Live Transcript</TabsTrigger>
+                  <TabsTrigger value="removed-segments" className="relative">
+                    Removed Segments
+                    {removedSegments.length > 0 && (
+                      <Badge variant="secondary" className="ml-2 text-xs">
+                        {removedSegments.length}
+                      </Badge>
+                    )}
+                  </TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="live-transcript" className="mt-4">
+                  {realtimeTranscripts.length > 0 ? (
+                    <div className="space-y-3 max-h-96 overflow-y-auto">
+                      {(() => {
+                        // Deduplicate transcripts by removing overlapping content
+                        const deduplicatedTranscripts = realtimeTranscripts.reduce((acc, current, index) => {
+                          if (index === 0) {
+                            acc.push(current);
+                            return acc;
+                          }
+                          
+                          // Check if current text is contained in previous text or vice versa
+                          const previous = acc[acc.length - 1];
+                          const currentText = current.text.trim();
+                          const previousText = previous.text.trim();
+                          
+                          // If current text is longer and contains previous text, replace previous
+                          if (currentText.length > previousText.length && currentText.includes(previousText)) {
+                            acc[acc.length - 1] = current;
+                          }
+                          // If current text is new and doesn't overlap significantly, add it
+                          else if (!previousText.includes(currentText) && !currentText.includes(previousText)) {
+                            acc.push(current);
+                          }
+                          // If texts are similar length, keep the final one
+                          else if (current.isFinal && !previous.isFinal) {
+                            acc[acc.length - 1] = current;
+                          }
+                          
+                          return acc;
+                        }, [] as typeof realtimeTranscripts);
+                        
+                        return deduplicatedTranscripts
+                          .slice()
+                          .reverse()
+                          .map((transcript, index) => (
+                          <div
+                            key={`${transcript.speaker}-${deduplicatedTranscripts.length - 1 - index}`}
+                            className={`p-3 rounded-lg border ${
+                              transcript.isFinal
+                                ? 'bg-accent/20 border-accent/40'
+                                : 'bg-muted/50 border-muted animate-pulse'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 mb-2">
+                              <Badge variant="outline" className="text-xs">
+                                {transcript.speaker}
+                              </Badge>
+                              {!transcript.isFinal && (
+                                <Badge variant="secondary" className="text-xs">
+                                  Live
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-sm leading-relaxed">
+                              {transcript.text}
+                            </p>
+                          </div>
+                        ));
+                      })()}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>Start recording to see live transcript here</p>
+                    </div>
+                  )}
+                </TabsContent>
+                
+                <TabsContent value="removed-segments" className="mt-4">
+                  <div className="min-h-[200px]">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <RefreshCw className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-medium text-muted-foreground">AI Quality Control - Removed Segments</span>
                       </div>
-                    ));
-                  })()}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Start recording to see live transcript here</p>
-                </div>
-              )}
+                      {removedSegments.length > 0 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            transcriptCleaner.clearRemovedSegments();
+                            setRemovedSegments([]);
+                          }}
+                        >
+                          Clear List
+                        </Button>
+                      )}
+                    </div>
+                    
+                    {removedSegments.length > 0 ? (
+                      <div className="space-y-3 max-h-96 overflow-y-auto">
+                        {removedSegments
+                          .slice(-20) // Show last 20 removed segments
+                          .reverse() // Most recent first
+                          .map((segment, index) => (
+                          <div 
+                            key={index} 
+                            className="p-3 bg-background/50 rounded-md border border-red-200/50 hover:border-red-300/50 transition-colors"
+                          >
+                            <div className="flex items-start justify-between gap-2 mb-2">
+                              <div className="flex items-center gap-2">
+                                <Badge 
+                                  variant={segment.type === 'hallucination' ? 'destructive' : 
+                                          segment.type === 'low-confidence' ? 'secondary' :
+                                          segment.type === 'duplicate' ? 'outline' : 'default'}
+                                  className="text-xs"
+                                >
+                                  {segment.type.replace('-', ' ')}
+                                </Badge>
+                                {segment.confidence && (
+                                  <Badge variant="outline" className="text-xs">
+                                    {Math.round(segment.confidence * 100)}% confidence
+                                  </Badge>
+                                )}
+                              </div>
+                              <span className="text-xs text-muted-foreground">
+                                {new Date(segment.timestamp).toLocaleTimeString()}
+                              </span>
+                            </div>
+                            <div className="text-sm text-red-800 dark:text-red-200 bg-red-50 dark:bg-red-950/30 p-2 rounded">
+                              "{segment.text}"
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              <strong>Reason:</strong> {segment.reason}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-muted-foreground text-center py-8">
+                        <div className="flex flex-col items-center gap-2">
+                          <Sparkles className="h-8 w-8 text-green-500" />
+                          <span>No segments removed yet</span>
+                          <span className="text-xs">AI cleaning will show removed hallucinations and low-quality segments here</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+              </Tabs>
             </CardContent>
           </Card>
         </TabsContent>
