@@ -2270,13 +2270,75 @@ export const MeetingRecorder = ({
     console.log('🔍 DEBUG: First 200 chars:', currentTranscript.substring(0, 200));
     console.log('🔍 DEBUG: Last 200 chars:', currentTranscript.slice(-200));
     
-    // Wait a bit more to ensure all audio state updates are complete
-    await new Promise(resolve => setTimeout(resolve, 200));
+    // Helper function to convert AudioBuffer to Blob
+    const audioBufferToBlob = async (audioBuffer: AudioBuffer): Promise<Blob> => {
+      const offlineContext = new OfflineAudioContext(
+        audioBuffer.numberOfChannels,
+        audioBuffer.length,
+        audioBuffer.sampleRate
+      );
+      
+      const source = offlineContext.createBufferSource();
+      source.buffer = audioBuffer;
+      source.connect(offlineContext.destination);
+      source.start();
+      
+      const renderedBuffer = await offlineContext.startRendering();
+      
+      // Convert to WAV format
+      const wavArrayBuffer = audioBufferToWav(renderedBuffer);
+      return new Blob([wavArrayBuffer], { type: 'audio/wav' });
+    };
+    
+    // Wait for audio processing to complete and get the latest blobs
+    await new Promise(resolve => setTimeout(resolve, 500));
     
     // Get current audio blobs after processing is complete
     const currentRecordingBlob = recordingBlob || stereoBlob;
-    const currentMicBlob = micBlob;
-    const currentSystemBlob = systemBlob;
+    let currentMicBlob = micBlob;
+    let currentSystemBlob = systemBlob;
+    
+    // If channel-specific audio isn't ready yet, try to get it from the refs
+    if (!currentMicBlob && !currentSystemBlob && stereoBlob) {
+      console.log('🔄 Channel audio not ready, processing stereo blob directly...');
+      try {
+        const audioContext = new AudioContext();
+        const arrayBuffer = await stereoBlob.arrayBuffer();
+        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+        
+        if (audioBuffer.numberOfChannels >= 2) {
+          // Create mono buffers for each channel
+          const micBuffer = audioContext.createBuffer(1, audioBuffer.length, audioBuffer.sampleRate);
+          const systemBuffer = audioContext.createBuffer(1, audioBuffer.length, audioBuffer.sampleRate);
+          
+          micBuffer.copyToChannel(audioBuffer.getChannelData(0), 0);
+          systemBuffer.copyToChannel(audioBuffer.getChannelData(1), 0);
+          
+          currentMicBlob = await audioBufferToBlob(micBuffer);
+          currentSystemBlob = await audioBufferToBlob(systemBuffer);
+          
+          console.log('✅ Generated channel audio directly for upload', {
+            micBlobSize: currentMicBlob.size,
+            systemBlobSize: currentSystemBlob.size
+          });
+        } else {
+          // For mono audio, create duplicate copies
+          const monoBuffer = audioContext.createBuffer(1, audioBuffer.length, audioBuffer.sampleRate);
+          monoBuffer.copyToChannel(audioBuffer.getChannelData(0), 0);
+          
+          currentMicBlob = await audioBufferToBlob(monoBuffer);
+          currentSystemBlob = await audioBufferToBlob(monoBuffer);
+          
+          console.log('✅ Generated duplicate channel audio for mono source', {
+            micBlobSize: currentMicBlob.size,
+            systemBlobSize: currentSystemBlob.size
+          });
+        }
+        audioContext.close();
+      } catch (error) {
+        console.error('❌ Failed to process channel audio for upload:', error);
+      }
+    }
     
     console.log('🎵 Audio blobs status for upload:', {
       recordingBlob: currentRecordingBlob?.size || 'null',
