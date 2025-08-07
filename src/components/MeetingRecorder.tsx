@@ -73,6 +73,8 @@ export const MeetingRecorder = ({
   const [connectionStatus, setConnectionStatus] = useState<string>("Disconnected");
   const [speakerCount, setSpeakerCount] = useState(0);
   const [wordCount, setWordCount] = useState(0);
+  const [showLastPhrase, setShowLastPhrase] = useState(false);
+  const [lastPhrase, setLastPhrase] = useState("");
   const [startTime, setStartTime] = useState<string>("");
   const [liveSummary, setLiveSummary] = useState<string>("");
   const [debugLog, setDebugLog] = useState<string[]>([]);
@@ -872,6 +874,10 @@ export const MeetingRecorder = ({
         const words = fullTranscript.split(' ').filter(word => word.length > 0);
         setWordCount(words.length);
         onWordCountUpdate(words.length);
+        
+        // Extract last phrase (max 6 words)
+        const lastSixWords = words.slice(-6).join(' ');
+        setLastPhrase(lastSixWords);
         
         console.log('📝 Transcript updated:', fullTranscript.length, 'chars');
       },
@@ -2774,12 +2780,17 @@ export const MeetingRecorder = ({
                     <div className="text-xs font-medium text-muted-foreground">Duration</div>
                   </div>
                   
-                  {/* Word Count */}
-                  <div className="text-center p-3 bg-background/50 rounded-lg border border-border/50">
+                  {/* Word Count / Last Phrase Toggle */}
+                  <div 
+                    className="text-center p-3 bg-background/50 rounded-lg border border-border/50 cursor-pointer hover:bg-background/70 transition-colors"
+                    onClick={() => setShowLastPhrase(!showLastPhrase)}
+                  >
                     <div className="text-2xl font-bold text-primary mb-1">
-                      {wordCount}
+                      {showLastPhrase ? (lastPhrase || "No words yet") : wordCount}
                     </div>
-                    <div className="text-xs font-medium text-muted-foreground">Word Count (updated each minute)</div>
+                    <div className="text-xs font-medium text-muted-foreground">
+                      {showLastPhrase ? "Last Phrase (click for count)" : "Word Count (click for phrase)"}
+                    </div>
                   </div>
                   
                   {/* Connection Status */}
