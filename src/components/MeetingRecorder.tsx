@@ -403,15 +403,23 @@ export const MeetingRecorder = ({
     try {
       console.log('🎵 Starting 5-second overlapping chunks with Profile 1 settings...');
       
-      // Use exact Profile 1 settings from MicInputRecordingTester
+      // Use exact Profile 1 settings from MicInputRecordingTester with EXPLICIT volume control
       const profile1Constraints: MediaStreamConstraints = {
         audio: {
           sampleRate: 44100,
           channelCount: 1,
           echoCancellation: false,
           noiseSuppression: false,
-          autoGainControl: false
-        }
+          autoGainControl: false,
+          // Add explicit volume constraints
+          volume: 1.0,
+          // Disable browser audio processing
+          googEchoCancellation: false,
+          googAutoGainControl: false,
+          googNoiseSuppression: false,
+          googHighpassFilter: false,
+          googAudioMirroring: false
+        } as any
       };
 
       console.log('🎵 Profile 1 audio constraints:', profile1Constraints);
@@ -1828,9 +1836,9 @@ export const MeetingRecorder = ({
         transcriptHandler.current.clear();
       }
       
-      // Start audio backup recording and 15-second preview
+      // Start audio backup recording only (preview disabled to prevent conflicts)
       await startAudioBackup();
-      await startPreviewRecording();
+      // await startPreviewRecording(); // Disabled to prevent audio stream conflicts
       // Always use microphone transcription
       await startMicrophoneTranscription();
       
