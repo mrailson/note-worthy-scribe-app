@@ -10,6 +10,12 @@ export class RealtimeTranscriber {
   private silenceThreshold = 30; // Minimum volume threshold
   private hasDetectedSpeech = false;
   
+  // Early transcription mode for first minute
+  private earlyTranscriptionMode = true;
+  private recordingStartTime = 0;
+  private firstTranscriptionSent = false;
+  private earlyChunkCount = 0;
+  
   // New properties for overlapping validation
   private audioBuffer: Array<{blob: Blob, timestamp: number, transcription?: string}> = [];
   private validationInterval: NodeJS.Timeout | null = null;
@@ -23,9 +29,15 @@ export class RealtimeTranscriber {
 
   async startTranscription() {
     try {
+      this.recordingStartTime = Date.now();
+      this.earlyTranscriptionMode = true;
+      this.firstTranscriptionSent = false;
+      this.earlyChunkCount = 0;
+      
+      console.log('🚀 Starting transcription with EARLY MODE for fast initial response');
       this.onStatusChange('Setting up audio capture...');
       await this.startAudioCapture();
-      this.onStatusChange('Listening for speech...');
+      this.onStatusChange('Ready for immediate transcription...');
       
       // Start validation timer for every 20 seconds
       this.startValidationTimer();
@@ -152,9 +164,14 @@ export class RealtimeTranscriber {
 
       // Process when recording stops for chunking
       this.mediaRecorder.onstop = async () => {
-        if (this.audioChunks.length > 0 && this.hasDetectedSpeech) {
+        // In early mode, be more permissive about processing chunks
+        const shouldProcess = this.earlyTranscriptionMode ? 
+          (this.audioChunks.length > 0) : // Early mode: process any chunk with data
+          (this.audioChunks.length > 0 && this.hasDetectedSpeech); // Normal mode: require speech
+          
+        if (shouldProcess) {
           await this.processAudioChunks();
-        } else if (!this.hasDetectedSpeech) {
+        } else if (!this.hasDetectedSpeech && !this.earlyTranscriptionMode) {
           console.log('No speech detected in this chunk, skipping transcription');
           this.audioChunks = []; // Clear chunks
         }
@@ -168,7 +185,7 @@ export class RealtimeTranscriber {
       // Start voice activity detection
       this.startVoiceActivityDetection();
 
-      // Process audio every 10 seconds
+      // Process audio with early mode - much faster initial chunks
       this.scheduleNextProcessing();
 
     } catch (error) {
@@ -271,9 +288,15 @@ export class RealtimeTranscriber {
       // Check if volume is above threshold (indicating speech)
       if (average > this.silenceThreshold) {
         if (!this.hasDetectedSpeech) {
-          console.log('Speech detected! Average volume:', average);
+          console.log('🎤 FIRST SPEECH DETECTED! Average volume:', average, '- Triggering immediate processing');
           this.hasDetectedSpeech = true;
-          this.onStatusChange('Recording speech...');
+          this.onStatusChange('Processing first speech...');
+          
+          // In early mode, trigger immediate processing on first speech
+          if (this.earlyTranscriptionMode && !this.firstTranscriptionSent) {
+            console.log('⚡ EARLY MODE: Triggering immediate transcription for first speech');
+            setTimeout(() => this.flushAudio(), 1000); // Process after 1 second of speech
+          }
         }
       }
 
@@ -289,10 +312,40 @@ export class RealtimeTranscriber {
   private scheduleNextProcessing() {
     if (!this.isRecording) return;
     
+    // Check if we should exit early transcription mode (after 60 seconds)
+    const elapsed = Date.now() - this.recordingStartTime;
+    if (this.earlyTranscriptionMode && elapsed > 60000) {
+      console.log('📊 Exiting EARLY MODE after 60 seconds - switching to normal intervals');
+      this.earlyTranscriptionMode = false;
+    }
+    
+    // Determine processing interval based on mode
+    let processingInterval: number;
+    
+    if (this.earlyTranscriptionMode) {
+      // Early mode: aggressive processing for first few chunks
+      if (this.earlyChunkCount === 0) {
+        processingInterval = 2000; // 2 seconds for very first chunk
+        console.log('⚡ EARLY MODE: First chunk - 2 second interval');
+      } else if (this.earlyChunkCount < 3) {
+        processingInterval = 3000; // 3 seconds for next chunks
+        console.log('⚡ EARLY MODE: Early chunk', this.earlyChunkCount, '- 3 second interval');
+      } else {
+        processingInterval = 4000; // 4 seconds for remaining early chunks
+        console.log('⚡ EARLY MODE: Later chunk', this.earlyChunkCount, '- 4 second interval');
+      }
+    } else {
+      processingInterval = 5000; // Normal 5 second interval
+    }
+    
     setTimeout(() => {
       if (this.isRecording && this.mediaRecorder?.state === 'recording') {
-        console.log('Stopping current recording chunk for processing...');
+        console.log(`🎯 Processing chunk ${this.earlyChunkCount} (interval: ${processingInterval}ms)`);
         this.mediaRecorder.stop();
+        
+        if (this.earlyTranscriptionMode) {
+          this.earlyChunkCount++;
+        }
         
         // Start new recording for next chunk
         setTimeout(() => {
@@ -325,9 +378,14 @@ export class RealtimeTranscriber {
             };
             
             this.mediaRecorder.onstop = async () => {
-              if (this.audioChunks.length > 0 && this.hasDetectedSpeech) {
+              // In early mode, be more permissive about processing chunks
+              const shouldProcess = this.earlyTranscriptionMode ? 
+                (this.audioChunks.length > 0) : // Early mode: process any chunk with data
+                (this.audioChunks.length > 0 && this.hasDetectedSpeech); // Normal mode: require speech
+                
+              if (shouldProcess) {
                 await this.processAudioChunks();
-              } else if (!this.hasDetectedSpeech) {
+              } else if (!this.hasDetectedSpeech && !this.earlyTranscriptionMode) {
                 console.log('No speech detected in this chunk, skipping transcription');
                 this.audioChunks = [];
               }
@@ -339,7 +397,7 @@ export class RealtimeTranscriber {
           }
         }, 100);
       }
-    }, 5000); // Increased from 3s to 5s for better context
+    }, processingInterval);
   }
 
   private async processAudioChunks() {
@@ -364,10 +422,14 @@ export class RealtimeTranscriber {
       // Clear chunks for next batch
       this.audioChunks = [];
 
-      // Skip very small audio files (reduced threshold for better capture)
-      if (audioBlob.size < 3000) {
-        console.log('⚠️ Skipping very small audio chunk:', audioBlob.size, 'bytes');
-        return;
+      // Adjust minimum size threshold based on mode
+      const minimumSize = this.earlyTranscriptionMode ? 1000 : 3000; // Lower threshold in early mode
+      
+      // Skip very small audio files unless in early mode
+      if (audioBlob.size < minimumSize) {
+        const action = this.earlyTranscriptionMode ? 'Processing' : 'Skipping';
+        console.log(`⚠️ ${action} small audio chunk:`, audioBlob.size, 'bytes', `(threshold: ${minimumSize})`);
+        if (!this.earlyTranscriptionMode) return;
       }
 
       // Convert to base64
@@ -397,10 +459,13 @@ export class RealtimeTranscriber {
             console.log('🎯 WHISPER RESPONSE:', result);
             console.log('📝 TRANSCRIBED TEXT:', result.text);
             
+            // Adjust no_speech_prob threshold for early mode
+            const noSpeechThreshold = this.earlyTranscriptionMode ? 0.7 : 0.5; // More permissive in early mode
+            
             // Reject transcriptions with high no_speech_prob (likely hallucinations)
             const noSpeechProb = result.segments?.[0]?.no_speech_prob || 0;
-            if (noSpeechProb > 0.5) {
-              console.log('Rejected transcription due to high no_speech_prob:', noSpeechProb);
+            if (noSpeechProb > noSpeechThreshold) {
+              console.log(`Rejected transcription due to high no_speech_prob: ${noSpeechProb} (threshold: ${noSpeechThreshold})`);
               this.onStatusChange('Listening for speech...');
               return;
             }
@@ -432,10 +497,20 @@ export class RealtimeTranscriber {
               // Check for repetitive patterns
               const words = text.split(' ');
               const isRepetitive = words.length > 2 && words.every(word => word.toLowerCase() === words[0].toLowerCase());
-               
-              if (!isHallucination && !isRepetitive && text.length > 2) {
-                console.log('Valid transcription received:', text);
-                this.onStatusChange('Transcription active');
+              // Adjust filtering for early mode to be less restrictive
+              const minLength = this.earlyTranscriptionMode ? 1 : 3; // Allow shorter text in early mode
+              
+              if (!isHallucination && !isRepetitive && text.length >= minLength) {
+                console.log('✅ VALID TRANSCRIPTION:', text);
+                
+                // Mark first transcription sent
+                if (this.earlyTranscriptionMode && !this.firstTranscriptionSent) {
+                  console.log('🎉 FIRST TRANSCRIPTION SENT! Switching to normal speech detection');
+                  this.firstTranscriptionSent = true;
+                  this.onStatusChange('First transcription complete - continuing...');
+                } else {
+                  this.onStatusChange('Transcription active');
+                }
                 
                 // Store transcription in buffer for validation
                 const currentBufferItem = this.audioBuffer[this.audioBuffer.length - 1];
@@ -452,7 +527,8 @@ export class RealtimeTranscriber {
                   words: result.words || []
                 });
               } else {
-                console.log('Filtered out hallucination/noise:', text, 'no_speech_prob:', noSpeechProb);
+                const reason = isHallucination ? 'hallucination' : isRepetitive ? 'repetitive' : 'too short';
+                console.log(`Filtered out ${reason}:`, text, 'no_speech_prob:', noSpeechProb);
                 this.onStatusChange('Listening for speech...');
               }
             } else {
@@ -487,6 +563,12 @@ export class RealtimeTranscriber {
     console.log('Stopping transcription...');
     this.isRecording = false;
     
+    // Reset early mode flags
+    this.earlyTranscriptionMode = true;
+    this.firstTranscriptionSent = false;
+    this.earlyChunkCount = 0;
+    this.recordingStartTime = 0;
+    
     if (this.validationInterval) {
       clearInterval(this.validationInterval);
       this.validationInterval = null;
@@ -513,11 +595,12 @@ export class RealtimeTranscriber {
     this.audioBuffer = [];
     this.hasDetectedSpeech = false;
     this.onStatusChange('Stopped');
-    console.log('Transcription stopped');
+    console.log('Transcription stopped - early mode reset for next session');
   }
 
   // Add a flush method for immediate processing
   flushAudio() {
+    console.log('🔥 FLUSH AUDIO: Forcing immediate processing of current chunk');
     if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
       this.mediaRecorder.stop(); // This will trigger processing of current chunk
     }

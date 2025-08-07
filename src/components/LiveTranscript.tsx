@@ -259,8 +259,18 @@ export const LiveTranscript = ({
                     {formatTranscriptWithTimestamps(transcript)}
                   </div>
                 ) : (
-                  <div className="text-muted-foreground text-center py-8">
-                    Start recording to see live transcript appear here...
+                  <div className="text-muted-foreground text-center py-8 space-y-2">
+                    <div className="animate-pulse">
+                      <div className="inline-flex items-center gap-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce"></div>
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                      </div>
+                    </div>
+                    <p className="font-medium">Ready for transcription...</p>
+                    <p className="text-sm text-muted-foreground">
+                      ⚡ <strong>Early Mode Active:</strong> First speech will appear within 5 seconds
+                    </p>
                   </div>
                 )}
               </div>

@@ -92,6 +92,7 @@ export const MeetingRecorder = ({
   // Transcript snippet state
   const [transcriptSnippet, setTranscriptSnippet] = useState<string>("");
   const [showTranscriptSnippet, setShowTranscriptSnippet] = useState(false);
+  const [firstTranscriptionReceived, setFirstTranscriptionReceived] = useState(false);
   const transcriptSnippetIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
   
@@ -2466,11 +2467,26 @@ export const MeetingRecorder = ({
       case 'Connected':
       case 'Transcription active':
         return <Wifi className="h-4 w-4 text-green-500" />;
+      case 'Ready for immediate transcription...':
+        return <div className="relative">
+          <Mic className="h-4 w-4 text-green-500" />
+          <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+        </div>;
+      case 'Processing first speech...':
+        return <Waves className="h-4 w-4 text-blue-500 animate-bounce" />;
+      case 'First transcription complete - continuing...':
+        return <CheckSquare className="h-4 w-4 text-green-500" />;
       case 'Connecting...':
         return <Wifi className="h-4 w-4 text-yellow-500 animate-pulse" />;
       case 'Error':
         return <WifiOff className="h-4 w-4 text-red-500" />;
       default:
+        if (connectionStatus.includes('EARLY MODE')) {
+          return <div className="relative">
+            <Mic className="h-4 w-4 text-blue-500" />
+            <div className="absolute -top-1 -right-1 text-xs">⚡</div>
+          </div>;
+        }
         return <WifiOff className="h-4 w-4 text-gray-500" />;
     }
   };
@@ -2480,12 +2496,19 @@ export const MeetingRecorder = ({
       case 'Connected':
       case 'Transcription active':
         return 'default';
+      case 'Ready for immediate transcription...':
+      case 'Processing first speech...':
+      case 'First transcription complete - continuing...':
+        return 'default';
       case 'Connecting...':
         return 'secondary';
       case 'Error':
         return 'destructive';
       default:
-        return 'outline';
+        if (connectionStatus.includes('EARLY MODE')) {
+          return 'outline';
+        }
+        return 'secondary';
     }
   };
 
@@ -2850,10 +2873,23 @@ export const MeetingRecorder = ({
                   {/* Connection Status */}
                   <div className="text-center p-3 bg-background/50 rounded-lg border border-border/50">
                     <div className="flex items-center justify-center mb-1">
-                      <Badge variant={getConnectionStatusColor() as any} className="flex items-center gap-1 text-xs px-2 py-1">
-                        {getConnectionStatusIcon()}
-                        <span className="hidden sm:inline">{connectionStatus}</span>
-                      </Badge>
+                       <Badge 
+                         variant={getConnectionStatusColor() as any} 
+                         className={`flex items-center gap-1 text-xs px-2 py-1 ${
+                           connectionStatus === 'Ready for immediate transcription...' || 
+                           connectionStatus === 'Processing first speech...' ? 
+                           'animate-pulse' : ''
+                         }`}
+                       >
+                         {getConnectionStatusIcon()}
+                         <span className="hidden sm:inline">
+                           {connectionStatus === 'Ready for immediate transcription...' ? 'Ready for Speech ⚡' :
+                            connectionStatus === 'Processing first speech...' ? 'Processing Speech 🎤' :
+                            connectionStatus === 'First transcription complete - continuing...' ? 'Transcription Started ✓' :
+                            connectionStatus.includes('EARLY MODE') ? 'Fast Mode ⚡' :
+                            connectionStatus}
+                         </span>
+                       </Badge>
                     </div>
                     <div className="text-xs font-medium text-muted-foreground">Connection</div>
                   </div>
