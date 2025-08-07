@@ -210,7 +210,9 @@ export const MeetingRecorder = ({
       console.log('🎯 Starting 15-second preview recording...');
       
       // Wait 2 seconds to avoid conflicts with main recording setup
+      console.log('⏱️ Waiting 2 seconds before starting preview...');
       await new Promise(resolve => setTimeout(resolve, 2000));
+      console.log('✅ Preview delay completed, starting audio capture...');
       
       // Use simple, standard Profile 1 settings for preview
       const profile1Constraints: MediaStreamConstraints = {
@@ -224,12 +226,18 @@ export const MeetingRecorder = ({
       };
 
       // Create SEPARATE stream for preview to avoid conflicts
+      console.log('🎵 Requesting preview audio stream with constraints:', profile1Constraints);
       previewStream.current = await navigator.mediaDevices.getUserMedia(profile1Constraints);
+      console.log('✅ Preview audio stream obtained:', {
+        tracks: previewStream.current.getAudioTracks().length,
+        settings: previewStream.current.getAudioTracks()[0]?.getSettings()
+      });
       previewChunks.current = [];
       
       previewRecorder.current = new MediaRecorder(previewStream.current, {
         mimeType: 'audio/webm;codecs=opus'
       });
+      console.log('🎙️ Preview MediaRecorder created');
 
       previewRecorder.current.ondataavailable = (event) => {
         if (event.data.size > 0) {
@@ -238,6 +246,7 @@ export const MeetingRecorder = ({
       };
 
       previewRecorder.current.onstop = () => {
+        console.log('🛑 Preview recording stopped, creating blob...');
         const previewBlob = new Blob(previewChunks.current, { type: 'audio/webm' });
         const url = URL.createObjectURL(previewBlob);
         setPreviewAudioUrl(url);
@@ -245,7 +254,9 @@ export const MeetingRecorder = ({
         
         console.log('✅ 15-second preview ready:', {
           size: previewBlob.size,
-          duration: '15 seconds'
+          duration: '15 seconds',
+          url: url,
+          chunksCount: previewChunks.current.length
         });
         
         // Clean up preview stream WITHOUT affecting other recordings
@@ -255,11 +266,14 @@ export const MeetingRecorder = ({
         }
       };
 
+      console.log('▶️ Starting preview MediaRecorder...');
       previewRecorder.current.start(1000); // Collect data every second
       
       // Stop after exactly 15 seconds
+      console.log('⏲️ Setting 15-second timeout for preview...');
       setTimeout(() => {
         if (previewRecorder.current && previewRecorder.current.state === 'recording') {
+          console.log('⏹️ Stopping preview recording after 15 seconds...');
           previewRecorder.current.stop();
         }
       }, 15000);
