@@ -425,6 +425,10 @@ export default function Settings() {
     }
   };
 
+  
+  console.log('Settings page loaded, user:', user);
+  console.log('MicTestServiceVisible state:', micTestServiceVisible);
+
   return (
     <div className="min-h-screen bg-background">
       <Header onNewMeeting={() => {}} />
