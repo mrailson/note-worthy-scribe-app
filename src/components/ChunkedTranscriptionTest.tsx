@@ -139,19 +139,32 @@ const ChunkedTranscriptionTest = () => {
       setCurrentChunk(0);
 
       let chunkCount = 0;
+      let startTime = Date.now();
       let mimeType = 'audio/webm;codecs=opus';
       if (!MediaRecorder.isTypeSupported(mimeType)) {
         mimeType = 'audio/webm';
       }
 
-      console.log('🎙️ Started continuous chunked recording with 5-second intervals');
+      console.log('🎙️ Started variable chunked recording (5s, 15s, then 30s with 2s overlap)');
       toast({
-        title: "Continuous Recording Started",
-        description: "Recording will continue until manually stopped"
+        title: "Variable Chunked Recording Started",
+        description: "5s → 15s → 30s intervals with overlap"
       });
 
+      // Function to get the duration for current chunk
+      const getChunkDuration = (chunkNumber: number) => {
+        if (chunkNumber === 1) return 5000; // First chunk: 5 seconds
+        if (chunkNumber === 2) return 10000; // Second chunk: 10 more seconds (total 15)
+        return 30000; // All subsequent chunks: 30 seconds
+      };
+
+      // Function to get overlap duration (2 seconds for chunks after the first)
+      const getOverlapDuration = (chunkNumber: number) => {
+        return chunkNumber > 1 ? 2000 : 0; // 2 second overlap for all chunks after first
+      };
+
       // Function to create and start a new recorder
-      const createRecorder = () => {
+      const createRecorder = (chunkNumber: number, actualStartTime?: number) => {
         if (!streamRef.current) return null;
 
         const recorder = new MediaRecorder(streamRef.current, {
@@ -160,6 +173,7 @@ const ChunkedTranscriptionTest = () => {
         });
 
         let audioChunks: Blob[] = [];
+        const recordingStartTime = actualStartTime || Date.now();
 
         recorder.ondataavailable = (event) => {
           if (event.data.size > 0) {
@@ -170,36 +184,46 @@ const ChunkedTranscriptionTest = () => {
         recorder.onstop = () => {
           if (audioChunks.length > 0) {
             const audioBlob = new Blob(audioChunks, { type: mimeType });
+            const actualChunkNumber = chunkCount + 1;
             chunkCount++;
             setCurrentChunk(chunkCount);
-            processAudioChunk(audioBlob, chunkCount);
+            console.log(`📦 Chunk ${actualChunkNumber} completed after ${Date.now() - recordingStartTime}ms`);
+            processAudioChunk(audioBlob, actualChunkNumber);
             audioChunks = [];
           }
           
           // Start next chunk if still recording
+          const nextChunkNumber = chunkCount + 1;
+          const overlapDelay = getOverlapDuration(nextChunkNumber);
+          
           setTimeout(() => {
             if (streamRef.current && isRecordingRef.current) {
-              const nextRecorder = createRecorder();
+              // Calculate when the next recording should actually start (accounting for overlap)
+              const nextRecordingStart = Date.now() - overlapDelay;
+              const nextRecorder = createRecorder(nextChunkNumber, nextRecordingStart);
               if (nextRecorder) {
                 mediaRecorderRef.current = nextRecorder;
                 nextRecorder.start();
                 
-                // Schedule this recorder to stop in 5 seconds
+                const chunkDuration = getChunkDuration(nextChunkNumber);
+                console.log(`⏰ Chunk ${nextChunkNumber} started, will run for ${chunkDuration}ms with ${overlapDelay}ms overlap`);
+                
+                // Schedule this recorder to stop
                 chunkTimerRef.current = setTimeout(() => {
                   if (nextRecorder.state === 'recording') {
                     nextRecorder.stop();
                   }
-                }, 5000);
+                }, chunkDuration);
               }
             }
-          }, 100);
+          }, 100 - overlapDelay); // Start slightly earlier to account for overlap
         };
 
         return recorder;
       };
 
       // Start the first recorder
-      const firstRecorder = createRecorder();
+      const firstRecorder = createRecorder(1, startTime);
       if (firstRecorder) {
         mediaRecorderRef.current = firstRecorder;
         firstRecorder.start();
