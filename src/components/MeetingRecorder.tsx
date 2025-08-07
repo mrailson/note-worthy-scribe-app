@@ -2461,17 +2461,6 @@ export const MeetingRecorder = ({
                         <Mic className="h-5 w-5 mr-2" />
                         Start Recording
                       </Button>
-                      
-                      {/* Reset Meeting Button */}
-                      <Button 
-                        onClick={resetMeeting}
-                        variant="outline"
-                        size="sm"
-                        className="text-xs"
-                      >
-                        <RotateCcw className="h-3 w-3 mr-2" />
-                        Reset Meeting
-                      </Button>
                     </div>
                   ) : (
                     <div className="space-y-4">
@@ -2612,6 +2601,19 @@ export const MeetingRecorder = ({
 
               </CardContent>
             </Card>
+          </div>
+          
+          {/* Reset Meeting Button - Bottom Center */}
+          <div className="flex justify-center pt-4">
+            <Button 
+              onClick={resetMeeting}
+              variant="outline"
+              size="sm"
+              className="text-xs"
+            >
+              <RotateCcw className="h-3 w-3 mr-2" />
+              Reset Meeting
+            </Button>
           </div>
         </TabsContent>
 
