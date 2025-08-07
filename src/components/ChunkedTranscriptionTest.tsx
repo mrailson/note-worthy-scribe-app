@@ -26,7 +26,7 @@ const ChunkedTranscriptionTest = () => {
       const audioFile = new File([audioBlob], `chunk-${chunkNumber}.webm`, { type: 'audio/webm;codecs=opus' });
       formData.append('audio', audioFile);
 
-      const response = await fetch('https://dphcnbricafkbtizkoal.functions.supabase.co/functions/v1/test-mp3-transcription', {
+      const response = await fetch('https://dphcnbricafkbtizkoal.functions.supabase.co/functions/v1/triple-check-transcription', {
         method: 'POST',
         headers: {
           'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwaGNuYnJpY2Fma2J0aXprb2FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MzIyMzIsImV4cCI6MjA2ODMwODIzMn0.U3bJI6P1yzgRBz_k2s0zlJGu1GWiVRTHjYgv9QQggPs'
