@@ -14,7 +14,7 @@ interface SimpleFileUploadProps {
 
 export const SimpleFileUpload: React.FC<SimpleFileUploadProps> = ({
   onFileUpload,
-  accept = '.pdf,.doc,.docx,.xlsx,.csv,.txt',
+  accept = '.pdf,.doc,.docx,.xlsx,.csv,.txt,.jpg,.jpeg,.png,.gif,.webp,.bmp,.svg,.tiff,.tif',
   maxSize = 10,
   className = '',
   multiple = true
@@ -46,7 +46,14 @@ export const SimpleFileUpload: React.FC<SimpleFileUploadProps> = ({
       'application/vnd.ms-excel': ['.xls'],
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
       'text/csv': ['.csv'],
-      'text/plain': ['.txt']
+      'text/plain': ['.txt'],
+      'image/jpeg': ['.jpg', '.jpeg'],
+      'image/png': ['.png'],
+      'image/gif': ['.gif'],
+      'image/webp': ['.webp'],
+      'image/bmp': ['.bmp'],
+      'image/svg+xml': ['.svg'],
+      'image/tiff': ['.tiff', '.tif']
     },
     maxSize: maxSizeBytes,
     multiple
@@ -72,7 +79,7 @@ export const SimpleFileUpload: React.FC<SimpleFileUploadProps> = ({
             }
           </p>
           <p className="text-xs text-muted-foreground">
-            PDF, DOC, DOCX, XLS, XLSX, CSV, TXT (max {maxSize}MB)
+            PDF, DOC, DOCX, XLS, XLSX, CSV, TXT, JPG, PNG, GIF, WebP, BMP, SVG, TIFF (max {maxSize}MB)
           </p>
         </div>
       </div>

@@ -261,7 +261,7 @@ export const MeetingDocuments: React.FC<MeetingDocumentsProps> = ({
                 <Label>Select Files</Label>
                 <SimpleFileUpload
                   onFileUpload={handleFileUpload}
-                  accept=".pdf,.doc,.docx,.xlsx,.csv,.txt,.jpg,.jpeg,.png"
+                  accept=".pdf,.doc,.docx,.xlsx,.csv,.txt,.jpg,.jpeg,.png,.gif,.webp,.bmp,.svg,.tiff,.tif"
                   maxSize={25}
                   multiple={true}
                 />

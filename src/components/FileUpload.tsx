@@ -140,6 +140,11 @@ export const FileUpload: React.FC<FileUploadProps> = ({
       'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'],
       'image/jpeg': ['.jpg', '.jpeg'],
       'image/png': ['.png'],
+      'image/gif': ['.gif'],
+      'image/webp': ['.webp'],
+      'image/bmp': ['.bmp'],
+      'image/svg+xml': ['.svg'],
+      'image/tiff': ['.tiff', '.tif'],
       'text/plain': ['.txt']
     },
     maxSize: 10 * 1024 * 1024, // 10MB
@@ -172,7 +177,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({
             }
           </p>
           <p className="text-xs text-muted-foreground">
-            Supports: PDF, DOC, DOCX, PPT, PPTX, JPG, PNG, TXT (max 10MB)
+            Supports: PDF, DOC, DOCX, PPT, PPTX, JPG, PNG, GIF, WebP, BMP, SVG, TIFF, TXT (max 10MB)
           </p>
         </div>
       </div>
