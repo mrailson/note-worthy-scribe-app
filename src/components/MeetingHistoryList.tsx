@@ -836,6 +836,16 @@ export const MeetingHistoryList = ({
                             <Mic className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                           </div>
                           <span className="text-sm font-medium">Left Channel Recording (Microphone)</span>
+                          {!audioUrls[meeting.id]?.leftAudioSignedUrl && (
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => generateSignedUrls(meeting.id, meeting)}
+                              className="ml-auto"
+                            >
+                              Load Audio
+                            </Button>
+                          )}
                         </div>
                         <audio
                           src={audioUrls[meeting.id]?.leftAudioSignedUrl || undefined}
@@ -855,6 +865,16 @@ export const MeetingHistoryList = ({
                             <Monitor className="h-4 w-4 text-green-600 dark:text-green-400" />
                           </div>
                           <span className="text-sm font-medium">Right Channel Recording (System Audio)</span>
+                          {!audioUrls[meeting.id]?.rightAudioSignedUrl && (
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => generateSignedUrls(meeting.id, meeting)}
+                              className="ml-auto"
+                            >
+                              Load Audio
+                            </Button>
+                          )}
                         </div>
                         <audio
                           src={audioUrls[meeting.id]?.rightAudioSignedUrl || undefined}
