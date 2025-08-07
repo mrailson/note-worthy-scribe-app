@@ -583,7 +583,7 @@ export const MeetingHistoryList = ({
                         </div>
                       )}
 
-                      {meeting.document_count && meeting.document_count > 0 && (
+                      {meeting.document_count > 0 && (
                         <div className="flex items-center gap-1 text-xs text-muted-foreground">
                           <Paperclip className="h-3 w-3 flex-shrink-0" />
                           <span>{meeting.document_count} file{meeting.document_count !== 1 ? 's' : ''}</span>
