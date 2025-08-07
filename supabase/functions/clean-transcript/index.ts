@@ -29,31 +29,40 @@ serve(async (req) => {
     console.log('🔍 Input transcript length:', rawTranscript.length);
     console.log('🔍 Input transcript ending:', rawTranscript.slice(-200));
 
-    const systemPrompt = `You are a conservative transcript cleaner. Your ONLY job is to fix obvious technical errors from speech-to-text while preserving exactly what was spoken.
+    const systemPrompt = `You are a professional transcript cleaner for meeting transcriptions. Your job is to clean and format transcripts while preserving the original meaning and content.
 
-STRICT RULES - YOU MUST FOLLOW THESE:
-1. Fix word spacing issues ONLY (e.g., "howcan" → "how can", "goodmorning" → "good morning")
-2. Remove clear filler words (um, uh, er) but keep all meaningful content
-3. Fix obvious capitalization and basic punctuation
-4. Correct spacing around punctuation marks
-5. DO NOT interpret, expand, or add ANY context to numbers, sequences, or partial words
-6. DO NOT turn number sequences into phone numbers, addresses, or any other format
-7. DO NOT add words that weren't clearly spoken
-8. DO NOT change the meaning or add professional context
+CLEANING TASKS YOU MUST PERFORM:
+1. Remove obvious duplications and repetitive phrases
+2. Remove overlapping speech and hallucinated content that doesn't make sense
+3. Fix grammar, punctuation, and apostrophes (its vs it's, your vs you're, etc.)
+4. Fix capitalization and sentence structure
+5. Remove excessive filler words (um, uh, er, ah) but keep occasional ones for natural flow
+6. Fix word spacing issues (e.g., "howcan" → "how can", "goodmorning" → "good morning")
+7. Create clear speaker sections when multiple speakers are identified
+8. Add proper paragraph breaks for better readability
+9. Standardize formatting for numbers, dates, and times
+10. Remove technical artifacts like "[Music]", "[Background noise]", repetitive phrases
 
-CRITICAL EXAMPLES OF WHAT NOT TO DO:
-- If someone says "4 5 6 7 8 9" → DO NOT turn it into "Please give us a call at 1-800-566-7898"
-- If someone says numbers → Keep them as numbers, don't make them into phone numbers
-- If someone says partial words → Keep them partial, don't complete them
+FORMATTING REQUIREMENTS:
+- Use proper paragraphs with line breaks between topics or speakers
+- Capitalize proper nouns, names, and sentence beginnings
+- Use correct punctuation: periods, commas, question marks, exclamation points
+- Format contractions properly (don't, won't, it's, etc.)
+- When multiple speakers are detected, separate them with clear sections
+- Remove obvious repetitions like "This meeting is being recorded" appearing multiple times
 
-WHAT YOU SHOULD DO:
-- "howcan I help" → "how can I help"
-- "um, testing 1 2 3" → "testing 1 2 3"
-- "call me at um 555 1234" → "call me at 555 1234"
+WHAT TO PRESERVE:
+- The actual content and meaning of what was said
+- Technical terms and medical terminology
+- Numbers, dates, and specific details mentioned
+- Natural speech patterns (don't make it overly formal)
+- All substantive content
 
-Be extremely conservative. When in doubt, leave the text as-is rather than risk changing the meaning.
+EXAMPLE OF WHAT TO DO:
+Input: "um so we need to we need to discuss the budget um the budget for next quarter next quarter and also also the staffing levels staffing levels This meeting is being recorded This meeting is being recorded"
+Output: "So we need to discuss the budget for next quarter and also the staffing levels."
 
-Return only the minimally cleaned transcript with no additional commentary.`;
+Return a clean, well-formatted transcript with proper paragraphs and spacing.`;
 
     const userPrompt = `Please clean and format this raw transcript:
 
