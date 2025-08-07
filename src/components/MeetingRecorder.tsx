@@ -149,11 +149,11 @@ export const MeetingRecorder = ({
     try {
       console.log('🎯 Starting audio backup recording...');
       
-      // Get microphone stream for backup recording
+      // Get microphone stream for backup recording using Profile 1 settings
       audioBackupStream.current = await navigator.mediaDevices.getUserMedia({
         audio: {
           sampleRate: 44100,
-          channelCount: 2,
+          channelCount: 1,
           echoCancellation: false,
           noiseSuppression: false,
           autoGainControl: false
@@ -279,11 +279,11 @@ export const MeetingRecorder = ({
     try {
       console.log('🎵 Starting audio segment recording...');
       
-      // Get microphone stream for segment recording
+      // Get microphone stream for segment recording using Profile 1 settings
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           sampleRate: 44100,
-          channelCount: 2,
+          channelCount: 1,
           echoCancellation: false,
           noiseSuppression: false,
           autoGainControl: false
