@@ -95,8 +95,7 @@ const handler = async (req: Request): Promise<Response> => {
         features_list,
         total_features: accessibleFeatures.length || 1,
         role_description: getRoleDescription(emailData.user_role || 'gp'),
-        getting_started_tips: getGettingStartedTips(emailData.user_role || 'gp'),
-        bcc_email: "malcolm.railson@nhs.net"  // BCC for testing welcome emails
+        getting_started_tips: getGettingStartedTips(emailData.user_role || 'gp')
       };
     }
 
@@ -161,36 +160,7 @@ const handler = async (req: Request): Promise<Response> => {
     const result = await emailjsResponse.text();
     console.log("EmailJS response:", result);
 
-    // For welcome emails, send a copy to malcolm.railson@nhs.net for testing
-    if (emailData.template_type === 'welcome') {
-      try {
-        const bccPayload = {
-          ...payload,
-          template_params: {
-            ...enhancedEmailData,
-            to_email: 'malcolm.railson@nhs.net',
-            user_name: `[BCC Copy] ${enhancedEmailData.user_name}`
-          }
-        };
-
-        const bccResponse = await fetch(emailjsUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(bccPayload),
-        });
-
-        if (bccResponse.ok) {
-          console.log("BCC email sent successfully to malcolm.railson@nhs.net");
-        } else {
-          console.error("BCC email failed:", await bccResponse.text());
-        }
-      } catch (bccError) {
-        console.error("Error sending BCC email:", bccError);
-        // Don't throw here - main email succeeded
-      }
-    }
+    // BCC functionality removed for security reasons
 
     return new Response(JSON.stringify({ 
       success: true, 
