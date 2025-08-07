@@ -33,6 +33,8 @@ interface TestResult {
   confidence?: number;
   error?: string;
   status: 'idle' | 'recording' | 'processing' | 'completed' | 'error';
+  audioBlob?: Blob;
+  audioUrl?: string;
 }
 
 const MIC_PROFILES: MicProfile[] = [
@@ -205,6 +207,7 @@ export const MicInputRecordingTester: React.FC = () => {
   const audioChunks = useRef<Map<string, Blob[]>>(new Map());
   const recordingStartTime = useRef<number>(0);
   const progressInterval = useRef<NodeJS.Timeout | null>(null);
+  const audioRefs = useRef<Map<string, HTMLAudioElement>>(new Map());
 
   React.useEffect(() => {
     // Get available audio input devices
@@ -352,6 +355,8 @@ export const MicInputRecordingTester: React.FC = () => {
 
     try {
       const audioBlob = new Blob(chunks, { type: 'audio/webm' });
+      const audioUrl = URL.createObjectURL(audioBlob);
+      
       const formData = new FormData();
       formData.append('audio', audioBlob, 'test-audio.webm');
 
@@ -372,7 +377,9 @@ export const MicInputRecordingTester: React.FC = () => {
               transcription: data.text || '',
               duration,
               wordCount,
-              confidence: data.confidence
+              confidence: data.confidence,
+              audioBlob,
+              audioUrl
             }
           : result
       ));
@@ -550,9 +557,43 @@ export const MicInputRecordingTester: React.FC = () => {
                         </div>
 
                         {result.status === 'completed' && result.transcription && (
-                          <div className="bg-background/50 p-3 rounded-md text-sm">
-                            <div className="font-medium mb-1">Transcription:</div>
-                            <div className="whitespace-pre-wrap">{result.transcription}</div>
+                          <div className="space-y-3">
+                            <div className="bg-background/50 p-3 rounded-md text-sm">
+                              <div className="font-medium mb-1">Transcription:</div>
+                              <div className="whitespace-pre-wrap">{result.transcription}</div>
+                            </div>
+                            
+                            {result.audioUrl && (
+                              <div className="flex items-center gap-3">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    const audio = audioRefs.current.get(result.profileId);
+                                    if (audio) {
+                                      if (audio.paused) {
+                                        audio.play();
+                                      } else {
+                                        audio.pause();
+                                      }
+                                    }
+                                  }}
+                                  className="flex items-center gap-2"
+                                >
+                                  <Volume2 className="h-3 w-3" />
+                                  Play Recording
+                                </Button>
+                                <audio
+                                  ref={(el) => {
+                                    if (el) audioRefs.current.set(result.profileId, el);
+                                  }}
+                                  src={result.audioUrl}
+                                  controls
+                                  className="h-8 flex-1"
+                                  preload="metadata"
+                                />
+                              </div>
+                            )}
                           </div>
                         )}
 
