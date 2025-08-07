@@ -419,9 +419,40 @@ export const MeetingRecorder = ({
       // Get SEPARATE microphone stream for overlapping chunks (not shared with preview)
       const chunksStream = await navigator.mediaDevices.getUserMedia(profile1Constraints);
       
+      // Add audio level monitoring
+      const audioContext = new AudioContext();
+      const source = audioContext.createMediaStreamSource(chunksStream);
+      const analyser = audioContext.createAnalyser();
+      source.connect(analyser);
+      
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+      let silentCounters = 0;
+      
+      const checkAudioLevel = () => {
+        analyser.getByteFrequencyData(dataArray);
+        const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+        console.log(`🎵 Audio level: ${average.toFixed(2)}`);
+        
+        if (average < 5) { // Very low threshold
+          silentCounters++;
+          console.log(`⚠️ Low audio detected (${silentCounters}/3)`);
+          
+          if (silentCounters >= 3) {
+            console.log('🔄 Audio stream appears silent, this might indicate a browser audio issue');
+            toast.warning("Low audio detected - check microphone settings or browser permissions");
+          }
+        } else {
+          silentCounters = 0; // Reset counter on good audio
+        }
+      };
+      
+      // Monitor audio levels every second
+      const levelInterval = setInterval(checkAudioLevel, 1000);
+      
       console.log('🎵 Successfully got INDEPENDENT audio stream for chunks:', {
         tracks: chunksStream.getAudioTracks().length,
-        trackSettings: chunksStream.getAudioTracks()[0]?.getSettings()
+        trackSettings: chunksStream.getAudioTracks()[0]?.getSettings(),
+        audioContext: audioContext.state
       });
 
       let chunkId = 0;
@@ -450,7 +481,7 @@ export const MeetingRecorder = ({
         };
 
         chunkRecorders.current.set(currentChunkId, recorder);
-        recorder.start(100); // Collect data every 100ms for fine-grained control
+        recorder.start(); // Use default timeslice for more stable recording
 
         console.log(`🎵 Started chunk ${currentChunkId}`);
 
@@ -477,9 +508,17 @@ export const MeetingRecorder = ({
           startNewChunk();
         } else {
           clearInterval(chunkInterval);
+          // Clean up audio monitoring
+          if (levelInterval) {
+            clearInterval(levelInterval);
+          }
           // Clean up the chunks stream when recording stops
           if (chunksStream) {
             chunksStream.getTracks().forEach(track => track.stop());
+          }
+          // Clean up audio context
+          if (audioContext && audioContext.state !== 'closed') {
+            audioContext.close();
           }
         }
       }, 3000); // 3 seconds = 5 second chunk - 2 second overlap
