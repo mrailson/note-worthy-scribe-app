@@ -2111,7 +2111,7 @@ export const MeetingRecorder = ({
       setRecordingAudioUrl(audioUrl);
       setRecordingBlob(stereoBlob); // Store the actual blob
       
-      // Create separate URLs for each channel
+      // Create separate URLs for each channel and wait for completion
       await createChannelSpecificAudio(stereoBlob);
       
       console.log('✅ Stereo recording audio ready for playback:', {
@@ -2119,6 +2119,10 @@ export const MeetingRecorder = ({
         url: audioUrl,
         channels: 'Left=Mic, Right=System'
       });
+    } else {
+      console.warn('⚠️ No stereo recording available - no audio will be saved');
+      setRecordingAudioUrl(null);
+      setRecordingBlob(null);
     }
     
     setIsRecording(false);
@@ -2239,18 +2243,22 @@ export const MeetingRecorder = ({
     console.log('🔍 DEBUG: First 200 chars:', currentTranscript.substring(0, 200));
     console.log('🔍 DEBUG: Last 200 chars:', currentTranscript.slice(-200));
     
-    // Get current audio blobs before preparing meeting data
+    // Wait a bit more to ensure all audio state updates are complete
+    await new Promise(resolve => setTimeout(resolve, 200));
+    
+    // Get current audio blobs after processing is complete
     const currentRecordingBlob = recordingBlob || stereoBlob;
     const currentMicBlob = micBlob;
     const currentSystemBlob = systemBlob;
     
-    console.log('🎵 Audio blobs status:', {
+    console.log('🎵 Audio blobs status for upload:', {
       recordingBlob: currentRecordingBlob?.size || 'null',
       micBlob: currentMicBlob?.size || 'null', 
-      systemBlob: currentSystemBlob?.size || 'null'
+      systemBlob: currentSystemBlob?.size || 'null',
+      stereoBlob: stereoBlob?.size || 'null'
     });
 
-    // Prepare meeting data
+    // Prepare meeting data with available audio blobs
     const meetingData = {
       title: initialSettings?.title || 'General Meeting',
       duration: formatDuration(duration),
