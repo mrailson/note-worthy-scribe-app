@@ -1621,15 +1621,20 @@ const MeetingHistory = () => {
                   : meeting
               ));
             }}
-            onDocumentsUploaded={(meetingId, newDocumentCount) => {
-              // Update the local meetings array with new document count and refresh data
-              setMeetings(prev => prev.map(meeting => 
-                meeting.id === meetingId 
-                  ? { ...meeting, document_count: newDocumentCount }
-                  : meeting
-              ));
-              // Refresh to get updated document details
-              setTimeout(() => fetchMeetings(), 1000);
+            onDocumentsUploaded={(meetingId, uploadedFiles) => {
+              // Update the local meetings array with new documents
+              setMeetings(prev => prev.map(meeting => {
+                if (meeting.id === meetingId) {
+                  const existingDocuments = meeting.documents || [];
+                  const newDocuments = [...existingDocuments, ...uploadedFiles];
+                  return {
+                    ...meeting,
+                    document_count: newDocuments.length,
+                    documents: newDocuments
+                  };
+                }
+                return meeting;
+              }));
             }}
           />
         )}

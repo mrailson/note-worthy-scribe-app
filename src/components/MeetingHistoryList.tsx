@@ -87,7 +87,7 @@ interface MeetingHistoryListProps {
   // Callback for when a meeting title is updated
   onMeetingUpdate?: (meetingId: string, updatedTitle: string) => void;
   // Callback for when documents are uploaded
-  onDocumentsUploaded?: (meetingId: string, newDocumentCount: number) => void;
+  onDocumentsUploaded?: (meetingId: string, uploadedFiles: Array<{file_name: string, file_size: number, uploaded_at: string, file_type: string}>) => void;
 }
 
 export const MeetingHistoryList = ({ 
@@ -236,15 +236,20 @@ export const MeetingHistoryList = ({
       }
 
       toast.success(`${selectedFiles.length} document(s) uploaded successfully`);
-      setSelectedFiles([]);
-      setUploadDialogOpen(false);
       
       // Update the document count and documents array locally
       if (onDocumentsUploaded) {
-        const currentCount = selectedMeetingForUpload.document_count || 0;
-        onDocumentsUploaded(selectedMeetingForUpload.id, currentCount + selectedFiles.length);
+        const newDocuments = selectedFiles.map(file => ({
+          file_name: file.name,
+          file_size: file.size,
+          uploaded_at: new Date().toISOString(),
+          file_type: file.type
+        }));
+        onDocumentsUploaded(selectedMeetingForUpload.id, newDocuments);
       }
       
+      setSelectedFiles([]);
+      setUploadDialogOpen(false);
       setSelectedMeetingForUpload(null);
     } catch (error: any) {
       console.error('Error uploading documents:', error.message);
