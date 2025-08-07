@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { SafeMessageRenderer } from "@/components/SafeMessageRenderer";
 import { Header } from "@/components/Header";
 import { MeetingHistoryList } from "@/components/MeetingHistoryList";
+import { MeetingDocuments } from "@/components/MeetingDocuments";
 import { MeetingSearchBar, SearchFilters } from "@/components/MeetingSearchBar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -1432,14 +1433,14 @@ const MeetingHistory = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                {/* Meeting Notes Section */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Meeting Notes</h3>
-                   {meetingSummary ? (
-                     <div className="prose max-w-none">
-                       <SafeMessageRenderer content={renderFormattedText(meetingSummary)} />
-                     </div>
-                   ) : (
+                 {/* Meeting Notes Section */}
+                 <div className="space-y-4">
+                   <h3 className="text-lg font-semibold">Meeting Notes</h3>
+                    {meetingSummary ? (
+                      <div className="prose max-w-none">
+                        <SafeMessageRenderer content={renderFormattedText(meetingSummary)} />
+                      </div>
+                    ) : (
                     <div className="text-center py-8 bg-muted/50 rounded-lg border">
                       <p className="text-muted-foreground mb-4">No AI-generated notes available for this meeting.</p>
                       <Button 
@@ -1558,9 +1559,15 @@ const MeetingHistory = () => {
                         <Label className="text-sm font-medium text-muted-foreground">Description</Label>
                         <p className="text-sm mt-1">{selectedMeeting.description}</p>
                       </div>
-                    )}
-                  </div>
-                </div>
+                   )}
+                 </div>
+
+                 {/* Supporting Documents Section */}
+                 <MeetingDocuments 
+                   meetingId={selectedMeeting.id} 
+                   meetingTitle={selectedMeeting.title}
+                 />
+               </div>
               </div>
             </CardContent>
           </Card>
