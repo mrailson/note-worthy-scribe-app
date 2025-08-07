@@ -157,8 +157,9 @@ export const MeetingRecorder = ({
     setRecordingAudioUrl(null);
     setMicAudioUrl(null);
     setSystemAudioUrl(null);
-    setMicAudioUrl(null);
-    setSystemAudioUrl(null);
+    setRecordingBlob(null);
+    setMicBlob(null);
+    setSystemBlob(null);
     
     // Clear transcript snippet interval
     if (transcriptSnippetIntervalRef.current) {
@@ -189,6 +190,12 @@ export const MeetingRecorder = ({
   const [recordingAudioUrl, setRecordingAudioUrl] = useState<string | null>(null);
   const [micAudioUrl, setMicAudioUrl] = useState<string | null>(null);
   const [systemAudioUrl, setSystemAudioUrl] = useState<string | null>(null);
+  
+  // Store actual blobs for saving to database
+  const [recordingBlob, setRecordingBlob] = useState<Blob | null>(null);
+  const [micBlob, setMicBlob] = useState<Blob | null>(null);
+  const [systemBlob, setSystemBlob] = useState<Blob | null>(null);
+  
   const recordingAudioRef = useRef<HTMLAudioElement | null>(null);
   const micAudioRef = useRef<HTMLAudioElement | null>(null);
   const systemAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -1879,16 +1886,22 @@ export const MeetingRecorder = ({
         systemBuffer.copyToChannel(audioBuffer.getChannelData(1), 0);
         
         // Convert buffers back to blobs
-        const micBlob = await audioBufferToBlob(micBuffer);
-        const systemBlob = await audioBufferToBlob(systemBuffer);
+        const micAudioBlob = await audioBufferToBlob(micBuffer);
+        const systemAudioBlob = await audioBufferToBlob(systemBuffer);
         
-        // Create URLs
-        setMicAudioUrl(URL.createObjectURL(micBlob));
-        setSystemAudioUrl(URL.createObjectURL(systemBlob));
+        // Store blobs for later use
+        setMicBlob(micAudioBlob);
+        setSystemBlob(systemAudioBlob);
+        
+        // Create URLs for playback
+        setMicAudioUrl(URL.createObjectURL(micAudioBlob));
+        setSystemAudioUrl(URL.createObjectURL(systemAudioBlob));
         
         console.log('✅ Created separate channel audio files');
       } else {
         console.warn('⚠️ Audio only has one channel, using same audio for both');
+        setMicBlob(stereoBlob);
+        setSystemBlob(null);
         const monoUrl = URL.createObjectURL(stereoBlob);
         setMicAudioUrl(monoUrl);
         setSystemAudioUrl(null);
@@ -2096,6 +2109,7 @@ export const MeetingRecorder = ({
     if (stereoBlob && stereoBlob.size > 0) {
       const audioUrl = URL.createObjectURL(stereoBlob);
       setRecordingAudioUrl(audioUrl);
+      setRecordingBlob(stereoBlob); // Store the actual blob
       
       // Create separate URLs for each channel
       await createChannelSpecificAudio(stereoBlob);
@@ -2236,9 +2250,9 @@ export const MeetingRecorder = ({
       startedBy: user?.email || 'Unknown User',
       needsAudioBackup: needsAudioBackup,
       stereoBlob: stereoBlob,
-      mixedAudioUrl: recordingAudioUrl,
-      leftAudioUrl: micAudioUrl,
-      rightAudioUrl: systemAudioUrl
+      mixedAudioBlob: recordingBlob,
+      leftAudioBlob: micBlob,
+      rightAudioBlob: systemBlob
     };
 
     // Show Notewell AI animation

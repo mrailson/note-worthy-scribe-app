@@ -59,9 +59,9 @@ interface MeetingData {
   startTime: string;
   practiceName?: string;
   generatedNotes?: string;
-  mixedAudioUrl?: string;
-  leftAudioUrl?: string;
-  rightAudioUrl?: string;
+  mixedAudioBlob?: Blob;
+  leftAudioBlob?: Blob;
+  rightAudioBlob?: Blob;
   startedBy?: string;
   needsAudioBackup?: boolean;
   audioBackupBlob?: Blob | null;
@@ -373,40 +373,34 @@ export default function MeetingSummary() {
         }
       };
 
-      // Convert blob URLs to actual blobs and upload them
-      if (data.mixedAudioUrl) {
+      // Upload audio blobs directly
+      if (data.mixedAudioBlob) {
         try {
-          const response = await fetch(data.mixedAudioUrl);
-          const blob = await response.blob();
           const fileName = `${user.id}/mixed_${Date.now()}.webm`;
-          mixedAudioPath = await uploadAudioBlob(blob, fileName);
+          mixedAudioPath = await uploadAudioBlob(data.mixedAudioBlob, fileName);
           console.log('📤 Uploaded mixed audio:', mixedAudioPath);
         } catch (error) {
-          console.error('Error processing mixed audio:', error);
+          console.error('Error uploading mixed audio:', error);
         }
       }
 
-      if (data.leftAudioUrl) {
+      if (data.leftAudioBlob) {
         try {
-          const response = await fetch(data.leftAudioUrl);
-          const blob = await response.blob();
           const fileName = `${user.id}/left_${Date.now()}.webm`;
-          leftAudioPath = await uploadAudioBlob(blob, fileName);
+          leftAudioPath = await uploadAudioBlob(data.leftAudioBlob, fileName);
           console.log('📤 Uploaded left audio:', leftAudioPath);
         } catch (error) {
-          console.error('Error processing left audio:', error);
+          console.error('Error uploading left audio:', error);
         }
       }
 
-      if (data.rightAudioUrl) {
+      if (data.rightAudioBlob) {
         try {
-          const response = await fetch(data.rightAudioUrl);
-          const blob = await response.blob();
           const fileName = `${user.id}/right_${Date.now()}.webm`;
-          rightAudioPath = await uploadAudioBlob(blob, fileName);
+          rightAudioPath = await uploadAudioBlob(data.rightAudioBlob, fileName);
           console.log('📤 Uploaded right audio:', rightAudioPath);
         } catch (error) {
-          console.error('Error processing right audio:', error);
+          console.error('Error uploading right audio:', error);
         }
       }
 
