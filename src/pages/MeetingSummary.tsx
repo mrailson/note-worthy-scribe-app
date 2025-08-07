@@ -347,26 +347,91 @@ export default function MeetingSummary() {
         }
       }
 
-       const { data: meeting, error: meetingError } = await supabase
-         .from('meetings')
-         .insert({
-           title: data.title,
-           user_id: user.id,
-           start_time: data.startTime,
-           end_time: new Date().toISOString(),
-           duration_minutes: Math.floor(parseInt(data.duration.split(':')[0]) + parseInt(data.duration.split(':')[1]) / 60),
-           status: 'completed',
-           meeting_type: 'general',
-           requires_audio_backup: data.needsAudioBackup || false,
-           audio_backup_path: audioBackupPath,
-           audio_backup_created_at: audioBackupPath ? new Date().toISOString() : null,
-           mixed_audio_url: data.mixedAudioUrl,
-           left_audio_url: data.leftAudioUrl,
-           right_audio_url: data.rightAudioUrl,
-           recording_created_at: data.mixedAudioUrl ? new Date().toISOString() : null
-         })
-         .select()
-         .single();
+      // Upload audio files to storage if they exist
+      let mixedAudioPath: string | null = null;
+      let leftAudioPath: string | null = null;
+      let rightAudioPath: string | null = null;
+
+      // Helper function to upload audio blob to storage
+      const uploadAudioBlob = async (blob: Blob, fileName: string): Promise<string | null> => {
+        try {
+          const { data, error } = await supabase.storage
+            .from('meeting-audio-segments')
+            .upload(fileName, blob, {
+              contentType: 'audio/webm'
+            });
+
+          if (error) {
+            console.error('Error uploading audio file:', error);
+            return null;
+          }
+
+          return data.path;
+        } catch (error) {
+          console.error('Error uploading audio file:', error);
+          return null;
+        }
+      };
+
+      // Convert blob URLs to actual blobs and upload them
+      if (data.mixedAudioUrl) {
+        try {
+          const response = await fetch(data.mixedAudioUrl);
+          const blob = await response.blob();
+          const fileName = `${user.id}/mixed_${Date.now()}.webm`;
+          mixedAudioPath = await uploadAudioBlob(blob, fileName);
+          console.log('📤 Uploaded mixed audio:', mixedAudioPath);
+        } catch (error) {
+          console.error('Error processing mixed audio:', error);
+        }
+      }
+
+      if (data.leftAudioUrl) {
+        try {
+          const response = await fetch(data.leftAudioUrl);
+          const blob = await response.blob();
+          const fileName = `${user.id}/left_${Date.now()}.webm`;
+          leftAudioPath = await uploadAudioBlob(blob, fileName);
+          console.log('📤 Uploaded left audio:', leftAudioPath);
+        } catch (error) {
+          console.error('Error processing left audio:', error);
+        }
+      }
+
+      if (data.rightAudioUrl) {
+        try {
+          const response = await fetch(data.rightAudioUrl);
+          const blob = await response.blob();
+          const fileName = `${user.id}/right_${Date.now()}.webm`;
+          rightAudioPath = await uploadAudioBlob(blob, fileName);
+          console.log('📤 Uploaded right audio:', rightAudioPath);
+        } catch (error) {
+          console.error('Error processing right audio:', error);
+        }
+      }
+
+      // Insert meeting with audio storage paths
+      const { data: meeting, error: meetingError } = await supabase
+        .from('meetings')
+        .insert({
+          title: data.title,
+          description: 'Meeting recorded and transcribed',
+          user_id: user.id,
+          start_time: data.startTime,
+          end_time: new Date().toISOString(),
+          duration_minutes: Math.floor(parseInt(data.duration.split(':')[0]) + parseInt(data.duration.split(':')[1]) / 60),
+          status: 'completed',
+          meeting_type: 'general',
+          requires_audio_backup: data.needsAudioBackup || false,
+          audio_backup_path: audioBackupPath,
+          audio_backup_created_at: audioBackupPath ? new Date().toISOString() : null,
+          mixed_audio_url: mixedAudioPath,
+          left_audio_url: leftAudioPath,
+          right_audio_url: rightAudioPath,
+          recording_created_at: (mixedAudioPath || leftAudioPath || rightAudioPath) ? new Date().toISOString() : null
+        })
+        .select()
+        .single();
 
        if (meetingError) throw meetingError;
        
