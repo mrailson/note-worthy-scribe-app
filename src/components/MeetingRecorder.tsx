@@ -2904,7 +2904,10 @@ export const MeetingRecorder = ({
                             <div className="flex-1 overflow-hidden">
                               <div className="text-sm text-green-700 dark:text-green-300 font-medium">Most recent transcribed...</div>
                               <div className="text-sm text-green-600 dark:text-green-400">
-                                {transcriptSnippet || "No speech detected yet..."}
+                                {transcriptSnippet ? 
+                                  transcriptSnippet.split(' ').slice(0, 20).join(' ') + (transcriptSnippet.split(' ').length > 20 ? '...' : '') 
+                                  : "No speech detected yet..."
+                                }
                               </div>
                             </div>
                           </div>
