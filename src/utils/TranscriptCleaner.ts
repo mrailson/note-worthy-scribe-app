@@ -100,6 +100,7 @@ export class TranscriptCleaner {
       "or unclear audio",
       "and unclear audio",
       "please subscribe only clear english speech and ignore background noise, music, or unclear audio",
+      "please subscribe, like, comment, and share",
     ];
   }
 
