@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Mic, MicOff, Loader2, Play, Square, TestTube, Zap, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
+import { Mic, MicOff, Loader2, Play, Square, TestTube, Zap, CheckCircle, AlertTriangle, XCircle, Volume2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -128,10 +128,12 @@ export const WhisperHallucinationTestSuite: React.FC = () => {
   const [progress, setProgress] = useState(0);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [testAudio, setTestAudio] = useState<string>('record'); // 'record' or 'upload'
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const getCategoryColor = (category: string) => {
     switch (category) {
@@ -170,6 +172,10 @@ export const WhisperHallucinationTestSuite: React.FC = () => {
       mediaRecorderRef.current.onstop = () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         setAudioBlob(audioBlob);
+        
+        // Create URL for audio playback
+        const url = URL.createObjectURL(audioBlob);
+        setAudioUrl(url);
         
         if (streamRef.current) {
           streamRef.current.getTracks().forEach(track => track.stop());
@@ -331,11 +337,42 @@ export const WhisperHallucinationTestSuite: React.FC = () => {
                 )}
                 
                 {audioBlob && (
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span className="text-sm text-muted-foreground">
-                      Audio ready ({(audioBlob.size / 1024).toFixed(1)} KB)
-                    </span>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <span className="text-sm text-muted-foreground">
+                        Audio ready ({(audioBlob.size / 1024).toFixed(1)} KB)
+                      </span>
+                    </div>
+                    
+                    {audioUrl && (
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            if (audioRef.current) {
+                              if (audioRef.current.paused) {
+                                audioRef.current.play();
+                              } else {
+                                audioRef.current.pause();
+                              }
+                            }
+                          }}
+                          className="flex items-center gap-2"
+                        >
+                          <Volume2 className="h-3 w-3" />
+                          Play Recording
+                        </Button>
+                        <audio
+                          ref={audioRef}
+                          src={audioUrl}
+                          controls
+                          className="h-8"
+                          preload="metadata"
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
