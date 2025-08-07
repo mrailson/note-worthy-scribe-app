@@ -208,6 +208,81 @@ const MIC_PROFILES: MicProfile[] = [
       channelCount: 1
     },
     color: 'danger'
+  },
+  {
+    id: 'system1',
+    name: 'Screen Share Audio Capture',
+    description: 'Uses getDisplayMedia with audio to capture screen audio',
+    purpose: 'SYSTEM AUDIO: Attempts to capture desktop audio via screen sharing API - should get pure system output.',
+    config: {
+      source: 'screen-audio-capture',
+      noiseCancellation: false,
+      echoCancellation: false,
+      autoGainControl: false,
+      sampleRate: 48000,
+      channelCount: 2
+    },
+    color: 'danger'
+  },
+  {
+    id: 'system2',
+    name: 'Desktop Audio Loopback',
+    description: 'Attempts to access desktop audio loopback device',
+    purpose: 'SYSTEM AUDIO: Tries to find and use system loopback device for direct audio capture.',
+    config: {
+      source: 'desktop-loopback',
+      noiseCancellation: false,
+      echoCancellation: false,
+      autoGainControl: false,
+      sampleRate: 44100,
+      channelCount: 2
+    },
+    color: 'danger'
+  },
+  {
+    id: 'system3',
+    name: 'Chrome Tab Audio Capture',
+    description: 'Uses Chrome-specific APIs to capture tab audio',
+    purpose: 'SYSTEM AUDIO: Chrome extension-style tab audio capture for browser audio sources.',
+    config: {
+      source: 'chrome-tab-audio',
+      noiseCancellation: false,
+      echoCancellation: false,
+      autoGainControl: false,
+      sampleRate: 44100,
+      channelCount: 2
+    },
+    color: 'danger'
+  },
+  {
+    id: 'system4',
+    name: 'WASAPI Desktop Audio',
+    description: 'Windows WASAPI desktop audio capture',
+    purpose: 'SYSTEM AUDIO: Attempts Windows-specific WASAPI desktop audio capture for pure system output.',
+    config: {
+      source: 'wasapi-desktop',
+      noiseCancellation: false,
+      echoCancellation: false,
+      autoGainControl: false,
+      sampleRate: 48000,
+      channelCount: 2
+    },
+    color: 'danger'
+  },
+  {
+    id: 'system5',
+    name: 'Virtual Audio Cable Detection',
+    description: 'Scans for virtual audio cable or mixer devices',
+    purpose: 'SYSTEM AUDIO: Looks for VB-Cable, Voicemeeter, or other virtual audio devices that route system audio.',
+    config: {
+      source: 'virtual-audio-cable',
+      noiseCancellation: false,
+      echoCancellation: false,
+      autoGainControl: false,
+      sampleRate: 44100,
+      channelCount: 2
+    },
+    color: 'danger'
   }
 ];
 
@@ -256,6 +331,67 @@ export const MicInputRecordingTester: React.FC = () => {
     return destination.stream;
   };
 
+  // Function to find virtual audio devices
+  const getVirtualAudioDevice = async (profile: MicProfile): Promise<MediaStream> => {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const audioInputs = devices.filter(device => device.kind === 'audioinput');
+      
+      // Look for virtual audio devices by name patterns
+      const virtualDevicePatterns = [
+        /virtual.*audio/i,
+        /vb.*cable/i,
+        /voicemeeter/i,
+        /line.*\d/i,
+        /stereo.*mix/i,
+        /what.*you.*hear/i,
+        /loopback/i,
+        /desktop.*audio/i
+      ];
+      
+      const virtualDevice = audioInputs.find(device => 
+        virtualDevicePatterns.some(pattern => pattern.test(device.label))
+      );
+      
+      if (virtualDevice) {
+        console.log(`🎵 Found virtual audio device: ${virtualDevice.label}`);
+        return navigator.mediaDevices.getUserMedia({
+          audio: {
+            deviceId: { exact: virtualDevice.deviceId },
+            sampleRate: profile.config.sampleRate,
+            channelCount: profile.config.channelCount,
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false
+          }
+        });
+      } else {
+        console.log('🎵 No virtual audio device found, using default');
+        return navigator.mediaDevices.getUserMedia({
+          audio: {
+            sampleRate: profile.config.sampleRate,
+            channelCount: profile.config.channelCount,
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Virtual audio device detection failed:', error);
+      // Fallback to default
+      return navigator.mediaDevices.getUserMedia({
+        audio: {
+          sampleRate: profile.config.sampleRate,
+          channelCount: profile.config.channelCount,
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false
+        }
+      });
+    }
+  };
+
   const toggleProfileSelection = (profileId: string) => {
     setSelectedProfiles(prev => 
       prev.includes(profileId) 
@@ -275,7 +411,70 @@ export const MicInputRecordingTester: React.FC = () => {
       }
     };
 
-    // Handle special system audio right channel only test
+    // Handle special system audio capture methods
+    if (profile.config.source === 'screen-audio-capture') {
+      // This will be handled in the recording function with getDisplayMedia
+      return { audio: false }; // We'll use getDisplayMedia instead
+    }
+
+    if (profile.config.source === 'desktop-loopback') {
+      return {
+        audio: {
+          sampleRate: profile.config.sampleRate,
+          channelCount: 2,
+          autoGainControl: false,
+          echoCancellation: false,
+          noiseSuppression: false,
+          // Try to request desktop audio specifically
+          deviceId: 'default'
+        }
+      };
+    }
+
+    if (profile.config.source === 'chrome-tab-audio') {
+      return {
+        audio: {
+          sampleRate: profile.config.sampleRate,
+          channelCount: 2,
+          autoGainControl: false,
+          echoCancellation: false,
+          noiseSuppression: false,
+          // Chrome-specific constraints
+          googEchoCancellation: false,
+          googAutoGainControl: false,
+          googNoiseSuppression: false
+        } as any
+      };
+    }
+
+    if (profile.config.source === 'wasapi-desktop') {
+      return {
+        audio: {
+          sampleRate: profile.config.sampleRate,
+          channelCount: 2,
+          autoGainControl: false,
+          echoCancellation: false,
+          noiseSuppression: false,
+          // Windows-specific WASAPI hints
+          latency: 0.01,
+          deviceId: 'communications'
+        } as any
+      };
+    }
+
+    if (profile.config.source === 'virtual-audio-cable') {
+      // This will be handled specially in recording function
+      return {
+        audio: {
+          sampleRate: profile.config.sampleRate,
+          channelCount: 2,
+          autoGainControl: false,
+          echoCancellation: false,
+          noiseSuppression: false
+        }
+      };
+    }
+
     if (profile.config.source === 'system-right-only') {
       return {
         audio: {
@@ -332,8 +531,29 @@ export const MicInputRecordingTester: React.FC = () => {
       if (!profile) continue;
 
       try {
-        const constraints = getAudioConstraints(profile);
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        let stream: MediaStream;
+        
+        // Handle special system audio capture methods
+        if (profile.config.source === 'screen-audio-capture') {
+          // Use screen sharing API to capture desktop audio
+          stream = await navigator.mediaDevices.getDisplayMedia({
+            video: false,
+            audio: {
+              sampleRate: profile.config.sampleRate,
+              channelCount: profile.config.channelCount,
+              echoCancellation: false,
+              noiseSuppression: false,
+              autoGainControl: false
+            }
+          });
+        } else if (profile.config.source === 'virtual-audio-cable') {
+          // Try to find virtual audio devices
+          stream = await getVirtualAudioDevice(profile);
+        } else {
+          // Standard getUserMedia approach
+          const constraints = getAudioConstraints(profile);
+          stream = await navigator.mediaDevices.getUserMedia(constraints);
+        }
         
         let processedStream = stream;
         
