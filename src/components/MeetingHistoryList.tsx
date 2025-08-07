@@ -570,15 +570,18 @@ export const MeetingHistoryList = ({
                         {getMeetingTypeLabel(meeting.meeting_type)}
                       </Badge>
                       
-                      {/* Date, Duration, Word Count, Files - All on same line */}
+                      {/* Date, Time, Duration, Word Count, Files - All on same line */}
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
                         <Calendar className="h-3 w-3 flex-shrink-0" />
                         <span className="truncate">{format(new Date(meeting.start_time), 'do MMMM yyyy')}</span>
+                        <span className="mx-1">•</span>
+                        <Clock className="h-3 w-3 flex-shrink-0" />
+                        <span className="truncate">{format(new Date(meeting.start_time), 'HH:mm')}</span>
                       </div>
                       
                       {meeting.duration_minutes && (
                         <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Clock className="h-3 w-3 flex-shrink-0" />
+                          <span className="mx-1">•</span>
                           <span>{formatDuration(meeting.duration_minutes)}</span>
                         </div>
                       )}
