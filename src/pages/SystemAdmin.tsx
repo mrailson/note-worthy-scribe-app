@@ -206,11 +206,13 @@ const SystemAdmin = () => {
       // Fetch user roles with module access for each user
         const usersWithModules = await Promise.all(
         (data || []).map(async (user: any) => {
+          // Get ALL user_roles for this user and take the first one for display
           const { data: roleData } = await supabase
             .from('user_roles')
             .select('meeting_notes_access, gp_scribe_access, complaints_manager_access, complaints_admin_access, replywell_access, ai_4_pm_access')
             .eq('user_id', user.user_id)
-            .maybeSingle();
+            .limit(1)
+            .single();
           
           return {
             ...user,
@@ -423,6 +425,15 @@ const SystemAdmin = () => {
   };
 
   const handleEditUser = (user: any) => {
+    console.log('Editing user:', user);
+    console.log('User module access data:', {
+      meeting_notes: user.meeting_notes_access,
+      gp_scribe: user.gp_scribe_access,
+      complaints_manager: user.complaints_manager_access,
+      complaints_admin: user.complaints_admin_access,
+      replywell: user.replywell_access,
+      ai_4_pm: user.ai_4_pm_access
+    });
     setEditingUser(user);
     setUserFormData({
       email: user.email,
@@ -431,7 +442,7 @@ const SystemAdmin = () => {
       role: user.practice_assignments[0]?.role || 'user',
       practice_id: user.practice_assignments[0]?.practice_id || 'none',
       module_access: {
-        meeting_notes_access: user.meeting_notes_access ?? true,
+        meeting_notes_access: user.meeting_notes_access ?? false,
         gp_scribe_access: user.gp_scribe_access ?? false,
         complaints_manager_access: user.complaints_manager_access ?? false,
         complaints_admin_access: user.complaints_admin_access ?? false,
@@ -460,6 +471,8 @@ const SystemAdmin = () => {
 
   const handleUserSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Submitting user form with data:', userFormData);
+    console.log('Module access being saved:', userFormData.module_access);
     try {
       if (editingUser) {
         // Update existing user - use upsert to handle duplicate constraints
