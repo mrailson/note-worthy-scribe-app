@@ -121,6 +121,7 @@ export const MeetingRecorder = ({
     setConnectionStatus("Disconnected");
     setSpeakerCount(0);
     setWordCount(0);
+    setLastPhrase("");
     setStartTime("");
     setLiveSummary("");
     setDebugLog([]);
