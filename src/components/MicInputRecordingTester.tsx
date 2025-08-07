@@ -1,0 +1,510 @@
+import React, { useState, useRef } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Mic, MicOff, Play, Square, CheckCircle, AlertCircle, Clock, Volume2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+
+interface MicProfile {
+  id: string;
+  name: string;
+  description: string;
+  purpose: string;
+  config: {
+    source: string;
+    noiseCancellation: boolean;
+    echoCancellation: boolean;
+    autoGainControl: boolean;
+    sampleRate: number;
+    channelCount: number;
+    gain?: string;
+  };
+  color: 'safe' | 'caution' | 'danger';
+}
+
+interface TestResult {
+  profileId: string;
+  transcription: string;
+  duration: number;
+  wordCount: number;
+  confidence?: number;
+  error?: string;
+  status: 'idle' | 'recording' | 'processing' | 'completed' | 'error';
+}
+
+const MIC_PROFILES: MicProfile[] = [
+  {
+    id: 'profile1',
+    name: 'Default System Mic (No Processing)',
+    description: 'System default input (e.g. built-in mic or external headset)',
+    purpose: 'Clean baseline using the raw system mic. No signal processing.',
+    config: {
+      source: 'default',
+      noiseCancellation: false,
+      echoCancellation: false,
+      autoGainControl: false,
+      sampleRate: 44100,
+      channelCount: 1
+    },
+    color: 'safe'
+  },
+  {
+    id: 'profile2',
+    name: 'Enhanced Voice Capture',
+    description: 'Default mic with noise reduction and echo cancellation',
+    purpose: 'Uses system processing to clean up speaker echo — best for speaker recordings.',
+    config: {
+      source: 'default',
+      noiseCancellation: true,
+      echoCancellation: true,
+      autoGainControl: true,
+      sampleRate: 44100,
+      channelCount: 1,
+      gain: 'medium'
+    },
+    color: 'safe'
+  },
+  {
+    id: 'profile3',
+    name: 'Stereo Mix / Loopback (If Supported)',
+    description: 'What-you-hear capture (exact system audio)',
+    purpose: 'Captures exact system audio (not mic pickup) — best for perfect YouTube recordings but requires driver support.',
+    config: {
+      source: 'stereo-mix',
+      noiseCancellation: false,
+      echoCancellation: false,
+      autoGainControl: false,
+      sampleRate: 44100,
+      channelCount: 2
+    },
+    color: 'safe'
+  },
+  {
+    id: 'profile4',
+    name: 'High Gain External Mic Test',
+    description: 'External USB mic with high gain boost',
+    purpose: 'Stress-test high-gain mic. Useful for detecting subtle speech or distant audio, but may introduce hiss or distortion.',
+    config: {
+      source: 'external',
+      noiseCancellation: false,
+      echoCancellation: false,
+      autoGainControl: false,
+      sampleRate: 44100,
+      channelCount: 1,
+      gain: 'high'
+    },
+    color: 'caution'
+  },
+  {
+    id: 'profile5',
+    name: 'Browser-Based Echo Isolation',
+    description: 'Browser-selected mic with built-in processing',
+    purpose: 'Uses built-in browser features to isolate voice or media and cancel background interference.',
+    config: {
+      source: 'browser-selected',
+      noiseCancellation: true,
+      echoCancellation: true,
+      autoGainControl: true,
+      sampleRate: 44100,
+      channelCount: 1,
+      gain: 'auto'
+    },
+    color: 'safe'
+  }
+];
+
+export const MicInputRecordingTester: React.FC = () => {
+  const [selectedProfiles, setSelectedProfiles] = useState<string[]>([]);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingProgress, setRecordingProgress] = useState(0);
+  const [results, setResults] = useState<TestResult[]>([]);
+  const [availableDevices, setAvailableDevices] = useState<MediaDeviceInfo[]>([]);
+  
+  const mediaRecorders = useRef<Map<string, MediaRecorder>>(new Map());
+  const audioChunks = useRef<Map<string, Blob[]>>(new Map());
+  const recordingStartTime = useRef<number>(0);
+  const progressInterval = useRef<NodeJS.Timeout | null>(null);
+
+  React.useEffect(() => {
+    // Get available audio input devices
+    navigator.mediaDevices.enumerateDevices()
+      .then(devices => {
+        const audioInputs = devices.filter(device => device.kind === 'audioinput');
+        setAvailableDevices(audioInputs);
+      })
+      .catch(console.error);
+  }, []);
+
+  const toggleProfileSelection = (profileId: string) => {
+    setSelectedProfiles(prev => 
+      prev.includes(profileId) 
+        ? prev.filter(id => id !== profileId)
+        : [...prev, profileId]
+    );
+  };
+
+  const getAudioConstraints = (profile: MicProfile): MediaStreamConstraints => {
+    const baseConstraints: MediaStreamConstraints = {
+      audio: {
+        sampleRate: profile.config.sampleRate,
+        channelCount: profile.config.channelCount,
+        echoCancellation: profile.config.echoCancellation,
+        noiseSuppression: profile.config.noiseCancellation,
+        autoGainControl: profile.config.autoGainControl
+      }
+    };
+
+    // Try to request specific device types based on profile
+    if (profile.config.source === 'external' && availableDevices.length > 1) {
+      // Try to find an external USB mic
+      const externalMic = availableDevices.find(device => 
+        device.label.toLowerCase().includes('usb') || 
+        device.label.toLowerCase().includes('external')
+      );
+      if (externalMic && baseConstraints.audio && typeof baseConstraints.audio === 'object') {
+        (baseConstraints.audio as any).deviceId = { exact: externalMic.deviceId };
+      }
+    }
+
+    return baseConstraints;
+  };
+
+  const startRecording = async () => {
+    if (selectedProfiles.length === 0) {
+      return;
+    }
+
+    setIsRecording(true);
+    setRecordingProgress(0);
+    recordingStartTime.current = Date.now();
+    
+    // Initialize results
+    const initialResults: TestResult[] = selectedProfiles.map(profileId => ({
+      profileId,
+      transcription: '',
+      duration: 0,
+      wordCount: 0,
+      status: 'recording'
+    }));
+    setResults(initialResults);
+
+    // Clear previous recordings
+    mediaRecorders.current.clear();
+    audioChunks.current.clear();
+
+    // Start recording for each selected profile
+    for (const profileId of selectedProfiles) {
+      const profile = MIC_PROFILES.find(p => p.id === profileId);
+      if (!profile) continue;
+
+      try {
+        const constraints = getAudioConstraints(profile);
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        
+        const chunks: Blob[] = [];
+        audioChunks.current.set(profileId, chunks);
+
+        const recorder = new MediaRecorder(stream, {
+          mimeType: 'audio/webm;codecs=opus'
+        });
+
+        recorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            chunks.push(event.data);
+          }
+        };
+
+        mediaRecorders.current.set(profileId, recorder);
+        recorder.start();
+        
+      } catch (error) {
+        console.error(`Failed to start recording for ${profile.name}:`, error);
+        setResults(prev => prev.map(result => 
+          result.profileId === profileId 
+            ? { ...result, status: 'error', error: error instanceof Error ? error.message : 'Unknown error' }
+            : result
+        ));
+      }
+    }
+
+    // Progress tracking (30 seconds)
+    progressInterval.current = setInterval(() => {
+      const elapsed = Date.now() - recordingStartTime.current;
+      const progress = Math.min((elapsed / 30000) * 100, 100);
+      setRecordingProgress(progress);
+
+      if (progress >= 100) {
+        stopRecording();
+      }
+    }, 100);
+  };
+
+  const stopRecording = () => {
+    setIsRecording(false);
+    
+    if (progressInterval.current) {
+      clearInterval(progressInterval.current);
+      progressInterval.current = null;
+    }
+
+    // Stop all recorders
+    mediaRecorders.current.forEach((recorder, profileId) => {
+      if (recorder.state === 'recording') {
+        recorder.stop();
+        
+        recorder.onstop = () => {
+          processRecording(profileId);
+        };
+      }
+    });
+  };
+
+  const processRecording = async (profileId: string) => {
+    const chunks = audioChunks.current.get(profileId);
+    if (!chunks || chunks.length === 0) return;
+
+    setResults(prev => prev.map(result => 
+      result.profileId === profileId 
+        ? { ...result, status: 'processing' }
+        : result
+    ));
+
+    try {
+      const audioBlob = new Blob(chunks, { type: 'audio/webm' });
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'test-audio.webm');
+
+      const { data, error } = await supabase.functions.invoke('test-mp3-transcription', {
+        body: formData
+      });
+
+      if (error) throw error;
+
+      const duration = (Date.now() - recordingStartTime.current) / 1000;
+      const wordCount = data.text ? data.text.split(/\s+/).filter((word: string) => word.length > 0).length : 0;
+
+      setResults(prev => prev.map(result => 
+        result.profileId === profileId 
+          ? { 
+              ...result, 
+              status: 'completed',
+              transcription: data.text || '',
+              duration,
+              wordCount,
+              confidence: data.confidence
+            }
+          : result
+      ));
+
+    } catch (error) {
+      console.error(`Processing failed for ${profileId}:`, error);
+      setResults(prev => prev.map(result => 
+        result.profileId === profileId 
+          ? { 
+              ...result, 
+              status: 'error',
+              error: error instanceof Error ? error.message : 'Processing failed'
+            }
+          : result
+      ));
+    }
+  };
+
+  const getColorClass = (color: string) => {
+    switch (color) {
+      case 'safe': return 'border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950';
+      case 'caution': return 'border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950';
+      case 'danger': return 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950';
+      default: return 'border-border bg-background';
+    }
+  };
+
+  const getBadgeVariant = (color: string) => {
+    switch (color) {
+      case 'safe': return 'default';
+      case 'caution': return 'secondary';
+      case 'danger': return 'destructive';
+      default: return 'outline';
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'recording': return <Mic className="h-4 w-4 text-red-500 animate-pulse" />;
+      case 'processing': return <Clock className="h-4 w-4 text-amber-500 animate-spin" />;
+      case 'completed': return <CheckCircle className="h-4 w-4 text-emerald-500" />;
+      case 'error': return <AlertCircle className="h-4 w-4 text-red-500" />;
+      default: return <MicOff className="h-4 w-4 text-muted-foreground" />;
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Volume2 className="h-5 w-5" />
+            Mic Input Recording Tester
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Test different microphone configurations by recording external audio (e.g., YouTube videos playing through speakers) 
+            and comparing transcription quality across 5 input profiles.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Instructions */}
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              <strong>Instructions:</strong> Play audio from YouTube or another source through your speakers, 
+              select the mic profiles you want to test, then click "Start 30s Recording Test". 
+              Each profile will record the same audio simultaneously for comparison.
+            </AlertDescription>
+          </Alert>
+
+          {/* Profile Selection */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Select Profiles to Test</h3>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {MIC_PROFILES.map((profile) => (
+                <Card 
+                  key={profile.id}
+                  className={`cursor-pointer transition-all ${getColorClass(profile.color)} ${
+                    selectedProfiles.includes(profile.id) 
+                      ? 'ring-2 ring-primary shadow-md' 
+                      : 'hover:shadow-sm'
+                  }`}
+                  onClick={() => toggleProfileSelection(profile.id)}
+                >
+                  <CardContent className="p-4 space-y-3">
+                    <div className="flex items-start justify-between">
+                      <Badge variant={getBadgeVariant(profile.color)} className="text-xs">
+                        🎧 Profile {profile.id.slice(-1)}
+                      </Badge>
+                      <input
+                        type="checkbox"
+                        checked={selectedProfiles.includes(profile.id)}
+                        onChange={() => {}}
+                        className="rounded"
+                      />
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-sm mb-1">{profile.name}</h4>
+                      <p className="text-xs text-muted-foreground mb-2">{profile.description}</p>
+                      <p className="text-xs bg-background/50 p-2 rounded">{profile.purpose}</p>
+                    </div>
+                    <div className="text-xs space-y-1 text-muted-foreground">
+                      <div>Noise Cancel: {profile.config.noiseCancellation ? 'On' : 'Off'}</div>
+                      <div>Echo Cancel: {profile.config.echoCancellation ? 'On' : 'Off'}</div>
+                      {profile.config.gain && <div>Gain: {profile.config.gain}</div>}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+
+          {/* Recording Controls */}
+          <div className="flex items-center gap-4">
+            <Button
+              onClick={startRecording}
+              disabled={isRecording || selectedProfiles.length === 0}
+              className="flex items-center gap-2"
+            >
+              <Play className="h-4 w-4" />
+              Start 30s Recording Test
+            </Button>
+            
+            {isRecording && (
+              <Button
+                onClick={stopRecording}
+                variant="destructive"
+                className="flex items-center gap-2"
+              >
+                <Square className="h-4 w-4" />
+                Stop Early
+              </Button>
+            )}
+
+            <div className="text-sm text-muted-foreground">
+              {selectedProfiles.length} profile{selectedProfiles.length !== 1 ? 's' : ''} selected
+            </div>
+          </div>
+
+          {/* Recording Progress */}
+          {isRecording && (
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Recording Progress</span>
+                <span>{Math.round(recordingProgress)}%</span>
+              </div>
+              <Progress value={recordingProgress} className="w-full" />
+            </div>
+          )}
+
+          {/* Results */}
+          {results.length > 0 && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Test Results</h3>
+              <div className="grid gap-4">
+                {results.map((result) => {
+                  const profile = MIC_PROFILES.find(p => p.id === result.profileId);
+                  if (!profile) return null;
+
+                  return (
+                    <Card key={result.profileId} className={getColorClass(profile.color)}>
+                      <CardContent className="p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Badge variant={getBadgeVariant(profile.color)}>
+                              🎧 {profile.name}
+                            </Badge>
+                            {getStatusIcon(result.status)}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {result.duration > 0 && `${result.duration.toFixed(1)}s`}
+                            {result.wordCount > 0 && ` • ${result.wordCount} words`}
+                            {result.confidence && ` • ${(result.confidence * 100).toFixed(1)}% confidence`}
+                          </div>
+                        </div>
+
+                        {result.status === 'completed' && result.transcription && (
+                          <div className="bg-background/50 p-3 rounded-md text-sm">
+                            <div className="font-medium mb-1">Transcription:</div>
+                            <div className="whitespace-pre-wrap">{result.transcription}</div>
+                          </div>
+                        )}
+
+                        {result.status === 'error' && result.error && (
+                          <div className="bg-red-100 dark:bg-red-900/20 p-3 rounded-md text-sm">
+                            <div className="font-medium mb-1 text-red-700 dark:text-red-400">Error:</div>
+                            <div className="text-red-600 dark:text-red-300">{result.error}</div>
+                          </div>
+                        )}
+
+                        {result.status === 'recording' && (
+                          <div className="text-sm text-muted-foreground animate-pulse">
+                            Recording audio from this input source...
+                          </div>
+                        )}
+
+                        {result.status === 'processing' && (
+                          <div className="text-sm text-muted-foreground animate-pulse">
+                            Processing audio through Whisper AI...
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+};

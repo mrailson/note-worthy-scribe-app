@@ -23,6 +23,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { MeetingSettings } from "@/components/MeetingSettings";
 import { MeetingHistoryList } from "@/components/MeetingHistoryList";
 import { WhisperHallucinationTestSuite } from "@/components/WhisperHallucinationTestSuite";
+import { MicInputRecordingTester } from "@/components/MicInputRecordingTester";
 
 import { NotewellAIAnimation } from "@/components/NotewellAIAnimation";
 
@@ -2521,7 +2522,20 @@ export const MeetingRecorder = ({
 
         {/* Mic Test Service Tab */}
         <TabsContent value="mic-test" className="space-y-4 mt-6">
-          <WhisperHallucinationTestSuite />
+          <Tabs defaultValue="whisper-test" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="whisper-test">Whisper Hallucination Test</TabsTrigger>
+              <TabsTrigger value="mic-input-test">Speaker Capture Test</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="whisper-test" className="mt-6">
+              <WhisperHallucinationTestSuite />
+            </TabsContent>
+            
+            <TabsContent value="mic-input-test" className="mt-6">
+              <MicInputRecordingTester />
+            </TabsContent>
+          </Tabs>
         </TabsContent>
 
       </Tabs>
