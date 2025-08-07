@@ -2485,7 +2485,7 @@ export const MeetingRecorder = ({
                         </div>
                       </div>
                       
-                      <Button 
+                       <Button 
                         onClick={stopRecording}
                         variant="destructive"
                         size="lg"
@@ -2494,43 +2494,43 @@ export const MeetingRecorder = ({
                         <Square className="h-5 w-5 mr-2" />
                         Stop Recording
                        </Button>
-                       
-                       {/* Recording Audio Player */}
-                       {recordingAudioUrl && (
-                         <div className="mt-4 p-3 bg-accent/10 rounded-lg border border-accent/20">
-                           <div className="flex items-center gap-3">
-                             <div className="flex items-center gap-2">
-                               <Volume2 className="h-4 w-4 text-accent" />
-                               <span className="text-sm font-medium">Recording playback:</span>
-                             </div>
-                             <Button
-                               size="sm"
-                               variant="outline"
-                               onClick={() => {
-                                 if (recordingAudioRef.current) {
-                                   if (recordingAudioRef.current.paused) {
-                                     recordingAudioRef.current.play();
-                                   } else {
-                                     recordingAudioRef.current.pause();
-                                   }
-                                 }
-                               }}
-                               className="flex items-center gap-2"
-                             >
-                               <Play className="h-3 w-3" />
-                               Play Recording
-                             </Button>
-                           </div>
-                           <audio
-                             ref={recordingAudioRef}
-                             src={recordingAudioUrl}
-                             controls
-                             className="w-full mt-2 h-8"
-                             preload="metadata"
-                           />
-                         </div>
-                       )}
                       </div>
+                   )}
+                   
+                   {/* Recording Audio Player - Show after recording stops */}
+                   {recordingAudioUrl && !isRecording && (
+                     <div className="mt-4 p-4 bg-accent/10 rounded-lg border border-accent/20">
+                       <div className="flex items-center gap-3 mb-3">
+                         <div className="flex items-center gap-2">
+                           <Volume2 className="h-4 w-4 text-accent" />
+                           <span className="text-sm font-medium">Recording playback:</span>
+                         </div>
+                         <Button
+                           size="sm"
+                           variant="outline"
+                           onClick={() => {
+                             if (recordingAudioRef.current) {
+                               if (recordingAudioRef.current.paused) {
+                                 recordingAudioRef.current.play();
+                               } else {
+                                 recordingAudioRef.current.pause();
+                               }
+                             }
+                           }}
+                           className="flex items-center gap-2"
+                         >
+                           <Play className="h-3 w-3" />
+                           Play Recording
+                         </Button>
+                       </div>
+                       <audio
+                         ref={recordingAudioRef}
+                         src={recordingAudioUrl}
+                         controls
+                         className="w-full h-10"
+                         preload="metadata"
+                       />
+                     </div>
                    )}
                  </div>
 
