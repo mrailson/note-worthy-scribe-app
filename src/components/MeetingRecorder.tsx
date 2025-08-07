@@ -80,7 +80,6 @@ export const MeetingRecorder = ({
   
   // Mic test service visibility
   const [micTestServiceVisible, setMicTestServiceVisible] = useState<boolean>(true);
-  const [showRecordingPlayback, setShowRecordingPlayback] = useState<boolean>(true);
   const [startTime, setStartTime] = useState<string>("");
   const [liveSummary, setLiveSummary] = useState<string>("");
   const [debugLog, setDebugLog] = useState<string[]>([]);
@@ -2953,7 +2952,7 @@ export const MeetingRecorder = ({
                    )}
                    
                     {/* Recording Audio Player - Show after recording stops */}
-                     {recordingAudioUrl && !isRecording && showRecordingPlayback && (
+                     {recordingAudioUrl && !isRecording && micTestServiceVisible && (
                        <div className="mt-4 space-y-3">
                         {/* Mixed Stereo Playback */}
                         <div className="p-4 bg-accent/10 rounded-lg border border-accent/20">
@@ -3413,30 +3412,6 @@ export const MeetingRecorder = ({
         {/* Mic Test Service Tab */}
         {micTestServiceVisible && (
           <TabsContent value="mic-test" className="space-y-4 mt-6">
-            {/* Recording Playback Toggle */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Mic Test Service Settings</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div className="flex flex-col space-y-1">
-                    <Label htmlFor="recording-playback-toggle" className="text-sm font-medium">
-                      Recording Playback Section
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      Enable to show recording playback controls after stopping a recording
-                    </p>
-                  </div>
-                  <Switch
-                    id="recording-playback-toggle"
-                    checked={showRecordingPlayback}
-                    onCheckedChange={setShowRecordingPlayback}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
             <Tabs defaultValue="whisper-test" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="whisper-test">Whisper Hallucination Test</TabsTrigger>

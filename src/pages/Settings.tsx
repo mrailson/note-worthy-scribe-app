@@ -566,19 +566,19 @@ export default function Settings() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Headphones className="h-5 w-5" />
-                    Mic Test Service Access
+                    Mic Test Service & Recording Playback Access
                   </CardTitle>
                   <p className="text-muted-foreground">
-                    Control whether the Mic Test Service tab is visible in your meeting recorder.
+                    Control both the Mic Test Service tab and recording playback features in your meeting recorder.
                   </p>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <div className="space-y-1">
-                        <Label htmlFor="mic-test-service-toggle">Show Mic Test Service</Label>
+                        <Label htmlFor="mic-test-service-toggle">Show Mic Test Service & Recording Playback</Label>
                         <p className="text-sm text-muted-foreground">
-                          Enable or disable access to the Mic Test Service features
+                          Enable or disable both Mic Test Service features and recording playback sections
                         </p>
                       </div>
                       <Switch
@@ -593,7 +593,15 @@ export default function Settings() {
                         <strong>Current setting:</strong> {micTestServiceVisible ? 'Enabled' : 'Disabled'}
                       </p>
                       <p>
-                        When disabled, the Mic Test Service tab will not appear in your meeting recorder interface. This includes both Whisper Hallucination Test and Speaker Capture Test features.
+                        When enabled, you'll see:
+                      </p>
+                      <ul className="list-disc list-inside mt-1 space-y-1">
+                        <li>Mic Test Service tab in the meeting recorder</li>
+                        <li>Recording playback controls after stopping recordings</li>
+                        <li>Whisper Hallucination Test and Speaker Capture Test features</li>
+                      </ul>
+                      <p className="mt-2">
+                        When disabled, all these features will be hidden from your interface.
                       </p>
                     </div>
                   </div>
