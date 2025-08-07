@@ -109,12 +109,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Force refresh user modules every 5 seconds to catch permission changes
+  // Force refresh user modules every 2 seconds to catch permission changes
   useEffect(() => {
     if (user?.id) {
+      // Immediate refresh
+      fetchUserModules(user.id);
+      
       const interval = setInterval(() => {
         fetchUserModules(user.id);
-      }, 5000);
+      }, 2000); // Reduced to 2 seconds for faster updates
       
       return () => clearInterval(interval);
     }
