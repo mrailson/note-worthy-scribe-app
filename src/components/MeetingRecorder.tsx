@@ -2057,8 +2057,8 @@ export const MeetingRecorder = ({
 
   const startRecording = async () => {
     try {
-      addDebugLog('🚀 Starting recording with microphone...');
-      console.log('Starting recording with microphone...');
+      addDebugLog('🚀 Starting recording...');
+      console.log('Starting recording...');
       
       // Clear previous debug logs and test transcripts
       setDebugLog([]);
@@ -2069,10 +2069,26 @@ export const MeetingRecorder = ({
         transcriptHandler.current.clear();
       }
       
-      // Start stereo audio capture (mic + system audio)
-      await startStereoRecording();
-      // Always use microphone transcription
-      await startMicrophoneTranscription();
+      // Check recording mode and browser
+      const isChrome = /Chrome/.test(navigator.userAgent) && !/Edg/.test(navigator.userAgent);
+      
+      if (recordingMode === 'mic-only') {
+        // Microphone only mode
+        addDebugLog('🎙️ Starting microphone-only recording...');
+        await startMicrophoneTranscription();
+      } else if (recordingMode === 'mic-and-system') {
+        // Microphone + System audio mode
+        if (isChrome) {
+          // Chrome: Use screen share method for system audio
+          addDebugLog('🖥️ Chrome detected - using screen share for system audio...');
+          await startComputerAudioTranscription();
+        } else {
+          // Edge and other browsers: Use stereo recording
+          addDebugLog('🎧 Starting stereo recording (mic + system audio)...');
+          await startStereoRecording();
+          await startMicrophoneTranscription();
+        }
+      }
       
       setIsRecording(true);
       setRealtimeTranscripts([]);
@@ -2088,8 +2104,10 @@ export const MeetingRecorder = ({
         console.log(`🔗 Set temporary meeting ID: ${tempMeetingId}`);
       }
 
-      // Start overlapping chunk recording instead of traditional segment recording
-      await startOverlappingChunks(tempMeetingId);
+      // Start overlapping chunk recording for system audio (only if not microphone-only)
+      if (recordingMode === 'mic-and-system' && !isChrome) {
+        await startOverlappingChunks(tempMeetingId);
+      }
       
       addDebugLog('✅ Recording started successfully');
       
@@ -2108,12 +2126,22 @@ export const MeetingRecorder = ({
       // Start transcript snippet monitoring
       startTranscriptSnippetMonitoring();
 
-      const successMessage = 'Recording started with microphone!';
+      const modeText = recordingMode === 'mic-only' ? 'microphone only' : 
+                      isChrome ? 'microphone + screen audio (Chrome)' : 'microphone + system audio';
+      const successMessage = `Recording started with ${modeText}!`;
       toast.success(successMessage);
     } catch (error: any) {
       console.error('Failed to start recording:', error);
       addDebugLog(`❌ Failed to start: ${error.message}`);
-      toast.error(error.message || 'Failed to start recording');
+      
+      // Provide specific error messages for Chrome screen share
+      const isChrome = /Chrome/.test(navigator.userAgent) && !/Edg/.test(navigator.userAgent);
+      if (isChrome && recordingMode === 'mic-and-system') {
+        toast.error('Please allow screen sharing permission in Chrome to capture meeting audio. Try again and select a window/tab to share.');
+      } else {
+        toast.error(error.message || 'Failed to start recording');
+      }
+      
       setIsRecording(false);
       setConnectionStatus("Error");
     }
