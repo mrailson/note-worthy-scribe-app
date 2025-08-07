@@ -915,7 +915,7 @@ export const MeetingHistoryList = ({
                               <div className="p-1.5 rounded-full bg-green-100 dark:bg-green-900/50">
                                 <Monitor className="h-4 w-4 text-green-600 dark:text-green-400" />
                               </div>
-                              <span className="text-sm font-medium">Right Channel Recording (System Audio)</span>
+                              <span className="text-xs font-medium">"Right Channel Recording (System Audio)"</span>
                               {!audioUrls[meeting.id]?.rightAudioSignedUrl && (
                                 <Button 
                                   variant="outline" 
