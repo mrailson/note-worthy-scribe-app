@@ -1874,6 +1874,13 @@ export const MeetingRecorder = ({
       const arrayBuffer = await stereoBlob.arrayBuffer();
       const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
       
+      console.log('🎵 Audio analysis:', {
+        numberOfChannels: audioBuffer.numberOfChannels,
+        duration: audioBuffer.duration,
+        sampleRate: audioBuffer.sampleRate,
+        length: audioBuffer.length
+      });
+      
       if (audioBuffer.numberOfChannels >= 2) {
         // Create mono buffers for each channel
         const micBuffer = audioContext.createBuffer(1, audioBuffer.length, audioBuffer.sampleRate);
@@ -1897,14 +1904,34 @@ export const MeetingRecorder = ({
         setMicAudioUrl(URL.createObjectURL(micAudioBlob));
         setSystemAudioUrl(URL.createObjectURL(systemAudioBlob));
         
-        console.log('✅ Created separate channel audio files');
+        console.log('✅ Created separate channel audio files', {
+          micBlobSize: micAudioBlob.size,
+          systemBlobSize: systemAudioBlob.size
+        });
       } else {
-        console.warn('⚠️ Audio only has one channel, using same audio for both');
-        setMicBlob(stereoBlob);
-        setSystemBlob(null);
-        const monoUrl = URL.createObjectURL(stereoBlob);
-        setMicAudioUrl(monoUrl);
-        setSystemAudioUrl(null);
+        console.warn('⚠️ Audio only has one channel, creating duplicate for testing');
+        
+        // For mono audio, create two copies so user can test both channels
+        // This helps with troubleshooting even when system audio isn't captured
+        const monoBuffer = audioContext.createBuffer(1, audioBuffer.length, audioBuffer.sampleRate);
+        monoBuffer.copyToChannel(audioBuffer.getChannelData(0), 0);
+        
+        const micAudioBlob = await audioBufferToBlob(monoBuffer);
+        const systemAudioBlob = await audioBufferToBlob(monoBuffer); // Same content for testing
+        
+        setMicBlob(micAudioBlob);
+        setSystemBlob(systemAudioBlob); // Now both are populated
+        
+        const micUrl = URL.createObjectURL(micAudioBlob);
+        const systemUrl = URL.createObjectURL(systemAudioBlob);
+        setMicAudioUrl(micUrl);
+        setSystemAudioUrl(systemUrl);
+        
+        console.log('✅ Created duplicate channel audio files for testing', {
+          originalChannels: audioBuffer.numberOfChannels,
+          micBlobSize: micAudioBlob.size,
+          systemBlobSize: systemAudioBlob.size
+        });
       }
       
       audioContext.close();
