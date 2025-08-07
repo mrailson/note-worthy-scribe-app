@@ -20,12 +20,21 @@ export class TranscriptCleaner {
   constructor() {
     // Common hallucination patterns
     this.hallucinationPatterns = [
-      // Repeated words (3+ times)
-      /\b(\w+)(\s+\1){2,}\b/gi,
-      // Audio instructions
+      // Repeated words (2+ times)
+      /\b(\w+)(\s+\1){1,}\b/gi,
+      // Audio instructions and technical terms
       /please use (earphones|headphones|headset|microphone)/gi,
       /check your (audio|microphone|speakers|headphones)/gi,
       /turn (on|off) your (microphone|camera|audio)/gi,
+      // Audio quality descriptions (major hallucination source)
+      /unclear audio/gi,
+      /background noise/gi,
+      /static/gi,
+      /\[music\]/gi,
+      /\[sound\]/gi,
+      /\[noise\]/gi,
+      // Repetitive audio descriptors
+      /\b(music|audio)\b.*?\b(or|and)\b.*?\b(unclear|music|audio)\b/gi,
       // Generic meeting phrases that appear incorrectly
       /thank you for watching/gi,
       /thanks for listening/gi,
@@ -83,6 +92,13 @@ export class TranscriptCleaner {
       "meeting recording enabled",
       "audio is being captured",
       "voice recording active",
+      "unclear audio",
+      "background music",
+      "background noise",
+      "music",
+      "speech and unclear audio",
+      "or unclear audio",
+      "and unclear audio",
     ];
   }
 
@@ -156,10 +172,20 @@ export class TranscriptCleaner {
 
   /**
    * Remove short repeated segments like "the the the" or "and and"
+   * Also catches longer repetitive patterns like "unclear audio, music, or unclear audio"
    */
   private removeShortRepeats(text: string): string {
-    // Remove 2-3 word repeated segments
-    return text.replace(/\b(\w{1,6}(?:\s+\w{1,6}){0,2})(\s+\1){1,}/gi, '$1');
+    // Remove 2-3 word repeated segments  
+    let cleaned = text.replace(/\b(\w{1,6}(?:\s+\w{1,6}){0,2})(\s+\1){1,}/gi, '$1');
+    
+    // Special case: remove repetitive "unclear audio, music" patterns
+    cleaned = cleaned.replace(/(unclear audio[,\s]*music[,\s]*or\s+)+/gi, ' ');
+    cleaned = cleaned.replace(/(music[,\s]*or\s+unclear audio[,\s]*)+/gi, ' ');
+    
+    // Remove any phrase that repeats more than 3 times in a row
+    cleaned = cleaned.replace(/\b(.{5,20}?)\1{2,}/gi, '$1');
+    
+    return cleaned;
   }
 
   /**
