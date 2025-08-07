@@ -66,6 +66,7 @@ export const MeetingRecorder = ({
   initialActiveTab
 }: MeetingRecorderProps) => {
   const [isRecording, setIsRecording] = useState(false);
+  const [isStoppingRecording, setIsStoppingRecording] = useState(false);
   const [duration, setDuration] = useState(0);
   const [transcript, setTranscript] = useState("");
   const [realtimeTranscripts, setRealtimeTranscripts] = useState<TranscriptData[]>([]);
@@ -2070,6 +2071,7 @@ export const MeetingRecorder = ({
   };
 
   const stopRecording = async () => {
+    setIsStoppingRecording(true);
     addDebugLog('🛑 Stopping recording...');
     console.log('Stopping recording...');
     
@@ -2156,6 +2158,7 @@ export const MeetingRecorder = ({
     }
     
     setIsRecording(false);
+    setIsStoppingRecording(false);
     setConnectionStatus("Disconnected");
     
     // Clear unsaved meeting data when stopping normally
@@ -2871,10 +2874,11 @@ export const MeetingRecorder = ({
                         onClick={stopRecording}
                         variant="destructive"
                         size="lg"
-                        className="shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 px-8 py-4 text-base font-semibold rounded-lg"
+                        disabled={isStoppingRecording}
+                        className="shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 px-8 py-4 text-base font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                       >
                         <Square className="h-5 w-5 mr-2" />
-                        Stop Recording
+                        {isStoppingRecording ? "Ending Recording..." : "Stop Recording"}
                        </Button>
                       </div>
                    )}
