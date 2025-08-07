@@ -2523,6 +2523,7 @@ export type Database = {
           id: string
           last_login: string | null
           meeting_retention_policy: string | null
+          mic_test_service_visible: boolean
           nhs_trust: string | null
           role: string | null
           shared_drive_visible: boolean
@@ -2537,6 +2538,7 @@ export type Database = {
           id?: string
           last_login?: string | null
           meeting_retention_policy?: string | null
+          mic_test_service_visible?: boolean
           nhs_trust?: string | null
           role?: string | null
           shared_drive_visible?: boolean
@@ -2551,6 +2553,7 @@ export type Database = {
           id?: string
           last_login?: string | null
           meeting_retention_policy?: string | null
+          mic_test_service_visible?: boolean
           nhs_trust?: string | null
           role?: string | null
           shared_drive_visible?: boolean

@@ -75,6 +75,9 @@ export const MeetingRecorder = ({
   const [wordCount, setWordCount] = useState(0);
   const [showLastPhrase, setShowLastPhrase] = useState(false);
   const [lastPhrase, setLastPhrase] = useState("");
+  
+  // Mic test service visibility
+  const [micTestServiceVisible, setMicTestServiceVisible] = useState<boolean>(true);
   const [startTime, setStartTime] = useState<string>("");
   const [liveSummary, setLiveSummary] = useState<string>("");
   const [debugLog, setDebugLog] = useState<string[]>([]);
@@ -2572,10 +2575,35 @@ export const MeetingRecorder = ({
     }
   };
 
+  // Fetch mic test service visibility setting
+  const fetchMicTestServiceSettings = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('mic_test_service_visible')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching mic test service settings:', error);
+        return;
+      }
+      
+      if (data?.mic_test_service_visible !== undefined) {
+        setMicTestServiceVisible(data.mic_test_service_visible);
+      }
+    } catch (error) {
+      console.error('Error fetching mic test service settings:', error);
+    }
+  };
+
   // Load history when user changes or component mounts
   useEffect(() => {
     if (user) {
       loadMeetingHistory();
+      fetchMicTestServiceSettings();
     }
   }, [user]);
 
@@ -2737,7 +2765,7 @@ export const MeetingRecorder = ({
     <div className="space-y-6">
       {/* Tabbed Interface */}
       <Tabs defaultValue={initialActiveTab || "recorder"} className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className={`grid w-full ${micTestServiceVisible ? 'grid-cols-5' : 'grid-cols-4'}`}>
           <TabsTrigger value="recorder" className="flex items-center gap-2">
             <Mic style={{ width: '20px', height: '20px', color: '#0066cc', display: 'block' }} />
             <span className="hidden sm:inline">Meeting Recorder</span>
@@ -2758,11 +2786,13 @@ export const MeetingRecorder = ({
             <span className="hidden sm:inline">Meeting History</span>
             <span className="sm:hidden">History</span>
           </TabsTrigger>
-          <TabsTrigger value="mic-test" className="flex items-center gap-2">
-            <Headphones style={{ width: '20px', height: '20px', color: '#0066cc', display: 'block' }} />
-            <span className="hidden sm:inline">Mic Test Service</span>
-            <span className="sm:hidden">Test</span>
-          </TabsTrigger>
+          {micTestServiceVisible && (
+            <TabsTrigger value="mic-test" className="flex items-center gap-2">
+              <Headphones style={{ width: '20px', height: '20px', color: '#0066cc', display: 'block' }} />
+              <span className="hidden sm:inline">Mic Test Service</span>
+              <span className="sm:hidden">Test</span>
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* Meeting Recorder Tab - ONLY recording controls */}
@@ -3353,22 +3383,24 @@ export const MeetingRecorder = ({
         </TabsContent>
 
         {/* Mic Test Service Tab */}
-        <TabsContent value="mic-test" className="space-y-4 mt-6">
-          <Tabs defaultValue="whisper-test" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="whisper-test">Whisper Hallucination Test</TabsTrigger>
-              <TabsTrigger value="mic-input-test">Speaker Capture Test</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="whisper-test" className="mt-6">
-              <WhisperHallucinationTestSuite />
-            </TabsContent>
-            
-            <TabsContent value="mic-input-test" className="mt-6">
-              <MicInputRecordingTester />
-            </TabsContent>
-          </Tabs>
-        </TabsContent>
+        {micTestServiceVisible && (
+          <TabsContent value="mic-test" className="space-y-4 mt-6">
+            <Tabs defaultValue="whisper-test" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="whisper-test">Whisper Hallucination Test</TabsTrigger>
+                <TabsTrigger value="mic-input-test">Speaker Capture Test</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="whisper-test" className="mt-6">
+                <WhisperHallucinationTestSuite />
+              </TabsContent>
+              
+              <TabsContent value="mic-input-test" className="mt-6">
+                <MicInputRecordingTester />
+              </TabsContent>
+            </Tabs>
+          </TabsContent>
+        )}
 
       </Tabs>
       
