@@ -146,7 +146,19 @@ export const MeetingRecorder = ({
       recordingAudioRef.current.pause();
       recordingAudioRef.current.currentTime = 0;
     }
+    if (micAudioRef.current) {
+      micAudioRef.current.pause();
+      micAudioRef.current.currentTime = 0;
+    }
+    if (systemAudioRef.current) {
+      systemAudioRef.current.pause();
+      systemAudioRef.current.currentTime = 0;
+    }
     setRecordingAudioUrl(null);
+    setMicAudioUrl(null);
+    setSystemAudioUrl(null);
+    setMicAudioUrl(null);
+    setSystemAudioUrl(null);
     
     // Clear transcript snippet interval
     if (transcriptSnippetIntervalRef.current) {
@@ -175,7 +187,11 @@ export const MeetingRecorder = ({
   
   // Recording playback refs
   const [recordingAudioUrl, setRecordingAudioUrl] = useState<string | null>(null);
+  const [micAudioUrl, setMicAudioUrl] = useState<string | null>(null);
+  const [systemAudioUrl, setSystemAudioUrl] = useState<string | null>(null);
   const recordingAudioRef = useRef<HTMLAudioElement | null>(null);
+  const micAudioRef = useRef<HTMLAudioElement | null>(null);
+  const systemAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // Audio segment recording refs
   const audioSegmentRecorder = useRef<MediaRecorder | null>(null);
@@ -1844,6 +1860,108 @@ export const MeetingRecorder = ({
     });
   };
 
+  // Create channel-specific audio from stereo recording
+  const createChannelSpecificAudio = async (stereoBlob: Blob) => {
+    try {
+      const audioContext = new AudioContext();
+      const arrayBuffer = await stereoBlob.arrayBuffer();
+      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+      
+      if (audioBuffer.numberOfChannels >= 2) {
+        // Create mono buffers for each channel
+        const micBuffer = audioContext.createBuffer(1, audioBuffer.length, audioBuffer.sampleRate);
+        const systemBuffer = audioContext.createBuffer(1, audioBuffer.length, audioBuffer.sampleRate);
+        
+        // Copy left channel (mic) to micBuffer
+        micBuffer.copyToChannel(audioBuffer.getChannelData(0), 0);
+        
+        // Copy right channel (system) to systemBuffer  
+        systemBuffer.copyToChannel(audioBuffer.getChannelData(1), 0);
+        
+        // Convert buffers back to blobs
+        const micBlob = await audioBufferToBlob(micBuffer);
+        const systemBlob = await audioBufferToBlob(systemBuffer);
+        
+        // Create URLs
+        setMicAudioUrl(URL.createObjectURL(micBlob));
+        setSystemAudioUrl(URL.createObjectURL(systemBlob));
+        
+        console.log('✅ Created separate channel audio files');
+      } else {
+        console.warn('⚠️ Audio only has one channel, using same audio for both');
+        const monoUrl = URL.createObjectURL(stereoBlob);
+        setMicAudioUrl(monoUrl);
+        setSystemAudioUrl(null);
+      }
+      
+      audioContext.close();
+    } catch (error) {
+      console.error('❌ Failed to create channel-specific audio:', error);
+    }
+  };
+
+  // Helper function to convert AudioBuffer to Blob
+  const audioBufferToBlob = async (audioBuffer: AudioBuffer): Promise<Blob> => {
+    const offlineContext = new OfflineAudioContext(
+      audioBuffer.numberOfChannels,
+      audioBuffer.length,
+      audioBuffer.sampleRate
+    );
+    
+    const source = offlineContext.createBufferSource();
+    source.buffer = audioBuffer;
+    source.connect(offlineContext.destination);
+    source.start();
+    
+    const renderedBuffer = await offlineContext.startRendering();
+    
+    // Convert to WAV format
+    const wavArrayBuffer = audioBufferToWav(renderedBuffer);
+    return new Blob([wavArrayBuffer], { type: 'audio/wav' });
+  };
+
+  // Convert AudioBuffer to WAV format
+  const audioBufferToWav = (buffer: AudioBuffer): ArrayBuffer => {
+    const length = buffer.length;
+    const numberOfChannels = buffer.numberOfChannels;
+    const sampleRate = buffer.sampleRate;
+    const arrayBuffer = new ArrayBuffer(44 + length * numberOfChannels * 2);
+    const view = new DataView(arrayBuffer);
+    
+    // WAV header
+    const writeString = (offset: number, string: string) => {
+      for (let i = 0; i < string.length; i++) {
+        view.setUint8(offset + i, string.charCodeAt(i));
+      }
+    };
+    
+    writeString(0, 'RIFF');
+    view.setUint32(4, 36 + length * numberOfChannels * 2, true);
+    writeString(8, 'WAVE');
+    writeString(12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, numberOfChannels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * numberOfChannels * 2, true);
+    view.setUint16(32, numberOfChannels * 2, true);
+    view.setUint16(34, 16, true);
+    writeString(36, 'data');
+    view.setUint32(40, length * numberOfChannels * 2, true);
+    
+    // Convert float samples to 16-bit PCM
+    let offset = 44;
+    for (let i = 0; i < length; i++) {
+      for (let channel = 0; channel < numberOfChannels; channel++) {
+        const sample = Math.max(-1, Math.min(1, buffer.getChannelData(channel)[i]));
+        view.setInt16(offset, sample * 0x7FFF, true);
+        offset += 2;
+      }
+    }
+    
+    return arrayBuffer;
+  };
+
   const startRecording = async () => {
     try {
       addDebugLog('🚀 Starting recording with microphone...');
@@ -1978,6 +2096,10 @@ export const MeetingRecorder = ({
     if (stereoBlob && stereoBlob.size > 0) {
       const audioUrl = URL.createObjectURL(stereoBlob);
       setRecordingAudioUrl(audioUrl);
+      
+      // Create separate URLs for each channel
+      await createChannelSpecificAudio(stereoBlob);
+      
       console.log('✅ Stereo recording audio ready for playback:', {
         size: stereoBlob.size,
         url: audioUrl,
@@ -2621,40 +2743,115 @@ export const MeetingRecorder = ({
                    )}
                    
                    {/* Recording Audio Player - Show after recording stops */}
-                   {recordingAudioUrl && !isRecording && (
-                     <div className="mt-4 p-4 bg-accent/10 rounded-lg border border-accent/20">
-                       <div className="flex items-center gap-3 mb-3">
-                         <div className="flex items-center gap-2">
-                           <Volume2 className="h-4 w-4 text-accent" />
-                           <span className="text-sm font-medium">Recording playback:</span>
-                         </div>
-                         <Button
-                           size="sm"
-                           variant="outline"
-                           onClick={() => {
-                             if (recordingAudioRef.current) {
-                               if (recordingAudioRef.current.paused) {
-                                 recordingAudioRef.current.play();
-                               } else {
-                                 recordingAudioRef.current.pause();
-                               }
-                             }
-                           }}
-                           className="flex items-center gap-2"
-                         >
-                           <Play className="h-3 w-3" />
-                           Play Recording
-                         </Button>
-                       </div>
-                       <audio
-                         ref={recordingAudioRef}
-                         src={recordingAudioUrl}
-                         controls
-                         className="w-full h-10"
-                         preload="metadata"
-                       />
-                     </div>
-                   )}
+                    {recordingAudioUrl && !isRecording && (
+                      <div className="mt-4 space-y-3">
+                        {/* Stereo Playback */}
+                        <div className="p-4 bg-accent/10 rounded-lg border border-accent/20">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="flex items-center gap-2">
+                              <Headphones className="h-4 w-4 text-accent" />
+                              <span className="text-sm font-medium">Stereo Recording (Left=Mic, Right=System):</span>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                if (recordingAudioRef.current) {
+                                  if (recordingAudioRef.current.paused) {
+                                    recordingAudioRef.current.play();
+                                  } else {
+                                    recordingAudioRef.current.pause();
+                                  }
+                                }
+                              }}
+                              className="flex items-center gap-2"
+                            >
+                              <Play className="h-3 w-3" />
+                              Play Stereo
+                            </Button>
+                          </div>
+                          <audio
+                            ref={recordingAudioRef}
+                            src={recordingAudioUrl}
+                            controls
+                            className="w-full h-10"
+                            preload="metadata"
+                          />
+                        </div>
+
+                        {/* Microphone Only Playback */}
+                        {micAudioUrl && (
+                          <div className="p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+                            <div className="flex items-center gap-3 mb-3">
+                              <div className="flex items-center gap-2">
+                                <Mic className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                <span className="text-sm font-medium">Microphone Only:</span>
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  if (micAudioRef.current) {
+                                    if (micAudioRef.current.paused) {
+                                      micAudioRef.current.play();
+                                    } else {
+                                      micAudioRef.current.pause();
+                                    }
+                                  }
+                                }}
+                                className="flex items-center gap-2"
+                              >
+                                <Play className="h-3 w-3" />
+                                Play Mic
+                              </Button>
+                            </div>
+                            <audio
+                              ref={micAudioRef}
+                              src={micAudioUrl}
+                              controls
+                              className="w-full h-10"
+                              preload="metadata"
+                            />
+                          </div>
+                        )}
+
+                        {/* System Audio Only Playback */}
+                        {systemAudioUrl && (
+                          <div className="p-4 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
+                            <div className="flex items-center gap-3 mb-3">
+                              <div className="flex items-center gap-2">
+                                <Monitor className="h-4 w-4 text-green-600 dark:text-green-400" />
+                                <span className="text-sm font-medium">System Audio Only:</span>
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  if (systemAudioRef.current) {
+                                    if (systemAudioRef.current.paused) {
+                                      systemAudioRef.current.play();
+                                    } else {
+                                      systemAudioRef.current.pause();
+                                    }
+                                  }
+                                }}
+                                className="flex items-center gap-2"
+                              >
+                                <Play className="h-3 w-3" />
+                                Play System
+                              </Button>
+                            </div>
+                            <audio
+                              ref={systemAudioRef}
+                              src={systemAudioUrl}
+                              controls
+                              className="w-full h-10"
+                              preload="metadata"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
                  </div>
 
                 {/* Compact Welcome Message */}
