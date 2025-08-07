@@ -80,6 +80,8 @@ interface MeetingHistoryListProps {
   onSelectMeeting?: (meetingId: string, checked: boolean) => void;
   // Callback for when a meeting title is updated
   onMeetingUpdate?: (meetingId: string, updatedTitle: string) => void;
+  // Callback for when documents are uploaded
+  onDocumentsUploaded?: (meetingId: string, newDocumentCount: number) => void;
 }
 
 export const MeetingHistoryList = ({ 
@@ -92,7 +94,8 @@ export const MeetingHistoryList = ({
   isSelectMode = false,
   selectedMeetings = [],
   onSelectMeeting,
-  onMeetingUpdate
+  onMeetingUpdate,
+  onDocumentsUploaded
 }: MeetingHistoryListProps) => {
   const [editingMeetingId, setEditingMeetingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState<string>("");
@@ -229,10 +232,14 @@ export const MeetingHistoryList = ({
       toast.success(`${selectedFiles.length} document(s) uploaded successfully`);
       setSelectedFiles([]);
       setUploadDialogOpen(false);
-      setSelectedMeetingForUpload(null);
       
-      // Refresh the page to show updated document count
-      window.location.reload();
+      // Update the document count locally
+      if (onDocumentsUploaded) {
+        const currentCount = selectedMeetingForUpload.document_count || 0;
+        onDocumentsUploaded(selectedMeetingForUpload.id, currentCount + selectedFiles.length);
+      }
+      
+      setSelectedMeetingForUpload(null);
     } catch (error: any) {
       console.error('Error uploading documents:', error.message);
       toast.error('Failed to upload documents');
@@ -582,6 +589,20 @@ export const MeetingHistoryList = ({
                 currentOverview={meeting.overview || generateOverview(meeting)}
                 className="mb-3"
               />
+              
+              {/* File Upload Summary - Show if documents exist */}
+              {meeting.document_count && meeting.document_count > 0 && (
+                <div className="bg-muted/30 rounded-lg p-3 border border-muted">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Paperclip className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-medium">Supporting Documents ({meeting.document_count})</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {meeting.document_count} file{meeting.document_count !== 1 ? 's' : ''} uploaded. 
+                    View detailed notes to access individual documents.
+                  </p>
+                </div>
+              )}
               
               {/* Meeting Stats - Mobile Responsive */}
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">

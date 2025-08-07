@@ -1604,6 +1604,14 @@ const MeetingHistory = () => {
                   : meeting
               ));
             }}
+            onDocumentsUploaded={(meetingId, newDocumentCount) => {
+              // Update the local meetings array with new document count
+              setMeetings(prev => prev.map(meeting => 
+                meeting.id === meetingId 
+                  ? { ...meeting, document_count: newDocumentCount }
+                  : meeting
+              ));
+            }}
           />
         )}
 
