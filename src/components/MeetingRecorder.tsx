@@ -133,13 +133,12 @@ export const MeetingRecorder = ({
       stopRecording();
     }
     
-    // Clear preview audio if playing
-    if (previewAudioRef.current) {
-      previewAudioRef.current.pause();
-      previewAudioRef.current.currentTime = 0;
+    // Clear recording audio if playing
+    if (recordingAudioRef.current) {
+      recordingAudioRef.current.pause();
+      recordingAudioRef.current.currentTime = 0;
     }
-    setPreviewAudioUrl(null);
-    setPreviewReady(false);
+    setRecordingAudioUrl(null);
     
     console.log('🔄 Meeting reset completed');
     toast.success("Meeting reset - ready for new recording");
@@ -160,13 +159,9 @@ export const MeetingRecorder = ({
   const audioBackupChunks = useRef<Blob[]>([]);
   const audioBackupStream = useRef<MediaStream | null>(null);
   
-  // First 15 seconds preview refs
-  const previewRecorder = useRef<MediaRecorder | null>(null);
-  const previewChunks = useRef<Blob[]>([]);
-  const previewStream = useRef<MediaStream | null>(null);
-  const [previewAudioUrl, setPreviewAudioUrl] = useState<string | null>(null);
-  const [previewReady, setPreviewReady] = useState(false);
-  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
+  // Recording playback refs
+  const [recordingAudioUrl, setRecordingAudioUrl] = useState<string | null>(null);
+  const recordingAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // Audio segment recording refs
   const audioSegmentRecorder = useRef<MediaRecorder | null>(null);
@@ -204,86 +199,6 @@ export const MeetingRecorder = ({
     return roundedTime.toISOString();
   };
 
-  // First 15 seconds preview recording
-  const startPreviewRecording = async () => {
-    try {
-      console.log('🎯 Starting 15-second preview recording...');
-      
-      // Wait 2 seconds to avoid conflicts with main recording setup
-      console.log('⏱️ Waiting 2 seconds before starting preview...');
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      console.log('✅ Preview delay completed, starting audio capture...');
-      
-      // Use simple, standard Profile 1 settings for preview
-      const profile1Constraints: MediaStreamConstraints = {
-        audio: {
-          sampleRate: 44100,
-          channelCount: 1,
-          echoCancellation: false,
-          noiseSuppression: false,
-          autoGainControl: false
-        }
-      };
-
-      // Create SEPARATE stream for preview to avoid conflicts
-      console.log('🎵 Requesting preview audio stream with constraints:', profile1Constraints);
-      previewStream.current = await navigator.mediaDevices.getUserMedia(profile1Constraints);
-      console.log('✅ Preview audio stream obtained:', {
-        tracks: previewStream.current.getAudioTracks().length,
-        settings: previewStream.current.getAudioTracks()[0]?.getSettings()
-      });
-      previewChunks.current = [];
-      
-      previewRecorder.current = new MediaRecorder(previewStream.current, {
-        mimeType: 'audio/webm;codecs=opus'
-      });
-      console.log('🎙️ Preview MediaRecorder created');
-
-      previewRecorder.current.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          previewChunks.current.push(event.data);
-        }
-      };
-
-      previewRecorder.current.onstop = () => {
-        console.log('🛑 Preview recording stopped, creating blob...');
-        const previewBlob = new Blob(previewChunks.current, { type: 'audio/webm' });
-        const url = URL.createObjectURL(previewBlob);
-        setPreviewAudioUrl(url);
-        setPreviewReady(true);
-        
-        console.log('✅ 15-second preview ready:', {
-          size: previewBlob.size,
-          duration: '15 seconds',
-          url: url,
-          chunksCount: previewChunks.current.length
-        });
-        
-        // Clean up preview stream WITHOUT affecting other recordings
-        if (previewStream.current) {
-          previewStream.current.getTracks().forEach(track => track.stop());
-          previewStream.current = null;
-        }
-      };
-
-      console.log('▶️ Starting preview MediaRecorder...');
-      previewRecorder.current.start(1000); // Collect data every second
-      
-      // Stop after exactly 15 seconds
-      console.log('⏲️ Setting 15-second timeout for preview...');
-      setTimeout(() => {
-        if (previewRecorder.current && previewRecorder.current.state === 'recording') {
-          console.log('⏹️ Stopping preview recording after 15 seconds...');
-          previewRecorder.current.stop();
-        }
-      }, 15000);
-
-      console.log('✅ 15-second preview recording started with independent stream');
-      
-    } catch (error) {
-      console.error('❌ Failed to start preview recording:', error);
-    }
-  };
 
   // Audio backup functions
   const startAudioBackup = async () => {
@@ -1845,9 +1760,8 @@ export const MeetingRecorder = ({
         transcriptHandler.current.clear();
       }
       
-      // Start audio backup recording and 15-second preview
+      // Start audio backup recording
       await startAudioBackup();
-      await startPreviewRecording(); // Re-enabled for testing
       // Always use microphone transcription
       await startMicrophoneTranscription();
       
@@ -1952,6 +1866,16 @@ export const MeetingRecorder = ({
     
     // Stop audio backup recording
     const audioBackupBlob = await stopAudioBackup();
+    
+    // Create audio URL for playback from the recorded backup
+    if (audioBackupBlob && audioBackupBlob.size > 0) {
+      const audioUrl = URL.createObjectURL(audioBackupBlob);
+      setRecordingAudioUrl(audioUrl);
+      console.log('✅ Recording audio ready for playback:', {
+        size: audioBackupBlob.size,
+        url: audioUrl
+      });
+    }
     
     setIsRecording(false);
     setConnectionStatus("Disconnected");
@@ -2571,51 +2495,39 @@ export const MeetingRecorder = ({
                         Stop Recording
                        </Button>
                        
-                       {/* 15-Second Preview Player */}
-                       {previewReady && previewAudioUrl && (
+                       {/* Recording Audio Player */}
+                       {recordingAudioUrl && (
                          <div className="mt-4 p-3 bg-accent/10 rounded-lg border border-accent/20">
                            <div className="flex items-center gap-3">
                              <div className="flex items-center gap-2">
                                <Volume2 className="h-4 w-4 text-accent" />
-                               <span className="text-sm font-medium">First 15 seconds preview:</span>
+                               <span className="text-sm font-medium">Recording playback:</span>
                              </div>
                              <Button
                                size="sm"
                                variant="outline"
                                onClick={() => {
-                                 if (previewAudioRef.current) {
-                                   if (previewAudioRef.current.paused) {
-                                     previewAudioRef.current.play();
+                                 if (recordingAudioRef.current) {
+                                   if (recordingAudioRef.current.paused) {
+                                     recordingAudioRef.current.play();
                                    } else {
-                                     previewAudioRef.current.pause();
+                                     recordingAudioRef.current.pause();
                                    }
                                  }
                                }}
                                className="flex items-center gap-2"
                              >
                                <Play className="h-3 w-3" />
-                               Test Audio
+                               Play Recording
                              </Button>
                            </div>
                            <audio
-                             ref={previewAudioRef}
-                             src={previewAudioUrl}
+                             ref={recordingAudioRef}
+                             src={recordingAudioUrl}
                              controls
                              className="w-full mt-2 h-8"
                              preload="metadata"
                            />
-                         </div>
-                       )}
-                       
-                       {/* Recording in Progress Message */}
-                       {!previewReady && duration < 15 && (
-                         <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                           <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
-                             <Clock className="h-4 w-4" />
-                             <span className="text-sm">
-                               15-second preview will be ready in {15 - duration} seconds...
-                             </span>
-                           </div>
                          </div>
                        )}
                       </div>
