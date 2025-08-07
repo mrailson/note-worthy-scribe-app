@@ -35,6 +35,7 @@ import { BrowserSpeechTranscriber, TranscriptData as BrowserTranscriptData } fro
 import { iPhoneWhisperTranscriber, TranscriptData as iPhoneTranscriptData } from '@/utils/iPhoneWhisperTranscriber';
 import { DesktopWhisperTranscriber, TranscriptData as DesktopTranscriptData } from '@/utils/DesktopWhisperTranscriber';
 import { IncrementalTranscriptHandler, IncrementalTranscriptData } from '@/utils/IncrementalTranscriptHandler';
+import { StereoAudioCapture } from '@/utils/StereoAudioCapture';
 
 interface TranscriptData {
   text: string;
@@ -188,6 +189,11 @@ export const MeetingRecorder = ({
   const chunkData = useRef<Map<number, Blob[]>>(new Map());
   const chunkIntervals = useRef<Map<number, NodeJS.Timeout>>(new Map());
   const chunkStartTimes = useRef<Map<number, Date>>(new Map());
+  
+  // Stereo audio capture ref
+  const stereoAudioCapture = useRef(new StereoAudioCapture());
+  const stereoRecorder = useRef<MediaRecorder | null>(null);
+  const stereoChunks = useRef<Blob[]>([]);
 
   // Function to round time to nearest 15 minutes
   const roundToNearest15Minutes = (date: Date): Date => {
@@ -1784,6 +1790,60 @@ export const MeetingRecorder = ({
     }, 5000); // Every 5 seconds
   };
 
+  const startStereoRecording = async () => {
+    try {
+      console.log('🎧 Starting stereo recording (Left=Mic, Right=System)...');
+      
+      // Start stereo capture
+      const stereoStream = await stereoAudioCapture.current.startCapture();
+      
+      // Initialize stereo recorder
+      stereoChunks.current = [];
+      stereoRecorder.current = new MediaRecorder(stereoStream, {
+        mimeType: 'audio/webm;codecs=opus'
+      });
+
+      stereoRecorder.current.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          stereoChunks.current.push(event.data);
+        }
+      };
+
+      stereoRecorder.current.start(1000); // Collect data every second
+      console.log('✅ Stereo recording started');
+      addDebugLog('✅ Stereo recording started (Left=Mic, Right=System)');
+      
+    } catch (error) {
+      console.error('❌ Failed to start stereo recording:', error);
+      addDebugLog(`❌ Stereo recording failed: ${error.message}`);
+      // Fallback to regular audio backup
+      await startAudioBackup();
+    }
+  };
+
+  const stopStereoRecording = async (): Promise<Blob | null> => {
+    return new Promise((resolve) => {
+      if (!stereoRecorder.current || stereoRecorder.current.state === 'inactive') {
+        resolve(null);
+        return;
+      }
+
+      stereoRecorder.current.onstop = () => {
+        const stereoBlob = new Blob(stereoChunks.current, { type: 'audio/webm' });
+        console.log('✅ Stereo recording stopped, size:', stereoBlob.size);
+        
+        // Clean up stereo capture
+        if (stereoAudioCapture.current.isCapturing()) {
+          stereoAudioCapture.current.stopCapture();
+        }
+        
+        resolve(stereoBlob);
+      };
+
+      stereoRecorder.current.stop();
+    });
+  };
+
   const startRecording = async () => {
     try {
       addDebugLog('🚀 Starting recording with microphone...');
@@ -1798,8 +1858,8 @@ export const MeetingRecorder = ({
         transcriptHandler.current.clear();
       }
       
-      // Start audio backup recording
-      await startAudioBackup();
+      // Start stereo audio capture (mic + system audio)
+      await startStereoRecording();
       // Always use microphone transcription
       await startMicrophoneTranscription();
       
@@ -1911,16 +1971,17 @@ export const MeetingRecorder = ({
     // Stop overlapping chunk recording
     await stopOverlappingChunks();
     
-    // Stop audio backup recording
-    const audioBackupBlob = await stopAudioBackup();
+    // Stop stereo recording
+    const stereoBlob = await stopStereoRecording();
     
-    // Create audio URL for playback from the recorded backup
-    if (audioBackupBlob && audioBackupBlob.size > 0) {
-      const audioUrl = URL.createObjectURL(audioBackupBlob);
+    // Create audio URL for playback from the recorded stereo audio
+    if (stereoBlob && stereoBlob.size > 0) {
+      const audioUrl = URL.createObjectURL(stereoBlob);
       setRecordingAudioUrl(audioUrl);
-      console.log('✅ Recording audio ready for playback:', {
-        size: audioBackupBlob.size,
-        url: audioUrl
+      console.log('✅ Stereo recording audio ready for playback:', {
+        size: stereoBlob.size,
+        url: audioUrl,
+        channels: 'Left=Mic, Right=System'
       });
     }
     
@@ -2052,7 +2113,7 @@ export const MeetingRecorder = ({
       startTime: startTime,
       startedBy: user?.email || 'Unknown User',
       needsAudioBackup: needsAudioBackup,
-      audioBackupBlob: audioBackupBlob
+      stereoBlob: stereoBlob
     };
 
     // Show Notewell AI animation
@@ -2605,7 +2666,7 @@ export const MeetingRecorder = ({
                       </div>
                        <h4 className="text-base font-medium mb-1">Ready to Record</h4>
                        <p className="text-xs text-muted-foreground">
-                         Automatic microphone + system audio capture with live AI summaries
+                         Stereo recording: Left=Microphone, Right=System audio with live AI
                        </p>
                        
                        {/* Live Summary Display */}
