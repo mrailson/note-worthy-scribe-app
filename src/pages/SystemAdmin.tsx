@@ -103,7 +103,7 @@ const SystemAdmin = () => {
     full_name: '',
     password: '',
     role: 'user' as const,
-    practice_id: ''
+    practice_id: 'none'
   });
   
   // Practice management state
@@ -377,7 +377,7 @@ const SystemAdmin = () => {
       full_name: '',
       password: '',
       role: 'user',
-      practice_id: ''
+      practice_id: 'none'
     });
     setShowUserModal(true);
   };
@@ -389,7 +389,7 @@ const SystemAdmin = () => {
       full_name: user.full_name,
       password: '',
       role: user.practice_assignments[0]?.role || 'user',
-      practice_id: user.practice_assignments[0]?.practice_id || ''
+      practice_id: user.practice_assignments[0]?.practice_id || 'none'
     });
     setShowUserModal(true);
   };
@@ -425,7 +425,7 @@ const SystemAdmin = () => {
             name: userFormData.full_name,
             password: userFormData.password,
             role: userFormData.role,
-            practice_id: userFormData.practice_id || null,
+            practice_id: userFormData.practice_id === 'none' ? null : userFormData.practice_id,
             assigned_by: user?.id
           }
         });
@@ -1370,7 +1370,7 @@ const SystemAdmin = () => {
                       <SelectValue placeholder="Select practice" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No Practice</SelectItem>
+                      <SelectItem value="none">No Practice</SelectItem>
                       {practices.map(practice => (
                         <SelectItem key={practice.id} value={practice.id}>
                           {practice.name}
