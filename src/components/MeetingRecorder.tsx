@@ -2745,12 +2745,12 @@ export const MeetingRecorder = ({
                    {/* Recording Audio Player - Show after recording stops */}
                     {recordingAudioUrl && !isRecording && (
                       <div className="mt-4 space-y-3">
-                        {/* Stereo Playback */}
+                        {/* Mixed Stereo Playback */}
                         <div className="p-4 bg-accent/10 rounded-lg border border-accent/20">
                           <div className="flex items-center gap-3 mb-3">
                             <div className="flex items-center gap-2">
                               <Headphones className="h-4 w-4 text-accent" />
-                              <span className="text-sm font-medium">Stereo Recording (Left=Mic, Right=System):</span>
+                              <span className="text-sm font-medium">Mixed Recording (Left + Right Channels):</span>
                             </div>
                             <Button
                               size="sm"
@@ -2767,7 +2767,7 @@ export const MeetingRecorder = ({
                               className="flex items-center gap-2"
                             >
                               <Play className="h-3 w-3" />
-                              Play Stereo
+                              Play Mixed
                             </Button>
                           </div>
                           <audio
@@ -2779,13 +2779,13 @@ export const MeetingRecorder = ({
                           />
                         </div>
 
-                        {/* Microphone Only Playback */}
+                        {/* Left Channel (Microphone) Playback */}
                         {micAudioUrl && (
                           <div className="p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
                             <div className="flex items-center gap-3 mb-3">
                               <div className="flex items-center gap-2">
                                 <Mic className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                                <span className="text-sm font-medium">Microphone Only:</span>
+                                <span className="text-sm font-medium">Left Channel Recording (Microphone):</span>
                               </div>
                               <Button
                                 size="sm"
@@ -2802,7 +2802,7 @@ export const MeetingRecorder = ({
                                 className="flex items-center gap-2"
                               >
                                 <Play className="h-3 w-3" />
-                                Play Mic
+                                Play Left
                               </Button>
                             </div>
                             <audio
@@ -2815,13 +2815,13 @@ export const MeetingRecorder = ({
                           </div>
                         )}
 
-                        {/* System Audio Only Playback */}
+                        {/* Right Channel (System Audio) Playback */}
                         {systemAudioUrl && (
                           <div className="p-4 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
                             <div className="flex items-center gap-3 mb-3">
                               <div className="flex items-center gap-2">
                                 <Monitor className="h-4 w-4 text-green-600 dark:text-green-400" />
-                                <span className="text-sm font-medium">System Audio Only:</span>
+                                <span className="text-sm font-medium">Right Channel Recording (System Audio):</span>
                               </div>
                               <Button
                                 size="sm"
@@ -2838,7 +2838,7 @@ export const MeetingRecorder = ({
                                 className="flex items-center gap-2"
                               >
                                 <Play className="h-3 w-3" />
-                                Play System
+                                Play Right
                               </Button>
                             </div>
                             <audio
