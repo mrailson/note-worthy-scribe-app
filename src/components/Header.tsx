@@ -19,7 +19,7 @@ interface HeaderProps {
 }
 
 export const Header = ({ onNewMeeting }: HeaderProps) => {
-  const { user, signOut, hasModuleAccess } = useAuth();
+  const { user, signOut, hasModuleAccess, refreshUserModules } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [isAdmin, setIsAdmin] = useState(false);
@@ -90,12 +90,13 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
             </Button>
             
             {user && (
-              <DropdownMenu>
+               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button 
                     variant="secondary"
                     size="sm"
                     className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs sm:text-sm px-2 sm:px-4"
+                    onClick={() => refreshUserModules()}
                   >
                     <Grid3X3 className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
                     <span className="hidden sm:inline">Select Service</span>

@@ -15,6 +15,7 @@ interface AuthContextType {
   resetPassword: (email: string) => Promise<{ error: any }>;
   updatePassword: (newPassword: string) => Promise<{ error: any }>;
   hasModuleAccess: (module: string) => boolean;
+  refreshUserModules: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -182,6 +183,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     resetPassword,
     updatePassword,
     hasModuleAccess,
+    refreshUserModules: () => user?.id ? fetchUserModules(user.id) : Promise.resolve(),
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
