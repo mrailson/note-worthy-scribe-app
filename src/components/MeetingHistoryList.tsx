@@ -478,43 +478,40 @@ export const MeetingHistoryList = ({
                         </>
                       )}
                     </div>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2 items-center">
                       <Badge variant="secondary" className="text-xs">
                         {getMeetingTypeLabel(meeting.meeting_type)}
                       </Badge>
-                      {getStatusBadge(meeting.status)}
+                      
+                      {/* Date, Duration, Word Count, Files - All on same line */}
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Calendar className="h-3 w-3 flex-shrink-0" />
+                        <span className="truncate">{format(new Date(meeting.start_time), 'do MMMM yyyy')}</span>
+                      </div>
+                      
+                      {meeting.duration_minutes && (
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Clock className="h-3 w-3 flex-shrink-0" />
+                          <span>{formatDuration(meeting.duration_minutes)}</span>
+                        </div>
+                      )}
+
+                      {formatWordCount(meeting.word_count) && (
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <FileText className="h-3 w-3 flex-shrink-0" />
+                          <span>{formatWordCount(meeting.word_count)}</span>
+                        </div>
+                      )}
+
+                      {meeting.document_count && meeting.document_count > 0 && (
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Paperclip className="h-3 w-3 flex-shrink-0" />
+                          <span>{meeting.document_count} file{meeting.document_count !== 1 ? 's' : ''}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
-              </div>
-
-              {/* Date and Duration Row */}
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-muted-foreground">
-                <div className="flex items-center gap-1">
-                  <Calendar className="h-3 w-3 flex-shrink-0" />
-                  <span className="truncate">{format(new Date(meeting.start_time), 'MMM d, yyyy h:mm a')}</span>
-                </div>
-                
-                {meeting.duration_minutes && (
-                  <div className="flex items-center gap-1">
-                    <Clock className="h-3 w-3 flex-shrink-0" />
-                    <span>{formatDuration(meeting.duration_minutes)}</span>
-                  </div>
-                )}
-
-                {formatWordCount(meeting.word_count) && (
-                  <div className="flex items-center gap-1">
-                    <FileText className="h-3 w-3 flex-shrink-0" />
-                    <span>{formatWordCount(meeting.word_count)}</span>
-                  </div>
-                )}
-
-                {meeting.document_count && meeting.document_count > 0 && (
-                  <div className="flex items-center gap-1">
-                    <Paperclip className="h-3 w-3 flex-shrink-0" />
-                    <span>{meeting.document_count} file{meeting.document_count !== 1 ? 's' : ''}</span>
-                  </div>
-                )}
               </div>
 
               {/* Action Buttons - Mobile Optimized */}
