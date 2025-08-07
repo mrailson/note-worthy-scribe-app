@@ -113,6 +113,84 @@ const MIC_PROFILES: MicProfile[] = [
       gain: 'auto'
     },
     color: 'safe'
+  },
+  {
+    id: 'profile6',
+    name: 'Teams Call Capture (High Sensitivity)',
+    description: 'High sensitivity mic optimized for conference call pickup',
+    purpose: 'Maximizes microphone sensitivity to capture distant Teams audio through speakers with advanced processing.',
+    config: {
+      source: 'default',
+      noiseCancellation: false,
+      echoCancellation: true,
+      autoGainControl: true,
+      sampleRate: 48000,
+      channelCount: 1,
+      gain: 'high'
+    },
+    color: 'caution'
+  },
+  {
+    id: 'profile7',
+    name: 'Windows Audio Capture (WASAPI)',
+    description: 'System audio loopback for direct Teams audio',
+    purpose: 'Attempts to capture system audio directly (Teams output) rather than microphone pickup. May require permissions.',
+    config: {
+      source: 'system-audio',
+      noiseCancellation: false,
+      echoCancellation: false,
+      autoGainControl: false,
+      sampleRate: 44100,
+      channelCount: 2
+    },
+    color: 'safe'
+  },
+  {
+    id: 'profile8',
+    name: 'Multi-Device Scanner',
+    description: 'Cycles through all available audio inputs',
+    purpose: 'Tests the first available external device (USB headset, webcam mic) which might capture Teams better.',
+    config: {
+      source: 'multi-device',
+      noiseCancellation: true,
+      echoCancellation: true,
+      autoGainControl: true,
+      sampleRate: 44100,
+      channelCount: 1,
+      gain: 'medium'
+    },
+    color: 'caution'
+  },
+  {
+    id: 'profile9',
+    name: 'Conference Room Mode',
+    description: 'Optimized for meeting room acoustics',
+    purpose: 'Designed for capturing multiple speakers in a room environment with echo handling.',
+    config: {
+      source: 'default',
+      noiseCancellation: true,
+      echoCancellation: false,
+      autoGainControl: false,
+      sampleRate: 48000,
+      channelCount: 2,
+      gain: 'high'
+    },
+    color: 'caution'
+  },
+  {
+    id: 'profile10',
+    name: 'Screen Share Audio (Experimental)',
+    description: 'Attempts to capture shared audio streams',
+    purpose: 'Experimental: tries to access screen-share audio or presentation audio from Teams calls.',
+    config: {
+      source: 'screen-audio',
+      noiseCancellation: false,
+      echoCancellation: false,
+      autoGainControl: false,
+      sampleRate: 44100,
+      channelCount: 2
+    },
+    color: 'danger'
   }
 ];
 
