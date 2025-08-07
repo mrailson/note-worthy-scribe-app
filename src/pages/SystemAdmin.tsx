@@ -103,7 +103,15 @@ const SystemAdmin = () => {
     full_name: '',
     password: '',
     role: 'user' as const,
-    practice_id: 'none'
+    practice_id: 'none',
+    module_access: {
+      meeting_notes_access: true,
+      gp_scribe_access: false,
+      complaints_manager_access: false,
+      complaints_admin_access: false,
+      replywell_access: false,
+      ai_4_pm_access: false,
+    }
   });
   
   // Practice management state
@@ -377,7 +385,15 @@ const SystemAdmin = () => {
       full_name: '',
       password: '',
       role: 'user',
-      practice_id: 'none'
+      practice_id: 'none',
+      module_access: {
+        meeting_notes_access: true,
+        gp_scribe_access: false,
+        complaints_manager_access: false,
+        complaints_admin_access: false,
+        replywell_access: false,
+        ai_4_pm_access: false,
+      }
     });
     setShowUserModal(true);
   };
@@ -389,7 +405,15 @@ const SystemAdmin = () => {
       full_name: user.full_name,
       password: '',
       role: user.practice_assignments[0]?.role || 'user',
-      practice_id: user.practice_assignments[0]?.practice_id || 'none'
+      practice_id: user.practice_assignments[0]?.practice_id || 'none',
+      module_access: {
+        meeting_notes_access: user.meeting_notes_access ?? true,
+        gp_scribe_access: user.gp_scribe_access ?? false,
+        complaints_manager_access: user.complaints_manager_access ?? false,
+        complaints_admin_access: user.complaints_admin_access ?? false,
+        replywell_access: user.replywell_access ?? false,
+        ai_4_pm_access: user.ai_4_pm_access ?? false,
+      }
     });
     setShowUserModal(true);
   };
@@ -426,7 +450,8 @@ const SystemAdmin = () => {
             password: userFormData.password,
             role: userFormData.role,
             practice_id: userFormData.practice_id === 'none' ? null : userFormData.practice_id,
-            assigned_by: user?.id
+            assigned_by: user?.id,
+            module_access: userFormData.module_access
           }
         });
         if (error) throw error;
@@ -1378,6 +1403,117 @@ const SystemAdmin = () => {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-base font-medium">Module Access</Label>
+                  <p className="text-sm text-muted-foreground mb-4">Select which modules this user can access</p>
+                  
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="meeting_notes_access">Meeting Notes</Label>
+                        <p className="text-xs text-muted-foreground">Access to meeting recording and note-taking features</p>
+                      </div>
+                      <Switch
+                        id="meeting_notes_access"
+                        checked={userFormData.module_access.meeting_notes_access}
+                        onCheckedChange={(checked) => 
+                          setUserFormData({
+                            ...userFormData, 
+                            module_access: {...userFormData.module_access, meeting_notes_access: checked}
+                          })
+                        }
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="gp_scribe_access">GP Scribe</Label>
+                        <p className="text-xs text-muted-foreground">Access to consultation transcription and note generation</p>
+                      </div>
+                      <Switch
+                        id="gp_scribe_access"
+                        checked={userFormData.module_access.gp_scribe_access}
+                        onCheckedChange={(checked) => 
+                          setUserFormData({
+                            ...userFormData, 
+                            module_access: {...userFormData.module_access, gp_scribe_access: checked}
+                          })
+                        }
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="complaints_manager_access">Complaints Manager</Label>
+                        <p className="text-xs text-muted-foreground">Access to view and manage complaints</p>
+                      </div>
+                      <Switch
+                        id="complaints_manager_access"
+                        checked={userFormData.module_access.complaints_manager_access}
+                        onCheckedChange={(checked) => 
+                          setUserFormData({
+                            ...userFormData, 
+                            module_access: {...userFormData.module_access, complaints_manager_access: checked}
+                          })
+                        }
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="complaints_admin_access">Complaints Admin</Label>
+                        <p className="text-xs text-muted-foreground">Full administrative access to complaints system</p>
+                      </div>
+                      <Switch
+                        id="complaints_admin_access"
+                        checked={userFormData.module_access.complaints_admin_access}
+                        onCheckedChange={(checked) => 
+                          setUserFormData({
+                            ...userFormData, 
+                            module_access: {...userFormData.module_access, complaints_admin_access: checked}
+                          })
+                        }
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="replywell_access">ReplyWell</Label>
+                        <p className="text-xs text-muted-foreground">Access to AI-powered communication assistance</p>
+                      </div>
+                      <Switch
+                        id="replywell_access"
+                        checked={userFormData.module_access.replywell_access}
+                        onCheckedChange={(checked) => 
+                          setUserFormData({
+                            ...userFormData, 
+                            module_access: {...userFormData.module_access, replywell_access: checked}
+                          })
+                        }
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="ai_4_pm_access">AI 4 PM Assistant</Label>
+                        <p className="text-xs text-muted-foreground">Access to AI practice management tools</p>
+                      </div>
+                      <Switch
+                        id="ai_4_pm_access"
+                        checked={userFormData.module_access.ai_4_pm_access}
+                        onCheckedChange={(checked) => 
+                          setUserFormData({
+                            ...userFormData, 
+                            module_access: {...userFormData.module_access, ai_4_pm_access: checked}
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
