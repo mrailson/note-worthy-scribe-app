@@ -94,7 +94,7 @@ export const MeetingDocuments: React.FC<MeetingDocumentsProps> = ({
         const fileName = `${meetingId}/${Date.now()}-${file.name}`;
         
         const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('practice-l')
+          .from('meeting-documents')
           .upload(fileName, file);
 
         if (uploadError) throw uploadError;
@@ -131,7 +131,7 @@ export const MeetingDocuments: React.FC<MeetingDocumentsProps> = ({
   const downloadDocument = async (doc: MeetingDocument) => {
     try {
       const { data, error } = await supabase.storage
-        .from('practice-l')
+        .from('meeting-documents')
         .download(doc.file_path);
 
       if (error) throw error;
@@ -155,7 +155,7 @@ export const MeetingDocuments: React.FC<MeetingDocumentsProps> = ({
     try {
       // Delete from storage
       const { error: storageError } = await supabase.storage
-        .from('practice-l')
+        .from('meeting-documents')
         .remove([filePath]);
 
       if (storageError) {
