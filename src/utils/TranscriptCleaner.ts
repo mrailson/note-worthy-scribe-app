@@ -14,11 +14,20 @@ export interface CleaningOptions {
   minimumLength?: number; // New: minimum segment length to keep
 }
 
+export interface RemovedSegment {
+  text: string;
+  reason: string;
+  timestamp: string;
+  confidence?: number;
+  type: 'hallucination' | 'low-confidence' | 'too-short' | 'duplicate' | 'quiet-section';
+}
+
 export class TranscriptCleaner {
   private hallucinationPatterns: RegExp[];
   private fillerWords: RegExp;
   private commonHallucinations: string[];
   private lastConfidence: number = 1.0; // Track last known confidence
+  private removedSegments: RemovedSegment[] = []; // Track removed items
   
   constructor() {
     // Common hallucination patterns
@@ -266,6 +275,7 @@ export class TranscriptCleaner {
       // Check against already added sentences
       for (const existing of finalSentences) {
         if (this.calculateSimilarity(current.toLowerCase(), existing.toLowerCase()) > 0.85) {
+          this.addRemovedSegment(current, `Duplicate sentence (${Math.round(this.calculateSimilarity(current.toLowerCase(), existing.toLowerCase()) * 100)}% similar)`, undefined, 'duplicate');
           console.log(`🚫 Removing similar segment: "${current.substring(0, 50)}..."`);
           isDuplicate = true;
           break;
@@ -309,6 +319,7 @@ export class TranscriptCleaner {
       for (const seen of seenChunks) {
         const similarity = this.calculateSimilarity(normalized, seen);
         if (similarity > 0.9) {
+          this.addRemovedSegment(chunk, `Duplicate block (${Math.round(similarity * 100)}% similar)`, undefined, 'duplicate');
           console.log(`🚫 Removing duplicate block (${Math.round(similarity * 100)}% similar):`, chunk.substring(0, 80) + '...');
           isDuplicate = true;
           break;
@@ -498,11 +509,15 @@ export class TranscriptCleaner {
    */
   isLikelyHallucinationWithMetrics(text: string, confidence?: number, options?: CleaningOptions): boolean {
     // Apply basic hallucination check first
-    if (this.isLikelyHallucination(text)) return true;
+    if (this.isLikelyHallucination(text)) {
+      this.addRemovedSegment(text, 'Common hallucination pattern detected', confidence, 'hallucination');
+      return true;
+    }
 
     // Apply confidence threshold if provided
     if (confidence !== undefined && options?.confidenceThreshold !== undefined) {
       if (confidence < options.confidenceThreshold) {
+        this.addRemovedSegment(text, `Low confidence: ${Math.round(confidence * 100)}%`, confidence, 'low-confidence');
         console.log(`🚫 Low confidence segment (${Math.round(confidence * 100)}%):`, text.substring(0, 50) + '...');
         return true;
       }
@@ -512,6 +527,7 @@ export class TranscriptCleaner {
     if (options?.minimumLength !== undefined) {
       const trimmedText = text.trim();
       if (trimmedText.length < options.minimumLength) {
+        this.addRemovedSegment(text, `Too short: ${trimmedText.length} characters`, confidence, 'too-short');
         console.log(`🚫 Too short segment (${trimmedText.length} chars):`, trimmedText);
         return true;
       }
@@ -519,6 +535,7 @@ export class TranscriptCleaner {
 
     // Check for quiet-section specific patterns
     if (this.isQuietSectionHallucination(text)) {
+      this.addRemovedSegment(text, 'Quiet section filler word/phrase', confidence, 'quiet-section');
       console.log('🚫 Quiet section hallucination detected:', text);
       return true;
     }
@@ -589,6 +606,47 @@ export class TranscriptCleaner {
     // Combine and clean
     const combined = currentText + (currentText ? ' ' : '') + newSegment;
     return this.cleanTranscript(combined, streamingOptions);
+  }
+
+  /**
+   * Add a removed segment to the tracking list
+   */
+  private addRemovedSegment(text: string, reason: string, confidence?: number, type: RemovedSegment['type'] = 'hallucination') {
+    const segment: RemovedSegment = {
+      text: text.trim(),
+      reason,
+      timestamp: new Date().toISOString(),
+      confidence,
+      type
+    };
+    
+    this.removedSegments.push(segment);
+    
+    // Keep only the last 100 removed segments to prevent memory issues
+    if (this.removedSegments.length > 100) {
+      this.removedSegments = this.removedSegments.slice(-100);
+    }
+  }
+
+  /**
+   * Get all removed segments for review
+   */
+  getRemovedSegments(): RemovedSegment[] {
+    return [...this.removedSegments]; // Return a copy
+  }
+
+  /**
+   * Clear the removed segments list
+   */
+  clearRemovedSegments() {
+    this.removedSegments = [];
+  }
+
+  /**
+   * Get removed segments by type
+   */
+  getRemovedSegmentsByType(type: RemovedSegment['type']): RemovedSegment[] {
+    return this.removedSegments.filter(segment => segment.type === type);
   }
 }
 

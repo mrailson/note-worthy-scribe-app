@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { transcriptCleaner } from "@/utils/TranscriptCleaner";
+import { transcriptCleaner, RemovedSegment } from "@/utils/TranscriptCleaner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   MessageSquare, 
   ChevronDown, 
@@ -57,6 +58,7 @@ export const LiveTranscript = ({
   const [liveTranscriptText, setLiveTranscriptText] = useState<string>("");
   const [cleanedTranscript, setCleanedTranscript] = useState<string>("");
   const [isAutoCleaningEnabled, setIsAutoCleaningEnabled] = useState<boolean>(true);
+  const [removedSegments, setRemovedSegments] = useState<RemovedSegment[]>([]);
 
   // Generate speaker colors
   const speakerColors = [
@@ -96,7 +98,19 @@ export const LiveTranscript = ({
       }
     }
     // Don't clear liveTranscriptText when transcript becomes empty - keep last content visible
+    
+    // Update removed segments list
+    setRemovedSegments(transcriptCleaner.getRemovedSegments());
   }, [transcript, isAutoCleaningEnabled, cleanedTranscript]);
+
+  // Update removed segments periodically
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setRemovedSegments(transcriptCleaner.getRemovedSegments());
+    }, 2000); // Update every 2 seconds
+
+    return () => clearInterval(interval);
+  }, []);
 
   const addSpeaker = () => {
     if (newSpeakerName.trim()) {
@@ -385,22 +399,110 @@ export const LiveTranscript = ({
                 </CollapsibleContent>
               </Collapsible>
 
-              {/* Full Transcript Archive */}
-              <div className="min-h-[200px] p-4 bg-accent/20 rounded-lg border">
-                <div className="flex items-center gap-2 mb-3">
-                  <FileText className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm font-medium text-muted-foreground">Full Transcript Archive</span>
-                </div>
-                {transcript || transcriptSegments.length > 0 ? (
-                  <div className="text-sm leading-relaxed whitespace-pre-wrap opacity-75">
-                    {formatTranscriptWithTimestamps(transcript)}
+              {/* Tabbed Interface for Transcript and Quality Control */}
+              <Tabs defaultValue="transcript" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="transcript">Full Transcript Archive</TabsTrigger>
+                  <TabsTrigger value="removed" className="relative">
+                    Removed Segments
+                    {removedSegments.length > 0 && (
+                      <Badge variant="secondary" className="ml-2 text-xs">
+                        {removedSegments.length}
+                      </Badge>
+                    )}
+                  </TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="transcript" className="mt-4">
+                  <div className="min-h-[200px] p-4 bg-accent/20 rounded-lg border">
+                    <div className="flex items-center gap-2 mb-3">
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-medium text-muted-foreground">Complete Meeting Transcript</span>
+                    </div>
+                    {transcript || transcriptSegments.length > 0 ? (
+                      <div className="text-sm leading-relaxed whitespace-pre-wrap opacity-75">
+                        {formatTranscriptWithTimestamps(transcript)}
+                      </div>
+                    ) : (
+                      <div className="text-muted-foreground text-center py-8">
+                        Complete transcript will be archived here...
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <div className="text-muted-foreground text-center py-8">
-                    Complete transcript will be archived here...
+                </TabsContent>
+                
+                <TabsContent value="removed" className="mt-4">
+                  <div className="min-h-[200px] p-4 bg-accent/20 rounded-lg border">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <RefreshCw className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-medium text-muted-foreground">AI Quality Control - Removed Segments</span>
+                      </div>
+                      {removedSegments.length > 0 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            transcriptCleaner.clearRemovedSegments();
+                            setRemovedSegments([]);
+                          }}
+                        >
+                          Clear List
+                        </Button>
+                      )}
+                    </div>
+                    
+                    {removedSegments.length > 0 ? (
+                      <div className="space-y-3 max-h-96 overflow-y-auto">
+                        {removedSegments
+                          .slice(-20) // Show last 20 removed segments
+                          .reverse() // Most recent first
+                          .map((segment, index) => (
+                          <div 
+                            key={index} 
+                            className="p-3 bg-background/50 rounded-md border border-red-200/50 hover:border-red-300/50 transition-colors"
+                          >
+                            <div className="flex items-start justify-between gap-2 mb-2">
+                              <div className="flex items-center gap-2">
+                                <Badge 
+                                  variant={segment.type === 'hallucination' ? 'destructive' : 
+                                          segment.type === 'low-confidence' ? 'secondary' :
+                                          segment.type === 'duplicate' ? 'outline' : 'default'}
+                                  className="text-xs"
+                                >
+                                  {segment.type.replace('-', ' ')}
+                                </Badge>
+                                {segment.confidence && (
+                                  <Badge variant="outline" className="text-xs">
+                                    {Math.round(segment.confidence * 100)}% confidence
+                                  </Badge>
+                                )}
+                              </div>
+                              <span className="text-xs text-muted-foreground">
+                                {new Date(segment.timestamp).toLocaleTimeString()}
+                              </span>
+                            </div>
+                            <div className="text-sm text-red-800 dark:text-red-200 bg-red-50 dark:bg-red-950/30 p-2 rounded">
+                              "{segment.text}"
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              <strong>Reason:</strong> {segment.reason}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-muted-foreground text-center py-8">
+                        <div className="flex flex-col items-center gap-2">
+                          <Sparkles className="h-8 w-8 text-green-500" />
+                          <span>No segments removed yet</span>
+                          <span className="text-xs">AI cleaning will show removed hallucinations and low-quality segments here</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                </TabsContent>
+              </Tabs>
               
               {transcriptSegments.length > 0 && (
                 <div className="text-xs text-muted-foreground">
