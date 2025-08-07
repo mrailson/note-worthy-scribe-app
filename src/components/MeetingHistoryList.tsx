@@ -275,6 +275,19 @@ export const MeetingHistoryList = ({
 
     setUploading(true);
     try {
+      // Check for duplicate file names in this meeting
+      const existingFileNames = selectedMeetingForUpload.documents?.map(doc => doc.file_name) || [];
+      const duplicateFiles = selectedFiles.filter(file => 
+        existingFileNames.includes(file.name)
+      );
+
+      if (duplicateFiles.length > 0) {
+        const duplicateNames = duplicateFiles.map(file => file.name).join(', ');
+        toast.error(`The following file(s) already exist in this meeting: ${duplicateNames}`);
+        setUploading(false);
+        return;
+      }
+
       for (const file of selectedFiles) {
         // Upload file to Supabase storage
         const fileExt = file.name.split('.').pop();
