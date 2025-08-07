@@ -28,6 +28,7 @@ interface Speaker {
 
 interface LiveTranscriptProps {
   transcript: string;
+  confidence?: number; // Add confidence prop
   showTimestamps: boolean;
   onTimestampsToggle: (show: boolean) => void;
   attendees?: string; // Comma-separated attendee names from meeting settings
@@ -35,6 +36,7 @@ interface LiveTranscriptProps {
 
 export const LiveTranscript = ({ 
   transcript, 
+  confidence,
   showTimestamps, 
   onTimestampsToggle,
   attendees 
@@ -85,8 +87,8 @@ export const LiveTranscript = ({
       const newSegment = transcript;
       
       if (isAutoCleaningEnabled) {
-        // Use streaming cleaner to build up clean transcript
-        const cleanedNew = transcriptCleaner.cleanStreamingTranscript(cleanedTranscript, newSegment);
+        // Use streaming cleaner with confidence filtering
+        const cleanedNew = transcriptCleaner.cleanStreamingTranscript(cleanedTranscript, newSegment, confidence);
         setCleanedTranscript(cleanedNew);
         setLiveTranscriptText(cleanedNew); // Show cleaned version
       } else {

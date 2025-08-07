@@ -10,12 +10,15 @@ export interface CleaningOptions {
   addPunctuation: boolean;
   removeFiller: boolean;
   mergeFragments: boolean;
+  confidenceThreshold?: number; // New: minimum confidence threshold (0-1)
+  minimumLength?: number; // New: minimum segment length to keep
 }
 
 export class TranscriptCleaner {
   private hallucinationPatterns: RegExp[];
   private fillerWords: RegExp;
   private commonHallucinations: string[];
+  private lastConfidence: number = 1.0; // Track last known confidence
   
   constructor() {
     // Common hallucination patterns
@@ -103,6 +106,36 @@ export class TranscriptCleaner {
       "please subscribe, like, comment, and share",
       "if you have any questions or comments, please post them in the q&a section",
       "if you have any questions, please let me know in the comments",
+      // Quiet section specific hallucinations
+      "hmm",
+      "mm",
+      "uh-huh",
+      "yeah",
+      "ok",
+      "okay",
+      "right",
+      "bye",
+      "bye bye", 
+      "goodbye",
+      "thanks",
+      "thank you",
+      "good",
+      "well",
+      "so",
+      "now",
+      "yes",
+      "no",
+      "hello",
+      "hi",
+      "oh",
+      "ah",
+      "eh",
+      "hm",
+      "mm-hmm",
+      "uh-oh",
+      "oops",
+      "wow",
+      "hey",
     ];
   }
 
@@ -407,24 +440,101 @@ export class TranscriptCleaner {
   }
 
   /**
-   * Clean transcript in real-time (for streaming)
+   * Enhanced check that includes confidence and length filtering
    */
-  cleanStreamingTranscript(currentText: string, newSegment: string): string {
-    // First check if new segment is likely hallucination
-    if (this.isLikelyHallucination(newSegment)) {
-      console.log('🚫 Filtering out likely hallucination:', newSegment);
+  isLikelyHallucinationWithMetrics(text: string, confidence?: number, options?: CleaningOptions): boolean {
+    // Apply basic hallucination check first
+    if (this.isLikelyHallucination(text)) return true;
+
+    // Apply confidence threshold if provided
+    if (confidence !== undefined && options?.confidenceThreshold !== undefined) {
+      if (confidence < options.confidenceThreshold) {
+        console.log(`🚫 Low confidence segment (${Math.round(confidence * 100)}%):`, text.substring(0, 50) + '...');
+        return true;
+      }
+    }
+
+    // Apply minimum length filter
+    if (options?.minimumLength !== undefined) {
+      const trimmedText = text.trim();
+      if (trimmedText.length < options.minimumLength) {
+        console.log(`🚫 Too short segment (${trimmedText.length} chars):`, trimmedText);
+        return true;
+      }
+    }
+
+    // Check for quiet-section specific patterns
+    if (this.isQuietSectionHallucination(text)) {
+      console.log('🚫 Quiet section hallucination detected:', text);
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Detect hallucinations specific to quiet sections
+   */
+  private isQuietSectionHallucination(text: string): boolean {
+    const trimmed = text.trim().toLowerCase();
+    
+    // Very short standalone words that often appear in quiet sections
+    const quietHallucinations = [
+      /^(hmm|mm|uh|oh|ah|eh|hm)\.?$/,
+      /^(bye|hi|hello|yeah|yes|no|ok|okay|right|good|well|so|now)\.?$/,
+      /^(thanks?|thank you)\.?$/,
+      /^(wow|hey|oops)\.?$/,
+    ];
+
+    // Check if the entire text matches quiet section patterns
+    return quietHallucinations.some(pattern => pattern.test(trimmed));
+  }
+
+  /**
+   * Clean transcript with confidence filtering
+   */
+  cleanTranscriptWithConfidence(text: string, confidence?: number, options: CleaningOptions = {
+    removeHallucinations: true,
+    fixGrammar: true,
+    addPunctuation: true,
+    removeFiller: false,
+    mergeFragments: true,
+    confidenceThreshold: 0.6, // Default 60% confidence threshold
+    minimumLength: 3 // Default minimum 3 characters
+  }): string {
+    // Skip cleaning if segment is likely hallucination based on metrics
+    if (this.isLikelyHallucinationWithMetrics(text, confidence, options)) {
+      return ''; // Return empty string to filter out the segment
+    }
+
+    // Apply normal cleaning
+    return this.cleanTranscript(text, options);
+  }
+
+  /**
+   * Clean transcript in real-time (for streaming) with enhanced filtering
+   */
+  cleanStreamingTranscript(currentText: string, newSegment: string, confidence?: number): string {
+    // Enhanced filtering options for streaming
+    const streamingOptions: CleaningOptions = {
+      removeHallucinations: true,
+      fixGrammar: true,
+      addPunctuation: false, // Don't add punctuation for live text
+      removeFiller: false,
+      mergeFragments: false, // Don't merge fragments for live updates
+      confidenceThreshold: 0.5, // Lower threshold for real-time (50%)
+      minimumLength: 2 // Minimum 2 characters for real-time
+    };
+
+    // First check if new segment should be filtered out
+    if (this.isLikelyHallucinationWithMetrics(newSegment, confidence, streamingOptions)) {
+      console.log('🚫 Filtering out segment:', newSegment);
       return currentText; // Don't add the hallucination
     }
 
     // Combine and clean
     const combined = currentText + (currentText ? ' ' : '') + newSegment;
-    return this.cleanTranscript(combined, {
-      removeHallucinations: true,
-      fixGrammar: true,
-      addPunctuation: false, // Don't add punctuation for live text
-      removeFiller: false,
-      mergeFragments: false // Don't merge fragments for live updates
-    });
+    return this.cleanTranscript(combined, streamingOptions);
   }
 }
 
