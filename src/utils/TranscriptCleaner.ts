@@ -121,27 +121,32 @@ export class TranscriptCleaner {
       cleaned = this.removeHallucinations(cleaned);
     }
 
-    // Step 2: Remove excessive filler words (optional)
+    // Step 2: Remove overlapping dialogue segments
+    if (options.removeHallucinations) {
+      cleaned = this.removeOverlappingSegments(cleaned);
+    }
+
+    // Step 3: Remove excessive filler words (optional)
     if (options.removeFiller) {
       cleaned = this.removeExcessiveFiller(cleaned);
     }
 
-    // Step 3: Fix basic grammar and spacing
+    // Step 4: Fix basic grammar and spacing
     if (options.fixGrammar) {
       cleaned = this.fixBasicGrammar(cleaned);
     }
 
-    // Step 4: Add punctuation
+    // Step 5: Add punctuation
     if (options.addPunctuation) {
       cleaned = this.addPunctuation(cleaned);
     }
 
-    // Step 5: Merge sentence fragments
+    // Step 6: Merge sentence fragments
     if (options.mergeFragments) {
       cleaned = this.mergeFragments(cleaned);
     }
 
-    // Step 6: Final cleanup
+    // Step 7: Final cleanup
     cleaned = this.finalCleanup(cleaned);
 
     return cleaned;
@@ -186,6 +191,64 @@ export class TranscriptCleaner {
     cleaned = cleaned.replace(/\b(.{5,20}?)\1{2,}/gi, '$1');
     
     return cleaned;
+  }
+
+  /**
+   * Remove overlapping dialogue segments that repeat across different speakers
+   */
+  private removeOverlappingSegments(text: string): string {
+    // Split text into sentences and normalize
+    const sentences = text.split(/[.!?]+/)
+      .map(s => s.trim())
+      .filter(s => s.length > 0);
+    
+    if (sentences.length <= 1) return text;
+
+    // Find and remove duplicates, keeping the first occurrence
+    const uniqueSentences: string[] = [];
+    const seenSentences = new Set<string>();
+
+    for (const sentence of sentences) {
+      const normalized = sentence.toLowerCase()
+        .replace(/speaker\s*/gi, '') // Remove speaker labels
+        .replace(/\s+/g, ' ')
+        .trim();
+      
+      // Skip if we've seen this exact sentence or a very similar one
+      let isDuplicate = false;
+      for (const seen of seenSentences) {
+        // Check for exact match or high similarity (>80% overlap)
+        if (seen === normalized || this.calculateSimilarity(seen, normalized) > 0.8) {
+          isDuplicate = true;
+          break;
+        }
+      }
+
+      if (!isDuplicate && normalized.length > 3) {
+        seenSentences.add(normalized);
+        uniqueSentences.push(sentence);
+      }
+    }
+
+    return uniqueSentences.join('. ') + (uniqueSentences.length > 0 ? '.' : '');
+  }
+
+  /**
+   * Calculate similarity between two strings (0-1)
+   */
+  private calculateSimilarity(str1: string, str2: string): number {
+    const words1 = str1.split(/\s+/);
+    const words2 = str2.split(/\s+/);
+    
+    if (words1.length === 0 && words2.length === 0) return 1;
+    if (words1.length === 0 || words2.length === 0) return 0;
+
+    const set1 = new Set(words1);
+    const set2 = new Set(words2);
+    const intersection = new Set([...set1].filter(x => set2.has(x)));
+    const union = new Set([...set1, ...set2]);
+
+    return intersection.size / union.size;
   }
 
   /**
