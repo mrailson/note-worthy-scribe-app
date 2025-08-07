@@ -762,7 +762,7 @@ export const MeetingHistoryList = ({
                           <span className="text-sm font-medium">Mixed Recording (Left + Right Channels)</span>
                         </div>
                         <audio
-                          src={`https://dphcnbricafkbtizkoal.supabase.co/storage/v1/object/public/meeting-audio-segments/${meeting.mixed_audio_url}`}
+                          src={`https://dphcnbricafkbtizkoal.supabase.co/storage/v1/object/authenticated/meeting-audio-segments/${meeting.mixed_audio_url}`}
                           controls
                           className="w-full h-8"
                           preload="metadata"
@@ -780,7 +780,7 @@ export const MeetingHistoryList = ({
                           <span className="text-sm font-medium">Left Channel Recording (Microphone)</span>
                         </div>
                         <audio
-                          src={`https://dphcnbricafkbtizkoal.supabase.co/storage/v1/object/public/meeting-audio-segments/${meeting.left_audio_url}`}
+                          src={`https://dphcnbricafkbtizkoal.supabase.co/storage/v1/object/authenticated/meeting-audio-segments/${meeting.left_audio_url}`}
                           controls
                           className="w-full h-8"
                           preload="metadata"
@@ -798,7 +798,7 @@ export const MeetingHistoryList = ({
                           <span className="text-sm font-medium">Right Channel Recording (System Audio)</span>
                         </div>
                         <audio
-                          src={`https://dphcnbricafkbtizkoal.supabase.co/storage/v1/object/public/meeting-audio-segments/${meeting.right_audio_url}`}
+                          src={`https://dphcnbricafkbtizkoal.supabase.co/storage/v1/object/authenticated/meeting-audio-segments/${meeting.right_audio_url}`}
                           controls
                           className="w-full h-8"
                           preload="metadata"
