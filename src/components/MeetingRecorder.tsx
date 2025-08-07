@@ -2922,19 +2922,13 @@ export const MeetingRecorder = ({
                             <SelectItem value="mic-only" className="cursor-pointer">
                               <div className="flex items-center gap-2">
                                 <Mic className="h-4 w-4 text-blue-600" />
-                                <div>
-                                  <div className="font-medium">Microphone Only</div>
-                                  <div className="text-xs text-muted-foreground">Recommended - reduces hallucinations</div>
-                                </div>
+                                <div className="font-medium">Microphone Only</div>
                               </div>
                             </SelectItem>
                             <SelectItem value="mic-and-system" className="cursor-pointer">
                               <div className="flex items-center gap-2">
                                 <MonitorSpeaker className="h-4 w-4 text-orange-600" />
-                                <div>
-                                  <div className="font-medium">Microphone + System Audio</div>
-                                  <div className="text-xs text-muted-foreground">May cause audio hallucinations</div>
-                                </div>
+                                <div className="font-medium">Microphone + System Audio</div>
                               </div>
                             </SelectItem>
                           </SelectContent>
