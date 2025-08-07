@@ -204,17 +204,24 @@ const SystemAdmin = () => {
       if (error) throw error;
       
       // Fetch user roles with module access for each user
-      const usersWithModules = await Promise.all(
+        const usersWithModules = await Promise.all(
         (data || []).map(async (user: any) => {
           const { data: roleData } = await supabase
             .from('user_roles')
             .select('meeting_notes_access, gp_scribe_access, complaints_manager_access, complaints_admin_access, replywell_access, ai_4_pm_access')
             .eq('user_id', user.user_id)
-            .single();
+            .maybeSingle();
           
           return {
             ...user,
-            ...roleData
+            ...(roleData || {
+              meeting_notes_access: false,
+              gp_scribe_access: false,
+              complaints_manager_access: false,
+              complaints_admin_access: false,
+              replywell_access: false,
+              ai_4_pm_access: false
+            })
           };
         })
       );
@@ -455,22 +462,49 @@ const SystemAdmin = () => {
     e.preventDefault();
     try {
       if (editingUser) {
-        // Update existing user's module access
-        const { error: updateError } = await supabase
+        // Update existing user - check if user_roles record exists first
+        const { data: existingRole } = await supabase
           .from('user_roles')
-          .update({
-            meeting_notes_access: userFormData.module_access.meeting_notes_access,
-            gp_scribe_access: userFormData.module_access.gp_scribe_access,
-            complaints_manager_access: userFormData.module_access.complaints_manager_access,
-            complaints_admin_access: userFormData.module_access.complaints_admin_access,
-            replywell_access: userFormData.module_access.replywell_access,
-            ai_4_pm_access: userFormData.module_access.ai_4_pm_access,
-            role: userFormData.role,
-            practice_id: userFormData.practice_id === 'none' ? null : userFormData.practice_id
-          })
-          .eq('user_id', editingUser.user_id);
-        
-        if (updateError) throw updateError;
+          .select('id')
+          .eq('user_id', editingUser.user_id)
+          .maybeSingle();
+
+        if (existingRole) {
+          // Update existing record
+          const { error: updateError } = await supabase
+            .from('user_roles')
+            .update({
+              meeting_notes_access: userFormData.module_access.meeting_notes_access,
+              gp_scribe_access: userFormData.module_access.gp_scribe_access,
+              complaints_manager_access: userFormData.module_access.complaints_manager_access,
+              complaints_admin_access: userFormData.module_access.complaints_admin_access,
+              replywell_access: userFormData.module_access.replywell_access,
+              ai_4_pm_access: userFormData.module_access.ai_4_pm_access,
+              role: userFormData.role,
+              practice_id: userFormData.practice_id === 'none' ? null : userFormData.practice_id
+            })
+            .eq('user_id', editingUser.user_id);
+          
+          if (updateError) throw updateError;
+        } else {
+          // Create new record if none exists
+          const { error: insertError } = await supabase
+            .from('user_roles')
+            .insert({
+              user_id: editingUser.user_id,
+              meeting_notes_access: userFormData.module_access.meeting_notes_access,
+              gp_scribe_access: userFormData.module_access.gp_scribe_access,
+              complaints_manager_access: userFormData.module_access.complaints_manager_access,
+              complaints_admin_access: userFormData.module_access.complaints_admin_access,
+              replywell_access: userFormData.module_access.replywell_access,
+              ai_4_pm_access: userFormData.module_access.ai_4_pm_access,
+              role: userFormData.role,
+              practice_id: userFormData.practice_id === 'none' ? null : userFormData.practice_id,
+              assigned_by: user?.id
+            });
+          
+          if (insertError) throw insertError;
+        }
         await fetchUsers(); // Refresh the users list
         toast.success('User updated successfully');
       } else {
