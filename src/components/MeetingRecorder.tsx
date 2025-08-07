@@ -1905,7 +1905,31 @@ export const MeetingRecorder = ({
 
   const handleDeleteMeeting = async (meetingId: string) => {
     try {
-      // Delete transcripts first
+      // First, get and delete any associated documents from storage
+      const { data: documents } = await supabase
+        .from('meeting_documents')
+        .select('file_path')
+        .eq('meeting_id', meetingId);
+
+      if (documents && documents.length > 0) {
+        // Delete files from storage
+        const filePaths = documents.map(doc => doc.file_path);
+        const { error: storageError } = await supabase.storage
+          .from('meeting-documents')
+          .remove(filePaths);
+
+        if (storageError) {
+          console.warn('Some files could not be deleted from storage:', storageError);
+        }
+
+        // Delete document records from database
+        await supabase
+          .from('meeting_documents')
+          .delete()
+          .eq('meeting_id', meetingId);
+      }
+
+      // Delete transcripts
       await supabase
         .from('meeting_transcripts')
         .delete()
@@ -1914,6 +1938,12 @@ export const MeetingRecorder = ({
       // Delete summaries
       await supabase
         .from('meeting_summaries')
+        .delete()
+        .eq('meeting_id', meetingId);
+
+      // Delete meeting overviews
+      await supabase
+        .from('meeting_overviews')
         .delete()
         .eq('meeting_id', meetingId);
 

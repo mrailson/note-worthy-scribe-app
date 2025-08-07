@@ -636,10 +636,10 @@ export const MeetingHistoryList = ({
                   <AlertDialogContent className="mx-4 max-w-md">
                     <AlertDialogHeader>
                       <AlertDialogTitle>Delete Meeting</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Are you sure you want to delete "{meeting.title}"? This action cannot be undone.
-                        This will permanently delete the meeting, transcript, and summary.
-                      </AlertDialogDescription>
+                       <AlertDialogDescription>
+                         Are you sure you want to delete "{meeting.title}"? This action cannot be undone.
+                         This will permanently delete the meeting, transcript, summary, and any uploaded documents.
+                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter className="flex-col sm:flex-row gap-2">
                       <AlertDialogCancel className="touch-manipulation min-h-[44px]">Cancel</AlertDialogCancel>
