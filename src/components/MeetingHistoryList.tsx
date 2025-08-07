@@ -735,7 +735,7 @@ export const MeetingHistoryList = ({
                   {meeting.transcript_count ? (
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       <MessageSquare className="h-3 w-3 flex-shrink-0" />
-                      <span>{meeting.transcript_count} transcript entries</span>
+                      <span>Transcript available</span>
                     </div>
                   ) : null}
                   
@@ -748,7 +748,7 @@ export const MeetingHistoryList = ({
                 </div>
                 
                 <div className="text-xs text-muted-foreground whitespace-nowrap">
-                  Created {format(new Date(meeting.created_at), 'MMM d, yyyy')}
+                  Created {format(new Date(meeting.created_at), 'd MMM, yyyy')}
                 </div>
               </div>
             </div>
