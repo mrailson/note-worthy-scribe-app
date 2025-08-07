@@ -193,6 +193,21 @@ const MIC_PROFILES: MicProfile[] = [
       channelCount: 2
     },
     color: 'danger'
+  },
+  {
+    id: 'profile11',
+    name: 'Right Channel Only (System Audio Test)',
+    description: 'Tests right channel capture (system audio) only',
+    purpose: 'TESTING: Right channel only to verify system audio capture is working vs microphone pickup.',
+    config: {
+      source: 'system-right-only',
+      noiseCancellation: false,
+      echoCancellation: false,
+      autoGainControl: false,
+      sampleRate: 44100,
+      channelCount: 1
+    },
+    color: 'danger'
   }
 ];
 
@@ -219,6 +234,28 @@ export const MicInputRecordingTester: React.FC = () => {
       .catch(console.error);
   }, []);
 
+  // Function to create a stream with only the right channel (system audio)
+  const createRightChannelOnlyStream = async (inputStream: MediaStream): Promise<MediaStream> => {
+    const audioContext = new AudioContext();
+    const source = audioContext.createMediaStreamSource(inputStream);
+    
+    // Create a splitter to access individual channels
+    const splitter = audioContext.createChannelSplitter(2);
+    const merger = audioContext.createChannelMerger(1);
+    
+    // Connect source to splitter
+    source.connect(splitter);
+    
+    // Connect only the right channel (index 1) to the merger
+    splitter.connect(merger, 1, 0);
+    
+    // Create destination and get the output stream
+    const destination = audioContext.createMediaStreamDestination();
+    merger.connect(destination);
+    
+    return destination.stream;
+  };
+
   const toggleProfileSelection = (profileId: string) => {
     setSelectedProfiles(prev => 
       prev.includes(profileId) 
@@ -237,6 +274,19 @@ export const MicInputRecordingTester: React.FC = () => {
         autoGainControl: profile.config.autoGainControl
       }
     };
+
+    // Handle special system audio right channel only test
+    if (profile.config.source === 'system-right-only') {
+      return {
+        audio: {
+          sampleRate: profile.config.sampleRate,
+          channelCount: 2, // Request stereo to get both channels
+          autoGainControl: false,
+          echoCancellation: false,
+          noiseSuppression: false
+        }
+      };
+    }
 
     // Try to request specific device types based on profile
     if (profile.config.source === 'external' && availableDevices.length > 1) {
@@ -285,10 +335,17 @@ export const MicInputRecordingTester: React.FC = () => {
         const constraints = getAudioConstraints(profile);
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
         
+        let processedStream = stream;
+        
+        // For right channel only test, process the audio to extract right channel
+        if (profile.config.source === 'system-right-only') {
+          processedStream = await createRightChannelOnlyStream(stream);
+        }
+        
         const chunks: Blob[] = [];
         audioChunks.current.set(profileId, chunks);
 
-        const recorder = new MediaRecorder(stream, {
+        const recorder = new MediaRecorder(processedStream, {
           mimeType: 'audio/webm;codecs=opus'
         });
 
