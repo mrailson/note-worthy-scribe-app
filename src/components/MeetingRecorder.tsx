@@ -163,7 +163,7 @@ export const MeetingRecorder = ({
     try {
       console.log('🎯 Starting 15-second preview recording...');
       
-      // Use exact Profile 1 settings for preview
+      // Use exact Profile 1 settings for preview - INDEPENDENT STREAM
       const profile1Constraints: MediaStreamConstraints = {
         audio: {
           sampleRate: 44100,
@@ -174,6 +174,7 @@ export const MeetingRecorder = ({
         }
       };
 
+      // Create SEPARATE stream for preview to avoid conflicts
       previewStream.current = await navigator.mediaDevices.getUserMedia(profile1Constraints);
       previewChunks.current = [];
       
@@ -198,7 +199,7 @@ export const MeetingRecorder = ({
           duration: '15 seconds'
         });
         
-        // Clean up preview stream
+        // Clean up preview stream WITHOUT affecting other recordings
         if (previewStream.current) {
           previewStream.current.getTracks().forEach(track => track.stop());
           previewStream.current = null;
@@ -214,7 +215,7 @@ export const MeetingRecorder = ({
         }
       }, 15000);
 
-      console.log('✅ 15-second preview recording started');
+      console.log('✅ 15-second preview recording started with independent stream');
       
     } catch (error) {
       console.error('❌ Failed to start preview recording:', error);
@@ -369,12 +370,12 @@ export const MeetingRecorder = ({
 
       console.log('🎵 Profile 1 audio constraints:', profile1Constraints);
       
-      // Get microphone stream using Profile 1 settings
-      const stream = await navigator.mediaDevices.getUserMedia(profile1Constraints);
+      // Get SEPARATE microphone stream for overlapping chunks (not shared with preview)
+      const chunksStream = await navigator.mediaDevices.getUserMedia(profile1Constraints);
       
-      console.log('🎵 Successfully got audio stream with Profile 1 settings:', {
-        tracks: stream.getAudioTracks().length,
-        trackSettings: stream.getAudioTracks()[0]?.getSettings()
+      console.log('🎵 Successfully got INDEPENDENT audio stream for chunks:', {
+        tracks: chunksStream.getAudioTracks().length,
+        trackSettings: chunksStream.getAudioTracks()[0]?.getSettings()
       });
 
       let chunkId = 0;
@@ -385,10 +386,12 @@ export const MeetingRecorder = ({
         chunkData.current.set(currentChunkId, chunks);
         chunkStartTimes.current.set(currentChunkId, new Date());
 
-        // Create new recorder for this chunk
-        const recorder = new MediaRecorder(stream, {
+        // Create new recorder for this chunk using the SAME stream
+        const recorder = new MediaRecorder(chunksStream, {
           mimeType: 'audio/webm;codecs=opus'
         });
+
+        console.log(`🎵 Created recorder for chunk ${currentChunkId} using shared chunks stream`);
 
         recorder.ondataavailable = (event) => {
           if (event.data.size > 0) {
@@ -428,12 +431,16 @@ export const MeetingRecorder = ({
           startNewChunk();
         } else {
           clearInterval(chunkInterval);
+          // Clean up the chunks stream when recording stops
+          if (chunksStream) {
+            chunksStream.getTracks().forEach(track => track.stop());
+          }
         }
       }, 3000); // 3 seconds = 5 second chunk - 2 second overlap
 
       segmentIntervalRef.current = chunkInterval;
 
-      console.log('✅ Overlapping chunk recording started');
+      console.log('✅ Overlapping chunk recording started with independent stream');
       
     } catch (error) {
       console.error('❌ Failed to start overlapping chunk recording:', error);
