@@ -2348,6 +2348,10 @@ export const MeetingRecorder = ({
           created_at,
           location,
           format,
+          mixed_audio_url,
+          left_audio_url,
+          right_audio_url,
+          recording_created_at,
           meeting_overviews (
             overview
           )
