@@ -54,6 +54,12 @@ interface Meeting {
   summary_exists?: boolean;
   word_count?: number;
   document_count?: number;
+  documents?: Array<{
+    file_name: string;
+    file_size: number | null;
+    uploaded_at: string;
+    file_type: string | null;
+  }>;
 }
 
 // Helper function to deduplicate transcript segments with more aggressive deduplication
@@ -854,7 +860,7 @@ const MeetingHistory = () => {
       // Batch the remaining queries efficiently
       const meetingIds = meetingsData.map(m => m.id);
       
-      const [transcriptCounts, summaryExists, wordCounts, documentCounts] = await Promise.all([
+      const [transcriptCounts, summaryExists, wordCounts, documentsData] = await Promise.all([
         // Get transcript counts in one query
         supabase
           .from('meeting_transcripts')
@@ -893,16 +899,26 @@ const MeetingHistory = () => {
             return wordCounts;
           }),
 
-        // Get document counts
+        // Get document details
         supabase
           .from('meeting_documents')
-          .select('meeting_id')
+          .select('meeting_id, file_name, file_size, uploaded_at, file_type')
           .in('meeting_id', meetingIds)
+          .order('uploaded_at', { ascending: false })
           .then(({ data }) => {
-            return data?.reduce((acc, d) => {
-              acc[d.meeting_id] = (acc[d.meeting_id] || 0) + 1;
-              return acc;
-            }, {} as Record<string, number>) || {};
+            const documentsData: Record<string, any[]> = {};
+            data?.forEach(doc => {
+              if (!documentsData[doc.meeting_id]) {
+                documentsData[doc.meeting_id] = [];
+              }
+              documentsData[doc.meeting_id].push({
+                file_name: doc.file_name,
+                file_size: doc.file_size,
+                uploaded_at: doc.uploaded_at,
+                file_type: doc.file_type
+              });
+            });
+            return documentsData;
           })
       ]);
 
@@ -911,7 +927,8 @@ const MeetingHistory = () => {
         transcript_count: transcriptCounts[meeting.id] || 0,
         summary_exists: !!summaryExists[meeting.id],
         word_count: wordCounts[meeting.id] || 0,
-        document_count: documentCounts[meeting.id] || 0,
+        document_count: documentsData[meeting.id]?.length || 0,
+        documents: documentsData[meeting.id] || [],
         // Extract the overview from the nested meeting_overviews object
         overview: meeting.meeting_overviews?.overview || null
       }));
@@ -1605,12 +1622,14 @@ const MeetingHistory = () => {
               ));
             }}
             onDocumentsUploaded={(meetingId, newDocumentCount) => {
-              // Update the local meetings array with new document count
+              // Update the local meetings array with new document count and refresh data
               setMeetings(prev => prev.map(meeting => 
                 meeting.id === meetingId 
                   ? { ...meeting, document_count: newDocumentCount }
                   : meeting
               ));
+              // Refresh to get updated document details
+              setTimeout(() => fetchMeetings(), 1000);
             }}
           />
         )}

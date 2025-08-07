@@ -65,6 +65,12 @@ interface Meeting {
   requires_audio_backup?: boolean;
   word_count?: number;
   document_count?: number;
+  documents?: Array<{
+    file_name: string;
+    file_size: number | null;
+    uploaded_at: string;
+    file_type: string | null;
+  }>;
 }
 
 interface MeetingHistoryListProps {
@@ -233,7 +239,7 @@ export const MeetingHistoryList = ({
       setSelectedFiles([]);
       setUploadDialogOpen(false);
       
-      // Update the document count locally
+      // Update the document count and documents array locally
       if (onDocumentsUploaded) {
         const currentCount = selectedMeetingForUpload.document_count || 0;
         onDocumentsUploaded(selectedMeetingForUpload.id, currentCount + selectedFiles.length);
@@ -597,10 +603,28 @@ export const MeetingHistoryList = ({
                     <Paperclip className="h-4 w-4 text-primary" />
                     <span className="text-sm font-medium">Supporting Documents ({meeting.document_count})</span>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    {meeting.document_count} file{meeting.document_count !== 1 ? 's' : ''} uploaded. 
-                    View detailed notes to access individual documents.
-                  </p>
+                  <div className="space-y-2">
+                    {meeting.documents?.slice(0, 3).map((doc, index) => (
+                      <div key={index} className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <FileText className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                          <span className="truncate text-foreground">{doc.file_name}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-muted-foreground ml-2">
+                          <span>{doc.file_size ? `${(doc.file_size / 1024 / 1024).toFixed(1)}MB` : ''}</span>
+                          <span>{new Date(doc.uploaded_at).toLocaleDateString('en-GB', { 
+                            day: '2-digit', 
+                            month: 'short' 
+                          })}</span>
+                        </div>
+                      </div>
+                    ))}
+                    {meeting.document_count > 3 && (
+                      <div className="text-xs text-muted-foreground italic">
+                        + {meeting.document_count - 3} more file{meeting.document_count - 3 !== 1 ? 's' : ''}...
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
               
