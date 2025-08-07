@@ -2239,6 +2239,17 @@ export const MeetingRecorder = ({
     console.log('🔍 DEBUG: First 200 chars:', currentTranscript.substring(0, 200));
     console.log('🔍 DEBUG: Last 200 chars:', currentTranscript.slice(-200));
     
+    // Get current audio blobs before preparing meeting data
+    const currentRecordingBlob = recordingBlob || stereoBlob;
+    const currentMicBlob = micBlob;
+    const currentSystemBlob = systemBlob;
+    
+    console.log('🎵 Audio blobs status:', {
+      recordingBlob: currentRecordingBlob?.size || 'null',
+      micBlob: currentMicBlob?.size || 'null', 
+      systemBlob: currentSystemBlob?.size || 'null'
+    });
+
     // Prepare meeting data
     const meetingData = {
       title: initialSettings?.title || 'General Meeting',
@@ -2250,9 +2261,9 @@ export const MeetingRecorder = ({
       startedBy: user?.email || 'Unknown User',
       needsAudioBackup: needsAudioBackup,
       stereoBlob: stereoBlob,
-      mixedAudioBlob: recordingBlob,
-      leftAudioBlob: micBlob,
-      rightAudioBlob: systemBlob
+      mixedAudioBlob: currentRecordingBlob,
+      leftAudioBlob: currentMicBlob,
+      rightAudioBlob: currentSystemBlob
     };
 
     // Show Notewell AI animation
