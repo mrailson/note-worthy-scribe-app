@@ -120,6 +120,12 @@ export const MeetingRecorder = ({
   const segmentIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const currentSegmentNumber = useRef<number>(1);
   const segmentStartTime = useRef<Date>(new Date());
+  
+  // 5-second chunking with 2-second overlap refs
+  const chunkRecorders = useRef<Map<number, MediaRecorder>>(new Map());
+  const chunkData = useRef<Map<number, Blob[]>>(new Map());
+  const chunkIntervals = useRef<Map<number, NodeJS.Timeout>>(new Map());
+  const chunkStartTimes = useRef<Map<number, Date>>(new Map());
 
   // Function to round time to nearest 15 minutes
   const roundToNearest15Minutes = (date: Date): Date => {
@@ -274,7 +280,188 @@ export const MeetingRecorder = ({
     }
   };
 
-  // Audio segment recording functions
+  // 5-second chunking with 2-second overlap functions
+  const startOverlappingChunks = async (meetingId: string) => {
+    try {
+      console.log('🎵 Starting 5-second overlapping chunks...');
+      
+      // Get microphone stream using Profile 1 settings
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          sampleRate: 44100,
+          channelCount: 1,
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false
+        }
+      });
+
+      let chunkId = 0;
+      
+      const startNewChunk = () => {
+        const currentChunkId = chunkId++;
+        const chunks: Blob[] = [];
+        chunkData.current.set(currentChunkId, chunks);
+        chunkStartTimes.current.set(currentChunkId, new Date());
+
+        // Create new recorder for this chunk
+        const recorder = new MediaRecorder(stream, {
+          mimeType: 'audio/webm;codecs=opus'
+        });
+
+        recorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            chunks.push(event.data);
+          }
+        };
+
+        recorder.onstop = async () => {
+          await processChunk(meetingId, currentChunkId);
+        };
+
+        chunkRecorders.current.set(currentChunkId, recorder);
+        recorder.start(100); // Collect data every 100ms for fine-grained control
+
+        console.log(`🎵 Started chunk ${currentChunkId}`);
+
+        // Stop this chunk after 5 seconds
+        const stopTimeout = setTimeout(() => {
+          if (chunkRecorders.current.has(currentChunkId)) {
+            const recorder = chunkRecorders.current.get(currentChunkId);
+            if (recorder && recorder.state === 'recording') {
+              recorder.stop();
+              chunkRecorders.current.delete(currentChunkId);
+            }
+          }
+        }, 5000);
+
+        chunkIntervals.current.set(currentChunkId, stopTimeout);
+      };
+
+      // Start first chunk immediately
+      startNewChunk();
+
+      // Start new chunks every 3 seconds (5 second chunks with 2 second overlap)
+      const chunkInterval = setInterval(() => {
+        if (isRecording) {
+          startNewChunk();
+        } else {
+          clearInterval(chunkInterval);
+        }
+      }, 3000); // 3 seconds = 5 second chunk - 2 second overlap
+
+      segmentIntervalRef.current = chunkInterval;
+
+      console.log('✅ Overlapping chunk recording started');
+      
+    } catch (error) {
+      console.error('❌ Failed to start overlapping chunk recording:', error);
+    }
+  };
+
+  const processChunk = async (meetingId: string, chunkId: number) => {
+    try {
+      const chunks = chunkData.current.get(chunkId);
+      const startTime = chunkStartTimes.current.get(chunkId);
+      
+      if (!chunks || chunks.length === 0 || !startTime) {
+        console.log(`⚠️ No data for chunk ${chunkId}`);
+        return;
+      }
+
+      console.log(`🎵 Processing chunk ${chunkId}...`);
+      
+      // Create blob from chunks
+      const chunkBlob = new Blob(chunks, { type: 'audio/webm' });
+      const endTime = new Date();
+      
+      // Send to transcription service
+      const formData = new FormData();
+      formData.append('audio', chunkBlob, `chunk_${chunkId}.webm`);
+
+      const { data, error } = await supabase.functions.invoke('speech-to-text', {
+        body: formData
+      });
+
+      if (error) {
+        console.error(`❌ Transcription failed for chunk ${chunkId}:`, error);
+        return;
+      }
+
+      // Process transcription result
+      const transcriptionText = data.text || '';
+      const confidence = data.confidence || 0;
+      
+      console.log(`✅ Chunk ${chunkId} transcribed:`, {
+        text: transcriptionText.substring(0, 50) + '...',
+        confidence,
+        duration: Math.floor((endTime.getTime() - startTime.getTime()) / 1000)
+      });
+
+      // Add to transcript with timestamp and overlap handling
+      if (transcriptionText.trim()) {
+        const chunkTimestamp = new Date(startTime.getTime()).toLocaleTimeString();
+        const chunkTranscript = `[${chunkTimestamp}] ${transcriptionText}`;
+        
+        // Update the main transcript (you might want to implement deduplication logic here)
+        setTranscript(prev => {
+          const newTranscript = prev + (prev ? ' ' : '') + transcriptionText;
+          onTranscriptUpdate(newTranscript);
+          return newTranscript;
+        });
+
+        // Update word count
+        const words = transcriptionText.split(/\s+/).filter(word => word.length > 0);
+        setWordCount(prev => {
+          const newCount = prev + words.length;
+          onWordCountUpdate(newCount);
+          return newCount;
+        });
+      }
+
+      // Clean up chunk data
+      chunkData.current.delete(chunkId);
+      chunkStartTimes.current.delete(chunkId);
+      
+    } catch (error) {
+      console.error(`❌ Failed to process chunk ${chunkId}:`, error);
+    }
+  };
+
+  const stopOverlappingChunks = async () => {
+    try {
+      console.log('🛑 Stopping overlapping chunk recording...');
+      
+      // Clear the main interval
+      if (segmentIntervalRef.current) {
+        clearInterval(segmentIntervalRef.current);
+        segmentIntervalRef.current = null;
+      }
+
+      // Stop all active recorders
+      for (const [chunkId, recorder] of chunkRecorders.current.entries()) {
+        if (recorder && recorder.state === 'recording') {
+          recorder.stop();
+        }
+      }
+
+      // Clear all timeouts
+      for (const [chunkId, timeout] of chunkIntervals.current.entries()) {
+        clearTimeout(timeout);
+      }
+
+      // Clean up maps
+      chunkRecorders.current.clear();
+      chunkIntervals.current.clear();
+      
+      console.log('✅ Overlapping chunk recording stopped');
+      
+    } catch (error) {
+      console.error('❌ Failed to stop overlapping chunk recording:', error);
+    }
+  };
+
+  // Audio segment recording functions (legacy - keeping for compatibility)
   const startAudioSegmentRecording = async (meetingId: string) => {
     try {
       console.log('🎵 Starting audio segment recording...');
@@ -1487,8 +1674,8 @@ export const MeetingRecorder = ({
         console.log(`🔗 Set temporary meeting ID: ${tempMeetingId}`);
       }
 
-      // Start audio segment recording
-      await startAudioSegmentRecording(tempMeetingId);
+      // Start overlapping chunk recording instead of traditional segment recording
+      await startOverlappingChunks(tempMeetingId);
       
       addDebugLog('✅ Recording started successfully');
       
@@ -1568,6 +1755,9 @@ export const MeetingRecorder = ({
       audioContextRef.current.close();
       audioContextRef.current = null;
     }
+    
+    // Stop overlapping chunk recording
+    await stopOverlappingChunks();
     
     // Stop audio backup recording
     const audioBackupBlob = await stopAudioBackup();
