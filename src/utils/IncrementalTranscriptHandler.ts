@@ -105,14 +105,14 @@ export class IncrementalTranscriptHandler {
       // Check for exact match
       if (normalizedSegment === normalizedNew) return true;
       
-      // Check if new text is a subset of existing segment
-      if (normalizedSegment.includes(normalizedNew) && normalizedNew.length > 10) return true;
+      // Check if new text is a subset of existing segment (but be less aggressive)
+      if (normalizedSegment.includes(normalizedNew) && normalizedNew.length > 20 && normalizedNew.length < normalizedSegment.length * 0.9) return true;
       
-      // Check if new text is a superset that includes existing segment
-      if (normalizedNew.includes(normalizedSegment) && normalizedSegment.length > 10) {
+      // Check if new text is a superset that includes existing segment (but be less aggressive)
+      if (normalizedNew.includes(normalizedSegment) && normalizedSegment.length > 20) {
         // This might be an expanded version, but we should be careful
         const overlap = this.calculateOverlap(normalizedSegment, normalizedNew);
-        if (overlap > 0.8) return true; // 80% overlap considered duplicate
+        if (overlap > 0.95) return true; // 95% overlap considered duplicate (was 80%)
       }
     }
     
