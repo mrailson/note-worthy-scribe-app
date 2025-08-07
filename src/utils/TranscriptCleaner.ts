@@ -70,6 +70,19 @@ export class TranscriptCleaner {
       "subtitles by",
       "closed captioning",
       "automatic transcript",
+      "this meeting is being recorded in english",
+      "this meeting is being recorded",
+      "recording in progress",
+      "this call is being recorded",
+      "this session is being recorded",
+      "recording has started",
+      "recording will begin",
+      "start recording",
+      "stop recording",
+      "recording stopped",
+      "meeting recording enabled",
+      "audio is being captured",
+      "voice recording active",
     ];
   }
 
