@@ -145,22 +145,24 @@ const ChunkedTranscriptionTest = () => {
         mimeType = 'audio/webm';
       }
 
-      console.log('🎙️ Started variable chunked recording (5s, 15s, then 30s with 2s overlap)');
+      console.log('🎙️ Started rapid feedback chunked recording (5s intervals for first 20s, then 30s)');
       toast({
-        title: "Variable Chunked Recording Started",
-        description: "5s → 15s → 30s intervals with overlap"
+        title: "Rapid Feedback Recording Started", 
+        description: "5s chunks for first 20s, then 30s chunks"
       });
 
       // Function to get the duration for current chunk
       const getChunkDuration = (chunkNumber: number) => {
-        if (chunkNumber === 1) return 5000; // First chunk: 5 seconds
-        if (chunkNumber === 2) return 10000; // Second chunk: 10 more seconds (total 15)
-        return 30000; // All subsequent chunks: 30 seconds
+        // Rapid feedback mode: 5-second chunks for first 20 seconds (chunks 1-4)
+        if (chunkNumber <= 4) return 5000; // 5s, 10s, 15s, 20s
+        // Then switch to optimal 30-second chunks for reliability
+        return 30000; 
       };
 
-      // Function to get overlap duration (2 seconds for chunks after the first)
+      // Function to get overlap duration (1 second for quick feedback, 2 seconds for longer chunks)
       const getOverlapDuration = (chunkNumber: number) => {
-        return chunkNumber > 1 ? 2000 : 0; // 2 second overlap for all chunks after first
+        if (chunkNumber <= 4) return 1000; // 1 second overlap for rapid feedback phase
+        return 2000; // 2 second overlap for longer chunks
       };
 
       // Function to create and start a new recorder
