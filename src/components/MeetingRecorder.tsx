@@ -283,10 +283,10 @@ export const MeetingRecorder = ({
   // 5-second chunking with 2-second overlap functions
   const startOverlappingChunks = async (meetingId: string) => {
     try {
-      console.log('🎵 Starting 5-second overlapping chunks...');
+      console.log('🎵 Starting 5-second overlapping chunks with Profile 1 settings...');
       
-      // Get microphone stream using Profile 1 settings
-      const stream = await navigator.mediaDevices.getUserMedia({
+      // Use exact Profile 1 settings from MicInputRecordingTester
+      const profile1Constraints: MediaStreamConstraints = {
         audio: {
           sampleRate: 44100,
           channelCount: 1,
@@ -294,6 +294,16 @@ export const MeetingRecorder = ({
           noiseSuppression: false,
           autoGainControl: false
         }
+      };
+
+      console.log('🎵 Profile 1 audio constraints:', profile1Constraints);
+      
+      // Get microphone stream using Profile 1 settings
+      const stream = await navigator.mediaDevices.getUserMedia(profile1Constraints);
+      
+      console.log('🎵 Successfully got audio stream with Profile 1 settings:', {
+        tracks: stream.getAudioTracks().length,
+        trackSettings: stream.getAudioTracks()[0]?.getSettings()
       });
 
       let chunkId = 0;
