@@ -1796,10 +1796,10 @@ export const MeetingRecorder = ({
 
       if (error) throw error;
 
-      // Get transcript counts and summaries for each meeting
+      // Get transcript counts, summaries, and documents for each meeting
       const meetingsWithCounts = await Promise.all(
         (meetingsData || []).map(async (meeting) => {
-          const [transcriptResult, summaryData, transcriptContent] = await Promise.all([
+          const [transcriptResult, summaryData, transcriptContent, documentsData] = await Promise.all([
             supabase
               .from('meeting_transcripts')
               .select('*', { count: 'exact', head: true })
@@ -1814,7 +1814,14 @@ export const MeetingRecorder = ({
             supabase
               .from('meeting_transcripts')
               .select('content')
+              .eq('meeting_id', meeting.id),
+
+            // Fetch document details
+            supabase
+              .from('meeting_documents')
+              .select('file_name, file_size, uploaded_at, file_type')
               .eq('meeting_id', meeting.id)
+              .order('uploaded_at', { ascending: false })
           ]);
 
           // Calculate word count from transcript content
@@ -1832,7 +1839,9 @@ export const MeetingRecorder = ({
             summary_exists: !!summaryData.data?.summary,
             meeting_summary: summaryData.data?.summary || null,
             overview: meeting.meeting_overviews?.overview || null,
-            word_count: wordCount
+            word_count: wordCount,
+            document_count: documentsData.data?.length || 0,
+            documents: documentsData.data || []
           };
           
           // Debug log to check overview data
@@ -1841,7 +1850,8 @@ export const MeetingRecorder = ({
             title: meeting.title,
             overview: meetingWithOverview.overview,
             rawOverviews: meeting.meeting_overviews,
-            wordCount: wordCount
+            wordCount: wordCount,
+            documentCount: meetingWithOverview.document_count
           });
           
           return meetingWithOverview;
@@ -2430,6 +2440,21 @@ export const MeetingRecorder = ({
                       ? { ...meeting, title: updatedTitle }
                       : meeting
                   ));
+                }}
+                onDocumentsUploaded={(meetingId, uploadedFiles) => {
+                  // Update the local meetings array with new documents
+                  setMeetings(prev => prev.map(meeting => {
+                    if (meeting.id === meetingId) {
+                      const existingDocuments = meeting.documents || [];
+                      const newDocuments = [...existingDocuments, ...uploadedFiles];
+                      return {
+                        ...meeting,
+                        document_count: newDocuments.length,
+                        documents: newDocuments
+                      };
+                    }
+                    return meeting;
+                  }));
                 }}
               />
             </CardContent>
