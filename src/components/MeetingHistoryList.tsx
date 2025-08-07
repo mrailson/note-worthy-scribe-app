@@ -679,7 +679,7 @@ export const MeetingHistoryList = ({
               />
               
               {/* File Upload Summary - Show if documents exist */}
-              {meeting.document_count && meeting.document_count > 0 && (
+              {meeting.document_count > 0 && (
                 <div className="bg-muted/30 rounded-lg p-3 border border-muted">
                   <div className="flex items-center gap-2 mb-2">
                     <Paperclip className="h-4 w-4 text-primary" />
