@@ -209,6 +209,9 @@ export const MeetingRecorder = ({
     try {
       console.log('🎯 Starting 15-second preview recording...');
       
+      // Wait 2 seconds to avoid conflicts with main recording setup
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
       // Use exact Profile 1 settings for preview - INDEPENDENT STREAM
       const profile1Constraints: MediaStreamConstraints = {
         audio: {
@@ -1836,9 +1839,9 @@ export const MeetingRecorder = ({
         transcriptHandler.current.clear();
       }
       
-      // Start audio backup recording only (preview disabled to prevent conflicts)
+      // Start audio backup recording and 15-second preview
       await startAudioBackup();
-      // await startPreviewRecording(); // Disabled to prevent audio stream conflicts
+      await startPreviewRecording(); // Re-enabled for testing
       // Always use microphone transcription
       await startMicrophoneTranscription();
       
