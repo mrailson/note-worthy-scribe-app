@@ -212,30 +212,15 @@ export const MeetingRecorder = ({
       // Wait 2 seconds to avoid conflicts with main recording setup
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Use exact Profile 1 settings for preview - INDEPENDENT STREAM with Chrome fixes
-      const isChrome = navigator.userAgent.includes('Chrome') && !navigator.userAgent.includes('Edge');
-      
+      // Use simple, standard Profile 1 settings for preview
       const profile1Constraints: MediaStreamConstraints = {
         audio: {
           sampleRate: 44100,
           channelCount: 1,
           echoCancellation: false,
           noiseSuppression: false,
-          autoGainControl: false,
-          // Chrome-specific constraints to prevent audio ducking
-          ...(isChrome && {
-            googEchoCancellation: false,
-            googAutoGainControl: false,
-            googNoiseSuppression: false,
-            googHighpassFilter: false,
-            googAudioMirroring: false,
-            googDAEchoCancellation: false,
-            googNoiseReduction: false,
-            googVoiceActivityDetection: false,
-            googAGCSpeed: 0,
-            googAGCGain: 0
-          })
-        } as any
+          autoGainControl: false
+        }
       };
 
       // Create SEPARATE stream for preview to avoid conflicts
@@ -421,31 +406,15 @@ export const MeetingRecorder = ({
     try {
       console.log('🎵 Starting 5-second overlapping chunks with Profile 1 settings...');
       
-      // Use exact Profile 1 settings from MicInputRecordingTester with Chrome-specific fixes
-      const isChrome = navigator.userAgent.includes('Chrome') && !navigator.userAgent.includes('Edge');
-      console.log(`🎵 Browser detected: ${isChrome ? 'Chrome' : 'Other'}`);
-      
+      // Use simple, standard Profile 1 settings - no browser-specific constraints
       const profile1Constraints: MediaStreamConstraints = {
         audio: {
           sampleRate: 44100,
           channelCount: 1,
           echoCancellation: false,
           noiseSuppression: false,
-          autoGainControl: false,
-          // Chrome-specific constraints to prevent audio ducking
-          ...(isChrome && {
-            googEchoCancellation: false,
-            googAutoGainControl: false,
-            googNoiseSuppression: false,
-            googHighpassFilter: false,
-            googAudioMirroring: false,
-            googDAEchoCancellation: false,
-            googNoiseReduction: false,
-            googVoiceActivityDetection: false,
-            googAGCSpeed: 0,
-            googAGCGain: 0
-          })
-        } as any
+          autoGainControl: false
+        }
       };
 
       console.log('🎵 Profile 1 audio constraints:', profile1Constraints);
