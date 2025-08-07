@@ -2749,7 +2749,9 @@ export const MeetingRecorder = ({
                         <div className="p-4 bg-accent/10 rounded-lg border border-accent/20">
                           <div className="flex items-center gap-3 mb-3">
                             <div className="flex items-center gap-2">
-                              <Headphones className="h-4 w-4 text-accent" />
+                              <div className="p-1.5 rounded-full bg-accent/20">
+                                <Headphones className="h-4 w-4 text-accent" />
+                              </div>
                               <span className="text-sm font-medium">Mixed Recording (Left + Right Channels):</span>
                             </div>
                             <Button
@@ -2784,7 +2786,9 @@ export const MeetingRecorder = ({
                           <div className="p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
                             <div className="flex items-center gap-3 mb-3">
                               <div className="flex items-center gap-2">
-                                <Mic className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                <div className="p-1.5 rounded-full bg-blue-100 dark:bg-blue-900/50">
+                                  <Mic className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                </div>
                                 <span className="text-sm font-medium">Left Channel Recording (Microphone):</span>
                               </div>
                               <Button
@@ -2820,7 +2824,9 @@ export const MeetingRecorder = ({
                           <div className="p-4 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
                             <div className="flex items-center gap-3 mb-3">
                               <div className="flex items-center gap-2">
-                                <Monitor className="h-4 w-4 text-green-600 dark:text-green-400" />
+                                <div className="p-1.5 rounded-full bg-green-100 dark:bg-green-900/50">
+                                  <Monitor className="h-4 w-4 text-green-600 dark:text-green-400" />
+                                </div>
                                 <span className="text-sm font-medium">Right Channel Recording (System Audio):</span>
                               </div>
                               <Button
