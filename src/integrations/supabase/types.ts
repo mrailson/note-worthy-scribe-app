@@ -2203,9 +2203,13 @@ export type Database = {
           end_time: string | null
           format: string | null
           id: string
+          left_audio_url: string | null
           location: string | null
           meeting_type: string
+          mixed_audio_url: string | null
+          recording_created_at: string | null
           requires_audio_backup: boolean | null
+          right_audio_url: string | null
           start_time: string
           status: string
           title: string
@@ -2222,9 +2226,13 @@ export type Database = {
           end_time?: string | null
           format?: string | null
           id?: string
+          left_audio_url?: string | null
           location?: string | null
           meeting_type?: string
+          mixed_audio_url?: string | null
+          recording_created_at?: string | null
           requires_audio_backup?: boolean | null
+          right_audio_url?: string | null
           start_time?: string
           status?: string
           title: string
@@ -2241,9 +2249,13 @@ export type Database = {
           end_time?: string | null
           format?: string | null
           id?: string
+          left_audio_url?: string | null
           location?: string | null
           meeting_type?: string
+          mixed_audio_url?: string | null
+          recording_created_at?: string | null
           requires_audio_backup?: boolean | null
+          right_audio_url?: string | null
           start_time?: string
           status?: string
           title?: string

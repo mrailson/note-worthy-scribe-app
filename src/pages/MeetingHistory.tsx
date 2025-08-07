@@ -843,6 +843,10 @@ const MeetingHistory = () => {
           audio_backup_path,
           audio_backup_created_at,
           requires_audio_backup,
+          mixed_audio_url,
+          left_audio_url,
+          right_audio_url,
+          recording_created_at,
           meeting_overviews(overview)
         `)
         .eq('user_id', user?.id)

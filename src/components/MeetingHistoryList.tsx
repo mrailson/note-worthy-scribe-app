@@ -18,7 +18,10 @@ import {
   Volume2,
   Download,
   Paperclip,
-  Upload
+  Upload,
+  Headphones,
+  Mic,
+  Monitor
 } from "lucide-react";
 import {
   AlertDialog,
@@ -65,6 +68,10 @@ interface Meeting {
   requires_audio_backup?: boolean;
   word_count?: number;
   document_count?: number;
+  mixed_audio_url?: string | null;
+  left_audio_url?: string | null;
+  right_audio_url?: string | null;
+  recording_created_at?: string | null;
   documents?: Array<{
     file_name: string;
     file_size: number | null;
@@ -723,6 +730,76 @@ export const MeetingHistoryList = ({
                     {meeting.document_count > 3 && (
                       <div className="text-xs text-muted-foreground italic">
                         + {meeting.document_count - 3} more file{meeting.document_count - 3 !== 1 ? 's' : ''}...
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              {/* Audio Recording Playback - Show if any recording URLs exist */}
+              {(meeting.mixed_audio_url || meeting.left_audio_url || meeting.right_audio_url) && (
+                <div className="bg-muted/30 rounded-lg p-3 border border-muted">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Volume2 className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-medium">Recording Playback</span>
+                    {meeting.recording_created_at && (
+                      <span className="text-xs text-muted-foreground">
+                        • {format(new Date(meeting.recording_created_at), 'MMM d, yyyy')}
+                      </span>
+                    )}
+                  </div>
+                  <div className="space-y-3">
+                    {/* Mixed Recording (Left + Right Channels) */}
+                    {meeting.mixed_audio_url && (
+                      <div className="p-3 bg-accent/10 rounded-lg border border-accent/20">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="p-1.5 rounded-full bg-accent/20">
+                            <Headphones className="h-4 w-4 text-accent" />
+                          </div>
+                          <span className="text-sm font-medium">Mixed Recording (Left + Right Channels)</span>
+                        </div>
+                        <audio
+                          src={meeting.mixed_audio_url}
+                          controls
+                          className="w-full h-8"
+                          preload="metadata"
+                        />
+                      </div>
+                    )}
+
+                    {/* Left Channel (Microphone) */}
+                    {meeting.left_audio_url && (
+                      <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="p-1.5 rounded-full bg-blue-100 dark:bg-blue-900/50">
+                            <Mic className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                          </div>
+                          <span className="text-sm font-medium">Left Channel Recording (Microphone)</span>
+                        </div>
+                        <audio
+                          src={meeting.left_audio_url}
+                          controls
+                          className="w-full h-8"
+                          preload="metadata"
+                        />
+                      </div>
+                    )}
+
+                    {/* Right Channel (System Audio) */}
+                    {meeting.right_audio_url && (
+                      <div className="p-3 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="p-1.5 rounded-full bg-green-100 dark:bg-green-900/50">
+                            <Monitor className="h-4 w-4 text-green-600 dark:text-green-400" />
+                          </div>
+                          <span className="text-sm font-medium">Right Channel Recording (System Audio)</span>
+                        </div>
+                        <audio
+                          src={meeting.right_audio_url}
+                          controls
+                          className="w-full h-8"
+                          preload="metadata"
+                        />
                       </div>
                     )}
                   </div>

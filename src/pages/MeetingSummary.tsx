@@ -59,6 +59,9 @@ interface MeetingData {
   startTime: string;
   practiceName?: string;
   generatedNotes?: string;
+  mixedAudioUrl?: string;
+  leftAudioUrl?: string;
+  rightAudioUrl?: string;
   startedBy?: string;
   needsAudioBackup?: boolean;
   audioBackupBlob?: Blob | null;
@@ -344,22 +347,26 @@ export default function MeetingSummary() {
         }
       }
 
-      const { data: meeting, error: meetingError } = await supabase
-        .from('meetings')
-        .insert({
-          title: data.title,
-          user_id: user.id,
-          start_time: data.startTime,
-          end_time: new Date().toISOString(),
-          duration_minutes: Math.floor(parseInt(data.duration.split(':')[0]) + parseInt(data.duration.split(':')[1]) / 60),
-          status: 'completed',
-          meeting_type: 'general',
-          requires_audio_backup: data.needsAudioBackup || false,
-          audio_backup_path: audioBackupPath,
-          audio_backup_created_at: audioBackupPath ? new Date().toISOString() : null
-        })
-        .select()
-        .single();
+       const { data: meeting, error: meetingError } = await supabase
+         .from('meetings')
+         .insert({
+           title: data.title,
+           user_id: user.id,
+           start_time: data.startTime,
+           end_time: new Date().toISOString(),
+           duration_minutes: Math.floor(parseInt(data.duration.split(':')[0]) + parseInt(data.duration.split(':')[1]) / 60),
+           status: 'completed',
+           meeting_type: 'general',
+           requires_audio_backup: data.needsAudioBackup || false,
+           audio_backup_path: audioBackupPath,
+           audio_backup_created_at: audioBackupPath ? new Date().toISOString() : null,
+           mixed_audio_url: data.mixedAudioUrl,
+           left_audio_url: data.leftAudioUrl,
+           right_audio_url: data.rightAudioUrl,
+           recording_created_at: data.mixedAudioUrl ? new Date().toISOString() : null
+         })
+         .select()
+         .single();
 
        if (meetingError) throw meetingError;
        

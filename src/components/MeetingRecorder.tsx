@@ -2235,7 +2235,10 @@ export const MeetingRecorder = ({
       startTime: startTime,
       startedBy: user?.email || 'Unknown User',
       needsAudioBackup: needsAudioBackup,
-      stereoBlob: stereoBlob
+      stereoBlob: stereoBlob,
+      mixedAudioUrl: recordingAudioUrl,
+      leftAudioUrl: micAudioUrl,
+      rightAudioUrl: systemAudioUrl
     };
 
     // Show Notewell AI animation
