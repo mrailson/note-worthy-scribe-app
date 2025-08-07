@@ -80,6 +80,12 @@ interface Meeting {
   }>;
 }
 
+interface AudioUrls {
+  mixedAudioSignedUrl: string | null;
+  leftAudioSignedUrl: string | null;
+  rightAudioSignedUrl: string | null;
+}
+
 interface MeetingHistoryListProps {
   meetings: Meeting[];
   onEdit: (meetingId: string) => void;
@@ -116,6 +122,47 @@ export const MeetingHistoryList = ({
   const [selectedMeetingForUpload, setSelectedMeetingForUpload] = useState<Meeting | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
+  
+  // Add state for signed URLs
+  const [audioUrls, setAudioUrls] = useState<Record<string, AudioUrls>>({});
+
+  // Function to generate signed URLs for audio files
+  const generateSignedUrls = async (meetingId: string, meeting: Meeting) => {
+    if (audioUrls[meetingId]) return; // Already generated
+
+    const urls: AudioUrls = {
+      mixedAudioSignedUrl: null,
+      leftAudioSignedUrl: null,
+      rightAudioSignedUrl: null
+    };
+
+    try {
+      if (meeting.mixed_audio_url) {
+        const { data } = await supabase.storage
+          .from('meeting-audio-segments')
+          .createSignedUrl(meeting.mixed_audio_url, 3600); // 1 hour expiry
+        urls.mixedAudioSignedUrl = data?.signedUrl || null;
+      }
+
+      if (meeting.left_audio_url) {
+        const { data } = await supabase.storage
+          .from('meeting-audio-segments')
+          .createSignedUrl(meeting.left_audio_url, 3600);
+        urls.leftAudioSignedUrl = data?.signedUrl || null;
+      }
+
+      if (meeting.right_audio_url) {
+        const { data } = await supabase.storage
+          .from('meeting-audio-segments')
+          .createSignedUrl(meeting.right_audio_url, 3600);
+        urls.rightAudioSignedUrl = data?.signedUrl || null;
+      }
+
+      setAudioUrls(prev => ({ ...prev, [meetingId]: urls }));
+    } catch (error) {
+      console.error('Error generating signed URLs:', error);
+    }
+  };
 
   // Handle inline title editing
   const handleStartEdit = (meetingId: string, currentTitle: string) => {
@@ -760,12 +807,23 @@ export const MeetingHistoryList = ({
                             <Headphones className="h-4 w-4 text-accent" />
                           </div>
                           <span className="text-sm font-medium">Mixed Recording (Left + Right Channels)</span>
+                          {!audioUrls[meeting.id]?.mixedAudioSignedUrl && (
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => generateSignedUrls(meeting.id, meeting)}
+                              className="ml-auto"
+                            >
+                              Load Audio
+                            </Button>
+                          )}
                         </div>
                         <audio
-                          src={`https://dphcnbricafkbtizkoal.supabase.co/storage/v1/object/authenticated/meeting-audio-segments/${meeting.mixed_audio_url}`}
+                          src={audioUrls[meeting.id]?.mixedAudioSignedUrl || undefined}
                           controls
                           className="w-full h-8"
                           preload="metadata"
+                          onLoadStart={() => generateSignedUrls(meeting.id, meeting)}
                         />
                       </div>
                     )}
@@ -780,10 +838,11 @@ export const MeetingHistoryList = ({
                           <span className="text-sm font-medium">Left Channel Recording (Microphone)</span>
                         </div>
                         <audio
-                          src={`https://dphcnbricafkbtizkoal.supabase.co/storage/v1/object/authenticated/meeting-audio-segments/${meeting.left_audio_url}`}
+                          src={audioUrls[meeting.id]?.leftAudioSignedUrl || undefined}
                           controls
                           className="w-full h-8"
                           preload="metadata"
+                          onLoadStart={() => generateSignedUrls(meeting.id, meeting)}
                         />
                       </div>
                     )}
@@ -798,10 +857,11 @@ export const MeetingHistoryList = ({
                           <span className="text-sm font-medium">Right Channel Recording (System Audio)</span>
                         </div>
                         <audio
-                          src={`https://dphcnbricafkbtizkoal.supabase.co/storage/v1/object/authenticated/meeting-audio-segments/${meeting.right_audio_url}`}
+                          src={audioUrls[meeting.id]?.rightAudioSignedUrl || undefined}
                           controls
                           className="w-full h-8"
                           preload="metadata"
+                          onLoadStart={() => generateSignedUrls(meeting.id, meeting)}
                         />
                       </div>
                     )}
