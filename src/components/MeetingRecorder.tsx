@@ -2928,7 +2928,7 @@ export const MeetingRecorder = ({
                             <SelectItem value="mic-and-system" className="cursor-pointer">
                               <div className="flex items-center gap-2">
                                 <MonitorSpeaker className="h-4 w-4 text-orange-600" />
-                                <div className="font-medium">Microphone + System Audio</div>
+                                <div className="font-medium">Microphone and Teams web meeting</div>
                               </div>
                             </SelectItem>
                           </SelectContent>
