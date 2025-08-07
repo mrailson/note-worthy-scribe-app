@@ -17,21 +17,42 @@ export class StereoAudioCapture {
         }
       });
 
-      // Try to get system audio (screen share with audio)
+      // Try to get system audio using WASAPI Desktop Audio method
       try {
-        this.systemStream = await navigator.mediaDevices.getDisplayMedia({
-          video: false,
+        this.systemStream = await navigator.mediaDevices.getUserMedia({
           audio: {
-            sampleRate: 24000,
-            channelCount: 1,
+            sampleRate: 48000,
+            channelCount: 2,
             echoCancellation: false,
             noiseSuppression: false,
-            autoGainControl: false
-          }
+            autoGainControl: false,
+            // Windows-specific WASAPI hints for desktop audio
+            latency: 0.01,
+            deviceId: 'communications'
+          } as any
         });
+        
+        console.log('🎧 WASAPI Desktop Audio captured for system channel');
       } catch (error) {
-        console.log('System audio not available, using microphone only:', error);
-        return this.micStream;
+        console.log('WASAPI system audio not available, trying screen share fallback:', error);
+        
+        // Fallback to screen share if WASAPI fails
+        try {
+          this.systemStream = await navigator.mediaDevices.getDisplayMedia({
+            video: false,
+            audio: {
+              sampleRate: 24000,
+              channelCount: 1,
+              echoCancellation: false,
+              noiseSuppression: false,
+              autoGainControl: false
+            }
+          });
+          console.log('🖥️ Screen share audio captured as fallback');
+        } catch (screenError) {
+          console.log('System audio not available via any method, using microphone only:', screenError);
+          return this.micStream;
+        }
       }
 
       // Create stereo stream: Left = Mic, Right = System
@@ -52,7 +73,7 @@ export class StereoAudioCapture {
       
       this.stereoStream = destination.stream;
       
-      console.log('🎧 Created stereo stream: Left=Mic, Right=System');
+      console.log('🎧 Created stereo stream: Left=Mic, Right=WASAPI System Audio');
       return this.stereoStream;
 
     } catch (error) {

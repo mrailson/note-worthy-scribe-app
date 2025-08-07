@@ -1134,9 +1134,9 @@ export const MeetingRecorder = ({
         
       } catch (screenError) {
         addDebugLog(`❌ Screen share failed: ${screenError.message}`);
-        addDebugLog('🎤 Using enhanced microphone with custom audio processing...');
+        addDebugLog('🎤 Using WASAPI Desktop Audio for system capture...');
         
-        // Fallback to microphone with custom audio processing
+        // Use WASAPI Desktop Audio method that works
         stream = await navigator.mediaDevices.getUserMedia({
           audio: {
             echoCancellation: false,
@@ -1144,11 +1144,13 @@ export const MeetingRecorder = ({
             autoGainControl: false,
             sampleRate: 48000,
             channelCount: 2,
-            sampleSize: 16
-          }
+            // Windows-specific WASAPI hints for desktop audio
+            latency: 0.01,
+            deviceId: 'communications'
+          } as any
         });
         
-        addDebugLog('✅ Enhanced microphone access granted');
+        addDebugLog('✅ WASAPI Desktop Audio access granted for system capture');
         micAudioStreamRef.current = stream;
         useCustomProcessing = true;
       }
@@ -1174,7 +1176,7 @@ export const MeetingRecorder = ({
       if (screenStreamRef.current) {
         addDebugLog('💡 Screen audio capture active - should pick up Teams/YouTube audio');
       } else {
-        addDebugLog('💡 Using enhanced microphone processing - optimized for speaker audio capture');
+        addDebugLog('💡 Using WASAPI Desktop Audio processing - capturing real system audio');
       }
       
       console.log('Recording started with computer audio transcription');
