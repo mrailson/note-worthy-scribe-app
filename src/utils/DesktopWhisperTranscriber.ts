@@ -19,6 +19,11 @@ export class DesktopWhisperTranscriber {
   private sessionId: string; // Unique session ID for this recording
   private meetingId: string | null = null; // Meeting ID to associate chunks
   private finalTranscript = ''; // Accumulated final transcript with smart merging
+  
+  // Early transcription mode for first minute
+  private earlyTranscriptionMode = true;
+  private recordingStartTime = 0;
+  private firstTranscriptionSent = false;
 
   constructor(
     private onTranscription: (data: TranscriptData) => void,
@@ -76,7 +81,12 @@ export class DesktopWhisperTranscriber {
 
   async startTranscription() {
     try {
-      this.onStatusChange('Starting desktop Whisper transcription...');
+      this.recordingStartTime = Date.now();
+      this.earlyTranscriptionMode = true;
+      this.firstTranscriptionSent = false;
+      
+      console.log('🚀 Starting Desktop Whisper with EARLY MODE for fast initial response');
+      this.onStatusChange('Ready for immediate transcription...');
       console.log('🖥️ Starting Desktop Whisper transcription...');
 
       // Request microphone access with desktop-optimized settings
@@ -160,14 +170,37 @@ export class DesktopWhisperTranscriber {
   private scheduleNextChunk() {
     if (!this.isRecording) return;
 
+    // Check if we should exit early transcription mode (after 60 seconds)
+    const elapsed = Date.now() - this.recordingStartTime;
+    if (this.earlyTranscriptionMode && elapsed > 60000) {
+      console.log('📊 Exiting EARLY MODE after 60 seconds - switching to normal intervals');
+      this.earlyTranscriptionMode = false;
+    }
+
     let nextInterval: number;
     
-    if (this.chunkCount === 0) {
-      // First chunk: 20 seconds
-      nextInterval = 20000;
+    if (this.earlyTranscriptionMode) {
+      // Early mode: aggressive processing for first few chunks
+      if (this.chunkCount === 0) {
+        nextInterval = 3000; // 3 seconds for very first chunk
+        console.log('⚡ EARLY MODE: First chunk - 3 second interval');
+      } else if (this.chunkCount === 1) {
+        nextInterval = 5000; // 5 seconds for second chunk
+        console.log('⚡ EARLY MODE: Second chunk - 5 second interval');
+      } else if (this.chunkCount < 4) {
+        nextInterval = 8000; // 8 seconds for next chunks
+        console.log('⚡ EARLY MODE: Early chunk', this.chunkCount, '- 8 second interval');
+      } else {
+        nextInterval = 15000; // 15 seconds for remaining early chunks
+        console.log('⚡ EARLY MODE: Later chunk', this.chunkCount, '- 15 second interval');
+      }
     } else {
-      // Subsequent chunks: 30 seconds (reduced from 45 for shorter overlap)
-      nextInterval = 30000;
+      // Normal mode intervals
+      if (this.chunkCount === 0) {
+        nextInterval = 20000; // First chunk: 20 seconds
+      } else {
+        nextInterval = 30000; // Subsequent chunks: 30 seconds
+      }
     }
 
     console.log(`🖥️ Scheduling chunk ${this.chunkCount + 1} in ${nextInterval/1000} seconds`);
