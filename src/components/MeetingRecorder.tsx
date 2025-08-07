@@ -78,7 +78,7 @@ export const MeetingRecorder = ({
   const [showLastPhrase, setShowLastPhrase] = useState(false);
   const [lastPhrase, setLastPhrase] = useState("");
   
-  // Mic test service visibility
+  // Mic test service visibility (controls both tab and recording playback)
   const [micTestServiceVisible, setMicTestServiceVisible] = useState<boolean>(true);
   const [startTime, setStartTime] = useState<string>("");
   const [liveSummary, setLiveSummary] = useState<string>("");
@@ -2951,8 +2951,8 @@ export const MeetingRecorder = ({
                       </div>
                    )}
                    
-                    {/* Recording Audio Player - Show after recording stops */}
-                     {recordingAudioUrl && !isRecording && micTestServiceVisible && (
+                     {/* Recording Audio Player - Show after recording stops (controlled by micTestServiceVisible) */}
+                      {recordingAudioUrl && !isRecording && micTestServiceVisible && (
                        <div className="mt-4 space-y-3">
                         {/* Mixed Stereo Playback */}
                         <div className="p-4 bg-accent/10 rounded-lg border border-accent/20">
