@@ -53,6 +53,7 @@ interface Meeting {
   transcript_count?: number;
   summary_exists?: boolean;
   word_count?: number;
+  document_count?: number;
 }
 
 // Helper function to deduplicate transcript segments with more aggressive deduplication
@@ -853,7 +854,7 @@ const MeetingHistory = () => {
       // Batch the remaining queries efficiently
       const meetingIds = meetingsData.map(m => m.id);
       
-      const [transcriptCounts, summaryExists, wordCounts] = await Promise.all([
+      const [transcriptCounts, summaryExists, wordCounts, documentCounts] = await Promise.all([
         // Get transcript counts in one query
         supabase
           .from('meeting_transcripts')
@@ -890,6 +891,18 @@ const MeetingHistory = () => {
               wordCounts[transcript.meeting_id] = (wordCounts[transcript.meeting_id] || 0) + words.length;
             });
             return wordCounts;
+          }),
+
+        // Get document counts
+        supabase
+          .from('meeting_documents')
+          .select('meeting_id')
+          .in('meeting_id', meetingIds)
+          .then(({ data }) => {
+            return data?.reduce((acc, d) => {
+              acc[d.meeting_id] = (acc[d.meeting_id] || 0) + 1;
+              return acc;
+            }, {} as Record<string, number>) || {};
           })
       ]);
 
@@ -898,6 +911,7 @@ const MeetingHistory = () => {
         transcript_count: transcriptCounts[meeting.id] || 0,
         summary_exists: !!summaryExists[meeting.id],
         word_count: wordCounts[meeting.id] || 0,
+        document_count: documentCounts[meeting.id] || 0,
         // Extract the overview from the nested meeting_overviews object
         overview: meeting.meeting_overviews?.overview || null
       }));

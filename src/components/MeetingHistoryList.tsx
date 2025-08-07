@@ -16,7 +16,9 @@ import {
   FileTextIcon,
   Copy,
   Volume2,
-  Download
+  Download,
+  Paperclip,
+  Upload
 } from "lucide-react";
 import {
   AlertDialog,
@@ -35,6 +37,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
+import { SimpleFileUpload } from "@/components/SimpleFileUpload";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface Meeting {
   id: string;
@@ -54,6 +64,7 @@ interface Meeting {
   audio_backup_created_at?: string | null;
   requires_audio_backup?: boolean;
   word_count?: number;
+  document_count?: number;
 }
 
 interface MeetingHistoryListProps {
@@ -85,6 +96,10 @@ export const MeetingHistoryList = ({
 }: MeetingHistoryListProps) => {
   const [editingMeetingId, setEditingMeetingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState<string>("");
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [selectedMeetingForUpload, setSelectedMeetingForUpload] = useState<Meeting | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   // Handle inline title editing
   const handleStartEdit = (meetingId: string, currentTitle: string) => {
@@ -165,6 +180,64 @@ export const MeetingHistoryList = ({
     } catch (error) {
       console.error('Error downloading audio backup:', error);
       toast.error('Failed to download audio backup');
+    }
+  };
+
+  // Handle file upload
+  const handleFileUpload = (files: File[]) => {
+    setSelectedFiles(files);
+  };
+
+  const handleUploadClick = (meeting: Meeting) => {
+    setSelectedMeetingForUpload(meeting);
+    setSelectedFiles([]);
+    setUploadDialogOpen(true);
+  };
+
+  const uploadDocuments = async () => {
+    if (!selectedFiles.length || !selectedMeetingForUpload) return;
+
+    setUploading(true);
+    try {
+      for (const file of selectedFiles) {
+        // Upload file to Supabase storage
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${selectedMeetingForUpload.id}/${Date.now()}-${file.name}`;
+        
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('meeting-documents')
+          .upload(fileName, file);
+
+        if (uploadError) throw uploadError;
+
+        // Save document metadata to database
+        const { error: insertError } = await supabase
+          .from('meeting_documents')
+          .insert({
+            meeting_id: selectedMeetingForUpload.id,
+            file_name: file.name,
+            file_path: uploadData.path,
+            file_type: file.type,
+            file_size: file.size,
+            description: null,
+            uploaded_by: (await supabase.auth.getUser()).data.user?.id,
+          });
+
+        if (insertError) throw insertError;
+      }
+
+      toast.success(`${selectedFiles.length} document(s) uploaded successfully`);
+      setSelectedFiles([]);
+      setUploadDialogOpen(false);
+      setSelectedMeetingForUpload(null);
+      
+      // Refresh the page to show updated document count
+      window.location.reload();
+    } catch (error: any) {
+      console.error('Error uploading documents:', error.message);
+      toast.error('Failed to upload documents');
+    } finally {
+      setUploading(false);
     }
   };
   
@@ -417,6 +490,13 @@ export const MeetingHistoryList = ({
                     <span>{formatWordCount(meeting.word_count)}</span>
                   </div>
                 )}
+
+                {meeting.document_count && meeting.document_count > 0 && (
+                  <div className="flex items-center gap-1">
+                    <Paperclip className="h-3 w-3 flex-shrink-0" />
+                    <span>{meeting.document_count} file{meeting.document_count !== 1 ? 's' : ''}</span>
+                  </div>
+                )}
               </div>
 
               {/* Action Buttons - Mobile Optimized */}
@@ -450,6 +530,16 @@ export const MeetingHistoryList = ({
                 )}
                 
                 
+                {/* Upload Documents Button */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleUploadClick(meeting)}
+                  className="flex items-center justify-center gap-2 flex-1 sm:flex-none touch-manipulation min-h-[44px] text-primary hover:text-primary"
+                >
+                  <Paperclip className="h-4 w-4" />
+                  <span>Upload</span>
+                </Button>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button
@@ -519,6 +609,59 @@ export const MeetingHistoryList = ({
           </CardContent>
         </Card>
       ))}
+
+      {/* Upload Dialog */}
+      <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Upload Documents</DialogTitle>
+            <DialogDescription>
+              Add supporting documents for "{selectedMeetingForUpload?.title}"
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <SimpleFileUpload
+                onFileUpload={handleFileUpload}
+                accept=".pdf,.doc,.docx,.xlsx,.csv,.txt,.jpg,.jpeg,.png"
+                maxSize={25}
+                multiple={true}
+              />
+            </div>
+            {selectedFiles.length > 0 && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Selected Files:</label>
+                {selectedFiles.map((file, index) => (
+                  <div key={index} className="text-sm text-muted-foreground">
+                    {file.name} ({(file.size / 1024 / 1024).toFixed(1)} MB)
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="flex justify-end gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setUploadDialogOpen(false)}
+                disabled={uploading}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={uploadDocuments}
+                disabled={selectedFiles.length === 0 || uploading}
+                className="flex items-center gap-2"
+              >
+                {uploading ? (
+                  <Upload className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Upload className="h-4 w-4" />
+                )}
+                {uploading ? 'Uploading...' : 'Upload'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
