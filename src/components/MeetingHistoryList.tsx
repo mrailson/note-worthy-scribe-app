@@ -748,7 +748,7 @@ export const MeetingHistoryList = ({
                 </div>
                 
                 <div className="text-xs text-muted-foreground whitespace-nowrap">
-                  Created {format(new Date(meeting.created_at), 'd MMM, yyyy')}
+                  Created {format(new Date(meeting.created_at), 'd MMM yyyy')}
                 </div>
               </div>
             </div>
