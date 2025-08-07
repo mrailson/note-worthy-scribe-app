@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { User, Save, Edit2, Check, X } from 'lucide-react';
+import { User, Save, Edit2, Check, X, Clock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -50,6 +50,26 @@ export const TranscriptSpeakerManager: React.FC<TranscriptSpeakerManagerProps> =
     setSpeakers(speakerArray);
   }, [transcript]);
 
+  // Parse markdown formatting
+  const parseMarkdown = (text: string) => {
+    // Handle **bold** text
+    let parsed = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    // Handle *italic* text
+    parsed = parsed.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>');
+    // Handle line breaks
+    parsed = parsed.replace(/\n/g, '<br />');
+    return parsed;
+  };
+
+  // Extract timestamps from content or generate them
+  const generateTimestamp = (segmentIndex: number, totalSegments: number) => {
+    // If we have actual timestamps, use them, otherwise estimate based on position
+    const estimatedMinutes = Math.floor((segmentIndex / totalSegments) * 30); // Assume 30 min meeting
+    const minutes = Math.floor(estimatedMinutes);
+    const seconds = Math.floor((estimatedMinutes % 1) * 60);
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  };
+
   // Format transcript with better structure
   const formatTranscript = (text: string, speakerMappings: SpeakerIdentification[]) => {
     let formatted = text;
@@ -79,33 +99,51 @@ export const TranscriptSpeakerManager: React.FC<TranscriptSpeakerManagerProps> =
         const speakerInfo = speakerMatch[1];
         const firstContent = speakerMatch[2];
         const fullContent = firstContent + (content ? '\n' + content : '');
+        const timestamp = generateTimestamp(index, segments.length);
         
         return (
-          <div key={index} className="mb-4 p-3 bg-background border-l-4 border-primary/30 rounded-r-lg">
-            <div className="flex items-center gap-2 mb-2">
-              <User className="h-4 w-4 text-primary" />
-              <Badge variant="secondary" className="font-medium">
-                {speakerInfo}
-              </Badge>
+          <div key={index} className="mb-4 p-4 bg-background border-l-4 border-primary/30 rounded-r-lg shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4 text-primary" />
+                <Badge variant="secondary" className="font-medium">
+                  {speakerInfo}
+                </Badge>
+              </div>
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Clock className="h-3 w-3" />
+                <span>{timestamp}</span>
+              </div>
             </div>
             <div className="ml-6 text-sm leading-relaxed">
               {fullContent.split('\n').map((line, lineIndex) => (
-                <p key={lineIndex} className={lineIndex > 0 ? 'mt-2' : ''}>
-                  {line}
-                </p>
+                <div 
+                  key={lineIndex} 
+                  className={lineIndex > 0 ? 'mt-2' : ''}
+                  dangerouslySetInnerHTML={{ __html: parseMarkdown(line) }}
+                />
               ))}
             </div>
           </div>
         );
       } else {
         // Handle content without clear speaker
+        const timestamp = generateTimestamp(index, segments.length);
         return (
-          <div key={index} className="mb-4 p-3 bg-muted/30 rounded-lg">
+          <div key={index} className="mb-4 p-4 bg-muted/30 rounded-lg shadow-sm">
+            <div className="flex items-center justify-end mb-2">
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Clock className="h-3 w-3" />
+                <span>{timestamp}</span>
+              </div>
+            </div>
             <div className="text-sm leading-relaxed">
               {segment.split('\n').map((line, lineIndex) => (
-                <p key={lineIndex} className={lineIndex > 0 ? 'mt-2' : ''}>
-                  {line}
-                </p>
+                <div 
+                  key={lineIndex} 
+                  className={lineIndex > 0 ? 'mt-2' : ''}
+                  dangerouslySetInnerHTML={{ __html: parseMarkdown(line) }}
+                />
               ))}
             </div>
           </div>
