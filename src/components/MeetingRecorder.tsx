@@ -2854,7 +2854,7 @@ export const MeetingRecorder = ({
                       </Button>
                     </div>
                   ) : (
-                    <div className="space-y-4">
+                    <div className="space-y-1">
                       <div className="flex items-center justify-between gap-3 text-primary animate-pulse bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg p-4 border border-primary/20">
                         <div className="flex items-center gap-3">
                           <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
@@ -2882,7 +2882,7 @@ export const MeetingRecorder = ({
                       </div>
                       
                       {/* Ticker tape for live transcription */}
-                      <div className={`transition-all duration-500 ${showTicker && tickerEnabled ? 'opacity-100 animate-fade-in' : 'opacity-0'}`}>
+                      <div className={`transition-all duration-500 ${showTicker && tickerEnabled ? 'opacity-100 animate-fade-in' : 'hidden'}`}>
                         <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
                           <div className="flex items-center gap-2">
                             <Waves className="h-4 w-4 text-blue-600 dark:text-blue-400 animate-pulse" />
@@ -2897,7 +2897,7 @@ export const MeetingRecorder = ({
                       </div>
                       
                       {/* Transcript snippet display - shows last 5 seconds every 5 seconds */}
-                      <div className={`transition-all duration-500 ${showTranscriptSnippet && tickerEnabled ? 'opacity-100 animate-fade-in' : 'opacity-0'}`}>
+                      <div className={`transition-all duration-500 ${showTranscriptSnippet && tickerEnabled ? 'opacity-100 animate-fade-in' : 'hidden'}`}>
                         <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg p-3">
                           <div className="flex items-center gap-2">
                             <FileText className="h-4 w-4 text-green-600 dark:text-green-400" />
