@@ -17,7 +17,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History, Search, Trash2, CheckSquare, SquareIcon, Monitor, Volume2, Waves, Video, Headphones, AlertCircle, Eye, EyeOff } from "lucide-react";
+import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History, Search, Trash2, CheckSquare, SquareIcon, Monitor, Volume2, Waves, Video, Headphones, AlertCircle, Eye, EyeOff, RotateCcw } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { MeetingSettings } from "@/components/MeetingSettings";
@@ -98,6 +98,52 @@ export const MeetingRecorder = ({
     description: "",
     meetingType: "general"
   });
+
+  // Reset meeting function
+  const resetMeeting = () => {
+    setIsRecording(false);
+    setDuration(0);
+    setTranscript("");
+    setRealtimeTranscripts([]);
+    setConnectionStatus("Disconnected");
+    setSpeakerCount(0);
+    setWordCount(0);
+    setStartTime("");
+    setLiveSummary("");
+    setDebugLog([]);
+    setTestTranscripts([]);
+    setTickerText("");
+    setShowTicker(false);
+    setSelectedMeetings([]);
+    setIsSelectMode(false);
+    setDeleteConfirmation("");
+    setMeetingSettings({
+      title: "General Meeting",
+      description: "",
+      meetingType: "general"
+    });
+    
+    // Clear parent component state
+    onTranscriptUpdate("");
+    onDurationUpdate("00:00");
+    onWordCountUpdate(0);
+    
+    // Stop any ongoing recordings
+    if (isRecording) {
+      stopRecording();
+    }
+    
+    // Clear preview audio if playing
+    if (previewAudioRef.current) {
+      previewAudioRef.current.pause();
+      previewAudioRef.current.currentTime = 0;
+    }
+    setPreviewAudioUrl(null);
+    setPreviewReady(false);
+    
+    console.log('🔄 Meeting reset completed');
+    toast.success("Meeting reset - ready for new recording");
+  };
   
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -2414,6 +2460,17 @@ export const MeetingRecorder = ({
                       >
                         <Mic className="h-5 w-5 mr-2" />
                         Start Recording
+                      </Button>
+                      
+                      {/* Reset Meeting Button */}
+                      <Button 
+                        onClick={resetMeeting}
+                        variant="outline"
+                        size="sm"
+                        className="text-xs"
+                      >
+                        <RotateCcw className="h-3 w-3 mr-2" />
+                        Reset Meeting
                       </Button>
                     </div>
                   ) : (
