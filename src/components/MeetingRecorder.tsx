@@ -3025,7 +3025,7 @@ export const MeetingRecorder = ({
                       </div>
                       
                       {/* Ticker tape for live transcription */}
-                      <div className={`transition-all duration-500 ${showTicker && tickerEnabled ? 'opacity-100 animate-fade-in' : 'hidden'}`}>
+                      <div className={`transition-all duration-500 ${tickerEnabled ? ((/Edg/.test(navigator.userAgent)) ? 'opacity-100 animate-fade-in' : (showTicker ? 'opacity-100 animate-fade-in' : 'hidden')) : 'hidden'}`}>
                         <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
                           <div className="flex items-center gap-2">
                             <Waves className="h-4 w-4 text-blue-600 dark:text-blue-400 animate-pulse" />
