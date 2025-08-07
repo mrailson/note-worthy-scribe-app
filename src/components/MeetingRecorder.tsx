@@ -2957,7 +2957,7 @@ export const MeetingRecorder = ({
                       </div>
                       
                       {/* Transcript snippet display - shows last 5 seconds every 5 seconds */}
-                      <div className={`transition-all duration-500 ${showTranscriptSnippet && tickerEnabled ? 'opacity-100 animate-fade-in' : 'hidden'}`}>
+                      <div className={`transition-all duration-500 ${showTranscriptSnippet && tickerEnabled ? 'opacity-100 animate-fade-in' : tickerEnabled ? 'opacity-100' : 'hidden'}`}>
                         <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg p-3">
                           <div className="flex items-center gap-2">
                             <FileText className="h-4 w-4 text-green-600 dark:text-green-400" />
