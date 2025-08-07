@@ -24,6 +24,7 @@ import { MeetingSettings } from "@/components/MeetingSettings";
 import { MeetingHistoryList } from "@/components/MeetingHistoryList";
 import { WhisperHallucinationTestSuite } from "@/components/WhisperHallucinationTestSuite";
 import { MicInputRecordingTester } from "@/components/MicInputRecordingTester";
+import { SharedMeetingsManager } from "@/components/SharedMeetingsManager";
 
 import { NotewellAIAnimation } from "@/components/NotewellAIAnimation";
 
@@ -2457,7 +2458,7 @@ export const MeetingRecorder = ({
     setLoadingHistory(true);
     try {
       const { data: meetingsData, error } = await supabase
-        .from('meetings')
+        .from('accessible_meetings')
         .select(`
           id,
           title,
@@ -2474,11 +2475,16 @@ export const MeetingRecorder = ({
           left_audio_url,
           right_audio_url,
           recording_created_at,
+          access_type,
+          access_level,
+          shared_by,
+          shared_at,
+          share_message,
+          share_id,
           meeting_overviews (
             overview
           )
         `)
-        .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(10);
 

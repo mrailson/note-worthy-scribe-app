@@ -3484,6 +3484,7 @@ export type Database = {
           recording_created_at: string | null
           requires_audio_backup: boolean | null
           right_audio_url: string | null
+          share_id: string | null
           share_message: string | null
           shared_at: string | null
           shared_by: string | null

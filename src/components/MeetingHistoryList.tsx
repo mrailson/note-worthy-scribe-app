@@ -21,8 +21,11 @@ import {
   Upload,
   Headphones,
   Mic,
-  Monitor
+  Monitor,
+  Share2
 } from "lucide-react";
+import { ShareMeetingDialog } from "@/components/ShareMeetingDialog";
+import { SharedMeetingBadge } from "@/components/SharedMeetingBadge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -72,6 +75,13 @@ interface Meeting {
   left_audio_url?: string | null;
   right_audio_url?: string | null;
   recording_created_at?: string | null;
+  // Sharing fields
+  access_type?: 'owner' | 'shared';
+  access_level?: 'view' | 'download';
+  shared_by?: string;
+  shared_at?: string;
+  share_message?: string;
+  share_id?: string;
   documents?: Array<{
     file_name: string;
     file_size: number | null;
@@ -617,6 +627,15 @@ export const MeetingHistoryList = ({
                         {getMeetingTypeLabel(meeting.meeting_type)}
                       </Badge>
                       
+                      {/* Add Shared Meeting Badge */}
+                      <SharedMeetingBadge 
+                        accessType={meeting.access_type || 'owner'}
+                        accessLevel={meeting.access_level}
+                        sharedBy={meeting.shared_by}
+                        sharedAt={meeting.shared_at}
+                        shareMessage={meeting.share_message}
+                      />
+                      
                       {/* Date, Time, Duration, Word Count, Files - All on same line */}
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
                         <Calendar className="h-3 w-3 flex-shrink-0" />
@@ -692,6 +711,20 @@ export const MeetingHistoryList = ({
                   <Paperclip className="h-4 w-4" />
                   <span>Upload</span>
                 </Button>
+                
+                {/* Share Meeting Button - Only show for owned meetings */}
+                {(!meeting.access_type || meeting.access_type === 'owner') && (
+                  <ShareMeetingDialog meetingId={meeting.id} meetingTitle={meeting.title}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center justify-center gap-2 flex-1 sm:flex-none touch-manipulation min-h-[44px] text-primary hover:text-primary"
+                    >
+                      <Share2 className="h-4 w-4" />
+                      <span>Share</span>
+                    </Button>
+                  </ShareMeetingDialog>
+                )}
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button
