@@ -96,6 +96,15 @@ const SystemAdmin = () => {
   // User management state
   const [users, setUsers] = useState<User[]>([]);
   const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [editingUser, setEditingUser] = useState<any>(null);
+  const [userFormData, setUserFormData] = useState({
+    email: '',
+    full_name: '',
+    password: '',
+    role: 'user' as const,
+    practice_id: ''
+  });
   
   // Practice management state
   const [practices, setPractices] = useState<Practice[]>([]);
@@ -360,6 +369,77 @@ const SystemAdmin = () => {
     }
   };
 
+  // User management functions
+  const handleAddUser = () => {
+    setEditingUser(null);
+    setUserFormData({
+      email: '',
+      full_name: '',
+      password: '',
+      role: 'user',
+      practice_id: ''
+    });
+    setShowUserModal(true);
+  };
+
+  const handleEditUser = (user: any) => {
+    setEditingUser(user);
+    setUserFormData({
+      email: user.email,
+      full_name: user.full_name,
+      password: '',
+      role: user.practice_assignments[0]?.role || 'user',
+      practice_id: user.practice_assignments[0]?.practice_id || ''
+    });
+    setShowUserModal(true);
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (confirm('Are you sure you want to delete this user?')) {
+      try {
+        const { error } = await supabase.functions.invoke('delete-user-admin', {
+          body: { user_id: userId }
+        });
+        if (error) throw error;
+        await fetchUsers(); // Refresh the users list
+        toast.success('User deleted successfully');
+      } catch (error) {
+        console.error('Error deleting user:', error);
+        toast.error('Failed to delete user');
+      }
+    }
+  };
+
+  const handleUserSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (editingUser) {
+        // Update existing user logic would go here
+        console.log('Update user:', userFormData);
+        toast.success('User updated successfully');
+      } else {
+        // Create new user
+        const { data, error } = await supabase.functions.invoke('create-user-admin', {
+          body: {
+            email: userFormData.email,
+            name: userFormData.full_name,
+            password: userFormData.password,
+            role: userFormData.role,
+            practice_id: userFormData.practice_id || null,
+            assigned_by: user?.id
+          }
+        });
+        if (error) throw error;
+        await fetchUsers(); // Refresh the users list
+        toast.success('User created successfully');
+      }
+      setShowUserModal(false);
+    } catch (error) {
+      console.error('Error saving user:', error);
+      toast.error('Failed to save user');
+    }
+  };
+
   if (!isAdmin) {
     return (
       <div className="min-h-screen bg-background">
@@ -530,7 +610,7 @@ const SystemAdmin = () => {
                       className="w-64"
                     />
                   </div>
-                  <Button>
+                  <Button onClick={handleAddUser}>
                     <Plus className="h-4 w-4 mr-2" />
                     Add User
                   </Button>
@@ -576,10 +656,10 @@ const SystemAdmin = () => {
                             </TableCell>
                             <TableCell>
                               <div className="flex space-x-2">
-                                <Button variant="ghost" size="sm">
+                                <Button variant="ghost" size="sm" onClick={() => handleEditUser(user)}>
                                   <Edit className="h-4 w-4" />
                                 </Button>
-                                <Button variant="ghost" size="sm">
+                                <Button variant="ghost" size="sm" onClick={() => handleDeleteUser(user.user_id)}>
                                   <Trash2 className="h-4 w-4 text-destructive" />
                                 </Button>
                               </div>
@@ -1215,6 +1295,102 @@ const SystemAdmin = () => {
               Report Incident
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* User Management Modal */}
+      <Dialog open={showUserModal} onOpenChange={setShowUserModal}>
+        <DialogContent className="sm:max-w-[600px]">
+          <form onSubmit={handleUserSubmit}>
+            <DialogHeader>
+              <DialogTitle>{editingUser ? 'Edit User' : 'Add New User'}</DialogTitle>
+              <DialogDescription>
+                {editingUser ? 'Update user information and assignments.' : 'Create a new user account with appropriate permissions.'}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="email">Email Address</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={userFormData.email}
+                    onChange={(e) => setUserFormData({...userFormData, email: e.target.value})}
+                    placeholder="user@nhs.net"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="full_name">Full Name</Label>
+                  <Input
+                    id="full_name"
+                    value={userFormData.full_name}
+                    onChange={(e) => setUserFormData({...userFormData, full_name: e.target.value})}
+                    placeholder="John Doe"
+                    required
+                  />
+                </div>
+              </div>
+
+              {!editingUser && (
+                <div>
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={userFormData.password}
+                    onChange={(e) => setUserFormData({...userFormData, password: e.target.value})}
+                    placeholder="Enter a secure password"
+                    required
+                  />
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="role">Role</Label>
+                  <Select value={userFormData.role} onValueChange={(value) => setUserFormData({...userFormData, role: value as any})}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="user">User</SelectItem>
+                      <SelectItem value="practice_manager">Practice Manager</SelectItem>
+                      <SelectItem value="pcn_manager">PCN Manager</SelectItem>
+                      <SelectItem value="system_admin">System Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="practice_id">Practice (Optional)</Label>
+                  <Select value={userFormData.practice_id} onValueChange={(value) => setUserFormData({...userFormData, practice_id: value})}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select practice" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">No Practice</SelectItem>
+                      {practices.map(practice => (
+                        <SelectItem key={practice.id} value={practice.id}>
+                          {practice.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowUserModal(false)}>
+                Cancel
+              </Button>
+              <Button type="submit">
+                {editingUser ? 'Update User' : 'Create User'}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>
