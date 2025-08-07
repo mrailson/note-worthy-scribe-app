@@ -149,6 +149,73 @@ export const MeetingHistoryList = ({
     setEditingTitle("");
   };
 
+  // Document download function
+  const downloadDocument = async (meetingId: string, fileName: string) => {
+    try {
+      // Get the document path from the database
+      const { data: docData, error: docError } = await supabase
+        .from('meeting_documents')
+        .select('file_path')
+        .eq('meeting_id', meetingId)
+        .eq('file_name', fileName)
+        .single();
+
+      if (docError) throw docError;
+
+      const { data, error } = await supabase.storage
+        .from('meeting-documents')
+        .download(docData.file_path);
+
+      if (error) throw error;
+
+      // Create download link
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast.success('Download started');
+    } catch (error: any) {
+      console.error('Error downloading document:', error.message);
+      toast.error('Failed to download document');
+    }
+  };
+
+  // Open document function (same as download but opens in new tab)
+  const openDocument = async (meetingId: string, fileName: string) => {
+    try {
+      // Get the document path from the database
+      const { data: docData, error: docError } = await supabase
+        .from('meeting_documents')
+        .select('file_path')
+        .eq('meeting_id', meetingId)
+        .eq('file_name', fileName)
+        .single();
+
+      if (docError) throw docError;
+
+      const { data, error } = await supabase.storage
+        .from('meeting-documents')
+        .download(docData.file_path);
+
+      if (error) throw error;
+
+      // Create blob URL and open in new tab
+      const url = URL.createObjectURL(data);
+      window.open(url, '_blank');
+      
+      // Clean up the URL after a delay
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    } catch (error: any) {
+      console.error('Error opening document:', error.message);
+      toast.error('Failed to open document');
+    }
+  };
+
   const handleKeyPress = (e: React.KeyboardEvent, meetingId: string) => {
     if (e.key === 'Enter') {
       handleSaveTitle(meetingId);
@@ -605,22 +672,41 @@ export const MeetingHistoryList = ({
                     <Paperclip className="h-4 w-4 text-primary" />
                     <span className="text-sm font-medium">Supporting Documents ({meeting.document_count})</span>
                   </div>
-                  <div className="space-y-2">
-                    {meeting.documents?.slice(0, 3).map((doc, index) => (
-                      <div key={index} className="flex items-center justify-between text-xs">
-                        <div className="flex items-center gap-2 min-w-0 flex-1">
-                          <FileText className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-                          <span className="truncate text-foreground">{doc.file_name}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-muted-foreground ml-2">
-                          <span>{doc.file_size ? `${(doc.file_size / 1024 / 1024).toFixed(1)}MB` : ''}</span>
-                          <span>{new Date(doc.uploaded_at).toLocaleDateString('en-GB', { 
-                            day: '2-digit', 
-                            month: 'short' 
-                          })}</span>
-                        </div>
-                      </div>
-                    ))}
+                   <div className="space-y-2">
+                     {meeting.documents?.slice(0, 3).map((doc, index) => (
+                       <div key={index} className="flex items-center justify-between text-xs">
+                         <div className="flex items-center gap-2 min-w-0 flex-1">
+                           <FileText className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                           <button
+                             onClick={(e) => {
+                               e.stopPropagation();
+                               openDocument(meeting.id, doc.file_name);
+                             }}
+                             className="truncate text-foreground hover:text-primary hover:underline text-left"
+                             title="Click to open document"
+                           >
+                             {doc.file_name}
+                           </button>
+                         </div>
+                         <div className="flex items-center gap-2 text-muted-foreground ml-2">
+                           <span>{doc.file_size ? `${(doc.file_size / 1024 / 1024).toFixed(1)}MB` : ''}</span>
+                           <span>{new Date(doc.uploaded_at).toLocaleDateString('en-GB', { 
+                             day: '2-digit', 
+                             month: 'short' 
+                           })}</span>
+                           <button
+                             onClick={(e) => {
+                               e.stopPropagation();
+                               downloadDocument(meeting.id, doc.file_name);
+                             }}
+                             className="ml-1 p-1 hover:bg-muted rounded"
+                             title="Download document"
+                           >
+                             <Download className="h-3 w-3" />
+                           </button>
+                         </div>
+                       </div>
+                     ))}
                     {meeting.document_count > 3 && (
                       <div className="text-xs text-muted-foreground italic">
                         + {meeting.document_count - 3} more file{meeting.document_count - 3 !== 1 ? 's' : ''}...
