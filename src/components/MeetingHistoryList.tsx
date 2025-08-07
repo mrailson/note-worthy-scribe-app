@@ -827,8 +827,8 @@ export const MeetingHistoryList = ({
               {/* Audio Recording Playback - Show if any recording URLs exist */}
               {(meeting.mixed_audio_url || meeting.left_audio_url || meeting.right_audio_url) && (
                 <Collapsible 
-                  open={!collapsedAudioSections[meeting.id]} 
-                  onOpenChange={(open) => setCollapsedAudioSections(prev => ({ ...prev, [meeting.id]: !open }))}
+                  open={collapsedAudioSections[meeting.id] === true} 
+                  onOpenChange={(open) => setCollapsedAudioSections(prev => ({ ...prev, [meeting.id]: open }))}
                 >
                   <div className="bg-muted/30 rounded-lg border border-muted">
                     <CollapsibleTrigger asChild>
@@ -842,7 +842,7 @@ export const MeetingHistoryList = ({
                             </span>
                           )}
                         </div>
-                        <ChevronDown className={`h-4 w-4 transition-transform ${!collapsedAudioSections[meeting.id] ? 'rotate-180' : ''}`} />
+                        <ChevronDown className={`h-4 w-4 transition-transform ${collapsedAudioSections[meeting.id] === true ? 'rotate-180' : ''}`} />
                       </button>
                     </CollapsibleTrigger>
                     <CollapsibleContent className="px-3 pb-3">
