@@ -37,15 +37,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const isMobile = useIsMobile();
 
-  // Function to fetch user modules
+  // Function to fetch user modules from user_roles table
   const fetchUserModules = async (userId: string) => {
     try {
-      const { data, error } = await supabase.rpc('get_user_modules', { p_user_id: userId });
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('meeting_notes_access, gp_scribe_access, complaints_manager_access, complaints_admin_access, replywell_access, ai_4_pm_access')
+        .eq('user_id', userId)
+        .single();
+      
       if (error) {
         console.error('Error fetching user modules:', error);
         return;
       }
-      const modules = data?.map((item: any) => item.module) || [];
+      
+      // Convert the access flags to module names array
+      const modules: string[] = [];
+      if (data?.meeting_notes_access) modules.push('meeting_recorder');
+      if (data?.gp_scribe_access) modules.push('gp_scribe');
+      if (data?.complaints_manager_access || data?.complaints_admin_access) modules.push('complaints_system');
+      if (data?.ai_4_pm_access) modules.push('ai_4_pm');
+      if (data?.replywell_access) modules.push('replywell');
+      // Enhanced access is available to everyone for now
+      modules.push('enhanced_access');
+      
       setUserModules(modules);
     } catch (error) {
       console.error('Error fetching user modules:', error);

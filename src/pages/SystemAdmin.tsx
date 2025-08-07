@@ -202,7 +202,24 @@ const SystemAdmin = () => {
       setLoading(true);
       const { data, error } = await supabase.rpc('get_users_with_practices');
       if (error) throw error;
-      setUsers((data || []) as User[]);
+      
+      // Fetch user roles with module access for each user
+      const usersWithModules = await Promise.all(
+        (data || []).map(async (user: any) => {
+          const { data: roleData } = await supabase
+            .from('user_roles')
+            .select('meeting_notes_access, gp_scribe_access, complaints_manager_access, complaints_admin_access, replywell_access, ai_4_pm_access')
+            .eq('user_id', user.user_id)
+            .single();
+          
+          return {
+            ...user,
+            ...roleData
+          };
+        })
+      );
+      
+      setUsers(usersWithModules as User[]);
     } catch (error) {
       console.error('Error fetching users:', error);
       toast.error("Failed to fetch users");
@@ -438,8 +455,23 @@ const SystemAdmin = () => {
     e.preventDefault();
     try {
       if (editingUser) {
-        // Update existing user logic would go here
-        console.log('Update user:', userFormData);
+        // Update existing user's module access
+        const { error: updateError } = await supabase
+          .from('user_roles')
+          .update({
+            meeting_notes_access: userFormData.module_access.meeting_notes_access,
+            gp_scribe_access: userFormData.module_access.gp_scribe_access,
+            complaints_manager_access: userFormData.module_access.complaints_manager_access,
+            complaints_admin_access: userFormData.module_access.complaints_admin_access,
+            replywell_access: userFormData.module_access.replywell_access,
+            ai_4_pm_access: userFormData.module_access.ai_4_pm_access,
+            role: userFormData.role,
+            practice_id: userFormData.practice_id === 'none' ? null : userFormData.practice_id
+          })
+          .eq('user_id', editingUser.user_id);
+        
+        if (updateError) throw updateError;
+        await fetchUsers(); // Refresh the users list
         toast.success('User updated successfully');
       } else {
         // Create new user

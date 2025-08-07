@@ -151,6 +151,15 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                         Enhanced Access
                       </DropdownMenuItem>
                      )}
+                      {hasModuleAccess('replywell') && (
+                        <DropdownMenuItem 
+                          onClick={() => navigate('/replywell')}
+                          className="cursor-pointer py-3"
+                        >
+                          <Mail className="h-4 w-4 mr-2" />
+                          ReplyWell
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem 
                         onClick={() => navigate('/cqc-compliance')}
                         className="cursor-pointer py-3"
