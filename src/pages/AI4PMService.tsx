@@ -58,7 +58,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { LoginForm } from '@/components/LoginForm';
 import { SpeechToText } from '@/components/SpeechToText';
 import MessageRenderer from '@/components/MessageRenderer';
-import { toast } from '@/hooks/use-toast';
+
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
 import { saveAs } from 'file-saver';
 import PptxGenJS from 'pptxgenjs';
@@ -244,18 +244,9 @@ const AI4PMService = () => {
         voiceChatRef.current?.sendMessage("Hi, how can I help you?");
       }, 1000);
       
-      toast({
-        title: "Voice chat connected",
-        description: "Start speaking to ChatGPT",
-      });
     } catch (error) {
       console.error('Voice chat error:', error);
       setIsVoiceConnecting(false);
-      toast({
-        title: "Voice chat failed",
-        description: error instanceof Error ? error.message : 'Failed to start voice chat',
-        variant: "destructive",
-      });
     }
   };
 
@@ -266,10 +257,6 @@ const AI4PMService = () => {
       voiceChatRef.current.setMuted(newMutedState);
       setIsVoiceMuted(newMutedState);
       
-      toast({
-        title: newMutedState ? "Voice muted" : "Voice unmuted",
-        description: newMutedState ? "You'll still see text responses" : "Audio responses restored",
-      });
     }
   };
 
@@ -285,10 +272,6 @@ const AI4PMService = () => {
       saveSearchAutomatically(messages);
     }
     
-    toast({
-      title: "Voice chat ended",
-      description: "Voice conversation disconnected",
-    });
   };
 
   const loadPracticeContext = async () => {
@@ -1529,10 +1512,9 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                               <Mic className="h-4 w-4 mr-1" />
                             )}
                             <span className="hidden sm:inline">{isVoiceConnecting ? 'Connecting...' : 'Voice Chat'}</span>
-                            <span className="sm:hidden">{isVoiceConnecting ? '...' : 'Voice'}</span>
                           </Button>
                         ) : (
-                          <div className="flex gap-2">
+                          <div className="flex items-center gap-1 flex-nowrap">
                             <Button
                               variant="outline"
                               size="sm"
@@ -1546,7 +1528,6 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                                 <Volume2 className="h-4 w-4 mr-1" />
                               )}
                               <span className="hidden sm:inline">{isVoiceMuted ? 'Unmute' : 'Mute'}</span>
-                              <span className="sm:hidden">{isVoiceMuted ? 'On' : 'Off'}</span>
                             </Button>
                             <Button
                               variant={isVoiceSpeaking ? "default" : "destructive"}
@@ -1561,7 +1542,6 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                                 <PhoneOff className="h-4 w-4 mr-1" />
                               )}
                               <span className="hidden sm:inline">{isVoiceSpeaking ? 'Speaking...' : 'End Voice'}</span>
-                              <span className="sm:hidden">{isVoiceSpeaking ? '...' : 'End'}</span>
                             </Button>
                           </div>
                         )}
@@ -2036,11 +2016,10 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                              ) : (
                                <Mic className="h-4 w-4 mr-1" />
                              )}
-                             <span className="hidden sm:inline">{isVoiceConnecting ? 'Connecting...' : 'Voice Chat'}</span>
-                             <span className="sm:hidden">{isVoiceConnecting ? '...' : 'Voice'}</span>
+                              <span className="hidden sm:inline">{isVoiceConnecting ? 'Connecting...' : 'Voice Chat'}</span>
                            </Button>
                           ) : (
-                            <div className="flex gap-2">
+                            <div className="flex items-center gap-1 flex-nowrap">
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -2054,7 +2033,6 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                                   <Volume2 className="h-4 w-4 mr-1" />
                                 )}
                                 <span className="hidden sm:inline">{isVoiceMuted ? 'Unmute' : 'Mute'}</span>
-                                <span className="sm:hidden">{isVoiceMuted ? 'On' : 'Off'}</span>
                               </Button>
                               <Button
                                 variant={isVoiceSpeaking ? "default" : "destructive"}
@@ -2068,8 +2046,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                                 ) : (
                                   <PhoneOff className="h-4 w-4 mr-1" />
                                 )}
-                                <span className="hidden sm:inline">{isVoiceSpeaking ? 'Speaking...' : 'End Voice'}</span>
-                                <span className="sm:hidden">{isVoiceSpeaking ? '...' : 'End'}</span>
+                              <span className="hidden sm:inline">{isVoiceSpeaking ? 'Speaking...' : 'End Voice'}</span>
                               </Button>
                             </div>
                           )}
@@ -2490,10 +2467,6 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                   size="sm"
                   onClick={() => {
                     navigator.clipboard.writeText(expandedMessage.content);
-                    toast({
-                      title: "Success",
-                      description: "Message copied to clipboard",
-                    });
                   }}
                 >
                   <Copy className="h-4 w-4 mr-2" />
