@@ -185,17 +185,24 @@ const AI4PMService = () => {
         }
       });
     } else if (event.type === 'response.audio_transcript.done') {
-      // Finalize the assistant message
+      // Finalize the assistant message and auto-save
       setMessages(prev => {
         const lastMessage = prev[prev.length - 1];
         if (lastMessage && lastMessage.id === 'voice-response') {
-          return [
+          const updatedMessages = [
             ...prev.slice(0, -1),
             {
               ...lastMessage,
               id: `voice-msg-${Date.now()}`,
             }
           ];
+          
+          // Auto-save the conversation after AI response
+          setTimeout(() => {
+            saveSearchAutomatically(updatedMessages);
+          }, 1000);
+          
+          return updatedMessages;
         }
         return prev;
       });
@@ -250,6 +257,11 @@ const AI4PMService = () => {
     voiceChatRef.current?.disconnect();
     setIsVoiceConnected(false);
     setIsVoiceSpeaking(false);
+    
+    // Auto-save the conversation when ending voice chat if there are messages
+    if (messages.length > 0) {
+      saveSearchAutomatically(messages);
+    }
     
     toast({
       title: "Voice chat ended",
