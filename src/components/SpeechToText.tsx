@@ -31,9 +31,11 @@ export const SpeechToText: React.FC<SpeechToTextProps> = ({
     return 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
   };
 
-  // Auto-stop after 30 seconds of recording
-  const AUTO_STOP_TIME = 30000; // 30 seconds
-  const SILENCE_TIMEOUT = 3000; // 3 seconds of silence
+  // Auto-stop after 15 seconds of recording (reduced from 30)
+  const AUTO_STOP_TIME = 15000; // 15 seconds
+  const SILENCE_TIMEOUT = 2000; // 2 seconds of silence (reduced from 3)
+  const MIN_CONFIDENCE = 0.7; // Minimum confidence threshold
+  const MIN_SPEECH_LENGTH = 3; // Minimum characters to consider valid speech
 
   const startBrowserSTT = useCallback(async () => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -45,16 +47,20 @@ export const SpeechToText: React.FC<SpeechToTextProps> = ({
     const recognition = new SpeechRecognition();
     recognitionRef.current = recognition;
 
-    recognition.continuous = true;
-    recognition.interimResults = true;
+    recognition.continuous = false; // Changed to false to reduce hallucination
+    recognition.interimResults = false; // Only get final results
     recognition.lang = 'en-US';
+    recognition.maxAlternatives = 1; // Only get the best match
+    
+    // More conservative settings to reduce false positives
 
     let finalTranscript = '';
     let interimTranscript = '';
 
     recognition.onstart = () => {
       setIsRecording(true);
-      toast.success('🎙️ Listening... (Auto-stops in 30s or after 3s silence)');
+      toast.success('🎙️ Ready to listen... (Auto-stops in 15s)');
+      setCurrentText(''); // Clear any previous text
       
       // Focus input box
       if (inputRef?.current) {
@@ -64,41 +70,50 @@ export const SpeechToText: React.FC<SpeechToTextProps> = ({
       // Auto-stop timer
       autoStopRef.current = setTimeout(() => {
         stopRecording();
-        toast.info('Auto-stopped after 30 seconds');
+        toast.info('Auto-stopped after 15 seconds');
       }, AUTO_STOP_TIME);
     };
 
     recognition.onresult = (event: any) => {
-      interimTranscript = '';
+      let bestTranscript = '';
+      let bestConfidence = 0;
       
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const transcript = event.results[i][0].transcript;
-        
+      // Only process final results to reduce hallucination
+      for (let i = 0; i < event.results.length; i++) {
         if (event.results[i].isFinal) {
-          finalTranscript += transcript + ' ';
-        } else {
-          interimTranscript += transcript;
+          const result = event.results[i][0];
+          const transcript = result.transcript.trim();
+          const confidence = result.confidence || 0;
+          
+          console.log('Speech result:', { transcript, confidence });
+          
+          // Only accept high-confidence, meaningful speech
+          if (confidence >= MIN_CONFIDENCE && transcript.length >= MIN_SPEECH_LENGTH) {
+            // Filter out common hallucinations
+            const lowercaseText = transcript.toLowerCase();
+            const isHallucination = [
+              'thank you', 'thanks', 'bye', 'goodbye', 
+              'you', 'the', 'a', 'an', 'and', 'or',
+              'mm', 'hmm', 'uh', 'um', 'ah'
+            ].some(phrase => lowercaseText === phrase || lowercaseText.split(' ').length <= 1);
+            
+            if (!isHallucination && confidence > bestConfidence) {
+              bestTranscript = transcript;
+              bestConfidence = confidence;
+            }
+          }
         }
       }
 
-      const combinedText = finalTranscript + interimTranscript;
-      setCurrentText(combinedText);
-      
-      // Update input in real-time
-      onTranscription(combinedText);
-
-      // Reset silence timeout on speech
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-      
-      // Set new silence timeout
-      timeoutRef.current = setTimeout(() => {
-        if (finalTranscript.trim()) {
+      if (bestTranscript && bestConfidence >= MIN_CONFIDENCE) {
+        setCurrentText(bestTranscript);
+        onTranscription(bestTranscript);
+        
+        // Stop after getting a good result
+        setTimeout(() => {
           stopRecording();
-          toast.info('Auto-stopped due to silence');
-        }
-      }, SILENCE_TIMEOUT);
+        }, 500);
+      }
     };
 
     recognition.onerror = (event: any) => {
@@ -106,11 +121,14 @@ export const SpeechToText: React.FC<SpeechToTextProps> = ({
       setIsRecording(false);
       
       if (event.error === 'no-speech') {
-        toast.error('No speech detected. Try again.');
+        toast.info('No clear speech detected. Try speaking louder and clearer.');
       } else if (event.error === 'audio-capture') {
         toast.error('Microphone access denied');
+      } else if (event.error === 'not-allowed') {
+        toast.error('Microphone permission denied');
       } else {
-        toast.error('Speech recognition error: ' + event.error);
+        console.log('Speech recognition error (ignored):', event.error);
+        // Don't show error for network issues or aborted recognition
       }
     };
 
@@ -122,6 +140,8 @@ export const SpeechToText: React.FC<SpeechToTextProps> = ({
       if (autoStopRef.current) {
         clearTimeout(autoStopRef.current);
       }
+      
+      // Don't restart automatically to prevent hallucination loops
     };
 
     try {
@@ -183,12 +203,12 @@ export const SpeechToText: React.FC<SpeechToTextProps> = ({
         inputRef.current.focus();
       }
       
-      toast.success('🎙️ Recording started (Click again to stop)');
+      toast.success('🎙️ Recording started (Speak clearly, auto-stops in 15s)');
 
       // Auto-stop after 30 seconds
       autoStopRef.current = setTimeout(() => {
         stopRecording();
-        toast.info('Auto-stopped after 30 seconds');
+        toast.info('Auto-stopped after 15 seconds');
       }, AUTO_STOP_TIME);
 
     } catch (error) {
@@ -293,7 +313,7 @@ export const SpeechToText: React.FC<SpeechToTextProps> = ({
       size={size}
       className={`${className} ${isRecording ? 'animate-pulse' : ''}`}
       title={isUsingBrowserSTT ? 
-        'Real-time speech recognition (Auto-stops after 30s or 3s silence)' : 
+        'High-accuracy speech recognition (Speak clearly, auto-stops in 15s)' : 
         'Record audio for transcription'
       }
     >
