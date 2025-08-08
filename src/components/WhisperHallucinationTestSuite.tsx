@@ -5,9 +5,10 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Mic, MicOff, Loader2, Play, Square, TestTube, Zap, CheckCircle, AlertTriangle, XCircle, Volume2, Upload, FileAudio } from 'lucide-react';
+import { Mic, MicOff, Loader2, Play, Square, TestTube, Zap, CheckCircle, AlertTriangle, XCircle, Volume2, Upload, FileAudio, FileText, BarChart3 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import mammoth from 'mammoth';
 
 interface TestProfile {
   id: string;
@@ -197,6 +198,8 @@ export const WhisperHallucinationTestSuite: React.FC = () => {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [activeTestSuite, setActiveTestSuite] = useState<'standard' | 'hallucination-mitigation'>('standard');
   const [uploadedFileName, setUploadedFileName] = useState<string>('');
+  const [masterTranscript, setMasterTranscript] = useState<string>('');
+  const [masterTranscriptFileName, setMasterTranscriptFileName] = useState<string>('');
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -306,6 +309,101 @@ export const WhisperHallucinationTestSuite: React.FC = () => {
     }
     
     toast.success('Audio cleared');
+  };
+
+  const handleMasterTranscriptUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Check if it's a DOCX file
+    if (!file.name.toLowerCase().endsWith('.docx')) {
+      toast.error('Please select a DOCX file');
+      return;
+    }
+
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const result = await mammoth.extractRawText({ arrayBuffer });
+      
+      if (result.value) {
+        setMasterTranscript(result.value.trim());
+        setMasterTranscriptFileName(file.name);
+        toast.success(`Master transcript "${file.name}" loaded successfully`);
+      } else {
+        toast.error('Could not extract text from DOCX file');
+      }
+    } catch (error) {
+      console.error('Error reading DOCX file:', error);
+      toast.error('Failed to read DOCX file');
+    }
+  };
+
+  const clearMasterTranscript = () => {
+    setMasterTranscript('');
+    setMasterTranscriptFileName('');
+    toast.success('Master transcript cleared');
+  };
+
+  // Accuracy comparison functions
+  const calculateWordErrorRate = (reference: string, hypothesis: string): number => {
+    const refWords = reference.toLowerCase().trim().split(/\s+/).filter(w => w.length > 0);
+    const hypWords = hypothesis.toLowerCase().trim().split(/\s+/).filter(w => w.length > 0);
+    
+    // Simple Levenshtein distance for word arrays
+    const matrix: number[][] = [];
+    
+    for (let i = 0; i <= refWords.length; i++) {
+      matrix[i] = [];
+      matrix[i][0] = i;
+    }
+    
+    for (let j = 0; j <= hypWords.length; j++) {
+      matrix[0][j] = j;
+    }
+    
+    for (let i = 1; i <= refWords.length; i++) {
+      for (let j = 1; j <= hypWords.length; j++) {
+        if (refWords[i - 1] === hypWords[j - 1]) {
+          matrix[i][j] = matrix[i - 1][j - 1];
+        } else {
+          matrix[i][j] = Math.min(
+            matrix[i - 1][j] + 1,     // deletion
+            matrix[i][j - 1] + 1,     // insertion
+            matrix[i - 1][j - 1] + 1  // substitution
+          );
+        }
+      }
+    }
+    
+    const editDistance = matrix[refWords.length][hypWords.length];
+    return refWords.length > 0 ? (editDistance / refWords.length) * 100 : 0;
+  };
+
+  const calculateSimilarityScore = (reference: string, hypothesis: string): number => {
+    const wer = calculateWordErrorRate(reference, hypothesis);
+    return Math.max(0, 100 - wer);
+  };
+
+  const findHallucinations = (reference: string, hypothesis: string): string[] => {
+    const refWords = new Set(reference.toLowerCase().trim().split(/\s+/).filter(w => w.length > 0));
+    const hypWords = hypothesis.toLowerCase().trim().split(/\s+/).filter(w => w.length > 0);
+    
+    const hallucinations: string[] = [];
+    const hypWordCounts: { [key: string]: number } = {};
+    
+    // Count words in hypothesis
+    hypWords.forEach(word => {
+      hypWordCounts[word] = (hypWordCounts[word] || 0) + 1;
+    });
+    
+    // Find words that appear significantly more often in hypothesis than reasonable
+    Object.entries(hypWordCounts).forEach(([word, count]) => {
+      if (!refWords.has(word) && count > 2) {
+        hallucinations.push(`"${word}" (repeated ${count} times)`);
+      }
+    });
+    
+    return hallucinations;
   };
 
   const runTests = async () => {
@@ -689,6 +787,78 @@ export const WhisperHallucinationTestSuite: React.FC = () => {
             </CardContent>
           </Card>
 
+          {/* Master Transcript Import */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Master Transcript (Reference)
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Upload a DOCX file containing the correct transcript to compare accuracy and detect hallucinations.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6">
+                <div className="text-center">
+                  <FileText className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                  <div className="space-y-2">
+                    <label htmlFor="transcript-upload" className="cursor-pointer">
+                      <span className="text-sm font-medium text-primary hover:text-primary/80">
+                        Click to upload DOCX transcript
+                      </span>
+                      <input
+                        id="transcript-upload"
+                        type="file"
+                        accept=".docx"
+                        className="hidden"
+                        onChange={handleMasterTranscriptUpload}
+                      />
+                    </label>
+                    <p className="text-xs text-muted-foreground">
+                      Upload a .docx file containing the reference transcript for accuracy comparison
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              {masterTranscript && (
+                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <span className="text-sm font-medium text-green-800">
+                        Master transcript loaded: {masterTranscriptFileName}
+                      </span>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={clearMasterTranscript}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                  
+                  <div className="bg-white border rounded p-3 max-h-32 overflow-y-auto">
+                    <p className="text-xs text-muted-foreground mb-1">Reference transcript preview:</p>
+                    <p className="text-sm">
+                      {masterTranscript.length > 200 
+                        ? `${masterTranscript.substring(0, 200)}...` 
+                        : masterTranscript}
+                    </p>
+                  </div>
+                  
+                  <div className="flex items-center gap-4 mt-2 text-xs text-green-700">
+                    <span>Words: {masterTranscript.split(/\s+/).filter(w => w.length > 0).length}</span>
+                    <span>Characters: {masterTranscript.length}</span>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Test Suite Toggle */}
           <Card>
             <CardHeader>
@@ -924,6 +1094,41 @@ export const WhisperHallucinationTestSuite: React.FC = () => {
                                     <span className="ml-2 font-medium">{result.duration.toFixed(1)}s</span>
                                   </div>
                                 </div>
+
+                                {/* Accuracy Metrics when master transcript is available */}
+                                {masterTranscript && (
+                                  <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                    <h6 className="text-sm font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                                      <BarChart3 className="h-4 w-4" />
+                                      Accuracy Analysis vs Master Transcript
+                                    </h6>
+                                    <div className="grid grid-cols-2 gap-4 text-sm">
+                                      <div>
+                                        <span className="text-blue-700">Accuracy Score:</span>
+                                        <span className="ml-2 font-medium text-blue-900">
+                                          {calculateSimilarityScore(masterTranscript, result.transcript).toFixed(1)}%
+                                        </span>
+                                      </div>
+                                      <div>
+                                        <span className="text-blue-700">Word Error Rate:</span>
+                                        <span className="ml-2 font-medium text-blue-900">
+                                          {calculateWordErrorRate(masterTranscript, result.transcript).toFixed(1)}%
+                                        </span>
+                                      </div>
+                                    </div>
+                                    
+                                    {/* Show potential hallucinations */}
+                                    {(() => {
+                                      const hallucinations = findHallucinations(masterTranscript, result.transcript);
+                                      return hallucinations.length > 0 && (
+                                        <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded">
+                                          <p className="text-xs font-medium text-red-800 mb-1">Potential Hallucinations:</p>
+                                          <p className="text-xs text-red-700">{hallucinations.join(', ')}</p>
+                                        </div>
+                                      );
+                                    })()}
+                                  </div>
+                                )}
                                 
                                 <div className="bg-muted/50 rounded-lg p-3">
                                   <h5 className="text-sm font-medium mb-2">Transcript:</h5>
