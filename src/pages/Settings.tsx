@@ -127,6 +127,28 @@ export default function Settings() {
     }
   };
 
+  // Update retention policy
+  const handleRetentionPolicyChange = async (value: string) => {
+    if (!user) return;
+
+    setRetentionLoading(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ meeting_retention_policy: value })
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      setRetentionPolicy(value);
+      toast.success('Meeting retention policy updated successfully');
+    } catch (error) {
+      console.error('Error updating retention policy:', error);
+      toast.error('Failed to update retention policy');
+    } finally {
+      setRetentionLoading(false);
+    }
+  };
 
   // Fetch usage statistics
   const fetchUsageStats = async () => {
