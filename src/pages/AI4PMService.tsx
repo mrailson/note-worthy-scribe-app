@@ -1676,7 +1676,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                                   variant="outline"
                                   size="sm"
                                   onClick={() => generateWordDocument(message.content, 'AI Generated Document')}
-                                  className="min-h-[44px] text-xs touch-manipulation"
+                                  className="hidden sm:inline-flex min-h-[44px] text-xs touch-manipulation"
                                 >
                                   <FileDown className="h-3 w-3 mr-1" />
                                   Export as Word
@@ -1685,7 +1685,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                                   variant="outline"
                                   size="sm"
                                   onClick={() => generatePowerPoint(message.content, 'AI Generated Presentation')}
-                                  className="min-h-[44px] text-xs touch-manipulation"
+                                  className="hidden sm:inline-flex min-h-[44px] text-xs touch-manipulation"
                                 >
                                   <Presentation className="h-3 w-3 mr-1" />
                                   Create PowerPoint
@@ -2476,6 +2476,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                   variant="outline"
                   size="sm"
                   onClick={() => generateWordDocument(expandedMessage.content, 'AI Generated Document')}
+                  className="hidden sm:inline-flex"
                 >
                   <FileDown className="h-4 w-4 mr-2" />
                   Export as Word
@@ -2484,6 +2485,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                   variant="outline"
                   size="sm"
                   onClick={() => generatePowerPoint(expandedMessage.content, 'AI Generated Presentation')}
+                  className="hidden sm:inline-flex"
                 >
                   <Presentation className="h-4 w-4 mr-2" />
                   Create PowerPoint
