@@ -12,6 +12,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 import { 
   Send, 
@@ -268,7 +269,7 @@ const AI4PMService = () => {
     voiceChatRef.current?.disconnect();
     setIsVoiceConnected(false);
     setIsVoiceSpeaking(false);
-    setIsVoiceMuted(false);
+    // Don't reset mute state - preserve user preference
     
     // Auto-save the conversation when ending voice chat if there are messages
     if (messages.length > 0) {
@@ -530,6 +531,21 @@ const AI4PMService = () => {
       loadSearchHistoryList(); // Refresh the list
     } catch (error) {
       console.error('Error deleting search:', error);
+    }
+  };
+
+  const clearAllSearches = async () => {
+    try {
+      const { error } = await supabase
+        .from('ai_4_pm_searches')
+        .delete()
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+      
+      loadSearchHistoryList(); // Refresh the list
+    } catch (error) {
+      console.error('Error clearing all searches:', error);
     }
   };
 
@@ -1975,6 +1991,34 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                   Previous Searches
                 </CardTitle>
                 <div className="flex gap-2">
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        disabled={searchHistory.length === 0}
+                        className="flex items-center gap-2 min-h-[44px] touch-manipulation"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        <span className="hidden sm:inline">Clear All Searches</span>
+                        <span className="sm:hidden">Clear All</span>
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Clear All Searches</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to delete all {searchHistory.length} saved searches? This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={clearAllSearches} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                          Clear All
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                   <Button
                     onClick={saveCurrentSearch}
                     variant="outline"
