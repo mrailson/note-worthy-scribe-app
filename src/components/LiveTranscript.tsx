@@ -259,11 +259,10 @@ export const LiveTranscript = ({
       <Card className="shadow-medium">
         <Collapsible open={isTranscriptOpen} onOpenChange={setIsTranscriptOpen}>
           <CollapsibleTrigger asChild>
-            <CardHeader className="cursor-pointer hover:bg-accent/50 transition-colors">
+            <CardHeader className="cursor-pointer hover:bg-accent/50 transition-colors py-2">
               <CardTitle className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <MessageSquare className="h-5 w-5" />
-                  Live Meeting Transcript
                 </div>
                 <ChevronDown 
                   className={`h-4 w-4 transition-transform ${isTranscriptOpen ? 'rotate-180' : ''}`}
@@ -473,16 +472,16 @@ export const LiveTranscript = ({
                     </Badge>
                   </div>
                   
-                  <div 
-                    className="text-sm leading-relaxed whitespace-pre-wrap min-h-[60px] p-4 bg-background/80 rounded-md border border-primary/10 shadow-sm select-text cursor-text"
-                    style={{ 
-                      transition: 'all 0.2s ease-in-out',
-                      wordWrap: 'break-word',
-                      overflowWrap: 'break-word',
-                      userSelect: 'text'
-                    }}
-                    onMouseUp={handleTextSelection}
-                  >
+                   <div 
+                     className="text-sm leading-relaxed whitespace-pre-wrap min-h-[60px] max-h-[400px] overflow-y-auto p-4 bg-background/80 rounded-md border border-primary/10 shadow-sm select-text cursor-text"
+                     style={{ 
+                       transition: 'all 0.2s ease-in-out',
+                       wordWrap: 'break-word',
+                       overflowWrap: 'break-word',
+                       userSelect: 'text'
+                     }}
+                     onMouseUp={handleTextSelection}
+                   >
                     {cleanedTranscript || (transcript && isAutoCleaningEnabled) ? (
                       <div className="space-y-2">
                         {(cleanedTranscript || transcript).split(/[.!?]+/).filter(s => s.trim()).map((sentence, index) => {
