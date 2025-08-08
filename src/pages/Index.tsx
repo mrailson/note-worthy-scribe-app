@@ -31,7 +31,9 @@ const Index = () => {
     title: "",
     description: "",
     meetingType: "general",
-    attendees: ""
+    attendees: "",
+    practiceId: "",
+    meetingFormat: "teams"
   });
   const [currentMeetingId, setCurrentMeetingId] = useState<string | null>(null);
   const [importedTranscript, setImportedTranscript] = useState<ImportedTranscript | null>(null);
@@ -44,7 +46,9 @@ const Index = () => {
         title: state.meetingData.title || "Continued Meeting",
         description: "Meeting continued from previous session",
         meetingType: "general",
-        attendees: ""
+        attendees: "",
+        practiceId: "",
+        meetingFormat: "teams"
       });
       // Only show meeting session restored toast on desktop
       if (!isMobile) {
@@ -92,7 +96,9 @@ const Index = () => {
         title: meeting.title,
         description: meeting.description || "",
         meetingType: meeting.meeting_type,
-        attendees: ""
+        attendees: "",
+        practiceId: meeting.practice_id || "",
+        meetingFormat: "teams"
       });
       
       setCurrentMeetingId(meetingId);
@@ -150,7 +156,9 @@ const Index = () => {
       title: "",
       description: "",
       meetingType: "general",
-      attendees: ""
+      attendees: "",
+      practiceId: "",
+      meetingFormat: "teams"
     });
     // Clear URL parameters
     window.history.replaceState({}, '', '/');

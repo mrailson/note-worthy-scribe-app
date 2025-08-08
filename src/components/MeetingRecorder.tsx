@@ -3340,6 +3340,17 @@ export const MeetingRecorder = ({
                 showTimestamps={true}
                 onTimestampsToggle={() => {}}
                 attendees={""}
+                meetingSettings={{
+                  practiceId: (meetingSettings as any)?.practiceId || "",
+                  meetingFormat: (meetingSettings as any)?.meetingFormat || "teams"
+                }}
+                onMeetingSettingsChange={(settings) => {
+                  setMeetingSettings(prev => ({
+                    ...prev,
+                    practiceId: settings.practiceId,
+                    meetingFormat: settings.meetingFormat
+                  }));
+                }}
               />
             </CardContent>
           </Card>
