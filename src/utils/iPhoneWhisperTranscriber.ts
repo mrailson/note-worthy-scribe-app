@@ -14,6 +14,8 @@ export class iPhoneWhisperTranscriber {
   private audioChunks: Blob[] = [];
   private transcriptionInterval: NodeJS.Timeout | null = null;
   private overlapBuffer: Blob[] = [];
+  private chunkTimeout: ReturnType<typeof setTimeout> | null = null;
+  private recordingStartTime = 0;
 
   constructor(
     private onTranscription: (data: TranscriptData) => void,
@@ -93,21 +95,34 @@ export class iPhoneWhisperTranscriber {
   private startChunkedRecording() {
     if (!this.mediaRecorder || !this.isRecording) return;
 
-    // Start recording
+    // Start recording and dynamically adjust chunking frequency
+    this.recordingStartTime = Date.now();
     this.mediaRecorder.start();
-    
-    // Process chunks every 60 seconds (clinical quality)
-    this.transcriptionInterval = setInterval(() => {
-      if (this.mediaRecorder && this.isRecording && this.mediaRecorder.state === 'recording') {
-        this.mediaRecorder.stop();
-        // Start new recording immediately
-        setTimeout(() => {
-          if (this.mediaRecorder && this.isRecording) {
-            this.mediaRecorder.start();
-          }
-        }, 100);
-      }
-    }, 60000);
+
+    const scheduleNext = () => {
+      if (!this.mediaRecorder || !this.isRecording) return;
+      const elapsed = Date.now() - this.recordingStartTime;
+      // First minute: short 5s chunks for quick reassurance, then 60s
+      const interval = elapsed < 60000 ? 5000 : 60000;
+
+      this.chunkTimeout = setTimeout(() => {
+        if (this.mediaRecorder && this.isRecording && this.mediaRecorder.state === 'recording') {
+          this.mediaRecorder.stop();
+          // Start new recording immediately
+          setTimeout(() => {
+            if (this.mediaRecorder && this.isRecording) {
+              this.mediaRecorder.start();
+              scheduleNext();
+            }
+          }, 100);
+        } else {
+          // If not recording for any reason, try to reschedule
+          scheduleNext();
+        }
+      }, interval);
+    };
+
+    scheduleNext();
   }
 
   private async processAudioChunks() {
@@ -127,9 +142,11 @@ export class iPhoneWhisperTranscriber {
       
       this.audioChunks = []; // Clear current chunks after processing
 
-      // Skip very small audio chunks (less than 5 seconds for clinical quality)
-      if (audioBlob.size < 40000) {
-        console.log('📱 Skipping small audio chunk');
+      // Skip very small audio chunks, but allow smaller ones in the first minute for quick feedback
+      const elapsed = Date.now() - this.recordingStartTime;
+      const minSize = elapsed < 60000 ? 8000 : 40000; // bytes
+      if (audioBlob.size < minSize) {
+        console.log(`📱 Skipping small audio chunk (size=${audioBlob.size}, min=${minSize})`);
         return;
       }
 
@@ -184,6 +201,10 @@ export class iPhoneWhisperTranscriber {
     if (this.transcriptionInterval) {
       clearInterval(this.transcriptionInterval);
       this.transcriptionInterval = null;
+    }
+    if (this.chunkTimeout) {
+      clearTimeout(this.chunkTimeout);
+      this.chunkTimeout = null;
     }
 
     // Process any remaining audio chunks before stopping
