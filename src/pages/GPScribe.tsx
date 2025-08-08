@@ -1753,8 +1753,8 @@ const Index = () => {
                         </CollapsibleContent>
                       </Collapsible>
 
-                    {/* Live Speech Controls and Display - positioned above stats */}
-                    {isRecording && (
+                    {/* Live Speech Controls and Display - Hidden on Edge */}
+                    {isRecording && !/Edg/.test(navigator.userAgent) && (
                       <>
                         {/* Eye toggle for live speech */}
                         <div className="flex items-center justify-center mb-4">
