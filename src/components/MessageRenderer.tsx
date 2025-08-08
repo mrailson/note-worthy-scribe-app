@@ -351,30 +351,6 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
               {/* Action buttons for long assistant messages */}
               {message.role === 'assistant' && isLongMessage && (
                 <>
-                  {/* Scroll to top button */}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={scrollToTop}
-                    className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-muted-foreground hover:text-foreground"
-                    title="Scroll to top of this message"
-                  >
-                    <ChevronsUp className="h-3 w-3" />
-                  </Button>
-                  
-                  {/* Expand to full screen button */}
-                  {onExpandMessage && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleExpandMessage}
-                      className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-muted-foreground hover:text-foreground"
-                      title="Expand to full screen"
-                    >
-                      <Expand className="h-3 w-3" />
-                    </Button>
-                  )}
-
                   {/* Export to Word button */}
                   {onExportWord && (
                     <Button
@@ -400,23 +376,56 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                       <Presentation className="h-3 w-3" />
                     </Button>
                   )}
+
+                  {/* Copy button */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={copyMessage}
+                    className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-muted-foreground hover:text-foreground"
+                    title="Copy message to clipboard"
+                  >
+                    <Copy className="h-3 w-3" />
+                  </Button>
+
+                  {/* Scroll to top button */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={scrollToTop}
+                    className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-muted-foreground hover:text-foreground"
+                    title="Scroll to top of this message"
+                  >
+                    <ChevronsUp className="h-3 w-3" />
+                  </Button>
+                  
+                  {/* Expand to full screen button */}
+                  {onExpandMessage && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleExpandMessage}
+                      className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-muted-foreground hover:text-foreground"
+                      title="Expand to full screen"
+                    >
+                      <Expand className="h-3 w-3" />
+                    </Button>
+                  )}
                 </>
               )}
               
-              {/* Copy button */}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={copyMessage}
-                className={`h-6 w-6 p-0 opacity-70 hover:opacity-100 ${
-                  message.role === 'user'
-                    ? 'text-primary-foreground/70 hover:text-primary-foreground'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-                title="Copy message to clipboard"
-              >
-                <Copy className="h-3 w-3" />
-              </Button>
+              {/* Copy button for user messages */}
+              {message.role === 'user' && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={copyMessage}
+                  className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-primary-foreground/70 hover:text-primary-foreground"
+                  title="Copy message to clipboard"
+                >
+                  <Copy className="h-3 w-3" />
+                </Button>
+              )}
             </div>
           </div>
         </div>
