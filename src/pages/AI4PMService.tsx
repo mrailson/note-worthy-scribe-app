@@ -1626,6 +1626,31 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                 </div>
               </CardHeader>
               
+              {/* Quick Action Buttons - Prominent placement */}
+              {messages.length === 0 && (
+                <div className="px-4 pb-4 border-b border-border">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-medium">Quick Actions</span>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    {quickActions.map((action, index) => (
+                      <Button
+                        key={index}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleQuickAction(action)}
+                        className="h-auto p-3 flex flex-col items-center gap-2 text-center min-h-[70px] hover:bg-primary/5 hover:border-primary/20 transition-all duration-200"
+                        disabled={action.requiresFile && uploadedFiles.length === 0}
+                      >
+                        <action.icon className="h-4 w-4 flex-shrink-0 text-primary" />
+                        <span className="text-xs font-medium leading-tight">{action.label}</span>
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
               <CardContent className="flex flex-col h-full p-0">
                 {/* Messages */}
                 <ScrollArea className="flex-1 p-4">
@@ -1756,30 +1781,6 @@ Always provide practical, actionable advice that follows NHS guidelines and best
 
                 {/* Input Area */}
                 <div className="border-t border-border p-4">
-                  {/* Quick Action Buttons */}
-                  {messages.length === 0 && (
-                    <div className="mb-4">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Sparkles className="h-4 w-4 text-primary" />
-                        <span className="text-sm font-medium text-muted-foreground">Quick Actions</span>
-                      </div>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                        {quickActions.map((action, index) => (
-                          <Button
-                            key={index}
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleQuickAction(action)}
-                            className="h-auto p-3 flex flex-col items-center gap-2 text-center min-h-[80px] hover:bg-primary/5 hover:border-primary/20"
-                            disabled={action.requiresFile && uploadedFiles.length === 0}
-                          >
-                            <action.icon className="h-4 w-4 flex-shrink-0" />
-                            <span className="text-xs font-medium leading-tight">{action.label}</span>
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                    {/* Uploaded Files Display - Compact Claude-style */}
                    {uploadedFiles.length > 0 && (
                      <div className="mb-3">
