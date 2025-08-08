@@ -28,7 +28,8 @@ import {
   Check,
   ChevronsUpDown,
   Building2,
-  Video
+  Video,
+  Settings
 } from "lucide-react";
 
 interface Speaker {
@@ -61,6 +62,7 @@ export const LiveTranscript = ({
 }: LiveTranscriptProps) => {
   const [isTranscriptOpen, setIsTranscriptOpen] = useState(true);
   const [isLiveUpdateOpen, setIsLiveUpdateOpen] = useState(false); // New state for live updates
+  const [isMeetingSettingsOpen, setIsMeetingSettingsOpen] = useState(false); // New state for meeting settings
   const [isSpeakersOpen, setIsSpeakersOpen] = useState(false);
   const [speakers, setSpeakers] = useState<Speaker[]>([]);
   const [newSpeakerName, setNewSpeakerName] = useState("");
@@ -273,155 +275,157 @@ export const LiveTranscript = ({
           </CollapsibleTrigger>
           
           <CollapsibleContent>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant={showTimestamps ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => onTimestampsToggle(!showTimestamps)}
-                  >
-                    <Clock className="h-4 w-4 mr-2" />
-                    Timestamps
-                  </Button>
-                  
-                  <Button
-                    variant={isAutoCleaningEnabled ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setIsAutoCleaningEnabled(!isAutoCleaningEnabled)}
-                    className="flex items-center gap-2"
-                  >
-                    <Sparkles className="h-4 w-4" />
-                    <span className="hidden sm:inline">AI Cleaning</span>
-                    <span className="sm:hidden">Clean</span>
-                  </Button>
+             <CardContent className="space-y-4">
+               <div className="flex items-center justify-between gap-2">
+                 <div className="flex items-center gap-2">
+                   <Button
+                     variant={isMeetingSettingsOpen ? 'default' : 'outline'}
+                     size="sm"
+                     onClick={() => setIsMeetingSettingsOpen(!isMeetingSettingsOpen)}
+                   >
+                     <Settings className="h-4 w-4 mr-2" />
+                     Meeting Settings
+                   </Button>
+                   
+                   <Button
+                     variant={isAutoCleaningEnabled ? 'default' : 'outline'}
+                     size="sm"
+                     onClick={() => setIsAutoCleaningEnabled(!isAutoCleaningEnabled)}
+                     className="flex items-center gap-2"
+                   >
+                     <Sparkles className="h-4 w-4" />
+                     <span className="hidden sm:inline">AI Cleaning</span>
+                     <span className="sm:hidden">Clean</span>
+                   </Button>
 
-                  <MedicalTermCorrectionDialog
-                    selectedText={selectedText}
-                    onCorrectionAdded={async () => {
-                      // Refresh corrections when new ones are added
-                      const { data: user } = await supabase.auth.getUser();
-                      if (user.user) {
-                        await medicalTermCorrector.refreshCorrections(user.user.id);
-                      }
-                      setIsMedicalCorrectionsLoaded(true);
-                    }}
-                    buttonText="Update Medical Terms, Acronyms & Missheard Names"
-                  />
-                </div>
-                
-                {transcript && speakers.length > 0 && (
-                  <div className="flex items-center gap-2">
-                    <Select value={currentSpeaker} onValueChange={setCurrentSpeaker}>
-                      <SelectTrigger className="w-[140px]">
-                        <SelectValue placeholder="Select speaker" />
+                   <MedicalTermCorrectionDialog
+                     selectedText={selectedText}
+                     onCorrectionAdded={async () => {
+                       // Refresh corrections when new ones are added
+                       const { data: user } = await supabase.auth.getUser();
+                       if (user.user) {
+                         await medicalTermCorrector.refreshCorrections(user.user.id);
+                       }
+                       setIsMedicalCorrectionsLoaded(true);
+                     }}
+                     buttonText="Update Medical Terms, Acronyms & Missheard Names"
+                   />
+                 </div>
+                 
+                 {transcript && speakers.length > 0 && (
+                   <div className="flex items-center gap-2">
+                     <Select value={currentSpeaker} onValueChange={setCurrentSpeaker}>
+                       <SelectTrigger className="w-[140px]">
+                         <SelectValue placeholder="Select speaker" />
+                       </SelectTrigger>
+                       <SelectContent>
+                         {speakers.map(speaker => (
+                           <SelectItem key={speaker.id} value={speaker.id}>
+                             {speaker.name}
+                           </SelectItem>
+                         ))}
+                       </SelectContent>
+                     </Select>
+                     <Button 
+                       size="sm" 
+                       onClick={addTranscriptSegment}
+                       disabled={!currentSpeaker}
+                     >
+                       <Plus className="h-4 w-4 mr-1" />
+                       Add
+                     </Button>
+                   </div>
+                )}
+              </div>
+
+              {/* Meeting Settings Section - Now Collapsible */}
+              {isMeetingSettingsOpen && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gradient-to-r from-background to-accent/10 border rounded-lg">
+                  {/* Practice Selection */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium flex items-center gap-2">
+                      <Building2 className="h-4 w-4" />
+                      Practice
+                    </Label>
+                    <Popover open={practiceSearchOpen} onOpenChange={setPracticeSearchOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={practiceSearchOpen}
+                          className="w-full justify-between"
+                        >
+                          {meetingSettings?.practiceId ? 
+                            practices.find(practice => practice.id === meetingSettings.practiceId)?.name || "Select practice"
+                            : "Select practice for this meeting"}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-full p-0">
+                        <Command>
+                          <CommandInput placeholder="Search practice..." />
+                          <CommandList>
+                            <CommandEmpty>No practice found.</CommandEmpty>
+                            <CommandGroup>
+                              {practices.map((practice) => (
+                                <CommandItem
+                                  key={practice.id}
+                                  value={practice.name}
+                                  onSelect={() => {
+                                    onMeetingSettingsChange?.({
+                                      practiceId: practice.id,
+                                      meetingFormat: meetingSettings?.meetingFormat || "teams"
+                                    });
+                                    setPracticeSearchOpen(false);
+                                  }}
+                                >
+                                  <Check
+                                    className={`mr-2 h-4 w-4 ${
+                                      meetingSettings?.practiceId === practice.id ? "opacity-100" : "opacity-0"
+                                    }`}
+                                  />
+                                  {practice.name}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    <p className="text-xs text-muted-foreground">
+                      Choose which practice this meeting is associated with
+                    </p>
+                  </div>
+
+                  {/* Meeting Format Selection */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium flex items-center gap-2">
+                      <Video className="h-4 w-4" />
+                      Meeting Format
+                    </Label>
+                    <Select 
+                      value={meetingSettings?.meetingFormat || "teams"} 
+                      onValueChange={(value) => {
+                        onMeetingSettingsChange?.({
+                          practiceId: meetingSettings?.practiceId || "",
+                          meetingFormat: value
+                        });
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select meeting format" />
                       </SelectTrigger>
                       <SelectContent>
-                        {speakers.map(speaker => (
-                          <SelectItem key={speaker.id} value={speaker.id}>
-                            {speaker.name}
-                          </SelectItem>
-                        ))}
+                        <SelectItem value="teams">Teams/Web Meeting</SelectItem>
+                        <SelectItem value="face-to-face">Face to Face</SelectItem>
                       </SelectContent>
                     </Select>
-                    <Button 
-                      size="sm" 
-                      onClick={addTranscriptSegment}
-                      disabled={!currentSpeaker}
-                    >
-                      <Plus className="h-4 w-4 mr-1" />
-                      Add
-                    </Button>
+                    <p className="text-xs text-muted-foreground">
+                      Specify whether this is an online or in-person meeting
+                    </p>
                   </div>
-               )}
-             </div>
-
-             {/* Meeting Settings Section */}
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gradient-to-r from-background to-accent/10 border rounded-lg">
-               {/* Practice Selection */}
-               <div className="space-y-2">
-                 <Label className="text-sm font-medium flex items-center gap-2">
-                   <Building2 className="h-4 w-4" />
-                   Practice
-                 </Label>
-                 <Popover open={practiceSearchOpen} onOpenChange={setPracticeSearchOpen}>
-                   <PopoverTrigger asChild>
-                     <Button
-                       variant="outline"
-                       role="combobox"
-                       aria-expanded={practiceSearchOpen}
-                       className="w-full justify-between"
-                     >
-                       {meetingSettings?.practiceId ? 
-                         practices.find(practice => practice.id === meetingSettings.practiceId)?.name || "Select practice"
-                         : "Select practice for this meeting"}
-                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                     </Button>
-                   </PopoverTrigger>
-                   <PopoverContent className="w-full p-0">
-                     <Command>
-                       <CommandInput placeholder="Search practice..." />
-                       <CommandList>
-                         <CommandEmpty>No practice found.</CommandEmpty>
-                         <CommandGroup>
-                           {practices.map((practice) => (
-                             <CommandItem
-                               key={practice.id}
-                               value={practice.name}
-                               onSelect={() => {
-                                 onMeetingSettingsChange?.({
-                                   practiceId: practice.id,
-                                   meetingFormat: meetingSettings?.meetingFormat || "teams"
-                                 });
-                                 setPracticeSearchOpen(false);
-                               }}
-                             >
-                               <Check
-                                 className={`mr-2 h-4 w-4 ${
-                                   meetingSettings?.practiceId === practice.id ? "opacity-100" : "opacity-0"
-                                 }`}
-                               />
-                               {practice.name}
-                             </CommandItem>
-                           ))}
-                         </CommandGroup>
-                       </CommandList>
-                     </Command>
-                   </PopoverContent>
-                 </Popover>
-                 <p className="text-xs text-muted-foreground">
-                   Choose which practice this meeting is associated with
-                 </p>
-               </div>
-
-               {/* Meeting Format Selection */}
-               <div className="space-y-2">
-                 <Label className="text-sm font-medium flex items-center gap-2">
-                   <Video className="h-4 w-4" />
-                   Meeting Format
-                 </Label>
-                 <Select 
-                   value={meetingSettings?.meetingFormat || "teams"} 
-                   onValueChange={(value) => {
-                     onMeetingSettingsChange?.({
-                       practiceId: meetingSettings?.practiceId || "",
-                       meetingFormat: value
-                     });
-                   }}
-                 >
-                   <SelectTrigger>
-                     <SelectValue placeholder="Select meeting format" />
-                   </SelectTrigger>
-                   <SelectContent>
-                     <SelectItem value="teams">Teams/Web Meeting</SelectItem>
-                     <SelectItem value="face-to-face">Face to Face</SelectItem>
-                   </SelectContent>
-                 </Select>
-                 <p className="text-xs text-muted-foreground">
-                   Specify whether this is an online or in-person meeting
-                 </p>
-               </div>
-             </div>
+                </div>
+              )}
 
              {/* Latest Transcript Section */}
              <div className="space-y-4">
