@@ -2389,16 +2389,16 @@ Always provide practical, actionable advice that follows NHS guidelines and best
       {/* Full Screen Message Modal */}
       <Dialog open={!!expandedMessage} onOpenChange={(open) => !open && setExpandedMessage(null)}>
         <DialogContent className="max-w-[95vw] max-h-[95vh] w-full h-full">
-          <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-4 border-b">
-            <DialogTitle className="flex items-center gap-2">
-              <Bot className="h-5 w-5" />
-              AI Response - Full Screen View
+          <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-4 border-b pr-12">
+            <DialogTitle className="flex items-center gap-2 flex-1 min-w-0">
+              <Bot className="h-5 w-5 flex-shrink-0" />
+              <span className="truncate">AI Response - Full Screen View</span>
             </DialogTitle>
             <Button
               variant="outline"
               size="sm"
               onClick={() => setExpandedMessage(null)}
-              className="h-8 w-8 p-0"
+              className="h-8 w-8 p-0 absolute top-4 right-4 z-10"
             >
               <Minimize className="h-4 w-4" />
             </Button>
