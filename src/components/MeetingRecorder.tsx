@@ -3139,7 +3139,7 @@ export const MeetingRecorder = ({
                         className="shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 px-8 py-4 text-base font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                       >
                         <Square className="h-5 w-5 mr-2" />
-                        {isStoppingRecording ? "Ending Recording..." : "Stop Recording"}
+                        {isStoppingRecording ? "Ending Recording..." : (isPaused ? "Meeting Paused" : "Stop Recording")}
                        </Button>
                       </div>
                    )}
