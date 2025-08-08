@@ -756,12 +756,13 @@ Always provide practical, actionable advice that follows NHS guidelines and best
       setMessages(prev => [...prev, assistantMessage]);
       setUploadedFiles([]); // Clear files after sending
 
-      // Auto-save search after AI responds (only if this is a new conversation)
-      const isNewConversation = messages.length === 0;
-      if (isNewConversation) {
+      // Auto-save search after AI responds (only if this is the first exchange in a conversation)
+      // Check if this was the first user message (messages.length was 0 when we started)
+      const wasFirstMessage = messages.length === 0;
+      if (wasFirstMessage) {
         setTimeout(() => {
-          const updatedMessages = [...messages, userMessage, assistantMessage];
-          saveSearchAutomatically(updatedMessages);
+          // Save the conversation after the state has been updated
+          saveSearchAutomatically([userMessage, assistantMessage]);
         }, 1000);
       }
 
