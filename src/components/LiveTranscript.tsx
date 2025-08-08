@@ -401,24 +401,6 @@ export const LiveTranscript = ({
                 </div>
               </div>
 
-              {/* Full Transcript Archive */}
-              <div className="mt-6">
-                <div className="min-h-[200px] p-4 bg-accent/20 rounded-lg border">
-                  <div className="flex items-center gap-2 mb-3">
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium text-muted-foreground">Complete Meeting Transcript</span>
-                  </div>
-                  {transcript || transcriptSegments.length > 0 ? (
-                    <div className="text-sm leading-relaxed whitespace-pre-wrap opacity-75">
-                      {formatTranscriptWithTimestamps(transcript)}
-                    </div>
-                  ) : (
-                    <div className="text-muted-foreground text-center py-8">
-                      Complete transcript will be archived here...
-                    </div>
-                  )}
-                </div>
-              </div>
               
               {transcriptSegments.length > 0 && (
                 <div className="text-xs text-muted-foreground">
