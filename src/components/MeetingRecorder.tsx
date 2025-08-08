@@ -3271,9 +3271,9 @@ export const MeetingRecorder = ({
                         <Mic className="h-6 w-6 text-primary/60" />
                       </div>
                        <h4 className="text-base font-medium mb-1">Ready to Record</h4>
-                       <p className="text-xs text-muted-foreground">
-                         Stereo recording: Left=Microphone, Right=System audio with live AI
-                       </p>
+                        <p className="text-xs text-muted-foreground">
+                          Allow Microphone Access if Requested
+                        </p>
                        
                        {/* Live Summary Display */}
                        {liveSummary && (
