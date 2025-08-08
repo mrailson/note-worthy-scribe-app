@@ -54,6 +54,7 @@ import MessageRenderer from '@/components/MessageRenderer';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
 import { saveAs } from 'file-saver';
 import PptxGenJS from 'pptxgenjs';
+import PMGenieVoiceAgent from '@/components/PMGenieVoiceAgent';
 
 // Helper function to get file type icon
 const getFileTypeIcon = (fileName: string, fileType?: string) => {
@@ -120,6 +121,7 @@ const AI4GPService = () => {
   const [chatBoxSize, setChatBoxSize] = useState('default');
   const [includePracticeBranding, setIncludePracticeBranding] = useState(true);
   const [practiceDetails, setPracticeDetails] = useState<any>(null);
+  const [showVoiceAgent, setShowVoiceAgent] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const scrollToBottom = () => {
@@ -513,16 +515,25 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                         <option value="claude">Claude 3.5</option>
                       </select>
                     </div>
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={handleNewSearch}
-                    className="text-xs"
-                  >
-                    <Plus className="h-3 w-3 mr-1" />
-                    New Search
-                  </Button>
+                   </div>
+                   <Button 
+                     variant="outline" 
+                     size="sm"
+                     onClick={() => setShowVoiceAgent(!showVoiceAgent)}
+                     className="text-xs"
+                   >
+                     <Mic className="h-3 w-3 mr-1" />
+                     Voice
+                   </Button>
+                   <Button 
+                     variant="outline" 
+                     size="sm"
+                     onClick={handleNewSearch}
+                     className="text-xs"
+                   >
+                     <Plus className="h-3 w-3 mr-1" />
+                     New Search
+                   </Button>
                 </div>
               </div>
             </CardHeader>
@@ -680,6 +691,27 @@ Always provide evidence-based, clinically appropriate advice that follows curren
             </CardContent>
           </Card>
         </div>
+        
+        {/* Voice Agent Modal/Overlay */}
+        {showVoiceAgent && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="bg-background rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between p-4 border-b">
+                <h2 className="text-xl font-semibold">Voice Assistant</h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowVoiceAgent(false)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="p-4">
+                <PMGenieVoiceAgent />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
