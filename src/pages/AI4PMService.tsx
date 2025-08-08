@@ -673,24 +673,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
         }, 1000);
       }
 
-      // Check if the response suggests document or image generation
-      const responseText = data.response.toLowerCase();
-      if (responseText.includes('word document') || responseText.includes('generate document')) {
-        // Add document generation option
-        setTimeout(() => {
-          const docMessage: Message = {
-            id: (Date.now() + 2).toString(),
-            role: 'assistant',
-            content: "Would you like me to generate a Word document from this content? I can create a professionally formatted document for you.",
-            timestamp: new Date()
-          };
-          setMessages(prev => [...prev, docMessage]);
-        }, 1000);
-      }
-      
-      if (responseText.includes('generate image') || responseText.includes('create image') || responseText.includes('diagram')) {
-        // Note: Image generation functionality has been removed
-      }
+      // Removed automatic follow-up message generation to prevent bubble splitting
     } catch (error: any) {
       console.error('Error:', error);
       if (error.message?.includes('API key not configured')) {
@@ -1658,7 +1641,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                       const shouldGroup = previousMessage && 
                         previousMessage.role === message.role && 
                         message.role === 'assistant' &&
-                        Math.abs(message.timestamp.getTime() - previousMessage.timestamp.getTime()) < 5000; // Group within 5 seconds
+                        Math.abs(message.timestamp.getTime() - previousMessage.timestamp.getTime()) < 30000; // Group within 30 seconds
                       
                       if (shouldGroup) {
                         // Combine content with the previous message
