@@ -798,7 +798,7 @@ export const MicInputRecordingTester: React.FC = () => {
                   <CardContent className="p-4 space-y-3">
                     <div className="flex items-start justify-between">
                       <Badge variant={getBadgeVariant(profile.color)} className="text-xs">
-                        🎧 Profile {profile.id.slice(-1)}
+                        🎧 {profile.id === 'chatgpt-recommended' ? 'GPT' : 'Profile ' + profile.id.slice(-1)}
                       </Badge>
                       <input
                         type="checkbox"
