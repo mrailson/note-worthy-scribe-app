@@ -145,6 +145,7 @@ const AI4PMService = () => {
   });
   const voiceChatRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -1845,6 +1846,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                   <div className="flex gap-2">
                     <div className="flex-1 relative">
                       <Textarea
+                        ref={inputRef}
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         placeholder={
@@ -1941,6 +1943,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                           onTranscription={handleSpeechTranscription}
                           size="sm"
                           className="h-8 w-8 p-0"
+                          inputRef={inputRef}
                         />
                       </div>
                     </div>
