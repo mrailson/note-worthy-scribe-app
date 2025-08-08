@@ -1618,140 +1618,6 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                 </div>
               </CardHeader>
               
-              {/* Input Section - Moved to be right under title and buttons */}
-              <div className="border-t border-border p-4">
-                 {/* Uploaded Files Display - Compact Claude-style */}
-                 {uploadedFiles.length > 0 && (
-                   <div className="mb-3">
-                     <div className="flex flex-wrap gap-2">
-                       {uploadedFiles.map((file, index) => {
-                         const IconComponent = getFileTypeIcon(file.name, file.type);
-                         return (
-                            <div key={index} className={`flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-2 border max-w-xs ${file.isLoading ? 'opacity-75' : ''}`}>
-                              {file.isLoading ? (
-                                <Loader2 className="h-4 w-4 flex-shrink-0 text-muted-foreground animate-spin" />
-                              ) : (
-                                <IconComponent className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
-                              )}
-                              <div className="flex-1 min-w-0">
-                                <div className="text-sm font-medium truncate">{file.name}</div>
-                                <div className="text-xs text-muted-foreground">
-                                  {file.isLoading ? 'Uploading...' : `${(file.size / 1024).toFixed(1)}KB`}
-                                </div>
-                              </div>
-                              {!file.isLoading && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => removeFile(index)}
-                                  className="h-6 w-6 p-0 flex-shrink-0 hover:bg-destructive/10 hover:text-destructive"
-                                >
-                                  <X className="h-3 w-3" />
-                                </Button>
-                              )}
-                           </div>
-                         );
-                       })}
-                     </div>
-                   </div>
-                 )}
-                
-                <div className="flex gap-2">
-                  <div className="flex-1 relative">
-                    <Textarea
-                      value={input}
-                      onChange={(e) => setInput(e.target.value)}
-                      placeholder={
-                        uploadedFiles.length > 0 
-                          ? `📎 Files attached: ${uploadedFiles.map(f => f.name).join(', ')} - Ask me about NHS policies, compliance, or your documents...`
-                          : "Ask me about NHS policies, compliance, or attach documents for analysis..."
-                      }
-                      className="min-h-[80px] pr-32 resize-none"
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
-                          handleSend();
-                        }
-                      }}
-                      onPaste={(e) => {
-                        const items = Array.from(e.clipboardData?.items || []);
-                        
-                        // Handle image paste
-                        const imageItem = items.find(item => item.type.startsWith('image/'));
-                        if (imageItem) {
-                          e.preventDefault();
-                          const file = imageItem.getAsFile();
-                          if (file) {
-                            handleFileUpload([file]);
-                          }
-                          return;
-                        }
-                        
-                        // Handle large text paste
-                        const textItem = items.find(item => item.type === 'text/plain');
-                        if (textItem) {
-                          textItem.getAsString((text) => {
-                            if (text.length > 2000) {
-                              e.preventDefault();
-                              const blob = new Blob([text], { type: 'text/plain' });
-                              const file = new File([blob], 'pasted-text.txt', { type: 'text/plain' });
-                              handleFileUpload([file]);
-                            }
-                          });
-                        }
-                      }}
-                    />
-                    <div className="absolute right-2 top-2 flex gap-1">
-                      <div className="relative">
-                        <input
-                          type="file"
-                          multiple
-                          accept=".pdf,.doc,.docx,.xlsx,.csv,.txt,.msg,.eml"
-                          onChange={(e) => {
-                            const files = Array.from(e.target.files || []);
-                            if (files.length > 0) {
-                              handleFileUpload(files);
-                              e.target.value = ''; // Reset input
-                            }
-                          }}
-                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className={`h-8 w-8 p-0 transition-all duration-300 ${
-                            uploadedFiles.length > 0 
-                              ? 'hover:bg-primary/10 bg-primary/5' 
-                              : 'hover:bg-muted'
-                          }`}
-                          title="Attach files"
-                        >
-                          <Paperclip className={`h-4 w-4 transition-all duration-300 ${
-                            uploadedFiles.length > 0 
-                              ? 'text-primary scale-110' 
-                              : 'text-muted-foreground'
-                          }`} />
-                        </Button>
-                      </div>
-                      
-                      <SpeechToText
-                        onTranscription={handleSpeechTranscription}
-                        size="sm"
-                        className="h-8 w-8 p-0"
-                      />
-                    </div>
-                  </div>
-                  <Button
-                    onClick={handleSend}
-                    disabled={isLoading || (!input.trim() && uploadedFiles.length === 0)}
-                    className="h-20"
-                  >
-                    <Send className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-              
               <CardContent className="flex flex-col h-full p-0">
                 {/* Messages */}
                 <ScrollArea className="flex-1 p-4">
@@ -1879,11 +1745,44 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                   )}
                   <div ref={messagesEndRef} />
                 </ScrollArea>
-              </CardContent>
-            </Card>
-          </TabsContent>
 
-          {/* Previous Searches Tab */}
+                {/* Input Area */}
+                <div className="border-t border-border p-4">
+                   {/* Uploaded Files Display - Compact Claude-style */}
+                   {uploadedFiles.length > 0 && (
+                     <div className="mb-3">
+                       <div className="flex flex-wrap gap-2">
+                         {uploadedFiles.map((file, index) => {
+                           const IconComponent = getFileTypeIcon(file.name, file.type);
+                           return (
+                              <div key={index} className={`flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-2 border max-w-xs ${file.isLoading ? 'opacity-75' : ''}`}>
+                                {file.isLoading ? (
+                                  <Loader2 className="h-4 w-4 flex-shrink-0 text-muted-foreground animate-spin" />
+                                ) : (
+                                  <IconComponent className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-sm font-medium truncate">{file.name}</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {file.isLoading ? 'Uploading...' : `${(file.size / 1024).toFixed(1)}KB`}
+                                  </div>
+                                </div>
+                                {!file.isLoading && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => removeFile(index)}
+                                    className="h-6 w-6 p-0 flex-shrink-0 hover:bg-destructive/10 hover:text-destructive"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </Button>
+                                )}
+                             </div>
+                           );
+                         })}
+                       </div>
+                     </div>
+                   )}
                   
                   <div className="flex gap-2">
                     <div className="flex-1 relative">
