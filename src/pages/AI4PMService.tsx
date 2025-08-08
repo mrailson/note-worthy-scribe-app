@@ -132,6 +132,7 @@ const AI4PMService = () => {
   const [includePracticeBranding, setIncludePracticeBranding] = useState(true);
   const [practiceDetails, setPracticeDetails] = useState<any>(null);
   const [showQuickActions, setShowQuickActions] = useState(false);
+  const [currentSearchId, setCurrentSearchId] = useState<string | null>(null); // Track current conversation
   
   const [expandedMessage, setExpandedMessage] = useState<Message | null>(null);
   const [showVoiceAgent, setShowVoiceAgent] = useState(false);
@@ -450,6 +451,7 @@ const AI4PMService = () => {
         })) : [];
       
       setMessages(messagesData);
+      setCurrentSearchId(searchId); // Track which search is currently loaded
       setActiveTab('ai-service');
     } catch (error) {
       console.error('Error loading search:', error);
@@ -478,52 +480,53 @@ const AI4PMService = () => {
     if (!user || messagesData.length === 0) return;
 
     try {
-      // Check if similar search already exists to prevent duplicates
-      const { data: existingSearches } = await supabase
-        .from('ai_4_pm_searches')
-        .select('id, messages')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(5);
-
-      // Check for exact duplicate
-      const isDuplicate = existingSearches?.some(search => 
-        JSON.stringify(search.messages) === JSON.stringify(messagesData)
-      );
-
-      if (isDuplicate) {
-        console.log('Duplicate search detected, skipping save');
+      // If we have a current search ID, update it instead of creating a new one
+      if (currentSearchId) {
+        const { error } = await supabase
+          .from('ai_4_pm_searches')
+          .update({
+            messages: messagesData as any,
+            brief_overview: generateBriefOverview(messagesData)
+          })
+          .eq('id', currentSearchId);
+        
+        if (error) {
+          console.error('Error updating search:', error);
+        }
         return;
       }
 
-      // Generate contextual title
+      // Only create a new search if this is the first message in the conversation
       const title = generateContextualTitle(messagesData);
-      
-      // Generate brief overview from AI responses (max 50 words)
-      const aiMessages = messagesData.filter(m => m.role === 'assistant');
-      let overview = 'No AI response';
-      if (aiMessages.length > 0) {
-        const content = aiMessages[0].content;
-        const words = content.split(' ').slice(0, 50);
-        overview = words.join(' ') + (content.split(' ').length > 50 ? '...' : '');
-      }
+      const overview = generateBriefOverview(messagesData);
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('ai_4_pm_searches')
         .insert({
           user_id: user.id,
           title,
           brief_overview: overview,
           messages: messagesData as any
-        });
+        })
+        .select('id')
+        .single();
 
-      if (!error) {
+      if (!error && data) {
+        setCurrentSearchId(data.id); // Store the ID for future updates
         loadSearchHistoryList(); // Refresh the list silently
       }
     } catch (error) {
-      // Silent failure for auto-save
       console.error('Error auto-saving search:', error);
     }
+  };
+
+  const generateBriefOverview = (messagesData: Message[]) => {
+    const aiMessages = messagesData.filter(m => m.role === 'assistant');
+    if (aiMessages.length === 0) return 'No AI response';
+    
+    const content = aiMessages[0].content;
+    const words = content.split(' ').slice(0, 50);
+    return words.join(' ') + (content.split(' ').length > 50 ? '...' : '');
   };
 
   const deleteSearch = async (searchId: string) => {
@@ -566,10 +569,11 @@ const AI4PMService = () => {
     if (messages.length > 0) {
       saveCurrentSearch();
     }
-    // Clear current conversation
+    // Clear current conversation and reset tracking
     setMessages([]);
     setUploadedFiles([]);
     setInput('');
+    setCurrentSearchId(null); // Reset current search tracking
   };
 
   const quickActions = [
@@ -756,13 +760,18 @@ Always provide practical, actionable advice that follows NHS guidelines and best
       setMessages(prev => [...prev, assistantMessage]);
       setUploadedFiles([]); // Clear files after sending
 
-      // Auto-save search after AI responds (only if this is the first exchange in a conversation)
-      // Check if this was the first user message (messages.length was 0 when we started)
+      // Auto-save search after AI responds
       const wasFirstMessage = messages.length === 0;
       if (wasFirstMessage) {
+        // First message - create new search
         setTimeout(() => {
-          // Save the conversation after the state has been updated
           saveSearchAutomatically([userMessage, assistantMessage]);
+        }, 1000);
+      } else {
+        // Subsequent messages - update existing search
+        setTimeout(() => {
+          const allMessages = [...messages, userMessage, assistantMessage];
+          saveSearchAutomatically(allMessages);
         }, 1000);
       }
 
