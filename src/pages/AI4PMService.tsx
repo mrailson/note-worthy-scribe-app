@@ -117,7 +117,7 @@ const AI4PMService = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [model, setModel] = useState<'claude' | 'gpt'>('gpt');
+  const [model, setModel] = useState<'claude' | 'gpt' | 'chatgpt5'>('chatgpt5');
   const [sessionMemory, setSessionMemory] = useState(true);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [apiKeyMissing, setApiKeyMissing] = useState<{claude: boolean, gpt: boolean}>({claude: false, gpt: false});
@@ -129,6 +129,7 @@ const AI4PMService = () => {
   const [practiceDetails, setPracticeDetails] = useState<any>(null);
   const [isModelSelectorCollapsed, setIsModelSelectorCollapsed] = useState(true); // Collapsed by default
   const [expandedMessage, setExpandedMessage] = useState<Message | null>(null);
+  const [showVoiceAgent, setShowVoiceAgent] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const scrollToBottom = () => {
@@ -1371,9 +1372,9 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                             size="sm" 
                             className="w-fit p-2 h-auto flex items-center gap-2 text-muted-foreground hover:text-foreground"
                           >
-                            <span className="text-xs">
-                              AI Model: {model === 'gpt' ? 'GPT-4' : 'Claude'}
-                            </span>
+                             <span className="text-xs">
+                               AI Model: {model === 'chatgpt5' ? 'Chat GPT 5.0' : model === 'gpt' ? 'GPT-4' : 'Claude'}
+                             </span>
                             {isModelSelectorCollapsed ? (
                               <ChevronDown className="h-3 w-3" />
                             ) : (
@@ -1392,19 +1393,29 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                             </div>
                             
                             {/* Controls */}
-                            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                              <div className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-1 w-fit">
-                                <span className={`text-xs sm:text-sm font-medium ${model === 'gpt' ? 'text-primary' : 'text-muted-foreground'}`}>
-                                  GPT-4
-                                </span>
-                                <Switch
-                                  checked={model === 'claude'}
-                                  onCheckedChange={(checked) => setModel(checked ? 'claude' : 'gpt')}
-                                />
-                                <span className={`text-xs sm:text-sm font-medium ${model === 'claude' ? 'text-primary' : 'text-muted-foreground'}`}>
-                                  Claude
-                                </span>
-                              </div>
+                             <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                               <div className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-1 w-fit">
+                                 <select 
+                                   value={model}
+                                   onChange={(e) => setModel(e.target.value as 'claude' | 'gpt' | 'chatgpt5')}
+                                   className="text-xs sm:text-sm font-medium bg-transparent border-none outline-none"
+                                 >
+                                   <option value="chatgpt5">Chat GPT 5.0</option>
+                                   <option value="gpt">GPT-4</option>
+                                   <option value="claude">Claude</option>
+                                 </select>
+                               </div>
+                               
+                               {/* Voice Assistant Button */}
+                               <Button
+                                 variant="outline"
+                                 size="sm"
+                                 onClick={() => setShowVoiceAgent(!showVoiceAgent)}
+                                 className="text-xs flex items-center gap-2"
+                               >
+                                 <Mic className="h-3 w-3" />
+                                 Voice Assistant
+                               </Button>
                               
                               {/* Chat size controls */}
                               <div className="flex items-center gap-1 border rounded-lg p-1">
@@ -2214,6 +2225,18 @@ Always provide practical, actionable advice that follows NHS guidelines and best
           )}
         </DialogContent>
       </Dialog>
+      
+      {/* Voice Agent Modal */}
+      {showVoiceAgent && (
+        <Dialog open={showVoiceAgent} onOpenChange={setShowVoiceAgent}>
+          <DialogContent className="sm:max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Voice Assistant</DialogTitle>
+            </DialogHeader>
+            <PMGenieVoiceAgent />
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };
