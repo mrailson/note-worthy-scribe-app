@@ -1924,6 +1924,48 @@ export type Database = {
           },
         ]
       }
+      medical_term_corrections: {
+        Row: {
+          context_phrase: string | null
+          correct_term: string
+          created_at: string
+          created_by_name: string | null
+          id: string
+          incorrect_term: string
+          is_global: boolean | null
+          practice_id: string | null
+          updated_at: string
+          usage_count: number | null
+          user_id: string
+        }
+        Insert: {
+          context_phrase?: string | null
+          correct_term: string
+          created_at?: string
+          created_by_name?: string | null
+          id?: string
+          incorrect_term: string
+          is_global?: boolean | null
+          practice_id?: string | null
+          updated_at?: string
+          usage_count?: number | null
+          user_id: string
+        }
+        Update: {
+          context_phrase?: string | null
+          correct_term?: string
+          created_at?: string
+          created_by_name?: string | null
+          id?: string
+          incorrect_term?: string
+          is_global?: boolean | null
+          practice_id?: string | null
+          updated_at?: string
+          usage_count?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       meeting_audio_backups: {
         Row: {
           backup_reason: string | null
