@@ -63,6 +63,9 @@ export default function Settings() {
     confirm: false
   });
 
+  // Admin state
+  const [isAdmin, setIsAdmin] = useState(false);
+
   // Fetch NHS terms
   const fetchTerms = async () => {
     if (!user) {
@@ -99,11 +102,27 @@ export default function Settings() {
     }
   }, [terms, searchQuery]);
 
+  // Check if user is admin
+  const checkAdminStatus = async () => {
+    if (!user) return;
+    
+    try {
+      const { data: adminData, error } = await supabase
+        .rpc('is_system_admin', { _user_id: user.id });
+      
+      if (error) throw error;
+      setIsAdmin(adminData);
+    } catch (error) {
+      console.error('Error checking admin status:', error);
+    }
+  };
+
   // Fetch terms, retention policy, and usage stats on mount
   useEffect(() => {
     fetchTerms();
     fetchRetentionPolicy();
     fetchUsageStats();
+    checkAdminStatus();
   }, [user]);
 
   // Fetch retention policy
@@ -346,23 +365,29 @@ export default function Settings() {
 
           {/* Settings Tabs */}
           <Tabs defaultValue="general" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-6' : 'grid-cols-3'}`}>
               <TabsTrigger value="general" className="flex items-center gap-2">
                 <SettingsIcon className="h-4 w-4" />
                 General
               </TabsTrigger>
-              <TabsTrigger value="attendees" className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                Attendees
-              </TabsTrigger>
-              <TabsTrigger value="practices" className="flex items-center gap-2">
-                <Building className="h-4 w-4" />
-                Practices
-              </TabsTrigger>
-              <TabsTrigger value="nhs-terms" className="flex items-center gap-2">
-                <BookOpen className="h-4 w-4" />
-                NHS Terms
-              </TabsTrigger>
+              {isAdmin && (
+                <TabsTrigger value="attendees" className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  Attendees
+                </TabsTrigger>
+              )}
+              {isAdmin && (
+                <TabsTrigger value="practices" className="flex items-center gap-2">
+                  <Building className="h-4 w-4" />
+                  Practices
+                </TabsTrigger>
+              )}
+              {isAdmin && (
+                <TabsTrigger value="nhs-terms" className="flex items-center gap-2">
+                  <BookOpen className="h-4 w-4" />
+                  NHS Terms
+                </TabsTrigger>
+              )}
               <TabsTrigger value="security" className="flex items-center gap-2">
                 <Shield className="h-4 w-4" />
                 Security & NHS IT
@@ -636,39 +661,44 @@ export default function Settings() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="attendees" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="h-5 w-5" />
-                    Attendee Management
-                  </CardTitle>
-                  <p className="text-muted-foreground">
-                    Manage your regular meeting attendees. You can add frequently attending colleagues 
-                    and mark some as default attendees for new meetings.
-                  </p>
-                </CardHeader>
-              </Card>
-              <AttendeeManager />
-            </TabsContent>
+            {isAdmin && (
+              <TabsContent value="attendees" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Users className="h-5 w-5" />
+                      Attendee Management
+                    </CardTitle>
+                    <p className="text-muted-foreground">
+                      Manage your regular meeting attendees. You can add frequently attending colleagues 
+                      and mark some as default attendees for new meetings.
+                    </p>
+                  </CardHeader>
+                </Card>
+                <AttendeeManager />
+              </TabsContent>
+            )}
 
-            <TabsContent value="practices" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Building className="h-5 w-5" />
-                    Practice Management
-                  </CardTitle>
-                  <p className="text-muted-foreground">
-                    Manage your practice details. You can set up multiple practices if you work 
-                    across different locations or set one as your default practice for all meetings.
-                  </p>
-                </CardHeader>
-              </Card>
-              <PracticeManager />
-            </TabsContent>
+            {isAdmin && (
+              <TabsContent value="practices" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Building className="h-5 w-5" />
+                      Practice Management
+                    </CardTitle>
+                    <p className="text-muted-foreground">
+                      Manage your practice details. You can set up multiple practices if you work 
+                      across different locations or set one as your default practice for all meetings.
+                    </p>
+                  </CardHeader>
+                </Card>
+                <PracticeManager />
+              </TabsContent>
+            )}
 
-            <TabsContent value="nhs-terms" className="space-y-6">
+            {isAdmin && (
+              <TabsContent value="nhs-terms" className="space-y-6">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -887,7 +917,8 @@ export default function Settings() {
                   </div>
                 </div>
               )}
-            </TabsContent>
+             </TabsContent>
+            )}
 
             <TabsContent value="security" className="space-y-6">
               <Card>
