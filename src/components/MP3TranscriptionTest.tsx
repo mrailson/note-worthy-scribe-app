@@ -191,9 +191,6 @@ export const MP3TranscriptionTest = ({ onTranscriptReceived }: MP3TranscriptionT
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <label className="block text-sm font-medium">
-              Upload Audio File (MP3, WAV, etc.)
-            </label>
             <div className="flex items-center gap-4">
               <input
                 type="file"
