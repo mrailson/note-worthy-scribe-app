@@ -10,7 +10,8 @@ import {
   User,
   FileText,
   List,
-  CheckSquare
+  CheckSquare,
+  Star
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -37,9 +38,10 @@ interface MessageRendererProps {
 const MessageRenderer: React.FC<MessageRendererProps> = ({ message, disableTruncation = false }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showFullContent, setShowFullContent] = useState(true); // Always show full content
+  const messageRef = React.useRef<HTMLDivElement>(null);
   
   const maxPreviewLength = 500;
-  const isLongMessage = message.content.length > maxPreviewLength;
+  const isLongMessage = message.content.length > 1000; // Increased threshold for star button
   const shouldTruncate = false; // Never truncate
   
   const displayContent = message.content; // Always show full content
@@ -47,6 +49,17 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({ message, disableTrunc
   const copyMessage = () => {
     navigator.clipboard.writeText(message.content);
     toast.success('Message copied to clipboard');
+  };
+
+  const scrollToTop = () => {
+    if (messageRef.current) {
+      messageRef.current.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'start',
+        inline: 'nearest'
+      });
+      toast.success('Scrolled to top of message');
+    }
   };
 
   const formatContent = (content: string) => {
@@ -260,11 +273,14 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({ message, disableTrunc
           )}
         </div>
         
-        <div className={`rounded-lg p-4 ${
-          message.role === 'user' 
-            ? 'bg-primary text-primary-foreground' 
-            : 'bg-muted border border-border'
-        }`}>
+        <div 
+          ref={messageRef}
+          className={`rounded-lg p-4 ${
+            message.role === 'user' 
+              ? 'bg-primary text-primary-foreground' 
+              : 'bg-muted border border-border'
+          }`}
+        >
           {/* Message Content */}
           <div className="space-y-2">
             {message.role === 'assistant' ? (
@@ -302,18 +318,33 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({ message, disableTrunc
             <span className="text-xs opacity-70">
               {message.timestamp.toLocaleTimeString()}
             </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={copyMessage}
-              className={`h-6 w-6 p-0 opacity-70 hover:opacity-100 ${
-                message.role === 'user'
-                  ? 'text-primary-foreground/70 hover:text-primary-foreground'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <Copy className="h-3 w-3" />
-            </Button>
+            <div className="flex items-center gap-1">
+              {/* Scroll to top button for long assistant messages */}
+              {message.role === 'assistant' && isLongMessage && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={scrollToTop}
+                  className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-muted-foreground hover:text-foreground"
+                  title="Scroll to top of this message"
+                >
+                  <Star className="h-3 w-3" />
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={copyMessage}
+                className={`h-6 w-6 p-0 opacity-70 hover:opacity-100 ${
+                  message.role === 'user'
+                    ? 'text-primary-foreground/70 hover:text-primary-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+                title="Copy message to clipboard"
+              >
+                <Copy className="h-3 w-3" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>
