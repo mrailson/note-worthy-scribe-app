@@ -3826,6 +3826,7 @@ export type Database = {
         | "complaints_system"
         | "ai_4_pm"
         | "enhanced_access"
+        | "cqc_compliance"
       app_role:
         | "system_admin"
         | "practice_manager"
@@ -4021,6 +4022,7 @@ export const Constants = {
         "complaints_system",
         "ai_4_pm",
         "enhanced_access",
+        "cqc_compliance",
       ],
       app_role: [
         "system_admin",

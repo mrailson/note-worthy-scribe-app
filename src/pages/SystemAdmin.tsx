@@ -112,6 +112,8 @@ const SystemAdmin = () => {
       complaints_admin_access: false,
       replywell_access: false,
       ai_4_pm_access: false,
+      enhanced_access: false,
+      cqc_compliance_access: false
     }
   });
   
@@ -216,21 +218,21 @@ const [patientDataAccess, setPatientDataAccess] = useState([]);
           // Get ALL user_roles for this user and take the first one for display
           const { data: roleData } = await supabase
             .from('user_roles')
-            .select('meeting_notes_access, gp_scribe_access, complaints_manager_access, complaints_admin_access, replywell_access, ai_4_pm_access')
+            .select('meeting_notes_access, gp_scribe_access, complaints_manager_access, complaints_admin_access, replywell_access, ai_4_pm_access, enhanced_access, cqc_compliance_access')
             .eq('user_id', user.user_id)
             .limit(1)
             .single();
           
           return {
             ...user,
-            ...(roleData || {
-              meeting_notes_access: false,
-              gp_scribe_access: false,
-              complaints_manager_access: false,
-              complaints_admin_access: false,
-              replywell_access: false,
-              ai_4_pm_access: false
-            })
+            meeting_notes_access: roleData?.meeting_notes_access ?? false,
+            gp_scribe_access: roleData?.gp_scribe_access ?? false,
+            complaints_manager_access: roleData?.complaints_manager_access ?? false,
+            complaints_admin_access: roleData?.complaints_admin_access ?? false,
+            replywell_access: roleData?.replywell_access ?? false,
+            ai_4_pm_access: roleData?.ai_4_pm_access ?? false,
+            enhanced_access: roleData?.enhanced_access ?? false,
+            cqc_compliance_access: roleData?.cqc_compliance_access ?? false
           };
         })
       );
@@ -426,6 +428,8 @@ const [patientDataAccess, setPatientDataAccess] = useState([]);
         complaints_admin_access: false,
         replywell_access: false,
         ai_4_pm_access: false,
+        enhanced_access: false,
+        cqc_compliance_access: false
       }
     });
     setShowUserModal(true);
@@ -455,6 +459,8 @@ const [patientDataAccess, setPatientDataAccess] = useState([]);
         complaints_admin_access: user.complaints_admin_access ?? false,
         replywell_access: user.replywell_access ?? false,
         ai_4_pm_access: user.ai_4_pm_access ?? false,
+        enhanced_access: user.enhanced_access ?? false,
+        cqc_compliance_access: user.cqc_compliance_access ?? false
       }
     });
     setShowUserModal(true);
@@ -520,6 +526,8 @@ const handleUserSubmit = async (e: React.FormEvent) => {
             complaints_admin_access: userFormData.module_access.complaints_admin_access,
             replywell_access: userFormData.module_access.replywell_access,
             ai_4_pm_access: userFormData.module_access.ai_4_pm_access,
+            enhanced_access: userFormData.module_access.enhanced_access,
+            cqc_compliance_access: userFormData.module_access.cqc_compliance_access
           })
           .eq('user_id', editingUser.user_id);
         
