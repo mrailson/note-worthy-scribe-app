@@ -65,10 +65,17 @@ export class RealtimeChat {
   private dc: RTCDataChannel | null = null;
   private audioEl: HTMLAudioElement;
   private recorder: AudioRecorder | null = null;
+  private isMuted: boolean = false;
 
   constructor(private onMessage: (message: any) => void) {
     this.audioEl = document.createElement("audio");
     this.audioEl.autoplay = true;
+  }
+
+  setMuted(muted: boolean) {
+    this.isMuted = muted;
+    this.audioEl.muted = muted;
+    console.log(`Audio ${muted ? 'muted' : 'unmuted'}`);
   }
 
   async init(voice: string = 'sage') {

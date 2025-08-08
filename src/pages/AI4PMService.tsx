@@ -51,6 +51,7 @@ import {
   Expand,
   Minimize,
   Volume2,
+  VolumeX,
   PhoneOff
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -137,6 +138,7 @@ const AI4PMService = () => {
   const [isVoiceConnected, setIsVoiceConnected] = useState(false);
   const [isVoiceConnecting, setIsVoiceConnecting] = useState(false);
   const [isVoiceSpeaking, setIsVoiceSpeaking] = useState(false);
+  const [isVoiceMuted, setIsVoiceMuted] = useState(false);
   const voiceChatRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
@@ -257,11 +259,26 @@ const AI4PMService = () => {
     }
   };
 
+  // Toggle voice mute
+  const toggleVoiceMute = () => {
+    if (voiceChatRef.current) {
+      const newMutedState = !isVoiceMuted;
+      voiceChatRef.current.setMuted(newMutedState);
+      setIsVoiceMuted(newMutedState);
+      
+      toast({
+        title: newMutedState ? "Voice muted" : "Voice unmuted",
+        description: newMutedState ? "You'll still see text responses" : "Audio responses restored",
+      });
+    }
+  };
+
   // End voice chat
   const endVoiceChat = () => {
     voiceChatRef.current?.disconnect();
     setIsVoiceConnected(false);
     setIsVoiceSpeaking(false);
+    setIsVoiceMuted(false);
     
     // Auto-save the conversation when ending voice chat if there are messages
     if (messages.length > 0) {
@@ -1515,21 +1532,38 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                             <span className="sm:hidden">{isVoiceConnecting ? '...' : 'Voice'}</span>
                           </Button>
                         ) : (
-                          <Button
-                            variant={isVoiceSpeaking ? "default" : "destructive"}
-                            size="sm"
-                            onClick={endVoiceChat}
-                            className="px-3 min-h-[44px] touch-manipulation ml-2"
-                            title={isVoiceSpeaking ? "ChatGPT is speaking" : "End voice conversation"}
-                          >
-                            {isVoiceSpeaking ? (
-                              <Volume2 className="h-4 w-4 mr-1 animate-pulse" />
-                            ) : (
-                              <PhoneOff className="h-4 w-4 mr-1" />
-                            )}
-                            <span className="hidden sm:inline">{isVoiceSpeaking ? 'Speaking...' : 'End Voice'}</span>
-                            <span className="sm:hidden">{isVoiceSpeaking ? '...' : 'End'}</span>
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={toggleVoiceMute}
+                              className="px-3 min-h-[44px] touch-manipulation"
+                              title={isVoiceMuted ? "Unmute audio responses" : "Mute audio responses"}
+                            >
+                              {isVoiceMuted ? (
+                                <VolumeX className="h-4 w-4 mr-1" />
+                              ) : (
+                                <Volume2 className="h-4 w-4 mr-1" />
+                              )}
+                              <span className="hidden sm:inline">{isVoiceMuted ? 'Unmute' : 'Mute'}</span>
+                              <span className="sm:hidden">{isVoiceMuted ? 'On' : 'Off'}</span>
+                            </Button>
+                            <Button
+                              variant={isVoiceSpeaking ? "default" : "destructive"}
+                              size="sm"
+                              onClick={endVoiceChat}
+                              className="px-3 min-h-[44px] touch-manipulation"
+                              title={isVoiceSpeaking ? "ChatGPT is speaking" : "End voice conversation"}
+                            >
+                              {isVoiceSpeaking ? (
+                                <Volume2 className="h-4 w-4 mr-1 animate-pulse" />
+                              ) : (
+                                <PhoneOff className="h-4 w-4 mr-1" />
+                              )}
+                              <span className="hidden sm:inline">{isVoiceSpeaking ? 'Speaking...' : 'End Voice'}</span>
+                              <span className="sm:hidden">{isVoiceSpeaking ? '...' : 'End'}</span>
+                            </Button>
+                          </div>
                         )}
                       </div>
                       
@@ -2005,23 +2039,40 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                              <span className="hidden sm:inline">{isVoiceConnecting ? 'Connecting...' : 'Voice Chat'}</span>
                              <span className="sm:hidden">{isVoiceConnecting ? '...' : 'Voice'}</span>
                            </Button>
-                         ) : (
-                           <Button
-                             variant={isVoiceSpeaking ? "default" : "destructive"}
-                             size="sm"
-                             onClick={endVoiceChat}
-                             className="px-3 min-h-[44px] touch-manipulation"
-                             title={isVoiceSpeaking ? "ChatGPT is speaking" : "End voice conversation"}
-                           >
-                             {isVoiceSpeaking ? (
-                               <Volume2 className="h-4 w-4 mr-1 animate-pulse" />
-                             ) : (
-                               <PhoneOff className="h-4 w-4 mr-1" />
-                             )}
-                             <span className="hidden sm:inline">{isVoiceSpeaking ? 'Speaking...' : 'End Voice'}</span>
-                             <span className="sm:hidden">{isVoiceSpeaking ? '...' : 'End'}</span>
-                           </Button>
-                         )}
+                          ) : (
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={toggleVoiceMute}
+                                className="px-3 min-h-[44px] touch-manipulation"
+                                title={isVoiceMuted ? "Unmute audio responses" : "Mute audio responses"}
+                              >
+                                {isVoiceMuted ? (
+                                  <VolumeX className="h-4 w-4 mr-1" />
+                                ) : (
+                                  <Volume2 className="h-4 w-4 mr-1" />
+                                )}
+                                <span className="hidden sm:inline">{isVoiceMuted ? 'Unmute' : 'Mute'}</span>
+                                <span className="sm:hidden">{isVoiceMuted ? 'On' : 'Off'}</span>
+                              </Button>
+                              <Button
+                                variant={isVoiceSpeaking ? "default" : "destructive"}
+                                size="sm"
+                                onClick={endVoiceChat}
+                                className="px-3 min-h-[44px] touch-manipulation"
+                                title={isVoiceSpeaking ? "ChatGPT is speaking" : "End voice conversation"}
+                              >
+                                {isVoiceSpeaking ? (
+                                  <Volume2 className="h-4 w-4 mr-1 animate-pulse" />
+                                ) : (
+                                  <PhoneOff className="h-4 w-4 mr-1" />
+                                )}
+                                <span className="hidden sm:inline">{isVoiceSpeaking ? 'Speaking...' : 'End Voice'}</span>
+                                <span className="sm:hidden">{isVoiceSpeaking ? '...' : 'End'}</span>
+                              </Button>
+                            </div>
+                          )}
                         
                         {/* Voice Chat Button */}
                         {!isVoiceConnected ? (
