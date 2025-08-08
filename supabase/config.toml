@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.speech-to-text]
 verify_jwt = false
+
+[functions.update-user-password-admin]
+verify_jwt = true
