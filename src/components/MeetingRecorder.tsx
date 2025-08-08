@@ -3384,6 +3384,10 @@ export const MeetingRecorder = ({
               // Update the transcript in the UI
               onTranscriptUpdate(importedTranscript.content);
               
+              // Enable generate button by setting duration to 1 second
+              setDuration(1);
+              onDurationUpdate("00:01");
+              
               console.log('📄 Transcript imported successfully:', importedTranscript.wordCount, 'words');
             }}
             initialSettings={meetingSettings}
