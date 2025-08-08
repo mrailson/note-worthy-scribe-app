@@ -98,17 +98,48 @@ function extractTextContent(file: UploadedFile): string {
   }
 }
 
-function extractPdfContent(file: UploadedFile): string {
-  // Basic PDF handling - in a real implementation you'd use a PDF parser
-  // For now, return a message asking user to copy/paste text
-  const fileSize = (file.size / 1024 / 1024).toFixed(2);
-  return `[PDF File: ${file.name} (${fileSize}MB) - For best results with PDF files, please:
-1. Open your PDF file
-2. Select all text (Ctrl+A or Cmd+A)  
-3. Copy the text (Ctrl+C or Cmd+C)
-4. Paste the text directly in your message instead of uploading the PDF
+async function extractPdfContent(file: UploadedFile): Promise<string> {
+  try {
+    // Convert base64 to array buffer
+    const base64Data = file.content.replace(/^data:.*,/, '');
+    const binaryString = atob(base64Data);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
 
-PDF automatic text extraction is limited in this environment. Converting to .docx or .txt format will provide better results.]`;
+    // Basic PDF text extraction using a simple approach
+    // Convert bytes to string and try to extract readable text
+    const text = new TextDecoder('utf-8', { fatal: false }).decode(bytes);
+    
+    // Look for text patterns in PDF (very basic extraction)
+    const textMatches = text.match(/\((.*?)\)/g) || [];
+    const extractedText = textMatches
+      .map(match => match.replace(/[()]/g, '').trim())
+      .filter(text => text.length > 2 && /[a-zA-Z]/.test(text))
+      .join(' ');
+
+    if (extractedText.length > 50) {
+      return extractedText;
+    }
+
+    // If basic extraction fails, return instructions
+    const fileSize = (file.size / 1024 / 1024).toFixed(2);
+    return `[PDF File: ${file.name} (${fileSize}MB) - Text extraction partially successful. For better results:
+1. Open your PDF file and copy the text manually
+2. Or convert to .docx/.txt format for better extraction
+3. If this is a scanned PDF, OCR processing would be needed
+
+Some text may have been extracted but might be incomplete or fragmented.]`;
+    
+  } catch (error) {
+    console.error('Error extracting PDF content:', error);
+    const fileSize = (file.size / 1024 / 1024).toFixed(2);
+    return `[PDF File: ${file.name} (${fileSize}MB) - Text extraction failed. Please:
+1. Copy text manually from the PDF
+2. Convert to .docx or .txt format
+3. Ensure the PDF contains selectable text (not just images)]`;
+  }
 }
 
 function extractPowerPointContent(file: UploadedFile): string {
