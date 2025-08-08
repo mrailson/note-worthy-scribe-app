@@ -60,6 +60,7 @@ import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
 import { saveAs } from 'file-saver';
 import PptxGenJS from 'pptxgenjs';
 import PMGenieVoiceAgent from '@/components/PMGenieVoiceAgent';
+import ChatGPTVoiceInterface from '@/components/ChatGPTVoiceInterface';
 
 // Helper function to get file type icon
 const getFileTypeIcon = (fileName: string, fileType?: string) => {
@@ -130,6 +131,7 @@ const AI4PMService = () => {
   const [isModelSelectorCollapsed, setIsModelSelectorCollapsed] = useState(true); // Collapsed by default
   const [expandedMessage, setExpandedMessage] = useState<Message | null>(null);
   const [showVoiceAgent, setShowVoiceAgent] = useState(false);
+  const [showChatGPTVoice, setShowChatGPTVoice] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const scrollToBottom = () => {
@@ -1416,6 +1418,17 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                                  <Mic className="h-3 w-3" />
                                  Voice Assistant
                                </Button>
+                               
+                               {/* ChatGPT Voice Button */}
+                               <Button
+                                 variant="outline"
+                                 size="sm"
+                                 onClick={() => setShowChatGPTVoice(true)}
+                                 className="text-xs flex items-center gap-2"
+                               >
+                                 <MessageSquare className="h-3 w-3" />
+                                 ChatGPT Voice
+                               </Button>
                               
                               {/* Chat size controls */}
                               <div className="flex items-center gap-1 border rounded-lg p-1">
@@ -2237,6 +2250,12 @@ Always provide practical, actionable advice that follows NHS guidelines and best
           </DialogContent>
         </Dialog>
       )}
+      
+      {/* ChatGPT Voice Interface */}
+      <ChatGPTVoiceInterface 
+        isOpen={showChatGPTVoice}
+        onClose={() => setShowChatGPTVoice(false)}
+      />
     </div>
   );
 };
