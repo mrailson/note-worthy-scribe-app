@@ -767,6 +767,11 @@ Always provide practical, actionable advice that follows NHS guidelines and best
   };
 
   const clearConversation = () => {
+    // End voice chat if active
+    if (isVoiceConnected) {
+      endVoiceChat();
+    }
+    
     setMessages([]);
     setUploadedFiles([]);
     setInput('');
@@ -1473,6 +1478,42 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                           <span className="hidden sm:inline">New Chat</span>
                           <span className="sm:hidden">New</span>
                         </Button>
+                        
+                        {/* Voice Chat Button in collapsed view */}
+                        {!isVoiceConnected ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={startVoiceChat}
+                            disabled={isVoiceConnecting}
+                            className="px-3 min-h-[44px] touch-manipulation ml-2"
+                            title="Start voice conversation with ChatGPT"
+                          >
+                            {isVoiceConnecting ? (
+                              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                            ) : (
+                              <Mic className="h-4 w-4 mr-1" />
+                            )}
+                            <span className="hidden sm:inline">{isVoiceConnecting ? 'Connecting...' : 'Voice Chat'}</span>
+                            <span className="sm:hidden">{isVoiceConnecting ? '...' : 'Voice'}</span>
+                          </Button>
+                        ) : (
+                          <Button
+                            variant={isVoiceSpeaking ? "default" : "destructive"}
+                            size="sm"
+                            onClick={endVoiceChat}
+                            className="px-3 min-h-[44px] touch-manipulation ml-2"
+                            title={isVoiceSpeaking ? "ChatGPT is speaking" : "End voice conversation"}
+                          >
+                            {isVoiceSpeaking ? (
+                              <Volume2 className="h-4 w-4 mr-1 animate-pulse" />
+                            ) : (
+                              <PhoneOff className="h-4 w-4 mr-1" />
+                            )}
+                            <span className="hidden sm:inline">{isVoiceSpeaking ? 'Speaking...' : 'End Voice'}</span>
+                            <span className="sm:hidden">{isVoiceSpeaking ? '...' : 'End'}</span>
+                          </Button>
+                        )}
                       </div>
                       
                       {/* Collapsible Model Selector */}
@@ -1917,17 +1958,53 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                           <Sparkles className="h-4 w-4 mr-2" />
                           GPT-4 (OpenAI)
                         </Button>
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={handleNewMeeting}
-                          className="px-3 min-h-[44px] touch-manipulation"
-                          title="Start a new conversation"
-                        >
-                          <Plus className="h-4 w-4 mr-1" />
-                          <span className="hidden sm:inline">New Chat</span>
-                          <span className="sm:hidden">New</span>
-                        </Button>
+                         <Button
+                           variant="secondary"
+                           size="sm"
+                           onClick={handleNewMeeting}
+                           className="px-3 min-h-[44px] touch-manipulation"
+                           title="Start a new conversation"
+                         >
+                           <Plus className="h-4 w-4 mr-1" />
+                           <span className="hidden sm:inline">New Chat</span>
+                           <span className="sm:hidden">New</span>
+                         </Button>
+                         
+                         {/* Voice Chat Button in collapsed view */}
+                         {!isVoiceConnected ? (
+                           <Button
+                             variant="outline"
+                             size="sm"
+                             onClick={startVoiceChat}
+                             disabled={isVoiceConnecting}
+                             className="px-3 min-h-[44px] touch-manipulation"
+                             title="Start voice conversation with ChatGPT"
+                           >
+                             {isVoiceConnecting ? (
+                               <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                             ) : (
+                               <Mic className="h-4 w-4 mr-1" />
+                             )}
+                             <span className="hidden sm:inline">{isVoiceConnecting ? 'Connecting...' : 'Voice Chat'}</span>
+                             <span className="sm:hidden">{isVoiceConnecting ? '...' : 'Voice'}</span>
+                           </Button>
+                         ) : (
+                           <Button
+                             variant={isVoiceSpeaking ? "default" : "destructive"}
+                             size="sm"
+                             onClick={endVoiceChat}
+                             className="px-3 min-h-[44px] touch-manipulation"
+                             title={isVoiceSpeaking ? "ChatGPT is speaking" : "End voice conversation"}
+                           >
+                             {isVoiceSpeaking ? (
+                               <Volume2 className="h-4 w-4 mr-1 animate-pulse" />
+                             ) : (
+                               <PhoneOff className="h-4 w-4 mr-1" />
+                             )}
+                             <span className="hidden sm:inline">{isVoiceSpeaking ? 'Speaking...' : 'End Voice'}</span>
+                             <span className="sm:hidden">{isVoiceSpeaking ? '...' : 'End'}</span>
+                           </Button>
+                         )}
                         
                         {/* Voice Chat Button */}
                         {!isVoiceConnected ? (
