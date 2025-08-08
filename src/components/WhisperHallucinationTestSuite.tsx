@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Mic, MicOff, Loader2, Play, Square, TestTube, Zap, CheckCircle, AlertTriangle, XCircle, Volume2 } from 'lucide-react';
+import { Mic, MicOff, Loader2, Play, Square, TestTube, Zap, CheckCircle, AlertTriangle, XCircle, Volume2, Upload, FileAudio } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -196,6 +196,7 @@ export const WhisperHallucinationTestSuite: React.FC = () => {
   const [testAudio, setTestAudio] = useState<string>('record'); // 'record' or 'upload'
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [activeTestSuite, setActiveTestSuite] = useState<'standard' | 'hallucination-mitigation'>('standard');
+  const [uploadedFileName, setUploadedFileName] = useState<string>('');
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -265,6 +266,46 @@ export const WhisperHallucinationTestSuite: React.FC = () => {
       setIsRecording(false);
       toast.success('Recording stopped');
     }
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Check if it's an audio file
+    if (!file.type.startsWith('audio/')) {
+      toast.error('Please select an audio file');
+      return;
+    }
+
+    // Check file size (limit to 25MB)
+    if (file.size > 25 * 1024 * 1024) {
+      toast.error('File size must be less than 25MB');
+      return;
+    }
+
+    setAudioBlob(file);
+    setUploadedFileName(file.name);
+    
+    // Create URL for audio playback
+    const url = URL.createObjectURL(file);
+    setAudioUrl(url);
+    
+    toast.success(`Audio file "${file.name}" uploaded successfully`);
+  };
+
+  const clearAudio = () => {
+    setAudioBlob(null);
+    setAudioUrl(null);
+    setUploadedFileName('');
+    setTestAudio('record');
+    
+    // Clear any ongoing recording
+    if (isRecording) {
+      stopRecording();
+    }
+    
+    toast.success('Audio cleared');
   };
 
   const runTests = async () => {
@@ -493,73 +534,156 @@ export const WhisperHallucinationTestSuite: React.FC = () => {
           </p>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Audio Recording Section */}
+          {/* Audio Input Section */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
-                <Mic className="h-5 w-5" />
+                <FileAudio className="h-5 w-5" />
                 Audio Input
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center gap-4">
-                {!isRecording ? (
-                  <Button onClick={startRecording} className="flex items-center gap-2">
-                    <Mic className="h-4 w-4" />
-                    Start Recording
-                  </Button>
-                ) : (
-                  <Button onClick={stopRecording} variant="destructive" className="flex items-center gap-2">
-                    <Square className="h-4 w-4" />
-                    Stop Recording
-                  </Button>
-                )}
-                
-                {audioBlob && (
+              {/* Audio Source Selection */}
+              <div className="flex gap-2">
+                <Button
+                  variant={testAudio === 'record' ? 'default' : 'outline'}
+                  onClick={() => setTestAudio('record')}
+                  className="flex items-center gap-2"
+                >
+                  <Mic className="h-4 w-4" />
+                  Record Audio
+                </Button>
+                <Button
+                  variant={testAudio === 'upload' ? 'default' : 'outline'}
+                  onClick={() => setTestAudio('upload')}
+                  className="flex items-center gap-2"
+                >
+                  <Upload className="h-4 w-4" />
+                  Import Audio File
+                </Button>
+              </div>
+
+              {/* Recording Section */}
+              {testAudio === 'record' && (
+                <div className="space-y-4">
                   <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-600" />
-                      <span className="text-sm text-muted-foreground">
-                        Audio ready ({(audioBlob.size / 1024).toFixed(1)} KB)
-                      </span>
-                    </div>
-                    
-                    {audioUrl && (
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            if (audioRef.current) {
-                              if (audioRef.current.paused) {
-                                audioRef.current.play();
-                              } else {
-                                audioRef.current.pause();
-                              }
-                            }
-                          }}
-                          className="flex items-center gap-2"
-                        >
-                          <Volume2 className="h-3 w-3" />
-                          Play Recording
-                        </Button>
-                        <audio
-                          ref={audioRef}
-                          src={audioUrl}
-                          controls
-                          className="h-8"
-                          preload="metadata"
-                        />
-                      </div>
+                    {!isRecording ? (
+                      <Button onClick={startRecording} className="flex items-center gap-2">
+                        <Mic className="h-4 w-4" />
+                        Start Recording
+                      </Button>
+                    ) : (
+                      <Button onClick={stopRecording} variant="destructive" className="flex items-center gap-2">
+                        <Square className="h-4 w-4" />
+                        Stop Recording
+                      </Button>
                     )}
                   </div>
-                )}
-              </div>
-              
-              {isRecording && (
-                <div className="flex items-center gap-2 text-red-600">
-                  <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-                  <span className="text-sm font-medium">Recording in progress...</span>
+                  
+                  {isRecording && (
+                    <div className="flex items-center gap-2 text-red-600">
+                      <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                      <span className="text-sm font-medium">Recording in progress...</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* File Upload Section */}
+              {testAudio === 'upload' && (
+                <div className="space-y-4">
+                  <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6">
+                    <div className="text-center">
+                      <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                      <div className="space-y-2">
+                        <label htmlFor="audio-upload" className="cursor-pointer">
+                          <span className="text-sm font-medium text-primary hover:text-primary/80">
+                            Click to upload audio file
+                          </span>
+                          <input
+                            id="audio-upload"
+                            type="file"
+                            accept="audio/*"
+                            className="hidden"
+                            onChange={handleFileUpload}
+                          />
+                        </label>
+                        <p className="text-xs text-muted-foreground">
+                          Supports MP3, WAV, M4A, FLAC and other audio formats (max 25MB)
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {uploadedFileName && (
+                    <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <span className="text-sm font-medium text-green-800">
+                          Uploaded: {uploadedFileName}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Audio Ready State */}
+              {audioBlob && (
+                <div className="p-4 bg-muted/30 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <CheckCircle className="h-5 w-5 text-green-600" />
+                      <div>
+                        <p className="text-sm font-medium">
+                          Audio ready for testing
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {testAudio === 'upload' ? uploadedFileName : 'Recorded audio'} • {(audioBlob.size / 1024).toFixed(1)} KB
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      {audioUrl && (
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              if (audioRef.current) {
+                                if (audioRef.current.paused) {
+                                  audioRef.current.play();
+                                } else {
+                                  audioRef.current.pause();
+                                }
+                              }
+                            }}
+                            className="flex items-center gap-2"
+                          >
+                            <Volume2 className="h-3 w-3" />
+                            Play
+                          </Button>
+                          <audio
+                            ref={audioRef}
+                            src={audioUrl}
+                            controls
+                            className="h-8"
+                            preload="metadata"
+                          />
+                        </div>
+                      )}
+                      
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={clearAudio}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        Clear
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               )}
             </CardContent>
