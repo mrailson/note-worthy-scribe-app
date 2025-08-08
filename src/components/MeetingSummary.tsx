@@ -43,8 +43,8 @@ export const MeetingSummary = ({
   currentMeetingId,
   onSave
 }: MeetingSummaryProps) => {
-  const [detailLevel, setDetailLevel] = useState("balanced");
-  const [notes, setNotes] = useState(generateMeetingNotes(transcript, "balanced"));
+  const [detailLevel, setDetailLevel] = useState("detailed");
+  const [notes, setNotes] = useState(generateMeetingNotes(transcript, "detailed"));
   const [isEditing, setIsEditing] = useState(false);
 
   function generateMeetingNotes(transcript: string, level: string) {
@@ -236,9 +236,13 @@ New patient pathway improvements have reduced waiting times by 15%. Patient sati
   const handleExport = async (format: string) => {
     if (format === "Word") {
       try {
-        // Clean content by removing numbered emoji bullets and fix section headers
+        // Clean content by removing numbered emoji bullets, unwanted phrases, and process HTML
         let content = notes
-          .replace(/## \d+️⃣\s*/g, '') // Remove numbered emojis
+          .replace(/[1-4]️⃣\s*/g, '') // Remove numbered emojis
+          .replace(/## \d+️⃣\s*/g, '') // Remove numbered emojis with headers
+          .replace(/Certainly! Below is a more detailed and comprehensive version of your meeting minutes, with expanded context, thorough explanations, and clarification of key points\.\s*---?\s*/gi, '') // Remove unwanted phrase
+          .replace(/<div[^>]*style="[^"]*color:\s*#0072CE[^"]*"[^>]*>(.*?)<\/div>/g, '**$1**') // Convert blue styled divs to bold
+          .replace(/<div[^>]*>(.*?)<\/div>/g, '$1') // Remove other div tags
           .replace(/##\s*([^#\n]+)/g, '**$1**'); // Make section headers bold
         
         const lines = content.split('\n');
