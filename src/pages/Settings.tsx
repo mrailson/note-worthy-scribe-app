@@ -41,14 +41,6 @@ export default function Settings() {
   const [retentionPolicy, setRetentionPolicy] = useState<string>('forever');
   const [retentionLoading, setRetentionLoading] = useState(false);
   
-  // Shared drive visibility state
-  const [sharedDriveVisible, setSharedDriveVisible] = useState<boolean>(true);
-  const [sharedDriveLoading, setSharedDriveLoading] = useState(false);
-  
-  // Mic test service visibility state
-  const [micTestServiceVisible, setMicTestServiceVisible] = useState<boolean>(true);
-  const [micTestServiceLoading, setMicTestServiceLoading] = useState(false);
-  
   // Usage statistics state
   const [usageStats, setUsageStats] = useState({
     lastLogin: null as string | null,
@@ -111,8 +103,6 @@ export default function Settings() {
   useEffect(() => {
     fetchTerms();
     fetchRetentionPolicy();
-    fetchSharedDriveSettings();
-    fetchMicTestServiceSettings();
     fetchUsageStats();
   }, [user]);
 
@@ -137,116 +127,6 @@ export default function Settings() {
     }
   };
 
-  // Fetch shared drive settings
-  const fetchSharedDriveSettings = async () => {
-    if (!user) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('shared_drive_visible')
-        .eq('user_id', user.id)
-        .single();
-
-      if (error && error.code !== 'PGRST116') throw error;
-      
-      if (data?.shared_drive_visible !== undefined) {
-        setSharedDriveVisible(data.shared_drive_visible);
-      }
-    } catch (error) {
-      console.error('Error fetching shared drive settings:', error);
-    }
-  };
-
-  // Fetch mic test service settings
-  const fetchMicTestServiceSettings = async () => {
-    if (!user) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('mic_test_service_visible')
-        .eq('user_id', user.id)
-        .single();
-
-      if (error && error.code !== 'PGRST116') throw error;
-      
-      if (data?.mic_test_service_visible !== undefined) {
-        setMicTestServiceVisible(data.mic_test_service_visible);
-      }
-    } catch (error) {
-      console.error('Error fetching mic test service settings:', error);
-    }
-  };
-
-  // Update retention policy
-  const handleRetentionPolicyChange = async (value: string) => {
-    if (!user) return;
-
-    setRetentionLoading(true);
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ meeting_retention_policy: value })
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-
-      setRetentionPolicy(value);
-      toast.success('Meeting retention policy updated successfully');
-    } catch (error) {
-      console.error('Error updating retention policy:', error);
-      toast.error('Failed to update retention policy');
-    } finally {
-      setRetentionLoading(false);
-    }
-  };
-
-  // Update shared drive visibility
-  const handleSharedDriveVisibilityChange = async (visible: boolean) => {
-    if (!user) return;
-
-    setSharedDriveLoading(true);
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ shared_drive_visible: visible })
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-
-      setSharedDriveVisible(visible);
-      toast.success(`Shared Drive ${visible ? 'enabled' : 'disabled'} successfully`);
-    } catch (error) {
-      console.error('Error updating shared drive visibility:', error);
-      toast.error('Failed to update shared drive visibility');
-    } finally {
-      setSharedDriveLoading(false);
-    }
-  };
-
-  // Update mic test service visibility
-  const handleMicTestServiceVisibilityChange = async (visible: boolean) => {
-    if (!user) return;
-
-    setMicTestServiceLoading(true);
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ mic_test_service_visible: visible })
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-
-      setMicTestServiceVisible(visible);
-      toast.success(`Mic Test Service ${visible ? 'enabled' : 'disabled'} successfully`);
-    } catch (error) {
-      console.error('Error updating mic test service visibility:', error);
-      toast.error('Failed to update mic test service visibility');
-    } finally {
-      setMicTestServiceLoading(false);
-    }
-  };
 
   // Fetch usage statistics
   const fetchUsageStats = async () => {
@@ -427,7 +307,6 @@ export default function Settings() {
 
   
   console.log('Settings page loaded, user:', user);
-  console.log('MicTestServiceVisible state:', micTestServiceVisible);
 
   return (
     <div className="min-h-screen bg-background">
@@ -522,91 +401,6 @@ export default function Settings() {
                 </CardContent>
               </Card>
 
-              {/* Shared Drive Settings Card */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <FolderOpen className="h-5 w-5" />
-                    Shared Drive Access
-                  </CardTitle>
-                  <p className="text-muted-foreground">
-                    Control whether the Shared Drive feature is visible in your navigation menu.
-                  </p>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-1">
-                        <Label htmlFor="shared-drive-toggle">Show Shared Drive</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Enable or disable access to the Shared Drive feature
-                        </p>
-                      </div>
-                      <Switch
-                        id="shared-drive-toggle"
-                        checked={sharedDriveVisible}
-                        onCheckedChange={handleSharedDriveVisibilityChange}
-                        disabled={sharedDriveLoading}
-                      />
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      <p>
-                        <strong>Current setting:</strong> {sharedDriveVisible ? 'Enabled' : 'Disabled'}
-                      </p>
-                      <p>
-                        When disabled, the Shared Drive will not appear in your navigation menu. User access permissions within the Shared Drive are managed separately in the Shared Drive area.
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Mic Test Service Settings Card */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Headphones className="h-5 w-5" />
-                    Mic Test Service & Recording Playback Access
-                  </CardTitle>
-                  <p className="text-muted-foreground">
-                    Control both the Mic Test Service tab and recording playback features in your meeting recorder.
-                  </p>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-1">
-                        <Label htmlFor="mic-test-service-toggle">Show Mic Test Service & Recording Playback</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Enable or disable both Mic Test Service features and recording playback sections
-                        </p>
-                      </div>
-                      <Switch
-                        id="mic-test-service-toggle"
-                        checked={micTestServiceVisible}
-                        onCheckedChange={handleMicTestServiceVisibilityChange}
-                        disabled={micTestServiceLoading}
-                      />
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      <p>
-                        <strong>Current setting:</strong> {micTestServiceVisible ? 'Enabled' : 'Disabled'}
-                      </p>
-                      <p>
-                        When enabled, you'll see:
-                      </p>
-                      <ul className="list-disc list-inside mt-1 space-y-1">
-                        <li>Mic Test Service tab in the meeting recorder</li>
-                        <li>Recording playback controls after stopping recordings</li>
-                        <li>Whisper Hallucination Test and Speaker Capture Test features</li>
-                      </ul>
-                      <p className="mt-2">
-                        When disabled, all these features will be hidden from your interface.
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
 
               {/* Usage Statistics Card */}
               <Card>

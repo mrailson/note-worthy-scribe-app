@@ -3433,9 +3433,11 @@ export type Database = {
           gp_scribe_access: boolean | null
           id: string
           meeting_notes_access: boolean | null
+          mic_test_service_access: boolean | null
           practice_id: string | null
           replywell_access: boolean | null
           role: Database["public"]["Enums"]["app_role"]
+          shared_drive_access: boolean | null
           user_id: string
         }
         Insert: {
@@ -3450,9 +3452,11 @@ export type Database = {
           gp_scribe_access?: boolean | null
           id?: string
           meeting_notes_access?: boolean | null
+          mic_test_service_access?: boolean | null
           practice_id?: string | null
           replywell_access?: boolean | null
           role: Database["public"]["Enums"]["app_role"]
+          shared_drive_access?: boolean | null
           user_id: string
         }
         Update: {
@@ -3467,9 +3471,11 @@ export type Database = {
           gp_scribe_access?: boolean | null
           id?: string
           meeting_notes_access?: boolean | null
+          mic_test_service_access?: boolean | null
           practice_id?: string | null
           replywell_access?: boolean | null
           role?: Database["public"]["Enums"]["app_role"]
+          shared_drive_access?: boolean | null
           user_id?: string
         }
         Relationships: [
@@ -3833,6 +3839,8 @@ export type Database = {
         | "ai_4_pm"
         | "enhanced_access"
         | "cqc_compliance"
+        | "shared_drive_access"
+        | "mic_test_service"
       app_role:
         | "system_admin"
         | "practice_manager"
@@ -4029,6 +4037,8 @@ export const Constants = {
         "ai_4_pm",
         "enhanced_access",
         "cqc_compliance",
+        "shared_drive_access",
+        "mic_test_service",
       ],
       app_role: [
         "system_admin",

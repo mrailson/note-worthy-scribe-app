@@ -113,7 +113,9 @@ const SystemAdmin = () => {
       replywell_access: false,
       ai_4_pm_access: false,
       enhanced_access: false,
-      cqc_compliance_access: false
+      cqc_compliance_access: false,
+      shared_drive_access: false,
+      mic_test_service_access: false
     }
   });
   
@@ -218,7 +220,7 @@ const [patientDataAccess, setPatientDataAccess] = useState([]);
           // Get ALL user_roles for this user and take the first one for display
           const { data: roleData } = await supabase
             .from('user_roles')
-            .select('meeting_notes_access, gp_scribe_access, complaints_manager_access, complaints_admin_access, replywell_access, ai_4_pm_access, enhanced_access, cqc_compliance_access')
+            .select('meeting_notes_access, gp_scribe_access, complaints_manager_access, complaints_admin_access, replywell_access, ai_4_pm_access, enhanced_access, cqc_compliance_access, shared_drive_access, mic_test_service_access')
             .eq('user_id', user.user_id)
             .limit(1)
             .single();
@@ -232,7 +234,9 @@ const [patientDataAccess, setPatientDataAccess] = useState([]);
             replywell_access: roleData?.replywell_access ?? false,
             ai_4_pm_access: roleData?.ai_4_pm_access ?? false,
             enhanced_access: roleData?.enhanced_access ?? false,
-            cqc_compliance_access: roleData?.cqc_compliance_access ?? false
+            cqc_compliance_access: roleData?.cqc_compliance_access ?? false,
+            shared_drive_access: roleData?.shared_drive_access ?? false,
+            mic_test_service_access: roleData?.mic_test_service_access ?? false
           };
         })
       );
@@ -429,7 +433,9 @@ const [patientDataAccess, setPatientDataAccess] = useState([]);
         replywell_access: false,
         ai_4_pm_access: false,
         enhanced_access: false,
-        cqc_compliance_access: false
+        cqc_compliance_access: false,
+        shared_drive_access: false,
+        mic_test_service_access: false
       }
     });
     setShowUserModal(true);
@@ -460,7 +466,9 @@ const [patientDataAccess, setPatientDataAccess] = useState([]);
         replywell_access: user.replywell_access ?? false,
         ai_4_pm_access: user.ai_4_pm_access ?? false,
         enhanced_access: user.enhanced_access ?? false,
-        cqc_compliance_access: user.cqc_compliance_access ?? false
+        cqc_compliance_access: user.cqc_compliance_access ?? false,
+        shared_drive_access: user.shared_drive_access ?? false,
+        mic_test_service_access: user.mic_test_service_access ?? false
       }
     });
     setShowUserModal(true);
@@ -527,7 +535,9 @@ const handleUserSubmit = async (e: React.FormEvent) => {
             replywell_access: userFormData.module_access.replywell_access,
             ai_4_pm_access: userFormData.module_access.ai_4_pm_access,
             enhanced_access: userFormData.module_access.enhanced_access,
-            cqc_compliance_access: userFormData.module_access.cqc_compliance_access
+            cqc_compliance_access: userFormData.module_access.cqc_compliance_access,
+            shared_drive_access: userFormData.module_access.shared_drive_access,
+            mic_test_service_access: userFormData.module_access.mic_test_service_access
           })
           .eq('user_id', editingUser.user_id);
         
@@ -1669,7 +1679,41 @@ const handleUserSubmit = async (e: React.FormEvent) => {
                   </div>
                 </div>
               </div>
-            </div>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="shared_drive_access">Shared Drive Access</Label>
+                        <p className="text-xs text-muted-foreground">Access to shared file storage and collaboration features</p>
+                      </div>
+                      <Switch
+                        id="shared_drive_access"
+                        checked={userFormData.module_access.shared_drive_access}
+                        onCheckedChange={(checked) => 
+                          setUserFormData({
+                            ...userFormData, 
+                            module_access: {...userFormData.module_access, shared_drive_access: checked}
+                          })
+                        }
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="mic_test_service_access">Mic Test Service</Label>
+                        <p className="text-xs text-muted-foreground">Access to microphone testing and recording playback features</p>
+                      </div>
+                      <Switch
+                        id="mic_test_service_access"
+                        checked={userFormData.module_access.mic_test_service_access}
+                        onCheckedChange={(checked) => 
+                          setUserFormData({
+                            ...userFormData, 
+                            module_access: {...userFormData.module_access, mic_test_service_access: checked}
+                          })
+                        }
+                      />
+                    </div>
 
             <DialogFooter className="mt-4 pt-4 border-t">
               <Button type="button" variant="outline" onClick={() => setShowUserModal(false)}>
