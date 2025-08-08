@@ -565,6 +565,18 @@ const AI4PMService = () => {
 
   const quickActions = [
     { 
+      label: 'Check Draft Reply', 
+      icon: Mail, 
+      prompt: 'Please review my draft email reply below and suggest improvements for professionalism, NHS compliance, and tone. Check for any missing information or potential issues:\n\n[Please paste your draft email here]',
+      requiresFile: false 
+    },
+    { 
+      label: 'Help Reply to Patient', 
+      icon: MessageSquare, 
+      prompt: 'I need help replying to a patient communication. Please help me draft a professional, empathetic NHS-compliant response. Here is the patient\'s message:\n\n[Please paste the patient\'s message here]',
+      requiresFile: false 
+    },
+    { 
       label: 'Summarise Document', 
       icon: FileText, 
       prompt: 'Please summarise the uploaded document and highlight any key deadlines, actions, or compliance requirements.',
@@ -577,29 +589,29 @@ const AI4PMService = () => {
       requiresFile: false 
     },
     { 
-      label: 'Create SOP/Checklist', 
+      label: 'CQC Compliance Check', 
+      icon: Shield, 
+      prompt: 'Review this content for CQC compliance and identify any Key Lines of Enquiry (KLOEs) that need attention. Suggest improvements if needed.',
+      requiresFile: false 
+    },
+    { 
+      label: 'Create SOP/Policy', 
       icon: CheckSquare, 
-      prompt: 'Create a standard operating procedure or checklist based on the requirements discussed.',
+      prompt: 'Create a standard operating procedure or policy document based on the requirements discussed. Please specify the topic or process you need documented.',
       requiresFile: false 
     },
     { 
-      label: 'CQC Tasks', 
-      icon: Settings, 
-      prompt: 'Identify any CQC-related tasks, compliance requirements, or KLOEs that need attention.',
-      requiresFile: false 
-    },
-    { 
-      label: 'Meeting Agenda', 
+      label: 'Meeting Support', 
       icon: Calendar, 
-      prompt: 'Help me create a meeting agenda or meeting minutes template.',
+      prompt: 'Help me with meeting preparation - create an agenda, meeting minutes template, or action points summary.',
       requiresFile: false 
     },
     { 
-      label: 'Create Word Document', 
-      icon: FileDown, 
-      prompt: 'Generate a Word document based on our conversation. Please specify what type of document you need (policy, procedure, letter, etc.).',
+      label: 'Patient Complaint Analysis', 
+      icon: AlertTriangle, 
+      prompt: 'Analyze this patient complaint and help me create a professional response plan including investigation steps and resolution timeline.',
       requiresFile: false 
-    },
+    }
   ];
 
   const insertPracticeDetails = () => {
