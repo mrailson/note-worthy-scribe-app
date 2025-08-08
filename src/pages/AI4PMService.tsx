@@ -59,7 +59,7 @@ import { LoginForm } from '@/components/LoginForm';
 import { SpeechToText } from '@/components/SpeechToText';
 import MessageRenderer from '@/components/MessageRenderer';
 
-import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, BorderStyle, WidthType } from 'docx';
 import { saveAs } from 'file-saver';
 import PptxGenJS from 'pptxgenjs';
 import PMGenieVoiceAgent from '@/components/PMGenieVoiceAgent';
@@ -947,6 +947,106 @@ Always provide practical, actionable advice that follows NHS guidelines and best
 
       const contentLines = parseContent(content);
       
+      // Function to detect and parse table data
+      const detectAndParseTable = (lines: string[], startIndex: number): { table: any, endIndex: number } | null => {
+        let currentIndex = startIndex;
+        const tableRows: string[][] = [];
+        let foundTable = false;
+        
+        // Look for table patterns with | delimiters
+        while (currentIndex < lines.length) {
+          const line = lines[currentIndex].trim();
+          
+          // Check if this line looks like a table row (contains | separators)
+          if (line.includes('|') && line.split('|').length >= 3) {
+            const cells = line.split('|').map(cell => cell.trim()).filter(cell => cell.length > 0);
+            if (cells.length >= 2) {
+              tableRows.push(cells);
+              foundTable = true;
+            }
+          } else if (foundTable) {
+            // End of table reached
+            break;
+          } else {
+            // Not a table line, return null
+            return null;
+          }
+          
+          currentIndex++;
+        }
+        
+        if (tableRows.length >= 2) { // At least header + 1 data row
+          // Create table with proper formatting
+          const headerRow = tableRows[0];
+          const dataRows = tableRows.slice(1).filter(row => 
+            // Filter out separator rows (rows with just dashes)
+            !row.every(cell => /^[-\s]*$/.test(cell))
+          );
+          
+          if (dataRows.length > 0) {
+            const tableElement = new Table({
+              width: {
+                size: 100,
+                type: WidthType.PERCENTAGE,
+              },
+              borders: {
+                top: { style: BorderStyle.SINGLE, size: 1, color: "003087" },
+                bottom: { style: BorderStyle.SINGLE, size: 1, color: "003087" },
+                left: { style: BorderStyle.SINGLE, size: 1, color: "003087" },
+                right: { style: BorderStyle.SINGLE, size: 1, color: "003087" },
+                insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" },
+                insideVertical: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" },
+              },
+              rows: [
+                // Header row with NHS blue background
+                new TableRow({
+                  children: headerRow.map(cell => new TableCell({
+                    children: [new Paragraph({
+                      children: [new TextRun({
+                        text: cell,
+                        bold: true,
+                        size: 24,
+                        color: "FFFFFF"
+                      })]
+                    })],
+                    shading: {
+                      fill: "003087" // NHS Blue background for header
+                    },
+                    margins: {
+                      top: 100,
+                      bottom: 100,
+                      left: 150,
+                      right: 150,
+                    }
+                  }))
+                }),
+                // Data rows
+                ...dataRows.map((row, rowIndex) => new TableRow({
+                  children: row.map(cell => new TableCell({
+                    children: [new Paragraph({
+                      children: processFormattedText(cell)
+                    })],
+                    shading: {
+                      fill: rowIndex % 2 === 0 ? "F8FAFC" : "FFFFFF" // Alternating row colors
+                    },
+                    margins: {
+                      top: 100,
+                      bottom: 100,
+                      left: 150,
+                      right: 150,
+                    }
+                  }))
+                }))
+              ]
+            });
+            
+            return { table: tableElement, endIndex: currentIndex - 1 };
+          }
+        }
+        
+        return null;
+      };
+      
       // Function to process text with inline formatting (bold, italic, code)
       const processFormattedText = (text: string) => {
         const children: any[] = [];
@@ -1049,15 +1149,36 @@ Always provide practical, actionable advice that follows NHS guidelines and best
         return children;
       };
       
-      contentLines.forEach(line => {
-        const trimmedLine = line.trim();
+      // Process content line by line, checking for tables
+      let i = 0;
+      while (i < contentLines.length) {
+        const trimmedLine = contentLines[i].trim();
         
-        if (!trimmedLine) return;
+        if (!trimmedLine) {
+          i++;
+          continue;
+        }
         
         // Skip separator lines
-        if (trimmedLine === '---' || trimmedLine === '___') return;
+        if (trimmedLine === '---' || trimmedLine === '___') {
+          i++;
+          continue;
+        }
         
         console.log("DEBUG Word Export - Processing line:", trimmedLine);
+        
+        // Check for table at current position
+        const tableResult = detectAndParseTable(contentLines, i);
+        if (tableResult) {
+          paragraphs.push(tableResult.table);
+          // Add spacing after table
+          paragraphs.push(new Paragraph({
+            children: [new TextRun({ text: "", size: 24 })],
+            spacing: { after: 200 }
+          }));
+          i = tableResult.endIndex + 1;
+          continue;
+        }
         
         // Check for headings (markdown or formatted)
         if (trimmedLine.startsWith('#')) {
@@ -1179,7 +1300,8 @@ Always provide practical, actionable advice that follows NHS guidelines and best
             })
           );
         }
-      });
+        
+        i++;
 
       const doc = new Document({
         sections: [{
