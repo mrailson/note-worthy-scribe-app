@@ -120,15 +120,82 @@ const testProfiles: TestProfile[] = [
   }
 ];
 
+// New hallucination mitigation test configurations
+const hallucinationMitigationProfiles: TestProfile[] = [
+  {
+    id: 'hm-baseline',
+    name: '🔬 HM1: Baseline Control',
+    model: 'base',
+    audioFormat: 'Mono, 16kHz, VAD enabled',
+    language: 'en',
+    temperature: 0,
+    prompt: '',
+    purpose: 'Control: Mono, 16 kHz, temperature=0, VAD enabled baseline for comparison.',
+    category: 'safe',
+    icon: CheckCircle
+  },
+  {
+    id: 'hm-short-chunks',
+    name: '🔄 HM2: Short Chunks Strategy',
+    model: 'base',
+    audioFormat: '15s chunks, 2s overlap',
+    language: 'en',
+    temperature: 0,
+    prompt: '',
+    purpose: 'Short chunks: 15s chunks, 2s overlap, condition_on_previous_text=false.',
+    category: 'safe',
+    icon: CheckCircle
+  },
+  {
+    id: 'hm-noise-suppressed',
+    name: '🔇 HM3: Noise Suppression',
+    model: 'base',
+    audioFormat: 'Mono, 16kHz + noise suppression',
+    language: 'en',
+    temperature: 0,
+    prompt: '',
+    purpose: 'Enhanced audio: Baseline + noise suppression & echo cancellation enabled.',
+    category: 'safe',
+    icon: CheckCircle
+  },
+  {
+    id: 'hm-high-sample-rate',
+    name: '📈 HM4: High Sample Rate',
+    model: 'base',
+    audioFormat: '44.1kHz mono, short chunks',
+    language: 'en',
+    temperature: 0,
+    prompt: '',
+    purpose: 'High fidelity: 44.1 kHz mono, short chunks, low temperature for maximum clarity.',
+    category: 'safe',
+    icon: CheckCircle
+  },
+  {
+    id: 'hm-minimal-prompt',
+    name: '🚫 HM5: Minimal Prompt',
+    model: 'base',
+    audioFormat: 'Short chunks, no prompts',
+    language: 'en',
+    temperature: 0,
+    prompt: '',
+    purpose: 'Minimal bias: No initial_prompt, short chunks, low temperature to avoid prompt-induced hallucinations.',
+    category: 'safe',
+    icon: CheckCircle
+  }
+];
+
 export const WhisperHallucinationTestSuite: React.FC = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedProfiles, setSelectedProfiles] = useState<string[]>(['baseline', 'forced-large', 'prompt-context']);
+  const [selectedHMProfiles, setSelectedHMProfiles] = useState<string[]>(['hm-baseline', 'hm-short-chunks', 'hm-noise-suppressed', 'hm-high-sample-rate', 'hm-minimal-prompt']);
   const [testResults, setTestResults] = useState<TestResult[]>([]);
+  const [hmTestResults, setHMTestResults] = useState<TestResult[]>([]);
   const [progress, setProgress] = useState(0);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [testAudio, setTestAudio] = useState<string>('record'); // 'record' or 'upload'
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [activeTestSuite, setActiveTestSuite] = useState<'standard' | 'hallucination-mitigation'>('standard');
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -279,24 +346,136 @@ export const WhisperHallucinationTestSuite: React.FC = () => {
     toast.success(`Completed ${totalTests} transcription tests`);
   };
 
+  const runHallucinationMitigationTests = async () => {
+    if (!audioBlob) {
+      toast.error('Please record audio first');
+      return;
+    }
+
+    setIsProcessing(true);
+    setProgress(0);
+    setHMTestResults([]);
+
+    const profilesToTest = hallucinationMitigationProfiles.filter(profile => selectedHMProfiles.includes(profile.id));
+    const totalTests = profilesToTest.length;
+
+    for (let i = 0; i < profilesToTest.length; i++) {
+      const profile = profilesToTest[i];
+      
+      try {
+        console.log(`Running hallucination mitigation test for profile: ${profile.name}`);
+        
+        // Prepare audio data with specific hallucination mitigation parameters
+        const formData = new FormData();
+        formData.append('audio', audioBlob, 'test-audio.webm');
+        formData.append('model', profile.model);
+        formData.append('language', profile.language);
+        formData.append('temperature', profile.temperature.toString());
+        
+        // Add specific hallucination mitigation parameters
+        if (profile.id === 'hm-short-chunks') {
+          formData.append('chunk_size', '15');
+          formData.append('overlap', '2');
+          formData.append('condition_on_previous_text', 'false');
+        } else if (profile.id === 'hm-noise-suppressed') {
+          formData.append('noise_suppression', 'true');
+          formData.append('echo_cancellation', 'true');
+        } else if (profile.id === 'hm-high-sample-rate') {
+          formData.append('sample_rate', '44100');
+          formData.append('chunk_size', '15');
+        } else if (profile.id === 'hm-minimal-prompt') {
+          formData.append('no_initial_prompt', 'true');
+          formData.append('chunk_size', '15');
+        }
+
+        const startTime = Date.now();
+        
+        // Call specialized hallucination test function or regular test
+        const { data, error } = await supabase.functions.invoke('test-mp3-transcription', {
+          body: formData
+        });
+
+        const endTime = Date.now();
+        const duration = (endTime - startTime) / 1000;
+
+        if (error) {
+          throw new Error(error.message || 'Transcription failed');
+        }
+
+        const result: TestResult = {
+          profileId: profile.id,
+          transcript: data.text || '',
+          confidence: data.confidence || 0,
+          duration,
+          timestamp: new Date(),
+          wordCount: (data.text || '').split(' ').filter(word => word.length > 0).length,
+          status: 'success'
+        };
+
+        setHMTestResults(prev => [...prev, result]);
+        
+      } catch (error: any) {
+        console.error(`Hallucination mitigation test failed for profile ${profile.name}:`, error);
+        
+        const result: TestResult = {
+          profileId: profile.id,
+          transcript: '',
+          confidence: 0,
+          duration: 0,
+          timestamp: new Date(),
+          wordCount: 0,
+          status: 'error',
+          errorMessage: error.message
+        };
+
+        setHMTestResults(prev => [...prev, result]);
+      }
+
+      setProgress(((i + 1) / totalTests) * 100);
+    }
+
+    setIsProcessing(false);
+    toast.success(`Completed ${totalTests} hallucination mitigation tests`);
+  };
+
   const handleProfileToggle = (profileId: string) => {
-    setSelectedProfiles(prev => 
-      prev.includes(profileId) 
-        ? prev.filter(id => id !== profileId)
-        : [...prev, profileId]
-    );
+    if (activeTestSuite === 'standard') {
+      setSelectedProfiles(prev => 
+        prev.includes(profileId) 
+          ? prev.filter(id => id !== profileId)
+          : [...prev, profileId]
+      );
+    } else {
+      setSelectedHMProfiles(prev => 
+        prev.includes(profileId) 
+          ? prev.filter(id => id !== profileId)
+          : [...prev, profileId]
+      );
+    }
   };
 
   const selectAllProfiles = () => {
-    setSelectedProfiles(testProfiles.map(p => p.id));
+    if (activeTestSuite === 'standard') {
+      setSelectedProfiles(testProfiles.map(p => p.id));
+    } else {
+      setSelectedHMProfiles(hallucinationMitigationProfiles.map(p => p.id));
+    }
   };
 
   const clearAllProfiles = () => {
-    setSelectedProfiles([]);
+    if (activeTestSuite === 'standard') {
+      setSelectedProfiles([]);
+    } else {
+      setSelectedHMProfiles([]);
+    }
   };
 
   const getResultForProfile = (profileId: string) => {
-    return testResults.find(result => result.profileId === profileId);
+    if (activeTestSuite === 'standard') {
+      return testResults.find(result => result.profileId === profileId);
+    } else {
+      return hmTestResults.find(result => result.profileId === profileId);
+    }
   };
 
   return (
@@ -386,13 +565,54 @@ export const WhisperHallucinationTestSuite: React.FC = () => {
             </CardContent>
           </Card>
 
+          {/* Test Suite Toggle */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Select Test Suite</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex gap-2">
+                <Button
+                  variant={activeTestSuite === 'standard' ? 'default' : 'outline'}
+                  onClick={() => setActiveTestSuite('standard')}
+                  className="flex items-center gap-2"
+                >
+                  <TestTube className="h-4 w-4" />
+                  Standard Tests
+                </Button>
+                <Button
+                  variant={activeTestSuite === 'hallucination-mitigation' ? 'default' : 'outline'}
+                  onClick={() => setActiveTestSuite('hallucination-mitigation')}
+                  className="flex items-center gap-2"
+                >
+                  🧠 Hallucination Mitigation
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Profile Selection */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Zap className="h-5 w-5" />
-                Test Profile Selection
+                {activeTestSuite === 'standard' ? 'Standard Test Profiles' : 'Hallucination Mitigation Test Configurations'}
               </CardTitle>
+              {activeTestSuite === 'hallucination-mitigation' && (
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <h4 className="font-semibold text-sm text-blue-900 mb-2">🧠 Hallucination Mitigation Testing Strategy</h4>
+                  <p className="text-xs text-blue-800 mb-2">
+                    Run the same meeting snippet through all 5 configurations to compare hallucination rates:
+                  </p>
+                  <ul className="text-xs text-blue-700 space-y-1">
+                    <li><strong>HM1 Baseline:</strong> Mono, 16 kHz, temperature=0, VAD enabled</li>
+                    <li><strong>HM2 Short Chunks:</strong> 15s chunks, 2s overlap, condition_on_previous_text=false</li>
+                    <li><strong>HM3 Noise-Suppressed:</strong> As baseline but with noise suppression & echo cancellation</li>
+                    <li><strong>HM4 High Sample Rate:</strong> 44.1 kHz mono, short chunks, low temperature</li>
+                    <li><strong>HM5 Minimal Prompt:</strong> No initial_prompt, short chunks, low temperature</li>
+                  </ul>
+                </div>
+              )}
               <div className="flex gap-2">
                 <Button onClick={selectAllProfiles} size="sm" variant="outline">
                   Select All
@@ -400,13 +620,17 @@ export const WhisperHallucinationTestSuite: React.FC = () => {
                 <Button onClick={clearAllProfiles} size="sm" variant="outline">
                   Clear All
                 </Button>
-                <Badge variant="secondary">{selectedProfiles.length} selected</Badge>
+                <Badge variant="secondary">
+                  {activeTestSuite === 'standard' ? selectedProfiles.length : selectedHMProfiles.length} selected
+                </Badge>
               </div>
             </CardHeader>
             <CardContent>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {testProfiles.map((profile) => {
-                  const isSelected = selectedProfiles.includes(profile.id);
+                {(activeTestSuite === 'standard' ? testProfiles : hallucinationMitigationProfiles).map((profile) => {
+                  const isSelected = activeTestSuite === 'standard' 
+                    ? selectedProfiles.includes(profile.id)
+                    : selectedHMProfiles.includes(profile.id);
                   const result = getResultForProfile(profile.id);
                   const IconComponent = profile.icon;
                   
@@ -489,8 +713,8 @@ export const WhisperHallucinationTestSuite: React.FC = () => {
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
                 <Button 
-                  onClick={runTests}
-                  disabled={!audioBlob || selectedProfiles.length === 0 || isProcessing}
+                  onClick={activeTestSuite === 'standard' ? runTests : runHallucinationMitigationTests}
+                  disabled={!audioBlob || (activeTestSuite === 'standard' ? selectedProfiles.length === 0 : selectedHMProfiles.length === 0) || isProcessing}
                   className="flex items-center gap-2"
                 >
                   {isProcessing ? (
@@ -498,7 +722,7 @@ export const WhisperHallucinationTestSuite: React.FC = () => {
                   ) : (
                     <Play className="h-4 w-4" />
                   )}
-                  {isProcessing ? 'Running Tests...' : 'Run Selected Tests'}
+                  {isProcessing ? 'Running Tests...' : `Run ${activeTestSuite === 'standard' ? 'Standard' : 'Hallucination Mitigation'} Tests`}
                 </Button>
                 
                 {isProcessing && (
@@ -514,21 +738,39 @@ export const WhisperHallucinationTestSuite: React.FC = () => {
           </Card>
 
           {/* Results Comparison */}
-          {testResults.length > 0 && (
+          {((activeTestSuite === 'standard' && testResults.length > 0) || 
+            (activeTestSuite === 'hallucination-mitigation' && hmTestResults.length > 0)) && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Transcription Results Comparison</CardTitle>
+                <CardTitle className="text-lg">
+                  {activeTestSuite === 'standard' ? 'Transcription Results Comparison' : 'Hallucination Mitigation Results Comparison'}
+                </CardTitle>
+                {activeTestSuite === 'hallucination-mitigation' && (
+                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <h5 className="font-semibold text-sm text-amber-900 mb-1">📊 Analysis Tips:</h5>
+                    <ul className="text-xs text-amber-800 space-y-1">
+                      <li>• Compare word counts - significant differences may indicate hallucinations</li>
+                      <li>• Look for repeated phrases or nonsensical additions in longer transcripts</li>
+                      <li>• Check confidence scores - lower confidence may correlate with hallucinations</li>
+                      <li>• Note processing times - some mitigation strategies may be slower but more accurate</li>
+                    </ul>
+                  </div>
+                )}
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {testProfiles
-                    .filter(profile => selectedProfiles.includes(profile.id))
+                  {(activeTestSuite === 'standard' ? testProfiles : hallucinationMitigationProfiles)
+                    .filter(profile => activeTestSuite === 'standard' 
+                      ? selectedProfiles.includes(profile.id) 
+                      : selectedHMProfiles.includes(profile.id))
                     .map((profile) => {
                       const result = getResultForProfile(profile.id);
                       if (!result) return null;
 
                       return (
-                        <Card key={profile.id} className="border-l-4 border-l-primary">
+                        <Card key={profile.id} className={`border-l-4 ${
+                          result.status === 'success' ? 'border-l-green-500' : 'border-l-red-500'
+                        }`}>
                           <CardContent className="pt-4">
                             <div className="flex items-center gap-2 mb-3">
                               <h4 className="font-medium">{profile.name}</h4>
@@ -565,6 +807,14 @@ export const WhisperHallucinationTestSuite: React.FC = () => {
                                     {result.transcript || 'No transcript generated'}
                                   </p>
                                 </div>
+
+                                {activeTestSuite === 'hallucination-mitigation' && (
+                                  <div className="mt-3 p-2 bg-blue-50 rounded border">
+                                    <p className="text-xs text-blue-700">
+                                      <strong>Configuration:</strong> {profile.purpose}
+                                    </p>
+                                  </div>
+                                )}
                               </>
                             ) : (
                               <div className="bg-red-50 border border-red-200 rounded-lg p-3">
@@ -578,6 +828,55 @@ export const WhisperHallucinationTestSuite: React.FC = () => {
                       );
                     })}
                 </div>
+
+                {/* Hallucination Detection Summary */}
+                {activeTestSuite === 'hallucination-mitigation' && hmTestResults.length > 0 && (
+                  <Card className="mt-6 border-2 border-blue-200">
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        🔍 Hallucination Detection Summary
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div>
+                          <h5 className="font-semibold mb-2">Word Count Analysis</h5>
+                          <div className="space-y-1">
+                            {hmTestResults
+                              .filter(r => r.status === 'success')
+                              .sort((a, b) => a.wordCount - b.wordCount)
+                              .map(result => {
+                                const profile = hallucinationMitigationProfiles.find(p => p.id === result.profileId);
+                                return (
+                                  <div key={result.profileId} className="flex justify-between text-sm">
+                                    <span>{profile?.name.replace('🔬 ', '').replace('🔄 ', '').replace('🔇 ', '').replace('📈 ', '').replace('🚫 ', '')}</span>
+                                    <span className="font-medium">{result.wordCount} words</span>
+                                  </div>
+                                );
+                              })}
+                          </div>
+                        </div>
+                        <div>
+                          <h5 className="font-semibold mb-2">Confidence Analysis</h5>
+                          <div className="space-y-1">
+                            {hmTestResults
+                              .filter(r => r.status === 'success')
+                              .sort((a, b) => b.confidence - a.confidence)
+                              .map(result => {
+                                const profile = hallucinationMitigationProfiles.find(p => p.id === result.profileId);
+                                return (
+                                  <div key={result.profileId} className="flex justify-between text-sm">
+                                    <span>{profile?.name.replace('🔬 ', '').replace('🔄 ', '').replace('🔇 ', '').replace('📈 ', '').replace('🚫 ', '')}</span>
+                                    <span className="font-medium">{(result.confidence * 100).toFixed(1)}%</span>
+                                  </div>
+                                );
+                              })}
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
               </CardContent>
             </Card>
           )}
