@@ -28,7 +28,14 @@ Format the output as follows:
 # Meeting Minutes
 
 **Date:** ${meetingDate || 'Not specified'}
-**Time:** ${meetingTime || 'Not specified'}  
+**Time:** ${meetingTime ? meetingTime.replace(/:\d{2}$/, '').replace(/:\d{2}:/, ':').split(':').map((part, index) => {
+  if (index === 1) {
+    const minutes = parseInt(part);
+    const roundedMinutes = Math.round(minutes / 15) * 15;
+    return roundedMinutes === 60 ? '00' : roundedMinutes.toString().padStart(2, '0');
+  }
+  return part;
+}).join(':') : 'Not specified'}
 **Meeting:** ${meetingTitle || 'General Meeting'}
 **Location:** [Extract from transcript if mentioned, otherwise write "Not specified"]
 
@@ -39,18 +46,17 @@ List all participants mentioned by name in the transcript. If no specific names 
 Summarize the main topics and agenda items that were actually discussed in the meeting based on the transcript content. Where possible, reference the time periods when different topics were discussed.
 
 ## 3️⃣ Key Discussion Points
-Provide a detailed summary of the main discussions, organized chronologically by timestamp blocks. For each major topic, include:
-- Time period when discussed (round to nearest 15-minute blocks)
+Provide a detailed summary of the main discussions organized by topic. For each major topic, include:
 - Important points raised by participants
 - Concerns or issues discussed
 - Ideas and suggestions shared
 - Any relevant background information mentioned
 
 Example format:
-**[09:00-09:15] Opening Discussion**
+**Opening Discussion**
 - Topic details...
 
-**[09:15-09:30] Budget Review**
+**Budget Review**
 - Budget-related discussion points...
 
 ## 4️⃣ Decisions Made
