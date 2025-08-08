@@ -163,13 +163,15 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                           ReplyWell
                         </DropdownMenuItem>
                       )}
-                      <DropdownMenuItem 
-                        onClick={() => navigate('/cqc-compliance')}
-                        className="cursor-pointer py-3"
-                      >
-                        <Shield className="h-4 w-4 mr-2" />
-                        CQC Compliance
-                      </DropdownMenuItem>
+                      {hasModuleAccess('cqc_compliance') && (
+                        <DropdownMenuItem 
+                          onClick={() => navigate('/cqc-compliance')}
+                          className="cursor-pointer py-3"
+                        >
+                          <Shield className="h-4 w-4 mr-2" />
+                          CQC Compliance
+                        </DropdownMenuItem>
+                      )}
                      {sharedDriveVisible && (
                        <DropdownMenuItem 
                          onClick={() => navigate('/shared-drive')}
@@ -314,10 +316,12 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                         ReplyWell
                       </DropdownMenuItem>
                     )}
-                    <DropdownMenuItem onClick={() => navigate('/cqc-compliance')} className="cursor-pointer py-3">
-                      <Shield className="h-4 w-4 mr-2" />
-                      CQC Compliance
-                    </DropdownMenuItem>
+                     {hasModuleAccess('cqc_compliance') && (
+                       <DropdownMenuItem onClick={() => navigate('/cqc-compliance')} className="cursor-pointer py-3">
+                         <Shield className="h-4 w-4 mr-2" />
+                         CQC Compliance
+                       </DropdownMenuItem>
+                     )}
                     {sharedDriveVisible && (
                       <DropdownMenuItem onClick={() => navigate('/shared-drive')} className="cursor-pointer py-3">
                         <FolderOpen className="h-4 w-4 mr-2" />
