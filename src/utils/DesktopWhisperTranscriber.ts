@@ -41,14 +41,55 @@ export class DesktopWhisperTranscriber {
     if (!oldText) return newText;
     if (!newText) return oldText;
     
-    // Check for overlap at the end of oldText and beginning of newText
-    const overlapLength = Math.min(oldText.length, newText.length);
-    for (let i = overlapLength; i > 0; i--) {
-      if (oldText.endsWith(newText.slice(0, i))) {
-        return oldText + newText.slice(i);
+    // ChatGPT recommended de-duplication: drop leading tokens in new chunk that appear at end of previous
+    const oldWords = oldText.trim().split(/\s+/);
+    const newWords = newText.trim().split(/\s+/);
+    
+    // Look for fuzzy match of last 12-20 words from old text in beginning of new text
+    const checkLength = Math.min(20, oldWords.length, newWords.length);
+    
+    for (let i = checkLength; i >= 3; i--) { // At least 3 words to be meaningful
+      const lastOldWords = oldWords.slice(-i).join(' ').toLowerCase();
+      const firstNewWords = newWords.slice(0, i).join(' ').toLowerCase();
+      
+      // Use fuzzy matching to handle slight transcription differences
+      const similarity = this.calculateSimilarity(lastOldWords, firstNewWords);
+      if (similarity > 0.7) { // 70% similarity threshold
+        console.log(`🔄 De-duplication: Found ${similarity.toFixed(2)} similarity, removing ${i} overlapping words`);
+        return oldText + " " + newWords.slice(i).join(' ');
       }
     }
+    
     return oldText + " " + newText;
+  }
+
+  private calculateSimilarity(str1: string, str2: string): number {
+    const longer = str1.length > str2.length ? str1 : str2;
+    const shorter = str1.length > str2.length ? str2 : str1;
+    if (longer.length === 0) return 1.0;
+    
+    const editDistance = this.levenshteinDistance(longer, shorter);
+    return (longer.length - editDistance) / longer.length;
+  }
+
+  private levenshteinDistance(str1: string, str2: string): number {
+    const matrix = Array(str2.length + 1).fill(null).map(() => Array(str1.length + 1).fill(null));
+    
+    for (let i = 0; i <= str1.length; i++) matrix[0][i] = i;
+    for (let j = 0; j <= str2.length; j++) matrix[j][0] = j;
+    
+    for (let j = 1; j <= str2.length; j++) {
+      for (let i = 1; i <= str1.length; i++) {
+        const cost = str1[i - 1] === str2[j - 1] ? 0 : 1;
+        matrix[j][i] = Math.min(
+          matrix[j][i - 1] + 1,     // deletion
+          matrix[j - 1][i] + 1,     // insertion
+          matrix[j - 1][i - 1] + cost // substitution
+        );
+      }
+    }
+    
+    return matrix[str2.length][str1.length];
   }
 
   private checkAudioQuality(audioData: Uint8Array): boolean {
@@ -89,14 +130,14 @@ export class DesktopWhisperTranscriber {
       this.onStatusChange('Ready for immediate transcription...');
       console.log('🖥️ Starting Desktop Whisper transcription...');
 
-      // Request microphone access with desktop-optimized settings
+      // Request microphone access with ChatGPT recommended settings
       this.stream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          sampleRate: 24000, // Higher quality for desktop
+          sampleRate: 48000, // 48kHz - Chrome native, avoid resampling artifacts
           channelCount: 1,
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
+          echoCancellation: false, // Disabled - can create artifacts
+          noiseSuppression: false, // Disabled - can create artifacts  
+          autoGainControl: false,  // Disabled - can create artifacts
         }
       });
 
@@ -179,8 +220,9 @@ export class DesktopWhisperTranscriber {
 
     let nextInterval: number;
     
+    // ChatGPT recommended chunking: 12-20s chunks with 2.0s overlap (10-15%)
     if (this.earlyTranscriptionMode) {
-      // Early mode: aggressive processing for first few chunks
+      // Early mode: still aggressive for immediate feedback
       if (this.chunkCount === 0) {
         nextInterval = 3000; // 3 seconds for very first chunk
         console.log('⚡ EARLY MODE: First chunk - 3 second interval');
@@ -188,18 +230,18 @@ export class DesktopWhisperTranscriber {
         nextInterval = 5000; // 5 seconds for second chunk
         console.log('⚡ EARLY MODE: Second chunk - 5 second interval');
       } else if (this.chunkCount < 4) {
-        nextInterval = 8000; // 8 seconds for next chunks
-        console.log('⚡ EARLY MODE: Early chunk', this.chunkCount, '- 8 second interval');
+        nextInterval = 12000; // 12 seconds - ChatGPT recommended minimum
+        console.log('⚡ EARLY MODE: Early chunk', this.chunkCount, '- 12 second interval');
       } else {
-        nextInterval = 15000; // 15 seconds for remaining early chunks
-        console.log('⚡ EARLY MODE: Later chunk', this.chunkCount, '- 15 second interval');
+        nextInterval = 18000; // 18 seconds for remaining early chunks
+        console.log('⚡ EARLY MODE: Later chunk', this.chunkCount, '- 18 second interval');
       }
     } else {
-      // Normal mode intervals
+      // Normal mode: ChatGPT recommended 12-20s chunks
       if (this.chunkCount === 0) {
-        nextInterval = 20000; // First chunk: 20 seconds
+        nextInterval = 15000; // 15 seconds - mid-range
       } else {
-        nextInterval = 30000; // Subsequent chunks: 30 seconds
+        nextInterval = 18000; // 18 seconds - optimal balance
       }
     }
 
@@ -234,9 +276,11 @@ export class DesktopWhisperTranscriber {
       const audioBlob = new Blob(currentChunks, { type: this.audioChunks[0].type });
       console.log(`🖥️ Audio blob size: ${audioBlob.size} bytes`);
       
-      // Store last portion of current chunks for next overlap (reduced overlap)
-      const overlapSize = Math.ceil(this.audioChunks.length * 0.1);
+      // ChatGPT recommended: 2.0s overlap (approximately 10-15% of chunk)
+      // Calculate overlap as portion of audio that represents ~2 seconds
+      const overlapSize = Math.ceil(this.audioChunks.length * 0.15); // 15% overlap for 2s
       this.overlapBuffer = this.audioChunks.slice(-overlapSize);
+      console.log(`🔄 Storing overlap buffer: ${overlapSize} chunks (${(overlapSize/this.audioChunks.length*100).toFixed(1)}%)`);
       
       this.audioChunks = []; // Clear current chunks after processing
 
@@ -267,9 +311,15 @@ export class DesktopWhisperTranscriber {
 
       console.log('📡 Sending desktop audio to Whisper API...');
 
-      // Send to Whisper API
+      // Send to Whisper API with ChatGPT recommended parameters
       const { data, error } = await supabase.functions.invoke('speech-to-text', {
-        body: { audio: base64Audio }
+        body: { 
+          audio: base64Audio,
+          // ChatGPT recommended Whisper params
+          temperature: 0.0,           // Deterministic
+          language: "en",             // Don't auto-detect (UK accents + noisy rooms)
+          condition_on_previous_text: false  // Prevent error snowballs
+        }
       });
 
       if (error) {
@@ -279,9 +329,26 @@ export class DesktopWhisperTranscriber {
       }
 
       if (data.text && data.text.trim()) {
+        // ChatGPT recommended guardrails: check quality metrics
+        const avgLogprob = data.avg_logprob || -0.3;
+        const noSpeechProb = data.no_speech_prob || 0.0;
+        
+        console.log(`📊 Quality metrics - avg_logprob: ${avgLogprob.toFixed(3)}, no_speech_prob: ${noSpeechProb.toFixed(3)}`);
+        
+        // Apply ChatGPT recommended quality gates
+        if (avgLogprob < -0.6) {
+          console.log(`⚠️ Skipping chunk due to low avg_logprob: ${avgLogprob}`);
+          return;
+        }
+        
+        if (noSpeechProb > 0.6) {
+          console.log(`⚠️ Skipping chunk due to high no_speech_prob: ${noSpeechProb}`);
+          return;
+        }
+        
         const cleanText = data.text.trim();
         
-        // Use smart merge to avoid duplicates
+        // Use smart merge with de-duplication to avoid duplicates
         this.finalTranscript = this.smartMerge(this.finalTranscript, cleanText);
         
         // Store transcription internally

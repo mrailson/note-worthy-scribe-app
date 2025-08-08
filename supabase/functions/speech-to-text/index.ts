@@ -20,7 +20,7 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured');
     }
 
-    const { audio } = await req.json();
+    const { audio, temperature, language, condition_on_previous_text } = await req.json();
     if (!audio) {
       throw new Error('No audio data provided');
     }
@@ -39,12 +39,23 @@ serve(async (req) => {
     const formData = new FormData();
     formData.append('file', audioBlob, 'audio.webm');
     formData.append('model', 'whisper-1');
-    // Force English language to reduce hallucinations
-    formData.append('language', 'en');
-    // Add prompt to encourage English-only output and reduce hallucinations
-    formData.append('prompt', 'This is a professional meeting or consultation recording in English. Please transcribe only clear English speech and ignore background noise, music, or unclear audio.');
-    // Force temperature to 0 for deterministic output
-    formData.append('temperature', '0');
+    
+    // ChatGPT recommended parameters - use passed values or defaults
+    formData.append('language', language || 'en');  // UK accents + noisy rooms benefit from explicit language
+    formData.append('temperature', String(temperature ?? 0.0)); // Deterministic by default
+    
+    // ChatGPT recommended: condition_on_previous_text = false to prevent error snowballs
+    if (condition_on_previous_text === false) {
+      // Note: OpenAI API doesn't have condition_on_previous_text parameter exposed
+      // But we can use an empty/neutral prompt to achieve similar effect
+      formData.append('prompt', '');
+    } else {
+      // Add domain-specific prompt but keep it short and stable as ChatGPT recommends
+      formData.append('prompt', 'Professional meeting recording in English.');
+    }
+    
+    // Request verbose response to get quality metrics (avg_logprob, no_speech_prob)
+    formData.append('response_format', 'verbose_json');
 
     console.log('📡 Sending to OpenAI Whisper...');
     
@@ -65,18 +76,37 @@ serve(async (req) => {
     const result = await response.json();
     console.log('✅ Transcription successful:', result.text);
 
+    // Extract quality metrics for ChatGPT recommended guardrails
+    const segments = result.segments || [];
+    let avg_logprob = 0;
+    let no_speech_prob = 0;
+    
+    if (segments.length > 0) {
+      // Calculate average log probability across all segments
+      avg_logprob = segments.reduce((sum: number, seg: any) => sum + (seg.avg_logprob || 0), 0) / segments.length;
+      // Get no_speech_prob from the response (if available)
+      no_speech_prob = result.no_speech_prob || 0;
+    }
+
     // Remove the prompt text that sometimes appears in transcription results
     let cleanText = result.text || '';
-    // Remove various forms of the prompt text that might appear
-    cleanText = cleanText.replace(/Please transcribe only clear English speech and ignore background noise[,\s]*music[,\s]*or unclear audio\.?\s*/gi, '');
-    cleanText = cleanText.replace(/This is a professional meeting or consultation recording in English\.?\s*/gi, '');
-    // Remove hallucinated phrases from silence
+    cleanText = cleanText.replace(/Professional meeting recording in English\.?\s*/gi, '');
+    // Remove common hallucinated phrases from silence
     cleanText = cleanText.replace(/Thank you for watching\.?\s*/gi, '');
     cleanText = cleanText.replace(/Thanks for watching\.?\s*/gi, '');
+    cleanText = cleanText.replace(/Please use headphones or earphones\.?\s*/gi, '');
     cleanText = cleanText.trim();
     
     return new Response(JSON.stringify({ 
-      text: cleanText 
+      text: cleanText,
+      avg_logprob: avg_logprob,
+      no_speech_prob: no_speech_prob,
+      segments: segments.map((seg: any) => ({
+        start: seg.start,
+        end: seg.end,
+        text: seg.text,
+        avg_logprob: seg.avg_logprob
+      }))
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

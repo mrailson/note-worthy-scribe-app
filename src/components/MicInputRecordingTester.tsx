@@ -38,6 +38,22 @@ interface TestResult {
 }
 
 const MIC_PROFILES: MicProfile[] = [
+  // ChatGPT Recommended Profile - Exact match to Meeting Recorder
+  {
+    id: 'chatgpt-recommended',
+    name: 'ChatGPT Recommended (Meeting Recorder Match)',
+    description: '48kHz, mono, no processing - exact Meeting Recorder settings with ChatGPT recommendations',
+    purpose: 'Exact replica of Meeting Recorder with ChatGPT hallucination fixes: 48kHz, no processing, smart de-duplication, quality guardrails.',
+    config: {
+      source: 'default',
+      noiseCancellation: false,  // Disabled - can create artifacts 
+      echoCancellation: false,   // Disabled - can create artifacts
+      autoGainControl: false,    // Disabled - can create artifacts
+      sampleRate: 48000,         // 48kHz - Chrome native, avoid resampling artifacts
+      channelCount: 1
+    },
+    color: 'safe'
+  },
   {
     id: 'profile1',
     name: 'Default System Mic (No Processing)',

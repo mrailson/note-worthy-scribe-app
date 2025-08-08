@@ -121,14 +121,14 @@ const ChunkedTranscriptionTest = () => {
 
   const startChunkedRecording = async () => {
     try {
-      // Get microphone access
+      // ChatGPT recommended audio settings to match Meeting Recorder
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          sampleRate: 24000,
+          sampleRate: 48000,        // 48kHz - Chrome native, avoid resampling
           channelCount: 1,
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
+          echoCancellation: false,  // Disabled - can create artifacts
+          noiseSuppression: false,  // Disabled - can create artifacts
+          autoGainControl: false    // Disabled - can create artifacts
         }
       });
 
@@ -151,18 +151,18 @@ const ChunkedTranscriptionTest = () => {
         description: "5s chunks for first 20s, then 30s chunks"
       });
 
-      // Function to get the duration for current chunk
+      // ChatGPT recommended chunk durations: 12-20s with 2.0s overlap
       const getChunkDuration = (chunkNumber: number) => {
-        // Rapid feedback mode: 5-second chunks for first 20 seconds (chunks 1-4)
-        if (chunkNumber <= 4) return 5000; // 5s, 10s, 15s, 20s
-        // Then switch to optimal 30-second chunks for reliability
-        return 30000; 
+        // Quick feedback: shorter chunks initially
+        if (chunkNumber <= 2) return 5000;  // 5s for immediate feedback
+        if (chunkNumber <= 4) return 12000; // 12s - ChatGPT minimum
+        // Then switch to optimal 18-second chunks 
+        return 18000; 
       };
 
-      // Function to get overlap duration (1 second for quick feedback, 2 seconds for longer chunks)
+      // ChatGPT recommended: consistent 2.0s overlap (10-15% of chunk)
       const getOverlapDuration = (chunkNumber: number) => {
-        if (chunkNumber <= 4) return 1000; // 1 second overlap for rapid feedback phase
-        return 2000; // 2 second overlap for longer chunks
+        return 2000; // 2 second overlap for all chunks
       };
 
       // Function to create and start a new recorder

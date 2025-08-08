@@ -294,14 +294,14 @@ export const MeetingRecorder = ({
     try {
       console.log('🎯 Starting audio backup recording...');
       
-      // Get microphone stream for backup recording using Profile 1 settings
+      // ChatGPT recommended audio settings for backup recording 
       audioBackupStream.current = await navigator.mediaDevices.getUserMedia({
         audio: {
-          sampleRate: 44100,
+          sampleRate: 48000,        // 48kHz - Chrome native standard
           channelCount: 1,
-          echoCancellation: false,
-          noiseSuppression: false,
-          autoGainControl: false
+          echoCancellation: false,  // Disabled to avoid artifacts
+          noiseSuppression: false,  // Disabled to avoid artifacts
+          autoGainControl: false    // Disabled to avoid artifacts
         }
       });
 
@@ -424,14 +424,14 @@ export const MeetingRecorder = ({
     try {
       console.log('🎵 Starting 5-second overlapping chunks with Profile 1 settings...');
       
-      // Use simple, standard Profile 1 settings - no browser-specific constraints
+      // ChatGPT recommended: standardize to 48kHz end-to-end  
       const profile1Constraints: MediaStreamConstraints = {
         audio: {
-          sampleRate: 44100,
+          sampleRate: 48000,        // 48kHz - Chrome native, avoid resampling artifacts
           channelCount: 1,
-          echoCancellation: false,
-          noiseSuppression: false,
-          autoGainControl: false
+          echoCancellation: false,  // Disabled - can create artifacts in meetings
+          noiseSuppression: false,  // Disabled - can create artifacts in meetings
+          autoGainControl: false    // Disabled - can create artifacts in meetings
         }
       };
 
@@ -440,8 +440,8 @@ export const MeetingRecorder = ({
       // Get SEPARATE microphone stream for overlapping chunks (not shared with preview)
       const chunksStream = await navigator.mediaDevices.getUserMedia(profile1Constraints);
       
-      // Add audio level monitoring
-      const audioContext = new AudioContext();
+      // Add audio level monitoring with ChatGPT recommended sample rate
+      const audioContext = new AudioContext({ sampleRate: 48000 });
       const source = audioContext.createMediaStreamSource(chunksStream);
       const analyser = audioContext.createAnalyser();
       source.connect(analyser);
