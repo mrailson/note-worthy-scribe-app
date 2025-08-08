@@ -27,6 +27,7 @@ import { MeetingHistoryList } from "@/components/MeetingHistoryList";
 import { WhisperHallucinationTestSuite } from "@/components/WhisperHallucinationTestSuite";
 import { MicInputRecordingTester } from "@/components/MicInputRecordingTester";
 import { SharedMeetingsManager } from "@/components/SharedMeetingsManager";
+import { LiveTranscript } from "@/components/LiveTranscript";
 
 import { NotewellAIAnimation } from "@/components/NotewellAIAnimation";
 
@@ -3325,73 +3326,14 @@ export const MeetingRecorder = ({
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-              {/* Live Transcript Content */}
-              {realtimeTranscripts.length > 0 ? (
-                <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {(() => {
-                    // Deduplicate transcripts by removing overlapping content
-                    const deduplicatedTranscripts = realtimeTranscripts.reduce((acc, current, index) => {
-                      if (index === 0) {
-                        acc.push(current);
-                        return acc;
-                      }
-                      
-                      // Check if current text is contained in previous text or vice versa
-                      const previous = acc[acc.length - 1];
-                      const currentText = current.text.trim();
-                      const previousText = previous.text.trim();
-                      
-                      // If current text is longer and contains previous text, replace previous
-                      if (currentText.length > previousText.length && currentText.includes(previousText)) {
-                        acc[acc.length - 1] = current;
-                      }
-                      // If current text is new and doesn't overlap significantly, add it
-                      else if (!previousText.includes(currentText) && !currentText.includes(previousText)) {
-                        acc.push(current);
-                      }
-                      // If texts are similar length, keep the final one
-                      else if (current.isFinal && !previous.isFinal) {
-                        acc[acc.length - 1] = current;
-                      }
-                      
-                      return acc;
-                    }, [] as typeof realtimeTranscripts);
-                    
-                    return deduplicatedTranscripts
-                      .slice()
-                      .reverse()
-                      .map((transcript, index) => (
-                      <div
-                        key={`${transcript.speaker}-${deduplicatedTranscripts.length - 1 - index}`}
-                        className={`p-3 rounded-lg border ${
-                          transcript.isFinal
-                            ? 'bg-accent/20 border-accent/40'
-                            : 'bg-muted/50 border-muted animate-pulse'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2 mb-2">
-                          <Badge variant="outline" className="text-xs">
-                            {transcript.speaker}
-                          </Badge>
-                          {!transcript.isFinal && (
-                            <Badge variant="secondary" className="text-xs">
-                              Live
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-sm leading-relaxed">
-                          {transcript.text}
-                        </p>
-                      </div>
-                    ));
-                  })()}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Start recording to see live transcript here</p>
-                </div>
-              )}
+              {/* Live Transcript with Enhanced Two-Section Layout */}
+              <LiveTranscript
+                transcript={realtimeTranscripts.length > 0 ? realtimeTranscripts[realtimeTranscripts.length - 1]?.text || "" : ""}
+                confidence={realtimeTranscripts.length > 0 ? realtimeTranscripts[realtimeTranscripts.length - 1]?.confidence : undefined}
+                showTimestamps={true}
+                onTimestampsToggle={() => {}}
+                attendees={""}
+              />
             </CardContent>
           </Card>
         </TabsContent>
