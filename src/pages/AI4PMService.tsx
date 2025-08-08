@@ -1502,13 +1502,13 @@ Always provide practical, actionable advice that follows NHS guidelines and best
           <div className="relative">
             <select
               value={activeTab}
-              onChange={(e) => setActiveTab(e.target.value as 'ai-service' | 'pm-genie' | 'previous-searches' | 'ai-settings' | 'what-can-ai-do')}
+              onChange={(e) => setActiveTab(e.target.value as 'ai-service' | 'pm-genie' | 'previous-searches' | 'what-can-ai-do')}
               className="w-full h-9 rounded-md border border-border bg-card text-foreground text-sm pl-3 pr-8"
             >
               <option value="ai-service">AI</option>
               <option value="pm-genie">Genie</option>
               <option value="previous-searches">History</option>
-              <option value="ai-settings">Settings</option>
+              
               <option value="what-can-ai-do">Help</option>
             </select>
           </div>
@@ -1517,7 +1517,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           {/* Desktop/tablet tabs */}
           <div className="hidden sm:block">
-            <TabsList className="grid w-full grid-cols-3 lg:grid-cols-5 gap-1 h-auto p-1">
+            <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 gap-1 h-auto p-1">
               <TabsTrigger value="ai-service" className="flex items-center gap-1 min-h-[40px] text-sm touch-manipulation">
                 <MessageSquare className="h-4 w-4" />
                 <span>AI Service</span>
@@ -1529,10 +1529,6 @@ Always provide practical, actionable advice that follows NHS guidelines and best
               <TabsTrigger value="previous-searches" className="flex items-center gap-1 min-h-[40px] text-sm touch-manipulation">
                 <History className="h-4 w-4" />
                 <span>Previous Searches</span>
-              </TabsTrigger>
-              <TabsTrigger value="ai-settings" className="flex items-center gap-1 min-h-[40px] text-sm touch-manipulation">
-                <Settings className="h-4 w-4" />
-                <span>AI Settings</span>
               </TabsTrigger>
               <TabsTrigger value="what-can-ai-do" className="flex items-center gap-1 min-h-[40px] text-sm touch-manipulation">
                 <HelpCircle className="h-4 w-4" />
@@ -2094,29 +2090,6 @@ Always provide practical, actionable advice that follows NHS guidelines and best
             </Card>
           </TabsContent>
 
-          {/* AI Settings Tab */}
-          <TabsContent value="ai-settings" className="mt-3">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Brain className="h-5 w-5" />
-                  AI Configuration
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label>AI Model Selection</Label>
-                      <div className="flex flex-col sm:flex-row gap-2">
-                        <Button
-                          variant={model === 'claude' ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => setModel('claude')}
-                          className="flex-1 min-h-[44px] touch-manipulation"
-                        >
-                          <Bot className="h-4 w-4 mr-2" />
-                          Claude (Anthropic)
-                        </Button>
                         <Button
                           variant={model === 'gpt' ? 'default' : 'outline'}
                           size="sm"
