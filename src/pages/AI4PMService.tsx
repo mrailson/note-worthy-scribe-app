@@ -1644,10 +1644,12 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                 </div>
               </CardHeader>
 
-              {/* Quick Actions Collapsible Content */}
+              <CardContent className="flex flex-col h-full p-0 relative">
+              
+              {/* Quick Actions Overlay */}
               <Collapsible open={showQuickActions} onOpenChange={setShowQuickActions}>
-                <CollapsibleContent className="px-4 pb-4 border-b border-border">
-                  <div className="animate-fade-in">
+                <CollapsibleContent className="absolute top-0 left-0 right-0 z-10 bg-background border-b border-border shadow-lg">
+                  <div className="p-4 animate-fade-in">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                       {quickActions.map((action, index) => (
                         <Button
@@ -1669,8 +1671,6 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                   </div>
                 </CollapsibleContent>
               </Collapsible>
-              
-              <CardContent className="flex flex-col h-full p-0">
                 {/* Messages */}
                 <ScrollArea className="flex-1 p-4">
                 {messages.length === 0 ? null : (
