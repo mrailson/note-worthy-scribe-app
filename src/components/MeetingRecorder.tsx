@@ -166,7 +166,9 @@ export const MeetingRecorder = ({
     setMeetingSettings({
       title: "General Meeting",
       description: "",
-      meetingType: "general"
+      meetingType: "general",
+      practiceId: "",
+      meetingFormat: "teams"
     });
     
     // Clear parent component state
