@@ -46,6 +46,8 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
   const [practices, setPractices] = useState<Array<{id: string, name: string, practice_code: string}>>([]);
   const [userPractices, setUserPractices] = useState<Array<{id: string, name: string}>>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showPasteDialog, setShowPasteDialog] = useState(false);
+  const [pastedText, setPastedText] = useState("");
 
   // Function to round time to nearest 15 minutes (London time)
   const roundToNearest15Minutes = (date: Date): Date => {
@@ -222,6 +224,8 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
     const file = event.target.files?.[0];
     if (!file) return;
 
+    console.log('📄 Starting file import:', file.name, file.type, `${(file.size / 1024).toFixed(1)}KB`);
+
     // Check if file is a supported document type
     const supportedTypes = ['.txt', '.doc', '.docx', '.pdf'];
     const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
@@ -234,7 +238,9 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
 
     setIsImportingTranscript(true);
     try {
+      console.log('🔄 Processing file with FileImporter...');
       const importedTranscript = await FileImporter.importTranscriptFile(file);
+      console.log('✅ FileImporter completed:', importedTranscript.wordCount, 'words');
       
       // Update settings with extracted data
       if (importedTranscript.extractedSettings) {
@@ -248,21 +254,63 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
         };
         setSettings(newSettings);
         onSettingsChange(newSettings);
+        console.log('📝 Settings updated with extracted data');
       }
+
+      // Notify parent component about the imported transcript
+      if (onTranscriptImported) {
+        console.log('📤 Calling onTranscriptImported callback');
+        onTranscriptImported(importedTranscript);
+      } else {
+        console.warn('⚠️ No onTranscriptImported callback provided');
+      }
+
+      toast.success(`Transcript imported: ${file.name}${importedTranscript.wordCount ? ` (${importedTranscript.wordCount} words)` : ''}`);
+    } catch (error) {
+      console.error('❌ Error importing transcript file:', error);
+      toast.error(`Failed to import transcript: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      setIsImportingTranscript(false);
+      // Reset the input so the same file can be selected again
+      event.target.value = '';
+    }
+  };
+
+  const handlePasteTranscript = () => {
+    if (!pastedText.trim()) {
+      toast.error('Please paste some transcript content first');
+      return;
+    }
+
+    try {
+      console.log('📋 Processing pasted text:', pastedText.length, 'characters');
+      
+      // Create an ImportedTranscript object from pasted text
+      const wordCount = pastedText.split(/\s+/).filter(word => word.length > 0).length;
+      const importedTranscript: ImportedTranscript = {
+        content: pastedText.trim(),
+        wordCount,
+        meetingTitle: 'Pasted Transcript',
+        extractedSettings: {
+          title: 'Pasted Transcript',
+          description: '',
+          attendees: '',
+          agenda: '',
+          date: new Date().toISOString().split('T')[0]
+        }
+      };
 
       // Notify parent component about the imported transcript
       if (onTranscriptImported) {
         onTranscriptImported(importedTranscript);
       }
 
-      toast.success(`Transcript imported: ${file.name}${importedTranscript.wordCount ? ` (${importedTranscript.wordCount} words)` : ''}`);
+      toast.success(`Transcript pasted successfully (${wordCount} words)`);
+      setPastedText('');
+      setShowPasteDialog(false);
     } catch (error) {
-      console.error('Error importing transcript file:', error);
-      toast.error(`Failed to import transcript: ${error}`);
-    } finally {
-      setIsImportingTranscript(false);
-      // Reset the input so the same file can be selected again
-      event.target.value = '';
+      console.error('❌ Error processing pasted transcript:', error);
+      toast.error('Failed to process pasted transcript');
     }
   };
 
@@ -551,34 +599,83 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
             </div>
 
             {/* Transcript Import Section */}
-            <div className="space-y-2">
+            <div className="space-y-4">
               <Label htmlFor="transcript-import">Import Existing Transcript</Label>
-              <div className="flex gap-2 mb-2">
-                <label htmlFor="transcript-import-file" className="flex-1">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="w-full cursor-pointer"
-                    disabled={isImportingTranscript}
-                    asChild
+              
+              {/* File Import */}
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <label htmlFor="transcript-import-file" className="flex-1">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full cursor-pointer"
+                      disabled={isImportingTranscript}
+                      asChild
+                    >
+                      <span>
+                        <FileText className="h-4 w-4 mr-2" />
+                        {isImportingTranscript ? 'Importing...' : 'Import File (.txt, .doc, .docx)'}
+                      </span>
+                    </Button>
+                  </label>
+                  <input
+                    id="transcript-import-file"
+                    type="file"
+                    accept=".txt,.doc,.docx,.pdf"
+                    onChange={handleTranscriptImport}
+                    className="hidden"
+                  />
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowPasteDialog(true)}
+                    className="flex-shrink-0"
                   >
-                    <span>
-                      <FileText className="h-4 w-4 mr-2" />
-                      {isImportingTranscript ? 'Importing...' : 'Import Transcript File'}
-                    </span>
+                    <ClipboardPaste className="h-4 w-4 mr-2" />
+                    Paste Text
                   </Button>
-                </label>
-                <input
-                  id="transcript-import-file"
-                  type="file"
-                  accept=".txt,.doc,.docx,.pdf"
-                  onChange={handleTranscriptImport}
-                  className="hidden"
-                />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Import from file or paste transcript text directly. Files will auto-extract meeting details.
+                </p>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Supports TXT, DOC, DOCX, and PDF files. Will automatically extract meeting details like title, attendees, and agenda.
-              </p>
+
+              {/* Paste Dialog */}
+              {showPasteDialog && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                  <div className="bg-background p-6 rounded-lg shadow-lg w-full max-w-2xl mx-4">
+                    <h3 className="text-lg font-semibold mb-4">Paste Transcript Text</h3>
+                    <textarea
+                      value={pastedText}
+                      onChange={(e) => setPastedText(e.target.value)}
+                      placeholder="Paste your transcript text here..."
+                      className="w-full h-64 p-3 border rounded-md resize-none"
+                      autoFocus
+                    />
+                    <div className="flex gap-2 mt-4">
+                      <Button
+                        onClick={handlePasteTranscript}
+                        disabled={!pastedText.trim()}
+                        className="flex-1"
+                      >
+                        <FileText className="h-4 w-4 mr-2" />
+                        Import Transcript ({pastedText.split(/\s+/).filter(w => w.length > 0).length} words)
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setShowPasteDialog(false);
+                          setPastedText('');
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </CollapsibleContent>
