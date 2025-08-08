@@ -1571,24 +1571,8 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                           <span className="hidden sm:inline">New Chat</span>
                           <span className="sm:hidden">New</span>
                         </Button>
-
-                        {/* Quick Actions Expandable Button */}
-                        <Collapsible open={showQuickActions} onOpenChange={setShowQuickActions}>
-                          <CollapsibleTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="px-3 min-h-[44px] touch-manipulation ml-2"
-                              title="Quick Actions"
-                            >
-                              <Sparkles className="h-4 w-4 mr-1" />
-                              <span className="hidden sm:inline">Quick Actions</span>
-                              <span className="sm:hidden">Quick</span>
-                            </Button>
-                          </CollapsibleTrigger>
-                        </Collapsible>
                         
-                        {/* Voice Chat Button in collapsed view */}
+                        {/* Voice Chat Button - moved first */}
                         {!isVoiceConnected ? (
                           <Button
                             variant="outline"
@@ -1606,7 +1590,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                             <span className="hidden sm:inline">{isVoiceConnecting ? 'Connecting...' : 'Voice Chat'}</span>
                           </Button>
                         ) : (
-                          <div className="flex items-center gap-1 flex-nowrap">
+                          <div className="flex items-center gap-1 flex-nowrap ml-2">
                             <Button
                               variant="outline"
                               size="sm"
@@ -1637,6 +1621,22 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                             </Button>
                           </div>
                         )}
+
+                        {/* Quick Actions Expandable Button - moved second */}
+                        <Collapsible open={showQuickActions} onOpenChange={setShowQuickActions}>
+                          <CollapsibleTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="px-3 min-h-[44px] touch-manipulation ml-2"
+                              title="Quick Actions"
+                            >
+                              <Sparkles className="h-4 w-4 mr-1" />
+                              <span className="hidden sm:inline">Quick Actions</span>
+                              <span className="sm:hidden">Quick</span>
+                            </Button>
+                          </CollapsibleTrigger>
+                        </Collapsible>
                       </div>
                       
                     </CardTitle>
