@@ -10,8 +10,7 @@ import {
   User,
   FileText,
   List,
-  CheckSquare,
-  Star
+  CheckSquare
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -328,7 +327,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({ message, disableTrunc
                   className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-muted-foreground hover:text-foreground"
                   title="Scroll to top of this message"
                 >
-                  <Star className="h-3 w-3" />
+                  <ChevronUp className="h-3 w-3" />
                 </Button>
               )}
               <Button
