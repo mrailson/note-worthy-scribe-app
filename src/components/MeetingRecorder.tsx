@@ -3335,12 +3335,6 @@ export const MeetingRecorder = ({
 
         <TabsContent value="transcript" className="space-y-4 mt-6">
           <Card className="border-accent/30">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <FileText className="h-5 w-5" />
-                Live Meeting Transcript
-              </CardTitle>
-            </CardHeader>
               <CardContent className="space-y-4">
               {/* Live Transcript with Enhanced Two-Section Layout */}
               <LiveTranscript
