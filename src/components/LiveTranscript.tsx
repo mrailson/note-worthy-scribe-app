@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { transcriptCleaner, RemovedSegment } from "@/utils/TranscriptCleaner";
+import { transcriptCleaner } from "@/utils/TranscriptCleaner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   MessageSquare, 
@@ -58,7 +58,7 @@ export const LiveTranscript = ({
   const [liveTranscriptText, setLiveTranscriptText] = useState<string>("");
   const [cleanedTranscript, setCleanedTranscript] = useState<string>("");
   const [isAutoCleaningEnabled, setIsAutoCleaningEnabled] = useState<boolean>(true);
-  const [removedSegments, setRemovedSegments] = useState<RemovedSegment[]>([]);
+  
 
   // Generate speaker colors
   const speakerColors = [
@@ -98,19 +98,7 @@ export const LiveTranscript = ({
       }
     }
     // Don't clear liveTranscriptText when transcript becomes empty - keep last content visible
-    
-    // Update removed segments list
-    setRemovedSegments(transcriptCleaner.getRemovedSegments());
   }, [transcript, isAutoCleaningEnabled, cleanedTranscript]);
-
-  // Update removed segments periodically
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setRemovedSegments(transcriptCleaner.getRemovedSegments());
-    }, 2000); // Update every 2 seconds
-
-    return () => clearInterval(interval);
-  }, []);
 
   const addSpeaker = () => {
     if (newSpeakerName.trim()) {
