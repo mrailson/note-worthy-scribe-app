@@ -49,7 +49,9 @@ import {
   ChevronDown,
   ChevronUp,
   Expand,
-  Minimize
+  Minimize,
+  Volume2,
+  PhoneOff
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { LoginForm } from '@/components/LoginForm';
@@ -60,7 +62,7 @@ import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
 import { saveAs } from 'file-saver';
 import PptxGenJS from 'pptxgenjs';
 import PMGenieVoiceAgent from '@/components/PMGenieVoiceAgent';
-import ChatGPTVoiceInterface from '@/components/ChatGPTVoiceInterface';
+import { RealtimeChat } from '@/utils/RealtimeAudio';
 
 // Helper function to get file type icon
 const getFileTypeIcon = (fileName: string, fileType?: string) => {
@@ -132,6 +134,10 @@ const AI4PMService = () => {
   const [expandedMessage, setExpandedMessage] = useState<Message | null>(null);
   const [showVoiceAgent, setShowVoiceAgent] = useState(false);
   const [showChatGPTVoice, setShowChatGPTVoice] = useState(false);
+  const [isVoiceConnected, setIsVoiceConnected] = useState(false);
+  const [isVoiceConnecting, setIsVoiceConnecting] = useState(false);
+  const [isVoiceSpeaking, setIsVoiceSpeaking] = useState(false);
+  const voiceChatRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const scrollToBottom = () => {
@@ -149,6 +155,107 @@ const AI4PMService = () => {
       loadPracticeContext();
     }
   }, [user]);
+
+  // Voice chat message handler
+  const handleVoiceMessage = (event: any) => {
+    console.log('Voice event:', event);
+    
+    if (event.type === 'response.audio_transcript.delta') {
+      // Update or create assistant message with transcript
+      setMessages(prev => {
+        const lastMessage = prev[prev.length - 1];
+        if (lastMessage && lastMessage.role === 'assistant' && lastMessage.id === 'voice-response') {
+          return [
+            ...prev.slice(0, -1),
+            {
+              ...lastMessage,
+              content: lastMessage.content + event.delta
+            }
+          ];
+        } else {
+          return [
+            ...prev,
+            {
+              id: 'voice-response',
+              role: 'assistant' as const,
+              content: event.delta,
+              timestamp: new Date()
+            }
+          ];
+        }
+      });
+    } else if (event.type === 'response.audio_transcript.done') {
+      // Finalize the assistant message
+      setMessages(prev => {
+        const lastMessage = prev[prev.length - 1];
+        if (lastMessage && lastMessage.id === 'voice-response') {
+          return [
+            ...prev.slice(0, -1),
+            {
+              ...lastMessage,
+              id: `voice-msg-${Date.now()}`,
+            }
+          ];
+        }
+        return prev;
+      });
+      setIsVoiceSpeaking(false);
+    } else if (event.type === 'response.audio.delta') {
+      setIsVoiceSpeaking(true);
+    } else if (event.type === 'response.audio.done') {
+      setIsVoiceSpeaking(false);
+    } else if (event.type === 'conversation.item.input_audio_transcription.completed') {
+      // Add user message from voice transcription
+      const userMessage: Message = {
+        id: `voice-user-${Date.now()}`,
+        role: 'user',
+        content: event.transcript,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, userMessage]);
+    }
+  };
+
+  // Start voice chat
+  const startVoiceChat = async () => {
+    try {
+      setIsVoiceConnecting(true);
+      
+      // Request microphone permission
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+      
+      voiceChatRef.current = new RealtimeChat(handleVoiceMessage);
+      await voiceChatRef.current.init('shimmer');
+      
+      setIsVoiceConnected(true);
+      setIsVoiceConnecting(false);
+      
+      toast({
+        title: "Voice chat connected",
+        description: "Start speaking to ChatGPT",
+      });
+    } catch (error) {
+      console.error('Voice chat error:', error);
+      setIsVoiceConnecting(false);
+      toast({
+        title: "Voice chat failed",
+        description: error instanceof Error ? error.message : 'Failed to start voice chat',
+        variant: "destructive",
+      });
+    }
+  };
+
+  // End voice chat
+  const endVoiceChat = () => {
+    voiceChatRef.current?.disconnect();
+    setIsVoiceConnected(false);
+    setIsVoiceSpeaking(false);
+    
+    toast({
+      title: "Voice chat ended",
+      description: "Voice conversation disconnected",
+    });
+  };
 
   const loadPracticeContext = async () => {
     if (!user) return;
@@ -356,6 +463,11 @@ const AI4PMService = () => {
   };
 
   const handleNewMeeting = () => {
+    // End voice chat if active
+    if (isVoiceConnected) {
+      endVoiceChat();
+    }
+    
     // Save current search before clearing if it has messages
     if (messages.length > 0) {
       saveCurrentSearch();
@@ -1418,17 +1530,6 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                                  <Mic className="h-3 w-3" />
                                  Voice Assistant
                                </Button>
-                               
-                               {/* ChatGPT Voice Button */}
-                               <Button
-                                 variant="outline"
-                                 size="sm"
-                                 onClick={() => setShowChatGPTVoice(true)}
-                                 className="text-xs flex items-center gap-2"
-                               >
-                                 <MessageSquare className="h-3 w-3" />
-                                 ChatGPT Voice
-                               </Button>
                               
                               {/* Chat size controls */}
                               <div className="flex items-center gap-1 border rounded-lg p-1">
@@ -1827,6 +1928,42 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                           <span className="hidden sm:inline">New Chat</span>
                           <span className="sm:hidden">New</span>
                         </Button>
+                        
+                        {/* Voice Chat Button */}
+                        {!isVoiceConnected ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={startVoiceChat}
+                            disabled={isVoiceConnecting}
+                            className="px-3 min-h-[44px] touch-manipulation"
+                            title="Start voice conversation with ChatGPT"
+                          >
+                            {isVoiceConnecting ? (
+                              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                            ) : (
+                              <Mic className="h-4 w-4 mr-1" />
+                            )}
+                            <span className="hidden sm:inline">{isVoiceConnecting ? 'Connecting...' : 'Voice Chat'}</span>
+                            <span className="sm:hidden">{isVoiceConnecting ? '...' : 'Voice'}</span>
+                          </Button>
+                        ) : (
+                          <Button
+                            variant={isVoiceSpeaking ? "default" : "destructive"}
+                            size="sm"
+                            onClick={endVoiceChat}
+                            className="px-3 min-h-[44px] touch-manipulation"
+                            title={isVoiceSpeaking ? "ChatGPT is speaking" : "End voice conversation"}
+                          >
+                            {isVoiceSpeaking ? (
+                              <Volume2 className="h-4 w-4 mr-1 animate-pulse" />
+                            ) : (
+                              <PhoneOff className="h-4 w-4 mr-1" />
+                            )}
+                            <span className="hidden sm:inline">{isVoiceSpeaking ? 'Speaking...' : 'End Voice'}</span>
+                            <span className="sm:hidden">{isVoiceSpeaking ? '...' : 'End'}</span>
+                          </Button>
+                        )}
                       </div>
                       <p className="text-xs text-muted-foreground">
                         Choose your preferred AI model. Claude excels at detailed analysis, while GPT-4 is great for creative content.
@@ -2250,12 +2387,6 @@ Always provide practical, actionable advice that follows NHS guidelines and best
           </DialogContent>
         </Dialog>
       )}
-      
-      {/* ChatGPT Voice Interface */}
-      <ChatGPTVoiceInterface 
-        isOpen={showChatGPTVoice}
-        onClose={() => setShowChatGPTVoice(false)}
-      />
     </div>
   );
 };

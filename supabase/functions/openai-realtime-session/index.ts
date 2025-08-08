@@ -31,7 +31,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: "gpt-4o-realtime-preview-2024-12-17",
-        voice: voice,
+        voice: voice || "shimmer",
         instructions: instructions,
         modalities: ["text", "audio"],
         input_audio_format: "pcm16",
