@@ -23,11 +23,13 @@ import {
 interface MedicalTermCorrectionDialogProps {
   selectedText?: string;
   onCorrectionAdded?: () => void;
+  buttonText?: string;
 }
 
 export const MedicalTermCorrectionDialog = ({
   selectedText,
-  onCorrectionAdded
+  onCorrectionAdded,
+  buttonText = "Medical Terms"
 }: MedicalTermCorrectionDialogProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [incorrectTerm, setIncorrectTerm] = useState(selectedText || "");
@@ -163,7 +165,7 @@ export const MedicalTermCorrectionDialog = ({
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="flex items-center gap-2">
           <Settings className="h-4 w-4" />
-          <span className="hidden sm:inline">Medical Terms</span>
+          <span className="hidden sm:inline">{buttonText}</span>
           <span className="sm:hidden">Terms</span>
         </Button>
       </DialogTrigger>

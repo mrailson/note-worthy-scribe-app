@@ -260,6 +260,7 @@ export const LiveTranscript = ({
                       }
                       setIsMedicalCorrectionsLoaded(true);
                     }}
+                    buttonText="Update Medical Terms, Acronyms & Missheard Names"
                   />
                 </div>
                 
