@@ -2865,31 +2865,31 @@ export const MeetingRecorder = ({
       <Tabs defaultValue={initialActiveTab || "recorder"} className="w-full">
         <TabsList className={`grid w-full ${micTestServiceVisible ? 'grid-cols-5' : 'grid-cols-4'}`}>
           <TabsTrigger value="recorder" className="flex items-center gap-2">
-            <Mic style={{ width: '20px', height: '20px', color: '#0066cc', display: 'block' }} />
+            <Mic className="h-5 w-5" />
             <span className="hidden sm:inline">Meeting Recorder</span>
             <span className="sm:hidden">Record</span>
           </TabsTrigger>
           {/* Live Transcript Tab - Hidden on Edge */}
           {!/Edg/.test(navigator.userAgent) && (
             <TabsTrigger value="transcript" className="flex items-center gap-2">
-              <FileText style={{ width: '20px', height: '20px', color: '#0066cc', display: 'block' }} />
+              <FileText className="h-5 w-5" />
               <span className="hidden sm:inline">Live Transcript</span>
               <span className="sm:hidden">Transcript</span>
             </TabsTrigger>
           )}
           <TabsTrigger value="settings" className="flex items-center gap-2">
-            <Settings style={{ width: '20px', height: '20px', color: '#0066cc', display: 'block' }} />
+            <Settings className="h-5 w-5" />
             <span className="hidden sm:inline">Meeting Settings</span>
             <span className="sm:hidden">Settings</span>
           </TabsTrigger>
           <TabsTrigger value="history" className="flex items-center gap-2">
-            <History style={{ width: '20px', height: '20px', color: '#0066cc', display: 'block' }} />
+            <History className="h-5 w-5" />
             <span className="hidden sm:inline">Meeting History</span>
             <span className="sm:hidden">History</span>
           </TabsTrigger>
           {micTestServiceVisible && (
             <TabsTrigger value="mic-test" className="flex items-center gap-2">
-              <Headphones style={{ width: '20px', height: '20px', color: '#0066cc', display: 'block' }} />
+              <Headphones className="h-5 w-5" />
               <span className="hidden sm:inline">Mic Test Service</span>
               <span className="sm:hidden">Test</span>
             </TabsTrigger>
