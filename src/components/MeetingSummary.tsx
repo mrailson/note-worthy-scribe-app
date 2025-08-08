@@ -236,8 +236,11 @@ New patient pathway improvements have reduced waiting times by 15%. Patient sati
   const handleExport = async (format: string) => {
     if (format === "Word") {
       try {
-        // Clean content by removing numbered emoji bullets
-        const content = notes.replace(/## \d+️⃣/g, '##');
+        // Clean content by removing numbered emoji bullets and fix section headers
+        let content = notes
+          .replace(/## \d+️⃣\s*/g, '') // Remove numbered emojis
+          .replace(/##\s*([^#\n]+)/g, '**$1**'); // Make section headers bold
+        
         const lines = content.split('\n');
         const children = [];
         const tables = detectAndParseTable(content);
