@@ -569,7 +569,7 @@ const AI4PMService = () => {
     { 
       label: 'Check Draft Reply', 
       icon: Mail, 
-      prompt: 'Please review my draft email reply below and suggest improvements for professionalism, NHS compliance, and tone. Check for any missing information or potential issues:\n\n[Please paste your draft email here]',
+      prompt: 'Please review my draft email reply below and suggest improvements for professionalism, NHS compliance, and tone. Check for any missing information or potential issues:\n\n[Please paste your draft email and the email chain or add your supporting documents here]',
       requiresFile: false 
     },
     { 
