@@ -947,6 +947,108 @@ Always provide practical, actionable advice that follows NHS guidelines and best
 
       const contentLines = parseContent(content);
       
+      // Function to process text with inline formatting (bold, italic, code)
+      const processFormattedText = (text: string) => {
+        const children: any[] = [];
+        
+        // Handle the special case where the entire line is bold
+        if (text.match(/^\*\*[^*]+\*\*$/)) {
+          const boldText = text.slice(2, -2);
+          children.push(new TextRun({
+            text: boldText,
+            size: 24,
+            bold: true
+          }));
+          return children;
+        }
+        
+        // More comprehensive pattern to handle bold, italic, and mixed formatting
+        const formatPattern = /(\*\*\*[^*]+?\*\*\*|\*\*[^*]+?\*\*|\*[^*]+?\*|`[^`]+?`)/g;
+        let lastIndex = 0;
+        let match;
+        
+        while ((match = formatPattern.exec(text)) !== null) {
+          // Add any plain text before this match
+          if (match.index > lastIndex) {
+            const plainText = text.substring(lastIndex, match.index);
+            if (plainText) {
+              children.push(new TextRun({
+                text: plainText,
+                size: 24
+              }));
+            }
+          }
+          
+          const matchedText = match[0];
+          
+          // Handle bold and italic (***text***)
+          if (matchedText.startsWith('***') && matchedText.endsWith('***')) {
+            const content = matchedText.slice(3, -3);
+            children.push(new TextRun({
+              text: content,
+              size: 24,
+              bold: true,
+              italics: true
+            }));
+          }
+          // Handle bold (**text**)
+          else if (matchedText.startsWith('**') && matchedText.endsWith('**')) {
+            const content = matchedText.slice(2, -2);
+            children.push(new TextRun({
+              text: content,
+              size: 24,
+              bold: true
+            }));
+          }
+          // Handle italic (*text*)
+          else if (matchedText.startsWith('*') && matchedText.endsWith('*')) {
+            const content = matchedText.slice(1, -1);
+            children.push(new TextRun({
+              text: content,
+              size: 24,
+              italics: true
+            }));
+          }
+          // Handle code (`text`)
+          else if (matchedText.startsWith('`') && matchedText.endsWith('`')) {
+            const content = matchedText.slice(1, -1);
+            children.push(new TextRun({
+              text: content,
+              size: 22,
+              font: "Courier New",
+              shading: {
+                type: "clear",
+                color: "f6f8fa",
+                fill: "f6f8fa"
+              }
+            }));
+          }
+          
+          lastIndex = formatPattern.lastIndex;
+        }
+        
+        // Add any remaining plain text after the last match
+        if (lastIndex < text.length) {
+          const remainingText = text.substring(lastIndex);
+          if (remainingText) {
+            children.push(new TextRun({
+              text: remainingText,
+              size: 24
+            }));
+          }
+        }
+        
+        // If no formatting patterns were found, add the entire text as plain
+        if (children.length === 0) {
+          children.push(new TextRun({
+            text: text,
+            size: 24
+          }));
+        }
+        
+        return children;
+      };
+      
       contentLines.forEach(line => {
         const trimmedLine = line.trim();
         
@@ -1034,12 +1136,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
           const bulletText = trimmedLine.replace(/^[•-]\s*/, '');
           paragraphs.push(
             new Paragraph({
-              children: [
-                new TextRun({
-                  text: bulletText,
-                  size: 24
-                })
-              ],
+              children: processFormattedText(bulletText),
               bullet: {
                 level: 0,
               },
@@ -1068,107 +1165,6 @@ Always provide practical, actionable advice that follows NHS guidelines and best
         }
         // Handle regular text with inline formatting
         else {
-          const processFormattedText = (text: string) => {
-            const children: any[] = [];
-            
-            // Handle the special case where the entire line is bold
-            if (text.match(/^\*\*[^*]+\*\*$/)) {
-              const boldText = text.slice(2, -2);
-              children.push(new TextRun({
-                text: boldText,
-                size: 24,
-                bold: true
-              }));
-              return children;
-            }
-            
-            // More comprehensive pattern to handle bold, italic, and mixed formatting
-            const formatPattern = /(\*\*\*[^*]+?\*\*\*|\*\*[^*]+?\*\*|\*[^*]+?\*|`[^`]+?`)/g;
-            let lastIndex = 0;
-            let match;
-            
-            while ((match = formatPattern.exec(text)) !== null) {
-              // Add any plain text before this match
-              if (match.index > lastIndex) {
-                const plainText = text.substring(lastIndex, match.index);
-                if (plainText) {
-                  children.push(new TextRun({
-                    text: plainText,
-                    size: 24
-                  }));
-                }
-              }
-              
-              const matchedText = match[0];
-              
-              // Handle bold and italic (***text***)
-              if (matchedText.startsWith('***') && matchedText.endsWith('***')) {
-                const content = matchedText.slice(3, -3);
-                children.push(new TextRun({
-                  text: content,
-                  size: 24,
-                  bold: true,
-                  italics: true
-                }));
-              }
-              // Handle bold (**text**)
-              else if (matchedText.startsWith('**') && matchedText.endsWith('**')) {
-                const content = matchedText.slice(2, -2);
-                children.push(new TextRun({
-                  text: content,
-                  size: 24,
-                  bold: true
-                }));
-              }
-              // Handle italic (*text*)
-              else if (matchedText.startsWith('*') && matchedText.endsWith('*')) {
-                const content = matchedText.slice(1, -1);
-                children.push(new TextRun({
-                  text: content,
-                  size: 24,
-                  italics: true
-                }));
-              }
-              // Handle code (`text`)
-              else if (matchedText.startsWith('`') && matchedText.endsWith('`')) {
-                const content = matchedText.slice(1, -1);
-                children.push(new TextRun({
-                  text: content,
-                  size: 22,
-                  font: "Courier New",
-                  shading: {
-                    type: "clear",
-                    color: "f6f8fa",
-                    fill: "f6f8fa"
-                  }
-                }));
-              }
-              
-              lastIndex = formatPattern.lastIndex;
-            }
-            
-            // Add any remaining plain text after the last match
-            if (lastIndex < text.length) {
-              const remainingText = text.substring(lastIndex);
-              if (remainingText) {
-                children.push(new TextRun({
-                  text: remainingText,
-                  size: 24
-                }));
-              }
-            }
-            
-            // If no formatting patterns were found, add the entire text as plain
-            if (children.length === 0) {
-              children.push(new TextRun({
-                text: text,
-                size: 24
-              }));
-            }
-            
-            return children;
-          };
-          
           paragraphs.push(
             new Paragraph({
               children: processFormattedText(trimmedLine),
