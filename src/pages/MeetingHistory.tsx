@@ -350,7 +350,8 @@ const MeetingHistory = () => {
         body: {
           transcript: meetingTranscript,
           meetingTitle: selectedMeeting.title,
-          meetingType: selectedMeeting.meeting_type
+          meetingType: selectedMeeting.meeting_type,
+          meetingFormat: selectedMeeting.format || 'teams'
         }
       });
 

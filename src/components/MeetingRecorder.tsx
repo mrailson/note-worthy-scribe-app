@@ -2489,7 +2489,9 @@ export const MeetingRecorder = ({
           transcript: cleanedTranscript,
           meetingTitle: enhancedMeetingData.title,
           meetingDate: new Date().toLocaleDateString(),
-          meetingTime: new Date().toLocaleTimeString()
+          meetingTime: new Date().toLocaleTimeString(),
+          meetingFormat: 'meetingFormat' in meetingSettings ? meetingSettings.meetingFormat : 'teams',
+          practiceId: 'practiceId' in meetingSettings ? meetingSettings.practiceId : undefined
         }
       });
 
@@ -2501,7 +2503,9 @@ export const MeetingRecorder = ({
         // Add the generated meeting notes to the meeting data
         const finalMeetingData = {
           ...enhancedMeetingData,
-          generatedNotes: minutesData.meetingMinutes
+          generatedNotes: minutesData.meetingMinutes,
+          meetingFormat: 'meetingFormat' in meetingSettings ? meetingSettings.meetingFormat : 'teams',
+          practiceId: 'practiceId' in meetingSettings ? meetingSettings.practiceId : undefined
         };
 
         setIsGeneratingNotes(false);
@@ -2517,8 +2521,13 @@ export const MeetingRecorder = ({
       setIsGeneratingNotes(false);
       toast.error('Failed to generate meeting notes. Proceeding without AI notes.');
       
-      // Still navigate to meeting summary even if note generation fails
-      navigate('/meeting-summary', { state: meetingData });
+      // Still navigate to meeting summary even if note generation fails, including meeting format
+      const fallbackMeetingData = {
+        ...meetingData,
+        meetingFormat: 'meetingFormat' in meetingSettings ? meetingSettings.meetingFormat : 'teams',
+        practiceId: 'practiceId' in meetingSettings ? meetingSettings.practiceId : undefined
+      };
+      navigate('/meeting-summary', { state: fallbackMeetingData });
     }
   };
 

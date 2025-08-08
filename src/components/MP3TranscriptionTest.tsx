@@ -153,7 +153,8 @@ export const MP3TranscriptionTest = ({ onTranscriptReceived }: MP3TranscriptionT
             transcript: result.text,
             meetingTitle: meetingTitle,
             meetingDate: new Date().toISOString().split('T')[0],
-            meetingTime: new Date().toLocaleTimeString()
+            meetingTime: new Date().toLocaleTimeString(),
+            meetingFormat: 'teams' // Default for imported files
           }
         });
 
