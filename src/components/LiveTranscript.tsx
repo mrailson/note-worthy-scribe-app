@@ -45,7 +45,7 @@ export const LiveTranscript = ({
   onTimestampsToggle,
   attendees 
 }: LiveTranscriptProps) => {
-  const [isTranscriptOpen, setIsTranscriptOpen] = useState(false);
+  const [isTranscriptOpen, setIsTranscriptOpen] = useState(true);
   const [isLiveUpdateOpen, setIsLiveUpdateOpen] = useState(false); // New state for live updates
   const [isSpeakersOpen, setIsSpeakersOpen] = useState(false);
   const [speakers, setSpeakers] = useState<Speaker[]>([]);
