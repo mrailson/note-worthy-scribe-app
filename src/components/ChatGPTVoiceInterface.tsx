@@ -47,6 +47,14 @@ const ChatGPTVoiceInterface: React.FC<ChatGPTVoiceInterfaceProps> = ({ isOpen, o
   const [selectedVoice, setSelectedVoice] = useState('sage');
   const [error, setError] = useState<string | null>(null);
   const chatRef = useRef<RealtimeChat | null>(null);
+  const [isGlobalMuted, setIsGlobalMuted] = useState(() => {
+    try {
+      const saved = localStorage.getItem('ai4pm-voice-muted');
+      return saved ? JSON.parse(saved) : false;
+    } catch {
+      return false;
+    }
+  });
 
   // Available OpenAI Realtime API voices
   const voices = [
@@ -159,6 +167,9 @@ const ChatGPTVoiceInterface: React.FC<ChatGPTVoiceInterfaceProps> = ({ isOpen, o
       chatRef.current = new RealtimeChat(handleMessage);
       await chatRef.current.init(selectedVoice);
       
+      // Apply global mute state
+      chatRef.current.setMuted(isGlobalMuted);
+      
       setIsConnected(true);
       setIsConnecting(false);
       
@@ -221,6 +232,46 @@ const ChatGPTVoiceInterface: React.FC<ChatGPTVoiceInterfaceProps> = ({ isOpen, o
     navigator.permissions.query({ name: 'microphone' as PermissionName }).then((result) => {
       setHasPermission(result.state === 'granted');
     });
+
+    // Listen for mute state changes in localStorage
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'ai4pm-voice-muted' && e.newValue !== null) {
+        try {
+          const newMutedState = JSON.parse(e.newValue);
+          setIsGlobalMuted(newMutedState);
+          // Apply mute state to active chat
+          if (chatRef.current) {
+            chatRef.current.setMuted(newMutedState);
+          }
+        } catch (error) {
+          console.error('Error parsing mute state from localStorage:', error);
+        }
+      }
+    };
+
+    // Also check for mute state changes within the same tab
+    const handleLocalStorageUpdate = () => {
+      try {
+        const saved = localStorage.getItem('ai4pm-voice-muted');
+        const newMutedState = saved ? JSON.parse(saved) : false;
+        setIsGlobalMuted(newMutedState);
+        if (chatRef.current) {
+          chatRef.current.setMuted(newMutedState);
+        }
+      } catch (error) {
+        console.error('Error checking mute state:', error);
+      }
+    };
+
+    // Check periodically in case localStorage changes from the same tab
+    const interval = setInterval(handleLocalStorageUpdate, 1000);
+
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
   }, []);
 
   useEffect(() => {
@@ -250,6 +301,12 @@ const ChatGPTVoiceInterface: React.FC<ChatGPTVoiceInterfaceProps> = ({ isOpen, o
               <Badge variant="default" className="text-xs">
                 <CheckCircle2 className="h-3 w-3 mr-1" />
                 Connected
+              </Badge>
+            )}
+            {isGlobalMuted && (
+              <Badge variant="destructive" className="text-xs">
+                <VolumeX className="h-3 w-3 mr-1" />
+                Audio Muted
               </Badge>
             )}
           </DialogTitle>
