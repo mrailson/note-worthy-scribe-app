@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
@@ -47,8 +47,6 @@ import {
   Type,
   X,
   Loader2,
-  ChevronDown,
-  ChevronUp,
   Expand,
   Minimize,
   Volume2,
@@ -132,7 +130,7 @@ const AI4PMService = () => {
   const [chatBoxSize, setChatBoxSize] = useState('default'); // 'small', 'default', 'large', 'extra-large'
   const [includePracticeBranding, setIncludePracticeBranding] = useState(true);
   const [practiceDetails, setPracticeDetails] = useState<any>(null);
-  const [isModelSelectorCollapsed, setIsModelSelectorCollapsed] = useState(true); // Collapsed by default
+  
   const [expandedMessage, setExpandedMessage] = useState<Message | null>(null);
   const [showVoiceAgent, setShowVoiceAgent] = useState(false);
   const [showChatGPTVoice, setShowChatGPTVoice] = useState(false);
@@ -1544,7 +1542,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
           {/* AI Service Tab */}
           <TabsContent value="ai-service" className="mt-1">
             <Card className={getChatBoxHeight()}>
-              <CardHeader className={`${isModelSelectorCollapsed ? 'pb-1' : 'pb-3'}`}>
+              <CardHeader className="pb-3">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 w-full">
                     <CardTitle className="flex flex-col gap-2">
@@ -1615,95 +1613,14 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                         )}
                       </div>
                       
-                      {/* Collapsible Model Selector */}
-                      <Collapsible 
-                        open={!isModelSelectorCollapsed} 
-                        onOpenChange={(open) => setIsModelSelectorCollapsed(!open)}
-                      >
-                        <CollapsibleTrigger asChild>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="w-fit p-2 h-auto flex items-center gap-2 text-muted-foreground hover:text-foreground"
-                          >
-                             <span className="text-xs">
-                               AI Model: {model === 'chatgpt5' ? 'Chat GPT 5.0' : model === 'gpt' ? 'GPT-4' : 'Claude'}
-                             </span>
-                            {isModelSelectorCollapsed ? (
-                              <ChevronDown className="h-3 w-3" />
-                            ) : (
-                              <ChevronUp className="h-3 w-3" />
-                            )}
-                          </Button>
-                        </CollapsibleTrigger>
-                        <CollapsibleContent className="mt-2">
-                          <div className="flex flex-col gap-4">
-                            {/* Welcome message */}
-                            <div className="text-center text-muted-foreground py-4">
-                              <Bot className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                              <p className="text-lg font-medium mb-2">Welcome to AI 4 PM Service</p>
-                              <p className="text-sm">Your NHS Practice Management AI Assistant</p>
-                              <p className="text-xs mt-2">Ask me about NHS policies, compliance, workflows, or upload documents for analysis.</p>
-                            </div>
-                            
-                            {/* Controls */}
-                             <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                               <div className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-1 w-fit">
-                                 <select 
-                                   value={model}
-                                   onChange={(e) => setModel(e.target.value as 'claude' | 'gpt' | 'chatgpt5')}
-                                   className="text-xs sm:text-sm font-medium bg-transparent border-none outline-none"
-                                 >
-                                   <option value="chatgpt5">Chat GPT 5.0</option>
-                                   <option value="gpt">GPT-4</option>
-                                   <option value="claude">Claude</option>
-                                 </select>
-                               </div>
-                               
-                               {/* Voice Assistant Button */}
-                               <Button
-                                 variant="outline"
-                                 size="sm"
-                                 onClick={() => setShowVoiceAgent(!showVoiceAgent)}
-                                 className="text-xs flex items-center gap-2"
-                               >
-                                 <Mic className="h-3 w-3" />
-                                 Voice Assistant
-                               </Button>
-                              
-                              {/* Chat size controls */}
-                              <div className="flex items-center gap-1 border rounded-lg p-1">
-                                <Button
-                                  variant={chatBoxSize === 'large' ? 'secondary' : 'ghost'}
-                                  size="sm"
-                                  onClick={() => setChatBoxSize('large')}
-                                  className="h-8 w-8 p-0"
-                                  title="Large window"
-                                >
-                                  <div className="w-4 h-4 bg-current rounded-sm"></div>
-                                </Button>
-                                <Button
-                                  variant={chatBoxSize === 'extra-large' ? 'secondary' : 'ghost'}
-                                  size="sm"
-                                  onClick={() => setChatBoxSize('extra-large')}
-                                  className="h-8 w-8 p-0"
-                                  title="Extra large window"
-                                >
-                                  <div className="w-5 h-7 bg-current rounded-sm"></div>
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        </CollapsibleContent>
-                      </Collapsible>
                     </CardTitle>
                   </div>
                 </div>
               </CardHeader>
               
-              <CardContent className={`flex flex-col h-full ${messages.length === 0 && isModelSelectorCollapsed ? 'p-0' : 'p-0'}`}>
+              <CardContent className="flex flex-col h-full p-0">
                 {/* Messages */}
-                <ScrollArea className={`${messages.length === 0 && isModelSelectorCollapsed ? 'h-0 p-0' : 'flex-1 p-4'}`}>
+                <ScrollArea className="flex-1 p-4">
                 {messages.length === 0 ? null : (
                   <div className="space-y-6">
                     {messages.reduce((acc, message, index) => {
