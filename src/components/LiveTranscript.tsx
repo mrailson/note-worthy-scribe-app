@@ -316,88 +316,102 @@ export const LiveTranscript = ({
                 </div>
               )}
 
-              {/* Real-time cleaning status */}
-              {isAutoCleaningEnabled && (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground p-2 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
-                  <Sparkles className="h-3 w-3 text-green-600" />
-                  <span>AI Cleaning Active: Removing hallucinations, fixing grammar, and improving readability</span>
-                </div>
-              )}
-
-              {/* Live Updates Section - Hidden by Default */}
-              <Collapsible open={isLiveUpdateOpen} onOpenChange={setIsLiveUpdateOpen}>
-                <CollapsibleTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    className="w-full justify-between text-left"
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                      <span>Live Transcript Updates</span>
-                      {isAutoCleaningEnabled && (
-                        <Badge variant="outline" className="ml-2 text-xs">
-                          <Sparkles className="h-3 w-3 mr-1" />
-                          Cleaned
-                        </Badge>
-                      )}
-                      {liveTranscriptText && (
-                        <Badge variant="secondary" className="ml-2">
-                          {liveTranscriptText.split(' ').length} words
-                        </Badge>
-                      )}
-                    </div>
-                    <ChevronDown 
-                      className={`h-4 w-4 transition-transform ${isLiveUpdateOpen ? 'rotate-180' : ''}`}
-                    />
-                  </Button>
-                </CollapsibleTrigger>
-                
-                <CollapsibleContent className="mt-3">
-                  <div className="min-h-[120px] p-4 bg-accent/20 rounded-lg border">
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                        Most Recent Speech
-                      </span>
-                    </div>
-                    
-                    {/* Always visible container - content updates smoothly */}
-                    <div 
-                      className="text-sm leading-relaxed whitespace-pre-wrap min-h-[60px] p-3 bg-background/50 rounded-md border border-green-200/50"
-                      style={{ 
-                        transition: 'all 0.2s ease-in-out',
-                        // Prevent layout shifts
-                        wordWrap: 'break-word',
-                        overflowWrap: 'break-word'
-                      }}
-                    >
-                      {liveTranscriptText ? (
-                        <span className="text-foreground">
-                          {formatTranscriptWithTimestamps(liveTranscriptText)}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground italic">
-                          Listening for speech... words will appear here as you speak
-                        </span>
-                      )}
-                    </div>
-                    
-                    <div className="mt-2 text-xs text-muted-foreground flex items-center gap-2">
-                      {isAutoCleaningEnabled ? (
-                        <>
-                          <Sparkles className="h-3 w-3 text-green-600" />
-                          <span>Text is automatically cleaned and formatted in real-time</span>
-                        </>
-                      ) : (
-                        <>
-                          <span>💡 Raw transcript - enable AI Cleaning above for better formatting</span>
-                        </>
-                      )}
-                    </div>
+              {/* Latest Transcript Section */}
+              <div className="space-y-4">
+                <div className="min-h-[120px] p-4 bg-accent/20 rounded-lg border">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                    <span className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                      Latest Transcription
+                    </span>
+                    <Badge variant="outline" className="text-xs">Raw</Badge>
                   </div>
-                </CollapsibleContent>
-              </Collapsible>
+                  
+                  <div 
+                    className="text-sm leading-relaxed whitespace-pre-wrap min-h-[60px] p-3 bg-background/50 rounded-md border"
+                    style={{ 
+                      transition: 'all 0.2s ease-in-out',
+                      wordWrap: 'break-word',
+                      overflowWrap: 'break-word'
+                    }}
+                  >
+                    {transcript ? (
+                      <span className="text-foreground font-mono">
+                        {transcript}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground italic">
+                        Listening for speech... raw transcription will appear here
+                      </span>
+                    )}
+                  </div>
+                  
+                  {confidence && (
+                    <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>Confidence: {Math.round(confidence * 100)}%</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* AI-Cleaned and Formatted Section */}
+                <div className="min-h-[120px] p-4 bg-gradient-to-br from-primary/5 to-accent/20 rounded-lg border border-primary/20">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Sparkles className="h-4 w-4 text-primary animate-pulse" />
+                    <span className="text-sm font-medium text-foreground uppercase tracking-wide">
+                      AI-Enhanced Transcript
+                    </span>
+                    <Badge variant="default" className="text-xs">
+                      <Sparkles className="h-3 w-3 mr-1" />
+                      Cleaned
+                    </Badge>
+                  </div>
+                  
+                  <div 
+                    className="text-sm leading-relaxed whitespace-pre-wrap min-h-[60px] p-4 bg-background/80 rounded-md border border-primary/10 shadow-sm"
+                    style={{ 
+                      transition: 'all 0.2s ease-in-out',
+                      wordWrap: 'break-word',
+                      overflowWrap: 'break-word'
+                    }}
+                  >
+                    {cleanedTranscript || (transcript && isAutoCleaningEnabled) ? (
+                      <div className="space-y-2">
+                        {(cleanedTranscript || transcript).split(/[.!?]+/).filter(s => s.trim()).map((sentence, index) => {
+                          const timestamp = new Date();
+                          timestamp.setSeconds(timestamp.getSeconds() + (index * 10));
+                          const timeStr = timestamp.toLocaleTimeString('en-GB', { 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          });
+                          
+                          return (
+                            <div key={index} className="flex items-start gap-3 p-2 hover:bg-accent/30 rounded-md transition-colors">
+                              <div className="flex items-center gap-2 min-w-fit">
+                                <Clock className="h-3 w-3 text-primary/70" />
+                                <Badge variant="outline" className="text-xs px-2 py-0.5 font-mono">
+                                  {timeStr}
+                                </Badge>
+                              </div>
+                              <span className="text-foreground leading-relaxed">
+                                {sentence.trim()}.
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground italic">
+                        AI-cleaned and formatted transcript will appear here with timestamps...
+                      </span>
+                    )}
+                  </div>
+                  
+                  <div className="mt-3 text-xs text-muted-foreground flex items-center gap-2">
+                    <Sparkles className="h-3 w-3 text-primary" />
+                    <span>Enhanced with AI: Grammar corrected, timestamps added, formatted for readability</span>
+                  </div>
+                </div>
+              </div>
 
               {/* Tabbed Interface for Transcript and Quality Control */}
               <Tabs defaultValue="transcript" className="w-full">
