@@ -1726,65 +1726,21 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                             onExportPowerPoint={generatePowerPoint}
                           />
                         )}
-                        {/* Add action buttons for AI responses */}
-                        {group.role === 'assistant' && group.messages.some(m => m.content.length > 100) && (
+                        {/* Practice branding toggle */}
+                        {group.role === 'assistant' && group.messages.some(m => m.content.length > 100) && practiceContext.practiceName && (
                           <div className="space-y-3 mt-3 ml-11">
-                            {/* Practice branding toggle */}
-                            {practiceContext.practiceName && (
-                              <div className="flex items-center gap-2 p-2 bg-muted/30 rounded-md">
-                                <input
-                                  type="checkbox"
-                                  id="practice-branding"
-                                  checked={includePracticeBranding}
-                                  onChange={(e) => setIncludePracticeBranding(e.target.checked)}
-                                  className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-ring focus:ring-2"
-                                />
-                                <label htmlFor="practice-branding" className="text-sm text-muted-foreground cursor-pointer">
-                                  Include practice branding ({practiceContext.practiceName}
-                                  {practiceContext.logoUrl ? ' + logo' : ''})
-                                </label>
-                              </div>
-                            )}
-                            
-                            {/* Export buttons */}
-                            <div className="flex flex-col sm:flex-row gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setExpandedMessage(group.messages.length === 1 ? group.messages[0] : {
-                                  ...group.messages[0],
-                                  content: group.messages.map(m => m.content).join('\n\n'),
-                                  files: group.messages.flatMap(m => m.files || [])
-                                })}
-                                className="min-h-[44px] text-xs touch-manipulation"
-                              >
-                                <Expand className="h-3 w-3 mr-1" />
-                                Expand Full Screen
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => generateWordDocument(
-                                  group.messages.length === 1 ? group.messages[0].content : group.messages.map(m => m.content).join('\n\n'), 
-                                  'AI Generated Document'
-                                )}
-                                className="hidden sm:inline-flex min-h-[44px] text-xs touch-manipulation"
-                              >
-                                <FileDown className="h-3 w-3 mr-1" />
-                                Export as Word
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => generatePowerPoint(
-                                  group.messages.length === 1 ? group.messages[0].content : group.messages.map(m => m.content).join('\n\n'), 
-                                  'AI Generated Presentation'
-                                )}
-                                className="hidden sm:inline-flex min-h-[44px] text-xs touch-manipulation"
-                              >
-                                <Presentation className="h-3 w-3 mr-1" />
-                                Create PowerPoint
-                              </Button>
+                            <div className="flex items-center gap-2 p-2 bg-muted/30 rounded-md">
+                              <input
+                                type="checkbox"
+                                id="practice-branding"
+                                checked={includePracticeBranding}
+                                onChange={(e) => setIncludePracticeBranding(e.target.checked)}
+                                className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-ring focus:ring-2"
+                              />
+                              <label htmlFor="practice-branding" className="text-sm text-muted-foreground cursor-pointer">
+                                Include practice branding ({practiceContext.practiceName}
+                                {practiceContext.logoUrl ? ' + logo' : ''})
+                              </label>
                             </div>
                           </div>
                         )}
