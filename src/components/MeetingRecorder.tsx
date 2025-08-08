@@ -19,7 +19,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History, Search, Trash2, CheckSquare, SquareIcon, Monitor, Volume2, Waves, Video, Headphones, AlertCircle, Eye, EyeOff, RotateCcw, MonitorSpeaker, RefreshCw, Sparkles } from "lucide-react";
+import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History, Search, Trash2, CheckSquare, SquareIcon, Monitor, Volume2, Waves, Video, Headphones, AlertCircle, Eye, EyeOff, RotateCcw, MonitorSpeaker, RefreshCw, Sparkles, Pause } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { MeetingSettings } from "@/components/MeetingSettings";
@@ -109,6 +109,9 @@ export const MeetingRecorder = ({
   
   // Recording mode state
   const [recordingMode, setRecordingMode] = useState<'mic-only' | 'mic-and-system'>('mic-only');
+  
+  // Pause/Mute state
+  const [isPaused, setIsPaused] = useState(false);
   
   
   // Meeting history state
@@ -2852,6 +2855,80 @@ export const MeetingRecorder = ({
     }
   };
 
+  // Pause/Unpause recording functionality
+  const pauseRecording = () => {
+    try {
+      console.log('Pausing recording...');
+      setIsPaused(true);
+      
+      // Pause transcription services
+      if (browserTranscriberRef.current) {
+        browserTranscriberRef.current.stopTranscription();
+      }
+      if (iPhoneTranscriberRef.current) {
+        iPhoneTranscriberRef.current.stopTranscription();
+      }
+      if (desktopTranscriberRef.current) {
+        desktopTranscriberRef.current.stopTranscription();
+      }
+      
+      // Mute audio streams but keep them alive
+      if (micAudioStreamRef.current) {
+        micAudioStreamRef.current.getAudioTracks().forEach(track => {
+          track.enabled = false;
+        });
+      }
+      if (screenStreamRef.current) {
+        screenStreamRef.current.getAudioTracks().forEach(track => {
+          track.enabled = false;
+        });
+      }
+      
+      addDebugLog('⏸️ Recording paused - audio muted and transcription stopped');
+      toast.success("Recording paused");
+    } catch (error) {
+      console.error('Error pausing recording:', error);
+      toast.error("Failed to pause recording");
+    }
+  };
+
+  const unpauseRecording = async () => {
+    try {
+      console.log('Unpausing recording...');
+      setIsPaused(false);
+      
+      // Unmute audio streams
+      if (micAudioStreamRef.current) {
+        micAudioStreamRef.current.getAudioTracks().forEach(track => {
+          track.enabled = true;
+        });
+      }
+      if (screenStreamRef.current) {
+        screenStreamRef.current.getAudioTracks().forEach(track => {
+          track.enabled = true;
+        });
+      }
+      
+      // Resume transcription based on current mode
+      if (recordingMode === 'mic-only') {
+        await startMicrophoneTranscription();
+      } else if (recordingMode === 'mic-and-system') {
+        const isChrome = /Chrome/.test(navigator.userAgent) && !/Edg/.test(navigator.userAgent);
+        const isEdge = /Edg/.test(navigator.userAgent);
+        if (isChrome || isEdge) {
+          await startComputerAudioTranscription();
+        } else {
+          await startMicrophoneTranscription();
+        }
+      }
+      
+      addDebugLog('▶️ Recording resumed - audio unmuted and transcription restarted');
+      toast.success("Recording resumed");
+    } catch (error) {
+      console.error('Error unpausing recording:', error);
+      toast.error("Failed to resume recording");
+    }
+  };
 
   // Settings handlers
   const handleSettingsChange = (newSettings: any) => {
@@ -2968,31 +3045,57 @@ export const MeetingRecorder = ({
                       </Button>
                     </div>
                   ) : (
-                    <div className="space-y-1">
+                     <div className="space-y-1">
                       <div className="flex items-center justify-between gap-3 text-primary animate-pulse bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg p-4 border border-primary/20">
                         <div className="flex items-center gap-3">
                           <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-                          <span className="text-base font-semibold">Recording in progress...</span>
+                          <span className="text-base font-semibold">
+                            {isPaused ? "Recording paused..." : "Recording in progress..."}
+                          </span>
                         </div>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              onClick={() => setTickerEnabled(prev => { const next = !prev; if (!next) setShowTranscriptSnippet(false); return next; })}
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0 text-primary hover:bg-primary/10"
-                            >
-                              {tickerEnabled ? (
-                                <Eye className="h-4 w-4" />
-                              ) : (
-                                <EyeOff className="h-4 w-4" />
-                              )}
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>{tickerEnabled ? "Hide Live Speech" : "Show Live Speech"}</p>
-                          </TooltipContent>
-                        </Tooltip>
+                        <div className="flex items-center gap-2">
+                          {/* Pause/Unpause Button */}
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                onClick={isPaused ? unpauseRecording : pauseRecording}
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0 text-primary hover:bg-primary/10"
+                              >
+                                {isPaused ? (
+                                  <Play className="h-4 w-4" />
+                                ) : (
+                                  <Pause className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{isPaused ? "Resume Recording" : "Pause Recording"}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                          
+                          {/* Show/Hide Live Speech Toggle */}
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                onClick={() => setTickerEnabled(prev => { const next = !prev; if (!next) setShowTranscriptSnippet(false); return next; })}
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0 text-primary hover:bg-primary/10"
+                              >
+                                {tickerEnabled ? (
+                                  <Eye className="h-4 w-4" />
+                                ) : (
+                                  <EyeOff className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{tickerEnabled ? "Hide Live Speech" : "Show Live Speech"}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
                       </div>
                       
                       {/* Ticker tape for live transcription */}
