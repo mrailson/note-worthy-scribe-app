@@ -8,6 +8,8 @@ import {
   DropdownMenuSub,
   DropdownMenuSubTrigger,
   DropdownMenuSubContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning, Sparkles, Mail, Users, Clock, FolderOpen, Wrench, BookOpen, Menu } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -258,7 +260,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                   <Menu className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-background border border-border shadow-lg z-[100] w-56">
+              <DropdownMenuContent align="end" sideOffset={8} className="bg-background border border-border shadow-lg z-[100] w-[88vw] sm:w-56 max-w-[90vw] mr-2">
                 {user ? (
                   <>
                     <DropdownMenuItem 
@@ -275,81 +277,69 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                       <Home className="h-4 w-4 mr-2" />
                       Home
                     </DropdownMenuItem>
-                    <DropdownMenuSub>
-                      <DropdownMenuSubTrigger className="cursor-pointer py-3">
-                        <Grid3X3 className="h-4 w-4 mr-2" />
-                        Services
-                      </DropdownMenuSubTrigger>
-                      <DropdownMenuSubContent className="bg-background border border-border shadow-lg">
-                        {hasModuleAccess('meeting_recorder') && (
-                          <DropdownMenuItem onClick={() => navigate('/')} className="cursor-pointer py-3">
-                            <FileText className="h-4 w-4 mr-2" />
-                            Meeting Notes
-                          </DropdownMenuItem>
-                        )}
-                        {hasModuleAccess('gp_scribe') && (
-                          <DropdownMenuItem onClick={() => navigate('/gp-scribe')} className="cursor-pointer py-3">
-                            <Stethoscope className="h-4 w-4 mr-2" />
-                            GP Scribe
-                          </DropdownMenuItem>
-                        )}
-                        {hasModuleAccess('complaints_system') && (
-                          <DropdownMenuItem onClick={() => navigate('/complaints')} className="cursor-pointer py-3">
-                            <MessageSquareWarning className="h-4 w-4 mr-2" />
-                            Complaints System
-                          </DropdownMenuItem>
-                        )}
-                        {hasModuleAccess('ai_4_pm') && (
-                          <DropdownMenuItem onClick={() => navigate('/ai-4-pm')} className="cursor-pointer py-3">
-                            <Sparkles className="h-4 w-4 mr-2" />
-                            AI 4 PM Assistant
-                          </DropdownMenuItem>
-                        )}
-                        {hasModuleAccess('enhanced_access') && (
-                          <DropdownMenuItem onClick={() => navigate('/enhanced-access')} className="cursor-pointer py-3">
-                            <Clock className="h-4 w-4 mr-2" />
-                            Enhanced Access
-                          </DropdownMenuItem>
-                        )}
-                        {hasModuleAccess('replywell') && (
-                          <DropdownMenuItem onClick={() => navigate('/replywell')} className="cursor-pointer py-3">
-                            <Mail className="h-4 w-4 mr-2" />
-                            ReplyWell
-                          </DropdownMenuItem>
-                        )}
-                        <DropdownMenuItem onClick={() => navigate('/cqc-compliance')} className="cursor-pointer py-3">
-                          <Shield className="h-4 w-4 mr-2" />
-                          CQC Compliance
-                        </DropdownMenuItem>
-                        {sharedDriveVisible && (
-                          <DropdownMenuItem onClick={() => navigate('/shared-drive')} className="cursor-pointer py-3">
-                            <FolderOpen className="h-4 w-4 mr-2" />
-                            Shared Drive
-                          </DropdownMenuItem>
-                        )}
-                      </DropdownMenuSubContent>
-                    </DropdownMenuSub>
+                    <DropdownMenuLabel className="text-xs text-muted-foreground px-2 py-1">Services</DropdownMenuLabel>
+                    {hasModuleAccess('meeting_recorder') && (
+                      <DropdownMenuItem onClick={() => navigate('/')} className="cursor-pointer py-3">
+                        <FileText className="h-4 w-4 mr-2" />
+                        Meeting Notes
+                      </DropdownMenuItem>
+                    )}
+                    {hasModuleAccess('gp_scribe') && (
+                      <DropdownMenuItem onClick={() => navigate('/gp-scribe')} className="cursor-pointer py-3">
+                        <Stethoscope className="h-4 w-4 mr-2" />
+                        GP Scribe
+                      </DropdownMenuItem>
+                    )}
+                    {hasModuleAccess('complaints_system') && (
+                      <DropdownMenuItem onClick={() => navigate('/complaints')} className="cursor-pointer py-3">
+                        <MessageSquareWarning className="h-4 w-4 mr-2" />
+                        Complaints System
+                      </DropdownMenuItem>
+                    )}
+                    {hasModuleAccess('ai_4_pm') && (
+                      <DropdownMenuItem onClick={() => navigate('/ai-4-pm')} className="cursor-pointer py-3">
+                        <Sparkles className="h-4 w-4 mr-2" />
+                        AI 4 PM Assistant
+                      </DropdownMenuItem>
+                    )}
+                    {hasModuleAccess('enhanced_access') && (
+                      <DropdownMenuItem onClick={() => navigate('/enhanced-access')} className="cursor-pointer py-3">
+                        <Clock className="h-4 w-4 mr-2" />
+                        Enhanced Access
+                      </DropdownMenuItem>
+                    )}
+                    {hasModuleAccess('replywell') && (
+                      <DropdownMenuItem onClick={() => navigate('/replywell')} className="cursor-pointer py-3">
+                        <Mail className="h-4 w-4 mr-2" />
+                        ReplyWell
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem onClick={() => navigate('/cqc-compliance')} className="cursor-pointer py-3">
+                      <Shield className="h-4 w-4 mr-2" />
+                      CQC Compliance
+                    </DropdownMenuItem>
+                    {sharedDriveVisible && (
+                      <DropdownMenuItem onClick={() => navigate('/shared-drive')} className="cursor-pointer py-3">
+                        <FolderOpen className="h-4 w-4 mr-2" />
+                        Shared Drive
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem onClick={() => navigate('/settings')} className="cursor-pointer py-3">
                       <Settings className="h-4 w-4 mr-2" />
                       User Settings
                     </DropdownMenuItem>
                     {isAdmin && (
-                      <DropdownMenuSub>
-                        <DropdownMenuSubTrigger className="cursor-pointer py-3">
-                          <Shield className="h-4 w-4 mr-2" />
-                          System Admin
-                        </DropdownMenuSubTrigger>
-                        <DropdownMenuSubContent className="bg-background border border-border shadow-lg">
-                          <DropdownMenuItem onClick={() => navigate('/admin')} className="cursor-pointer py-3">
-                            <Wrench className="h-4 w-4 mr-2" />
-                            Admin Dashboard
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => navigate('/compliance-docs')} className="cursor-pointer py-3">
-                            <BookOpen className="h-4 w-4 mr-2" />
-                            Security Documentation
-                          </DropdownMenuItem>
-                        </DropdownMenuSubContent>
-                      </DropdownMenuSub>
+                      <>
+                        <DropdownMenuLabel className="text-xs text-muted-foreground px-2 py-1">System Admin</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={() => navigate('/admin')} className="cursor-pointer py-3">
+                          <Wrench className="h-4 w-4 mr-2" />
+                          Admin Dashboard
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate('/compliance-docs')} className="cursor-pointer py-3">
+                          <BookOpen className="h-4 w-4 mr-2" />
+                          Security Documentation
+                        </DropdownMenuItem>
+                      </>
                     )}
                     <DropdownMenuItem onClick={signOut} className="cursor-pointer py-3">
                       <LogOut className="h-4 w-4 mr-2" />
