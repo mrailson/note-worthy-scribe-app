@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   ChevronDown, 
-  ChevronUp, 
+  ChevronsUp, 
   Copy, 
   Bot, 
   User,
@@ -359,7 +359,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                     className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-muted-foreground hover:text-foreground"
                     title="Scroll to top of this message"
                   >
-                    <ChevronUp className="h-3 w-3" />
+                    <ChevronsUp className="h-3 w-3" />
                   </Button>
                   
                   {/* Expand to full screen button */}
