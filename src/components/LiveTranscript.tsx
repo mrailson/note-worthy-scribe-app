@@ -85,32 +85,41 @@ export const LiveTranscript = ({
   const [practices, setPractices] = useState<Array<{id: string, name: string}>>([]);
   const [practiceSearchOpen, setPracticeSearchOpen] = useState(false);
   
-  // Load user's practices
-  useEffect(() => {
-    const loadUserPractices = async () => {
-      if (!user?.id) return;
-      
-      try {
-        const { data: userPracticeIds } = await supabase.rpc('get_user_practice_ids', {
-          p_user_id: user.id
-        });
+  // Load user's practices (with refetch when selector opens)
+  const fetchUserPractices = async () => {
+    if (!user?.id) return;
+    try {
+      const { data: userPracticeIds } = await supabase.rpc('get_user_practice_ids', {
+        p_user_id: user.id
+      });
 
-        if (userPracticeIds && userPracticeIds.length > 0) {
-          const { data: practicesData, error } = await supabase
-            .from('gp_practices')
-            .select('id, name')
-            .in('id', userPracticeIds);
+      if (userPracticeIds && userPracticeIds.length > 0) {
+        const { data: practicesData, error } = await supabase
+          .from('gp_practices')
+          .select('id, name')
+          .in('id', userPracticeIds);
 
-          if (error) throw error;
-          setPractices(practicesData || []);
-        }
-      } catch (error) {
-        console.error('Error loading practices:', error);
+        if (error) throw error;
+        setPractices(practicesData || []);
+      } else {
+        setPractices([]);
       }
-    };
+    } catch (error) {
+      console.error('Error loading practices:', error);
+    }
+  };
 
-    loadUserPractices();
+  // Initial load
+  useEffect(() => {
+    fetchUserPractices();
   }, [user?.id]);
+
+  // Refresh when opening meeting settings or practice search popover
+  useEffect(() => {
+    if (practiceSearchOpen || isMeetingSettingsOpen) {
+      fetchUserPractices();
+    }
+  }, [practiceSearchOpen, isMeetingSettingsOpen]);
   
 
   // Generate speaker colors
