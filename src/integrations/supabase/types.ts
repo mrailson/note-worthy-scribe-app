@@ -3427,7 +3427,9 @@ export type Database = {
           assigned_by: string | null
           complaints_admin_access: boolean | null
           complaints_manager_access: boolean | null
+          cqc_compliance_access: boolean | null
           created_at: string | null
+          enhanced_access: boolean | null
           gp_scribe_access: boolean | null
           id: string
           meeting_notes_access: boolean | null
@@ -3442,7 +3444,9 @@ export type Database = {
           assigned_by?: string | null
           complaints_admin_access?: boolean | null
           complaints_manager_access?: boolean | null
+          cqc_compliance_access?: boolean | null
           created_at?: string | null
+          enhanced_access?: boolean | null
           gp_scribe_access?: boolean | null
           id?: string
           meeting_notes_access?: boolean | null
@@ -3457,7 +3461,9 @@ export type Database = {
           assigned_by?: string | null
           complaints_admin_access?: boolean | null
           complaints_manager_access?: boolean | null
+          cqc_compliance_access?: boolean | null
           created_at?: string | null
+          enhanced_access?: boolean | null
           gp_scribe_access?: boolean | null
           id?: string
           meeting_notes_access?: boolean | null

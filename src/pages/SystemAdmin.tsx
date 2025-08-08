@@ -1620,7 +1620,41 @@ const handleUserSubmit = async (e: React.FormEvent) => {
                       <div className="space-y-0.5">
                         <Label htmlFor="ai_4_pm_access">AI 4 PM Assistant</Label>
                         <p className="text-xs text-muted-foreground">Access to AI practice management tools</p>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="enhanced_access">Enhanced Access</Label>
+                        <p className="text-xs text-muted-foreground">Access to enhanced appointment booking and patient services</p>
                       </div>
+                      <Switch
+                        id="enhanced_access"
+                        checked={userFormData.module_access.enhanced_access}
+                        onCheckedChange={(checked) => 
+                          setUserFormData({
+                            ...userFormData, 
+                            module_access: {...userFormData.module_access, enhanced_access: checked}
+                          })
+                        }
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="cqc_compliance_access">CQC Compliance</Label>
+                        <p className="text-xs text-muted-foreground">Access to CQC compliance monitoring and assessment tools</p>
+                      </div>
+                      <Switch
+                        id="cqc_compliance_access"
+                        checked={userFormData.module_access.cqc_compliance_access}
+                        onCheckedChange={(checked) => 
+                          setUserFormData({
+                            ...userFormData, 
+                            module_access: {...userFormData.module_access, cqc_compliance_access: checked}
+                          })
+                        }
+                      />
+                    </div>
                       <Switch
                         id="ai_4_pm_access"
                         checked={userFormData.module_access.ai_4_pm_access}
