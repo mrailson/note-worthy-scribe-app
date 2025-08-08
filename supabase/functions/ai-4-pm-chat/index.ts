@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import mammoth from "https://esm.sh/mammoth@1.6.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -26,6 +27,99 @@ interface RequestBody {
   model: 'claude' | 'gpt' | 'chatgpt5';
   systemPrompt: string;
   files?: UploadedFile[];
+}
+
+// Helper function to extract text content from files
+async function extractFileContent(file: UploadedFile): Promise<string> {
+  try {
+    const fileName = file.name.toLowerCase();
+    const fileType = file.type;
+    
+    // Handle Word documents
+    if (fileName.endsWith('.docx') || fileType.includes('wordprocessingml')) {
+      return await extractWordContent(file);
+    }
+    
+    // Handle text files
+    if (fileName.endsWith('.txt') || fileType.includes('text/plain')) {
+      return extractTextContent(file);
+    }
+    
+    // Handle PDFs (basic extraction)
+    if (fileName.endsWith('.pdf') || fileType.includes('pdf')) {
+      return extractPdfContent(file);
+    }
+    
+    // Handle PowerPoint files (basic extraction)
+    if (fileName.endsWith('.pptx') || fileName.endsWith('.ppt') || fileType.includes('presentation')) {
+      return extractPowerPointContent(file);
+    }
+    
+    // For other file types, return the original content (might be base64)
+    console.log(`Unsupported file type: ${fileName}, type: ${fileType}`);
+    return `[File: ${file.name} - Content extraction not supported for this file type. Please convert to .txt, .docx format for full text extraction.]`;
+    
+  } catch (error) {
+    console.error(`Error extracting content from ${file.name}:`, error);
+    return `[Error extracting content from ${file.name}: ${error.message}]`;
+  }
+}
+
+async function extractWordContent(file: UploadedFile): Promise<string> {
+  try {
+    // Convert base64 to array buffer
+    const base64Data = file.content.replace(/^data:.*,/, '');
+    const binaryString = atob(base64Data);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    
+    const result = await mammoth.extractRawText({ arrayBuffer: bytes.buffer });
+    return result.value || '[No text content found in Word document]';
+  } catch (error) {
+    console.error('Error extracting Word content:', error);
+    throw new Error(`Failed to extract Word document content: ${error.message}`);
+  }
+}
+
+function extractTextContent(file: UploadedFile): string {
+  try {
+    // If it's base64 encoded text file
+    if (file.content.startsWith('data:')) {
+      const base64Data = file.content.replace(/^data:.*,/, '');
+      return atob(base64Data);
+    }
+    // Otherwise return as-is
+    return file.content;
+  } catch (error) {
+    console.error('Error extracting text content:', error);
+    return file.content; // Fallback to original content
+  }
+}
+
+function extractPdfContent(file: UploadedFile): string {
+  // Basic PDF handling - in a real implementation you'd use a PDF parser
+  // For now, return a message asking user to copy/paste text
+  const fileSize = (file.size / 1024 / 1024).toFixed(2);
+  return `[PDF File: ${file.name} (${fileSize}MB) - For best results with PDF files, please:
+1. Open your PDF file
+2. Select all text (Ctrl+A or Cmd+A)  
+3. Copy the text (Ctrl+C or Cmd+C)
+4. Paste the text directly in your message instead of uploading the PDF
+
+PDF automatic text extraction is limited in this environment. Converting to .docx or .txt format will provide better results.]`;
+}
+
+function extractPowerPointContent(file: UploadedFile): string {
+  // Basic PowerPoint handling - in a real implementation you'd use a PPTX parser
+  const fileSize = (file.size / 1024 / 1024).toFixed(2);
+  return `[PowerPoint File: ${file.name} (${fileSize}MB) - For best results with PowerPoint files, please:
+1. Open your PowerPoint file
+2. Copy the text content from slides
+3. Paste the text directly in your message
+
+PowerPoint automatic text extraction is limited. Converting to .docx or .txt format will provide better results.]`;
 }
 
 async function callClaude(messages: Message[], systemPrompt: string, files?: UploadedFile[]): Promise<string> {
@@ -209,14 +303,41 @@ serve(async (req) => {
     console.log('SystemPrompt:', systemPrompt ? 'Present' : 'Missing');
     console.log('Messages content check:', messages.map(m => ({ role: m.role, hasContent: !!m.content })));
 
+    // Process uploaded files to extract text content
+    const processedMessages = await Promise.all(
+      messages.map(async (message) => {
+        if (message.files && message.files.length > 0) {
+          console.log(`Processing ${message.files.length} files for message`);
+          
+          // Extract text content from each file
+          const processedFiles = await Promise.all(
+            message.files.map(async (file) => {
+              console.log(`Extracting content from: ${file.name} (${file.type})`);
+              const extractedContent = await extractFileContent(file);
+              return {
+                ...file,
+                content: extractedContent
+              };
+            })
+          );
+          
+          return {
+            ...message,
+            files: processedFiles
+          };
+        }
+        return message;
+      })
+    );
+
     let response: string;
 
     if (model === 'claude') {
-      response = await callClaude(messages, systemPrompt, files);
+      response = await callClaude(processedMessages, systemPrompt, files);
     } else if (model === 'gpt') {
-      response = await callGPT(messages, systemPrompt, files);
+      response = await callGPT(processedMessages, systemPrompt, files);
     } else if (model === 'chatgpt5') {
-      response = await callGPT5(messages, systemPrompt, files);
+      response = await callGPT5(processedMessages, systemPrompt, files);
     } else {
       throw new Error('Invalid model specified');
     }
