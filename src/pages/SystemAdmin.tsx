@@ -1620,6 +1620,17 @@ const handleUserSubmit = async (e: React.FormEvent) => {
                       <div className="space-y-0.5">
                         <Label htmlFor="ai_4_pm_access">AI 4 PM Assistant</Label>
                         <p className="text-xs text-muted-foreground">Access to AI practice management tools</p>
+                      </div>
+                      <Switch
+                        id="ai_4_pm_access"
+                        checked={userFormData.module_access.ai_4_pm_access}
+                        onCheckedChange={(checked) => 
+                          setUserFormData({
+                            ...userFormData, 
+                            module_access: {...userFormData.module_access, ai_4_pm_access: checked}
+                          })
+                        }
+                      />
                     </div>
 
                     <div className="flex items-center justify-between">
@@ -1651,17 +1662,6 @@ const handleUserSubmit = async (e: React.FormEvent) => {
                           setUserFormData({
                             ...userFormData, 
                             module_access: {...userFormData.module_access, cqc_compliance_access: checked}
-                          })
-                        }
-                      />
-                    </div>
-                      <Switch
-                        id="ai_4_pm_access"
-                        checked={userFormData.module_access.ai_4_pm_access}
-                        onCheckedChange={(checked) => 
-                          setUserFormData({
-                            ...userFormData, 
-                            module_access: {...userFormData.module_access, ai_4_pm_access: checked}
                           })
                         }
                       />
