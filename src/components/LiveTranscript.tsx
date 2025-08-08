@@ -202,14 +202,6 @@ export const LiveTranscript = ({
                     Timestamps
                   </Button>
                   
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsSpeakersOpen(!isSpeakersOpen)}
-                  >
-                    <Users className="h-4 w-4 mr-2" />
-                    Speakers ({speakers.length})
-                  </Button>
 
                   <Button
                     variant={isAutoCleaningEnabled ? 'default' : 'outline'}
@@ -249,60 +241,6 @@ export const LiveTranscript = ({
                 )}
               </div>
 
-              {/* Speaker Management */}
-              {isSpeakersOpen && (
-                <div className="border rounded-lg p-4 bg-muted/30 space-y-3">
-                  <div className="flex items-center gap-2 text-sm font-medium">
-                    <Users className="h-4 w-4" />
-                    Speaker Management
-                  </div>
-                  
-                  {/* Current Speakers */}
-                  {speakers.length > 0 && (
-                    <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground">Current Speakers:</Label>
-                      <div className="flex flex-wrap gap-2">
-                        {speakers.map(speaker => (
-                          <Badge key={speaker.id} className={`${speaker.color} flex items-center gap-1`}>
-                            {speaker.name}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-3 w-3 p-0 hover:bg-red-200"
-                              onClick={() => removeSpeaker(speaker.id)}
-                            >
-                              <X className="h-2 w-2" />
-                            </Button>
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Add New Speaker */}
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Enter speaker name or initials"
-                      value={newSpeakerName}
-                      onChange={(e) => setNewSpeakerName(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && addSpeaker()}
-                      className="flex-1"
-                    />
-                    <Button 
-                      onClick={addSpeaker} 
-                      disabled={!newSpeakerName.trim()}
-                      size="sm"
-                    >
-                      <Plus className="h-4 w-4 mr-1" />
-                      Add Speaker
-                    </Button>
-                  </div>
-                  
-                  <p className="text-xs text-muted-foreground">
-                    💡 Speakers from meeting attendees are automatically added. You can add more speakers manually.
-                  </p>
-                </div>
-              )}
 
               {/* Latest Transcript Section */}
               <div className="space-y-4">
