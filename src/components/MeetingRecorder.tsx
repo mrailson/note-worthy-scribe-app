@@ -2956,36 +2956,7 @@ export const MeetingRecorder = ({
               <CardContent className="pt-4 pb-4">
                 <div className="text-center space-y-4">
                   {!isRecording ? (
-                    <div className="space-y-4">
-                      {/* Recording Mode Selector - Hidden on iPhone/iOS */}
-                      {!/iPhone|iPad|iPod|iOS/i.test(navigator.userAgent) && (
-                        <div className="flex items-center justify-center gap-3">
-                          <Label className="text-sm font-medium whitespace-nowrap">Recording Mode:</Label>
-                          <Select 
-                            value={recordingMode} 
-                            onValueChange={(value: 'mic-only' | 'mic-and-system') => setRecordingMode(value)}
-                            disabled={isRecording}
-                          >
-                            <SelectTrigger className="w-48 bg-background border-border z-50">
-                              <SelectValue placeholder="Select recording mode" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-background border-border shadow-lg z-50">
-                              <SelectItem value="mic-only" className="cursor-pointer">
-                                <div className="flex items-center gap-2">
-                                  <Mic className="h-4 w-4 text-blue-600" />
-                                  <div className="font-medium">Microphone Only</div>
-                                </div>
-                              </SelectItem>
-                              <SelectItem value="mic-and-system" className="cursor-pointer">
-                                <div className="flex items-center gap-2">
-                                  <MonitorSpeaker className="h-4 w-4 text-orange-600" />
-                                  <div className="font-medium">Microphone + Meeting Audio</div>
-                                </div>
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      )}
+                     <div className="space-y-4">
                       
                       <Button 
                         onClick={startRecording}
