@@ -1131,16 +1131,23 @@ Always provide practical, actionable advice that follows NHS guidelines and best
             })
           );
         }
-        // Handle bullet points
+        // Handle bullet points - convert to checkboxes for consistency
         else if (trimmedLine.startsWith('•') || trimmedLine.startsWith('-')) {
           const bulletText = trimmedLine.replace(/^[•-]\s*/, '');
+          
           paragraphs.push(
             new Paragraph({
-              children: processFormattedText(bulletText),
-              bullet: {
-                level: 0,
-              },
-              spacing: { after: 100 }
+              children: [
+                new TextRun({
+                  text: '☐ ',
+                  size: 24,
+                  color: "666666", // Gray for unchecked
+                  font: "Segoe UI Symbol"
+                }),
+                ...processFormattedText(bulletText)
+              ],
+              spacing: { after: 100 },
+              indent: { left: 100 }
             })
           );
         }
