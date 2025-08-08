@@ -240,6 +240,12 @@ const AI4PMService = () => {
       voiceChatRef.current = new RealtimeChat(handleVoiceMessage);
       await voiceChatRef.current.init('shimmer');
       
+      // Apply saved mute state after initialization
+      if (voiceChatRef.current && isVoiceMuted) {
+        voiceChatRef.current.setMuted(true);
+        console.log('Applied saved mute state:', isVoiceMuted);
+      }
+      
       setIsVoiceConnected(true);
       setIsVoiceConnecting(false);
       
