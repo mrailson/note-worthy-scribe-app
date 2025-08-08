@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -130,6 +131,7 @@ const AI4PMService = () => {
   const [chatBoxSize, setChatBoxSize] = useState('default'); // 'small', 'default', 'large', 'extra-large'
   const [includePracticeBranding, setIncludePracticeBranding] = useState(true);
   const [practiceDetails, setPracticeDetails] = useState<any>(null);
+  const [showQuickActions, setShowQuickActions] = useState(false);
   
   const [expandedMessage, setExpandedMessage] = useState<Message | null>(null);
   const [showVoiceAgent, setShowVoiceAgent] = useState(false);
@@ -1569,6 +1571,22 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                           <span className="hidden sm:inline">New Chat</span>
                           <span className="sm:hidden">New</span>
                         </Button>
+
+                        {/* Quick Actions Expandable Button */}
+                        <Collapsible open={showQuickActions} onOpenChange={setShowQuickActions}>
+                          <CollapsibleTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="px-3 min-h-[44px] touch-manipulation ml-2"
+                              title="Quick Actions"
+                            >
+                              <Sparkles className="h-4 w-4 mr-1" />
+                              <span className="hidden sm:inline">Quick Actions</span>
+                              <span className="sm:hidden">Quick</span>
+                            </Button>
+                          </CollapsibleTrigger>
+                        </Collapsible>
                         
                         {/* Voice Chat Button in collapsed view */}
                         {!isVoiceConnected ? (
@@ -1625,31 +1643,32 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                   </div>
                 </div>
               </CardHeader>
-              
-              {/* Quick Action Buttons - Prominent placement */}
-              {messages.length === 0 && (
-                <div className="px-4 pb-4 border-b border-border">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Sparkles className="h-4 w-4 text-primary" />
-                    <span className="text-sm font-medium">Quick Actions</span>
+
+              {/* Quick Actions Collapsible Content */}
+              <Collapsible open={showQuickActions} onOpenChange={setShowQuickActions}>
+                <CollapsibleContent className="px-4 pb-4 border-b border-border">
+                  <div className="animate-fade-in">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                      {quickActions.map((action, index) => (
+                        <Button
+                          key={index}
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            handleQuickAction(action);
+                            setShowQuickActions(false); // Close after selection
+                          }}
+                          className="h-auto p-3 flex flex-col items-center gap-2 text-center min-h-[70px] hover:bg-primary/5 hover:border-primary/20 transition-all duration-200"
+                          disabled={action.requiresFile && uploadedFiles.length === 0}
+                        >
+                          <action.icon className="h-4 w-4 flex-shrink-0 text-primary" />
+                          <span className="text-xs font-medium leading-tight">{action.label}</span>
+                        </Button>
+                      ))}
+                    </div>
                   </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                    {quickActions.map((action, index) => (
-                      <Button
-                        key={index}
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleQuickAction(action)}
-                        className="h-auto p-3 flex flex-col items-center gap-2 text-center min-h-[70px] hover:bg-primary/5 hover:border-primary/20 transition-all duration-200"
-                        disabled={action.requiresFile && uploadedFiles.length === 0}
-                      >
-                        <action.icon className="h-4 w-4 flex-shrink-0 text-primary" />
-                        <span className="text-xs font-medium leading-tight">{action.label}</span>
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              )}
+                </CollapsibleContent>
+              </Collapsible>
               
               <CardContent className="flex flex-col h-full p-0">
                 {/* Messages */}
