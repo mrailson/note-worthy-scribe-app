@@ -1302,6 +1302,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
         }
         
         i++;
+      }
 
       const doc = new Document({
         sections: [{
