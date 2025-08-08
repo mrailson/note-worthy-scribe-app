@@ -8,6 +8,9 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { transcriptCleaner } from "@/utils/TranscriptCleaner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { medicalTermCorrector } from "@/utils/MedicalTermCorrector";
+import { MedicalTermCorrectionDialog } from "@/components/MedicalTermCorrectionDialog";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   MessageSquare, 
   ChevronDown, 
@@ -58,6 +61,8 @@ export const LiveTranscript = ({
   const [liveTranscriptText, setLiveTranscriptText] = useState<string>("");
   const [cleanedTranscript, setCleanedTranscript] = useState<string>("");
   const [isAutoCleaningEnabled, setIsAutoCleaningEnabled] = useState<boolean>(true);
+  const [selectedText, setSelectedText] = useState<string>("");
+  const [isMedicalCorrectionsLoaded, setIsMedicalCorrectionsLoaded] = useState<boolean>(false);
   
 
   // Generate speaker colors
@@ -83,22 +88,54 @@ export const LiveTranscript = ({
     }
   }, [attendees]);
 
+  // Load medical term corrections on component mount
+  useEffect(() => {
+    const loadMedicalCorrections = async () => {
+      try {
+        const { data: user } = await supabase.auth.getUser();
+        if (user.user) {
+          await medicalTermCorrector.loadCorrections(user.user.id);
+        } else {
+          await medicalTermCorrector.loadCorrections();
+        }
+        setIsMedicalCorrectionsLoaded(true);
+      } catch (error) {
+        console.error('Error loading medical corrections:', error);
+      }
+    };
+
+    loadMedicalCorrections();
+  }, []);
+
   // Update live transcript text when transcript prop changes
   useEffect(() => {
     if (transcript && transcript.trim()) {
-      const newSegment = transcript;
+      let processedTranscript = transcript;
+      
+      // Apply medical term corrections if loaded
+      if (isMedicalCorrectionsLoaded && medicalTermCorrector.hasCorrections()) {
+        processedTranscript = medicalTermCorrector.applyCorrections(transcript);
+      }
       
       if (isAutoCleaningEnabled) {
         // Use streaming cleaner with confidence filtering
-        const cleanedNew = transcriptCleaner.cleanStreamingTranscript(cleanedTranscript, newSegment, confidence);
+        const cleanedNew = transcriptCleaner.cleanStreamingTranscript(cleanedTranscript, processedTranscript, confidence);
         setCleanedTranscript(cleanedNew);
         setLiveTranscriptText(cleanedNew); // Show cleaned version
       } else {
-        setLiveTranscriptText(newSegment); // Show raw version
+        setLiveTranscriptText(processedTranscript); // Show processed version
       }
     }
     // Don't clear liveTranscriptText when transcript becomes empty - keep last content visible
-  }, [transcript, isAutoCleaningEnabled, cleanedTranscript]);
+  }, [transcript, isAutoCleaningEnabled, cleanedTranscript, isMedicalCorrectionsLoaded]);
+
+  // Handle text selection for corrections
+  const handleTextSelection = () => {
+    const selection = window.getSelection();
+    if (selection && selection.toString().trim()) {
+      setSelectedText(selection.toString().trim());
+    }
+  };
 
   const addSpeaker = () => {
     if (newSpeakerName.trim()) {
@@ -202,7 +239,6 @@ export const LiveTranscript = ({
                     Timestamps
                   </Button>
                   
-
                   <Button
                     variant={isAutoCleaningEnabled ? 'default' : 'outline'}
                     size="sm"
@@ -213,6 +249,18 @@ export const LiveTranscript = ({
                     <span className="hidden sm:inline">AI Cleaning</span>
                     <span className="sm:hidden">Clean</span>
                   </Button>
+
+                  <MedicalTermCorrectionDialog
+                    selectedText={selectedText}
+                    onCorrectionAdded={async () => {
+                      // Refresh corrections when new ones are added
+                      const { data: user } = await supabase.auth.getUser();
+                      if (user.user) {
+                        await medicalTermCorrector.refreshCorrections(user.user.id);
+                      }
+                      setIsMedicalCorrectionsLoaded(true);
+                    }}
+                  />
                 </div>
                 
                 {transcript && speakers.length > 0 && (
@@ -293,12 +341,14 @@ export const LiveTranscript = ({
                   </div>
                   
                   <div 
-                    className="text-sm leading-relaxed whitespace-pre-wrap min-h-[60px] p-4 bg-background/80 rounded-md border border-primary/10 shadow-sm"
+                    className="text-sm leading-relaxed whitespace-pre-wrap min-h-[60px] p-4 bg-background/80 rounded-md border border-primary/10 shadow-sm select-text cursor-text"
                     style={{ 
                       transition: 'all 0.2s ease-in-out',
                       wordWrap: 'break-word',
-                      overflowWrap: 'break-word'
+                      overflowWrap: 'break-word',
+                      userSelect: 'text'
                     }}
+                    onMouseUp={handleTextSelection}
                   >
                     {cleanedTranscript || (transcript && isAutoCleaningEnabled) ? (
                       <div className="space-y-2">
@@ -332,9 +382,17 @@ export const LiveTranscript = ({
                     )}
                   </div>
                   
-                  <div className="mt-3 text-xs text-muted-foreground flex items-center gap-2">
-                    <Sparkles className="h-3 w-3 text-primary" />
-                    <span>Enhanced with AI: Grammar corrected, timestamps added, formatted for readability</span>
+                  <div className="mt-3 space-y-2">
+                    <div className="text-xs text-muted-foreground flex items-center gap-2">
+                      <Sparkles className="h-3 w-3 text-primary" />
+                      <span>Enhanced with AI: Grammar corrected, medical terms fixed, timestamps added</span>
+                    </div>
+                    {isMedicalCorrectionsLoaded && medicalTermCorrector.hasCorrections() && (
+                      <div className="text-xs text-green-600 bg-green-50 p-2 rounded border border-green-200">
+                        💡 Select any text above to add medical term corrections • 
+                        {medicalTermCorrector.getCorrections().size} correction(s) active
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
