@@ -1444,7 +1444,7 @@ const handleUserSubmit = async (e: React.FormEvent) => {
 
       {/* User Management Modal */}
       <Dialog open={showUserModal} onOpenChange={setShowUserModal}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-hidden flex flex-col">
           <form onSubmit={handleUserSubmit}>
             <DialogHeader>
               <DialogTitle>{editingUser ? 'Edit User' : 'Add New User'}</DialogTitle>
@@ -1453,7 +1453,7 @@ const handleUserSubmit = async (e: React.FormEvent) => {
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-4 py-4">
+            <div className="space-y-4 py-4 overflow-y-auto max-h-[60vh]">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="email">Email Address</Label>
@@ -1671,7 +1671,7 @@ const handleUserSubmit = async (e: React.FormEvent) => {
               </div>
             </div>
 
-            <DialogFooter>
+            <DialogFooter className="mt-4 pt-4 border-t">
               <Button type="button" variant="outline" onClick={() => setShowUserModal(false)}>
                 Cancel
               </Button>
