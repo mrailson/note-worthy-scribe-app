@@ -115,6 +115,8 @@ interface MeetingHistoryListProps {
   onDocumentsUploaded?: (meetingId: string, uploadedFiles: Array<{file_name: string, file_size: number, uploaded_at: string, file_type: string}>) => void;
   // Recording playback visibility
   showRecordingPlayback?: boolean;
+  // Callback for when data needs to be refreshed
+  onRefresh?: () => void;
 }
 
 export const MeetingHistoryList = ({ 
@@ -129,7 +131,8 @@ export const MeetingHistoryList = ({
   onSelectMeeting,
   onMeetingUpdate,
   onDocumentsUploaded,
-  showRecordingPlayback = true
+  showRecordingPlayback = true,
+  onRefresh
 }: MeetingHistoryListProps) => {
   const [editingMeetingId, setEditingMeetingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState<string>("");
@@ -254,6 +257,46 @@ export const MeetingHistoryList = ({
     } catch (error: any) {
       console.error('Error downloading document:', error.message);
       toast.error('Failed to download document');
+    }
+  };
+
+  // Delete document function
+  const deleteDocument = async (meetingId: string, fileName: string) => {
+    try {
+      // Get the document file path
+      const { data: docData, error: docError } = await supabase
+        .from('meeting_documents')
+        .select('file_path, id')
+        .eq('meeting_id', meetingId)
+        .eq('file_name', fileName)
+        .single();
+      
+      if (docError) throw docError;
+      
+      // Delete from storage
+      const { error: storageError } = await supabase.storage
+        .from('meeting-documents')
+        .remove([docData.file_path]);
+      
+      if (storageError) throw storageError;
+      
+      // Delete from database
+      const { error: dbError } = await supabase
+        .from('meeting_documents')
+        .delete()
+        .eq('id', docData.id);
+      
+      if (dbError) throw dbError;
+      
+      toast.success(`Deleted ${fileName}`);
+      
+      // Trigger a refresh of the meeting data
+      if (onRefresh) {
+        onRefresh();
+      }
+    } catch (error: any) {
+      console.error('Error deleting document:', error.message);
+      toast.error('Failed to delete document');
     }
   };
 
@@ -799,23 +842,33 @@ export const MeetingHistoryList = ({
                              {doc.file_name}
                            </button>
                          </div>
-                         <div className="flex items-center gap-2 text-muted-foreground ml-2">
-                           <span>{doc.file_size ? `${(doc.file_size / 1024 / 1024).toFixed(1)}MB` : ''}</span>
-                           <span>{new Date(doc.uploaded_at).toLocaleDateString('en-GB', { 
-                             day: '2-digit', 
-                             month: 'short' 
-                           })}</span>
-                           <button
-                             onClick={(e) => {
-                               e.stopPropagation();
-                               downloadDocument(meeting.id, doc.file_name);
-                             }}
-                             className="ml-1 p-1 hover:bg-muted rounded"
-                             title="Download document"
-                           >
-                             <Download className="h-3 w-3" />
-                           </button>
-                         </div>
+                          <div className="flex items-center gap-2 text-muted-foreground ml-2">
+                            <span>{doc.file_size ? `${(doc.file_size / 1024 / 1024).toFixed(1)}MB` : ''}</span>
+                            <span>{new Date(doc.uploaded_at).toLocaleDateString('en-GB', { 
+                              day: '2-digit', 
+                              month: 'short' 
+                            })}</span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                downloadDocument(meeting.id, doc.file_name);
+                              }}
+                              className="ml-1 p-1 hover:bg-muted rounded"
+                              title="Download document"
+                            >
+                              <Download className="h-3 w-3" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteDocument(meeting.id, doc.file_name);
+                              }}
+                              className="p-1 hover:bg-destructive/10 rounded"
+                              title="Delete document"
+                            >
+                              <Trash2 className="h-3 w-3 text-destructive" />
+                            </button>
+                          </div>
                        </div>
                      ))}
                     {meeting.document_count > 3 && (
