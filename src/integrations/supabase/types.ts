@@ -3594,6 +3594,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_current_user_role: {
+        Args: { check_user_id?: string }
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
       get_meeting_transcript: {
         Args: { p_meeting_id: string }
         Returns: string
