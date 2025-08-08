@@ -237,6 +237,11 @@ const AI4PMService = () => {
       setIsVoiceConnected(true);
       setIsVoiceConnecting(false);
       
+      // Send initial greeting
+      setTimeout(() => {
+        voiceChatRef.current?.sendMessage("Hi, how can I help you?");
+      }, 1000);
+      
       toast({
         title: "Voice chat connected",
         description: "Start speaking to ChatGPT",
