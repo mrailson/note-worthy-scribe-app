@@ -36,15 +36,13 @@ interface MessageRendererProps {
 
 const MessageRenderer: React.FC<MessageRendererProps> = ({ message, disableTruncation = false }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [showFullContent, setShowFullContent] = useState(disableTruncation);
+  const [showFullContent, setShowFullContent] = useState(true); // Always show full content
   
   const maxPreviewLength = 500;
   const isLongMessage = message.content.length > maxPreviewLength;
-  const shouldTruncate = !disableTruncation && isLongMessage && !showFullContent;
+  const shouldTruncate = false; // Never truncate
   
-  const displayContent = shouldTruncate 
-    ? message.content.substring(0, maxPreviewLength) + '...'
-    : message.content;
+  const displayContent = message.content; // Always show full content
 
   const copyMessage = () => {
     navigator.clipboard.writeText(message.content);
@@ -279,31 +277,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({ message, disableTrunc
               </div>
             )}
             
-            {/* Show More/Less button for long messages */}
-            {!disableTruncation && isLongMessage && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowFullContent(!showFullContent)}
-                className={`h-8 px-2 ${
-                  message.role === 'user' 
-                    ? 'text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10' 
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {showFullContent ? (
-                  <>
-                    <ChevronUp className="h-3 w-3 mr-1" />
-                    Show Less
-                  </>
-                ) : (
-                  <>
-                    <ChevronDown className="h-3 w-3 mr-1" />
-                    Show More ({Math.ceil((message.content.length - maxPreviewLength) / 100)} more lines)
-                  </>
-                )}
-              </Button>
-            )}
+            {/* Show More/Less button removed as requested */}
           </div>
           
           {/* File attachments */}

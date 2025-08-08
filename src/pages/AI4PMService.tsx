@@ -138,7 +138,10 @@ const AI4PMService = () => {
   const [isVoiceConnected, setIsVoiceConnected] = useState(false);
   const [isVoiceConnecting, setIsVoiceConnecting] = useState(false);
   const [isVoiceSpeaking, setIsVoiceSpeaking] = useState(false);
-  const [isVoiceMuted, setIsVoiceMuted] = useState(false);
+  const [isVoiceMuted, setIsVoiceMuted] = useState(() => {
+    const saved = localStorage.getItem('ai4pm-voice-muted');
+    return saved ? JSON.parse(saved) : false;
+  });
   const voiceChatRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
@@ -256,7 +259,7 @@ const AI4PMService = () => {
       const newMutedState = !isVoiceMuted;
       voiceChatRef.current.setMuted(newMutedState);
       setIsVoiceMuted(newMutedState);
-      
+      localStorage.setItem('ai4pm-voice-muted', JSON.stringify(newMutedState));
     }
   };
 
@@ -361,7 +364,20 @@ const AI4PMService = () => {
         .limit(20);
 
       if (error) throw error;
-      setSearchHistory((data || []).map(item => ({
+      
+      // Remove duplicates based on exact content match
+      const uniqueSearches = (data || []).reduce((acc: any[], current: any) => {
+        const isDuplicate = acc.some(existing => 
+          existing.title === current.title && 
+          JSON.stringify(existing.messages) === JSON.stringify(current.messages)
+        );
+        if (!isDuplicate) {
+          acc.push(current);
+        }
+        return acc;
+      }, []);
+
+      setSearchHistory(uniqueSearches.map(item => ({
         id: item.id,
         title: item.title,
         brief_overview: item.brief_overview || undefined,
@@ -432,19 +448,57 @@ const AI4PMService = () => {
     }
   };
 
+  const generateContextualTitle = (messagesData: Message[]) => {
+    const userMessages = messagesData.filter(m => m.role === 'user');
+    const aiMessages = messagesData.filter(m => m.role === 'assistant');
+    
+    if (userMessages.length === 0) return 'Untitled Search';
+    
+    // Combine key words from user messages
+    const allUserText = userMessages.map(m => m.content).join(' ');
+    const words = allUserText.toLowerCase()
+      .replace(/[^\w\s]/g, ' ')
+      .split(/\s+/)
+      .filter(word => word.length > 3)
+      .slice(0, 8);
+    
+    const title = words.join(' ');
+    return title.length > 50 ? title.substring(0, 47) + '...' : title;
+  };
+
   const saveSearchAutomatically = async (messagesData: Message[]) => {
     if (!user || messagesData.length === 0) return;
 
     try {
-      // Generate title from first user message
-      const firstUserMessage = messagesData.find(m => m.role === 'user');
-      const title = firstUserMessage?.content.substring(0, 50) + (firstUserMessage?.content.length > 50 ? '...' : '') || 'Untitled Search';
+      // Check if similar search already exists to prevent duplicates
+      const { data: existingSearches } = await supabase
+        .from('ai_4_pm_searches')
+        .select('id, messages')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      // Check for exact duplicate
+      const isDuplicate = existingSearches?.some(search => 
+        JSON.stringify(search.messages) === JSON.stringify(messagesData)
+      );
+
+      if (isDuplicate) {
+        console.log('Duplicate search detected, skipping save');
+        return;
+      }
+
+      // Generate contextual title
+      const title = generateContextualTitle(messagesData);
       
-      // Generate brief overview from AI responses
+      // Generate brief overview from AI responses (max 50 words)
       const aiMessages = messagesData.filter(m => m.role === 'assistant');
-      const overview = aiMessages.length > 0 
-        ? aiMessages[0].content.substring(0, 100) + (aiMessages[0].content.length > 100 ? '...' : '')
-        : 'No AI response';
+      let overview = 'No AI response';
+      if (aiMessages.length > 0) {
+        const content = aiMessages[0].content;
+        const words = content.split(' ').slice(0, 50);
+        overview = words.join(' ') + (content.split(' ').length > 50 ? '...' : '');
+      }
 
       const { error } = await supabase
         .from('ai_4_pm_searches')
@@ -1944,55 +1998,53 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    {searchHistory.map((search) => (
-                      <div key={search.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-medium text-sm mb-1 truncate">{search.title}</h3>
-                            <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
-                              {search.brief_overview || 'No overview available'}
-                            </p>
-                            <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                              <span className="flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                {new Date(search.created_at).toLocaleDateString('en-GB', {
-                                  day: '2-digit',
-                                  month: 'short',
-                                  year: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                })}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <MessageSquare className="h-3 w-3" />
-                                {search.messages.length} messages
-                              </span>
-                            </div>
-                          </div>
-                          <div className="flex gap-2 ml-4">
-                            <Button
-                              onClick={() => loadPreviousSearch(search.id)}
-                              variant="outline"
-                              size="sm"
-                              className="h-8 px-3"
-                            >
-                              <Eye className="h-3 w-3 mr-1" />
-                              View
-                            </Button>
-                            <Button
-                              onClick={() => deleteSearch(search.id)}
-                              variant="outline"
-                              size="sm"
-                              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                   <div className="space-y-4">
+                     {searchHistory.map((search) => (
+                       <div 
+                         key={search.id} 
+                         className="border rounded-lg p-4 hover:bg-muted/50 transition-colors cursor-pointer"
+                         onClick={() => loadPreviousSearch(search.id)}
+                       >
+                         <div className="flex items-start justify-between">
+                           <div className="flex-1 min-w-0">
+                             <h3 className="font-medium text-sm mb-1 truncate">{search.title}</h3>
+                             <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
+                               {search.brief_overview || 'No overview available'}
+                             </p>
+                             <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                               <span className="flex items-center gap-1">
+                                 <Clock className="h-3 w-3" />
+                                 {new Date(search.created_at).toLocaleDateString('en-GB', {
+                                   day: '2-digit',
+                                   month: 'short',
+                                   year: 'numeric',
+                                   hour: '2-digit',
+                                   minute: '2-digit'
+                                 })}
+                               </span>
+                               <span className="flex items-center gap-1">
+                                 <MessageSquare className="h-3 w-3" />
+                                 {search.messages.length} messages
+                               </span>
+                             </div>
+                           </div>
+                           <div className="flex gap-2 ml-4">
+                             <Button
+                               onClick={(e) => {
+                                 e.stopPropagation();
+                                 deleteSearch(search.id);
+                               }}
+                               variant="outline"
+                               size="sm"
+                               className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                             >
+                               <Trash2 className="h-3 w-3" />
+                             </Button>
+                           </div>
+                         </div>
+                       </div>
+                     ))}
+                   </div>
                 )}
               </CardContent>
             </Card>
