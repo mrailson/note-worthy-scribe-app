@@ -17,6 +17,7 @@ import {
   Clock,
   Hash
 } from "lucide-react";
+import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, BorderStyle } from "docx";
 
 
 interface MeetingSummaryProps {
@@ -123,8 +124,246 @@ New patient pathway improvements have reduced waiting times by 15%. Patient sati
     window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
   };
 
-  const handleExport = (format: string) => {
-    console.log(`${format} Export - Meeting notes exported as ${format}`);
+  const detectAndParseTable = (content: string) => {
+    const lines = content.split('\n');
+    const tables = [];
+    let currentTable = null;
+    let inTable = false;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      
+      // Check if line contains table delimiters
+      if (line.includes('|') && line.split('|').length > 2) {
+        if (!inTable) {
+          // Start of new table
+          currentTable = [];
+          inTable = true;
+        }
+        
+        // Parse row data
+        const cells = line.split('|').map(cell => cell.trim()).filter(cell => cell !== '');
+        if (cells.length > 0) {
+          currentTable.push(cells);
+        }
+      } else if (inTable && line === '') {
+        // End of table (empty line)
+        if (currentTable && currentTable.length > 0) {
+          tables.push({
+            startIndex: i - currentTable.length,
+            endIndex: i - 1,
+            data: currentTable
+          });
+        }
+        currentTable = null;
+        inTable = false;
+      } else if (inTable && !line.includes('|')) {
+        // End of table (non-table line)
+        if (currentTable && currentTable.length > 0) {
+          tables.push({
+            startIndex: i - currentTable.length,
+            endIndex: i - 1,
+            data: currentTable
+          });
+        }
+        currentTable = null;
+        inTable = false;
+      }
+    }
+    
+    // Handle table at end of content
+    if (inTable && currentTable && currentTable.length > 0) {
+      tables.push({
+        startIndex: lines.length - currentTable.length,
+        endIndex: lines.length - 1,
+        data: currentTable
+      });
+    }
+
+    return tables;
+  };
+
+  const createTableFromData = (tableData: string[][]) => {
+    const isHeaderRow = (rowIndex: number) => rowIndex === 0;
+    
+    const rows = tableData.map((rowData, rowIndex) => {
+      const cells = rowData.map(cellText => {
+        return new TableCell({
+          children: [new Paragraph({
+            children: [new TextRun({
+              text: cellText,
+              bold: isHeaderRow(rowIndex),
+              color: isHeaderRow(rowIndex) ? "FFFFFF" : "000000",
+              size: 20
+            })]
+          })],
+          margins: {
+            top: 200,
+            bottom: 200,
+            left: 200,
+            right: 200,
+          },
+          shading: {
+            fill: isHeaderRow(rowIndex) ? "0072CE" : (rowIndex % 2 === 1 ? "F8F9FA" : "FFFFFF")
+          },
+          borders: {
+            top: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" },
+            bottom: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" },
+            left: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" },
+            right: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" },
+          }
+        });
+      });
+
+      return new TableRow({
+        children: cells,
+      });
+    });
+
+    return new Table({
+      rows,
+      width: {
+        size: 100,
+        type: WidthType.PERCENTAGE,
+      },
+      margins: {
+        top: 200,
+        bottom: 200,
+      }
+    });
+  };
+
+  const handleExport = async (format: string) => {
+    if (format === "Word") {
+      try {
+        const content = notes;
+        const lines = content.split('\n');
+        const children = [];
+        const tables = detectAndParseTable(content);
+        
+        let currentLineIndex = 0;
+        
+        // Process content with tables
+        for (const table of tables) {
+          // Add content before table
+          while (currentLineIndex < table.startIndex) {
+            const line = lines[currentLineIndex].trim();
+            if (line) {
+              const runs = [];
+              let currentText = line;
+              
+              // Handle bold text
+              while (currentText.includes('**')) {
+                const beforeBold = currentText.substring(0, currentText.indexOf('**'));
+                if (beforeBold) {
+                  runs.push(new TextRun({ text: beforeBold }));
+                }
+                
+                currentText = currentText.substring(currentText.indexOf('**') + 2);
+                if (currentText.includes('**')) {
+                  const boldText = currentText.substring(0, currentText.indexOf('**'));
+                  runs.push(new TextRun({ text: boldText, bold: true }));
+                  currentText = currentText.substring(currentText.indexOf('**') + 2);
+                } else {
+                  runs.push(new TextRun({ text: '**' + currentText }));
+                  currentText = '';
+                }
+              }
+              
+              if (currentText) {
+                runs.push(new TextRun({ text: currentText }));
+              }
+              
+              children.push(new Paragraph({
+                children: runs.length > 0 ? runs : [new TextRun({ text: line })],
+                spacing: { after: 120 }
+              }));
+            } else {
+              children.push(new Paragraph({
+                children: [new TextRun({ text: "" })],
+                spacing: { after: 120 }
+              }));
+            }
+            currentLineIndex++;
+          }
+          
+          // Add table
+          children.push(createTableFromData(table.data));
+          children.push(new Paragraph({
+            children: [new TextRun({ text: "" })],
+            spacing: { after: 240 }
+          }));
+          
+          // Skip table lines
+          currentLineIndex = table.endIndex + 1;
+        }
+        
+        // Add remaining content after last table
+        while (currentLineIndex < lines.length) {
+          const line = lines[currentLineIndex].trim();
+          if (line) {
+            const runs = [];
+            let currentText = line;
+            
+            // Handle bold text
+            while (currentText.includes('**')) {
+              const beforeBold = currentText.substring(0, currentText.indexOf('**'));
+              if (beforeBold) {
+                runs.push(new TextRun({ text: beforeBold }));
+              }
+              
+              currentText = currentText.substring(currentText.indexOf('**') + 2);
+              if (currentText.includes('**')) {
+                const boldText = currentText.substring(0, currentText.indexOf('**'));
+                runs.push(new TextRun({ text: boldText, bold: true }));
+                currentText = currentText.substring(currentText.indexOf('**') + 2);
+              } else {
+                runs.push(new TextRun({ text: '**' + currentText }));
+                currentText = '';
+              }
+            }
+            
+            if (currentText) {
+              runs.push(new TextRun({ text: currentText }));
+            }
+            
+            children.push(new Paragraph({
+              children: runs.length > 0 ? runs : [new TextRun({ text: line })],
+              spacing: { after: 120 }
+            }));
+          } else {
+            children.push(new Paragraph({
+              children: [new TextRun({ text: "" })],
+              spacing: { after: 120 }
+            }));
+          }
+          currentLineIndex++;
+        }
+
+        const doc = new Document({
+          sections: [{
+            children
+          }],
+          creator: "Meeting Notes",
+          title: "Meeting Summary",
+          description: "Professional meeting notes export"
+        });
+
+        const blob = await Packer.toBlob(doc);
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `meeting-notes-${new Date().toISOString().split('T')[0]}.docx`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error('Error exporting to Word:', error);
+      }
+    } else {
+      console.log(`${format} Export - Meeting notes exported as ${format}`);
+    }
   };
 
   return (
