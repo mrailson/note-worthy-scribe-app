@@ -233,9 +233,13 @@ export const MeetingHistoryList = ({
         .select('file_path')
         .eq('meeting_id', meetingId)
         .eq('file_name', fileName)
-        .single();
+        .maybeSingle();
 
       if (docError) throw docError;
+      if (!docData) {
+        toast.error('Document not found');
+        return;
+      }
 
       const { data, error } = await supabase.storage
         .from('meeting-documents')
@@ -269,9 +273,13 @@ export const MeetingHistoryList = ({
         .select('file_path, id')
         .eq('meeting_id', meetingId)
         .eq('file_name', fileName)
-        .single();
+        .maybeSingle();
       
       if (docError) throw docError;
+      if (!docData) {
+        toast.error('Document not found');
+        return;
+      }
       
       // Delete from storage
       const { error: storageError } = await supabase.storage
@@ -309,9 +317,13 @@ export const MeetingHistoryList = ({
         .select('file_path')
         .eq('meeting_id', meetingId)
         .eq('file_name', fileName)
-        .single();
+        .maybeSingle();
 
       if (docError) throw docError;
+      if (!docData) {
+        toast.error('Document not found');
+        return;
+      }
 
       const { data, error } = await supabase.storage
         .from('meeting-documents')
