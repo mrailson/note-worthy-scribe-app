@@ -3370,6 +3370,22 @@ export const MeetingRecorder = ({
         <TabsContent value="settings" className="space-y-4 mt-6">
           <MeetingSettings
             onSettingsChange={handleSettingsChange}
+            onTranscriptImported={(importedTranscript) => {
+              // Handle imported transcript by setting it as the current transcript
+              setTranscript(importedTranscript.content);
+              setWordCount(importedTranscript.wordCount);
+              
+              // Update meeting data with imported content
+              const currentMeetingData = {
+                transcript: importedTranscript.content,
+                title: meetingSettings.title || "General Meeting"
+              };
+              
+              // Update the transcript in the UI
+              onTranscriptUpdate(importedTranscript.content);
+              
+              console.log('📄 Transcript imported successfully:', importedTranscript.wordCount, 'words');
+            }}
             initialSettings={meetingSettings}
           />
         </TabsContent>
