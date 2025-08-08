@@ -51,22 +51,22 @@ export const MeetingSummary = ({
     if (!transcript) return "No meeting content to summarize.";
 
     const baseNotes = `
-**Meeting Summary**
+<div style="color: #0072CE; font-weight: bold; font-size: 18px; margin-bottom: 10px;">Meeting Summary</div>
 
-**Key Discussion Points:**
+<div style="color: #0072CE; font-weight: bold; font-size: 16px; margin-top: 20px; margin-bottom: 8px;">Key Discussion Points:</div>
 • Review of previous meeting actions and outcomes
 • Financial update and budget allocation review
 • Staffing matters and resource planning
 • IT systems upgrade timeline and implementation
 • Patient care initiatives progress update
 
-**Action Items:**
+<div style="color: #0072CE; font-weight: bold; font-size: 16px; margin-top: 20px; margin-bottom: 8px;">Action Items:</div>
 • Dr. Smith to provide follow-up report on patient care initiatives
 • Finance team to present detailed budget breakdown next meeting
 • IT department to finalize systems upgrade schedule
 • HR to address staffing allocation concerns
 
-**Next Steps:**
+<div style="color: #0072CE; font-weight: bold; font-size: 16px; margin-top: 20px; margin-bottom: 8px;">Next Steps:</div>
 • Schedule follow-up meeting for next month
 • Circulate action item assignments to all attendees
 • Prepare progress reports for outstanding items
@@ -75,7 +75,7 @@ export const MeetingSummary = ({
     switch (level) {
       case "headlines":
         return `
-**Headlines Only**
+<div style="color: #0072CE; font-weight: bold; font-size: 18px; margin-bottom: 10px;">Headlines Only</div>
 
 • Financial update reviewed - positive trends
 • Staffing matters discussed
@@ -88,18 +88,18 @@ export const MeetingSummary = ({
         return `
 ${baseNotes}
 
-**Detailed Discussion Notes:**
+<div style="color: #0072CE; font-weight: bold; font-size: 16px; margin-top: 20px; margin-bottom: 8px;">Detailed Discussion Notes:</div>
 
-**Financial Update Section:**
+<div style="color: #0072CE; font-weight: bold; font-size: 14px; margin-top: 15px; margin-bottom: 5px;">Financial Update Section:</div>
 The quarterly budget review showed positive trends across all departments. Revenue streams are performing above expectations, with particular strength in planned care services. Cost management initiatives have resulted in 3% savings compared to last quarter.
 
-**Staffing Matters:**
+<div style="color: #0072CE; font-weight: bold; font-size: 14px; margin-top: 15px; margin-bottom: 5px;">Staffing Matters:</div>
 Current staffing levels are adequate but recruitment challenges persist in specialist roles. The nursing shortage continues to impact service delivery timelines. HR department is implementing new retention strategies.
 
-**IT Systems:**
+<div style="color: #0072CE; font-weight: bold; font-size: 14px; margin-top: 15px; margin-bottom: 5px;">IT Systems:</div>
 The planned upgrade to electronic health records system is proceeding on schedule. Training sessions for staff will begin next month. Backup systems and data migration protocols have been tested successfully.
 
-**Patient Care Initiatives:**
+<div style="color: #0072CE; font-weight: bold; font-size: 14px; margin-top: 15px; margin-bottom: 5px;">Patient Care Initiatives:</div>
 New patient pathway improvements have reduced waiting times by 15%. Patient satisfaction scores show improvement in communication and care coordination. Quality metrics remain within acceptable ranges.
         `.trim();
 
