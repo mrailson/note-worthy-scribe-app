@@ -287,17 +287,6 @@ export const LiveTranscript = ({
                      Meeting Settings
                    </Button>
                    
-                   <Button
-                     variant={isAutoCleaningEnabled ? 'default' : 'outline'}
-                     size="sm"
-                     onClick={() => setIsAutoCleaningEnabled(!isAutoCleaningEnabled)}
-                     className="flex items-center gap-2"
-                   >
-                     <Sparkles className="h-4 w-4" />
-                     <span className="hidden sm:inline">AI Cleaning</span>
-                     <span className="sm:hidden">Clean</span>
-                   </Button>
-
                    <MedicalTermCorrectionDialog
                      selectedText={selectedText}
                      onCorrectionAdded={async () => {
