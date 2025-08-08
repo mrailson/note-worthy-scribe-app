@@ -21,7 +21,7 @@ serve(async (req) => {
       throw new Error('Transcript is required');
     }
 
-    const prompt = `Please analyze the following meeting transcript and create professional meeting minutes. Extract all relevant information from the transcript and present it in a clear, structured format. Do NOT use placeholder text - only include information that is actually present in the transcript.
+    const prompt = `Please analyze the following meeting transcript and create professional meeting minutes. The transcript includes timestamps in [HH:MM] format which indicate when each section was spoken. Use these timestamps to provide a chronological overview of the meeting. Do NOT use placeholder text - only include information that is actually present in the transcript.
 
 Format the output as follows:
 
@@ -36,18 +36,27 @@ Format the output as follows:
 List all participants mentioned by name in the transcript. If no specific names are mentioned, write "Participants identified by voice/role" and list any roles mentioned (e.g., "Practice Manager", "GP", "Receptionist").
 
 ## 2️⃣ Meeting Agenda & Topics Discussed
-Summarize the main topics and agenda items that were actually discussed in the meeting based on the transcript content.
+Summarize the main topics and agenda items that were actually discussed in the meeting based on the transcript content. Where possible, reference the time periods when different topics were discussed.
 
 ## 3️⃣ Key Discussion Points
-Provide a detailed summary of the main discussions, organized by topic. Include:
+Provide a detailed summary of the main discussions, organized chronologically by timestamp blocks. For each major topic, include:
+- Time period when discussed (round to nearest 15-minute blocks)
 - Important points raised by participants
 - Concerns or issues discussed
 - Ideas and suggestions shared
 - Any relevant background information mentioned
 
+Example format:
+**[09:00-09:15] Opening Discussion**
+- Topic details...
+
+**[09:15-09:30] Budget Review**
+- Budget-related discussion points...
+
 ## 4️⃣ Decisions Made
 List all decisions that were made during the meeting. For each decision, include:
 - What was decided
+- Approximate time when the decision was made (rounded to nearest 15-minute block)
 - The reasoning behind the decision (if discussed)
 - Who was involved in making the decision
 
@@ -55,6 +64,7 @@ List all decisions that were made during the meeting. For each decision, include
 List all action items and tasks assigned during the meeting:
 - **Task:** [Description of the action item]
 - **Assigned to:** [Person or role responsible]
+- **Discussed at:** [Time period when assigned, rounded to nearest 15-minute block]
 - **Deadline:** [If mentioned, otherwise "To be determined"]
 
 ## 6️⃣ Next Steps
@@ -64,6 +74,8 @@ Summarize what will happen next, including:
 - Any ongoing tasks or projects mentioned
 
 **Important Instructions:**
+- Use the timestamps to provide chronological context
+- Round all times to the nearest 15-minute block (e.g., 09:07 becomes 09:00, 09:23 becomes 09:30)
 - Only include information that is actually present in the transcript
 - Do not add placeholder text or make assumptions
 - If a section has no relevant information from the transcript, write "Not discussed in this meeting"
