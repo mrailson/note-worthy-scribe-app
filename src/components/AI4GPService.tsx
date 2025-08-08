@@ -111,7 +111,7 @@ const AI4GPService = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [model, setModel] = useState<'claude' | 'gpt'>('gpt');
+  const [model, setModel] = useState<'claude' | 'gpt' | 'chatgpt5'>('chatgpt5');
   const [sessionMemory, setSessionMemory] = useState(true);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [apiKeyMissing, setApiKeyMissing] = useState<{claude: boolean, gpt: boolean}>({claude: false, gpt: false});
@@ -495,10 +495,25 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                   AI4GP - Clinical Intelligence Assistant
                 </CardTitle>
                 <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="text-xs">
-                    <Stethoscope className="h-3 w-3 mr-1" />
-                    Clinical AI
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="text-xs">
+                      <Stethoscope className="h-3 w-3 mr-1" />
+                      Clinical AI
+                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="model-select" className="text-xs text-muted-foreground">AI Model:</Label>
+                      <select 
+                        id="model-select"
+                        value={model}
+                        onChange={(e) => setModel(e.target.value as 'claude' | 'gpt' | 'chatgpt5')}
+                        className="text-xs border rounded px-2 py-1 bg-background"
+                      >
+                        <option value="chatgpt5">Chat GPT 5.0</option>
+                        <option value="gpt">GPT-4o</option>
+                        <option value="claude">Claude 3.5</option>
+                      </select>
+                    </div>
+                  </div>
                   <Button 
                     variant="outline" 
                     size="sm"

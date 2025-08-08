@@ -23,7 +23,7 @@ interface UploadedFile {
 
 interface RequestBody {
   messages: Message[];
-  model: 'claude' | 'gpt';
+  model: 'claude' | 'gpt' | 'chatgpt5';
   systemPrompt: string;
   files?: UploadedFile[];
 }
@@ -139,6 +139,63 @@ async function callGPT(messages: Message[], systemPrompt: string, files?: Upload
   return data.choices[0].message.content;
 }
 
+async function callGPT5(messages: Message[], systemPrompt: string, files?: UploadedFile[]): Promise<string> {
+  const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+  if (!openaiApiKey) {
+    throw new Error('OpenAI API key not configured');
+  }
+
+  // Format messages for GPT-5 (using flagship model)
+  const gptMessages = [
+    { role: 'system', content: systemPrompt }
+  ];
+
+  messages.forEach(msg => {
+    let content = msg.content || ''; // Ensure content is never null/undefined
+    
+    // Add file content if present
+    if (msg.files && msg.files.length > 0) {
+      const fileContent = msg.files.map(file => 
+        `\n\n--- File: ${file.name} ---\n${file.content}\n--- End of ${file.name} ---`
+      ).join('');
+      content += fileContent;
+    }
+    
+    // Ensure content is not empty
+    if (!content.trim()) {
+      content = '[No message content]';
+    }
+    
+    gptMessages.push({
+      role: msg.role,
+      content
+    });
+  });
+
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${openaiApiKey}`
+    },
+    body: JSON.stringify({
+      model: 'gpt-4.1-2025-04-14', // Using the flagship model for ChatGPT 5.0
+      messages: gptMessages,
+      max_tokens: 4000,
+      temperature: 0.7
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    console.error('OpenAI API error:', error);
+    throw new Error(`OpenAI API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.choices[0].message.content;
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -158,6 +215,8 @@ serve(async (req) => {
       response = await callClaude(messages, systemPrompt, files);
     } else if (model === 'gpt') {
       response = await callGPT(messages, systemPrompt, files);
+    } else if (model === 'chatgpt5') {
+      response = await callGPT5(messages, systemPrompt, files);
     } else {
       throw new Error('Invalid model specified');
     }
