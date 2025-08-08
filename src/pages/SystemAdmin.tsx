@@ -151,9 +151,15 @@ const SystemAdmin = () => {
     status: 'open'
   });
 
-  // Enhanced security monitoring state
-  const [authenticationLogs, setAuthenticationLogs] = useState([]);
-  const [patientDataAccess, setPatientDataAccess] = useState([]);
+// Password admin modal state
+const [showPasswordModal, setShowPasswordModal] = useState(false);
+const [passwordTargetUser, setPasswordTargetUser] = useState<User | null>(null);
+const [newPassword, setNewPassword] = useState('');
+const [updatingPassword, setUpdatingPassword] = useState(false);
+
+// Enhanced security monitoring state
+const [authenticationLogs, setAuthenticationLogs] = useState([]);
+const [patientDataAccess, setPatientDataAccess] = useState([]);
   const [vulnerabilityScans, setVulnerabilityScans] = useState([]);
   const [complianceStatus, setComplianceStatus] = useState({
     nhsDigitalCompliance: { status: 'compliant', lastCheck: '2024-01-15' },
@@ -470,7 +476,35 @@ const SystemAdmin = () => {
     }
   };
 
-  const handleUserSubmit = async (e: React.FormEvent) => {
+const openPasswordModal = (u: User) => {
+  setPasswordTargetUser(u);
+  setNewPassword('');
+  setShowPasswordModal(true);
+};
+
+const handlePasswordUpdate = async () => {
+  if (!passwordTargetUser) return;
+  if (newPassword.length < 8) {
+    toast.error('Password must be at least 8 characters');
+    return;
+  }
+  try {
+    setUpdatingPassword(true);
+    const { error } = await supabase.functions.invoke('update-user-password-admin', {
+      body: { email: passwordTargetUser.email, new_password: newPassword }
+    });
+    if (error) throw error;
+    toast.success('Password updated successfully');
+    setShowPasswordModal(false);
+  } catch (err) {
+    console.error('Error updating password:', err);
+    toast.error('Failed to update password');
+  } finally {
+    setUpdatingPassword(false);
+  }
+};
+
+const handleUserSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log('Submitting user form with data:', userFormData);
     console.log('Module access being saved:', userFormData.module_access);
@@ -745,6 +779,9 @@ const SystemAdmin = () => {
                               <div className="flex space-x-2">
                                 <Button variant="ghost" size="sm" onClick={() => handleEditUser(user)}>
                                   <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="sm" onClick={() => openPasswordModal(user)} title="Set Password">
+                                  <Key className="h-4 w-4" />
                                 </Button>
                                 <Button variant="ghost" size="sm" onClick={() => handleDeleteUser(user.user_id)}>
                                   <Trash2 className="h-4 w-4 text-destructive" />
@@ -1601,6 +1638,39 @@ const SystemAdmin = () => {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Set Password Modal */}
+      <Dialog open={showPasswordModal} onOpenChange={setShowPasswordModal}>
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle>Set Password</DialogTitle>
+            <DialogDescription>
+              Set a new password for {passwordTargetUser?.full_name} ({passwordTargetUser?.email}).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="new-password">New Password</Label>
+              <Input
+                id="new-password"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Enter new password"
+              />
+              <p className="text-xs text-muted-foreground mt-2">Minimum 8 characters.</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPasswordModal(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handlePasswordUpdate} disabled={updatingPassword || newPassword.length < 8}>
+              {updatingPassword ? 'Updating...' : 'Update Password'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
