@@ -2335,6 +2335,7 @@ export type Database = {
           location: string | null
           meeting_type: string
           mixed_audio_url: string | null
+          practice_id: string | null
           recording_created_at: string | null
           requires_audio_backup: boolean | null
           right_audio_url: string | null
@@ -2358,6 +2359,7 @@ export type Database = {
           location?: string | null
           meeting_type?: string
           mixed_audio_url?: string | null
+          practice_id?: string | null
           recording_created_at?: string | null
           requires_audio_backup?: boolean | null
           right_audio_url?: string | null
@@ -2381,6 +2383,7 @@ export type Database = {
           location?: string | null
           meeting_type?: string
           mixed_audio_url?: string | null
+          practice_id?: string | null
           recording_created_at?: string | null
           requires_audio_backup?: boolean | null
           right_audio_url?: string | null
@@ -2390,7 +2393,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "meetings_practice_id_fkey"
+            columns: ["practice_id"]
+            isOneToOne: false
+            referencedRelation: "gp_practices"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       neighbourhoods: {
         Row: {

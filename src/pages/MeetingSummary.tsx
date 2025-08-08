@@ -58,6 +58,7 @@ interface MeetingData {
   speakerCount: number;
   startTime: string;
   practiceName?: string;
+  practiceId?: string;
   generatedNotes?: string;
   mixedAudioBlob?: Blob;
   leftAudioBlob?: Blob;
@@ -411,26 +412,33 @@ export default function MeetingSummary() {
         }
       }
 
-      // Insert meeting with audio storage paths
+      // Insert meeting with audio storage paths  
+      const meetingInsertData: any = {
+        title: data.title,
+        description: 'Meeting recorded and transcribed',
+        user_id: user.id,
+        start_time: data.startTime,
+        end_time: new Date().toISOString(),
+        duration_minutes: Math.floor(parseInt(data.duration.split(':')[0]) + parseInt(data.duration.split(':')[1]) / 60),
+        status: 'completed',
+        meeting_type: 'general',
+        requires_audio_backup: data.needsAudioBackup || false,
+        audio_backup_path: audioBackupPath,
+        audio_backup_created_at: audioBackupPath ? new Date().toISOString() : null,
+        mixed_audio_url: mixedAudioPath,
+        left_audio_url: leftAudioPath,
+        right_audio_url: rightAudioPath,
+        recording_created_at: (mixedAudioPath || leftAudioPath || rightAudioPath) ? new Date().toISOString() : null
+      };
+
+      // Add practice_id if available from meeting settings
+      if (data.practiceId) {
+        meetingInsertData.practice_id = data.practiceId;
+      }
+
       const { data: meeting, error: meetingError } = await supabase
         .from('meetings')
-        .insert({
-          title: data.title,
-          description: 'Meeting recorded and transcribed',
-          user_id: user.id,
-          start_time: data.startTime,
-          end_time: new Date().toISOString(),
-          duration_minutes: Math.floor(parseInt(data.duration.split(':')[0]) + parseInt(data.duration.split(':')[1]) / 60),
-          status: 'completed',
-          meeting_type: 'general',
-          requires_audio_backup: data.needsAudioBackup || false,
-          audio_backup_path: audioBackupPath,
-          audio_backup_created_at: audioBackupPath ? new Date().toISOString() : null,
-          mixed_audio_url: mixedAudioPath,
-          left_audio_url: leftAudioPath,
-          right_audio_url: rightAudioPath,
-          recording_created_at: (mixedAudioPath || leftAudioPath || rightAudioPath) ? new Date().toISOString() : null
-        })
+        .insert(meetingInsertData)
         .select()
         .single();
 

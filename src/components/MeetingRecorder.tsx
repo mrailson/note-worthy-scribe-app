@@ -58,6 +58,7 @@ interface MeetingRecorderProps {
     title: string;
     description: string;
     meetingType: string;
+    practiceId?: string;
   };
   initialActiveTab?: string;
 }
@@ -2443,13 +2444,14 @@ export const MeetingRecorder = ({
 
     // Prepare meeting data with available audio blobs
     const meetingData = {
-      title: initialSettings?.title || 'General Meeting',
+      title: meetingSettings?.title || initialSettings?.title || 'General Meeting',
       duration: formatDuration(duration),
       wordCount: wordCount,
       transcript: currentTranscript,
       speakerCount: speakerCount,
       startTime: startTime,
       startedBy: user?.email || 'Unknown User',
+      practiceId: meetingSettings?.practiceId || initialSettings?.practiceId,
       needsAudioBackup: needsAudioBackup,
       stereoBlob: stereoBlob,
       mixedAudioBlob: currentRecordingBlob,

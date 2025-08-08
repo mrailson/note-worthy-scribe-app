@@ -34,6 +34,7 @@ interface MeetingSettingsProps {
     title: string;
     description: string;
     meetingType: string;
+    practiceId?: string;
   };
 }
 
@@ -43,6 +44,7 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
   const [isImportingTranscript, setIsImportingTranscript] = useState(false);
   const [practiceSearchOpen, setPracticeSearchOpen] = useState(false);
   const [practices, setPractices] = useState<Array<{id: string, name: string, practice_code: string}>>([]);
+  const [userPractices, setUserPractices] = useState<Array<{id: string, name: string}>>([]);
   const [searchTerm, setSearchTerm] = useState("");
 
   // Function to round time to nearest 15 minutes (London time)
@@ -75,11 +77,59 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
     meetingStyle: "standard",
     location: "",
     format: "",
+    practiceId: "",
     attendees: "",
     agenda: "",
     date: format(new Date(), 'yyyy-MM-dd'),
     startTime: generateRoundedStartTime()
   });
+
+  // Fetch user's associated practices
+  useEffect(() => {
+    const fetchUserPractices = async () => {
+      if (!user) return;
+
+      try {
+        // Get user's practice assignments
+        const { data: userRoles, error: rolesError } = await supabase
+          .from('user_roles')
+          .select(`
+            practice_id,
+            gp_practices!inner(id, name)
+          `)
+          .eq('user_id', user.id);
+
+        if (rolesError) {
+          console.error('Error fetching user practices:', rolesError);
+          return;
+        }
+
+        if (userRoles && userRoles.length > 0) {
+          const practices = userRoles.map((role: any) => ({
+            id: role.practice_id,
+            name: role.gp_practices.name
+          }));
+          
+          setUserPractices(practices);
+          
+          // If only one practice, auto-select it
+          if (practices.length === 1) {
+            const newSettings = { 
+              ...settings, 
+              practiceId: practices[0].id,
+              location: practices[0].name 
+            };
+            setSettings(newSettings);
+            onSettingsChange(newSettings);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching user practices:', error);
+      }
+    };
+
+    fetchUserPractices();
+  }, [user]);
 
   // Fetch default practice on mount
   useEffect(() => {
@@ -342,7 +392,36 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
               </div>
             </div>
 
-            {/* Meeting Format */}
+            {/* Practice Selection - Only show if user has practice assignments */}
+            {userPractices.length > 0 && (
+              <div className="space-y-2">
+                <Label htmlFor="practice-selection">Practice</Label>
+                <Select 
+                  value={settings.practiceId} 
+                  onValueChange={(value) => {
+                    const selectedPractice = userPractices.find(p => p.id === value);
+                    updateSetting('practiceId', value);
+                    if (selectedPractice) {
+                      updateSetting('location', selectedPractice.name);
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select practice for this meeting" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {userPractices.map((practice) => (
+                      <SelectItem key={practice.id} value={practice.id}>
+                        {practice.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Choose which practice this meeting is associated with
+                </p>
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Meeting Format</Label>
               <div className="flex flex-col sm:flex-row gap-2">
