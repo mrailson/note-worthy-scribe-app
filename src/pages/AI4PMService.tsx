@@ -1131,7 +1131,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
             })
           );
         }
-        // Handle bullet points - convert to checkboxes for consistency
+        // Handle bullet points - convert to checked checkboxes for consistency
         else if (trimmedLine.startsWith('•') || trimmedLine.startsWith('-')) {
           const bulletText = trimmedLine.replace(/^[•-]\s*/, '');
           
@@ -1139,9 +1139,9 @@ Always provide practical, actionable advice that follows NHS guidelines and best
             new Paragraph({
               children: [
                 new TextRun({
-                  text: '☐ ',
+                  text: '☑ ',
                   size: 24,
-                  color: "666666", // Gray for unchecked
+                  color: "008000", // Green for checked
                   font: "Segoe UI Symbol"
                 }),
                 ...processFormattedText(bulletText)
