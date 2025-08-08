@@ -1710,6 +1710,8 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                           <MessageRenderer 
                             message={group.messages[0]} 
                             onExpandMessage={setExpandedMessage}
+                            onExportWord={generateWordDocument}
+                            onExportPowerPoint={generatePowerPoint}
                           />
                         ) : (
                           // Render combined message for grouped assistant messages
@@ -1720,6 +1722,8 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                               files: group.messages.flatMap(m => m.files || [])
                             }}
                             onExpandMessage={setExpandedMessage}
+                            onExportWord={generateWordDocument}
+                            onExportPowerPoint={generatePowerPoint}
                           />
                         )}
                         {/* Add action buttons for AI responses */}

@@ -11,7 +11,9 @@ import {
   FileText,
   List,
   CheckSquare,
-  Expand
+  Expand,
+  FileDown,
+  Presentation
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -34,9 +36,17 @@ interface MessageRendererProps {
   message: Message;
   disableTruncation?: boolean;
   onExpandMessage?: (message: Message) => void;
+  onExportWord?: (content: string, title: string) => void;
+  onExportPowerPoint?: (content: string, title: string) => void;
 }
 
-const MessageRenderer: React.FC<MessageRendererProps> = ({ message, disableTruncation = false, onExpandMessage }) => {
+const MessageRenderer: React.FC<MessageRendererProps> = ({ 
+  message, 
+  disableTruncation = false, 
+  onExpandMessage, 
+  onExportWord, 
+  onExportPowerPoint 
+}) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showFullContent, setShowFullContent] = useState(true); // Always show full content
   const messageRef = React.useRef<HTMLDivElement>(null);
@@ -66,6 +76,18 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({ message, disableTrunc
   const handleExpandMessage = () => {
     if (onExpandMessage) {
       onExpandMessage(message);
+    }
+  };
+
+  const handleExportWord = () => {
+    if (onExportWord) {
+      onExportWord(message.content, 'AI Generated Document');
+    }
+  };
+
+  const handleExportPowerPoint = () => {
+    if (onExportPowerPoint) {
+      onExportPowerPoint(message.content, 'AI Generated Presentation');
     }
   };
 
@@ -350,6 +372,32 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({ message, disableTrunc
                       title="Expand to full screen"
                     >
                       <Expand className="h-3 w-3" />
+                    </Button>
+                  )}
+
+                  {/* Export to Word button */}
+                  {onExportWord && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleExportWord}
+                      className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-muted-foreground hover:text-foreground"
+                      title="Export as Word document"
+                    >
+                      <FileDown className="h-3 w-3" />
+                    </Button>
+                  )}
+
+                  {/* Export to PowerPoint button */}
+                  {onExportPowerPoint && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleExportPowerPoint}
+                      className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-muted-foreground hover:text-foreground"
+                      title="Export as PowerPoint presentation"
+                    >
+                      <Presentation className="h-3 w-3" />
                     </Button>
                   )}
                 </>
