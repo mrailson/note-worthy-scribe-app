@@ -18,7 +18,7 @@ serve(async (req) => {
       throw new Error('OPENAI_API_KEY is not set');
     }
 
-    const { instructions = "You are a helpful AI assistant for NHS GP Practice Managers. Provide clear, professional guidance on practice management, NHS policies, compliance, and operational matters." } = await req.json().catch(() => ({}));
+    const { instructions = "You are a helpful AI assistant for NHS GP Practice Managers. Provide clear, professional guidance on practice management, NHS policies, compliance, and operational matters.", voice = "sage" } = await req.json().catch(() => ({}));
 
     console.log('Creating OpenAI Realtime session...');
 
@@ -31,7 +31,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: "gpt-4o-realtime-preview-2024-12-17",
-        voice: "sage", // More neutral/British accent
+        voice: voice,
         instructions: instructions,
         modalities: ["text", "audio"],
         input_audio_format: "pcm16",

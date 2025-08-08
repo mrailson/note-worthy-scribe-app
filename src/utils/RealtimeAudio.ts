@@ -71,13 +71,14 @@ export class RealtimeChat {
     this.audioEl.autoplay = true;
   }
 
-  async init() {
+  async init(voice: string = 'sage') {
     try {
       console.log('Initializing Realtime Chat...');
       
       // Get ephemeral token from our Supabase Edge Function
       const { data, error } = await supabase.functions.invoke("openai-realtime-session", {
         body: {
+          voice: voice,
           instructions: "You are a helpful AI assistant for NHS GP Practice Managers. Provide clear, professional guidance on practice management, NHS policies, compliance, and operational matters. Keep responses concise and actionable."
         }
       });

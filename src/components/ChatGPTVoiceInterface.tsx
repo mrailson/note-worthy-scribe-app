@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Mic, 
   MicOff, 
@@ -43,8 +44,21 @@ const ChatGPTVoiceInterface: React.FC<ChatGPTVoiceInterfaceProps> = ({ isOpen, o
   const [hasPermission, setHasPermission] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [textInput, setTextInput] = useState('');
+  const [selectedVoice, setSelectedVoice] = useState('sage');
   const [error, setError] = useState<string | null>(null);
   const chatRef = useRef<RealtimeChat | null>(null);
+
+  // Available OpenAI Realtime API voices
+  const voices = [
+    { value: 'alloy', label: 'Alloy (Neutral American)' },
+    { value: 'ash', label: 'Ash (British-influenced)' },
+    { value: 'ballad', label: 'Ballad (Warm American)' },
+    { value: 'coral', label: 'Coral (Friendly American)' },
+    { value: 'echo', label: 'Echo (Professional)' },
+    { value: 'sage', label: 'Sage (Calm/Neutral)' },
+    { value: 'shimmer', label: 'Shimmer (Bright)' },
+    { value: 'verse', label: 'Verse (Pleasant)' }
+  ];
 
   // Request microphone permission
   const requestMicrophonePermission = async () => {
@@ -143,7 +157,7 @@ const ChatGPTVoiceInterface: React.FC<ChatGPTVoiceInterfaceProps> = ({ isOpen, o
       setError(null);
       
       chatRef.current = new RealtimeChat(handleMessage);
-      await chatRef.current.init();
+      await chatRef.current.init(selectedVoice);
       
       setIsConnected(true);
       setIsConnecting(false);
@@ -267,8 +281,32 @@ const ChatGPTVoiceInterface: React.FC<ChatGPTVoiceInterfaceProps> = ({ isOpen, o
             </Alert>
           )}
 
-          {/* Connection Controls */}
-          <div className="flex items-center justify-center gap-4 p-4 bg-muted/50 rounded-lg">
+          {/* Voice Selection and Connection Controls */}
+          <div className="space-y-4">
+            {/* Voice Selector */}
+            <div className="flex items-center gap-4 p-4 bg-muted/30 rounded-lg">
+              <label className="text-sm font-medium">Voice:</label>
+              <Select value={selectedVoice} onValueChange={setSelectedVoice} disabled={isConnected}>
+                <SelectTrigger className="w-64">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {voices.map((voice) => (
+                    <SelectItem key={voice.value} value={voice.value}>
+                      {voice.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {isConnected && (
+                <Badge variant="secondary" className="text-xs">
+                  Voice locked during conversation
+                </Badge>
+              )}
+            </div>
+
+            {/* Connection Controls */}
+            <div className="flex items-center justify-center gap-4 p-4 bg-muted/50 rounded-lg">
             {!isConnected ? (
               <Button 
                 onClick={startConversation}
@@ -309,6 +347,7 @@ const ChatGPTVoiceInterface: React.FC<ChatGPTVoiceInterfaceProps> = ({ isOpen, o
                 </Button>
               </div>
             )}
+            </div>
           </div>
 
           {/* Messages */}
@@ -335,15 +374,15 @@ const ChatGPTVoiceInterface: React.FC<ChatGPTVoiceInterfaceProps> = ({ isOpen, o
                         ? 'bg-primary text-primary-foreground' 
                         : 'bg-muted'
                     }`}>
-                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                      <p className="text-xs opacity-70 mt-1">
-                        {message.timestamp.toLocaleTimeString()}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
+                       <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                       <p className="text-xs opacity-70 mt-1">
+                         {message.timestamp.toLocaleTimeString()}
+                       </p>
+                     </div>
+                   </div>
+                 </div>
+               ))
+             )}
           </div>
 
           {/* Text Input */}
