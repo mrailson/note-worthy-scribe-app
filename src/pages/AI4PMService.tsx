@@ -1444,34 +1444,49 @@ Always provide practical, actionable advice that follows NHS guidelines and best
       )}
       
       <div className="container mx-auto px-3 py-2 sm:px-4 sm:py-3 max-w-7xl">
+        {/* Compact mobile menu */}
+        <div className="sm:hidden mb-2">
+          <div className="relative">
+            <select
+              value={activeTab}
+              onChange={(e) => setActiveTab(e.target.value as 'ai-service' | 'pm-genie' | 'previous-searches' | 'ai-settings' | 'what-can-ai-do')}
+              className="w-full h-9 rounded-md border border-border bg-card text-foreground text-sm pl-3 pr-8"
+            >
+              <option value="ai-service">AI</option>
+              <option value="pm-genie">Genie</option>
+              <option value="previous-searches">History</option>
+              <option value="ai-settings">Settings</option>
+              <option value="what-can-ai-do">Help</option>
+            </select>
+          </div>
+        </div>
+        
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1 h-auto p-1">
-            <TabsTrigger value="ai-service" className="flex items-center gap-1 min-h-[44px] text-xs sm:text-sm touch-manipulation">
-              <MessageSquare className="h-4 w-4" />
-              <span className="hidden sm:inline">AI Service</span>
-              <span className="sm:hidden">AI</span>
-            </TabsTrigger>
-            <TabsTrigger value="pm-genie" className="flex items-center gap-1 min-h-[44px] text-xs sm:text-sm touch-manipulation">
-              <Bot className="h-4 w-4" />
-              <span className="hidden sm:inline">PM Genie</span>
-              <span className="sm:hidden">Genie</span>
-            </TabsTrigger>
-            <TabsTrigger value="previous-searches" className="flex items-center gap-1 min-h-[44px] text-xs sm:text-sm touch-manipulation">
-              <History className="h-4 w-4" />
-              <span className="hidden sm:inline">Previous Searches</span>
-              <span className="sm:hidden">History</span>
-            </TabsTrigger>
-            <TabsTrigger value="ai-settings" className="flex items-center gap-1 min-h-[44px] text-xs sm:text-sm touch-manipulation">
-              <Settings className="h-4 w-4" />
-              <span className="hidden sm:inline">AI Settings</span>
-              <span className="sm:hidden">Settings</span>
-            </TabsTrigger>
-            <TabsTrigger value="what-can-ai-do" className="flex items-center gap-1 min-h-[44px] text-xs sm:text-sm touch-manipulation">
-              <HelpCircle className="h-4 w-4" />
-              <span className="hidden lg:inline">What can AI do?</span>
-              <span className="lg:hidden">Help</span>
-            </TabsTrigger>
-          </TabsList>
+          {/* Desktop/tablet tabs */}
+          <div className="hidden sm:block">
+            <TabsList className="grid w-full grid-cols-3 lg:grid-cols-5 gap-1 h-auto p-1">
+              <TabsTrigger value="ai-service" className="flex items-center gap-1 min-h-[40px] text-sm touch-manipulation">
+                <MessageSquare className="h-4 w-4" />
+                <span>AI Service</span>
+              </TabsTrigger>
+              <TabsTrigger value="pm-genie" className="flex items-center gap-1 min-h-[40px] text-sm touch-manipulation">
+                <Bot className="h-4 w-4" />
+                <span>PM Genie</span>
+              </TabsTrigger>
+              <TabsTrigger value="previous-searches" className="flex items-center gap-1 min-h-[40px] text-sm touch-manipulation">
+                <History className="h-4 w-4" />
+                <span>Previous Searches</span>
+              </TabsTrigger>
+              <TabsTrigger value="ai-settings" className="flex items-center gap-1 min-h-[40px] text-sm touch-manipulation">
+                <Settings className="h-4 w-4" />
+                <span>AI Settings</span>
+              </TabsTrigger>
+              <TabsTrigger value="what-can-ai-do" className="flex items-center gap-1 min-h-[40px] text-sm touch-manipulation">
+                <HelpCircle className="h-4 w-4" />
+                <span>What can AI do?</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* AI Service Tab */}
           <TabsContent value="ai-service" className="mt-1">
