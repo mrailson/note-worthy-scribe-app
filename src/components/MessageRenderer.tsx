@@ -10,7 +10,8 @@ import {
   User,
   FileText,
   List,
-  CheckSquare
+  CheckSquare,
+  Expand
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -32,9 +33,10 @@ interface UploadedFile {
 interface MessageRendererProps {
   message: Message;
   disableTruncation?: boolean;
+  onExpandMessage?: (message: Message) => void;
 }
 
-const MessageRenderer: React.FC<MessageRendererProps> = ({ message, disableTruncation = false }) => {
+const MessageRenderer: React.FC<MessageRendererProps> = ({ message, disableTruncation = false, onExpandMessage }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showFullContent, setShowFullContent] = useState(true); // Always show full content
   const messageRef = React.useRef<HTMLDivElement>(null);
@@ -58,6 +60,12 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({ message, disableTrunc
         inline: 'nearest'
       });
       toast.success('Scrolled to top of message');
+    }
+  };
+
+  const handleExpandMessage = () => {
+    if (onExpandMessage) {
+      onExpandMessage(message);
     }
   };
 
@@ -318,18 +326,36 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({ message, disableTrunc
               {message.timestamp.toLocaleTimeString()}
             </span>
             <div className="flex items-center gap-1">
-              {/* Scroll to top button for long assistant messages */}
+              {/* Action buttons for long assistant messages */}
               {message.role === 'assistant' && isLongMessage && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={scrollToTop}
-                  className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-muted-foreground hover:text-foreground"
-                  title="Scroll to top of this message"
-                >
-                  <ChevronUp className="h-3 w-3" />
-                </Button>
+                <>
+                  {/* Scroll to top button */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={scrollToTop}
+                    className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-muted-foreground hover:text-foreground"
+                    title="Scroll to top of this message"
+                  >
+                    <ChevronUp className="h-3 w-3" />
+                  </Button>
+                  
+                  {/* Expand to full screen button */}
+                  {onExpandMessage && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleExpandMessage}
+                      className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-muted-foreground hover:text-foreground"
+                      title="Expand to full screen"
+                    >
+                      <Expand className="h-3 w-3" />
+                    </Button>
+                  )}
+                </>
               )}
+              
+              {/* Copy button */}
               <Button
                 variant="ghost"
                 size="sm"

@@ -1707,7 +1707,10 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                     }, [] as Array<{key: string, messages: Message[], role: string}>).map((group) => (
                       <div key={group.key}>
                         {group.messages.length === 1 ? (
-                          <MessageRenderer message={group.messages[0]} />
+                          <MessageRenderer 
+                            message={group.messages[0]} 
+                            onExpandMessage={setExpandedMessage}
+                          />
                         ) : (
                           // Render combined message for grouped assistant messages
                           <MessageRenderer 
@@ -1715,7 +1718,8 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                               ...group.messages[0],
                               content: group.messages.map(m => m.content).join('\n\n'),
                               files: group.messages.flatMap(m => m.files || [])
-                            }} 
+                            }}
+                            onExpandMessage={setExpandedMessage}
                           />
                         )}
                         {/* Add action buttons for AI responses */}
