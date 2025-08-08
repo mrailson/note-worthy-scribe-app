@@ -129,10 +129,12 @@ export const MeetingRecorder = ({
   const [isGeneratingNotes, setIsGeneratingNotes] = useState(false);
   
   // Meeting settings
-  const [meetingSettings, setMeetingSettings] = useState(initialSettings || {
+  const [meetingSettings, setMeetingSettings] = useState(() => initialSettings || {
     title: "General Meeting",
     description: "",
-    meetingType: "general"
+    meetingType: "general",
+    practiceId: "",
+    meetingFormat: "teams"
   });
 
   // Reset meeting function
