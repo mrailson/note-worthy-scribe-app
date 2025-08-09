@@ -38,6 +38,9 @@ serve(async (req) => {
 
     console.log('Starting news search for Northamptonshire GP practices...');
 
+    // Initialize articles array
+    let newsArticles: NewsArticle[] = [];
+
     // Now that we have an OpenAI API key, try to generate relevant news content
     if (openAIApiKey) {
       console.log('Using OpenAI API to generate news content...');
@@ -50,25 +53,26 @@ serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'gpt-4.1-2025-04-14',
+            model: 'gpt-4o',
             messages: [
               {
                 role: 'system',
-                content: 'You are a news generator for NHS GP practices. Generate realistic but fictional news articles for demonstration purposes. Return as JSON array.'
+                content: 'You are a news generator for NHS GP practices. Generate realistic but fictional news articles for demonstration purposes. Return ONLY a valid JSON array with no other text.'
               },
               {
                 role: 'user',
-                content: 'Generate 5 realistic news articles about Northamptonshire GP practices and NHS primary care. Include title, summary, content, source, published_at (recent dates), relevance_score (1-10), and tags.'
+                content: 'Generate 5 realistic news articles about Northamptonshire GP practices and NHS primary care. Each article must include: title, summary, content (250+ words), source, published_at (recent dates in ISO format), relevance_score (1-10), and tags array.'
               }
             ],
             temperature: 0.7,
-            max_tokens: 2000
+            max_tokens: 3000
           }),
         });
 
         if (response.ok) {
           const data = await response.json();
           const content = data.choices[0]?.message?.content;
+          console.log('OpenAI response received');
           
           try {
             const parsedContent = JSON.parse(content);
@@ -84,10 +88,13 @@ serve(async (req) => {
                 tags: Array.isArray(article.tags) ? article.tags : ['NHS', 'GP Practice'],
                 image_url: article.image_url || 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=400'
               }));
+              console.log(`Generated ${newsArticles.length} articles from OpenAI`);
             }
           } catch (parseError) {
             console.log('Failed to parse AI response, using fallback');
           }
+        } else {
+          console.error('OpenAI API error:', await response.text());
         }
       } catch (apiError) {
         console.error('OpenAI API error:', apiError);
