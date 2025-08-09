@@ -19,6 +19,32 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    // Validate requester is authenticated and has system_admin role
+    const supabaseAuth = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      {
+        global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } },
+        auth: { autoRefreshToken: false, persistSession: false },
+      }
+    );
+
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Unauthorized" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    const { data: isAdmin, error: roleError } = await supabaseAuth.rpc('is_system_admin');
+    if (roleError || !isAdmin) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Forbidden" }),
+        { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
     const { email, new_password }: UpdatePasswordRequest = await req.json();
 
     if (!email || !new_password) {

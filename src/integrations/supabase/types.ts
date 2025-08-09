@@ -736,6 +736,8 @@ export type Database = {
       complaint_involved_parties: {
         Row: {
           access_token: string | null
+          access_token_expires_at: string
+          access_token_last_used_at: string | null
           complaint_id: string
           created_at: string | null
           id: string
@@ -748,6 +750,8 @@ export type Database = {
         }
         Insert: {
           access_token?: string | null
+          access_token_expires_at?: string
+          access_token_last_used_at?: string | null
           complaint_id: string
           created_at?: string | null
           id?: string
@@ -760,6 +764,8 @@ export type Database = {
         }
         Update: {
           access_token?: string | null
+          access_token_expires_at?: string
+          access_token_last_used_at?: string | null
           complaint_id?: string
           created_at?: string | null
           id?: string
