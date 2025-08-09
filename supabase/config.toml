@@ -29,3 +29,6 @@ verify_jwt = true
 
 [functions.delete-user-admin]
 verify_jwt = true
+
+[functions.nhs-gp-news]
+verify_jwt = false

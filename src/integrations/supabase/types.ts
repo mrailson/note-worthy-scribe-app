@@ -1773,6 +1773,33 @@ export type Database = {
         }
         Relationships: []
       }
+      curated_news_pages: {
+        Row: {
+          created_at: string
+          digest_date: string | null
+          generated_by: string | null
+          html: string
+          id: string
+          title: string | null
+        }
+        Insert: {
+          created_at?: string
+          digest_date?: string | null
+          generated_by?: string | null
+          html: string
+          id?: string
+          title?: string | null
+        }
+        Update: {
+          created_at?: string
+          digest_date?: string | null
+          generated_by?: string | null
+          html?: string
+          id?: string
+          title?: string | null
+        }
+        Relationships: []
+      }
       data_retention_policies: {
         Row: {
           created_at: string
