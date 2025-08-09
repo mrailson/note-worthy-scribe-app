@@ -16,6 +16,7 @@ export class iPhoneWhisperTranscriber {
   private overlapBuffer: Blob[] = [];
   private chunkTimeout: ReturnType<typeof setTimeout> | null = null;
   private recordingStartTime = 0;
+  private lastIntervalMs = 0;
 
   constructor(
     private onTranscription: (data: TranscriptData) => void,
@@ -35,14 +36,14 @@ export class iPhoneWhisperTranscriber {
           channelCount: 1,
           echoCancellation: true,
           noiseSuppression: true,
-          autoGainControl: true,
+          autoGainControl: false, // Disable AGC to reduce pumping/hallucinations
         }
       });
 
       // Check supported MIME types for iPhone
       const mimeTypes = [
+        'audio/mp4;codecs=mp4a.40.2', // Prefer explicit AAC on iOS
         'audio/mp4',
-        'audio/mp4;codecs=mp4a.40.2',
         'audio/aac',
         'audio/webm;codecs=opus',
         'audio/webm'
@@ -59,7 +60,7 @@ export class iPhoneWhisperTranscriber {
 
       this.mediaRecorder = new MediaRecorder(this.stream, {
         mimeType: selectedMimeType,
-        audioBitsPerSecond: 64000 // Lower bitrate for mobile
+        audioBitsPerSecond: 128000 // Higher bitrate to reduce artifacts on iOS
       });
 
       this.mediaRecorder.ondataavailable = (event) => {
@@ -110,6 +111,7 @@ export class iPhoneWhisperTranscriber {
       const elapsed = Date.now() - this.recordingStartTime;
       const interval = getInterval(elapsed);
       console.log(`⏱️ Next iPhone chunk in ${interval}ms (elapsed ${elapsed}ms)`);
+      this.lastIntervalMs = interval;
 
       this.chunkTimeout = setTimeout(() => {
         if (this.mediaRecorder && this.isRecording && this.mediaRecorder.state === 'recording') {
@@ -138,8 +140,8 @@ export class iPhoneWhisperTranscriber {
       const elapsed = Date.now() - this.recordingStartTime;
       // In the first minute, don't use overlap to keep latency low
       let currentChunks: Blob[];
-      if (elapsed >= 60000) {
-        // Create overlap: keep last ~8 seconds of previous chunk (approx 25%) for longer segments
+      if (elapsed >= 10000) {
+        // Enable small overlap after 10s for stability
         currentChunks = [...this.overlapBuffer, ...this.audioChunks];
       } else {
         currentChunks = [...this.audioChunks];
@@ -149,8 +151,12 @@ export class iPhoneWhisperTranscriber {
       const audioBlob = new Blob(currentChunks, { type: this.audioChunks[0].type });
       
       // Update overlap buffer only for longer segments
-      if (elapsed >= 60000) {
-        const overlapSize = Math.ceil(this.audioChunks.length * 0.25);
+      if (elapsed >= 10000) {
+        // Dynamic small overlap: ~1–2s depending on current interval
+        let overlapFraction = 0.08; // ~2.4s for 30s chunks
+        if (this.lastIntervalMs <= 5000) overlapFraction = 0.2; // ~1s for 5s chunks
+        else if (this.lastIntervalMs <= 10000) overlapFraction = 0.1; // ~1s for 10s chunks
+        const overlapSize = Math.max(1, Math.ceil(this.audioChunks.length * overlapFraction));
         this.overlapBuffer = this.audioChunks.slice(-overlapSize);
       } else {
         this.overlapBuffer = [];
@@ -182,7 +188,7 @@ export class iPhoneWhisperTranscriber {
 
       // Send to Whisper API
       const { data, error } = await supabase.functions.invoke('speech-to-text', {
-        body: { audio: base64Audio }
+        body: { audio: base64Audio, language: 'en', temperature: 0 }
       });
 
       if (error) {
