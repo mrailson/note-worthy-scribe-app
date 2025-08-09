@@ -52,7 +52,8 @@ import {
   Minimize,
   Volume2,
   VolumeX,
-  PhoneOff
+  PhoneOff,
+  Newspaper
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { LoginForm } from '@/components/LoginForm';
@@ -64,6 +65,7 @@ import { saveAs } from 'file-saver';
 import PptxGenJS from 'pptxgenjs';
 import PMGenieVoiceAgent from '@/components/PMGenieVoiceAgent';
 import { RealtimeChat } from '@/utils/RealtimeAudio';
+import { NewsPanel } from '@/components/NewsPanel';
 
 // Helper function to get file type icon
 const getFileTypeIcon = (fileName: string, fileType?: string) => {
@@ -1660,11 +1662,12 @@ Always provide practical, actionable advice that follows NHS guidelines and best
           <div className="relative">
             <select
               value={activeTab}
-              onChange={(e) => setActiveTab(e.target.value as 'ai-service' | 'pm-genie' | 'previous-searches' | 'ai-settings' | 'what-can-ai-do')}
+              onChange={(e) => setActiveTab(e.target.value as 'ai-service' | 'pm-genie' | 'latest-news' | 'previous-searches' | 'ai-settings' | 'what-can-ai-do')}
               className="w-full h-9 rounded-md border border-border bg-card text-foreground text-sm pl-3 pr-8"
             >
               <option value="ai-service">AI</option>
               <option value="pm-genie">Genie</option>
+              <option value="latest-news">News</option>
               <option value="previous-searches">History</option>
               <option value="ai-settings">Settings</option>
               <option value="what-can-ai-do">Help</option>
@@ -1675,7 +1678,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           {/* Desktop/tablet tabs */}
           <div className="hidden sm:block">
-            <TabsList className="grid w-full grid-cols-3 lg:grid-cols-5 gap-1 h-auto p-1">
+            <TabsList className="grid w-full grid-cols-4 lg:grid-cols-5 gap-1 h-auto p-1">
               <TabsTrigger value="ai-service" className="flex items-center gap-1 min-h-[40px] text-sm touch-manipulation">
                 <MessageSquare className="h-4 w-4" />
                 <span>AI Service</span>
@@ -1683,6 +1686,10 @@ Always provide practical, actionable advice that follows NHS guidelines and best
               <TabsTrigger value="pm-genie" className="flex items-center gap-1 min-h-[40px] text-sm touch-manipulation">
                 <Bot className="h-4 w-4" />
                 <span>PM Genie</span>
+              </TabsTrigger>
+              <TabsTrigger value="latest-news" className="flex items-center gap-1 min-h-[40px] text-sm touch-manipulation">
+                <Newspaper className="h-4 w-4" />
+                <span>Latest News</span>
               </TabsTrigger>
               <TabsTrigger value="previous-searches" className="flex items-center gap-1 min-h-[40px] text-sm touch-manipulation">
                 <History className="h-4 w-4" />
@@ -2059,6 +2066,15 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                     </Button>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Latest News Tab */}
+          <TabsContent value="latest-news" className="mt-3">
+            <Card>
+              <CardContent className="p-6">
+                <NewsPanel />
               </CardContent>
             </Card>
           </TabsContent>

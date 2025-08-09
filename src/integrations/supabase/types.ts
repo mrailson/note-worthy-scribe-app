@@ -2427,6 +2427,54 @@ export type Database = {
         }
         Relationships: []
       }
+      news_articles: {
+        Row: {
+          content: string | null
+          created_at: string
+          id: string
+          image_url: string | null
+          location: string | null
+          published_at: string | null
+          relevance_score: number | null
+          source: string | null
+          summary: string | null
+          tags: string[] | null
+          title: string
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          location?: string | null
+          published_at?: string | null
+          relevance_score?: number | null
+          source?: string | null
+          summary?: string | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          location?: string | null
+          published_at?: string | null
+          relevance_score?: number | null
+          source?: string | null
+          summary?: string | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+          url?: string | null
+        }
+        Relationships: []
+      }
       nhs_terms: {
         Row: {
           created_at: string
