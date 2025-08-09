@@ -220,28 +220,28 @@ export class DesktopWhisperTranscriber {
 
     let nextInterval: number;
     
-    // ChatGPT recommended chunking: 12-20s chunks with 2.0s overlap (10-15%)
+    // More frequent chunking for real-time feedback
     if (this.earlyTranscriptionMode) {
-      // Early mode: still aggressive for immediate feedback
+      // Early mode: aggressive chunking for immediate feedback
       if (this.chunkCount === 0) {
-        nextInterval = 3000; // 3 seconds for very first chunk
-        console.log('⚡ EARLY MODE: First chunk - 3 second interval');
+        nextInterval = 2000; // 2 seconds for very first chunk
+        console.log('⚡ EARLY MODE: First chunk - 2 second interval');
       } else if (this.chunkCount === 1) {
-        nextInterval = 5000; // 5 seconds for second chunk
-        console.log('⚡ EARLY MODE: Second chunk - 5 second interval');
+        nextInterval = 3000; // 3 seconds for second chunk
+        console.log('⚡ EARLY MODE: Second chunk - 3 second interval');
       } else if (this.chunkCount < 4) {
-        nextInterval = 12000; // 12 seconds - ChatGPT recommended minimum
-        console.log('⚡ EARLY MODE: Early chunk', this.chunkCount, '- 12 second interval');
+        nextInterval = 5000; // 5 seconds for better real-time updates
+        console.log('⚡ EARLY MODE: Early chunk', this.chunkCount, '- 5 second interval');
       } else {
-        nextInterval = 18000; // 18 seconds for remaining early chunks
-        console.log('⚡ EARLY MODE: Later chunk', this.chunkCount, '- 18 second interval');
+        nextInterval = 8000; // 8 seconds for remaining early chunks
+        console.log('⚡ EARLY MODE: Later chunk', this.chunkCount, '- 8 second interval');
       }
     } else {
-      // Normal mode: ChatGPT recommended 12-20s chunks
+      // Normal mode: faster for continuous updates  
       if (this.chunkCount === 0) {
-        nextInterval = 15000; // 15 seconds - mid-range
+        nextInterval = 5000; // 5 seconds - faster start
       } else {
-        nextInterval = 18000; // 18 seconds - optimal balance
+        nextInterval = 10000; // 10 seconds - more frequent updates
       }
     }
 
@@ -335,14 +335,14 @@ export class DesktopWhisperTranscriber {
         
         console.log(`📊 Quality metrics - avg_logprob: ${avgLogprob.toFixed(3)}, no_speech_prob: ${noSpeechProb.toFixed(3)}`);
         
-        // Apply ChatGPT recommended quality gates
-        if (avgLogprob < -0.6) {
-          console.log(`⚠️ Skipping chunk due to low avg_logprob: ${avgLogprob}`);
+        // Apply more relaxed quality gates for continuous updates
+        if (avgLogprob < -1.0) {
+          console.log(`⚠️ Skipping chunk due to very low avg_logprob: ${avgLogprob}`);
           return;
         }
         
-        if (noSpeechProb > 0.6) {
-          console.log(`⚠️ Skipping chunk due to high no_speech_prob: ${noSpeechProb}`);
+        if (noSpeechProb > 0.8) {
+          console.log(`⚠️ Skipping chunk due to very high no_speech_prob: ${noSpeechProb}`);
           return;
         }
         

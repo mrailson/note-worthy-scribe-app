@@ -174,6 +174,7 @@ export const LiveTranscript = ({
         processedTranscript = medicalTermCorrector.applyCorrections(transcript);
       }
       
+      // Always keep the full transcript history - no clearing
       if (isAutoCleaningEnabled) {
         // Use streaming cleaner with confidence filtering
         const cleanedNew = transcriptCleaner.cleanStreamingTranscript(cleanedTranscript, processedTranscript, confidence);
@@ -183,7 +184,7 @@ export const LiveTranscript = ({
         setLiveTranscriptText(processedTranscript); // Show processed version
       }
     }
-    // Don't clear liveTranscriptText when transcript becomes empty - keep last content visible
+    // NEVER clear liveTranscriptText - always preserve transcript history
   }, [transcript, isAutoCleaningEnabled, cleanedTranscript, isMedicalCorrectionsLoaded]);
 
   // Handle text selection for corrections

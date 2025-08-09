@@ -571,7 +571,7 @@ export const MeetingRecorder = ({
         }
       }, 3000); // 3 seconds = 5 second chunk - 2 second overlap
 
-      // Add a heartbeat to show recording is active every 10 seconds
+      // Add a heartbeat to show recording is active every 5 seconds
       const heartbeatInterval = setInterval(() => {
         if (isRecording && isRecordingRef.current) {
           addDebugLog(`💓 Recording active - chunk ${chunkId}`);
@@ -580,8 +580,9 @@ export const MeetingRecorder = ({
           const currentLength = transcript.length;
           const currentWords = wordCount;
           
-          toast.success(`Recording active`, {
-            description: `${currentWords} words transcribed so far`,
+          // More frequent visual feedback
+          toast.info(`🎙️ Recording`, {
+            description: `${currentWords} words • ${Math.floor(currentLength/100)} paragraphs`,
             duration: 2000
           });
           
@@ -589,7 +590,7 @@ export const MeetingRecorder = ({
         } else {
           clearInterval(heartbeatInterval);
         }
-      }, 10000); // Every 10 seconds for more frequent feedback
+      }, 5000); // Every 5 seconds for frequent feedback
 
       segmentIntervalRef.current = chunkInterval;
 
