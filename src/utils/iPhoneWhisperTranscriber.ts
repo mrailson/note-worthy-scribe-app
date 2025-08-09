@@ -188,7 +188,7 @@ export class iPhoneWhisperTranscriber {
 
       // Send to Whisper API
       const { data, error } = await supabase.functions.invoke('speech-to-text', {
-        body: { audio: base64Audio, language: 'en', temperature: 0 }
+        body: { audio: base64Audio, language: 'en', temperature: 0, condition_on_previous_text: false }
       });
 
       if (error) {

@@ -44,14 +44,15 @@ serve(async (req) => {
     formData.append('language', language || 'en');  // UK accents + noisy rooms benefit from explicit language
     formData.append('temperature', String(temperature ?? 0.0)); // Deterministic by default
     
+    // Silence-safe prompt to reduce boilerplate hallucinations
+    const safetyPrompt = "Transcribe only clearly audible speech. If silence or background noise, return nothing. Never output: 'This is a recording of the meeting recording in English.'";
     // ChatGPT recommended: condition_on_previous_text = false to prevent error snowballs
     if (condition_on_previous_text === false) {
-      // Note: OpenAI API doesn't have condition_on_previous_text parameter exposed
-      // But we can use an empty/neutral prompt to achieve similar effect
-      formData.append('prompt', '');
+      // OpenAI API lacks this flag; using neutral prompt to minimize carryover
+      formData.append('prompt', safetyPrompt);
     } else {
-      // Add domain-specific prompt but keep it short and stable as ChatGPT recommends
-      formData.append('prompt', 'Professional meeting recording in English.');
+      // Keep prompt short and stable
+      formData.append('prompt', safetyPrompt);
     }
     
     // Request verbose response to get quality metrics (avg_logprob, no_speech_prob)
@@ -84,18 +85,31 @@ serve(async (req) => {
     if (segments.length > 0) {
       // Calculate average log probability across all segments
       avg_logprob = segments.reduce((sum: number, seg: any) => sum + (seg.avg_logprob || 0), 0) / segments.length;
-      // Get no_speech_prob from the response (if available)
-      no_speech_prob = result.no_speech_prob || 0;
+      // Estimate no_speech probability from segments (use max as conservative indicator)
+      no_speech_prob = segments.reduce((max: number, seg: any) => Math.max(max, seg.no_speech_prob ?? 0), 0);
+    } else {
+      avg_logprob = 0;
+      no_speech_prob = 1; // No segments -> likely silence
     }
 
-    // Remove the prompt text that sometimes appears in transcription results
-    let cleanText = result.text || '';
-    cleanText = cleanText.replace(/Professional meeting recording in English\.?\s*/gi, '');
-    // Remove common hallucinated phrases from silence
-    cleanText = cleanText.replace(/Thank you for watching\.?\s*/gi, '');
-    cleanText = cleanText.replace(/Thanks for watching\.?\s*/gi, '');
-    cleanText = cleanText.replace(/Please use headphones or earphones\.?\s*/gi, '');
-    cleanText = cleanText.trim();
+    // Server-side filtering for known silence hallucinations and boilerplate
+    const bannedRegex = /(this\s+is\s+(a\s+)?(video\s+)?recording\s+of\s+the\s+meeting\s+recording\s+in\s+english\.?)/gi;
+    let cleanText = (result.text || '').replace(bannedRegex, ' ');
+    cleanText = cleanText
+      .replace(/Thank you for watching\.\?\s*/gi, ' ')
+      .replace(/Thanks for watching\.\?\s*/gi, ' ')
+      .replace(/Please use headphones or earphones\.\?\s*/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    // Silence guard: if content is very short and metrics indicate silence or low confidence, drop it
+    const likelySilence = (no_speech_prob > 0.5 || avg_logprob < -0.8);
+    if (!cleanText || cleanText.length < 10) {
+      if (likelySilence) {
+        console.log('🤫 Dropping low-confidence text due to silence/hallucination indicators');
+        cleanText = '';
+      }
+    }
     
     return new Response(JSON.stringify({ 
       text: cleanText,
