@@ -38,12 +38,9 @@ serve(async (req) => {
 
     console.log('Starting news search for Northamptonshire GP practices...');
 
-    // For now, generate sample news articles since OpenAI web search needs proper implementation
-    // This will be replaced with actual web search when the API key is configured
-    
-    let newsArticles: NewsArticle[] = [];
-    
+    // Now that we have an OpenAI API key, try to generate relevant news content
     if (openAIApiKey) {
+      console.log('Using OpenAI API to generate news content...');
       // Try to call OpenAI API for content generation
       try {
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
