@@ -241,19 +241,37 @@ const NewsPanel = () => {
 
       {filteredArticles.length === 0 ? (
         <Card>
-          <CardContent className="text-center py-8">
-            <p className="text-muted-foreground">No news articles found with the current filters.</p>
-            <Button 
-              variant="outline" 
-              className="mt-4"
-              onClick={() => {
-                setFilterTag('all');
-                setFilterSource('all');
-                setFilterTime('all');
-              }}
-            >
-              Clear Filters
-            </Button>
+          <CardContent className="text-center py-12">
+            <div className="text-muted-foreground mb-4">
+              <svg className="mx-auto h-12 w-12 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 01-2-2V9a2 2 0 00-2-2h-2m-2 13h2v-4a2 2 0 00-2-2h-2v-4a2 2 0 012-2h2V7" />
+              </svg>
+              <h3 className="text-lg font-medium mb-2">
+                {articles.length === 0 ? "No NHS news articles available" : "No articles match your current filters"}
+              </h3>
+              <p className="text-sm mb-4">
+                {articles.length === 0 
+                  ? "Click 'Refresh' to fetch the latest NHS news for GP practices." 
+                  : "Try adjusting your filters or clearing them to see more articles."
+                }
+              </p>
+              {articles.length === 0 ? (
+                <Button onClick={refreshNews} disabled={refreshing}>
+                  {refreshing ? "Fetching..." : "Refresh NHS News"}
+                </Button>
+              ) : (
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setFilterTag('all');
+                    setFilterSource('all');
+                    setFilterTime('all');
+                  }}
+                >
+                  Clear All Filters
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
       ) : (
