@@ -43,27 +43,27 @@ interface ProcessedNewsItem {
 const NEWS_SOURCES: NewsSource[] = [
   {
     name: "NHS England",
-    url: "https://www.england.nhs.uk/news/feed/",
+    url: "https://www.england.nhs.uk/feed/",
     type: "rss",
     priority: 10
   },
   {
-    name: "Department of Health and Social Care",
-    url: "https://www.gov.uk/government/organisations/department-of-health-and-social-care.atom",
+    name: "Department of Health and Social Care", 
+    url: "https://www.gov.uk/search/news-and-communications.atom?organisations%5B%5D=department-of-health-and-social-care&content_purpose_supergroup%5B%5D=news-and-communications",
     type: "rss",
     priority: 9
   },
   {
-    name: "UKHSA",
-    url: "https://www.gov.uk/government/organisations/uk-health-security-agency.atom",
-    type: "rss",
+    name: "NICE",
+    url: "https://www.nice.org.uk/feeds/nice-news-stories.xml",
+    type: "rss", 
     priority: 8
   },
   {
-    name: "NICE",
-    url: "https://www.nice.org.uk/feeds/news",
+    name: "CQC",
+    url: "https://www.cqc.org.uk/feed",
     type: "rss",
-    priority: 8
+    priority: 7
   }
 ];
 
