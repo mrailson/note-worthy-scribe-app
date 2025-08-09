@@ -38,14 +38,18 @@ const NewsPanel = () => {
 
   const fetchNews = async () => {
     try {
+      console.log('Fetching news articles...');
       const { data, error } = await supabase
         .from('news_articles')
         .select('*')
         .order('published_at', { ascending: false })
         .limit(20);
 
+      console.log('Fetch result:', { data, error });
+
       if (error) throw error;
 
+      console.log('Setting articles:', data?.length || 0, 'articles');
       setArticles(data || []);
     } catch (error) {
       console.error('Error fetching news:', error);
