@@ -288,13 +288,20 @@ const NewsPanel = () => {
                 </div>
                 
                 {article.image_url && (
-                  <div className="w-full h-40 mb-3 overflow-hidden rounded-lg">
+                  <div className="w-full h-40 mb-3 overflow-hidden rounded-lg bg-muted">
                     <img 
                       src={article.image_url} 
                       alt={article.title}
                       className="w-full h-full object-cover"
                       onError={(e) => {
                         e.currentTarget.style.display = 'none';
+                        e.currentTarget.parentElement!.innerHTML = `
+                          <div class="w-full h-full flex items-center justify-center text-muted-foreground">
+                            <svg class="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 01-2-2V9a2 2 0 00-2-2h-2m-2 13h2v-4a2 2 0 00-2-2h-2v-4a2 2 0 012-2h2V7" />
+                            </svg>
+                          </div>
+                        `;
                       }}
                     />
                   </div>

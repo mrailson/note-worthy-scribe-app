@@ -124,11 +124,12 @@ Return JSON array with this exact structure:
     "content": "Full article content with markdown formatting, 200-400 words",
     "relevance_score": 75-95,
     "tags": ["Finance", "CQC", "Digital", "Workforce", "Vaccinations"],
-    "image_url": "https://www.england.nhs.uk/wp-content/uploads/2024/...",
     "category": "Finance" | "CQC" | "Digital" | "Workforce" | "Vaccinations" | "Access",
     "northamptonshire_related": true | false
   }
 ]
+
+DO NOT include image_url field as images are not available.
 
 Focus on current healthcare topics like:
 - Winter pressures and planning
