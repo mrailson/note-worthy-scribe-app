@@ -1,7 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { DOMParser } from "https://deno.land/x/deno_dom@v0.1.38/deno-dom-wasm.ts";
+import { XMLParser } from "https://esm.sh/fast-xml-parser@4.4.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -51,37 +51,23 @@ serve(async (req) => {
           }
           
           const html = await response.text();
-          const parser = new DOMParser();
-          const doc = parser.parseFromString(html, "text/html");
+          const text = (html || '')
+            .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+            .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+            .replace(/<nav[\s\S]*?<\/nav>/gi, '')
+            .replace(/<header[\s\S]*?<\/header>/gi, '')
+            .replace(/<footer[\s\S]*?<\/footer>/gi, '')
+            .replace(/<[^>]+>/g, ' ')
+            .replace(/&nbsp;/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
           
-          if (doc) {
-            // Remove script and style elements
-            const scripts = doc.querySelectorAll("script, style, nav, header, footer");
-            scripts.forEach(el => el.remove());
-            
-            // Try to find main content area
-            const contentSelectors = ['main', '[role="main"]', '.content', 'article'];
-            let content = "";
-            
-            for (const selector of contentSelectors) {
-              const element = doc.querySelector(selector);
-              if (element) {
-                content = element.textContent?.trim() || "";
-                if (content.length > 100) break;
-              }
-            }
-            
-            if (!content) {
-              content = doc.querySelector("body")?.textContent?.trim() || "";
-            }
-            
-            return new Response(JSON.stringify({ 
-              content: content.replace(/\s+/g, ' ').substring(0, 5000) || "Unable to extract content from this article.",
-              success: true 
-            }), {
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            });
-          }
+          return new Response(JSON.stringify({ 
+            content: text.substring(0, 5000) || "Unable to extract content from this article.",
+            success: true 
+          }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
         } catch (error) {
           console.error('Error fetching article content:', error);
         }
@@ -98,7 +84,7 @@ serve(async (req) => {
     // Default: fetch real news from trusted NHS-related sources (RSS/Atom)
     console.log('Fetching real NHS GP news from official feeds...');
 
-    const parser = new DOMParser();
+    const xmlParser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@_', trimValues: true });
 
     const feeds = [
       { source: 'NHS England', url: 'https://www.england.nhs.uk/news/feed/', type: 'rss' },
@@ -119,57 +105,88 @@ serve(async (req) => {
         .trim();
 
     const parseRss = (xml: string, source: string) => {
-      const doc = parser.parseFromString(xml, 'application/xml');
-      if (!doc) return [] as ProcessedNewsItem[];
-      const items = Array.from(doc.querySelectorAll('item'));
-      return items.map((item) => {
-        const title = item.querySelector('title')?.textContent?.trim() || '';
-        const url = item.querySelector('link')?.textContent?.trim() || '';
-        const pubDate = item.querySelector('pubDate')?.textContent?.trim() || '';
-        const description = item.querySelector('description')?.textContent || '';
-        const categories = Array.from(item.querySelectorAll('category')).map((c) => c.textContent?.trim() || '').filter(Boolean);
-        const text = sanitizeText(description);
-        const published_at = pubDate ? new Date(pubDate).toISOString() : new Date().toISOString();
-        const tags = categories.length ? categories : [source];
-        const relevance_score = Math.min(100, 70 + Math.floor(Math.random() * 26));
-        return {
-          title,
-          url,
-          source,
-          published_at,
-          summary: text.slice(0, 280),
-          content: text,
-          relevance_score,
-          tags,
-        } as ProcessedNewsItem;
-      }).filter(a => a.title && a.url);
+      try {
+        const j: any = xmlParser.parse(xml);
+        const itemsRaw = j?.rss?.channel?.item || j?.['rdf:RDF']?.item || [];
+        const items = Array.isArray(itemsRaw) ? itemsRaw : [itemsRaw].filter(Boolean);
+        return items.map((it: any) => {
+          const title = String(it?.title ?? '').trim();
+          const url = String(it?.link ?? '').trim();
+          const pub = it?.pubDate || it?.pubdate || it?.['dc:date'] || '';
+          const desc = it?.description || it?.['content:encoded'] || '';
+          const catsRaw = it?.category ?? [];
+          const catsArr = Array.isArray(catsRaw) ? catsRaw : [catsRaw];
+          const tags = catsArr
+            .map((c: any) => typeof c === 'string' ? c : (c?.['#text'] || c?.['@_term'] || c?.term || ''))
+            .filter(Boolean);
+          const text = sanitizeText(String(desc));
+          const published_at = pub ? new Date(pub).toISOString() : new Date().toISOString();
+          const relevance_score = Math.min(100, 70 + Math.floor(Math.random() * 26));
+          return {
+            title,
+            url,
+            source,
+            published_at,
+            summary: text.slice(0, 280),
+            content: text,
+            relevance_score,
+            tags: tags.length ? tags : [source],
+          } as ProcessedNewsItem;
+        }).filter((a: ProcessedNewsItem) => a.title && a.url);
+      } catch (e) {
+        console.error('RSS parse error:', e);
+        return [] as ProcessedNewsItem[];
+      }
     };
 
     const parseAtom = (xml: string, source: string) => {
-      const doc = parser.parseFromString(xml, 'application/xml');
-      if (!doc) return [] as ProcessedNewsItem[];
-      const entries = Array.from(doc.querySelectorAll('entry'));
-      return entries.map((entry) => {
-        const title = entry.querySelector('title')?.textContent?.trim() || '';
-        const linkEl = entry.querySelector('link[rel="alternate"]') || entry.querySelector('link');
-        const url = linkEl?.getAttribute('href')?.trim() || '';
-        const updated = entry.querySelector('updated')?.textContent?.trim() || entry.querySelector('published')?.textContent?.trim() || '';
-        const summaryRaw = entry.querySelector('summary')?.textContent || entry.querySelector('content')?.textContent || '';
-        const text = sanitizeText(summaryRaw);
-        const published_at = updated ? new Date(updated).toISOString() : new Date().toISOString();
-        const tags = Array.from(entry.querySelectorAll('category')).map((c) => c.getAttribute('term') || '').filter(Boolean);
-        const relevance_score = Math.min(100, 72 + Math.floor(Math.random() * 24));
-        return {
-          title,
-          url,
-          source,
-          published_at,
-          summary: text.slice(0, 280),
-          content: text,
-          relevance_score,
-          tags: tags.length ? tags : [source],
-        } as ProcessedNewsItem;
-      }).filter(a => a.title && a.url);
+      try {
+        const j: any = xmlParser.parse(xml);
+        const raw = j?.feed?.entry || [];
+        const entries = Array.isArray(raw) ? raw : [raw].filter(Boolean);
+        const getText = (node: any) => {
+          if (!node) return '';
+          if (typeof node === 'string') return node;
+          if (typeof node === 'object') return node['#text'] || node._ || node.__text || '';
+          return '';
+        };
+        return entries.map((entry: any) => {
+          const title = String(getText(entry?.title) || '').trim();
+          let url = '';
+          const link = entry?.link;
+          if (Array.isArray(link)) {
+            const alt = link.find((l: any) => l?.['@_rel'] === 'alternate') || link[0];
+            url = (alt?.['@_href'] || alt?.href || '').toString().trim();
+          } else if (typeof link === 'object') {
+            url = (link?.['@_href'] || link?.href || '').toString().trim();
+          } else if (typeof link === 'string') {
+            url = link.trim();
+          }
+          const updated = entry?.updated || entry?.published || '';
+          const summaryRaw = entry?.summary || entry?.content || '';
+          const text = sanitizeText(getText(summaryRaw));
+          const published_at = updated ? new Date(updated).toISOString() : new Date().toISOString();
+          const catsRaw = entry?.category ?? [];
+          const catsArr = Array.isArray(catsRaw) ? catsRaw : [catsRaw];
+          const tags = catsArr
+            .map((c: any) => typeof c === 'string' ? c : (c?.['@_term'] || c?.term || c?.['#text'] || ''))
+            .filter(Boolean);
+          const relevance_score = Math.min(100, 72 + Math.floor(Math.random() * 24));
+          return {
+            title,
+            url,
+            source,
+            published_at,
+            summary: text.slice(0, 280),
+            content: text,
+            relevance_score,
+            tags: tags.length ? tags : [source],
+          } as ProcessedNewsItem;
+        }).filter((a: ProcessedNewsItem) => a.title && a.url);
+      } catch (e) {
+        console.error('Atom parse error:', e);
+        return [] as ProcessedNewsItem[];
+      }
     };
 
     const allArticles: ProcessedNewsItem[] = [];
