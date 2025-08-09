@@ -27,16 +27,8 @@ serve(async (req) => {
 
   try {
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
-    if (!openaiApiKey) {
-      console.log('No OpenAI API key found');
-      return new Response(JSON.stringify({ 
-        error: "OpenAI API key not configured. Please configure the OPENAI_API_KEY secret to enable real news fetching.",
-        success: false 
-      }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    // Note: OPENAI_API_KEY is optional. We'll fetch real RSS/Atom feeds by default.
+
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -103,101 +95,152 @@ serve(async (req) => {
       });
     }
 
-    console.log('Generating NHS GP news with OpenAI...');
-    
-    // Generate realistic NHS news articles using OpenAI
-    const prompt = `Generate 10 realistic, current NHS news articles specifically relevant to GP practices in Northamptonshire for ${new Date().toDateString()}. Each article should be:
+    // Default: fetch real news from trusted NHS-related sources (RSS/Atom)
+    console.log('Fetching real NHS GP news from official feeds...');
 
-1. Realistic and timely (as if published today)
-2. Relevant to GP practice operations
-3. Include proper source attribution to real NHS organizations
-4. Have appropriate content depth
+    const parser = new DOMParser();
 
-Return JSON array with this exact structure:
-[
-  {
-    "title": "Article title here",
-    "source": "NHS England" | "DHSC" | "NICE" | "CQC" | "Northamptonshire ICB",
-    "url": "https://www.england.nhs.uk/...",
-    "published_at": "2025-01-09T10:00:00Z",
-    "summary": "40-70 word summary",
-    "content": "Full article content with markdown formatting, 200-400 words",
-    "relevance_score": 75-95,
-    "tags": ["Finance", "CQC", "Digital", "Workforce", "Vaccinations"],
-    "category": "Finance" | "CQC" | "Digital" | "Workforce" | "Vaccinations" | "Access",
-    "northamptonshire_related": true | false
-  }
-]
+    const feeds = [
+      { source: 'NHS England', url: 'https://www.england.nhs.uk/news/feed/', type: 'rss' },
+      { source: 'MHRA', url: 'https://www.gov.uk/government/organisations/medicines-and-healthcare-products-regulatory-agency.atom', type: 'atom' },
+      { source: 'DHSC', url: 'https://www.gov.uk/government/organisations/department-of-health-and-social-care.atom', type: 'atom' },
+      { source: 'NICE', url: 'https://www.nice.org.uk/news/rss', type: 'rss' },
+    ] as const;
 
-DO NOT include image_url field as images are not available.
+    const sanitizeText = (html: string) =>
+      (html || '')
+        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+        .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
 
-Focus on current healthcare topics like:
-- Winter pressures and planning
-- Digital health initiatives  
-- CQC inspections and compliance
-- Workforce recruitment and training
-- New NICE guidance
-- Vaccination programmes
-- Primary care network developments
-- ICB funding announcements`;
+    const parseRss = (xml: string, source: string) => {
+      const doc = parser.parseFromString(xml, 'application/xml');
+      if (!doc) return [] as ProcessedNewsItem[];
+      const items = Array.from(doc.querySelectorAll('item'));
+      return items.map((item) => {
+        const title = item.querySelector('title')?.textContent?.trim() || '';
+        const url = item.querySelector('link')?.textContent?.trim() || '';
+        const pubDate = item.querySelector('pubDate')?.textContent?.trim() || '';
+        const description = item.querySelector('description')?.textContent || '';
+        const categories = Array.from(item.querySelectorAll('category')).map((c) => c.textContent?.trim() || '').filter(Boolean);
+        const text = sanitizeText(description);
+        const published_at = pubDate ? new Date(pubDate).toISOString() : new Date().toISOString();
+        const tags = categories.length ? categories : [source];
+        const relevance_score = Math.min(100, 70 + Math.floor(Math.random() * 26));
+        return {
+          title,
+          url,
+          source,
+          published_at,
+          summary: text.slice(0, 280),
+          content: text,
+          relevance_score,
+          tags,
+        } as ProcessedNewsItem;
+      }).filter(a => a.title && a.url);
+    };
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openaiApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [
-          { role: 'system', content: 'You are a UK NHS news curator. Generate realistic, timely news articles for GP practices. Return valid JSON only.' },
-          { role: 'user', content: prompt }
-        ],
-        temperature: 0.3,
-        max_tokens: 4000
-      }),
-    });
+    const parseAtom = (xml: string, source: string) => {
+      const doc = parser.parseFromString(xml, 'application/xml');
+      if (!doc) return [] as ProcessedNewsItem[];
+      const entries = Array.from(doc.querySelectorAll('entry'));
+      return entries.map((entry) => {
+        const title = entry.querySelector('title')?.textContent?.trim() || '';
+        const linkEl = entry.querySelector('link[rel="alternate"]') || entry.querySelector('link');
+        const url = linkEl?.getAttribute('href')?.trim() || '';
+        const updated = entry.querySelector('updated')?.textContent?.trim() || entry.querySelector('published')?.textContent?.trim() || '';
+        const summaryRaw = entry.querySelector('summary')?.textContent || entry.querySelector('content')?.textContent || '';
+        const text = sanitizeText(summaryRaw);
+        const published_at = updated ? new Date(updated).toISOString() : new Date().toISOString();
+        const tags = Array.from(entry.querySelectorAll('category')).map((c) => c.getAttribute('term') || '').filter(Boolean);
+        const relevance_score = Math.min(100, 72 + Math.floor(Math.random() * 24));
+        return {
+          title,
+          url,
+          source,
+          published_at,
+          summary: text.slice(0, 280),
+          content: text,
+          relevance_score,
+          tags: tags.length ? tags : [source],
+        } as ProcessedNewsItem;
+      }).filter(a => a.title && a.url);
+    };
 
-    if (!response.ok) {
-      throw new Error(`OpenAI API error: ${await response.text()}`);
-    }
+    const allArticles: ProcessedNewsItem[] = [];
 
-    const data = await response.json();
-    let articles: ProcessedNewsItem[];
-    
-    try {
-      let content = data.choices[0].message.content;
-      
-      // Remove markdown code blocks if present
-      content = content.replace(/```json\s*|\s*```/g, '').trim();
-      
-      articles = JSON.parse(content);
-    } catch (parseError) {
-      console.error('Error parsing OpenAI response:', parseError);
-      console.error('Raw content:', data.choices[0].message.content);
-      throw new Error('Failed to parse news articles from OpenAI');
-    }
-
-    // Validate and clean articles
-    const validArticles = articles.filter(article => 
-      article.title && article.source && article.summary && article.content
-    ).map(article => ({
-      title: article.title,
-      summary: article.summary,
-      content: article.content,
-      url: article.url || 'https://www.england.nhs.uk/news/',
-      source: article.source,
-      published_at: article.published_at,
-      relevance_score: Math.max(60, Math.min(100, article.relevance_score || 75)),
-      tags: article.tags || ['General'],
-      image_url: article.image_url
+    await Promise.all(feeds.map(async (f) => {
+      try {
+        const res = await fetch(f.url, { headers: { 'Accept': 'application/xml, text/xml, application/atom+xml' } });
+        if (!res.ok) {
+          console.warn(`Feed fetch failed for ${f.source}: ${res.status}`);
+          return;
+        }
+        const xml = await res.text();
+        const parsed = f.type === 'rss' ? parseRss(xml, f.source) : parseAtom(xml, f.source);
+        allArticles.push(...parsed);
+      } catch (e) {
+        console.error(`Error fetching ${f.source} feed:`, e);
+      }
     }));
 
-    if (validArticles.length === 0) {
-      throw new Error('No valid articles generated');
+    // De-duplicate by URL and title
+    const uniqueMap = new Map<string, ProcessedNewsItem>();
+    for (const a of allArticles) {
+      const key = a.url || a.title;
+      if (!uniqueMap.has(key)) uniqueMap.set(key, a);
     }
 
-    console.log(`Generated ${validArticles.length} news articles`);
+    // Sort by published_at desc and keep latest 40
+    const validArticles = Array.from(uniqueMap.values())
+      .sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime())
+      .slice(0, 40);
+
+    if (validArticles.length === 0 && body.mode === 'generate' && openaiApiKey) {
+      // Optional fallback to AI generation if explicitly requested
+      console.log('No articles parsed, falling back to AI generation (explicit request).');
+      // ... keep minimal AI fallback for explicit generate mode
+      const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${openaiApiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            { role: 'system', content: 'Return only valid JSON array of news items.' },
+            { role: 'user', content: 'Generate 8 UK NHS news items with real sources (title, url, source, published_at ISO, summary, content, relevance_score 70-95, tags array). JSON only.' }
+          ],
+          temperature: 0.2,
+          max_tokens: 2000,
+        })
+      });
+      const aiData = await aiResponse.json();
+      let content = aiData.choices?.[0]?.message?.content || '[]';
+      content = content.replace(/```json\s*|```/g, '').trim();
+      const parsed: any[] = JSON.parse(content);
+      parsed.forEach((p) => {
+        if (p.title && p.url) {
+          validArticles.push({
+            title: p.title,
+            url: p.url,
+            source: p.source || 'NHS',
+            published_at: p.published_at || new Date().toISOString(),
+            summary: p.summary || '',
+            content: p.content || p.summary || '',
+            relevance_score: Math.max(60, Math.min(100, p.relevance_score || 80)),
+            tags: Array.isArray(p.tags) ? p.tags : ['General'],
+          });
+        }
+      });
+    }
+
+    if (validArticles.length === 0) {
+      throw new Error('No news articles could be fetched from official feeds.');
+    }
+
+    console.log(`Fetched ${validArticles.length} real articles. Writing to DB...`);
 
     // Store in database
     const { error: deleteError } = await supabase
@@ -206,7 +249,7 @@ Focus on current healthcare topics like:
       .neq('id', '00000000-0000-0000-0000-000000000000');
 
     if (deleteError) {
-      console.error('Error deleting existing articles:', deleteError);
+      console.warn('Error deleting existing articles (continuing):', deleteError);
     }
 
     const { error: insertError } = await supabase
@@ -220,9 +263,9 @@ Focus on current healthcare topics like:
 
     console.log(`Successfully stored ${validArticles.length} news articles`);
 
-    return new Response(JSON.stringify({ 
-      success: true, 
-      message: `Successfully generated and stored ${validArticles.length} current NHS news articles`,
+    return new Response(JSON.stringify({
+      success: true,
+      message: `Fetched and stored ${validArticles.length} real NHS news articles`,
       articles_processed: validArticles.length
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
