@@ -105,6 +105,8 @@ serve(async (req) => {
       { source: 'MHRA', url: 'https://www.gov.uk/government/organisations/medicines-and-healthcare-products-regulatory-agency.atom', type: 'atom' },
       { source: 'DHSC', url: 'https://www.gov.uk/government/organisations/department-of-health-and-social-care.atom', type: 'atom' },
       { source: 'NICE', url: 'https://www.nice.org.uk/news/rss', type: 'rss' },
+      { source: 'BBC Health', url: 'https://feeds.bbci.co.uk/news/health/rss.xml', type: 'rss' },
+      { source: 'Pulse Today', url: 'https://www.pulsetoday.co.uk/feed/', type: 'rss' },
     ] as const;
 
     const sanitizeText = (html: string) =>
@@ -223,9 +225,9 @@ serve(async (req) => {
       parsed.forEach((p) => {
         if (p.title && p.url) {
           validArticles.push({
-            title: p.title,
+            title: `Fake: ${p.title}`,
             url: p.url,
-            source: p.source || 'NHS',
+            source: p.source || 'AI Generated',
             published_at: p.published_at || new Date().toISOString(),
             summary: p.summary || '',
             content: p.content || p.summary || '',
