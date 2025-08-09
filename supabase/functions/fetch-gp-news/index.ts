@@ -165,10 +165,15 @@ Focus on current healthcare topics like:
     let articles: ProcessedNewsItem[];
     
     try {
-      const content = data.choices[0].message.content;
+      let content = data.choices[0].message.content;
+      
+      // Remove markdown code blocks if present
+      content = content.replace(/```json\s*|\s*```/g, '').trim();
+      
       articles = JSON.parse(content);
     } catch (parseError) {
       console.error('Error parsing OpenAI response:', parseError);
+      console.error('Raw content:', data.choices[0].message.content);
       throw new Error('Failed to parse news articles from OpenAI');
     }
 
