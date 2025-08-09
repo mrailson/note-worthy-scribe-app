@@ -580,8 +580,21 @@ export const LiveTranscript = ({
                     </Badge>
                   </div>
 
-                  {/* Edit controls */}
-                  <div className="mb-2 flex items-center gap-2">
+                  {/* Action buttons */}
+                  <div className="mb-2 flex items-center gap-2 flex-wrap">
+                    {/* Copy and Download buttons (always visible when transcript exists) */}
+                    {(cleanedTranscript || transcript) && (
+                      <>
+                        <Button size="sm" variant="outline" onClick={handleCopyCleaned}>
+                          <Copy className="h-4 w-4 mr-2" /> Copy Cleaned
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={handleDownloadWord}>
+                          <FileDown className="h-4 w-4 mr-2" /> Download Word
+                        </Button>
+                      </>
+                    )}
+                    
+                    {/* Edit controls */}
                     {!isEditingCleaned ? (
                       <Button size="sm" variant="outline" onClick={() => { setIsEditingCleaned(true); setEditedCleanedText(getFormattedCleanedText()); }}>
                         <Edit3 className="h-4 w-4 mr-2" /> Edit
