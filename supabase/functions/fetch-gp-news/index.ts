@@ -176,7 +176,13 @@ serve(async (req) => {
 
     await Promise.all(feeds.map(async (f) => {
       try {
-        const res = await fetch(f.url, { headers: { 'Accept': 'application/xml, text/xml, application/atom+xml' } });
+        const res = await fetch(f.url, { 
+          headers: { 
+            'Accept': 'application/xml, text/xml, application/atom+xml',
+            'User-Agent': 'Mozilla/5.0 (compatible; SupabaseEdgeFunction/1.0; +https://supabase.com)',
+            'Accept-Language': 'en-GB,en;q=0.9'
+          }
+        });
         if (!res.ok) {
           console.warn(`Feed fetch failed for ${f.source}: ${res.status}`);
           return;
@@ -239,7 +245,14 @@ serve(async (req) => {
     }
 
     if (validArticles.length === 0) {
-      throw new Error('No news articles could be fetched from official feeds.');
+      console.warn('No news articles parsed from feeds. Returning 200 with zero updates.');
+      return new Response(JSON.stringify({
+        success: true,
+        message: 'No articles fetched from feeds (zero updates) — try Generate (AI) or refresh later.',
+        articles_processed: 0
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     console.log(`Fetched ${validArticles.length} real articles. Writing to DB...`);
