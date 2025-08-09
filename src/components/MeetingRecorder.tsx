@@ -145,6 +145,7 @@ export const MeetingRecorder = ({
     }
     
     setIsRecording(false);
+    isRecordingRef.current = false;
     setDuration(0);
     setTranscript("");
     setRealtimeTranscripts([]);
@@ -236,6 +237,7 @@ export const MeetingRecorder = ({
   const browserAudioStreamRef = useRef<MediaStream | null>(null);
   const micAudioStreamRef = useRef<MediaStream | null>(null);
   const transcriptHandler = useRef<IncrementalTranscriptHandler | null>(null);
+  const isRecordingRef = useRef<boolean>(false);
 
   // Audio backup recording refs
   const audioBackupRecorder = useRef<MediaRecorder | null>(null);
@@ -534,10 +536,20 @@ export const MeetingRecorder = ({
 
       // Start new chunks every 3 seconds (5 second chunks with 2 second overlap)
       const chunkInterval = setInterval(() => {
-        if (isRecording) {
+        // More robust check for recording state
+        if (isRecording && isRecordingRef.current && chunksStream && chunksStream.active) {
+          console.log(`🔄 Starting new chunk ${chunkId + 1} - system is active`);
+          addDebugLog(`🔄 Starting chunk ${chunkId + 1}`);
           startNewChunk();
         } else {
+          console.log(`🛑 Stopping chunk interval - recording state:`, {
+            isRecording,
+            isRecordingRef: isRecordingRef.current,
+            streamActive: chunksStream?.active
+          });
+          addDebugLog('🛑 Stopping chunks - recording ended');
           clearInterval(chunkInterval);
+          
           // Clean up audio monitoring
           if (levelInterval) {
             clearInterval(levelInterval);
@@ -552,6 +564,19 @@ export const MeetingRecorder = ({
           }
         }
       }, 3000); // 3 seconds = 5 second chunk - 2 second overlap
+
+      // Add a heartbeat to show recording is active
+      const heartbeatInterval = setInterval(() => {
+        if (isRecording && isRecordingRef.current) {
+          addDebugLog(`💓 Recording active - chunk ${chunkId}`);
+          toast.success(`Recording active`, {
+            description: `Processing chunk ${chunkId}`,
+            duration: 1000
+          });
+        } else {
+          clearInterval(heartbeatInterval);
+        }
+      }, 20000); // Every 20 seconds
 
       segmentIntervalRef.current = chunkInterval;
 
@@ -569,66 +594,141 @@ export const MeetingRecorder = ({
       
       if (!chunks || chunks.length === 0 || !startTime) {
         console.log(`⚠️ No data for chunk ${chunkId}`);
+        addDebugLog(`⚠️ Chunk ${chunkId}: no data`);
         return;
       }
 
-      console.log(`🎵 Processing chunk ${chunkId}...`);
+      console.log(`🎵 Processing chunk ${chunkId} (${chunks.length} audio chunks, total size: ${chunks.reduce((sum, chunk) => sum + chunk.size, 0)} bytes)...`);
+      addDebugLog(`🎵 Processing chunk ${chunkId}...`);
       
       // Create blob from chunks
       const chunkBlob = new Blob(chunks, { type: 'audio/webm' });
       const endTime = new Date();
       
-      // Send to transcription service
-      const formData = new FormData();
-      formData.append('audio', chunkBlob, `chunk_${chunkId}.webm`);
+      // Add timeout for the transcription request
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+        console.log(`⏰ Chunk ${chunkId} transcription timed out after 30 seconds`);
+        addDebugLog(`⏰ Chunk ${chunkId}: timeout`);
+      }, 30000); // 30 second timeout
 
-      const { data, error } = await supabase.functions.invoke('speech-to-text', {
-        body: formData
-      });
+      try {
+        // Send to transcription service with timeout
+        const response = await fetch('https://dphcnbricafkbtizkoal.functions.supabase.co/functions/v1/speech-to-text', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwaGNuYnJpY2Fma2J0aXprb2FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MzIyMzIsImV4cCI6MjA2ODMwODIzMn0.U3bJI6P1yzgRBz_k2s0zlJGu1GWiVRTHjYgv9QQggPs`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ 
+            audio: await convertBlobToBase64(chunkBlob)
+          }),
+          signal: controller.signal
+        });
 
-      if (error) {
-        console.error(`❌ Transcription failed for chunk ${chunkId}:`, error);
-        return;
-      }
+        clearTimeout(timeoutId);
 
-      // Process transcription result
-      const transcriptionText = data.text || '';
-      const confidence = data.confidence || 0;
-      
-      console.log(`✅ Chunk ${chunkId} transcribed:`, {
-        text: transcriptionText.substring(0, 50) + '...',
-        confidence,
-        duration: Math.floor((endTime.getTime() - startTime.getTime()) / 1000)
-      });
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`❌ Transcription failed for chunk ${chunkId}:`, response.status, errorText);
+          addDebugLog(`❌ Chunk ${chunkId}: ${response.status}`);
+          return;
+        }
 
-      // Add to transcript with timestamp and overlap handling
-      if (transcriptionText.trim()) {
-        const chunkTimestamp = new Date(startTime.getTime()).toLocaleTimeString();
-        const chunkTranscript = `[${chunkTimestamp}] ${transcriptionText}`;
+        const data = await response.json();
+
+        // Process transcription result
+        const transcriptionText = data.text || '';
+        const confidence = data.confidence || 0;
         
-        // Update the main transcript (you might want to implement deduplication logic here)
-        setTranscript(prev => {
-          const newTranscript = prev + (prev ? ' ' : '') + transcriptionText;
-          onTranscriptUpdate(newTranscript);
-          return newTranscript;
+        console.log(`✅ Chunk ${chunkId} transcribed:`, {
+          text: transcriptionText.substring(0, 50) + '...',
+          confidence,
+          duration: Math.floor((endTime.getTime() - startTime.getTime()) / 1000)
         });
 
-        // Update word count
-        const words = transcriptionText.split(/\s+/).filter(word => word.length > 0);
-        setWordCount(prev => {
-          const newCount = prev + words.length;
-          onWordCountUpdate(newCount);
-          return newCount;
-        });
+        // Add to transcript with timestamp and overlap handling
+        if (transcriptionText.trim() && transcriptionText.length > 3) {
+          addDebugLog(`📝 Chunk ${chunkId}: "${transcriptionText.substring(0, 30)}..." (${Math.round(confidence * 100)}%)`);
+          
+          const chunkTimestamp = new Date(startTime.getTime()).toLocaleTimeString();
+          const chunkTranscript = `[${chunkTimestamp}] ${transcriptionText}`;
+          
+          // Update the main transcript (you might want to implement deduplication logic here)
+          setTranscript(prev => {
+            const newTranscript = prev + (prev ? ' ' : '') + transcriptionText;
+            onTranscriptUpdate(newTranscript);
+            return newTranscript;
+          });
+
+          // Update word count
+          const words = transcriptionText.split(/\s+/).filter(word => word.length > 0);
+          setWordCount(prev => {
+            const newCount = prev + words.length;
+            onWordCountUpdate(newCount);
+            return newCount;
+          });
+
+          // Create transcript data for live display
+          const transcriptData: TranscriptData = {
+            text: transcriptionText,
+            speaker: `Speaker ${speakerCount + 1}`,
+            confidence: confidence,
+            timestamp: new Date().toISOString(),
+            isFinal: true
+          };
+
+          // Update realtime transcripts
+          setRealtimeTranscripts(prev => [...prev.slice(-19), transcriptData]); // Keep last 20
+
+          // Show user feedback with toast (limited frequency)
+          if (chunkId % 3 === 0) { // Show every 3rd chunk to avoid spam
+            toast.success(`Transcribing...`, {
+              description: transcriptionText.substring(0, 40) + (transcriptionText.length > 40 ? '...' : ''),
+              duration: 1500
+            });
+          }
+
+        } else {
+          console.log(`⏭️ Chunk ${chunkId} was silent or unclear`);
+          addDebugLog(`⏭️ Chunk ${chunkId}: silent/unclear`);
+        }
+
+      } catch (transcriptionError) {
+        clearTimeout(timeoutId);
+        if (transcriptionError.name === 'AbortError') {
+          console.log(`⏰ Chunk ${chunkId} transcription was aborted due to timeout`);
+          addDebugLog(`⏰ Chunk ${chunkId}: aborted`);
+        } else {
+          console.error(`❌ Transcription error for chunk ${chunkId}:`, transcriptionError);
+          addDebugLog(`❌ Chunk ${chunkId}: ${transcriptionError.message}`);
+        }
       }
 
       // Clean up chunk data
       chunkData.current.delete(chunkId);
       chunkStartTimes.current.delete(chunkId);
-      
+
     } catch (error) {
-      console.error(`❌ Failed to process chunk ${chunkId}:`, error);
+      console.error(`💥 Error processing chunk ${chunkId}:`, error);
+      addDebugLog(`💥 Chunk ${chunkId}: processing error`);
     }
+  };
+
+  // Helper function to convert blob to base64
+  const convertBlobToBase64 = async (blob: Blob): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        // Remove the data URL prefix (e.g., "data:audio/webm;base64,")
+        const base64 = result.split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
   };
 
   const stopOverlappingChunks = async () => {
@@ -1728,6 +1828,7 @@ export const MeetingRecorder = ({
       
       // Reset recording state
       setIsRecording(false);
+      isRecordingRef.current = false;
       setConnectionStatus('Error');
       
       throw error;
@@ -1769,7 +1870,8 @@ export const MeetingRecorder = ({
       // Always use microphone transcription
       await startMicrophoneTranscription();
       
-      setIsRecording(true);
+    setIsRecording(true);
+    isRecordingRef.current = true;
       setRealtimeTranscripts([]);
       setSpeakerCount(1);
       setStartTime(generateMeetingTimestamp());
@@ -1796,6 +1898,7 @@ export const MeetingRecorder = ({
       addDebugLog(`❌ Failed to start test: ${error.message}`);
       toast.error(error.message || 'Failed to start test recording');
       setIsRecording(false);
+      isRecordingRef.current = false;
       setConnectionStatus("Error");
     }
   };
@@ -1839,6 +1942,7 @@ export const MeetingRecorder = ({
       }
       
       setIsRecording(false);
+      isRecordingRef.current = false;
       setConnectionStatus("Disconnected");
       addDebugLog('✅ Test recording stopped');
       toast.success('Test recording stopped successfully');
@@ -2103,6 +2207,7 @@ export const MeetingRecorder = ({
       }
       
       setIsRecording(true);
+      isRecordingRef.current = true;
       setRealtimeTranscripts([]);
       setSpeakerCount(1);
       setStartTime(generateMeetingTimestamp());
@@ -2159,6 +2264,7 @@ export const MeetingRecorder = ({
       }
       
       setIsRecording(false);
+      isRecordingRef.current = false;
       setConnectionStatus("Error");
     }
   };
@@ -2250,7 +2356,8 @@ export const MeetingRecorder = ({
       setRecordingBlob(null);
     }
     
-    setIsRecording(false);
+      setIsRecording(false);
+      isRecordingRef.current = false;
     setIsStoppingRecording(false);
     setConnectionStatus("Disconnected");
     
