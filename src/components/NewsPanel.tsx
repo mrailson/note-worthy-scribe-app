@@ -171,6 +171,9 @@ const NewsPanel = () => {
     return true;
   });
 
+  // Fallback: if filters hide everything, show unfiltered list
+  const displayedArticles = filteredArticles.length > 0 ? filteredArticles : articles;
+  
   // Get unique tags and sources for filters
   const allTags = [...new Set(articles.flatMap(article => article.tags))];
   const allSources = [...new Set(articles.map(article => article.source))];
@@ -271,7 +274,7 @@ const NewsPanel = () => {
         </Select>
       </div>
 
-      {filteredArticles.length === 0 ? (
+      {articles.length === 0 ? (
         <Card>
           <CardContent className="text-center py-12">
             <div className="text-muted-foreground mb-4">
@@ -313,7 +316,7 @@ const NewsPanel = () => {
         </Card>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {filteredArticles.map((article) => (
+          {displayedArticles.map((article) => (
             <Card key={article.id} className="cursor-pointer hover:shadow-lg transition-shadow">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between text-sm text-muted-foreground mb-2">

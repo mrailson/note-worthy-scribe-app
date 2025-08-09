@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ImportedTranscript } from "@/utils/FileImporter";
 import { useIsMobile } from "@/hooks/use-mobile";
+import NewsPanel from "@/components/NewsPanel";
 
 const Index = () => {
   const { user, loading } = useAuth();
@@ -219,7 +220,10 @@ const Index = () => {
             initialActiveTab={location.state?.activeTab}
           />
 
-
+          {/* Latest NHS News on Home */}
+          <div className="mt-8">
+            <NewsPanel />
+          </div>
         </>
       </div>
     </div>
