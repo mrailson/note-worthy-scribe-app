@@ -1,15 +1,14 @@
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Switch } from '@/components/ui/switch';
-import { Clock, ExternalLink, Tag, RefreshCw } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import { format, isToday, isYesterday } from 'date-fns';
+import React, { useState, useEffect } from 'react';
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { RefreshCw, ExternalLink, Filter, Clock, MapPin, Tag } from "lucide-react";
+import { toast } from "sonner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface NewsArticle {
   id: string;
@@ -17,36 +16,35 @@ interface NewsArticle {
   summary: string;
   content: string;
   url: string;
-  image_url?: string;
   source: string;
   published_at: string;
-  relevance_score: number;
+  relevance_score?: number;
   tags: string[];
   created_at: string;
+  image_url?: string;
 }
 
-export const NewsPanel = () => {
+const NewsPanel = () => {
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
-  const [showFullArticle, setShowFullArticle] = useState(false);
-  const [fullArticleContent, setFullArticleContent] = useState<string>('');
+  const [fullContent, setFullContent] = useState<string>('');
+  const [loadingFullContent, setLoadingFullContent] = useState(false);
+  const [viewMode, setViewMode] = useState<'summary' | 'full'>('summary');
+  const [filterTag, setFilterTag] = useState<string>('all');
+  const [filterSource, setFilterSource] = useState<string>('all');
+  const [filterTime, setFilterTime] = useState<string>('all');
 
   const fetchNews = async () => {
     try {
       const { data, error } = await supabase
         .from('news_articles')
         .select('*')
-        .order('relevance_score', { ascending: false })
         .order('published_at', { ascending: false })
-        .limit(10);
+        .limit(20);
 
-      if (error) {
-        console.error('Error fetching news:', error);
-        toast.error('Failed to load news articles');
-        return;
-      }
+      if (error) throw error;
 
       setArticles(data || []);
     } catch (error) {
@@ -78,35 +76,26 @@ export const NewsPanel = () => {
     }
   };
 
-  const fetchFullArticle = async (articleId: string) => {
+  const fetchFullArticle = async (article: NewsArticle) => {
+    setLoadingFullContent(true);
     try {
       const { data, error } = await supabase.functions.invoke('fetch-gp-news', {
         body: { 
-          mode: 'full_article',
-          article_id: articleId,
-          max_words: 5000 
+          mode: 'full_article', 
+          url: article.url,
+          title: article.title 
         }
       });
       
-      if (error) {
-        console.error('Error fetching full article:', error);
-        toast.error('Failed to load full article');
-        return;
-      }
-
-      setFullArticleContent(data.content || '');
+      if (error) throw error;
+      
+      setFullContent(data.content || 'Unable to fetch full article content.');
     } catch (error) {
       console.error('Error fetching full article:', error);
-      toast.error('Failed to load full article');
+      setFullContent('Unable to fetch full article content. Please visit the original source.');
+    } finally {
+      setLoadingFullContent(false);
     }
-  };
-
-  const formatContent = (content: string) => {
-    return content.split('\n\n').map((paragraph, index) => (
-      <p key={index} className="mb-4 leading-relaxed">
-        {paragraph.trim()}
-      </p>
-    ));
   };
 
   useEffect(() => {
@@ -115,263 +104,319 @@ export const NewsPanel = () => {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    if (isToday(date)) {
-      return `Today, ${format(date, 'HH:mm')}`;
-    } else if (isYesterday(date)) {
-      return `Yesterday, ${format(date, 'HH:mm')}`;
-    } else {
-      return format(date, 'dd MMM yyyy, HH:mm');
-    }
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - date.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 1) return 'Today';
+    if (diffDays === 2) return 'Yesterday';
+    if (diffDays <= 7) return `${diffDays - 1} days ago`;
+    
+    return date.toLocaleDateString('en-GB', { 
+      day: 'numeric', 
+      month: 'short', 
+      year: 'numeric' 
+    });
   };
 
+  const formatContent = (content: string) => {
+    return content.split('\n\n').map((paragraph, index) => (
+      <p key={index} className="mb-4 leading-relaxed">
+        {paragraph}
+      </p>
+    ));
+  };
+
+  // Filter articles based on selected filters
+  const filteredArticles = articles.filter(article => {
+    if (filterTag !== 'all' && !article.tags.includes(filterTag)) return false;
+    if (filterSource !== 'all' && article.source !== filterSource) return false;
+    
+    if (filterTime !== 'all') {
+      const articleDate = new Date(article.published_at);
+      const now = new Date();
+      const diffHours = (now.getTime() - articleDate.getTime()) / (1000 * 60 * 60);
+      
+      if (filterTime === '24h' && diffHours > 24) return false;
+      if (filterTime === '7d' && diffHours > 24 * 7) return false;
+    }
+    
+    return true;
+  });
+
+  // Get unique tags and sources for filters
+  const allTags = [...new Set(articles.flatMap(article => article.tags))];
+  const allSources = [...new Set(articles.map(article => article.source))];
 
   if (loading) {
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-xl font-semibold">Latest GP Practice News</h3>
-          <Skeleton className="h-9 w-24" />
+          <h2 className="text-2xl font-bold">Latest NHS News</h2>
+          <div className="flex gap-2">
+            <Skeleton className="h-10 w-24" />
+            <Skeleton className="h-10 w-10" />
+          </div>
         </div>
-        {[...Array(5)].map((_, i) => (
-          <Card key={i} className="w-full">
-            <CardHeader className="pb-3">
-              <div className="flex justify-between items-start gap-4">
-                <div className="flex-1 space-y-2">
-                  <Skeleton className="h-5 w-3/4" />
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-2/3" />
-                </div>
-                <Skeleton className="h-20 w-32 rounded-lg" />
-              </div>
-            </CardHeader>
-          </Card>
-        ))}
+        
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Card key={i}>
+              <CardHeader>
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-20 w-full" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h3 className="text-xl font-semibold">Latest GP Practice News</h3>
-        <Button 
-          onClick={refreshNews} 
-          disabled={refreshing}
-          variant="outline"
-          size="sm"
-          className="flex items-center gap-2"
-        >
-          <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
+        <h2 className="text-2xl font-bold">Latest NHS News</h2>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm">
+            <Filter className="w-4 h-4 mr-2" />
+            Filters
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={refreshNews}
+            disabled={refreshing}
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        </div>
       </div>
-      
-      {articles.length === 0 ? (
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3">
+        <Select value={filterTag} onValueChange={setFilterTag}>
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="All Tags" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Tags</SelectItem>
+            {allTags.map(tag => (
+              <SelectItem key={tag} value={tag}>{tag}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={filterSource} onValueChange={setFilterSource}>
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="All Sources" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Sources</SelectItem>
+            {allSources.map(source => (
+              <SelectItem key={source} value={source}>{source}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={filterTime} onValueChange={setFilterTime}>
+          <SelectTrigger className="w-32">
+            <SelectValue placeholder="All Time" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Time</SelectItem>
+            <SelectItem value="24h">Last 24h</SelectItem>
+            <SelectItem value="7d">Last 7 days</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {filteredArticles.length === 0 ? (
         <Card>
-          <CardContent className="p-6 text-center text-muted-foreground">
-            <p>No news articles available. Click refresh to load the latest news.</p>
+          <CardContent className="text-center py-8">
+            <p className="text-muted-foreground">No news articles found with the current filters.</p>
+            <Button 
+              variant="outline" 
+              className="mt-4"
+              onClick={() => {
+                setFilterTag('all');
+                setFilterSource('all');
+                setFilterTime('all');
+              }}
+            >
+              Clear Filters
+            </Button>
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
-          {articles.map((article) => (
-            <Card key={article.id} className="w-full hover:shadow-md transition-shadow">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {filteredArticles.map((article) => (
+            <Card key={article.id} className="cursor-pointer hover:shadow-lg transition-shadow">
               <CardHeader className="pb-3">
-                <div className="flex justify-between items-start gap-4">
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant="outline" className="text-xs">
-                        {article.source}
-                      </Badge>
-                      <div className="flex items-center text-xs text-muted-foreground">
-                        <Clock className="h-3 w-3 mr-1" />
-                        {formatDate(article.published_at)}
-                      </div>
-                    </div>
-                    
-                    <CardTitle className="text-lg leading-tight hover:text-primary cursor-pointer"
-                      onClick={() => setSelectedArticle(article)}>
-                      {article.title}
-                    </CardTitle>
-                    
-                    <p className="text-sm text-muted-foreground line-clamp-2">
-                      {article.summary}
-                    </p>
-                    
-                    {article.tags && article.tags.length > 0 && (
-                      <div className="flex items-center gap-1 flex-wrap">
-                        <Tag className="h-3 w-3 text-muted-foreground" />
-                        {article.tags.slice(0, 3).map((tag, index) => (
-                          <Badge key={index} variant="secondary" className="text-xs">
-                            {tag}
-                          </Badge>
-                        ))}
-                        {article.tags.length > 3 && (
-                          <span className="text-xs text-muted-foreground">+{article.tags.length - 3} more</span>
-                        )}
-                      </div>
-                    )}
-                    
-                    <div className="flex items-center gap-2 pt-2">
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => setSelectedArticle(article)}
-                          >
-                            Read More
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-4xl max-h-[80vh]">
-                          <DialogHeader>
-                            <DialogTitle className="text-xl leading-tight pr-8">
-                              {selectedArticle?.title}
-                            </DialogTitle>
-                          </DialogHeader>
-
-                          <div className="flex items-center gap-3 mb-4 p-4 bg-muted/50 rounded-lg">
-                            <span className="text-sm font-medium">Summary</span>
-                            <Switch
-                              checked={showFullArticle}
-                              onCheckedChange={async (checked) => {
-                                setShowFullArticle(checked);
-                                if (checked && selectedArticle && !fullArticleContent) {
-                                  await fetchFullArticle(selectedArticle.id);
-                                }
-                              }}
-                            />
-                            <span className="text-sm font-medium">Full Article</span>
-                          </div>
-
-                          <ScrollArea className="max-h-[60vh]">
-                            <div className="space-y-4">
-                              {selectedArticle?.image_url && (
-                                <img 
-                                  src={selectedArticle.image_url} 
-                                  alt={selectedArticle.title}
-                                  className="w-full h-48 object-cover rounded-lg"
-                                  onError={(e) => {
-                                    const target = e.target as HTMLImageElement;
-                                    target.style.display = 'none';
-                                  }}
-                                />
-                              )}
-                              
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <Badge variant="outline">
-                                  {selectedArticle?.source}
-                                </Badge>
-                                <div className="flex items-center text-sm text-muted-foreground">
-                                  <Clock className="h-3 w-3 mr-1" />
-                                  {selectedArticle && formatDate(selectedArticle.published_at)}
-                                </div>
-                              </div>
-                              
-                              <div className="prose prose-sm max-w-none">
-                                {!showFullArticle ? (
-                                  <>
-                                    <p className="text-base font-medium text-muted-foreground mb-4">
-                                      {selectedArticle?.summary}
-                                    </p>
-                                    <div className="space-y-4">
-                                      {selectedArticle?.content && formatContent(selectedArticle.content)}
-                                    </div>
-                                  </>
-                                ) : (
-                                  <div className="space-y-4">
-                                    <p className="text-base font-medium text-muted-foreground mb-4">
-                                      {selectedArticle?.summary}
-                                    </p>
-                                    {fullArticleContent ? (
-                                      <div className="space-y-4">
-                                        {formatContent(fullArticleContent)}
-                                      </div>
-                                    ) : (
-                                      <div className="text-center py-8">
-                                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                                        <p className="text-sm text-muted-foreground mt-2">Loading full article...</p>
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                              
-                              {selectedArticle?.tags && selectedArticle.tags.length > 0 && (
-                                <div className="flex items-center gap-1 flex-wrap pt-4 border-t">
-                                  <Tag className="h-4 w-4 text-muted-foreground" />
-                                  {selectedArticle.tags.map((tag, index) => (
-                                    <Badge key={index} variant="secondary">
-                                      {tag}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              )}
-                              
-                              {selectedArticle?.url && (
-                                <div className="pt-4 border-t">
-                                  <Button 
-                                    variant="outline" 
-                                    asChild
-                                    className="w-full"
-                                  >
-                                    <a 
-                                      href={selectedArticle.url} 
-                                      target="_blank" 
-                                      rel="noopener noreferrer"
-                                      className="flex items-center gap-2"
-                                    >
-                                      <ExternalLink className="h-4 w-4" />
-                                      Visit {selectedArticle.source} Website
-                                    </a>
-                                  </Button>
-                                </div>
-                              )}
-                            </div>
-                          </ScrollArea>
-                        </DialogContent>
-                      </Dialog>
-                      
-                      {article.url && (
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          asChild
-                        >
-                          <a 
-                            href={article.url} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-1"
-                          >
-                            <ExternalLink className="h-3 w-3" />
-                            {article.source}
-                          </a>
-                        </Button>
-                      )}
-                    </div>
+                <div className="flex items-center justify-between text-sm text-muted-foreground mb-2">
+                  <span className="font-medium">{article.source}</span>
+                  <div className="flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    <span>{formatDate(article.published_at)}</span>
                   </div>
-                  
-                  {article.image_url && (
-                    <div className="flex-shrink-0">
-                      <img 
-                        src={article.image_url} 
-                        alt={article.title}
-                        className="w-32 h-20 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
-                        onClick={() => setSelectedArticle(article)}
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = 'none';
-                        }}
-                      />
-                    </div>
+                </div>
+                
+                {article.image_url && (
+                  <div className="w-full h-40 mb-3 overflow-hidden rounded-lg">
+                    <img 
+                      src={article.image_url} 
+                      alt={article.title}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  </div>
+                )}
+                
+                <CardTitle className="text-lg leading-tight">{article.title}</CardTitle>
+              </CardHeader>
+              
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {article.summary}
+                </p>
+                
+                <div className="flex flex-wrap gap-1">
+                  {article.tags.slice(0, 3).map((tag) => (
+                    <Badge key={tag} variant="secondary" className="text-xs">
+                      {tag}
+                    </Badge>
+                  ))}
+                  {article.tags.length > 3 && (
+                    <Badge variant="outline" className="text-xs">
+                      +{article.tags.length - 3}
+                    </Badge>
                   )}
                 </div>
-              </CardHeader>
+                
+                {article.relevance_score && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <MapPin className="w-3 h-3" />
+                    <span>Relevance: {article.relevance_score}%</span>
+                  </div>
+                )}
+                
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full"
+                  onClick={() => {
+                    setSelectedArticle(article);
+                    setViewMode('summary');
+                    setFullContent('');
+                  }}
+                >
+                  Read More
+                </Button>
+              </CardContent>
             </Card>
           ))}
         </div>
       )}
+
+      {/* Article Detail Modal */}
+      <Dialog open={!!selectedArticle} onOpenChange={() => setSelectedArticle(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl leading-tight">
+              {selectedArticle?.title}
+            </DialogTitle>
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <div className="flex items-center gap-4">
+                <span>{selectedArticle?.source}</span>
+                <span>{selectedArticle && formatDate(selectedArticle.published_at)}</span>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => selectedArticle && window.open(selectedArticle.url, '_blank')}
+              >
+                <ExternalLink className="w-4 h-4 mr-2" />
+                View Original
+              </Button>
+            </div>
+          </DialogHeader>
+          
+          {selectedArticle && (
+            <div className="space-y-4">
+              <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as 'summary' | 'full')}>
+                <TabsList>
+                  <TabsTrigger value="summary">Summary</TabsTrigger>
+                  <TabsTrigger value="full">Full Article</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="summary" className="space-y-4">
+                  {selectedArticle.image_url && (
+                    <div className="w-full h-64 overflow-hidden rounded-lg">
+                      <img 
+                        src={selectedArticle.image_url} 
+                        alt={selectedArticle.title}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  )}
+                  
+                  <div className="flex flex-wrap gap-2">
+                    {selectedArticle.tags.map((tag) => (
+                      <Badge key={tag} variant="secondary">
+                        <Tag className="w-3 h-3 mr-1" />
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                  
+                  <div className="prose prose-sm max-w-none">
+                    {formatContent(selectedArticle.content)}
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="full" className="space-y-4">
+                  {!fullContent && !loadingFullContent && (
+                    <div className="text-center py-8">
+                      <Button 
+                        onClick={() => fetchFullArticle(selectedArticle)}
+                        disabled={loadingFullContent}
+                      >
+                        Load Full Article
+                      </Button>
+                    </div>
+                  )}
+                  
+                  {loadingFullContent && (
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-4 w-5/6" />
+                      <Skeleton className="h-4 w-2/3" />
+                    </div>
+                  )}
+                  
+                  {fullContent && (
+                    <div className="prose prose-sm max-w-none">
+                      {formatContent(fullContent)}
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
+
+export default NewsPanel;

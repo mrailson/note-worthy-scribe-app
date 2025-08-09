@@ -65,7 +65,7 @@ import { saveAs } from 'file-saver';
 import PptxGenJS from 'pptxgenjs';
 import PMGenieVoiceAgent from '@/components/PMGenieVoiceAgent';
 import { RealtimeChat } from '@/utils/RealtimeAudio';
-import { NewsPanel } from '@/components/NewsPanel';
+import NewsPanel from '@/components/NewsPanel';
 
 // Helper function to get file type icon
 const getFileTypeIcon = (fileName: string, fileType?: string) => {
