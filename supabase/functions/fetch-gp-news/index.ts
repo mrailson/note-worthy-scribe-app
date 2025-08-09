@@ -26,11 +26,8 @@ serve(async (req) => {
   }
 
   try {
-    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-    if (!openAIApiKey) {
-      throw new Error('OpenAI API key not configured');
-    }
-
+    const perplexityApiKey = Deno.env.get('PERPLEXITY_API_KEY');
+    
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -40,112 +37,142 @@ serve(async (req) => {
     
     // Handle full article request
     if (body.mode === 'full_article') {
-      console.log(`Generating full article content`);
+      console.log(`Fetching full article content`);
       
-      const fullArticleResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openAIApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o',
-          messages: [
-            {
-              role: 'system',
-              content: `You are a healthcare journalist writing comprehensive articles about GP practice developments in the UK. Generate a detailed, well-researched article of 3000-5000 words.
+      if (perplexityApiKey) {
+        const fullArticleResponse = await fetch('https://api.perplexity.ai/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${perplexityApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'llama-3.1-sonar-large-128k-online',
+            messages: [
+              {
+                role: 'system',
+                content: 'You are a healthcare journalist. Provide comprehensive, detailed articles about NHS and GP practice news based on real information. Structure with clear sections and practical implications for healthcare professionals. Maximum 5000 words.'
+              },
+              {
+                role: 'user',
+                content: `Write a comprehensive, detailed article about: ${body.title || 'NHS GP practice developments'}. Include background, current situation, implications for GP practices, and practical advice for practice managers and clinicians. Use real, current information.`
+              }
+            ],
+            temperature: 0.2,
+            max_tokens: 4000,
+          }),
+        });
 
-              Structure your response as a comprehensive article with:
-              - Multiple detailed sections with clear paragraph breaks
-              - Specific statistics and data points
-              - Expert quotes and perspectives
-              - Case studies and real-world examples
-              - Policy implications and analysis
-              - Future outlook and recommendations
-              
-              Use double line breaks between paragraphs for proper formatting.
-              Make it informative, professional, and engaging for healthcare professionals.`
-            },
-            {
-              role: 'user',
-              content: `Write a comprehensive 3000-5000 word article about recent developments in UK GP practices, focusing on current challenges, innovations, and improvements in patient care. Include specific examples, statistics, and expert insights. Format with clear paragraph breaks.`
-            }
-          ],
-          max_tokens: 4000,
-          temperature: 0.7,
-        }),
-      });
-
-      const fullArticleData = await fullArticleResponse.json();
-      const content = fullArticleData.choices[0]?.message?.content || '';
+        if (fullArticleResponse.ok) {
+          const fullArticleData = await fullArticleResponse.json();
+          const content = fullArticleData.choices[0]?.message?.content || '';
+          
+          return new Response(JSON.stringify({ content }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+      }
       
-      return new Response(JSON.stringify({ content }), {
+      return new Response(JSON.stringify({ 
+        content: "Full article content is currently unavailable. Please check back later.",
+        success: false 
+      }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    console.log('Starting news search for Northamptonshire GP practices...');
+    console.log('Fetching real NHS GP practice news...');
 
     // Initialize articles array
     let newsArticles: NewsArticle[] = [];
 
-    // Now that we have an OpenAI API key, try to generate relevant news content
-    if (openAIApiKey) {
-      console.log('Using OpenAI API to generate news content...');
-      // Try to call OpenAI API for content generation
+    // Fetch real news using Perplexity API
+    if (perplexityApiKey) {
+      console.log('Using Perplexity API to fetch real NHS news...');
+      // Try to call Perplexity API for real news content
       try {
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        const response = await fetch('https://api.perplexity.ai/chat/completions', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${openAIApiKey}`,
+            'Authorization': `Bearer ${perplexityApiKey}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'gpt-4o',
+            model: 'llama-3.1-sonar-large-128k-online',
             messages: [
               {
                 role: 'system',
-                content: 'You are a news generator for NHS GP practices. Generate realistic but fictional news articles for demonstration purposes. Return ONLY a valid JSON array with no other text. All articles must be from the last 7 days.'
+                content: `You are a news aggregator for NHS GP practices. Find and format real, current news articles relevant to GP practice managers, clinicians, and healthcare administrators in the UK.
+
+Return exactly 5 real news articles as a JSON array. For each article:
+- title: Actual headline from news source
+- summary: 150-200 word summary of the article
+- content: 500-800 word detailed content based on the real article
+- url: Original source URL
+- source: Actual news source name
+- published_at: Actual publication date in ISO format
+- relevance_score: Number between 7-10 based on relevance to GP practices
+- tags: Array of 3-5 relevant tags
+
+Focus on recent (last 30 days) topics like:
+- NHS policy updates and announcements
+- GP practice management and funding
+- Clinical guidelines and protocols
+- Healthcare technology and digital health
+- Primary care networks and partnerships
+- Workforce planning and recruitment
+- Patient care improvements
+- Regulatory changes and compliance
+
+Only include real, verifiable news from credible sources like NHS England, BMJ, Pulse Today, GPonline, Department of Health, CQC, etc.`
               },
               {
                 role: 'user',
-                content: `Generate 5 realistic news articles about Northamptonshire GP practices and NHS primary care from the last 7 days only. Each article must include: title, summary, content (800-1000 words - make it comprehensive and detailed), source, published_at (dates must be within last 7 days in ISO format), relevance_score (1-10), and tags array. Current date: ${new Date().toISOString()}. Make sure all published_at dates are within the last 7 days. Content should be detailed with quotes, statistics, and comprehensive coverage.`
+                content: 'Find 5 current real news articles about NHS GP practices, primary care policy, and healthcare management from the last 30 days. Include actual sources and URLs.'
               }
             ],
-            temperature: 0.7,
-            max_tokens: 3000
+            temperature: 0.2,
+            max_tokens: 3000,
+            search_recency_filter: 'month',
+            return_images: false,
+            return_related_questions: false,
           }),
         });
 
         if (response.ok) {
           const data = await response.json();
           const content = data.choices[0]?.message?.content;
-          console.log('OpenAI response received');
+          console.log('Perplexity response received');
           
           try {
-            const parsedContent = JSON.parse(content);
+            // Extract JSON from the response if it's wrapped in text
+            const jsonMatch = content.match(/\[[\s\S]*\]/);
+            const jsonContent = jsonMatch ? jsonMatch[0] : content;
+            const parsedContent = JSON.parse(jsonContent);
+            
             if (Array.isArray(parsedContent)) {
               newsArticles = parsedContent.map((article: any) => ({
                 title: article.title || 'News Article',
                 summary: article.summary || 'Article summary',
                 content: article.content || 'Article content',
-                url: article.url || 'https://example.com/news',
+                url: article.url || 'https://www.england.nhs.uk/news/',
                 source: article.source || 'NHS News',
                 published_at: article.published_at || new Date().toISOString(),
-                relevance_score: article.relevance_score || 5,
+                relevance_score: article.relevance_score || 7,
                 tags: Array.isArray(article.tags) ? article.tags : ['NHS', 'GP Practice'],
-                image_url: article.image_url || 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=400'
+                image_url: article.image_url || 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=600&h=400&fit=crop'
               }));
-              console.log(`Generated ${newsArticles.length} articles from OpenAI`);
+              console.log(`Fetched ${newsArticles.length} real articles from Perplexity`);
             }
           } catch (parseError) {
-            console.log('Failed to parse AI response, using fallback');
+            console.log('Failed to parse Perplexity response, using fallback');
+            console.error('Parse error:', parseError);
           }
         } else {
-          console.error('OpenAI API error:', await response.text());
+          console.error('Perplexity API error:', await response.text());
         }
       } catch (apiError) {
-        console.error('OpenAI API error:', apiError);
+        console.error('Perplexity API error:', apiError);
       }
     }
 
