@@ -29,8 +29,14 @@ import {
   ChevronsUpDown,
   Building2,
   Video,
-  Settings
+  Settings,
+  Copy,
+  FileDown
 } from "lucide-react";
+
+import { useToast } from "@/hooks/use-toast";
+import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx";
+import { saveAs } from "file-saver";
 
 interface Speaker {
   id: string;
@@ -82,6 +88,7 @@ export const LiveTranscript = ({
   
   // Meeting settings state
   const { user } = useAuth();
+  const { toast } = useToast();
   const [practices, setPractices] = useState<Array<{id: string, name: string}>>([]);
   const [practiceSearchOpen, setPracticeSearchOpen] = useState(false);
   
@@ -265,6 +272,75 @@ export const LiveTranscript = ({
     return cleanedText.split(/[.!?]+/).filter(s => s.trim()).map(s => s.trim() + '.').join('\n\n');
   };
 
+  // Build formatted cleaned text (paragraphs separated by blank lines)
+  const getFormattedCleanedText = () => {
+    const base = cleanedTranscript || transcript || "";
+    return formatTranscriptWithTimestamps(base);
+  };
+
+  // Build simple HTML preserving paragraph spacing
+  const buildCleanedHtml = () => {
+    const text = getFormattedCleanedText();
+    const paras = text
+      .split("\n\n")
+      .map((p) => `<p>${p.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>`)  
+      .join("");
+    return `<article><h2>AI-Enhanced Transcript</h2>${paras}</article>`;
+  };
+
+  const handleCopyCleaned = async () => {
+    try {
+      const plain = getFormattedCleanedText();
+      // Prefer rich HTML copy when available
+      if ((navigator as any).clipboard && (window as any).ClipboardItem) {
+        const html = buildCleanedHtml();
+        const item = new (window as any).ClipboardItem({
+          "text/html": new Blob([html], { type: "text/html" }),
+          "text/plain": new Blob([plain], { type: "text/plain" }),
+        });
+        await (navigator as any).clipboard.write([item]);
+      } else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(plain);
+      }
+      toast({ title: "Copied", description: "Cleaned transcript copied with formatting." });
+    } catch (err) {
+      try {
+        await navigator.clipboard.writeText(getFormattedCleanedText());
+        toast({ title: "Copied", description: "Cleaned transcript copied." });
+      } catch (e) {
+        toast({ title: "Copy failed", description: "Your browser blocked clipboard access.", variant: "destructive" as any });
+      }
+    }
+  };
+
+  const handleDownloadWord = async () => {
+    try {
+      const content = getFormattedCleanedText();
+      const paragraphs = content.split("\n\n").map((line) =>
+        new Paragraph({ children: [new TextRun({ text: line })], spacing: { after: 120 } })
+      );
+
+      const doc = new Document({
+        sections: [
+          {
+            properties: {},
+            children: [
+              new Paragraph({ text: "AI-Enhanced Transcript", heading: HeadingLevel.HEADING_1 }),
+              ...paragraphs,
+            ],
+          },
+        ],
+      });
+
+      const blob = await Packer.toBlob(doc);
+      const fileName = `Cleaned-Transcript-${new Date().toISOString().slice(0, 10)}.docx`;
+      saveAs(blob, fileName);
+      toast({ title: "Downloaded", description: "Word document generated." });
+    } catch (e) {
+      toast({ title: "Export failed", description: "Could not generate Word document.", variant: "destructive" as any });
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Live Transcript */}
@@ -423,6 +499,28 @@ export const LiveTranscript = ({
                       Specify whether this is an online or in-person meeting
                     </p>
                   </div>
+
+                  {(cleanedTranscript || (transcript && isAutoCleaningEnabled)) && (
+                    <div className="col-span-1 md:col-span-2 space-y-2">
+                      <Label className="text-sm font-medium flex items-center gap-2">
+                        <FileText className="h-4 w-4" />
+                        Cleaned Transcript Actions
+                      </Label>
+                      <div className="flex flex-wrap gap-2">
+                        <Button size="sm" variant="outline" onClick={handleCopyCleaned}>
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copy cleaned (keeps formatting)
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={handleDownloadWord}>
+                          <FileDown className="h-4 w-4 mr-2" />
+                          Word (.docx)
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Available once AI cleaning is active. Copies as rich text; Word export preserves spacing.
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
 
