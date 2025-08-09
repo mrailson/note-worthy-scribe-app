@@ -541,6 +541,12 @@ export const MeetingRecorder = ({
           console.log(`🔄 Starting new chunk ${chunkId + 1} - system is active`);
           addDebugLog(`🔄 Starting chunk ${chunkId + 1}`);
           startNewChunk();
+          
+          // Force UI update to show transcription is active
+          toast.info(`Recording chunk ${chunkId + 1}`, {
+            description: `Continuous transcription active`,
+            duration: 1500
+          });
         } else {
           console.log(`🛑 Stopping chunk interval - recording state:`, {
             isRecording,
@@ -565,18 +571,25 @@ export const MeetingRecorder = ({
         }
       }, 3000); // 3 seconds = 5 second chunk - 2 second overlap
 
-      // Add a heartbeat to show recording is active
+      // Add a heartbeat to show recording is active every 10 seconds
       const heartbeatInterval = setInterval(() => {
         if (isRecording && isRecordingRef.current) {
           addDebugLog(`💓 Recording active - chunk ${chunkId}`);
+          
+          // Get current transcript length for user feedback
+          const currentLength = transcript.length;
+          const currentWords = wordCount;
+          
           toast.success(`Recording active`, {
-            description: `Processing chunk ${chunkId}`,
-            duration: 1000
+            description: `${currentWords} words transcribed so far`,
+            duration: 2000
           });
+          
+          console.log(`💓 Heartbeat: ${currentWords} words, ${currentLength} chars transcribed`);
         } else {
           clearInterval(heartbeatInterval);
         }
-      }, 20000); // Every 20 seconds
+      }, 10000); // Every 10 seconds for more frequent feedback
 
       segmentIntervalRef.current = chunkInterval;
 
@@ -653,19 +666,20 @@ export const MeetingRecorder = ({
           addDebugLog(`📝 Chunk ${chunkId}: "${transcriptionText.substring(0, 30)}..." (${Math.round(confidence * 100)}%)`);
           
           const chunkTimestamp = new Date(startTime.getTime()).toLocaleTimeString();
-          const chunkTranscript = `[${chunkTimestamp}] ${transcriptionText}`;
           
-          // Update the main transcript (you might want to implement deduplication logic here)
+          // Update the main transcript with immediate state update
           setTranscript(prev => {
             const newTranscript = prev + (prev ? ' ' : '') + transcriptionText;
+            console.log(`📝 Transcript updated: ${newTranscript.length} chars, chunk ${chunkId}`);
             onTranscriptUpdate(newTranscript);
             return newTranscript;
           });
 
-          // Update word count
+          // Update word count with immediate feedback
           const words = transcriptionText.split(/\s+/).filter(word => word.length > 0);
           setWordCount(prev => {
             const newCount = prev + words.length;
+            console.log(`📊 Word count updated: ${newCount} words (+${words.length})`);
             onWordCountUpdate(newCount);
             return newCount;
           });
@@ -679,17 +693,20 @@ export const MeetingRecorder = ({
             isFinal: true
           };
 
-          // Update realtime transcripts
-          setRealtimeTranscripts(prev => [...prev.slice(-19), transcriptData]); // Keep last 20
+          // Update realtime transcripts with forced re-render
+          setRealtimeTranscripts(prev => {
+            const updated = [...prev.slice(-19), transcriptData]; // Keep last 20
+            console.log(`🔄 Real-time transcripts updated: ${updated.length} items`);
+            return updated;
+          });
 
-          // Show user feedback with toast (limited frequency)
-          if (chunkId % 3 === 0) { // Show every 3rd chunk to avoid spam
-            toast.success(`Transcribing...`, {
-              description: transcriptionText.substring(0, 40) + (transcriptionText.length > 40 ? '...' : ''),
-              duration: 1500
-            });
-          }
-
+          // Show user feedback for EVERY chunk to ensure visibility
+          toast.success(`New transcription`, {
+            description: `"${transcriptionText.substring(0, 50)}${transcriptionText.length > 50 ? '...' : ''}"`,
+            duration: 2000
+          });
+          
+          console.log(`✅ Chunk ${chunkId} processed and UI updated successfully`);
         } else {
           console.log(`⏭️ Chunk ${chunkId} was silent or unclear`);
           addDebugLog(`⏭️ Chunk ${chunkId}: silent/unclear`);
