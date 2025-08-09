@@ -2,6 +2,7 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { XMLParser } from "https://esm.sh/fast-xml-parser@4.4.0";
+import { DOMParser } from "https://deno.land/x/deno_dom@v0.1.38/deno-dom-wasm.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -40,45 +41,89 @@ serve(async (req) => {
     if (body.mode === 'full_article') {
       if (body.url) {
         try {
-          const response = await fetch(body.url);
+          const response = await fetch(body.url, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (compatible; SupabaseEdgeFunction/1.0; +https://supabase.com)',
+              'Accept-Language': 'en-GB,en;q=0.9'
+            }
+          });
           if (!response.ok) {
             return new Response(JSON.stringify({ 
               content: "Unable to fetch full article content. Please visit the original source.",
               success: true 
-            }), {
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            });
+            }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
           }
-          
+
           const html = await response.text();
-          const text = (html || '')
-            .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-            .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-            .replace(/<nav[\s\S]*?<\/nav>/gi, '')
-            .replace(/<header[\s\S]*?<\/header>/gi, '')
-            .replace(/<footer[\s\S]*?<\/footer>/gi, '')
-            .replace(/<[^>]+>/g, ' ')
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, 'text/html');
+
+          const clean = (s: string) => s
+            .replace(/\u00A0/g, ' ') // nbsp
             .replace(/&nbsp;/g, ' ')
             .replace(/\s+/g, ' ')
             .trim();
-          
-          return new Response(JSON.stringify({ 
-            content: text.substring(0, 5000) || "Unable to extract content from this article.",
-            success: true 
-          }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
+
+          if (doc) {
+            // Remove non-content elements
+            doc.querySelectorAll('script, style, nav, header, footer, aside, noscript, svg, form, iframe, button, input').forEach(el => el.remove());
+
+            const selectors = [
+              'article',
+              'main',
+              '[role="main"]',
+              '#main-content',
+              '.story-body__inner',
+              '.ssrcss-uf6wea-RichTextComponentWrapper', // BBC
+              '.content__article-body',
+              '.article-body',
+              '.article__content',
+              '.post-content',
+              '.entry-content',
+              '.rich-text',
+              '.c-article-body',
+              '.o-article__body'
+            ];
+
+            let container: any = null;
+            for (const sel of selectors) {
+              const el = doc.querySelector(sel);
+              if (el && (el.textContent || '').length > 400) { container = el; break; }
+            }
+
+            // Heuristic fallback: pick the element with the most paragraph text
+            if (!container) {
+              let best: any = null; let bestLen = 0;
+              doc.querySelectorAll('article, section, div').forEach((el: any) => {
+                const text = el.querySelectorAll('p')
+                  ? Array.from(el.querySelectorAll('p')).map((p: any) => p.textContent || '').join(' ')
+                  : (el.textContent || '');
+                const len = text.length;
+                if (len > bestLen) { bestLen = len; best = el; }
+              });
+              container = best || doc.body;
+            }
+
+            const blocks = Array.from(container.querySelectorAll('h1, h2, h3, p, li'))
+              .map((el: any) => clean(el.textContent || ''))
+              .filter(t => t && t.length > 0);
+
+            const content = clean(blocks.join('\n\n')) || clean(container.textContent || '');
+
+            return new Response(JSON.stringify({ 
+              content: content.substring(0, 12000),
+              success: true 
+            }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+          }
+
+          // Fallback: plain-text strip
+          const fallback = clean(html.replace(/<[^>]+>/g, ' '));
+          return new Response(JSON.stringify({ content: fallback.substring(0, 8000), success: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
         } catch (error) {
           console.error('Error fetching article content:', error);
         }
       }
-      
-      return new Response(JSON.stringify({ 
-        content: "Unable to fetch article content.",
-        success: false 
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return new Response(JSON.stringify({ content: "Unable to fetch article content.", success: false }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     // Default: fetch real news from trusted NHS-related sources (RSS/Atom)
