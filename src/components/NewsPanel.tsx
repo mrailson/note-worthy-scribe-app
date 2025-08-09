@@ -28,6 +28,7 @@ const NewsPanel = () => {
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
   const [fullContent, setFullContent] = useState<string>('');
   const [loadingFullContent, setLoadingFullContent] = useState(false);
@@ -35,7 +36,6 @@ const NewsPanel = () => {
   const [filterTag, setFilterTag] = useState<string>('all');
   const [filterSource, setFilterSource] = useState<string>('all');
   const [filterTime, setFilterTime] = useState<string>('all');
-
   const fetchNews = async () => {
     try {
       console.log('Fetching news articles...');
@@ -77,6 +77,29 @@ const NewsPanel = () => {
       toast.error('Failed to refresh news');
     } finally {
       setRefreshing(false);
+    }
+  };
+
+  const generateNews = async () => {
+    setGenerating(true);
+    try {
+      const { error } = await supabase.functions.invoke('fetch-gp-news', {
+        body: { mode: 'generate' }
+      });
+
+      if (error) {
+        console.error('Error generating AI news:', error);
+        toast.error('Failed to generate AI news');
+        return;
+      }
+
+      toast.success('AI news generated (marked as Fake)');
+      await fetchNews();
+    } catch (error) {
+      console.error('Error generating AI news:', error);
+      toast.error('Failed to generate AI news');
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -192,6 +215,15 @@ const NewsPanel = () => {
           <Button 
             variant="outline" 
             size="sm" 
+            onClick={generateNews}
+            disabled={generating}
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${generating ? 'animate-spin' : ''}`} />
+            Generate (AI)
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
             onClick={refreshNews}
             disabled={refreshing}
           >
@@ -256,9 +288,14 @@ const NewsPanel = () => {
                 }
               </p>
               {articles.length === 0 ? (
-                <Button onClick={refreshNews} disabled={refreshing}>
-                  {refreshing ? "Fetching..." : "Refresh NHS News"}
-                </Button>
+                <div className="flex items-center justify-center gap-2">
+                  <Button onClick={refreshNews} disabled={refreshing}>
+                    {refreshing ? "Fetching..." : "Refresh NHS News"}
+                  </Button>
+                  <Button variant="outline" onClick={generateNews} disabled={generating}>
+                    {generating ? "Generating..." : "Generate (AI)"}
+                  </Button>
+                </div>
               ) : (
                 <Button 
                   variant="outline" 
