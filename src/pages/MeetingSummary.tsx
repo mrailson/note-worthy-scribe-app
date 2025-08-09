@@ -825,60 +825,59 @@ export default function MeetingSummary() {
     }
   };
 
+  // Helper: turn plain text with newlines into proper DOCX paragraphs preserving spacing
+  const createParagraphsFromText = (text: string) => {
+    const blocks = text.replace(/\r\n/g, "\n").split(/\n{2,}/);
+    return blocks.map((block) => {
+      const lines = block.split("\n");
+      return new Paragraph({
+        children: lines.map((line, idx) => new TextRun({ text: line, break: idx > 0 ? 1 : undefined })),
+        spacing: { after: 120 },
+      });
+    });
+  };
+
   // Download transcript as Word document
   const handleDownloadTranscriptWord = async () => {
     try {
-      let transcriptText = '';
       let paragraphs: any[] = [];
       
+      // Title
+      paragraphs.push(
+        new Paragraph({
+          children: [new TextRun({ text: "Meeting Transcript", bold: true, size: 32 })],
+          heading: HeadingLevel.TITLE,
+          spacing: { after: 240 }
+        })
+      );
+      
       if (transcriptData.length > 0) {
-        // Use timestamped transcript data
-        paragraphs = [
-          new Paragraph({
-            children: [new TextRun({ text: "Meeting Transcript", bold: true, size: 32 })],
-            heading: HeadingLevel.TITLE,
-            spacing: { after: 240 }
-          })
-        ];
-        
+        // Timestamped transcript with speakers
         transcriptData.forEach((segment) => {
           const segmentTime = meetingData?.startTime 
             ? new Date(new Date(meetingData.startTime).getTime() + (segment.timestamp_seconds * 1000))
             : new Date();
           const timeStamp = roundToNearestQuarterHour(segmentTime);
           
+          // Header for each segment
           paragraphs.push(
             new Paragraph({
               children: [
                 new TextRun({ text: `${timeStamp}${segment.speaker_name ? ` - ${segment.speaker_name}` : ''}`, bold: true }),
               ],
               spacing: { before: 120, after: 60 }
-            }),
-            new Paragraph({
-              children: [new TextRun({ text: segment.content })],
-              spacing: { after: 120 }
             })
           );
+          
+          // Content preserving internal line breaks and blank lines as separate paragraphs
+          paragraphs.push(...createParagraphsFromText(segment.content || ""));
         });
       } else if (meetingData?.transcript) {
-        // Use raw transcript
-        transcriptText = meetingData.transcript;
-        paragraphs = [
-          new Paragraph({
-            children: [new TextRun({ text: "Meeting Transcript", bold: true, size: 32 })],
-            heading: HeadingLevel.TITLE,
-            spacing: { after: 240 }
-          }),
-          ...transcriptText.split("\n\n").map((line) =>
-            new Paragraph({ 
-              children: [new TextRun({ text: line })], 
-              spacing: { after: 120 } 
-            })
-          )
-        ];
+        // Raw transcript - preserve spacing exactly
+        paragraphs.push(...createParagraphsFromText(meetingData.transcript));
       }
       
-      if (paragraphs.length === 0) {
+      if (paragraphs.length <= 1) {
         toast.error("No transcript content to download");
         return;
       }

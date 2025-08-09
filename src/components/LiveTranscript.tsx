@@ -322,9 +322,19 @@ export const LiveTranscript = ({
   const handleDownloadWord = async () => {
     try {
       const content = getFormattedCleanedText();
-      const paragraphs = content.split("\n\n").map((line) =>
-        new Paragraph({ children: [new TextRun({ text: line })], spacing: { after: 120 } })
-      );
+
+      const createParagraphsFromText = (text: string) => {
+        const blocks = text.replace(/\r\n/g, "\n").split(/\n{2,}/);
+        return blocks.map((block) => {
+          const lines = block.split("\n");
+          return new Paragraph({
+            children: lines.map((line, idx) => new TextRun({ text: line, break: idx > 0 ? 1 : undefined })),
+            spacing: { after: 120 },
+          });
+        });
+      };
+
+      const paragraphs = createParagraphsFromText(content);
 
       const doc = new Document({
         sections: [
