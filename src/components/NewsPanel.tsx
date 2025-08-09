@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Clock, ExternalLink, Star, Tag, RefreshCw } from 'lucide-react';
+import { Clock, ExternalLink, Tag, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format, isToday, isYesterday } from 'date-fns';
@@ -90,11 +90,6 @@ export const NewsPanel = () => {
     }
   };
 
-  const getRelevanceColor = (score: number) => {
-    if (score >= 8) return 'destructive';
-    if (score >= 6) return 'secondary';
-    return 'outline';
-  };
 
   if (loading) {
     return (
@@ -151,10 +146,6 @@ export const NewsPanel = () => {
                 <div className="flex justify-between items-start gap-4">
                   <div className="flex-1 space-y-2">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant={getRelevanceColor(article.relevance_score)}>
-                        <Star className="h-3 w-3 mr-1" />
-                        {article.relevance_score}/10
-                      </Badge>
                       <Badge variant="outline" className="text-xs">
                         {article.source}
                       </Badge>
@@ -211,14 +202,14 @@ export const NewsPanel = () => {
                                   src={selectedArticle.image_url} 
                                   alt={selectedArticle.title}
                                   className="w-full h-48 object-cover rounded-lg"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                  }}
                                 />
                               )}
                               
                               <div className="flex items-center gap-2 flex-wrap">
-                                <Badge variant={getRelevanceColor(selectedArticle?.relevance_score || 0)}>
-                                  <Star className="h-3 w-3 mr-1" />
-                                  {selectedArticle?.relevance_score}/10
-                                </Badge>
                                 <Badge variant="outline">
                                   {selectedArticle?.source}
                                 </Badge>
@@ -299,6 +290,10 @@ export const NewsPanel = () => {
                         alt={article.title}
                         className="w-32 h-20 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
                         onClick={() => setSelectedArticle(article)}
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                        }}
                       />
                     </div>
                   )}

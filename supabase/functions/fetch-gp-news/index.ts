@@ -57,11 +57,11 @@ serve(async (req) => {
             messages: [
               {
                 role: 'system',
-                content: 'You are a news generator for NHS GP practices. Generate realistic but fictional news articles for demonstration purposes. Return ONLY a valid JSON array with no other text.'
+                content: 'You are a news generator for NHS GP practices. Generate realistic but fictional news articles for demonstration purposes. Return ONLY a valid JSON array with no other text. All articles must be from the last 7 days.'
               },
               {
                 role: 'user',
-                content: 'Generate 5 realistic news articles about Northamptonshire GP practices and NHS primary care. Each article must include: title, summary, content (250+ words), source, published_at (recent dates in ISO format), relevance_score (1-10), and tags array.'
+                content: `Generate 5 realistic news articles about Northamptonshire GP practices and NHS primary care from the last 7 days only. Each article must include: title, summary, content (250+ words), source, published_at (dates must be within last 7 days in ISO format), relevance_score (1-10), and tags array. Current date: ${new Date().toISOString()}`
               }
             ],
             temperature: 0.7,
@@ -103,9 +103,12 @@ serve(async (req) => {
 
     // Fallback: Generate sample news articles if API fails or no key
     if (newsArticles.length === 0) {
-      const today = new Date();
-      const yesterday = new Date(today.getTime() - 86400000);
-      const twoDaysAgo = new Date(today.getTime() - 172800000);
+      // Generate dates within the last 7 days
+      const getRecentDate = (daysAgo: number) => {
+        const date = new Date();
+        date.setDate(date.getDate() - daysAgo);
+        return date.toISOString();
+      };
       
       newsArticles = [
         {
@@ -114,10 +117,10 @@ serve(async (req) => {
           content: "The Northamptonshire Integrated Care Board has announced a significant investment in digital health infrastructure, with £2.5 million allocated to modernize GP practice systems across the county. The funding will support electronic health record upgrades, telemedicine capabilities, and AI-assisted diagnostic tools. Practice managers across the county will receive training on new systems over the next six months. The initiative aims to reduce appointment waiting times and improve patient access to care.",
           url: "https://example.com/nhs-northamptonshire-digital-investment",
           source: "NHS England",
-          published_at: today.toISOString(),
+          published_at: getRecentDate(1),
           relevance_score: 9,
           tags: ["Digital Health", "Funding", "Northamptonshire", "GP Practices", "AI"],
-          image_url: "https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=400"
+          image_url: "https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=600&h=400&fit=crop"
         },
         {
           title: "CQC Inspection Results Released for Northamptonshire Practices",
@@ -125,10 +128,10 @@ serve(async (req) => {
           content: "The Care Quality Commission has published its latest inspection results for GP practices in Northamptonshire, showing a marked improvement in patient safety and care quality ratings. Three practices received 'Outstanding' ratings, with most others rated as 'Good'. The improvements follow targeted investment in staff training and patient safety protocols. Areas of particular strength include medication management, patient communication, and clinical governance.",
           url: "https://example.com/cqc-northamptonshire-results",
           source: "Care Quality Commission",
-          published_at: yesterday.toISOString(),
+          published_at: getRecentDate(2),
           relevance_score: 8,
           tags: ["CQC", "Inspection", "Patient Safety", "Quality Improvement"],
-          image_url: "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=400"
+          image_url: "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=600&h=400&fit=crop"
         },
         {
           title: "New Primary Care Network Collaboration Launched",
@@ -136,10 +139,10 @@ serve(async (req) => {
           content: "Primary Care Networks across Northamptonshire have launched a groundbreaking collaboration to address health inequalities and expand access to specialist services. The initiative includes shared mental health resources, joint chronic disease management programs, and coordinated community outreach efforts. Dr. Sarah Johnson, Clinical Director for East Northants PCN, emphasized the importance of working together to serve patients more effectively.",
           url: "https://example.com/pcn-collaboration-launch",
           source: "Northamptonshire Health News",
-          published_at: twoDaysAgo.toISOString(),
+          published_at: getRecentDate(3),
           relevance_score: 7,
           tags: ["PCN", "Collaboration", "Health Inequalities", "Specialist Services"],
-          image_url: "https://images.unsplash.com/photo-1582750433449-648ed127bb54?w=400"
+          image_url: "https://images.unsplash.com/photo-1582750433449-648ed127bb54?w=600&h=400&fit=crop"
         },
         {
           title: "GP Practice Manager Training Programme Expansion",
@@ -147,10 +150,10 @@ serve(async (req) => {
           content: "NHS England has announced a significant expansion of training programmes for GP practice managers, recognizing their crucial role in healthcare delivery. The enhanced curriculum includes modules on digital transformation, financial management, and staff wellbeing. Practice managers will have access to online learning platforms and peer mentoring networks. The programme aims to support career progression and improve practice operational efficiency.",
           url: "https://example.com/practice-manager-training",
           source: "NHS England",
-          published_at: twoDaysAgo.toISOString(),
+          published_at: getRecentDate(4),
           relevance_score: 8,
           tags: ["Practice Management", "Training", "Professional Development", "Digital Transformation"],
-          image_url: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400"
+          image_url: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=600&h=400&fit=crop"
         },
         {
           title: "Winter Pressures Support for GP Practices",
@@ -158,10 +161,10 @@ serve(async (req) => {
           content: "The local health system has announced comprehensive support measures for GP practices to manage winter pressures. This includes additional locum funding, extended pharmacy services, and enhanced urgent care pathways. Practice managers will receive guidance on capacity planning and staff wellbeing initiatives. The measures aim to maintain quality care while protecting staff from burnout during peak demand periods.",
           url: "https://example.com/winter-pressures-support",
           source: "Northamptonshire ICB",
-          published_at: today.toISOString(),
+          published_at: getRecentDate(5),
           relevance_score: 7,
           tags: ["Winter Pressures", "Funding", "Staff Wellbeing", "Capacity Planning"],
-          image_url: "https://images.unsplash.com/photo-1584515933487-779824d29309?w=400"
+          image_url: "https://images.unsplash.com/photo-1584515933487-779824d29309?w=600&h=400&fit=crop"
         }
       ];
     }
