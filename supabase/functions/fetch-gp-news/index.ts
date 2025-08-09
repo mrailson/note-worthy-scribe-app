@@ -57,11 +57,11 @@ serve(async (req) => {
             messages: [
               {
                 role: 'system',
-                content: 'You are a news generator for NHS GP practices. Generate realistic but fictional news articles for demonstration purposes. Return ONLY a valid JSON array with no other text. All articles must be from the last 7 days.'
+                content: 'You are a news generator for NHS GP practices. Generate realistic but fictional news articles for demonstration purposes. Return ONLY a valid JSON array with no other text. All articles must be from the last 7 days with realistic NHS/healthcare website URLs.'
               },
               {
                 role: 'user',
-                content: `Generate 5 realistic news articles about Northamptonshire GP practices and NHS primary care from the last 7 days only. Each article must include: title, summary, content (250+ words), source, published_at (dates must be within last 7 days in ISO format), relevance_score (1-10), and tags array. Current date: ${new Date().toISOString()}`
+                content: `Generate 5 realistic news articles about Northamptonshire GP practices and NHS primary care from the last 7 days only. Each article must include: title, summary, content (250+ words), source, published_at (dates must be within last 7 days in ISO format), relevance_score (1-10), tags array, and realistic url (use real NHS websites like england.nhs.uk, cqc.org.uk, etc.). Current date: ${new Date().toISOString()}. Make sure all published_at dates are within the last 7 days.`
               }
             ],
             temperature: 0.7,
@@ -114,8 +114,8 @@ serve(async (req) => {
         {
           title: "NHS Northamptonshire ICB Announces Digital Health Investment",
           summary: "Northamptonshire Integrated Care Board secures £2.5m funding for digital health initiatives across local GP practices, focusing on AI-assisted diagnostics and telemedicine.",
-          content: "The Northamptonshire Integrated Care Board has announced a significant investment in digital health infrastructure, with £2.5 million allocated to modernize GP practice systems across the county. The funding will support electronic health record upgrades, telemedicine capabilities, and AI-assisted diagnostic tools. Practice managers across the county will receive training on new systems over the next six months. The initiative aims to reduce appointment waiting times and improve patient access to care.",
-          url: "https://example.com/nhs-northamptonshire-digital-investment",
+          content: "The Northamptonshire Integrated Care Board has announced a significant investment in digital health infrastructure, with £2.5 million allocated to modernize GP practice systems across the county. The funding will support electronic health record upgrades, telemedicine capabilities, and AI-assisted diagnostic tools. Practice managers across the county will receive training on new systems over the next six months. The initiative aims to reduce appointment waiting times and improve patient access to care. This investment represents part of the government's broader commitment to digitizing NHS services and improving patient outcomes through technology. Local practices will benefit from enhanced clinical decision support systems and improved patient communication platforms.",
+          url: "https://www.england.nhs.uk/midlands/our-work/northamptonshire-digital-health/",
           source: "NHS England",
           published_at: getRecentDate(1),
           relevance_score: 9,
@@ -125,8 +125,8 @@ serve(async (req) => {
         {
           title: "CQC Inspection Results Released for Northamptonshire Practices",
           summary: "Latest Care Quality Commission inspection results show significant improvement in patient safety ratings across county practices, with three achieving 'Outstanding' status.",
-          content: "The Care Quality Commission has published its latest inspection results for GP practices in Northamptonshire, showing a marked improvement in patient safety and care quality ratings. Three practices received 'Outstanding' ratings, with most others rated as 'Good'. The improvements follow targeted investment in staff training and patient safety protocols. Areas of particular strength include medication management, patient communication, and clinical governance.",
-          url: "https://example.com/cqc-northamptonshire-results",
+          content: "The Care Quality Commission has published its latest inspection results for GP practices in Northamptonshire, showing a marked improvement in patient safety and care quality ratings. Three practices received 'Outstanding' ratings, with most others rated as 'Good'. The improvements follow targeted investment in staff training and patient safety protocols. Areas of particular strength include medication management, patient communication, and clinical governance. The CQC highlighted excellent examples of person-centred care and effective leadership across the county. These results reflect the hard work of practice teams and their commitment to continuous improvement in patient care delivery.",
+          url: "https://www.cqc.org.uk/news/releases/northamptonshire-gp-practices-inspection-results",
           source: "Care Quality Commission",
           published_at: getRecentDate(2),
           relevance_score: 8,
@@ -136,8 +136,8 @@ serve(async (req) => {
         {
           title: "New Primary Care Network Collaboration Launched",
           summary: "Northamptonshire PCNs announce joint initiative to tackle health inequalities and improve access to specialist services across the county.",
-          content: "Primary Care Networks across Northamptonshire have launched a groundbreaking collaboration to address health inequalities and expand access to specialist services. The initiative includes shared mental health resources, joint chronic disease management programs, and coordinated community outreach efforts. Dr. Sarah Johnson, Clinical Director for East Northants PCN, emphasized the importance of working together to serve patients more effectively.",
-          url: "https://example.com/pcn-collaboration-launch",
+          content: "Primary Care Networks across Northamptonshire have launched a groundbreaking collaboration to address health inequalities and expand access to specialist services. The initiative includes shared mental health resources, joint chronic disease management programs, and coordinated community outreach efforts. Dr. Sarah Johnson, Clinical Director for East Northants PCN, emphasized the importance of working together to serve patients more effectively. The collaboration will focus on reducing waiting times for specialist appointments and ensuring equitable access to care across all communities. This represents a significant step forward in integrated care delivery for the region.",
+          url: "https://www.england.nhs.uk/integratedcare/integrated-care-in-your-area/northamptonshire/",
           source: "Northamptonshire Health News",
           published_at: getRecentDate(3),
           relevance_score: 7,
@@ -147,8 +147,8 @@ serve(async (req) => {
         {
           title: "GP Practice Manager Training Programme Expansion",
           summary: "NHS England announces expansion of professional development opportunities for practice managers, including new modules on digital transformation.",
-          content: "NHS England has announced a significant expansion of training programmes for GP practice managers, recognizing their crucial role in healthcare delivery. The enhanced curriculum includes modules on digital transformation, financial management, and staff wellbeing. Practice managers will have access to online learning platforms and peer mentoring networks. The programme aims to support career progression and improve practice operational efficiency.",
-          url: "https://example.com/practice-manager-training",
+          content: "NHS England has announced a significant expansion of training programmes for GP practice managers, recognizing their crucial role in healthcare delivery. The enhanced curriculum includes modules on digital transformation, financial management, and staff wellbeing. Practice managers will have access to online learning platforms and peer mentoring networks. The programme aims to support career progression and improve practice operational efficiency. This investment in professional development reflects the NHS's commitment to supporting practice teams and ensuring they have the skills needed for modern healthcare delivery. The training will be delivered through a combination of online modules and face-to-face workshops.",
+          url: "https://www.england.nhs.uk/gp/gpfv/workforce/practice-managers/",
           source: "NHS England",
           published_at: getRecentDate(4),
           relevance_score: 8,
@@ -158,8 +158,8 @@ serve(async (req) => {
         {
           title: "Winter Pressures Support for GP Practices",
           summary: "Additional funding and resources announced to help Northamptonshire GP practices manage increased demand during winter months.",
-          content: "The local health system has announced comprehensive support measures for GP practices to manage winter pressures. This includes additional locum funding, extended pharmacy services, and enhanced urgent care pathways. Practice managers will receive guidance on capacity planning and staff wellbeing initiatives. The measures aim to maintain quality care while protecting staff from burnout during peak demand periods.",
-          url: "https://example.com/winter-pressures-support",
+          content: "The local health system has announced comprehensive support measures for GP practices to manage winter pressures. This includes additional locum funding, extended pharmacy services, and enhanced urgent care pathways. Practice managers will receive guidance on capacity planning and staff wellbeing initiatives. The measures aim to maintain quality care while protecting staff from burnout during peak demand periods. The support package includes enhanced flu vaccination programmes and additional community pharmacy services to reduce pressure on GP appointments. These initiatives are part of a wider NHS winter preparedness strategy to ensure patients receive timely care throughout the challenging winter period.",
+          url: "https://www.england.nhs.uk/winter/",
           source: "Northamptonshire ICB",
           published_at: getRecentDate(5),
           relevance_score: 7,
