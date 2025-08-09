@@ -253,7 +253,7 @@ export const NewsPanel = () => {
                                       className="flex items-center gap-2"
                                     >
                                       <ExternalLink className="h-4 w-4" />
-                                      Read Original Article
+                                      Visit {selectedArticle.source} Website
                                     </a>
                                   </Button>
                                 </div>
@@ -276,7 +276,7 @@ export const NewsPanel = () => {
                             className="flex items-center gap-1"
                           >
                             <ExternalLink className="h-3 w-3" />
-                            Source
+                            {article.source}
                           </a>
                         </Button>
                       )}
