@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Switch } from '@/components/ui/switch';
 import { Clock, ExternalLink, Tag, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -29,6 +30,8 @@ export const NewsPanel = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
+  const [showFullArticle, setShowFullArticle] = useState(false);
+  const [fullArticleContent, setFullArticleContent] = useState<string>('');
 
   const fetchNews = async () => {
     try {
@@ -73,6 +76,37 @@ export const NewsPanel = () => {
     } finally {
       setRefreshing(false);
     }
+  };
+
+  const fetchFullArticle = async (articleId: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('fetch-gp-news', {
+        body: { 
+          mode: 'full_article',
+          article_id: articleId,
+          max_words: 5000 
+        }
+      });
+      
+      if (error) {
+        console.error('Error fetching full article:', error);
+        toast.error('Failed to load full article');
+        return;
+      }
+
+      setFullArticleContent(data.content || '');
+    } catch (error) {
+      console.error('Error fetching full article:', error);
+      toast.error('Failed to load full article');
+    }
+  };
+
+  const formatContent = (content: string) => {
+    return content.split('\n\n').map((paragraph, index) => (
+      <p key={index} className="mb-4 leading-relaxed">
+        {paragraph.trim()}
+      </p>
+    ));
   };
 
   useEffect(() => {
@@ -195,6 +229,21 @@ export const NewsPanel = () => {
                               {selectedArticle?.title}
                             </DialogTitle>
                           </DialogHeader>
+
+                          <div className="flex items-center gap-3 mb-4 p-4 bg-muted/50 rounded-lg">
+                            <span className="text-sm font-medium">Summary</span>
+                            <Switch
+                              checked={showFullArticle}
+                              onCheckedChange={async (checked) => {
+                                setShowFullArticle(checked);
+                                if (checked && selectedArticle && !fullArticleContent) {
+                                  await fetchFullArticle(selectedArticle.id);
+                                }
+                              }}
+                            />
+                            <span className="text-sm font-medium">Full Article</span>
+                          </div>
+
                           <ScrollArea className="max-h-[60vh]">
                             <div className="space-y-4">
                               {selectedArticle?.image_url && (
@@ -220,12 +269,32 @@ export const NewsPanel = () => {
                               </div>
                               
                               <div className="prose prose-sm max-w-none">
-                                <p className="text-base font-medium text-muted-foreground">
-                                  {selectedArticle?.summary}
-                                </p>
-                                <div className="mt-4 whitespace-pre-wrap">
-                                  {selectedArticle?.content}
-                                </div>
+                                {!showFullArticle ? (
+                                  <>
+                                    <p className="text-base font-medium text-muted-foreground mb-4">
+                                      {selectedArticle?.summary}
+                                    </p>
+                                    <div className="space-y-4">
+                                      {selectedArticle?.content && formatContent(selectedArticle.content)}
+                                    </div>
+                                  </>
+                                ) : (
+                                  <div className="space-y-4">
+                                    <p className="text-base font-medium text-muted-foreground mb-4">
+                                      {selectedArticle?.summary}
+                                    </p>
+                                    {fullArticleContent ? (
+                                      <div className="space-y-4">
+                                        {formatContent(fullArticleContent)}
+                                      </div>
+                                    ) : (
+                                      <div className="text-center py-8">
+                                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                                        <p className="text-sm text-muted-foreground mt-2">Loading full article...</p>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                               
                               {selectedArticle?.tags && selectedArticle.tags.length > 0 && (

@@ -36,6 +36,54 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    const body = await req.json().catch(() => ({}));
+    
+    // Handle full article request
+    if (body.mode === 'full_article') {
+      console.log(`Generating full article content`);
+      
+      const fullArticleResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openAIApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          messages: [
+            {
+              role: 'system',
+              content: `You are a healthcare journalist writing comprehensive articles about GP practice developments in the UK. Generate a detailed, well-researched article of 3000-5000 words.
+
+              Structure your response as a comprehensive article with:
+              - Multiple detailed sections with clear paragraph breaks
+              - Specific statistics and data points
+              - Expert quotes and perspectives
+              - Case studies and real-world examples
+              - Policy implications and analysis
+              - Future outlook and recommendations
+              
+              Use double line breaks between paragraphs for proper formatting.
+              Make it informative, professional, and engaging for healthcare professionals.`
+            },
+            {
+              role: 'user',
+              content: `Write a comprehensive 3000-5000 word article about recent developments in UK GP practices, focusing on current challenges, innovations, and improvements in patient care. Include specific examples, statistics, and expert insights. Format with clear paragraph breaks.`
+            }
+          ],
+          max_tokens: 4000,
+          temperature: 0.7,
+        }),
+      });
+
+      const fullArticleData = await fullArticleResponse.json();
+      const content = fullArticleData.choices[0]?.message?.content || '';
+      
+      return new Response(JSON.stringify({ content }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     console.log('Starting news search for Northamptonshire GP practices...');
 
     // Initialize articles array
