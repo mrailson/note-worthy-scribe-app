@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { transcriptCleaner } from "@/utils/TranscriptCleaner";
@@ -12,6 +13,7 @@ import { medicalTermCorrector } from "@/utils/MedicalTermCorrector";
 import { MedicalTermCorrectionDialog } from "@/components/MedicalTermCorrectionDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import FindReplacePanel from "@/components/FindReplacePanel";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { 
@@ -91,6 +93,10 @@ export const LiveTranscript = ({
   const { toast } = useToast();
   const [practices, setPractices] = useState<Array<{id: string, name: string}>>([]);
   const [practiceSearchOpen, setPracticeSearchOpen] = useState(false);
+
+  // Editing state for cleaned transcript
+  const [isEditingCleaned, setIsEditingCleaned] = useState(false);
+  const [editedCleanedText, setEditedCleanedText] = useState("");
   
   // Load user's practices (with refetch when selector opens)
   const fetchUserPractices = async () => {
@@ -573,6 +579,24 @@ export const LiveTranscript = ({
                       Cleaned
                     </Badge>
                   </div>
+
+                  {/* Edit controls */}
+                  <div className="mb-2 flex items-center gap-2">
+                    {!isEditingCleaned ? (
+                      <Button size="sm" variant="outline" onClick={() => { setIsEditingCleaned(true); setEditedCleanedText(getFormattedCleanedText()); }}>
+                        <Edit3 className="h-4 w-4 mr-2" /> Edit
+                      </Button>
+                    ) : (
+                      <>
+                        <Button size="sm" onClick={() => { setCleanedTranscript(editedCleanedText); setIsEditingCleaned(false); setLiveTranscriptText(editedCleanedText); try { localStorage.setItem('cleanedTranscriptDraft', editedCleanedText); } catch (e) {} toast({ title: "Saved", description: "Transcript updated." }); }}>
+                          <Check className="h-4 w-4 mr-2" /> Save
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => setIsEditingCleaned(false)}>
+                          <X className="h-4 w-4 mr-2" /> Cancel
+                        </Button>
+                      </>
+                    )}
+                  </div>
                   
                    <div 
                      className="text-sm leading-relaxed whitespace-pre-wrap min-h-[60px] max-h-[400px] overflow-y-auto p-4 bg-background/80 rounded-md border border-primary/10 shadow-sm select-text cursor-text"
@@ -584,7 +608,13 @@ export const LiveTranscript = ({
                      }}
                      onMouseUp={handleTextSelection}
                    >
-                    {cleanedTranscript || (transcript && isAutoCleaningEnabled) ? (
+                    {isEditingCleaned ? (
+                      <Textarea
+                        value={editedCleanedText}
+                        onChange={(e) => setEditedCleanedText(e.target.value)}
+                        rows={12}
+                      />
+                    ) : (cleanedTranscript || (transcript && isAutoCleaningEnabled)) ? (
                       <div className="space-y-2">
                         {(cleanedTranscript || transcript).split(/[.!?]+/).filter(s => s.trim()).map((sentence, index) => {
                           const timestamp = new Date();
@@ -629,6 +659,22 @@ export const LiveTranscript = ({
                     )}
                   </div>
                 </div>
+
+                {/* Find & Replace Panel */}
+                {(cleanedTranscript || transcript) && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Find & Replace (misheard names)</Label>
+                    <FindReplacePanel
+                      getCurrentText={() => getFormattedCleanedText()}
+                      onApply={(updated) => {
+                        setCleanedTranscript(updated);
+                        setLiveTranscriptText(updated);
+                        if (isEditingCleaned) setEditedCleanedText(updated);
+                      }}
+                    />
+                  </div>
+                )}
+
               </div>
 
               
