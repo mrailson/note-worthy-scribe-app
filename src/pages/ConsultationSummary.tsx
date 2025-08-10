@@ -110,6 +110,7 @@ export default function ConsultationSummary() {
   // Transcript sub-tab state  
   const [transcriptTab, setTranscriptTab] = useState("original"); // "original" or "tidied"
   const [cleanedTranscript, setCleanedTranscript] = useState("");
+  const [transcriptMeta, setTranscriptMeta] = useState<{ source: string; itemCount: number } | null>(null);
 
   // Ask AI state
   const [isAskAIOpen, setIsAskAIOpen] = useState(false);
@@ -147,14 +148,19 @@ export default function ConsultationSummary() {
 
         // Load transcript (full)
         let fullTranscript = "";
-        // Try RPC to combine chunks if available
+        setTranscriptMeta(null);
+        // Try RPC to fetch full transcript with source
         try {
-          const { data: rpcData, error: rpcError } = await supabase.rpc('get_meeting_transcript', { p_meeting_id: meetingId });
-          if (!rpcError && typeof rpcData === 'string' && rpcData.trim().length > 0) {
-            fullTranscript = rpcData;
+          const { data: rpcRows, error: rpcError } = await supabase.rpc('get_meeting_full_transcript', { p_meeting_id: meetingId });
+          if (!rpcError && Array.isArray(rpcRows) && rpcRows.length > 0) {
+            const row = rpcRows[0] as { source: string; transcript: string; item_count: number };
+            if (row?.transcript && row.transcript.trim().length > 0) {
+              fullTranscript = row.transcript;
+              setTranscriptMeta({ source: row.source, itemCount: row.item_count });
+            }
           }
         } catch (e) {
-          console.warn('RPC get_meeting_transcript failed, falling back to table fetch');
+          console.warn('RPC get_meeting_full_transcript failed, falling back to table fetch');
         }
 
         // Try meeting_transcription_chunks first (highest fidelity chunks)
@@ -2027,6 +2033,11 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
 
                     {/* Original Transcript */}
                     <TabsContent value="original">
+                      {transcriptMeta && (
+                        <div className="mb-2 text-xs text-muted-foreground">
+                          Transcript source: {transcriptMeta.source} ({transcriptMeta.itemCount} items)
+                        </div>
+                      )}
                       <div className="bg-muted/30 rounded-lg p-3 sm:p-4 border overflow-x-auto">
                         <pre className="whitespace-pre-wrap text-xs sm:text-sm font-mono leading-relaxed">
                           {consultationData.transcript}

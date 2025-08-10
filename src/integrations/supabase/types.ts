@@ -3702,6 +3702,14 @@ export type Database = {
         Args: { check_user_id?: string }
         Returns: Database["public"]["Enums"]["app_role"]
       }
+      get_meeting_full_transcript: {
+        Args: { p_meeting_id: string }
+        Returns: {
+          source: string
+          transcript: string
+          item_count: number
+        }[]
+      }
       get_meeting_transcript: {
         Args: { p_meeting_id: string }
         Returns: string
