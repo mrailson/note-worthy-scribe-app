@@ -57,6 +57,7 @@ interface LiveTranscriptProps {
     meetingFormat: string;
   };
   onMeetingSettingsChange?: (settings: { practiceId: string; meetingFormat: string }) => void;
+  defaultOpen?: boolean;
 }
 
 export const LiveTranscript = ({ 
@@ -66,9 +67,10 @@ export const LiveTranscript = ({
   onTimestampsToggle,
   attendees,
   meetingSettings,
-  onMeetingSettingsChange
+  onMeetingSettingsChange,
+  defaultOpen
 }: LiveTranscriptProps) => {
-  const [isTranscriptOpen, setIsTranscriptOpen] = useState(true);
+  const [isTranscriptOpen, setIsTranscriptOpen] = useState<boolean>(defaultOpen ?? true);
   const [isLiveUpdateOpen, setIsLiveUpdateOpen] = useState(false); // New state for live updates
   const [isMeetingSettingsOpen, setIsMeetingSettingsOpen] = useState(false); // New state for meeting settings
   const [isSpeakersOpen, setIsSpeakersOpen] = useState(false);

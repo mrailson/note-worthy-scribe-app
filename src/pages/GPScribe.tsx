@@ -14,6 +14,7 @@ import { Mic, MicOff, Wifi, WifiOff, Brain, Copy, Download, Mail, Save, Play, Pa
 import { useAuth } from "@/contexts/AuthContext";
 
 import { UnifiedAudioCapture } from "@/utils/UnifiedAudioCapture";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Simple transcript data interface for single session mode
 interface TranscriptData {
@@ -82,6 +83,7 @@ const Index = () => {
   
   const navigate = useNavigate();
   const location = useLocation();
+  const isMobile = useIsMobile();
   
   // Recording states
   const [isRecording, setIsRecording] = useState(false);
@@ -2046,6 +2048,19 @@ useEffect(() => {
                         <div className="text-sm text-muted-foreground">Words</div>
                       </div>
                     </div>
+
+                    {/* Mobile: Collapsed transcript below stats inside main box */}
+                    {isMobile && (
+                      <div className="mt-4">
+                        <LiveTranscript 
+                          transcript={transcript}
+                          confidence={currentConfidence}
+                          showTimestamps={showTranscriptTimestamps}
+                          onTimestampsToggle={setShowTranscriptTimestamps}
+                          defaultOpen={false}
+                        />
+                      </div>
+                    )}
                   
                   </div>
 
@@ -2160,12 +2175,15 @@ useEffect(() => {
                 </div>
 
                 {/* Live transcript - aligned with Meeting Recorder */}
-                <LiveTranscript 
-                  transcript={transcript}
-                  confidence={currentConfidence}
-                  showTimestamps={showTranscriptTimestamps}
-                  onTimestampsToggle={setShowTranscriptTimestamps}
-                />
+                {!isMobile && (
+                  <LiveTranscript 
+                    transcript={transcript}
+                    confidence={currentConfidence}
+                    showTimestamps={showTranscriptTimestamps}
+                    onTimestampsToggle={setShowTranscriptTimestamps}
+                  />
+                )}
+
 
                 {/* Generated notes display */}
                 {(gpSummary || fullNote || patientCopy) && (
