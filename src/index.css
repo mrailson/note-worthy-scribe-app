@@ -208,3 +208,10 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  /* iOS smooth momentum scrolling for overflow containers */
+  .ios-scroll {
+    -webkit-overflow-scrolling: touch;
+  }
+}

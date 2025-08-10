@@ -184,7 +184,7 @@ const Index = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-background flex items-center justify-center">
+      <div className="min-h-[100dvh] bg-gradient-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
           <p className="mt-2 text-muted-foreground">Loading...</p>
@@ -195,7 +195,7 @@ const Index = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-background">
+      <div className="min-h-[100dvh] bg-gradient-background">
         <Header onNewMeeting={handleNewMeeting} />
         <div className="container mx-auto px-3 py-6 sm:px-4 sm:py-8">
           <LoginForm />
@@ -205,7 +205,7 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-background">
+    <div className="min-h-[100dvh] bg-gradient-background">
       <Header onNewMeeting={handleNewMeeting} />
       
       <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 lg:py-8 space-y-4 sm:space-y-6 max-w-4xl">

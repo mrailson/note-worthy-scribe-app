@@ -1629,7 +1629,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
   }
 
   return (
-    <div className="min-h-screen bg-gradient-background">
+    <div className="min-h-[100dvh] bg-gradient-background overflow-y-auto">
       <Header onNewMeeting={handleNewMeeting} />
       
       {/* API Key Missing Alert */}
