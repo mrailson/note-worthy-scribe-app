@@ -130,8 +130,93 @@ export default function ConsultationSummary() {
   const noteLevels = ["Shorthand", "Standard", "Detailed"];
 
   useEffect(() => {
-    const data = location.state as ConsultationData;
-    if (data) {
+    const loadConsultationFromDatabase = async (meetingId: string) => {
+      try {
+        // Load meeting data
+        const { data: meeting } = await supabase
+          .from('meetings')
+          .select('*')
+          .eq('id', meetingId)
+          .single();
+
+        if (!meeting) {
+          toast.error("Consultation not found");
+          navigate('/gp-scribe');
+          return;
+        }
+
+        // Load transcript (latest)
+        const { data: transcriptRow } = await supabase
+          .from('meeting_transcripts')
+          .select('content')
+          .eq('meeting_id', meetingId)
+          .order('created_at', { ascending: false })
+          .maybeSingle();
+
+        // Load summaries
+        const { data: summary } = await supabase
+          .from('meeting_summaries')
+          .select('summary, key_points, action_items, next_steps')
+          .eq('meeting_id', meetingId)
+          .maybeSingle();
+
+        const transcript = transcriptRow?.content || "";
+        
+        // Create consultation data object
+        const consultationData: ConsultationData = {
+          id: meetingId,
+          title: meeting.title || "Consultation",
+          type: "consultation",
+          transcript: transcript,
+          duration: meeting.duration_minutes ? `${meeting.duration_minutes} minutes` : "Unknown",
+          wordCount: transcript.split(' ').length,
+          startTime: meeting.created_at,
+          isExample: false,
+          generatedData: summary ? {
+            gpSummary: summary.summary || "",
+            fullNote: summary.key_points?.[0] || "",
+            patientCopy: summary.action_items?.[0] || "",
+            traineeFeedback: summary.next_steps?.[0] || ""
+          } : undefined
+        };
+
+        setConsultationData(consultationData);
+
+        // Load content from summaries if available
+        if (summary) {
+          setContent({
+            gpSummary: summary.summary || "",
+            fullNote: summary.key_points?.[0] || "",
+            patientCopy: summary.action_items?.[0] || "",
+            traineeFeedback: summary.next_steps?.[0] || ""
+          });
+          
+          setEditContent({
+            gpSummary: summary.summary || "",
+            fullNote: summary.key_points?.[0] || "",
+            patientCopy: summary.action_items?.[0] || "",
+            traineeFeedback: summary.next_steps?.[0] || ""
+          });
+        }
+        // If no generated data available but we have transcript, generate from transcript
+        else if (transcript && transcript.trim().length > 50) {
+          generateNotesFromTranscript(transcript);
+        }
+      } catch (error) {
+        console.error('Failed to load consultation:', error);
+        toast.error("Failed to load consultation");
+        navigate('/gp-scribe');
+      }
+    };
+
+    const data = location.state as ConsultationData & { meetingId?: string };
+    
+    // Check if meetingId is passed via navigation state
+    if (data?.meetingId && !data.transcript) {
+      loadConsultationFromDatabase(data.meetingId);
+    }
+    // Check if full consultation data is passed
+    else if (data && !data.meetingId) {
       setConsultationData(data);
       
       // Load example data if this is an example
