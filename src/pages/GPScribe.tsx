@@ -1477,13 +1477,60 @@ const Index = () => {
     }
   };
 
-  // Handle navigation state (e.g., returning from consultation summary)
-  useEffect(() => {
-    const navState = location.state as { activeTab?: string } | null;
-    if (navState?.activeTab) {
-      setActiveTab(navState.activeTab);
+// Handle navigation state (e.g., returning from consultation summary or opening from history)
+useEffect(() => {
+  const navState = location.state as { activeTab?: string; meetingId?: string } | null;
+  if (navState?.activeTab) {
+    setActiveTab(navState.activeTab);
+  }
+
+  const loadFromHistory = async (meetingId: string) => {
+    try {
+      // Remember the meeting so subsequent saves attach correctly
+      setSavedMeetingId(meetingId);
+
+      // Load summaries
+      const { data: summary } = await supabase
+        .from('meeting_summaries')
+        .select('summary, key_points, action_items, next_steps')
+        .eq('meeting_id', meetingId)
+        .maybeSingle();
+
+      if (summary) {
+        setGpSummary(summary.summary || "");
+        setFullNote(summary.key_points?.[0] || "");
+        setPatientCopy(summary.action_items?.[0] || "");
+        setTraineeFeedback(summary.next_steps?.[0] || "");
+        setEditContent({
+          gpSummary: summary.summary || "",
+          fullNote: summary.key_points?.[0] || "",
+          patientCopy: summary.action_items?.[0] || "",
+          traineeFeedback: summary.next_steps?.[0] || "",
+          referralLetter: ""
+        });
+      }
+
+      // Load transcript (latest)
+      const { data: transcriptRow } = await supabase
+        .from('meeting_transcripts')
+        .select('content')
+        .eq('meeting_id', meetingId)
+        .order('created_at', { ascending: false })
+        .maybeSingle();
+
+      if (transcriptRow?.content) {
+        setTranscript(transcriptRow.content);
+        setCleanedTranscript(transcriptRow.content);
+      }
+    } catch (err) {
+      console.error('Failed to load consultation from history:', err);
     }
-  }, [location.state]);
+  };
+
+  if (navState?.meetingId) {
+    loadFromHistory(navState.meetingId);
+  }
+}, [location.state, user]);
 
   // Load user settings on component mount
   useEffect(() => {

@@ -7,6 +7,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Eye, Edit, Trash2, Clock, Calendar, FileText, Copy, BookOpen } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -30,6 +31,7 @@ interface ConsultationRecord {
 
 export const ConsultationHistory = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   
   const [consultations, setConsultations] = useState<ConsultationRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -343,6 +345,12 @@ export const ConsultationHistory = () => {
                   </div>
                   
                   <div className="flex items-center gap-2 ml-4">
+                    <Button
+                      size="sm"
+                      onClick={() => navigate('/gp-scribe', { state: { activeTab: 'consultation', meetingId: consultation.id } })}
+                    >
+                      <BookOpen className="h-4 w-4 mr-2" /> Open
+                    </Button>
                     <Dialog>
                       <DialogTrigger asChild>
                         <Button
