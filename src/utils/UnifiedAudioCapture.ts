@@ -63,11 +63,11 @@ export class UnifiedAudioCapture {
       console.log('Requesting microphone access...');
       this.micStream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          sampleRate: 24000,
+          sampleRate: 48000,
           channelCount: 1,
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false
         }
       });
       console.log('Microphone access granted');
@@ -89,7 +89,7 @@ export class UnifiedAudioCapture {
           frameRate: { ideal: 1 }
         },
         audio: {
-          sampleRate: 24000,
+          sampleRate: 48000,
           channelCount: 1,
           echoCancellation: false,
           noiseSuppression: false,
@@ -117,7 +117,7 @@ export class UnifiedAudioCapture {
       throw new Error('No microphone stream available');
     }
 
-    this.audioContext = new AudioContext({ sampleRate: 24000 });
+    this.audioContext = new AudioContext({ sampleRate: 48000 });
     const destination = this.audioContext.createMediaStreamDestination();
 
     // Always connect microphone first

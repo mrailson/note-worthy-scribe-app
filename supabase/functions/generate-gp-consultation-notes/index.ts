@@ -19,6 +19,8 @@ interface RequestBody {
   formatForSystmOne: boolean;
   consultationType?: string;
   userId?: string;
+  noteFormat?: 'heidi' | 'soap';
+  useGPShorthand?: boolean;
 }
 
 const getStyleInstructions = (level: number, showSnomed: boolean, formatEmis: boolean, formatSystm: boolean) => {
@@ -71,7 +73,7 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured');
     }
 
-    const { transcript, outputLevel, showSnomedCodes, formatForEmis, formatForSystmOne, consultationType, userId }: RequestBody = await req.json();
+    const { transcript, outputLevel, showSnomedCodes, formatForEmis, formatForSystmOne, consultationType, userId, noteFormat = 'heidi', useGPShorthand = false }: RequestBody = await req.json();
 
     if (!transcript || transcript.trim().length < 10) {
       throw new Error('Valid transcript is required');
@@ -309,6 +311,7 @@ Use clear, non-medical language that patients can easily understand.`
 
     // Generate Trainee Feedback (if requested at level 4 or 5)
     let traineeFeedback = "";
+    let soapNote = "";
     if (outputLevel >= 4) {
       const traineeResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -372,11 +375,43 @@ Use **bold** formatting for section headings and provide specific, actionable fe
       traineeFeedback = traineeData.choices[0].message.content;
     }
 
+    // Generate SOAP note (always available for detailed view)
+    try {
+      const soapResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openAIApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: `You are an NHS GP producing a SOAP note (Subjective, Objective, Assessment, Plan).\n\nSTRICT RULES:\n- Use ONLY information explicitly present in the transcript\n- Do NOT hallucinate or invent details\n- Omit any section if there is no information for it (no empty headers)\n- Keep it professional and structured\n${useGPShorthand ? 'Use standard GP shorthand and abbreviations where appropriate (e.g., Pt, Hx, Ex, Rx, NKDA, /7, /52), ensuring clarity.' : ''}\n${showSnomedCodes ? 'Include SNOMED CT codes in brackets where appropriate.' : ''}`
+            },
+            {
+              role: 'user',
+              content: `Create a concise, high-quality SOAP note from this transcript. Use professional NHS GP standards.\n\nTranscript:\n${transcript}`
+            }
+          ],
+          temperature: 0.2,
+        }),
+      });
+      if (soapResponse.ok) {
+        const soapData = await soapResponse.json();
+        soapNote = soapData.choices[0].message.content;
+      }
+    } catch (_) {
+      // If SOAP generation fails, silently continue
+    }
+
     return new Response(JSON.stringify({
       gpSummary,
       fullNote,
       patientCopy,
-      traineeFeedback
+      traineeFeedback,
+      soapNote
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
