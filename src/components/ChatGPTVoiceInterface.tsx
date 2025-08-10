@@ -177,6 +177,14 @@ const ChatGPTVoiceInterface: React.FC<ChatGPTVoiceInterfaceProps> = ({ isOpen, o
         title: "Connected to ChatGPT",
         description: "Voice interface is ready. Start speaking!",
       });
+      // Send starting greeting
+      setTimeout(() => {
+        try {
+          chatRef.current?.sendMessage("Hello! I am the AI for GP Practice Mangers, How can I help?");
+        } catch (e) {
+          console.error("Failed to send starting greeting:", e);
+        }
+      }, 800);
     } catch (error) {
       console.error('Error starting conversation:', error);
       setIsConnecting(false);

@@ -255,7 +255,7 @@ const AI4PMService = () => {
       
       // Send initial greeting
       setTimeout(() => {
-        voiceChatRef.current?.sendMessage("Hi, how can I help you?");
+        voiceChatRef.current?.sendMessage("Hello! I am the AI for GP Practice Mangers, How can I help?");
       }, 1000);
       
     } catch (error) {
