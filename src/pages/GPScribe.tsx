@@ -1623,7 +1623,7 @@ useEffect(() => {
               <CardTitle className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <span className="flex items-center gap-2">
                   <FileText className="h-5 w-5 text-primary" />
-                  GP Scribe - Consultation Notes
+                  GP Consultation
                 </span>
                 <div className="flex items-center gap-2">
                   <Badge variant={getConnectionStatusColor() as any} className="flex items-center gap-1 text-xs">
