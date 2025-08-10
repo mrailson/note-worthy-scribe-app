@@ -8,6 +8,7 @@ import { Copy, Sparkles, Maximize2, X, Download, Printer, Mail } from 'lucide-re
 import { Document, Packer, Paragraph, TextRun } from "docx";
 import { saveAs } from "file-saver";
 import { toast } from "sonner";
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface AIResponsePanelProps {
   response: string;
@@ -23,6 +24,7 @@ export const AIResponsePanel: React.FC<AIResponsePanelProps> = ({
   onCopy
 }) => {
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const isMobile = useIsMobile();
   
   // Strip HTML tags for plain text versions
   const stripHtml = (html: string) => {
@@ -110,7 +112,10 @@ export const AIResponsePanel: React.FC<AIResponsePanelProps> = ({
   };
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-[75vw] min-w-[1000px]">
+      <SheetContent
+        side={isMobile ? "bottom" : "right"}
+        className="flex flex-col overflow-hidden w-full sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[70vw] xl:max-w-[60vw] p-4 sm:p-6 pb-[max(env(safe-area-inset-bottom),0px)] h-[85dvh] sm:h-full rounded-t-xl sm:rounded-none"
+      >
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-violet-600" />
@@ -118,7 +123,7 @@ export const AIResponsePanel: React.FC<AIResponsePanelProps> = ({
           </SheetTitle>
         </SheetHeader>
         
-        <div className="mt-6 space-y-4">
+        <div className="mt-4 sm:mt-6 flex-1 min-h-0 flex flex-col gap-3 sm:gap-4">
           <div className="flex flex-wrap gap-2">
             <Button
               size="sm"
@@ -161,7 +166,7 @@ export const AIResponsePanel: React.FC<AIResponsePanelProps> = ({
             </Button>
           </div>
           
-          <ScrollArea className="h-[calc(100vh-120px)] pr-4">
+          <ScrollArea className="flex-1 h-full min-h-0 pr-2 sm:pr-4">
             <div className="prose prose-sm max-w-none dark:prose-invert">
               <div className="ai-response-content space-y-4 p-4 bg-muted/30 rounded-lg border">
                 <SafeMessageRenderer content={
