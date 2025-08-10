@@ -37,6 +37,7 @@ import { PatientTranslationView } from "@/components/PatientTranslationView";
 import { SafeMessageRenderer } from "@/components/SafeMessageRenderer";
 import AI4GPService from "@/components/AI4GPService";
 import GPGenieVoiceAgent from "@/components/GPGenieVoiceAgent";
+import { LiveTranscript } from "@/components/LiveTranscript";
 
 const HEALTHCARE_LANGUAGES = [
   { code: 'none', name: 'No Translation', flag: '🚫' },
@@ -99,6 +100,8 @@ const Index = () => {
   const [showTicker, setShowTicker] = useState(false);
   const [tickerEnabled, setTickerEnabled] = useState(true);
   const [tickerText, setTickerText] = useState<string>("");
+  const [showTranscriptTimestamps, setShowTranscriptTimestamps] = useState(true);
+  const [currentConfidence, setCurrentConfidence] = useState<number | undefined>(undefined);
   const [cleanedTranscript, setCleanedTranscript] = useState("");
   const [isCleaningTranscript, setIsCleaningTranscript] = useState(false);
   const [completedConsultation, setCompletedConsultation] = useState<any>(null);
@@ -588,6 +591,7 @@ const Index = () => {
     if (transcriptData.isCompleteSession || transcriptData.isFinal) {
       console.log('📝 Processing final transcript:', transcriptData.text);
       setTranscript(transcriptData.text);
+      setCurrentConfidence(transcriptData.confidence);
       const words = transcriptData.text.split(' ').filter(word => word.length > 0);
       setWordCount(words.length);
       console.log('✅ Transcript set - word count:', words.length);
@@ -595,6 +599,7 @@ const Index = () => {
       // Show partial transcripts in real-time for better UX
       console.log('⏳ Processing partial transcript:', transcriptData.text.substring(0, 50) + '...');
       setTranscript(transcriptData.text);
+      setCurrentConfidence(transcriptData.confidence);
       const words = transcriptData.text.split(' ').filter(word => word.length > 0);
       setWordCount(words.length);
       console.log('📝 Partial transcript updated - word count:', words.length);
@@ -1885,49 +1890,13 @@ const Index = () => {
                   </div>
                 </div>
 
-                {/* Transcript section with clean option */}
-                <Card className="border-accent/20">
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      <span className="flex items-center gap-2">
-                        <FileText className="h-5 w-5" />
-                        Consultation Transcript
-                      </span>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          onClick={cleanTranscript}
-                          disabled={isCleaningTranscript || !transcript}
-                          variant="outline"
-                          size="sm"
-                        >
-                          <Brain className="h-4 w-4 mr-2" />
-                          {isCleaningTranscript ? 'Cleaning...' : 'Clean with AI'}
-                        </Button>
-                        <Button
-                          onClick={() => copyToClipboard(cleanedTranscript || transcript)}
-                          variant="outline"
-                          size="sm"
-                        >
-                          <Copy className="h-4 w-4 mr-2" />
-                          Copy {cleanedTranscript ? 'Cleaned' : 'Original'}
-                        </Button>
-                      </div>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="bg-accent/10 rounded-lg p-4 max-h-64 overflow-y-auto">
-                      <pre className="whitespace-pre-wrap text-sm">
-                        {cleanedTranscript || transcript || 'No transcript available'}
-                      </pre>
-                    </div>
-                    {cleanedTranscript && (
-                      <div className="mt-2 text-xs text-green-600 flex items-center gap-1">
-                        <Check className="h-3 w-3" />
-                        Transcript cleaned with AI
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                {/* Live transcript - aligned with Meeting Recorder */}
+                <LiveTranscript 
+                  transcript={transcript}
+                  confidence={currentConfidence}
+                  showTimestamps={showTranscriptTimestamps}
+                  onTimestampsToggle={setShowTranscriptTimestamps}
+                />
 
                 {/* Generated notes display */}
                 {(gpSummary || fullNote || patientCopy) && (
