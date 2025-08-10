@@ -347,7 +347,7 @@ export const ConsultationHistory = () => {
                   <div className="flex items-center gap-2 ml-4">
                     <Button
                       size="sm"
-                      onClick={() => navigate('/gp-scribe', { state: { activeTab: 'consultation', meetingId: consultation.id } })}
+                      onClick={() => navigate('/consultation-summary', { state: { meetingId: consultation.id } })}
                     >
                       <BookOpen className="h-4 w-4 mr-2" /> Open
                     </Button>
