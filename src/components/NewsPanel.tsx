@@ -392,16 +392,14 @@ const NewsPanel = () => {
                 )}
                 
                 <Button 
+                  asChild
                   variant="outline" 
                   size="sm" 
                   className="w-full"
-                  onClick={() => {
-                    setSelectedArticle(article);
-                    setViewMode('summary');
-                    setFullContent('');
-                  }}
                 >
-                  Read More
+                  <a href={article.url} target="_blank" rel="noopener noreferrer">
+                    Read More
+                  </a>
                 </Button>
               </CardContent>
             </Card>
