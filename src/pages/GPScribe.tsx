@@ -682,11 +682,45 @@ const Index = () => {
     queueMicrotask(() => setConnectionStatus(status));
   };
 
+  // Filter out common hallucinations and prompt leaks
+  const isLikelyHallucination = (text: string): boolean => {
+    const cleanText = text.toLowerCase().trim();
+    const hallucinationPatterns = [
+      'if silence or background noise, return nothing',
+      'thank you for watching',
+      'thanks for watching',
+      'subscribe and hit the bell',
+      'like and subscribe',
+      'don\'t forget to subscribe',
+      'see you in the next video',
+      'outro music',
+      'background music',
+      'applause',
+      'music playing',
+      'silence',
+      'background noise',
+      'return nothing',
+      'transcription complete',
+      'end of audio'
+    ];
+    
+    return hallucinationPatterns.some(pattern => cleanText.includes(pattern)) ||
+           cleanText.length < 3 ||
+           /^[^a-zA-Z]*$/.test(cleanText);
+  };
+
   // Map Whisper chunk results to GP Scribe transcript handler
   const handleWhisperTranscript = (data: IPhoneTranscriptData | DesktopTranscriptData) => {
     if (!data?.text || !data.text.trim()) return;
+    
+    const cleanText = data.text.trim();
+    if (isLikelyHallucination(cleanText)) {
+      console.log('🚫 Filtered hallucination:', cleanText);
+      return;
+    }
+    
     const mapped = {
-      text: data.text.trim(),
+      text: cleanText,
       speaker: data.speaker || 'Speaker',
       confidence: data.confidence || 0.9,
       timestamp: new Date().toISOString(),
