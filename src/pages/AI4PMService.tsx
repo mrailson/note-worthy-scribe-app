@@ -1694,8 +1694,8 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 w-full">
                     <CardTitle className="flex flex-col gap-2">
                       <div className="flex items-center gap-2">
-                        <Sparkles className="h-5 w-5" />
-                        <span className="text-lg sm:text-xl">AI 4 PM Service</span>
+                        <img src="https://chatgpt.com/s/m_68990725e9208191a6a867859c295121" alt="AI4PM logo" className="h-6 sm:h-8 w-auto" />
+                        <span className="sr-only">AI 4 PM Service</span>
                         {/* New Chat button moved here - visible on mobile */}
                         <Button
                           onClick={clearConversation}
