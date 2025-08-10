@@ -92,6 +92,17 @@ export class DesktopWhisperTranscriber {
     return matrix[str2.length][str1.length];
   }
 
+  private isLikelyRepetitiveNoise(text: string): boolean {
+    const t = text.toLowerCase().trim();
+    if (/(?:\b(?:ha|haha|ha-ha|hee|hehe|lol|woo|beep)[\s,!.?-]*){6,}/i.test(t)) return true;
+    const words = t.split(/\s+/).filter(Boolean);
+    if (words.length >= 10) {
+      const unique = new Set(words).size;
+      if (unique / words.length < 0.4) return true;
+    }
+    return false;
+  }
+
   private checkAudioQuality(audioData: Uint8Array): boolean {
     // Simple RMS calculation for noise detection
     let sum = 0;
@@ -347,6 +358,12 @@ export class DesktopWhisperTranscriber {
         }
         
         const cleanText = data.text.trim();
+        
+        // Skip likely hallucinated/repetitive noise chunks (e.g., endless "ha ha ha")
+        if (this.isLikelyRepetitiveNoise(cleanText)) {
+          console.log('🚫 Skipping likely hallucinated/repetitive chunk');
+          return;
+        }
         
         // Use smart merge with de-duplication to avoid duplicates
         this.finalTranscript = this.smartMerge(this.finalTranscript, cleanText);

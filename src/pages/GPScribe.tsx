@@ -643,19 +643,31 @@ const Index = () => {
 
   // Quick cleaning function for immediate text improvement
   const performQuickCleaning = (text: string): string => {
-    return text
+    let cleaned = text
       // Fix spacing around punctuation
       .replace(/\s+([,.!?;:])/g, '$1')
       .replace(/([,.!?;:])\s+/g, '$1 ')
+      // Collapse excessive punctuation
+      .replace(/([!?.,])\1{2,}/g, '$1')
       // Fix multiple spaces
       .replace(/\s+/g, ' ')
       // Fix broken sentences from chunking (e.g., "word. New" should be "word. New")
       .replace(/([a-z])\.\s*([A-Z])/g, '$1. $2')
-      // Remove basic filler words and clean up
+      // Remove basic filler words
       .replace(/\b(uh|um|er|ah)\b/gi, '')
-      // Fix multiple spaces again after removals
-      .replace(/\s+/g, ' ')
       .trim();
+
+    // Remove long laughter or onomatopoeia runs (ha/hehe/lol/woo/beep) of 4+ repetitions
+    cleaned = cleaned
+      .replace(/(?:\b(?:ha|haha|ha-ha|hee|hehe|lol|woo|beep)[\s,!.?-]*){4,}/gi, '')
+      // Collapse any immediate repeated word sequences (3+ times) down to a single instance
+      .replace(/\b(\w{2,})(?:\s+\1){2,}\b/gi, '$1')
+      // Collapse repeated short tokens like "ha" when under threshold
+      .replace(/\b(ha|hee|hehe|lol)(?:\s+\1){1,}\b/gi, '$1');
+
+    // Final tidy multiple spaces after removals
+    cleaned = cleaned.replace(/\s+/g, ' ').trim();
+    return cleaned;
   };
   // Debounced auto-cleaning function
   const autoCleanTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -804,7 +816,7 @@ const Index = () => {
     }
   };
 
-  const stopRecording = () => {
+  const stopRecording = async () => {
     console.log("stopRecording called");
     console.log("Current duration when stopping:", duration);
     console.log("Duration state:", duration);
@@ -824,12 +836,27 @@ const Index = () => {
     setIsPaused(false);
     
     // Stop active transcribers
-    if (iPhoneTranscriberRef.current) {
-      iPhoneTranscriberRef.current.stopTranscription();
+    const iphoneRef = iPhoneTranscriberRef.current;
+    const desktopRef = desktopTranscriberRef.current;
+
+    if (iphoneRef) {
+      await iphoneRef.stopTranscription();
       iPhoneTranscriberRef.current = null;
     }
-    if (desktopTranscriberRef.current) {
-      desktopTranscriberRef.current.stopTranscription();
+    if (desktopRef) {
+      await desktopRef.stopTranscription();
+      try {
+        const finalFromDesktop = await desktopRef.getCompleteTranscript?.();
+        if (finalFromDesktop && finalFromDesktop.length > (transcript?.length || 0)) {
+          const cleaned = performQuickCleaning(finalFromDesktop);
+          setTranscript(cleaned);
+          const wordsFinal = cleaned.split(' ').filter(w => w.length > 0);
+          setWordCount(wordsFinal.length);
+          console.log('🧵 Updated transcript with final merged desktop text, words:', wordsFinal.length);
+        }
+      } catch (e) {
+        console.error('Failed to fetch final desktop transcript:', e);
+      }
       desktopTranscriberRef.current = null;
     }
     // Stop the unified audio capture if it was used previously

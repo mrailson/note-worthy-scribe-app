@@ -198,14 +198,21 @@ export class iPhoneWhisperTranscriber {
       }
 
       if (data.text && data.text.trim()) {
+        const t = data.text.trim();
+        // Skip likely hallucinated/repetitive noise chunks (e.g., endless "ha ha ha")
+        if (this.isLikelyRepetitiveNoise(t)) {
+          console.log('🚫 Skipping likely hallucinated/repetitive chunk (iPhone)');
+          return;
+        }
+
         const transcriptData: TranscriptData = {
-          text: data.text.trim(),
+          text: t,
           is_final: true,
           confidence: 0.9,
           speaker: 'Speaker'
         };
 
-        console.log('✅ iPhone transcription:', data.text);
+        console.log('✅ iPhone transcription:', t);
         this.onTranscription(transcriptData);
       }
 
@@ -213,6 +220,17 @@ export class iPhoneWhisperTranscriber {
       console.error('❌ Error processing audio:', error);
       this.onError('Failed to process audio');
     }
+  }
+
+  private isLikelyRepetitiveNoise(text: string): boolean {
+    const t = text.toLowerCase().trim();
+    if (/(?:\b(?:ha|haha|ha-ha|hee|hehe|lol|woo|beep)[\s,!.?-]*){6,}/i.test(t)) return true;
+    const words = t.split(/\s+/).filter(Boolean);
+    if (words.length >= 10) {
+      const unique = new Set(words).size;
+      if (unique / words.length < 0.4) return true;
+    }
+    return false;
   }
 
   async stopTranscription() {
