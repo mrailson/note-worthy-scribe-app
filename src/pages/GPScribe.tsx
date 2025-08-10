@@ -2050,17 +2050,15 @@ useEffect(() => {
                     </div>
 
                     {/* Mobile: Collapsed transcript below stats inside main box */}
-                    {isMobile && (
-                      <div className="mt-4">
-                        <LiveTranscript 
-                          transcript={transcript}
-                          confidence={currentConfidence}
-                          showTimestamps={showTranscriptTimestamps}
-                          onTimestampsToggle={setShowTranscriptTimestamps}
-                          defaultOpen={false}
-                        />
-                      </div>
-                    )}
+                    <div className="mt-4 sm:hidden">
+                      <LiveTranscript 
+                        transcript={transcript}
+                        confidence={currentConfidence}
+                        showTimestamps={showTranscriptTimestamps}
+                        onTimestampsToggle={setShowTranscriptTimestamps}
+                        defaultOpen={false}
+                      />
+                    </div>
                   
                   </div>
 
