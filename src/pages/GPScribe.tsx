@@ -38,6 +38,8 @@ import { SafeMessageRenderer } from "@/components/SafeMessageRenderer";
 import AI4GPService from "@/components/AI4GPService";
 import GPGenieVoiceAgent from "@/components/GPGenieVoiceAgent";
 import { LiveTranscript } from "@/components/LiveTranscript";
+import { iPhoneWhisperTranscriber, TranscriptData as IPhoneTranscriptData } from '@/utils/iPhoneWhisperTranscriber';
+import { DesktopWhisperTranscriber, TranscriptData as DesktopTranscriptData } from '@/utils/DesktopWhisperTranscriber';
 
 const HEALTHCARE_LANGUAGES = [
   { code: 'none', name: 'No Translation', flag: '🚫' },
@@ -164,6 +166,8 @@ const Index = () => {
   
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const transciberRef = useRef<UnifiedAudioCapture | null>(null);
+  const iPhoneTranscriberRef = useRef<iPhoneWhisperTranscriber | null>(null);
+  const desktopTranscriberRef = useRef<DesktopWhisperTranscriber | null>(null);
 
   const outputLevels = [
     { value: 1, label: "Code", description: "GP shorthand only (e.g., 'URTI, 2/7, safety-netted')" },
@@ -678,22 +682,43 @@ const Index = () => {
     queueMicrotask(() => setConnectionStatus(status));
   };
 
+  // Map Whisper chunk results to GP Scribe transcript handler
+  const handleWhisperTranscript = (data: IPhoneTranscriptData | DesktopTranscriptData) => {
+    if (!data?.text || !data.text.trim()) return;
+    const mapped = {
+      text: data.text.trim(),
+      speaker: data.speaker || 'Speaker',
+      confidence: data.confidence || 0.9,
+      timestamp: new Date().toISOString(),
+      isFinal: data.is_final,
+    } as TranscriptData;
+    handleTranscript(mapped);
+  };
   const startRecording = async () => {
     try {
-      transciberRef.current = new UnifiedAudioCapture(
-        handleTranscript,
-        handleTranscriptionError,
-        handleStatusChange
-      );
-      
-      await transciberRef.current.startCapture('mic-only'); // Use mic-only for single session mode
-      
       setIsRecording(true);
       setIsPaused(false);
       setTranscript(""); // Clear previous transcript
       setDuration(0); // Reset duration counter
       console.log("Starting recording - duration reset to 0");
-      
+
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      if (isIOS) {
+        iPhoneTranscriberRef.current = new iPhoneWhisperTranscriber(
+          handleWhisperTranscript,
+          handleTranscriptionError,
+          handleStatusChange
+        );
+        await iPhoneTranscriberRef.current.startTranscription();
+      } else {
+        desktopTranscriberRef.current = new DesktopWhisperTranscriber(
+          handleWhisperTranscript,
+          handleTranscriptionError,
+          handleStatusChange
+        );
+        await desktopTranscriberRef.current.startTranscription();
+      }
+
       intervalRef.current = setInterval(() => {
         setDuration(prev => {
           const newDuration = prev + 1;
@@ -705,7 +730,8 @@ const Index = () => {
       // Recording started for consultation
 
     } catch (error) {
-      console.error("Failed to start recording");
+      console.error("Failed to start recording", error);
+      setIsRecording(false);
     }
   };
 
@@ -737,10 +763,19 @@ const Index = () => {
     setIsRecording(false);
     setIsPaused(false);
     
-    // Stop the unified audio capture 
+    // Stop active transcribers
+    if (iPhoneTranscriberRef.current) {
+      iPhoneTranscriberRef.current.stopTranscription();
+      iPhoneTranscriberRef.current = null;
+    }
+    if (desktopTranscriberRef.current) {
+      desktopTranscriberRef.current.stopTranscription();
+      desktopTranscriberRef.current = null;
+    }
+    // Stop the unified audio capture if it was used previously
     if (transciberRef.current) {
       console.log("🛑 Stopping single session recording...");
-      transciberRef.current.stopCapture(); // This will trigger the final transcription
+      transciberRef.current.stopCapture();
       transciberRef.current = null;
     }
     
