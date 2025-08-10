@@ -42,6 +42,8 @@ const NewsPanel = () => {
       const { data, error } = await supabase
         .from('news_articles')
         .select('*')
+        .not('image_url', 'is', null)
+        .neq('image_url', '')
         .order('published_at', { ascending: false })
         .limit(20);
 
@@ -156,6 +158,8 @@ const NewsPanel = () => {
 
   // Filter articles based on selected filters
   const filteredArticles = articles.filter(article => {
+    // Front view should only show articles with images
+    if (!article.image_url || !article.image_url.trim()) return false;
     if (filterTag !== 'all' && !article.tags.includes(filterTag)) return false;
     if (filterSource !== 'all' && article.source !== filterSource) return false;
     
@@ -453,6 +457,16 @@ const NewsPanel = () => {
                 </TabsContent>
                 
                 <TabsContent value="full" className="space-y-4">
+                  {selectedArticle?.image_url && (
+                    <div className="w-full h-64 overflow-hidden rounded-lg">
+                      <img
+                        src={selectedArticle.image_url}
+                        alt={selectedArticle.title}
+                        className="w-full h-full object-cover"
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                      />
+                    </div>
+                  )}
                   {!fullContent && !loadingFullContent && (
                     <div className="text-center py-8">
                       <Button 
@@ -463,7 +477,6 @@ const NewsPanel = () => {
                       </Button>
                     </div>
                   )}
-                  
                   {loadingFullContent && (
                     <div className="space-y-2">
                       <Skeleton className="h-4 w-full" />
@@ -472,7 +485,6 @@ const NewsPanel = () => {
                       <Skeleton className="h-4 w-2/3" />
                     </div>
                   )}
-                  
                   {fullContent && (
                     <div className="prose prose-sm max-w-none">
                       {formatContent(fullContent)}
