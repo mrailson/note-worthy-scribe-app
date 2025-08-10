@@ -107,6 +107,7 @@ const Index = () => {
   const [cleanedTranscript, setCleanedTranscript] = useState("");
   const [isCleaningTranscript, setIsCleaningTranscript] = useState(false);
   const [completedConsultation, setCompletedConsultation] = useState<any>(null);
+  const [savedMeetingId, setSavedMeetingId] = useState<string | null>(null);
   
   // New consultation setup states
   const [consultationType, setConsultationType] = useState<"face-to-face" | "telephone">("face-to-face");
@@ -890,6 +891,14 @@ const Index = () => {
       
       console.log("Duration check passed, proceeding with navigation...");
       
+      // Ensure this consultation is saved to history immediately (meeting + transcript)
+      (async () => {
+        const id = await saveInitialHistory();
+        if (id) {
+          console.log('Initial consultation saved to history with id:', id);
+        }
+      })();
+      
       // Navigate immediately to consultation summary without waiting for generation
       console.log("Navigating immediately to consultation summary...");
       const consultationData = {
@@ -1094,8 +1103,12 @@ const Index = () => {
         referralLetter: data.referralLetter || ""
       });
       
-      // Save to history
-      await saveToHistory(data);
+      // Save to history or attach to existing meeting
+      if (savedMeetingId) {
+        await saveSummaryForMeeting(savedMeetingId, data);
+      } else {
+        await saveToHistory(data);
+      }
       
       console.log("Navigating to consultation summary with generated data...");
       // Navigate to consultation summary with the generated data
@@ -1159,7 +1172,11 @@ const Index = () => {
 
       // Save to history for future reference
       console.log("About to save to history with data:", data);
-      await saveToHistory(data, isImported);
+      if (savedMeetingId) {
+        await saveSummaryForMeeting(savedMeetingId, data);
+      } else {
+        await saveToHistory(data, isImported);
+      }
       
       console.log("Background generation completed successfully");
       toast.success("Consultation notes generated and saved to history");
@@ -1249,6 +1266,60 @@ const Index = () => {
         hint: error.hint
       });
       toast.error('Failed to save consultation to history');
+    }
+  };
+  
+  // Create a minimal history record immediately (meeting + transcript), return meeting id
+  const saveInitialHistory = async (): Promise<string | null> => {
+    if (!user) return null;
+    try {
+      const title = `GP Consultation - ${format(new Date(), "do MMMM yyyy 'at' h.mm a")}`;
+      const { data: meeting, error: meetingError } = await supabase
+        .from('meetings')
+        .insert({
+          user_id: user.id,
+          title,
+          description: "GP Scribe consultation notes",
+          meeting_type: "gp_consultation",
+          duration_minutes: Math.ceil(duration / 60),
+          status: "completed"
+        })
+        .select()
+        .single();
+      if (meetingError) throw meetingError;
+
+      const transcriptToSave = cleanedTranscript || transcript;
+      if (transcriptToSave) {
+        await supabase.from('meeting_transcripts').insert({
+          meeting_id: meeting.id,
+          content: transcriptToSave,
+          speaker_name: "Consultation",
+          timestamp_seconds: 0
+        });
+      }
+
+      setSavedMeetingId(meeting.id);
+      return meeting.id as string;
+    } catch (e) {
+      console.error('Initial history save failed:', e);
+      return null;
+    }
+  };
+
+  // Save generated summaries for an existing meeting
+  const saveSummaryForMeeting = async (meetingId: string, summaryData: any) => {
+    try {
+      // Insert (single row) for this meeting
+      const { error } = await supabase.from('meeting_summaries').insert({
+        meeting_id: meetingId,
+        summary: summaryData.gpSummary,
+        key_points: summaryData.fullNote ? [summaryData.fullNote] : [],
+        action_items: summaryData.patientCopy ? [summaryData.patientCopy] : [],
+        next_steps: summaryData.traineeFeedback ? [summaryData.traineeFeedback] : []
+      });
+      if (error) throw error;
+    } catch (e) {
+      console.error('Failed to save summary for meeting:', e);
     }
   };
 
