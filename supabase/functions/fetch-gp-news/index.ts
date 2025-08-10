@@ -149,6 +149,12 @@ serve(async (req) => {
         .replace(/\s+/g, ' ')
         .trim();
 
+    const extractImageFromDescription = (description: string): string | undefined => {
+      const imgRegex = /<img[^>]+src\s*=\s*["']([^"']+)["'][^>]*>/i;
+      const match = description.match(imgRegex);
+      return match ? match[1] : undefined;
+    };
+
     const parseRss = (xml: string, source: string) => {
       try {
         const j: any = xmlParser.parse(xml);
@@ -167,6 +173,43 @@ serve(async (req) => {
           const text = sanitizeText(String(desc));
           const published_at = pub ? new Date(pub).toISOString() : new Date().toISOString();
           const relevance_score = Math.min(100, 70 + Math.floor(Math.random() * 26));
+          
+          // Extract image URL from various RSS fields
+          let image_url: string | undefined;
+          
+          // Try media:thumbnail or media:content
+          if (it?.['media:thumbnail']?.['@_url']) {
+            image_url = it['media:thumbnail']['@_url'];
+          } else if (it?.['media:content']?.['@_url']) {
+            image_url = it['media:content']['@_url'];
+          }
+          // Try enclosure for image
+          else if (it?.enclosure?.['@_url'] && it?.enclosure?.['@_type']?.startsWith('image/')) {
+            image_url = it.enclosure['@_url'];
+          }
+          // Try image field
+          else if (it?.image?.url) {
+            image_url = it.image.url;
+          } else if (typeof it?.image === 'string') {
+            image_url = it.image;
+          }
+          // Extract from description HTML
+          else if (desc) {
+            image_url = extractImageFromDescription(String(desc));
+          }
+          
+          // Validate and clean image URL
+          if (image_url && !image_url.startsWith('http')) {
+            if (image_url.startsWith('//')) {
+              image_url = 'https:' + image_url;
+            } else if (image_url.startsWith('/')) {
+              const baseUrl = new URL(url).origin;
+              image_url = baseUrl + image_url;
+            } else {
+              image_url = undefined; // Invalid URL
+            }
+          }
+          
           return {
             title,
             url,
@@ -176,6 +219,7 @@ serve(async (req) => {
             content: text,
             relevance_score,
             tags: tags.length ? tags : [source],
+            image_url,
           } as ProcessedNewsItem;
         }).filter((a: ProcessedNewsItem) => a.title && a.url);
       } catch (e) {
@@ -217,6 +261,40 @@ serve(async (req) => {
             .map((c: any) => typeof c === 'string' ? c : (c?.['@_term'] || c?.term || c?.['#text'] || ''))
             .filter(Boolean);
           const relevance_score = Math.min(100, 72 + Math.floor(Math.random() * 24));
+          
+          // Extract image URL from Atom entry
+          let image_url: string | undefined;
+          
+          // Try media:thumbnail or media:content
+          if (entry?.['media:thumbnail']?.['@_url']) {
+            image_url = entry['media:thumbnail']['@_url'];
+          } else if (entry?.['media:content']?.['@_url']) {
+            image_url = entry['media:content']['@_url'];
+          }
+          // Try link with enclosure type
+          else if (Array.isArray(link)) {
+            const imgLink = link.find((l: any) => l?.['@_type']?.startsWith('image/'));
+            if (imgLink?.['@_href']) {
+              image_url = imgLink['@_href'];
+            }
+          }
+          // Extract from summary/content HTML
+          else if (summaryRaw) {
+            image_url = extractImageFromDescription(String(getText(summaryRaw)));
+          }
+          
+          // Validate and clean image URL
+          if (image_url && !image_url.startsWith('http')) {
+            if (image_url.startsWith('//')) {
+              image_url = 'https:' + image_url;
+            } else if (image_url.startsWith('/')) {
+              const baseUrl = new URL(url).origin;
+              image_url = baseUrl + image_url;
+            } else {
+              image_url = undefined; // Invalid URL
+            }
+          }
+          
           return {
             title,
             url,
@@ -226,6 +304,7 @@ serve(async (req) => {
             content: text,
             relevance_score,
             tags: tags.length ? tags : [source],
+            image_url,
           } as ProcessedNewsItem;
         }).filter((a: ProcessedNewsItem) => a.title && a.url);
       } catch (e) {
