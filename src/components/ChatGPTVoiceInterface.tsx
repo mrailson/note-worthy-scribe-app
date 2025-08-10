@@ -22,6 +22,7 @@ import {
   VolumeX
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 import { RealtimeChat } from '@/utils/RealtimeAudio';
 
 interface ChatGPTVoiceInterfaceProps {
@@ -38,6 +39,7 @@ interface Message {
 
 const ChatGPTVoiceInterface: React.FC<ChatGPTVoiceInterfaceProps> = ({ isOpen, onClose }) => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -177,10 +179,12 @@ const ChatGPTVoiceInterface: React.FC<ChatGPTVoiceInterfaceProps> = ({ isOpen, o
         title: "Connected to ChatGPT",
         description: "Voice interface is ready. Start speaking!",
       });
-      // Send starting greeting
+      // Send starting greeting with user's first name
       setTimeout(() => {
         try {
-          chatRef.current?.sendMessage("Hello! I am the AI for GP Practice Mangers, How can I help?");
+          const displayName = (user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || 'there') as string;
+          const firstName = displayName.includes('@') ? displayName.split('@')[0] : displayName.split(' ')[0];
+          chatRef.current?.sendMessage(`Hello ${firstName}, I am the AI for GP Practice Mangers, How can I help?`);
         } catch (e) {
           console.error("Failed to send starting greeting:", e);
         }

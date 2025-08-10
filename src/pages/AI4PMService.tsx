@@ -255,7 +255,9 @@ const AI4PMService = () => {
       
       // Send initial greeting
       setTimeout(() => {
-        voiceChatRef.current?.sendMessage("Hello! I am the AI for GP Practice Mangers, How can I help?");
+        const displayName = (user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || 'there') as string;
+        const firstName = displayName.includes('@') ? displayName.split('@')[0] : displayName.split(' ')[0];
+        voiceChatRef.current?.sendMessage(`Hello ${firstName}, I am the AI for GP Practice Mangers, How can I help?`);
       }, 1000);
       
     } catch (error) {
