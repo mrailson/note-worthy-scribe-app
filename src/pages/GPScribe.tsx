@@ -1573,7 +1573,7 @@ useEffect(() => {
     <div className="min-h-screen bg-gradient-background">
       <Header onNewMeeting={() => {}} />
       
-      <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 lg:py-8 space-y-4 sm:space-y-6 max-w-6xl">
+      <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 lg:py-8 space-y-4 sm:space-y-6 max-w-6xl pb-28 sm:pb-6" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 96px)' }}>
         
         {/* Tab Navigation */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -2101,8 +2101,8 @@ useEffect(() => {
           </Card>
 
           {/* Mobile sticky recording bar */}
-          <div className="sm:hidden fixed inset-x-0 bottom-0 z-50 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t">
-            <div className="container mx-auto px-3 py-3" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 12px)" }}>
+          <div className="sm:hidden fixed inset-x-0 bottom-0 z-50 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t pointer-events-none">
+            <div className="container mx-auto px-3 py-3 pointer-events-auto" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 12px)" }}>
               {!isRecording ? (
                 <Button onClick={startRecording} className="w-full h-12 rounded-lg">
                   <Mic className="h-5 w-5 mr-2" />
@@ -2123,7 +2123,7 @@ useEffect(() => {
             </div>
           </div>
           {/* Spacer to avoid content underlap on mobile */}
-          <div className="h-20 sm:hidden" />
+          <div className="sm:hidden" style={{ height: 'calc(env(safe-area-inset-bottom) + 96px)' }} />
         </TabsContent>
 
         {/* Completed Consultation Tab */}
