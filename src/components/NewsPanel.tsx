@@ -24,6 +24,33 @@ interface NewsArticle {
   image_url?: string;
 }
 
+// Decode common HTML entities and numeric codes
+const decodeEntities = (input: string) => {
+  if (!input) return '';
+  return input
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(parseInt(dec, 10)))
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&(lsquo|rsquo);/g, "'")
+    .replace(/&(ldquo|rdquo);/g, '"')
+    .replace(/&hellip;/g, '…')
+    .replace(/&ndash;/g, '–')
+    .replace(/&mdash;/g, '—');
+};
+
+// Northamptonshire-first prioritization
+const localKeywords = [
+  'northamptonshire','northampton','northants','kettering','corby','daventry','wellingborough','towcester','rushden','nene','nhft','icb northamptonshire','integrated care northamptonshire','nhs northamptonshire'
+];
+
+const isLocalArticle = (a: NewsArticle) => {
+  const hay = `${a.title} ${a.summary} ${a.source} ${a.url}`.toLowerCase();
+  return localKeywords.some(k => hay.includes(k));
+};
+
 const NewsPanel = () => {
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,7 +79,13 @@ const NewsPanel = () => {
       if (error) throw error;
 
       console.log('Setting articles:', data?.length || 0, 'articles');
-      setArticles(data || []);
+      setArticles((data || []).map(a => ({
+        ...a,
+        title: decodeEntities(a.title),
+        summary: decodeEntities(a.summary),
+        content: decodeEntities(a.content),
+      })));
+
     } catch (error) {
       console.error('Error fetching news:', error);
       toast.error('Failed to load news articles');
@@ -96,7 +129,7 @@ const NewsPanel = () => {
       
       if (error) throw error;
       
-      setFullContent(data.content || 'Unable to fetch full article content.');
+      setFullContent(decodeEntities(data.content || 'Unable to fetch full article content.'));
     } catch (error) {
       console.error('Error fetching full article:', error);
       setFullContent('Unable to fetch full article content. Please visit the original source.');
@@ -155,6 +188,14 @@ const NewsPanel = () => {
 
   // Fallback: if filters hide everything, show unfiltered list
   const displayedArticles = filteredArticles.length > 0 ? filteredArticles : articles;
+  
+  // Prioritize Northamptonshire-related articles to the top, then by date desc
+  const prioritizedArticles = [...displayedArticles].sort((a, b) => {
+    const al = isLocalArticle(a) ? 1 : 0;
+    const bl = isLocalArticle(b) ? 1 : 0;
+    if (al !== bl) return bl - al;
+    return new Date(b.published_at).getTime() - new Date(a.published_at).getTime();
+  });
   
   // Get unique tags and sources for filters
   const allTags = [...new Set(articles.flatMap(article => article.tags))];
@@ -286,11 +327,16 @@ const NewsPanel = () => {
         </Card>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {displayedArticles.map((article) => (
+          {prioritizedArticles.map((article) => (
             <Card key={article.id} className="cursor-pointer hover:shadow-lg transition-shadow">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between text-sm text-muted-foreground mb-2">
-                  <span className="font-medium">{article.source}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{article.source}</span>
+                    {isLocalArticle(article) && (
+                      <Badge variant="overview" className="text-[10px]">Local</Badge>
+                    )}
+                  </div>
                   <div className="flex items-center gap-1">
                     <Clock className="w-3 h-3" />
                     <span>{formatDate(article.published_at)}</span>

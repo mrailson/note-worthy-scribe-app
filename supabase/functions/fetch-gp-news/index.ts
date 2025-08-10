@@ -21,6 +21,23 @@ interface ProcessedNewsItem {
   image_url?: string;
 }
 
+// Utility to decode common HTML entities and numeric codes
+function decodeHtmlEntities(input: string): string {
+  if (!input) return '';
+  return input
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(parseInt(dec, 10)))
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&(lsquo|rsquo);/g, "'")
+    .replace(/&(ldquo|rdquo);/g, '"')
+    .replace(/&hellip;/g, '…')
+    .replace(/&ndash;/g, '–')
+    .replace(/&mdash;/g, '—');
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -110,15 +127,17 @@ serve(async (req) => {
 
             const content = clean(blocks.join('\n\n')) || clean(container.textContent || '');
 
+            const decodedContent = decodeHtmlEntities(content);
+
             return new Response(JSON.stringify({ 
-              content: content.substring(0, 12000),
+              content: decodedContent.substring(0, 12000),
               success: true 
             }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
           }
 
           // Fallback: plain-text strip
           const fallback = clean(html.replace(/<[^>]+>/g, ' '));
-          return new Response(JSON.stringify({ content: fallback.substring(0, 8000), success: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+          return new Response(JSON.stringify({ content: decodeHtmlEntities(fallback).substring(0, 8000), success: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
         } catch (error) {
           console.error('Error fetching article content:', error);
         }
@@ -161,7 +180,7 @@ serve(async (req) => {
         const itemsRaw = j?.rss?.channel?.item || j?.['rdf:RDF']?.item || [];
         const items = Array.isArray(itemsRaw) ? itemsRaw : [itemsRaw].filter(Boolean);
         return items.map((it: any) => {
-          const title = String(it?.title ?? '').trim();
+          const title = decodeHtmlEntities(String(it?.title ?? '').trim());
           const url = String(it?.link ?? '').trim();
           const pub = it?.pubDate || it?.pubdate || it?.['dc:date'] || '';
           const desc = it?.description || it?.['content:encoded'] || '';
@@ -170,7 +189,7 @@ serve(async (req) => {
           const tags = catsArr
             .map((c: any) => typeof c === 'string' ? c : (c?.['#text'] || c?.['@_term'] || c?.term || ''))
             .filter(Boolean);
-          const text = sanitizeText(String(desc));
+          const text = decodeHtmlEntities(sanitizeText(String(desc)));
           const published_at = pub ? new Date(pub).toISOString() : new Date().toISOString();
           const relevance_score = Math.min(100, 70 + Math.floor(Math.random() * 26));
           
@@ -240,7 +259,7 @@ serve(async (req) => {
           return '';
         };
         return entries.map((entry: any) => {
-          const title = String(getText(entry?.title) || '').trim();
+          const title = decodeHtmlEntities(String(getText(entry?.title) || '').trim());
           let url = '';
           const link = entry?.link;
           if (Array.isArray(link)) {
@@ -253,7 +272,7 @@ serve(async (req) => {
           }
           const updated = entry?.updated || entry?.published || '';
           const summaryRaw = entry?.summary || entry?.content || '';
-          const text = sanitizeText(getText(summaryRaw));
+          const text = decodeHtmlEntities(sanitizeText(getText(summaryRaw)));
           const published_at = updated ? new Date(updated).toISOString() : new Date().toISOString();
           const catsRaw = entry?.category ?? [];
           const catsArr = Array.isArray(catsRaw) ? catsRaw : [catsRaw];
