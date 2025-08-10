@@ -594,45 +594,49 @@ const Index = () => {
     // Only process final/complete session transcripts in single session mode
     if (transcriptData.isCompleteSession || transcriptData.isFinal) {
       console.log('📝 Processing final transcript:', transcriptData.text);
-      const prevText = transcript || '';
       const next = performQuickCleaning(transcriptData.text).trim();
-      const prevWordsArr = prevText.trim().split(/\s+/);
-      const nextWordsArr = next.split(/\s+/);
-      let ov = 0;
-      const mx = Math.min(20, prevWordsArr.length, nextWordsArr.length);
-      for (let i = mx; i >= 3; i--) {
-        const tail = prevWordsArr.slice(-i).join(' ').toLowerCase();
-        const head = nextWordsArr.slice(0, i).join(' ').toLowerCase();
-        if (tail === head) { ov = i; break; }
-      }
-      const appendedPart = ov > 0 ? nextWordsArr.slice(ov).join(' ') : next;
-      const mergedText = (prevText + (prevText && appendedPart ? ' ' : '') + appendedPart).trim();
-      setTranscript(mergedText);
+      setTranscript((prev) => {
+        const prevText = prev || '';
+        const prevWordsArr = prevText.trim().split(/\s+/);
+        const nextWordsArr = next.split(/\s+/);
+        let ov = 0;
+        const mx = Math.min(20, prevWordsArr.length, nextWordsArr.length);
+        for (let i = mx; i >= 3; i--) {
+          const tail = prevWordsArr.slice(-i).join(' ').toLowerCase();
+          const head = nextWordsArr.slice(0, i).join(' ').toLowerCase();
+          if (tail === head) { ov = i; break; }
+        }
+        const appendedPart = ov > 0 ? nextWordsArr.slice(ov).join(' ') : next;
+        const merged = (prevText + (prevText && appendedPart ? ' ' : '') + appendedPart).trim();
+        const words = merged.split(' ').filter(w => w.length > 0);
+        setWordCount(words.length);
+        return merged;
+      });
       setCurrentConfidence(transcriptData.confidence);
-      const words = mergedText.split(' ').filter(word => word.length > 0);
-      setWordCount(words.length);
-      console.log('✅ Transcript merged - word count:', words.length);
+      console.log('✅ Transcript merged');
     } else if (transcriptData.text && transcriptData.text.length > 0) {
       // Show partial transcripts in real-time for better UX
       console.log('⏳ Processing partial transcript:', transcriptData.text.substring(0, 50) + '...');
-      const prevText = transcript || '';
       const next = performQuickCleaning(transcriptData.text).trim();
-      const prevWordsArr = prevText.trim().split(/\s+/);
-      const nextWordsArr = next.split(/\s+/);
-      let ov = 0;
-      const mx = Math.min(20, prevWordsArr.length, nextWordsArr.length);
-      for (let i = mx; i >= 3; i--) {
-        const tail = prevWordsArr.slice(-i).join(' ').toLowerCase();
-        const head = nextWordsArr.slice(0, i).join(' ').toLowerCase();
-        if (tail === head) { ov = i; break; }
-      }
-      const appendedPart = ov > 0 ? nextWordsArr.slice(ov).join(' ') : next;
-      const mergedText = (prevText + (prevText && appendedPart ? ' ' : '') + appendedPart).trim();
-      setTranscript(mergedText);
+      setTranscript((prev) => {
+        const prevText = prev || '';
+        const prevWordsArr = prevText.trim().split(/\s+/);
+        const nextWordsArr = next.split(/\s+/);
+        let ov = 0;
+        const mx = Math.min(20, prevWordsArr.length, nextWordsArr.length);
+        for (let i = mx; i >= 3; i--) {
+          const tail = prevWordsArr.slice(-i).join(' ').toLowerCase();
+          const head = nextWordsArr.slice(0, i).join(' ').toLowerCase();
+          if (tail === head) { ov = i; break; }
+        }
+        const appendedPart = ov > 0 ? nextWordsArr.slice(ov).join(' ') : next;
+        const merged = (prevText + (prevText && appendedPart ? ' ' : '') + appendedPart).trim();
+        const words = merged.split(' ').filter(w => w.length > 0);
+        setWordCount(words.length);
+        return merged;
+      });
       setCurrentConfidence(transcriptData.confidence);
-      const words = mergedText.split(' ').filter(word => word.length > 0);
-      setWordCount(words.length);
-      console.log('📝 Partial transcript merged - word count:', words.length);
+      console.log('📝 Partial transcript merged');
     } else {
       console.log('⏳ Ignoring empty partial transcript in single session mode');
     }
@@ -892,7 +896,7 @@ const Index = () => {
         id: `consultation-${Date.now()}`,
         title: `GP Consultation - ${format(new Date(), "do MMMM yyyy 'at' h.mm a")}`,
         type: consultationType,
-        transcript: transcript || '',
+        transcript: (cleanedTranscript || transcript) || '',
         duration: formatDuration(duration),
         wordCount: transcript ? transcript.split(' ').filter(word => word.length > 0).length : 0,
         startTime: new Date().toISOString(),

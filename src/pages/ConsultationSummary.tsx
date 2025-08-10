@@ -538,15 +538,41 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
     }
   };
 
-  // Generate cleaned transcript
+  // Generate cleaned transcript and format into readable blocks
+  const formatTranscriptIntoBlocks = (text: string): string => {
+    if (!text) return '';
+    // Remove obvious laughter/repeated token hallucinations
+    let t = text
+      .replace(/(?:\b(?:ha|haha|ha-ha|hee|hehe|lol|woo|beep)[\s,!.?-]*){4,}/gi, ' ')
+      .replace(/\b(ha|hee|hehe|lol)(?:\s+\1){1,}\b/gi, '$1');
+    // Normalize whitespace
+    t = t.replace(/\s+/g, ' ').trim();
+    // Add paragraph breaks before common speaker cues if present
+    t = t.replace(/\b(Doctor:|GP:|Patient:|Nurse:|Clinician:|Interpreter:)\s*/g, '\n\n$1 ');
+    // Split into sentences and group into readable blocks (2-3 sentences or ~220 chars)
+    const sentences = t.split(/(?<=[.!?])\s+/);
+    const blocks: string[] = [];
+    let current: string[] = [];
+    for (const s of sentences) {
+      current.push(s);
+      const length = current.join(' ').length;
+      if (current.length >= 3 || length > 220) {
+        blocks.push(current.join(' '));
+        current = [];
+      }
+    }
+    if (current.length) blocks.push(current.join(' '));
+    return blocks.join('\n\n');
+  };
+
   const generateCleanedTranscript = async () => {
     if (!consultationData?.transcript) return;
     
     try {
       const { data, error } = await supabase.functions.invoke('clean-transcript', {
         body: {
-          transcript: consultationData.transcript,
-          consultationType: consultationData.type || 'gp_consultation'
+          rawTranscript: consultationData.transcript,
+          meetingTitle: consultationData.title || `GP Consultation - ${new Date().toISOString()}`
         }
       });
 
@@ -556,7 +582,8 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
         return;
       }
 
-      setCleanedTranscript(data.cleanedTranscript || 'No cleaned transcript available');
+      const cleaned = data?.cleanedTranscript || consultationData.transcript;
+      setCleanedTranscript(formatTranscriptIntoBlocks(cleaned) || 'No cleaned transcript available');
     } catch (error: any) {
       console.error('Error cleaning transcript:', error);
       toast.error('Failed to clean transcript');
@@ -1853,7 +1880,7 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
 
                     {/* Original Transcript */}
                     <TabsContent value="original">
-                      <div className="bg-muted/30 rounded-lg p-3 sm:p-4 border max-h-[50vh] sm:max-h-[400px] overflow-y-auto">
+                      <div className="bg-muted/30 rounded-lg p-3 sm:p-4 border overflow-x-auto">
                         <pre className="whitespace-pre-wrap text-xs sm:text-sm font-mono leading-relaxed">
                           {consultationData.transcript}
                         </pre>
@@ -1862,7 +1889,7 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
 
                     {/* Tidied Transcript */}
                     <TabsContent value="tidied">
-                      <div className="bg-muted/30 rounded-lg p-3 sm:p-4 border max-h-[50vh] sm:max-h-[400px] overflow-y-auto">
+                      <div className="bg-muted/30 rounded-lg p-3 sm:p-4 border overflow-x-auto">
                         {cleanedTranscript ? (
                           <div className="whitespace-pre-wrap text-xs sm:text-sm leading-relaxed">
                             {cleanedTranscript}
