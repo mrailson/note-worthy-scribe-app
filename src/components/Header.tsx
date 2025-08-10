@@ -15,7 +15,7 @@ import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscop
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerTrigger, DrawerClose, DrawerFooter } from "@/components/ui/drawer";
 interface HeaderProps {
   onNewMeeting: () => void;
 }
@@ -250,114 +250,159 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
             )}
           </div>
 
-          {/* Mobile menu */}
+          {/* Mobile menu - upgraded to full-height Drawer */}
           <div className="sm:hidden">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+            <Drawer>
+              <DrawerTrigger asChild>
                 <Button 
                   variant="secondary"
                   size="sm"
                   className="bg-white/20 hover:bg-white/30 text-white border-white/30 h-8 w-8 p-0"
+                  aria-label="Open menu"
                 >
                   <Menu className="h-4 w-4" />
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" sideOffset={8} className="bg-background border border-border shadow-lg z-[100] w-[88vw] sm:w-56 max-w-[90vw] mr-2">
-                {user ? (
-                  <>
-                    <DropdownMenuItem 
-                      onClick={() => isHomePage ? onNewMeeting() : navigate('/')}
-                      className="cursor-pointer py-3"
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      New
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={() => navigate('/')}
-                      className="cursor-pointer py-3"
-                    >
-                      <Home className="h-4 w-4 mr-2" />
-                      Home
-                    </DropdownMenuItem>
-                    <DropdownMenuLabel className="text-xs text-muted-foreground px-2 py-1">Services</DropdownMenuLabel>
-                    {hasModuleAccess('meeting_recorder') && (
-                      <DropdownMenuItem onClick={() => navigate('/')} className="cursor-pointer py-3">
-                        <FileText className="h-4 w-4 mr-2" />
-                        Meeting Notes
-                      </DropdownMenuItem>
-                    )}
-                    {hasModuleAccess('gp_scribe') && (
-                      <DropdownMenuItem onClick={() => navigate('/gp-scribe')} className="cursor-pointer py-3">
-                        <Stethoscope className="h-4 w-4 mr-2" />
-                        GP Scribe
-                      </DropdownMenuItem>
-                    )}
-                    {hasModuleAccess('complaints_system') && (
-                      <DropdownMenuItem onClick={() => navigate('/complaints')} className="cursor-pointer py-3">
-                        <MessageSquareWarning className="h-4 w-4 mr-2" />
-                        Complaints System
-                      </DropdownMenuItem>
-                    )}
-                    {hasModuleAccess('ai_4_pm') && (
-                      <DropdownMenuItem onClick={() => navigate('/ai-4-pm')} className="cursor-pointer py-3">
-                        <Sparkles className="h-4 w-4 mr-2" />
-                        AI 4 PM Assistant
-                      </DropdownMenuItem>
-                    )}
-                    {hasModuleAccess('enhanced_access') && (
-                      <DropdownMenuItem onClick={() => navigate('/enhanced-access')} className="cursor-pointer py-3">
-                        <Clock className="h-4 w-4 mr-2" />
-                        Enhanced Access
-                      </DropdownMenuItem>
-                    )}
-                    {hasModuleAccess('replywell') && (
-                      <DropdownMenuItem onClick={() => navigate('/replywell')} className="cursor-pointer py-3">
-                        <Mail className="h-4 w-4 mr-2" />
-                        ReplyWell
-                      </DropdownMenuItem>
-                    )}
-                     {hasModuleAccess('cqc_compliance') && (
-                       <DropdownMenuItem onClick={() => navigate('/cqc-compliance')} className="cursor-pointer py-3">
-                         <Shield className="h-4 w-4 mr-2" />
-                         CQC Compliance
-                       </DropdownMenuItem>
-                     )}
-                    {sharedDriveVisible && (
-                      <DropdownMenuItem onClick={() => navigate('/shared-drive')} className="cursor-pointer py-3">
-                        <FolderOpen className="h-4 w-4 mr-2" />
-                        Shared Drive
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuItem onClick={() => navigate('/settings')} className="cursor-pointer py-3">
-                      <Settings className="h-4 w-4 mr-2" />
-                      User Settings
-                    </DropdownMenuItem>
-                    {isAdmin && (
+              </DrawerTrigger>
+              <DrawerContent className="max-h-[90vh]">
+                <DrawerHeader className="text-left">
+                  <DrawerTitle>Menu</DrawerTitle>
+                  <DrawerDescription>Quick access to services</DrawerDescription>
+                </DrawerHeader>
+                <div className="px-4 pb-4 space-y-2">
+                  <nav className="grid gap-2">
+                    <DrawerClose asChild>
+                      <Button 
+                        variant="ghost" 
+                        className="justify-start"
+                        onClick={() => isHomePage ? onNewMeeting() : navigate('/')}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        New
+                      </Button>
+                    </DrawerClose>
+
+                    <DrawerClose asChild>
+                      <Button 
+                        variant="ghost" 
+                        className="justify-start"
+                        onClick={() => navigate('/')}
+                      >
+                        <Home className="h-4 w-4 mr-2" />
+                        Home
+                      </Button>
+                    </DrawerClose>
+
+                    {/* Services */}
+                    {user && (
                       <>
-                        <DropdownMenuLabel className="text-xs text-muted-foreground px-2 py-1">System Admin</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => navigate('/admin')} className="cursor-pointer py-3">
-                          <Wrench className="h-4 w-4 mr-2" />
-                          Admin Dashboard
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate('/compliance-docs')} className="cursor-pointer py-3">
-                          <BookOpen className="h-4 w-4 mr-2" />
-                          Security Documentation
-                        </DropdownMenuItem>
+                        {hasModuleAccess('meeting_recorder') && (
+                          <DrawerClose asChild>
+                            <Button variant="ghost" className="justify-start" onClick={() => navigate('/')}> 
+                              <FileText className="h-4 w-4 mr-2" />
+                              Meeting Notes
+                            </Button>
+                          </DrawerClose>
+                        )}
+                        {hasModuleAccess('gp_scribe') && (
+                          <DrawerClose asChild>
+                            <Button variant="ghost" className="justify-start" onClick={() => navigate('/gp-scribe')}>
+                              <Stethoscope className="h-4 w-4 mr-2" />
+                              GP Scribe
+                            </Button>
+                          </DrawerClose>
+                        )}
+                        {hasModuleAccess('complaints_system') && (
+                          <DrawerClose asChild>
+                            <Button variant="ghost" className="justify-start" onClick={() => navigate('/complaints')}>
+                              <MessageSquareWarning className="h-4 w-4 mr-2" />
+                              Complaints System
+                            </Button>
+                          </DrawerClose>
+                        )}
+                        {hasModuleAccess('ai_4_pm') && (
+                          <DrawerClose asChild>
+                            <Button variant="ghost" className="justify-start" onClick={() => navigate('/ai-4-pm')}>
+                              <Sparkles className="h-4 w-4 mr-2" />
+                              AI 4 PM Assistant
+                            </Button>
+                          </DrawerClose>
+                        )}
+                        {hasModuleAccess('enhanced_access') && (
+                          <DrawerClose asChild>
+                            <Button variant="ghost" className="justify-start" onClick={() => navigate('/enhanced-access')}>
+                              <Clock className="h-4 w-4 mr-2" />
+                              Enhanced Access
+                            </Button>
+                          </DrawerClose>
+                        )}
+                        {hasModuleAccess('replywell') && (
+                          <DrawerClose asChild>
+                            <Button variant="ghost" className="justify-start" onClick={() => navigate('/replywell')}>
+                              <Mail className="h-4 w-4 mr-2" />
+                              ReplyWell
+                            </Button>
+                          </DrawerClose>
+                        )}
+                        {hasModuleAccess('cqc_compliance') && (
+                          <DrawerClose asChild>
+                            <Button variant="ghost" className="justify-start" onClick={() => navigate('/cqc-compliance')}>
+                              <Shield className="h-4 w-4 mr-2" />
+                              CQC Compliance
+                            </Button>
+                          </DrawerClose>
+                        )}
+                        {sharedDriveVisible && (
+                          <DrawerClose asChild>
+                            <Button variant="ghost" className="justify-start" onClick={() => navigate('/shared-drive')}>
+                              <FolderOpen className="h-4 w-4 mr-2" />
+                              Shared Drive
+                            </Button>
+                          </DrawerClose>
+                        )}
                       </>
                     )}
-                    <DropdownMenuItem onClick={signOut} className="cursor-pointer py-3">
-                      <LogOut className="h-4 w-4 mr-2" />
-                      Logout
-                    </DropdownMenuItem>
-                  </>
-                ) : (
-                  <DropdownMenuItem onClick={() => navigate('/')} className="cursor-pointer py-3">
-                    <Home className="h-4 w-4 mr-2" />
-                    Home
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+
+                    {/* Settings and Admin */}
+                    {user && (
+                      <>
+                        <DrawerClose asChild>
+                          <Button variant="ghost" className="justify-start" onClick={() => navigate('/settings')}>
+                            <Settings className="h-4 w-4 mr-2" />
+                            User Settings
+                          </Button>
+                        </DrawerClose>
+                        {isAdmin && (
+                          <>
+                            <DrawerClose asChild>
+                              <Button variant="ghost" className="justify-start" onClick={() => navigate('/admin')}>
+                                <Wrench className="h-4 w-4 mr-2" />
+                                Admin Dashboard
+                              </Button>
+                            </DrawerClose>
+                            <DrawerClose asChild>
+                              <Button variant="ghost" className="justify-start" onClick={() => navigate('/compliance-docs')}>
+                                <BookOpen className="h-4 w-4 mr-2" />
+                                Security Documentation
+                              </Button>
+                            </DrawerClose>
+                          </>
+                        )}
+
+                        <DrawerClose asChild>
+                          <Button variant="destructive" className="justify-start" onClick={signOut}>
+                            <LogOut className="h-4 w-4 mr-2" />
+                            Logout
+                          </Button>
+                        </DrawerClose>
+                      </>
+                    )}
+                  </nav>
+                </div>
+                <DrawerFooter className="pt-0">
+                  <div className="text-xs text-muted-foreground text-center w-full pb-2">Notewell AI</div>
+                </DrawerFooter>
+              </DrawerContent>
+            </Drawer>
           </div>
         </div>
       </div>

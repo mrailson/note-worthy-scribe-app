@@ -1656,24 +1656,8 @@ Always provide practical, actionable advice that follows NHS guidelines and best
         </div>
       )}
       
-      <div className="container mx-auto px-3 py-2 sm:px-4 sm:py-3 max-w-7xl">
-        {/* Compact mobile menu */}
-        <div className="sm:hidden mb-2">
-          <div className="relative">
-            <select
-              value={activeTab}
-              onChange={(e) => setActiveTab(e.target.value as 'ai-service' | 'pm-genie' | 'latest-news' | 'previous-searches' | 'ai-settings' | 'what-can-ai-do')}
-              className="w-full h-9 rounded-md border border-border bg-card text-foreground text-sm pl-3 pr-8"
-            >
-              <option value="ai-service">AI</option>
-              <option value="pm-genie">Genie</option>
-              <option value="latest-news">News</option>
-              <option value="previous-searches">History</option>
-              <option value="ai-settings">Settings</option>
-              <option value="what-can-ai-do">Help</option>
-            </select>
-          </div>
-        </div>
+      <div className="container mx-auto px-3 py-2 sm:px-4 sm:py-3 max-w-7xl pb-20 sm:pb-0">
+        {/* Mobile nav handled by fixed bottom tab bar */}
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           {/* Desktop/tablet tabs */}
@@ -2591,6 +2575,52 @@ Always provide practical, actionable advice that follows NHS guidelines and best
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Mobile bottom tab bar */}
+      <nav className="sm:hidden fixed bottom-0 inset-x-0 z-40 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="grid grid-cols-5 h-14">
+          <button
+            aria-label="AI Service"
+            className={`flex flex-col items-center justify-center gap-0.5 text-[11px] ${activeTab === 'ai-service' ? 'text-primary' : 'text-muted-foreground'}`}
+            onClick={() => setActiveTab('ai-service')}
+          >
+            <MessageSquare className="h-5 w-5" />
+            <span>AI</span>
+          </button>
+          <button
+            aria-label="PM Genie"
+            className={`flex flex-col items-center justify-center gap-0.5 text-[11px] ${activeTab === 'pm-genie' ? 'text-primary' : 'text-muted-foreground'}`}
+            onClick={() => setActiveTab('pm-genie')}
+          >
+            <Bot className="h-5 w-5" />
+            <span>Genie</span>
+          </button>
+          <button
+            aria-label="Latest News"
+            className={`flex flex-col items-center justify-center gap-0.5 text-[11px] ${activeTab === 'latest-news' ? 'text-primary' : 'text-muted-foreground'}`}
+            onClick={() => setActiveTab('latest-news')}
+          >
+            <Newspaper className="h-5 w-5" />
+            <span>News</span>
+          </button>
+          <button
+            aria-label="History"
+            className={`flex flex-col items-center justify-center gap-0.5 text-[11px] ${activeTab === 'previous-searches' ? 'text-primary' : 'text-muted-foreground'}`}
+            onClick={() => setActiveTab('previous-searches')}
+          >
+            <History className="h-5 w-5" />
+            <span>History</span>
+          </button>
+          <button
+            aria-label="Help"
+            className={`flex flex-col items-center justify-center gap-0.5 text-[11px] ${activeTab === 'what-can-ai-do' ? 'text-primary' : 'text-muted-foreground'}`}
+            onClick={() => setActiveTab('what-can-ai-do')}
+          >
+            <HelpCircle className="h-5 w-5" />
+            <span>Help</span>
+          </button>
+        </div>
+      </nav>
     </div>
   );
 };

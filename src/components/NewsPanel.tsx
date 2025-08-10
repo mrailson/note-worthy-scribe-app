@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerTrigger, DrawerClose } from "@/components/ui/drawer";
 
 interface NewsArticle {
   id: string;
@@ -231,13 +232,86 @@ const NewsPanel = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between sticky top-0 z-30 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-1 py-2 sm:static sm:bg-transparent sm:backdrop-blur-0 sm:px-0 sm:py-0">
         <h2 className="text-2xl font-bold">Latest NHS News</h2>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            <Filter className="w-4 h-4 mr-2" />
-            Filters
-          </Button>
+          {/* Mobile: open filters in a drawer */}
+          <div className="sm:hidden">
+            <Drawer>
+              <DrawerTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Filter className="w-4 h-4 mr-2" />
+                  Filters
+                </Button>
+              </DrawerTrigger>
+              <DrawerContent>
+                <DrawerHeader className="text-left">
+                  <DrawerTitle>Filters</DrawerTitle>
+                  <DrawerDescription>Refine your news feed</DrawerDescription>
+                </DrawerHeader>
+                <div className="p-4 space-y-4">
+                  <div className="space-y-2">
+                    <div className="text-sm font-medium">Tag</div>
+                    <Select value={filterTag} onValueChange={setFilterTag}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="All Tags" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Tags</SelectItem>
+                        {allTags.map(tag => (
+                          <SelectItem key={tag} value={tag}>{tag}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="text-sm font-medium">Source</div>
+                    <Select value={filterSource} onValueChange={setFilterSource}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="All Sources" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Sources</SelectItem>
+                        {allSources.map(source => (
+                          <SelectItem key={source} value={source}>{source}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="text-sm font-medium">Time</div>
+                    <Select value={filterTime} onValueChange={setFilterTime}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="All Time" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Time</SelectItem>
+                        <SelectItem value="24h">Last 24h</SelectItem>
+                        <SelectItem value="7d">Last 7 days</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex gap-2 pt-2">
+                    <DrawerClose asChild>
+                      <Button variant="default" className="flex-1">Apply</Button>
+                    </DrawerClose>
+                    <Button 
+                      variant="outline" 
+                      className="flex-1"
+                      onClick={() => { setFilterTag('all'); setFilterSource('all'); setFilterTime('all'); }}
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                </div>
+              </DrawerContent>
+            </Drawer>
+          </div>
+
+          {/* Refresh always visible */}
           <Button 
             variant="outline" 
             size="sm" 
@@ -250,8 +324,8 @@ const NewsPanel = () => {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3">
+      {/* Desktop filters */}
+      <div className="hidden sm:flex flex-wrap gap-3">
         <Select value={filterTag} onValueChange={setFilterTag}>
           <SelectTrigger className="w-40">
             <SelectValue placeholder="All Tags" />
