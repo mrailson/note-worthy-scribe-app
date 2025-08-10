@@ -157,7 +157,23 @@ export default function ConsultationSummary() {
           console.warn('RPC get_meeting_transcript failed, falling back to table fetch');
         }
 
-        // If still empty, fetch all meeting_transcripts rows and pick the longest content
+        // Try meeting_transcription_chunks first (highest fidelity chunks)
+        if (!fullTranscript) {
+          try {
+            const { data: mtc, error: mtcError } = await supabase
+              .from('meeting_transcription_chunks')
+              .select('transcription_text, chunk_number')
+              .eq('meeting_id', meetingId)
+              .order('chunk_number', { ascending: true });
+            if (!mtcError && mtc && mtc.length > 0) {
+              fullTranscript = (mtc as any[]).map(c => c.transcription_text).join(' ');
+            }
+          } catch (e) {
+            console.warn('meeting_transcription_chunks not available or not accessible');
+          }
+        }
+
+        // If still empty, fetch all meeting_transcripts rows and concatenate
         if (!fullTranscript) {
           const { data: transcriptRows } = await supabase
             .from('meeting_transcripts')
@@ -166,14 +182,14 @@ export default function ConsultationSummary() {
             .order('created_at', { ascending: true });
 
           if (transcriptRows && transcriptRows.length > 0) {
-            fullTranscript = transcriptRows.reduce((longest: string, row: any) => {
-              const c = (row?.content || '') as string;
-              return c.length > longest.length ? c : longest;
-            }, '');
+            fullTranscript = transcriptRows
+              .map((row: any) => (row?.content || '') as string)
+              .filter(Boolean)
+              .join('\n\n');
           }
         }
 
-        // Last fallback: try transcription_chunks if the table exists
+        // Final fallback: legacy transcription_chunks
         if (!fullTranscript) {
           const { data: chunks, error: chunksError } = await supabase
             .from('transcription_chunks')
@@ -289,7 +305,13 @@ export default function ConsultationSummary() {
         generateNotesFromTranscript(data.transcript);
       }
     } else {
-      navigate('/gp-scribe');
+      const params = new URLSearchParams(window.location.search);
+      const urlMeetingId = params.get('meetingId');
+      if (urlMeetingId) {
+        loadConsultationFromDatabase(urlMeetingId);
+      } else {
+        navigate('/gp-scribe');
+      }
     }
   }, [location.state, navigate]);
 
