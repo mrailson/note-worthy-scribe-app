@@ -430,9 +430,8 @@ export const ConsultationHistory = () => {
                       </AlertDialogContent>
                     </AlertDialog>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
           );
         })}
       </div>
