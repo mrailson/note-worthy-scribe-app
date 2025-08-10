@@ -1328,40 +1328,40 @@ const Index = () => {
         
         {/* Tab Navigation */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-6 p-1 rounded-xl">
+          <TabsList className="flex w-full gap-1 overflow-x-auto sm:grid sm:grid-cols-6 p-1 rounded-xl">
             <TabsTrigger 
               value="consultation" 
-              className="rounded-lg transition-all duration-200 font-medium"
+              className="rounded-lg transition-all duration-200 font-medium shrink-0"
             >
               Consultation
             </TabsTrigger>
             <TabsTrigger 
               value="examples" 
-              className="rounded-lg transition-all duration-200 font-medium"
+              className="rounded-lg transition-all duration-200 font-medium shrink-0"
             >
               Examples
             </TabsTrigger>
             <TabsTrigger 
               value="history"
-              className="rounded-lg transition-all duration-200 font-medium"
+              className="rounded-lg transition-all duration-200 font-medium shrink-0"
             >
               History
             </TabsTrigger>
             <TabsTrigger 
               value="ai4gp" 
-              className="rounded-lg transition-all duration-200 font-medium"
+              className="rounded-lg transition-all duration-200 font-medium shrink-0"
             >
               AI4GP
             </TabsTrigger>
             <TabsTrigger 
               value="gp-genie" 
-              className="rounded-lg transition-all duration-200 font-medium"
+              className="rounded-lg transition-all duration-200 font-medium shrink-0"
             >
               GP Genie
             </TabsTrigger>
             <TabsTrigger 
               value="test-mp3" 
-              className="rounded-lg transition-all duration-200 font-medium"
+              className="rounded-lg transition-all duration-200 font-medium shrink-0"
             >
               Audio Import + AI
             </TabsTrigger>
@@ -1942,11 +1942,11 @@ const Index = () => {
                     </CardHeader>
                     <CardContent>
                       <Tabs defaultValue="summary" className="w-full">
-                        <TabsList className="grid w-full grid-cols-4">
-                          <TabsTrigger value="summary">GP Summary</TabsTrigger>
-                          <TabsTrigger value="full">Full Note</TabsTrigger>
-                          <TabsTrigger value="patient">Patient Copy</TabsTrigger>
-                          {traineeFeedback && <TabsTrigger value="trainee">Trainee Feedback</TabsTrigger>}
+                        <TabsList className="flex w-full gap-1 overflow-x-auto sm:grid sm:grid-cols-4">
+                          <TabsTrigger value="summary" className="shrink-0">GP Summary</TabsTrigger>
+                          <TabsTrigger value="full" className="shrink-0">Full Note</TabsTrigger>
+                          <TabsTrigger value="patient" className="shrink-0">Patient Copy</TabsTrigger>
+                          {traineeFeedback && <TabsTrigger value="trainee" className="shrink-0">Trainee Feedback</TabsTrigger>}
                         </TabsList>
                         
                         <TabsContent value="summary" className="space-y-4">
@@ -2280,24 +2280,24 @@ const Index = () => {
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="summary" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1 h-auto p-1">
-                  <TabsTrigger value="summary" className="min-h-[44px] text-xs sm:text-sm touch-manipulation">
+                <TabsList className="flex w-full gap-1 overflow-x-auto sm:grid sm:grid-cols-3 lg:grid-cols-5 gap-1 h-auto p-1">
+                  <TabsTrigger value="summary" className="min-h-[44px] text-xs sm:text-sm touch-manipulation shrink-0">
                     <span className="hidden sm:inline">🟦 GP Summary</span>
                     <span className="sm:hidden">GP</span>
                   </TabsTrigger>
-                  <TabsTrigger value="full" className="min-h-[44px] text-xs sm:text-sm touch-manipulation">
+                  <TabsTrigger value="full" className="min-h-[44px] text-xs sm:text-sm touch-manipulation shrink-0">
                     <span className="hidden sm:inline">🟨 Full Note</span>
                     <span className="sm:hidden">Full</span>
                   </TabsTrigger>
-                  <TabsTrigger value="patient" className="min-h-[44px] text-xs sm:text-sm touch-manipulation">
+                  <TabsTrigger value="patient" className="min-h-[44px] text-xs sm:text-sm touch-manipulation shrink-0">
                     <span className="hidden sm:inline">🟩 Patient Copy</span>
                     <span className="sm:hidden">Patient</span>
                   </TabsTrigger>
-                  <TabsTrigger value="trainee" className="min-h-[44px] text-xs sm:text-sm touch-manipulation">
+                  <TabsTrigger value="trainee" className="min-h-[44px] text-xs sm:text-sm touch-manipulation shrink-0">
                     <span className="hidden lg:inline">🟣 Trainee Feedback</span>
                     <span className="lg:hidden">Trainee</span>
                   </TabsTrigger>
-                  <TabsTrigger value="referral" className="min-h-[44px] text-xs sm:text-sm touch-manipulation">
+                  <TabsTrigger value="referral" className="min-h-[44px] text-xs sm:text-sm touch-manipulation shrink-0">
                     <span className="hidden lg:inline">📄 Referral Letter</span>
                     <span className="lg:hidden">Referral</span>
                   </TabsTrigger>

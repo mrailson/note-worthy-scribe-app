@@ -107,7 +107,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent 
                   align="end" 
-                  className="bg-background border border-border shadow-lg z-[100] w-48"
+                  className="bg-background border border-border shadow-lg w-48"
                 >
                    {hasModuleAccess('meeting_recorder') && (
                      <DropdownMenuItem 
@@ -200,7 +200,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent 
                   align="end" 
-                  className="bg-background border border-border shadow-lg z-[100] w-48"
+                  className="bg-background border border-border shadow-lg w-48"
                 >
                   <DropdownMenuItem 
                     onClick={() => navigate('/settings')}
@@ -263,7 +263,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                   <Menu className="h-4 w-4" />
                 </Button>
               </DrawerTrigger>
-              <DrawerContent className="max-h-[90vh]">
+              <DrawerContent className="h-[92dvh] sm:h-auto overflow-y-auto">
                 <DrawerHeader className="text-left">
                   <DrawerTitle>Menu</DrawerTitle>
                   <DrawerDescription>Quick access to services</DrawerDescription>
