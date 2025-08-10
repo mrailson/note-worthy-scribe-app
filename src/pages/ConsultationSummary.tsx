@@ -145,13 +145,45 @@ export default function ConsultationSummary() {
           return;
         }
 
-        // Load transcript (latest)
-        const { data: transcriptRow } = await supabase
-          .from('meeting_transcripts')
-          .select('content')
-          .eq('meeting_id', meetingId)
-          .order('created_at', { ascending: false })
-          .maybeSingle();
+        // Load transcript (full)
+        let fullTranscript = "";
+        // Try RPC to combine chunks if available
+        try {
+          const { data: rpcData, error: rpcError } = await supabase.rpc('get_meeting_transcript', { p_meeting_id: meetingId });
+          if (!rpcError && typeof rpcData === 'string' && rpcData.trim().length > 0) {
+            fullTranscript = rpcData;
+          }
+        } catch (e) {
+          console.warn('RPC get_meeting_transcript failed, falling back to table fetch');
+        }
+
+        // If still empty, fetch all meeting_transcripts rows and pick the longest content
+        if (!fullTranscript) {
+          const { data: transcriptRows } = await supabase
+            .from('meeting_transcripts')
+            .select('content, created_at')
+            .eq('meeting_id', meetingId)
+            .order('created_at', { ascending: true });
+
+          if (transcriptRows && transcriptRows.length > 0) {
+            fullTranscript = transcriptRows.reduce((longest: string, row: any) => {
+              const c = (row?.content || '') as string;
+              return c.length > longest.length ? c : longest;
+            }, '');
+          }
+        }
+
+        // Last fallback: try transcription_chunks if the table exists
+        if (!fullTranscript) {
+          const { data: chunks, error: chunksError } = await supabase
+            .from('transcription_chunks')
+            .select('transcript_text, chunk_number')
+            .eq('meeting_id', meetingId)
+            .order('chunk_number', { ascending: true });
+          if (!chunksError && chunks && chunks.length > 0) {
+            fullTranscript = (chunks as any[]).map(c => c.transcript_text).join(' ');
+          }
+        }
 
         // Load summaries
         const { data: summary } = await supabase
@@ -160,7 +192,7 @@ export default function ConsultationSummary() {
           .eq('meeting_id', meetingId)
           .maybeSingle();
 
-        const transcript = transcriptRow?.content || "";
+        const transcript = fullTranscript || "";
         
         // Create consultation data object
         const consultationData: ConsultationData = {
@@ -181,6 +213,7 @@ export default function ConsultationSummary() {
         };
 
         setConsultationData(consultationData);
+        setCleanedTranscript("");
 
         // Load content from summaries if available
         if (summary) {
@@ -266,6 +299,13 @@ export default function ConsultationSummary() {
       generateCleanedTranscript();
     }
   }, [transcriptTab, cleanedTranscript, consultationData?.transcript]);
+
+  // Reset cleaned transcript when original transcript changes so it regenerates
+  useEffect(() => {
+    if (cleanedTranscript && consultationData?.transcript) {
+      setCleanedTranscript("");
+    }
+  }, [consultationData?.transcript]);
 
   // Generate different note levels based on the original content
   const generateNoteLevelContent = (originalContent: string, level: number): string => {
