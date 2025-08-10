@@ -32,7 +32,7 @@ import { consultationExamples, type ConsultationExample } from "@/data/consultat
 import { TranslationInterface } from "@/components/TranslationInterface";
 import { MP3TranscriptionTest } from "@/components/MP3TranscriptionTest";
 import { ConsultationHistory } from "@/components/ConsultationHistory";
-import ChunkedTranscriptionTest from '@/components/ChunkedTranscriptionTest';
+
 import { PatientTranslationView } from "@/components/PatientTranslationView";
 import { SafeMessageRenderer } from "@/components/SafeMessageRenderer";
 import AI4GPService from "@/components/AI4GPService";
@@ -1798,8 +1798,6 @@ const Index = () => {
                       </div>
                     </div>
                   
-                  {/* Test Component for Chunked Transcription */}
-                  <ChunkedTranscriptionTest />
                   </div>
 
                   {/* Right Side - Recording Button */}
