@@ -242,7 +242,9 @@ const AI4PMService = () => {
       await navigator.mediaDevices.getUserMedia({ audio: true });
       
       voiceChatRef.current = new RealtimeChat(handleVoiceMessage);
-      await voiceChatRef.current.init('shimmer');
+      const displayName = (user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || 'there') as string;
+      const firstName = displayName.includes('@') ? displayName.split('@')[0] : displayName.split(' ')[0];
+      await voiceChatRef.current.init('shimmer', `Hello ${firstName}, I am the AI for GP Practice Mangers, How can I help?`);
       
       // Apply saved mute state after initialization
       if (voiceChatRef.current && isVoiceMuted) {

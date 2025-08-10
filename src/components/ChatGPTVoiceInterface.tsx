@@ -167,7 +167,9 @@ const ChatGPTVoiceInterface: React.FC<ChatGPTVoiceInterfaceProps> = ({ isOpen, o
       setError(null);
       
       chatRef.current = new RealtimeChat(handleMessage);
-      await chatRef.current.init(selectedVoice);
+      const displayName = (user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || 'there') as string;
+      const firstName = displayName.includes('@') ? displayName.split('@')[0] : displayName.split(' ')[0];
+      await chatRef.current.init(selectedVoice, `Hello ${firstName}, I am the AI for GP Practice Mangers, How can I help?`);
       
       // Apply global mute state
       chatRef.current.setMuted(isGlobalMuted);
@@ -179,16 +181,6 @@ const ChatGPTVoiceInterface: React.FC<ChatGPTVoiceInterfaceProps> = ({ isOpen, o
         title: "Connected to ChatGPT",
         description: "Voice interface is ready. Start speaking!",
       });
-      // Send starting greeting with user's first name
-      setTimeout(() => {
-        try {
-          const displayName = (user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || 'there') as string;
-          const firstName = displayName.includes('@') ? displayName.split('@')[0] : displayName.split(' ')[0];
-          chatRef.current?.sendMessage(`Hello ${firstName}, I am the AI for GP Practice Mangers, How can I help?`);
-        } catch (e) {
-          console.error("Failed to send starting greeting:", e);
-        }
-      }, 800);
     } catch (error) {
       console.error('Error starting conversation:', error);
       setIsConnecting(false);

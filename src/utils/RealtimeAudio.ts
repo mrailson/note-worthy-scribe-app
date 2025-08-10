@@ -78,15 +78,21 @@ export class RealtimeChat {
     console.log(`Audio ${muted ? 'muted' : 'unmuted'}`);
   }
 
-  async init(voice: string = 'sage') {
+  async init(voice: string = 'sage', greeting?: string) {
     try {
       console.log('Initializing Realtime Chat...');
+      
+      // Build personalized instructions for the session (used by OpenAI)
+      const baseInstructions = "You are a helpful AI assistant for NHS GP Practice Managers. Provide clear, professional guidance on practice management, NHS policies, compliance, and operational matters. Keep responses concise and actionable.";
+      const sessionInstructions = greeting
+        ? `${baseInstructions} When the session starts, greet the user exactly with: "${greeting}" and then wait for their input.`
+        : baseInstructions;
       
       // Get ephemeral token from our Supabase Edge Function
       const { data, error } = await supabase.functions.invoke("openai-realtime-session", {
         body: {
           voice: voice,
-          instructions: "You are a helpful AI assistant for NHS GP Practice Managers. Provide clear, professional guidance on practice management, NHS policies, compliance, and operational matters. Keep responses concise and actionable."
+          instructions: sessionInstructions
         }
       });
       
@@ -124,6 +130,41 @@ export class RealtimeChat {
       this.dc.addEventListener("message", (e) => {
         const event = JSON.parse(e.data);
         console.log("Received event:", event);
+
+        // After session is created, update settings and trigger greeting if provided
+        if (event.type === 'session.created') {
+          try {
+            console.log('Session created - sending session.update');
+            this.dc!.send(JSON.stringify({
+              type: 'session.update',
+              session: {
+                modalities: ["text", "audio"],
+                instructions: sessionInstructions,
+                voice: voice,
+                input_audio_format: "pcm16",
+                output_audio_format: "pcm16",
+                input_audio_transcription: { model: "whisper-1" },
+                turn_detection: {
+                  type: "server_vad",
+                  threshold: 0.5,
+                  prefix_padding_ms: 300,
+                  silence_duration_ms: 1000
+                },
+                temperature: 0.7,
+                max_response_output_tokens: 4096
+              }
+            }));
+
+            if (greeting) {
+              console.log('Triggering initial greeting response');
+              // Ask the model to produce a response per the updated instructions
+              this.dc!.send(JSON.stringify({ type: 'response.create' }));
+            }
+          } catch (err) {
+            console.error('Failed to send session.update/initial response:', err);
+          }
+        }
+
         this.onMessage(event);
       });
 
