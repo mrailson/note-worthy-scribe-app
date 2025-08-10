@@ -344,138 +344,16 @@ export const ConsultationHistory = () => {
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-2 ml-4">
+                  <div className="flex items-center gap-2 ml-4 flex-wrap">
                     <Button
+                      variant="link"
                       size="sm"
+                      className="px-0 h-8"
                       onClick={() => navigate('/consultation-summary', { state: { meetingId: consultation.id } })}
                     >
                       <BookOpen className="h-4 w-4 mr-2" /> Open
                     </Button>
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setSelectedConsultation(consultation)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-                        <DialogHeader>
-                          <DialogTitle>{consultation.title}</DialogTitle>
-                          <DialogDescription>
-                            View all consultation details, notes, and transcript.
-                          </DialogDescription>
-                        </DialogHeader>
-                        
-                        {selectedConsultation && (
-                          <div className="space-y-6">
-                            <div className="grid grid-cols-3 gap-4 text-sm">
-                              <div>
-                                <span className="font-medium">Date:</span> {formatDate(selectedConsultation.created_at).date}
-                              </div>
-                              <div>
-                                <span className="font-medium">Time:</span> {formatDate(selectedConsultation.created_at).time}
-                              </div>
-                              <div>
-                                <span className="font-medium">Duration:</span> {formatDuration(selectedConsultation.duration_minutes)}
-                              </div>
-                            </div>
-
-                            {selectedConsultation.summary && (
-                              <div>
-                                <div className="flex items-center justify-between mb-2">
-                                  <h4 className="font-medium text-primary">GP Summary</h4>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => copyToClipboard(selectedConsultation.summary || "")}
-                                  >
-                                    <Copy className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                                <div className="bg-secondary/50 rounded-lg p-4 text-sm whitespace-pre-wrap">
-                                  {selectedConsultation.summary}
-                                </div>
-                              </div>
-                            )}
-
-                            {selectedConsultation.full_note && (
-                              <div>
-                                <div className="flex items-center justify-between mb-2">
-                                  <h4 className="font-medium text-primary">Full Note</h4>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => copyToClipboard(selectedConsultation.full_note || "")}
-                                  >
-                                    <Copy className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                                <div className="bg-secondary/50 rounded-lg p-4 text-sm whitespace-pre-wrap">
-                                  {selectedConsultation.full_note}
-                                </div>
-                              </div>
-                            )}
-
-                            {selectedConsultation.patient_copy && (
-                              <div>
-                                <div className="flex items-center justify-between mb-2">
-                                  <h4 className="font-medium text-primary">Patient Copy</h4>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => copyToClipboard(selectedConsultation.patient_copy || "")}
-                                  >
-                                    <Copy className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                                <div className="bg-secondary/50 rounded-lg p-4 text-sm whitespace-pre-wrap">
-                                  {selectedConsultation.patient_copy}
-                                </div>
-                              </div>
-                            )}
-
-                            {selectedConsultation.trainee_feedback && (
-                              <div>
-                                <div className="flex items-center justify-between mb-2">
-                                  <h4 className="font-medium text-primary">Trainee Feedback</h4>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => copyToClipboard(selectedConsultation.trainee_feedback || "")}
-                                  >
-                                    <Copy className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                                <div className="bg-secondary/50 rounded-lg p-4 text-sm whitespace-pre-wrap">
-                                  {selectedConsultation.trainee_feedback}
-                                </div>
-                              </div>
-                            )}
-
-                            {selectedConsultation.transcript && (
-                              <div>
-                                <div className="flex items-center justify-between mb-2">
-                                  <h4 className="font-medium text-primary">Transcript</h4>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => copyToClipboard(selectedConsultation.transcript || "")}
-                                  >
-                                    <Copy className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                                <div className="bg-secondary/50 rounded-lg p-4 text-sm max-h-60 overflow-y-auto whitespace-pre-wrap">
-                                  {selectedConsultation.transcript}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </DialogContent>
-                    </Dialog>
+                  </div>
 
                     <Dialog>
                       <DialogTrigger asChild>

@@ -2050,7 +2050,7 @@ useEffect(() => {
                   </div>
 
                   {/* Right Side - Recording Button */}
-                  <div className="lg:border-l lg:border-primary/20 lg:pl-6 flex flex-col items-center">
+                  <div className="hidden sm:flex lg:border-l lg:border-primary/20 lg:pl-6 flex-col items-center">
                     <div className="flex flex-col items-center gap-4">
                       {!isRecording ? (
                         <Button 
@@ -2099,6 +2099,31 @@ useEffect(() => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Mobile sticky recording bar */}
+          <div className="sm:hidden fixed inset-x-0 bottom-0 z-50 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t">
+            <div className="container mx-auto px-3 py-3" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 12px)" }}>
+              {!isRecording ? (
+                <Button onClick={startRecording} className="w-full h-12 rounded-lg">
+                  <Mic className="h-5 w-5 mr-2" />
+                  Begin Consultation
+                </Button>
+              ) : (
+                <div className="flex gap-2">
+                  <Button onClick={pauseRecording} variant="secondary" className="flex-1 h-12 rounded-lg">
+                    {isPaused ? <Play className="h-5 w-5 mr-2" /> : <Pause className="h-5 w-5 mr-2" />}
+                    {isPaused ? "Resume" : "Pause"}
+                  </Button>
+                  <Button onClick={stopRecording} variant="destructive" className="flex-1 h-12 rounded-lg">
+                    <MicOff className="h-5 w-5 mr-2" />
+                    Stop
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+          {/* Spacer to avoid content underlap on mobile */}
+          <div className="h-20 sm:hidden" />
         </TabsContent>
 
         {/* Completed Consultation Tab */}
