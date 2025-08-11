@@ -35,3 +35,12 @@ verify_jwt = false
 
 [functions.clean-transcript-chunk]
 verify_jwt = false
+
+[functions.summarize-transcript-chunk]
+verify_jwt = true
+
+[functions.merge-meeting-minutes]
+verify_jwt = true
+
+[functions.ingest-transcript-chunk]
+verify_jwt = true
