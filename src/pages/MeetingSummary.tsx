@@ -1534,11 +1534,7 @@ Speakers detected: ${meetingData?.speakerCount || 0}`;
               children: cells.map((cellText, index) => 
                 new TableCell({
                   children: [new Paragraph({
-                    children: [new TextRun({ 
-                      text: cellText, 
-                      bold: isHeaderRow,
-                      size: 22
-                    })]
+                    children: isHeaderRow ? [new TextRun({ text: cellText, bold: true, size: 22 })] : parseMarkdownToRuns(cellText, 22)
                   })],
                   width: { 
                     size: cells.length === 3 ? (index === 0 ? 50 : 25) : 100/cells.length, 
@@ -1643,7 +1639,7 @@ Speakers detected: ${meetingData?.speakerCount || 0}`;
               console.log('Default processing line with #:', line);
             }
             documentChildren.push(new Paragraph({
-              children: [new TextRun({ text: line, size: 22 })],
+              children: parseMarkdownToRuns(line, 22),
               spacing: { after: 100 }
             }));
           }
