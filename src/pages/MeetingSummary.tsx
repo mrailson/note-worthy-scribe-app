@@ -1564,10 +1564,10 @@ Speakers detected: ${meetingData?.speakerCount || 0}`;
               children: [new TextRun({ text: headerText, bold: true, size: 24, color: "1f4e79" })],
               spacing: { before: 200, after: 150 }
             }));
-          } else if (line.startsWith('###')) {
-            // Section headers with emojis (like ### 1️⃣ Attendees)
-            const headerText = line.substring(3).trim(); // Remove "###" and trim spaces
-            console.log('Processing ### header:', line, '-> cleaned:', headerText);
+          } else if (line.match(/^#{2,6}\s+/)) {
+            // Markdown headers like ## 1️⃣ Attendees — strip hashes for Word export
+            const headerText = line.replace(/^#{1,6}\s+/, '').trim();
+            console.log('Processing markdown header:', line, '-> cleaned:', headerText);
             documentChildren.push(new Paragraph({
               children: [new TextRun({ text: headerText, bold: true, size: 26, color: "1f4e79" })],
               spacing: { before: 300, after: 150 }
