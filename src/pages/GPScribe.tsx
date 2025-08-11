@@ -95,7 +95,7 @@ const Index = () => {
   const [wordCount, setWordCount] = useState(0);
   
   // UI states
-  const [isTranscriptOpen, setIsTranscriptOpen] = useState(false);
+  
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [isTranslationCollapsed, setIsTranslationCollapsed] = useState(true); // Collapsed by default
   const [selectedExample, setSelectedExample] = useState<string>("");
@@ -947,7 +947,7 @@ const Index = () => {
     setReferralLetter("");
     
     // Reset UI states
-    setIsTranscriptOpen(false);
+    
     setIsTranslationCollapsed(true);
     setActiveTab("consultation");
     
@@ -2431,89 +2431,6 @@ useEffect(() => {
             </CardContent>
           </Card>
 
-        {/* Transcript - Collapsible (Hidden on GP Genie, Examples, and AI4GP tabs) */}
-        {!["gp-genie", "examples", "ai4gp"].includes(activeTab) && (
-        <Card className="shadow-medium border-accent/20">
-          <Collapsible open={isTranscriptOpen} onOpenChange={setIsTranscriptOpen}>
-            <CollapsibleTrigger asChild>
-              <CardHeader className="cursor-pointer hover:bg-accent/10 transition-colors">
-                <CardTitle className="flex items-center justify-between">
-                  <span className="flex items-center gap-2">
-                    <Mic className="h-5 w-5 text-primary" />
-                    Transcript
-                    {wordCount > 0 && (
-                      <Badge variant="secondary" className="ml-2">
-                        {wordCount} words
-                      </Badge>
-                    )}
-                  </span>
-                  {isTranscriptOpen ? (
-                    <ChevronUp className="h-4 w-4" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4" />
-                  )}
-                </CardTitle>
-              </CardHeader>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <CardContent>
-                <div className="bg-secondary/50 rounded-lg p-4 min-h-[200px] max-h-[400px] overflow-y-auto">
-                  {transcript ? (
-                    <div className="space-y-4">
-                      {/* Original Transcript */}
-                      <div>
-                        <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
-                          <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                          Original Transcript
-                        </h4>
-                        <pre className="whitespace-pre-wrap text-sm bg-blue-50 dark:bg-blue-950/20 rounded p-3">{transcript}</pre>
-                      </div>
-                      
-                      {/* Translations */}
-                      {isTranslationEnabled && translationLanguage && translations.length > 0 && (
-                        <div>
-                          <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
-                            <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                            Translation ({HEALTHCARE_LANGUAGES.find(l => l.code === translationLanguage)?.name})
-                            {isTranslating && <span className="text-xs text-muted-foreground">(translating...)</span>}
-                          </h4>
-                          <div className="space-y-2">
-                            {translations.slice(-3).map((translation) => (
-                              <div key={translation.id} className="bg-green-50 dark:bg-green-950/20 rounded p-3">
-                                <div className="flex items-start justify-between">
-                                  <div className="flex-1">
-                                    <p className="text-sm">{translation.translated}</p>
-                                    <p className="text-xs text-muted-foreground mt-1">
-                                      {translation.timestamp.toLocaleTimeString()}
-                                    </p>
-                                  </div>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() => speakTranslation(translation.translated, translation.languageCode)}
-                                    disabled={isMuted}
-                                    className="h-6 w-6 p-0 ml-2"
-                                  >
-                                    <Volume2 className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <p className="text-muted-foreground text-center py-8">
-                      Start recording or load an example to see transcription...
-                    </p>
-                  )}
-                </div>
-              </CardContent>
-            </CollapsibleContent>
-          </Collapsible>
-        </Card>
-        )}
 
 
         {/* Generated Output */}
