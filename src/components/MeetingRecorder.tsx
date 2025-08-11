@@ -3406,37 +3406,51 @@ export const MeetingRecorder = ({
                     )}
                  </div>
 
-                {/* Compact Welcome Message */}
-                {!isRecording && (
-                  <div className="text-center py-4 mt-4 border-t border-border/50">
-                    <div className="max-w-sm mx-auto">
-                      <div className="p-2 rounded-full bg-primary/5 w-12 h-12 mx-auto mb-2 flex items-center justify-center">
-                        <Mic className="h-6 w-6 text-primary/60" />
-                      </div>
-                       <h4 className="text-base font-medium mb-1">Ready to Record</h4>
+                {/* Compact Mic Control */}
+                <div className="text-center py-4 mt-4 border-t border-border/50">
+                  <div className="max-w-sm mx-auto">
+                    <button
+                      type="button"
+                      onClick={() => { if (!isRecording) startRecording(); }}
+                      className={`p-2 rounded-full bg-primary/5 w-12 h-12 mx-auto mb-2 flex items-center justify-center transition-colors ${isRecording ? 'cursor-not-allowed' : 'cursor-pointer hover:bg-primary/10'}`}
+                      aria-label={isRecording ? 'Recording in progress' : 'Start recording'}
+                      title={isRecording ? 'Recording in progress' : 'Start recording'}
+                    >
+                      <Mic className={`h-6 w-6 ${isRecording ? 'text-red-500' : 'text-primary/60'}`} />
+                    </button>
+                    {!isRecording ? (
+                      <>
+                        <h4 className="text-base font-medium mb-1">Ready to Record</h4>
                         <p className="text-xs text-muted-foreground">
                           Allow Microphone Access if Requested
                         </p>
-                       
-                       {/* Live Summary Display */}
-                       {liveSummary && (
-                         <Card className="mt-4 bg-gradient-to-br from-accent/20 to-accent/10 border-accent/30">
-                           <CardHeader className="pb-2">
-                             <CardTitle className="text-sm font-medium flex items-center gap-2">
-                               <Waves className="h-4 w-4" />
-                               Live Summary
-                             </CardTitle>
-                           </CardHeader>
-                           <CardContent className="pt-0">
-                             <p className="text-xs text-muted-foreground leading-relaxed">
-                               {liveSummary}
-                             </p>
-                           </CardContent>
-                         </Card>
-                       )}
-                    </div>
+                      </>
+                    ) : (
+                      <>
+                        <h4 className="text-base font-medium mb-1 text-red-600">Recording...</h4>
+                        <p className="text-xs text-muted-foreground">
+                          Your meeting audio is being captured
+                        </p>
+                      </>
+                    )}
+                    {/* Live Summary Display */}
+                    {liveSummary && (
+                      <Card className="mt-4 bg-gradient-to-br from-accent/20 to-accent/10 border-accent/30">
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-sm font-medium flex items-center gap-2">
+                            <Waves className="h-4 w-4" />
+                            Live Summary
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                          <p className="text-xs text-muted-foreground leading-relaxed">
+                            {liveSummary}
+                          </p>
+                        </CardContent>
+                      </Card>
+                    )}
                   </div>
-                )}
+                </div>
 
 
               </CardContent>
