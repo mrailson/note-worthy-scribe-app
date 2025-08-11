@@ -1111,6 +1111,31 @@ export default function MeetingSummary() {
     }
   };
 
+  // Parse basic Markdown (**bold** and *italics*) into DOCX TextRuns
+  const parseMarkdownToRuns = (text: string, size: number = 22, color?: string) => {
+    const runs: TextRun[] = [];
+    const regex = /(\*\*([^*]+)\*\*|\*([^*]+)\*)/g; // **bold** or *italics*
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
+    while ((match = regex.exec(text)) !== null) {
+      if (match.index > lastIndex) {
+        runs.push(new TextRun({ text: text.slice(lastIndex, match.index), size, color }));
+      }
+      const boldText = match[2];
+      const italicText = match[3];
+      if (boldText) {
+        runs.push(new TextRun({ text: boldText, bold: true, size, color }));
+      } else if (italicText) {
+        runs.push(new TextRun({ text: italicText, italics: true, size, color }));
+      }
+      lastIndex = regex.lastIndex;
+    }
+    if (lastIndex < text.length) {
+      runs.push(new TextRun({ text: text.slice(lastIndex), size, color }));
+    }
+    return runs;
+  };
+
   // Helper function to generate DOCX as blob
   const generateDocxBlob = async (): Promise<Blob> => {
     try {
@@ -1255,12 +1280,7 @@ export default function MeetingSummary() {
               // Bullet points or numbered lists
               documentChildren.push(
                 new Paragraph({
-                  children: [
-                    new TextRun({
-                      text: line,
-                      size: 22
-                    })
-                  ],
+                  children: parseMarkdownToRuns(line.replace(/^(\s*[-•]\s+|\s*\d+\.\s+)/, '').trim(), 22),
                   spacing: { after: 100 },
                   bullet: { level: 0 }
                 })
@@ -1269,12 +1289,7 @@ export default function MeetingSummary() {
               // Regular text
               documentChildren.push(
                 new Paragraph({
-                  children: [
-                    new TextRun({
-                      text: line,
-                      size: 22
-                    })
-                  ],
+                  children: parseMarkdownToRuns(line, 22),
                   spacing: { after: 100 }
                 })
               );
