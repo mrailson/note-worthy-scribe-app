@@ -92,8 +92,7 @@ serve(async (req) => {
             content: userPrompt
           }
         ],
-        temperature: 0.7,
-        max_tokens: 4000
+        // temperature and max_tokens removed for model compatibility
       }),
     });
 
