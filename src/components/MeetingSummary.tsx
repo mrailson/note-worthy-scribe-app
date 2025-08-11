@@ -18,7 +18,8 @@ import {
   Hash
 } from "lucide-react";
 import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, BorderStyle } from "docx";
-
+import { useAuth } from "@/contexts/AuthContext";
+import { MeetingMinutesEmailModal } from "@/components/MeetingMinutesEmailModal";
 
 interface MeetingSummaryProps {
   duration: string;
@@ -46,6 +47,8 @@ export const MeetingSummary = ({
   const [detailLevel, setDetailLevel] = useState("detailed");
   const [notes, setNotes] = useState(generateMeetingNotes(transcript, "detailed"));
   const [isEditing, setIsEditing] = useState(false);
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const { user } = useAuth();
 
   function generateMeetingNotes(transcript: string, level: string) {
     if (!transcript) return "No meeting content to summarize.";
@@ -474,15 +477,26 @@ New patient pathway improvements have reduced waiting times by 15%. Patient sati
         <div className="space-y-2">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <label className="text-sm font-medium">Review and customise your meeting notes</label>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="touch-manipulation min-h-[44px] w-full sm:w-auto"
-              onClick={() => setIsEditing(!isEditing)}
-            >
-              <Edit3 className="h-4 w-4 mr-2" />
-              {isEditing ? "Save & Preview" : "Edit Notes"}
-            </Button>
+            <div className="flex gap-2 w-full sm:w-auto">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="touch-manipulation min-h-[44px] w-full sm:w-auto"
+                onClick={() => setIsEditing(!isEditing)}
+              >
+                <Edit3 className="h-4 w-4 mr-2" />
+                {isEditing ? "Save & Preview" : "Edit Notes"}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="touch-manipulation min-h-[44px] w-full sm:w-auto"
+                onClick={() => setIsEmailModalOpen(true)}
+              >
+                <Mail className="h-4 w-4 mr-2" />
+                Email
+              </Button>
+            </div>
           </div>
           {isEditing ? (
             <Textarea
@@ -549,6 +563,16 @@ New patient pathway improvements have reduced waiting times by 15%. Patient sati
             Transcript
           </Button>
         </div>
+        <MeetingMinutesEmailModal
+          isOpen={isEmailModalOpen}
+          onOpenChange={setIsEmailModalOpen}
+          defaultToEmail={user?.email || ""}
+          defaultSubject={`Meeting Summary: ${meetingSettings?.title || "Meeting"} - ${new Date().toLocaleDateString()}`}
+          defaultBody={notes.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim()}
+          meetingTitle={meetingSettings?.title || "Meeting"}
+          meetingDate={new Date().toLocaleString()}
+          duration={duration}
+        />
       </CardContent>
     </Card>
   );
