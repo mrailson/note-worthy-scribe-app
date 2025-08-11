@@ -2055,16 +2055,6 @@ useEffect(() => {
                       </div>
                     </div>
 
-                    {/* Mobile: Collapsed transcript below stats inside main box */}
-                    <div className="mt-4 sm:hidden">
-                      <LiveTranscript 
-                        transcript={transcript}
-                        confidence={currentConfidence}
-                        showTimestamps={showTranscriptTimestamps}
-                        onTimestampsToggle={setShowTranscriptTimestamps}
-                        defaultOpen={false}
-                      />
-                    </div>
                   
                   </div>
 
@@ -2194,16 +2184,6 @@ useEffect(() => {
                     <div className="text-sm text-muted-foreground">Completed</div>
                   </div>
                 </div>
-
-                {/* Live transcript - aligned with Meeting Recorder */}
-                {!isMobile && (
-                  <LiveTranscript 
-                    transcript={transcript}
-                    confidence={currentConfidence}
-                    showTimestamps={showTranscriptTimestamps}
-                    onTimestampsToggle={setShowTranscriptTimestamps}
-                  />
-                )}
 
 
                 {/* Generated notes display */}
