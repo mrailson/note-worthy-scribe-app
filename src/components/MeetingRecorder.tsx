@@ -3411,10 +3411,10 @@ export const MeetingRecorder = ({
                   <div className="max-w-sm mx-auto">
                     <button
                       type="button"
-                      onClick={() => { if (!isRecording) startRecording(); }}
-                      className={`p-2 rounded-full bg-primary/5 w-12 h-12 mx-auto mb-2 flex items-center justify-center transition-colors ${isRecording ? 'cursor-not-allowed' : 'cursor-pointer hover:bg-primary/10'}`}
-                      aria-label={isRecording ? 'Recording in progress' : 'Start recording'}
-                      title={isRecording ? 'Recording in progress' : 'Start recording'}
+                      onClick={() => { isRecording ? stopRecording() : startRecording(); }}
+                      className="p-2 rounded-full bg-primary/5 w-12 h-12 mx-auto mb-2 flex items-center justify-center transition-colors cursor-pointer hover:bg-primary/10"
+                      aria-label={isRecording ? 'Stop recording' : 'Start recording'}
+                      title={isRecording ? 'Stop recording' : 'Start recording'}
                     >
                       <Mic className={`h-6 w-6 ${isRecording ? 'text-red-500' : 'text-primary/60'}`} />
                     </button>
