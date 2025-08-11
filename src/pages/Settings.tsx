@@ -365,17 +365,11 @@ export default function Settings() {
 
           {/* Settings Tabs */}
           <Tabs defaultValue="general" className="space-y-6">
-            <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-6' : 'grid-cols-3'}`}>
+            <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-5' : 'grid-cols-3'}`}>
               <TabsTrigger value="general" className="flex items-center gap-2">
                 <SettingsIcon className="h-4 w-4" />
                 General
               </TabsTrigger>
-              {isAdmin && (
-                <TabsTrigger value="attendees" className="flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  Attendees
-                </TabsTrigger>
-              )}
               {isAdmin && (
                 <TabsTrigger value="practices" className="flex items-center gap-2">
                   <Building className="h-4 w-4" />
@@ -661,23 +655,6 @@ export default function Settings() {
               </Card>
             </TabsContent>
 
-            {isAdmin && (
-              <TabsContent value="attendees" className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Users className="h-5 w-5" />
-                      Attendee Management
-                    </CardTitle>
-                    <p className="text-muted-foreground">
-                      Manage your regular meeting attendees. You can add frequently attending colleagues 
-                      and mark some as default attendees for new meetings.
-                    </p>
-                  </CardHeader>
-                </Card>
-                <AttendeeManager />
-              </TabsContent>
-            )}
 
             {isAdmin && (
               <TabsContent value="practices" className="space-y-6">
