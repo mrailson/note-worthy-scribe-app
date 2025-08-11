@@ -118,7 +118,7 @@ ${transcript}`;
           },
           { role: 'user', content: prompt }
         ],
-        temperature: 0.3
+        /* temperature removed for model compatibility */
         // Removed max tokens to ensure compatibility with current model
 
       }),
