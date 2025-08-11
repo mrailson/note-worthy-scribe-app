@@ -238,7 +238,8 @@ export const MeetingRecorder = ({
   const micAudioStreamRef = useRef<MediaStream | null>(null);
   const transcriptHandler = useRef<IncrementalTranscriptHandler | null>(null);
   const isRecordingRef = useRef<boolean>(false);
-
+  // Progressive pre-summaries ingestion state
+  const ingestedKeysRef = useRef<Set<string>>(new Set());
   // Audio backup recording refs
   const audioBackupRecorder = useRef<MediaRecorder | null>(null);
   const audioBackupChunks = useRef<Blob[]>([]);
@@ -1086,6 +1087,43 @@ export const MeetingRecorder = ({
       transcriptHandler.current.processTranscript(incrementalData);
     }
 
+    // Progressive pre-summaries: ingest transcript chunks for long sessions
+    if (transcriptData.isFinal) {
+      const shouldIngest = duration >= 1200 || wordCount >= 4000; // 20 min or ~4000 words
+      const text = (transcriptData.text || '').trim();
+      if (shouldIngest && text.length >= 120) {
+        const key = text.toLowerCase().slice(0, 160);
+        if (!ingestedKeysRef.current.has(key)) {
+          ingestedKeysRef.current.add(key);
+
+          let sessionId = sessionStorage.getItem('currentSessionId') || '';
+          if (!sessionId && desktopTranscriberRef.current) {
+            try {
+              sessionId = desktopTranscriberRef.current.getSessionId();
+            } catch {}
+          }
+          const meetingId = sessionId || null; // Use session as temp meeting link
+
+          if (sessionId) {
+            void supabase.functions.invoke('ingest-transcript-chunk', {
+              body: {
+                sessionId,
+                meetingId,
+                text,
+                detailLevel: 'standard',
+              }
+            }).then(({ data, error }) => {
+              if (error) {
+                console.warn('ingest-transcript-chunk error:', error);
+              } else {
+                console.log('✅ Ingested summary chunk', data?.chunkIndex);
+              }
+            }).catch((e) => console.warn('ingest-transcript-chunk failed:', e));
+          }
+        }
+      }
+    }
+
     // Update transcripts array for display
     setRealtimeTranscripts(prev => {
       // Only keep recent transcripts for display (last 50 segments)
@@ -1108,7 +1146,6 @@ export const MeetingRecorder = ({
       return trimmed;
     });
   };
-
   const handleBrowserTranscript = (data: BrowserTranscriptData) => {
     // Skip empty transcripts
     if (!data.text || !data.text.trim()) return;
