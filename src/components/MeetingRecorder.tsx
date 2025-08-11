@@ -3154,7 +3154,7 @@ export const MeetingRecorder = ({
             {/* Compact Stats Dashboard */}
             <Card className="bg-gradient-to-br from-background to-muted/30">
               <CardContent className="pt-4 pb-4">
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 gap-3">
                   {/* Duration */}
                   <div className="text-center p-3 bg-background/50 rounded-lg border border-border/50">
                     <div className="text-2xl font-bold text-primary mb-1">
@@ -3177,7 +3177,7 @@ export const MeetingRecorder = ({
                   </div>
                   
                   {/* Connection Status */}
-                  <div className="text-center p-3 bg-background/50 rounded-lg border border-border/50">
+                  <div className="text-center p-3 bg-background/50 rounded-lg border border-border/50 hidden">
                     <div className="flex items-center justify-center mb-1">
                        <Badge 
                          variant={getConnectionStatusColor() as any} 
