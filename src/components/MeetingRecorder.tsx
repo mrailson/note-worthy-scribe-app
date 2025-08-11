@@ -3168,7 +3168,7 @@ export const MeetingRecorder = ({
                     className="text-center p-3 bg-background/50 rounded-lg border border-border/50 cursor-pointer hover:bg-background/70 transition-colors"
                     onClick={() => setShowLastPhrase(!showLastPhrase)}
                   >
-                    <div className="text-2xl font-bold text-primary mb-1">
+                    <div className={`${showLastPhrase ? 'text-sm' : 'text-2xl'} font-bold text-primary mb-1`}>
                       {showLastPhrase ? (lastPhrase || "No words yet") : wordCount}
                     </div>
                     <div className="text-xs font-medium text-muted-foreground">
