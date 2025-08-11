@@ -45,6 +45,4 @@ verify_jwt = true
 [functions.ingest-transcript-chunk]
 verify_jwt = true
 
-[functions.openai-model-probe]
-verify_jwt = true
 

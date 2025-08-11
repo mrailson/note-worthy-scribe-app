@@ -66,7 +66,6 @@ import PptxGenJS from 'pptxgenjs';
 import PMGenieVoiceAgent from '@/components/PMGenieVoiceAgent';
 import { RealtimeChat } from '@/utils/RealtimeAudio';
 import NewsPanel from '@/components/NewsPanel';
-import { toast } from '@/components/ui/use-toast';
 
 // Helper function to get file type icon
 const getFileTypeIcon = (fileName: string, fileType?: string) => {
@@ -291,27 +290,6 @@ const AI4PMService = () => {
       saveSearchAutomatically(messages);
     }
     
-  };
-
-  const testOpenAIModel = async (modelId: string = 'gpt-5') => {
-    try {
-      const { data, error } = await supabase.functions.invoke('openai-model-probe', {
-        body: { modelId }
-      });
-      if (error) throw error;
-      toast({
-        title: 'Model test succeeded',
-        description: `Model: ${data?.model || modelId} • Reply: ${String(data?.reply || '').slice(0, 140)}`
-      });
-    } catch (err: any) {
-      const msg = err?.message || 'Unknown error';
-      console.error('Model probe failed:', err);
-      toast({
-        title: 'Model test failed',
-        description: msg,
-        variant: 'destructive'
-      });
-    }
   };
 
   const loadPracticeContext = async () => {
@@ -1784,19 +1762,6 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                             </Button>
                           </div>
                         )}
-
-                        {/* Test model button */}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="px-3 min-h-[44px] touch-manipulation ml-2"
-                          title="Probe OpenAI model availability"
-                          onClick={() => testOpenAIModel('gpt-5')}
-                        >
-                          <Sparkles className="h-4 w-4 mr-1" />
-                          <span className="hidden sm:inline">Test GPT‑5</span>
-                          <span className="sm:hidden">Test</span>
-                        </Button>
 
                         {/* Quick Actions Expandable Button - moved second */}
                         <Collapsible open={showQuickActions} onOpenChange={setShowQuickActions}>
