@@ -28,21 +28,13 @@ serve(async (req) => {
       ? 'Be more detailed than standard. Expand points with accurate specifics from the transcript, include additional sub-bullets and clearer structure.'
       : 'Use the standard level of detail: concise yet complete, avoiding unnecessary verbosity.';
 
-    const prompt = `Please analyze the following meeting transcript and create professional meeting minutes. The transcript includes timestamps in [HH:MM] format which indicate when each section was spoken. Use these timestamps to provide a chronological overview of the meeting. Do NOT use placeholder text - only include information that is actually present in the transcript.
+    const prompt = `Please analyze the following meeting transcript and create professional meeting minutes. Do NOT include any times, time ranges, or timestamps anywhere in the output. Do NOT use placeholder text - only include information that is actually present in the transcript.
 
 Format the output as follows:
 
 # Meeting Minutes
 
 **Date:** ${meetingDate || 'Not specified'}
-**Time:** ${meetingTime ? meetingTime.replace(/:\d{2}$/, '').replace(/:\d{2}:/, ':').split(':').map((part, index) => {
-  if (index === 1) {
-    const minutes = parseInt(part);
-    const roundedMinutes = Math.round(minutes / 15) * 15;
-    return roundedMinutes === 60 ? '00' : roundedMinutes.toString().padStart(2, '0');
-  }
-  return part;
-}).join(':') : 'Not specified'}
 **Meeting:** ${meetingTitle || 'General Meeting'}
 **Location:** [Extract from transcript if mentioned, otherwise write "Not specified"]
 
@@ -50,7 +42,7 @@ Format the output as follows:
 List all participants mentioned by name in the transcript. If no specific names are mentioned, write "Participants identified by voice/role" and list any roles mentioned (e.g., "Practice Manager", "GP", "Receptionist").
 
 ## 2️⃣ Meeting Agenda & Topics Discussed
-Summarize the main topics and agenda items that were actually discussed in the meeting based on the transcript content. Where possible, reference the time periods when different topics were discussed.
+Summarize the main topics and agenda items that were actually discussed in the meeting based on the transcript content. Do not include any times or time ranges.
 
 ## 3️⃣ Key Discussion Points
 Provide a detailed summary of the main discussions organized by topic. For each major topic, include:
@@ -69,7 +61,7 @@ Example format:
 ## 4️⃣ Decisions Made
 List all decisions that were made during the meeting. For each decision, include:
 - What was decided
-- Approximate time when the decision was made (rounded to nearest 15-minute block)
+
 - The reasoning behind the decision (if discussed)
 - Who was involved in making the decision
 
@@ -77,7 +69,7 @@ List all decisions that were made during the meeting. For each decision, include
 List all action items and tasks assigned during the meeting:
 - **Task:** [Description of the action item]
 - **Assigned to:** [Person or role responsible]
-- **Discussed at:** [Time period when assigned, rounded to nearest 15-minute block]
+
 - **Deadline:** [If mentioned, otherwise "To be determined"]
 
 ## 6️⃣ Next Steps
@@ -86,15 +78,14 @@ Summarize what will happen next, including:
 - Next review dates
 - Any ongoing tasks or projects mentioned
 
-**Important Instructions:**
-- Use the timestamps to provide chronological context
-- Round all times to the nearest 15-minute block (e.g., 09:07 becomes 09:00, 09:23 becomes 09:30)
+Important instructions:
+- Do not include any timestamps or time ranges anywhere
 - Only include information that is actually present in the transcript
 - Do not add placeholder text or make assumptions
 - If a section has no relevant information from the transcript, write "Not discussed in this meeting"
 - Use clear, professional language
 - Organize information logically
-- Extract specific details, names, dates, and numbers when mentioned
+- Extract specific details, names, and numbers when mentioned
 
 Detail preference: ${detailInstructions}
 
