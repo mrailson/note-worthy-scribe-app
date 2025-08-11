@@ -2275,6 +2275,45 @@ export type Database = {
           },
         ]
       }
+      meeting_summary_chunks: {
+        Row: {
+          chunk_index: number
+          created_at: string
+          detail_level: string | null
+          id: string
+          meeting_id: string | null
+          partial_summary: string
+          session_id: string
+          source_word_count: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          chunk_index: number
+          created_at?: string
+          detail_level?: string | null
+          id?: string
+          meeting_id?: string | null
+          partial_summary: string
+          session_id: string
+          source_word_count?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          chunk_index?: number
+          created_at?: string
+          detail_level?: string | null
+          id?: string
+          meeting_id?: string | null
+          partial_summary?: string
+          session_id?: string
+          source_word_count?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       meeting_transcription_chunks: {
         Row: {
           chunk_number: number
