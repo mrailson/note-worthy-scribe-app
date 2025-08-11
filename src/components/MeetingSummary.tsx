@@ -351,6 +351,11 @@ New patient pathway improvements have reduced waiting times by 15%. Patient sati
 
         const doc = new Document({
           sections: [{
+            properties: {
+              page: {
+                margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 }
+              }
+            },
             children
           }],
           creator: "Meeting Notes",

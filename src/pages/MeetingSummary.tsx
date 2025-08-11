@@ -913,7 +913,11 @@ export default function MeetingSummary() {
       const doc = new Document({
         sections: [
           {
-            properties: {},
+            properties: {
+              page: {
+                margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 }
+              }
+            },
             children: paragraphs,
           },
         ],
@@ -1329,7 +1333,7 @@ export default function MeetingSummary() {
         sections: [{
           properties: {
             page: {
-              margin: { top: 720, right: 720, bottom: 720, left: 720 }
+              margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 }
             }
           },
           children: documentChildren
@@ -1710,7 +1714,7 @@ Speakers detected: ${meetingData?.speakerCount || 0}`;
         sections: [{
           properties: {
             page: {
-              margin: { top: 720, right: 720, bottom: 1440, left: 720 } // Increased bottom margin for footer
+              margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 }
             }
           },
           headers: {},
