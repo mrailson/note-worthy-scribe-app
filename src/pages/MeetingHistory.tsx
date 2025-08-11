@@ -37,6 +37,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useNavigate, useLocation } from "react-router-dom";
+import { cleanLargeTranscript } from '@/utils/CleanTranscriptOrchestrator';
 
 interface Meeting {
   id: string;
@@ -178,6 +179,7 @@ const MeetingHistory = () => {
   const [isCleaningTranscript, setIsCleaningTranscript] = useState(false);
   const [currentMeetingForTranscript, setCurrentMeetingForTranscript] = useState<Meeting | null>(null);
   const [isSavingCleanedTranscript, setIsSavingCleanedTranscript] = useState(false);
+  const [cleanProgress, setCleanProgress] = useState<{ done: number; total: number }>({ done: 0, total: 0 });
   
   // Mic test service visibility state
   const [micTestServiceVisible, setMicTestServiceVisible] = useState<boolean>(true);
@@ -476,22 +478,14 @@ const MeetingHistory = () => {
         .filter(line => line.length > 0)
         .join(' ');
 
-      // Clean the transcript using AI
-      const { data: cleanData, error: cleanError } = await supabase.functions.invoke('clean-transcript', {
-        body: {
-          rawTranscript: rawTranscript,
-          meetingTitle: currentMeetingForTranscript.title
-        }
-      });
+      // Clean the transcript using chunked orchestrator
+      setCleanProgress({ done: 0, total: 0 });
+      const cleaned = await cleanLargeTranscript(rawTranscript, currentMeetingForTranscript.title, (done, total) => setCleanProgress({ done, total }));
 
-      if (cleanError || !cleanData?.cleanedTranscript) {
-        throw new Error('Failed to clean transcript');
-      }
-
-      setCleanedTranscript(cleanData.cleanedTranscript);
+      setCleanedTranscript(cleaned);
       
       // Auto-save the cleaned transcript
-      await saveCleanedTranscriptAutomatically(cleanData.cleanedTranscript);
+      await saveCleanedTranscriptAutomatically(cleaned);
       
       console.log(`Transcript cleaned and auto-saved for "${currentMeetingForTranscript.title}"`);
     } catch (error) {
@@ -1722,7 +1716,7 @@ const MeetingHistory = () => {
                   ) : (
                     <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                   )}
-                  {isCleaningTranscript ? 'Cleaning & Auto-saving...' : 'Clean with AI'}
+                  {isCleaningTranscript ? (cleanProgress.total > 0 ? `Cleaning ${cleanProgress.done}/${cleanProgress.total} & Auto-saving...` : 'Cleaning & Auto-saving...') : 'Clean with AI'}
                 </Button>
                 
                 <Button
