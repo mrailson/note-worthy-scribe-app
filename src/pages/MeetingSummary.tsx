@@ -49,6 +49,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { SafeMessageRenderer } from "@/components/SafeMessageRenderer";
 import { MeetingMinutesEnhancer } from "@/components/MeetingMinutesEnhancer";
 import { Header } from "@/components/Header";
+import { NotewellAIAnimation } from "@/components/NotewellAIAnimation";
 
 interface MeetingData {
   id?: string;

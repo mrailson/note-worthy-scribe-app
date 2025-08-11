@@ -15,11 +15,18 @@ serve(async (req) => {
   }
 
   try {
-    const { transcript, meetingTitle, meetingDate, meetingTime } = await req.json();
+    const { transcript, meetingTitle, meetingDate, meetingTime, detailLevel } = await req.json();
 
     if (!transcript) {
       throw new Error('Transcript is required');
     }
+
+    const level = (detailLevel || 'standard').toString().toLowerCase();
+    const detailInstructions = level === 'super' 
+      ? 'Maximise detail and specificity. Extract granular points, sub-bullets, explicit attributions when available, and comprehensive context grounded ONLY in the transcript.'
+      : level === 'more'
+      ? 'Be more detailed than standard. Expand points with accurate specifics from the transcript, include additional sub-bullets and clearer structure.'
+      : 'Use the standard level of detail: concise yet complete, avoiding unnecessary verbosity.';
 
     const prompt = `Please analyze the following meeting transcript and create professional meeting minutes. The transcript includes timestamps in [HH:MM] format which indicate when each section was spoken. Use these timestamps to provide a chronological overview of the meeting. Do NOT use placeholder text - only include information that is actually present in the transcript.
 
@@ -88,6 +95,8 @@ Summarize what will happen next, including:
 - Use clear, professional language
 - Organize information logically
 - Extract specific details, names, dates, and numbers when mentioned
+
+Detail preference: ${detailInstructions}
 
 Transcript to analyze:
 ${transcript}`;
