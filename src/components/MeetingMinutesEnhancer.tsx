@@ -19,6 +19,7 @@ import {
   ArrowRight,
   Loader2,
   Undo,
+  Save,
   Mic,
   Upload
 } from "lucide-react";
@@ -30,6 +31,7 @@ import { useDropzone } from 'react-dropzone';
 interface MeetingMinutesEnhancerProps {
   originalContent: string;
   onEnhancedContent: (content: string) => void;
+  onSave: (content: string) => Promise<void> | void;
   isVisible: boolean;
 }
 
@@ -48,6 +50,7 @@ interface UploadedFile {
 export function MeetingMinutesEnhancer({ 
   originalContent, 
   onEnhancedContent, 
+  onSave,
   isVisible 
 }: MeetingMinutesEnhancerProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -55,6 +58,7 @@ export function MeetingMinutesEnhancer({
   const [customRequest, setCustomRequest] = useState("");
   const [additionalContext, setAdditionalContext] = useState("");
   const [isEnhancing, setIsEnhancing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [enhancementHistory, setEnhancementHistory] = useState<Array<{
     type: string;
     request?: string;
@@ -262,6 +266,23 @@ export function MeetingMinutesEnhancer({
     }
   };
 
+  const handleSave = async () => {
+    if (!originalContent?.trim()) {
+      toast.error("No content to save");
+      return;
+    }
+    setIsSaving(true);
+    try {
+      await onSave(originalContent);
+      toast.success("Minutes saved");
+    } catch (error) {
+      console.error('Error saving minutes:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to save meeting minutes');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const getEnhancementIcon = (type: string) => {
     const option = enhancementOptions.find(opt => opt.value === type);
     const Icon = option?.icon || Sparkles;
@@ -420,6 +441,25 @@ export function MeetingMinutesEnhancer({
                       <Sparkles className="h-4 w-4 mr-2" />
                       Enhance Meeting Minutes
                       <ArrowRight className="h-4 w-4 ml-2" />
+                    </>
+                  )}
+                </Button>
+                
+                <Button
+                  onClick={handleSave}
+                  disabled={isSaving}
+                  variant="secondary"
+                  className="px-3"
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4 mr-2" />
+                      Save
                     </>
                   )}
                 </Button>
