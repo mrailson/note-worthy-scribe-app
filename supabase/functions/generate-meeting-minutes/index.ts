@@ -101,7 +101,7 @@ ${transcript}`;
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'o4-mini-2025-04-16',
         messages: [
           { 
             role: 'system', 
