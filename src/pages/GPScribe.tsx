@@ -1579,12 +1579,18 @@ useEffect(() => {
         
         {/* Tab Navigation */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="flex w-full gap-1 overflow-x-auto sm:grid sm:grid-cols-6 p-1 rounded-xl">
+          <TabsList className="flex w-full gap-1 overflow-x-auto sm:grid sm:grid-cols-7 p-1 rounded-xl">
             <TabsTrigger 
               value="consultation" 
               className="rounded-lg transition-all duration-200 font-medium shrink-0"
             >
               Consultation
+            </TabsTrigger>
+            <TabsTrigger 
+              value="transcript" 
+              className="rounded-lg transition-all duration-200 font-medium shrink-0"
+            >
+              Transcript
             </TabsTrigger>
             <TabsTrigger 
               value="examples" 
@@ -2137,6 +2143,23 @@ useEffect(() => {
           </div>
           {/* Spacer to avoid content underlap on mobile */}
           <div className="sm:hidden" style={{ height: 'calc(env(safe-area-inset-bottom) + 96px)' }} />
+        </TabsContent>
+
+        {/* Transcript Tab */}
+        <TabsContent value="transcript" className="space-y-4">
+          <Card className="shadow-medium border-accent/20">
+            <CardHeader>
+              <CardTitle>Transcript</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <LiveTranscript 
+                transcript={transcript}
+                confidence={currentConfidence}
+                showTimestamps={showTranscriptTimestamps}
+                onTimestampsToggle={setShowTranscriptTimestamps}
+              />
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Completed Consultation Tab */}
