@@ -118,8 +118,9 @@ ${transcript}`;
           },
           { role: 'user', content: prompt }
         ],
-        temperature: 0.3,
-        max_tokens: 16384, // Maximum output tokens for gpt-4o-mini
+        temperature: 0.3
+        // Removed max tokens to ensure compatibility with current model
+
       }),
     });
 
