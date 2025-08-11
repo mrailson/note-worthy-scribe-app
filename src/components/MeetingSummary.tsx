@@ -143,7 +143,8 @@ New patient pathway improvements have reduced waiting times by 15%. Patient sati
         
         // Parse row data
         const cells = line.split('|').map(cell => cell.trim()).filter(cell => cell !== '');
-        if (cells.length > 0) {
+        const isSeparatorRow = cells.length > 0 && cells.every(cell => /^:?-{2,}:?$/.test(cell));
+        if (cells.length > 0 && !isSeparatorRow) {
           currentTable.push(cells);
         }
       } else if (inTable && line === '') {
