@@ -2,6 +2,8 @@ import React, { useState, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Mic, MicOff, Play, Square } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { Progress } from '@/components/ui/progress';
+import { cleanLargeTranscript } from '@/utils/CleanTranscriptOrchestrator';
 
 const ChunkedTranscriptionTest = () => {
   const [isRecording, setIsRecording] = useState(false);
@@ -10,6 +12,7 @@ const ChunkedTranscriptionTest = () => {
   const [cleanedTranscript, setCleanedTranscript] = useState<string>('');
   const [currentChunk, setCurrentChunk] = useState(0);
   const [isProcessingClean, setIsProcessingClean] = useState(false);
+  const [cleanProgress, setCleanProgress] = useState<{ done: number; total: number }>({ done: 0, total: 0 });
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -75,38 +78,18 @@ const ChunkedTranscriptionTest = () => {
     }
 
     setIsProcessingClean(true);
+    setCleanProgress({ done: 0, total: 0 });
     try {
-      console.log('🧹 Sending transcript for cleaning:', rawTranscript.substring(0, 100) + '...');
-      
-      const response = await fetch('https://dphcnbricafkbtizkoal.functions.supabase.co/functions/v1/clean-transcript', {
-        method: 'POST',
-        headers: {
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwaGNuYnJpY2Fma2J0aXprb2FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MzIyMzIsImV4cCI6MjA2ODMwODIzMn0.U3bJI6P1yzgRBz_k2s0zlJGu1GWiVRTHjYgv9QQggPs',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          rawTranscript: rawTranscript,
-          meetingTitle: 'Chunked Test Recording'
-        })
+      console.log('🧹 Cleaning transcript in chunks as needed...');
+      const cleaned = await cleanLargeTranscript(rawTranscript, 'Chunked Test Recording', (done, total) => {
+        setCleanProgress({ done, total });
       });
-
-      if (response.ok) {
-        const result = await response.json();
-        setCleanedTranscript(result.cleanedTranscript || result.transcript || '');
-        console.log('✅ Transcript cleaned successfully');
-        toast({
-          title: "Transcript Cleaned",
-          description: "Transcript has been processed and tidied up"
-        });
-      } else {
-        const error = await response.text();
-        console.error('❌ Transcript cleaning failed:', error);
-        toast({
-          title: "Cleaning Failed",
-          description: "Failed to clean transcript",
-          variant: "destructive"
-        });
-      }
+      setCleanedTranscript(cleaned);
+      console.log('✅ Transcript cleaned successfully');
+      toast({
+        title: "Transcript Cleaned",
+        description: "Transcript has been processed and tidied up"
+      });
     } catch (error) {
       console.error('💥 Error cleaning transcript:', error);
       toast({
@@ -353,6 +336,14 @@ const ChunkedTranscriptionTest = () => {
           </div>
         </div>
       </div>
+
+      {/* Cleaning Progress */}
+      {isProcessingClean && (
+        <div className="space-y-2">
+          <div className="text-sm">Cleaning {cleanProgress.done}/{cleanProgress.total || '...'}</div>
+          <Progress value={cleanProgress.total ? (cleanProgress.done / cleanProgress.total) * 100 : 12} />
+        </div>
+      )}
 
       {/* Cleaned Transcript */}
       {cleanedTranscript && (
