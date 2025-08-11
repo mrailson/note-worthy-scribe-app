@@ -59,6 +59,8 @@ export function MeetingMinutesEnhancer({
     type: string;
     request?: string;
     timestamp: Date;
+    durationMs?: number;
+    model?: string;
   }>>([]);
   
   // New state for undo functionality
@@ -207,6 +209,8 @@ export function MeetingMinutesEnhancer({
 
     setIsEnhancing(true);
 
+    const startedAt = performance.now();
+
     try {
       const { data, error } = await supabase.functions.invoke('enhance-meeting-minutes', {
         body: {
@@ -228,11 +232,17 @@ export function MeetingMinutesEnhancer({
       // Update the enhanced content
       onEnhancedContent(data.enhancedContent);
 
+      // Compute timing and model
+      const elapsedMs = typeof data?.elapsed_ms === 'number' ? data.elapsed_ms : Math.round(performance.now() - startedAt);
+      const modelUsed = data?.model || 'o4-mini-2025-04-16';
+
       // Add to history
       setEnhancementHistory(prev => [...prev, {
         type: enhancementType,
         request: customRequest || undefined,
-        timestamp: new Date()
+        timestamp: new Date(),
+        durationMs: elapsedMs,
+        model: modelUsed
       }]);
 
       // Show success message
@@ -443,6 +453,18 @@ export function MeetingMinutesEnhancer({
                         )}
                         <span>•</span>
                         <span>{item.timestamp.toLocaleTimeString()}</span>
+                        {typeof item.durationMs === 'number' && (
+                          <>
+                            <span>•</span>
+                            <span>{(item.durationMs / 1000).toFixed(2)}s</span>
+                          </>
+                        )}
+                        {item.model && (
+                          <>
+                            <span>•</span>
+                            <span>{item.model}</span>
+                          </>
+                        )}
                       </div>
                     );
                   })}

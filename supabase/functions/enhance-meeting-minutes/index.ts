@@ -71,6 +71,9 @@ serve(async (req) => {
 
     console.log('Enhancing meeting minutes with type:', enhancementType);
 
+    const modelName = 'o4-mini-2025-04-16';
+    const startedAt = Date.now();
+
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -78,7 +81,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'o4-mini-2025-04-16',
+        model: modelName,
         messages: [
           {
             role: 'system',
@@ -108,7 +111,9 @@ serve(async (req) => {
     return new Response(JSON.stringify({ 
       enhancedContent,
       originalLength: originalContent.length,
-      enhancedLength: enhancedContent.length
+      enhancedLength: enhancedContent.length,
+      model: modelName,
+      elapsed_ms: Date.now() - startedAt
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
