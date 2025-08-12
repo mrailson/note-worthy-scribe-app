@@ -13,7 +13,8 @@ serve(async (req) => {
   }
 
   try {
-    const { mode = "run" } = await req.json().catch(() => ({ mode: "run" }));
+    const payload = await req.json().catch(() => ({}));
+    const { mode = "run", q } = payload as { mode?: string; q?: string };
 
     const perplexityKey = Deno.env.get("PERPLEXITY_API_KEY");
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -28,7 +29,50 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    if (mode === "latest") {
+    if (mode === "query") {
+      if (!perplexityKey) {
+        return new Response(
+          JSON.stringify({ success: false, error: "PERPLEXITY_API_KEY not configured" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const query = (q || '').toString().slice(0, 500);
+      const prompt = `Search the web now for the latest reliable announcements and news about: ${query}.
+Rules:
+- Prioritise authoritative UK sources (DHSC, NHS England, gov.uk, Parliament, official social posts) and reputable outlets.
+- Return a concise HTML list where each item contains: <a href="URL">Title</a> — Source — Publication date — 1–2 sentence summary.
+- UK English, neutral tone, no code fences.`;
+      const resp = await fetch("https://api.perplexity.ai/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${perplexityKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "llama-3.1-sonar-small-128k-online",
+          messages: [
+            { role: "system", content: "Be precise and concise. Return only clean HTML, no code fences." },
+            { role: "user", content: prompt },
+          ],
+          temperature: 0.2,
+          top_p: 0.9,
+          max_tokens: 1600,
+          return_images: false,
+          return_related_questions: false,
+          search_recency_filter: "day",
+          frequency_penalty: 1,
+          presence_penalty: 0,
+        }),
+      });
+      if (!resp.ok) {
+        const txt = await resp.text();
+        throw new Error(`Perplexity API error: ${txt}`);
+      }
+      const data = await resp.json();
+      let html: string = data?.choices?.[0]?.message?.content || '';
+      html = html.replace(/^```html\n?|```$/g, '').trim();
+      return new Response(
+        JSON.stringify({ success: true, title: `Web results for: ${query}`, html }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    } else if (mode === "latest") {
       const { data, error } = await supabase
         .from("curated_news_pages")
         .select("id, title, html, created_at, digest_date")

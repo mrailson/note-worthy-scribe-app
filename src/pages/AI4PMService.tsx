@@ -714,6 +714,8 @@ SPECIAL CAPABILITIES:
 - Document Generation: When asked to create a Word document, format your response with clear headings, sections, and structured content that can be easily converted to a professional document.
 - File Analysis: When files are uploaded by the user, you have access to their full content and can analyze, summarize, and answer questions about them directly.
 
+If the user's message includes a section labeled "[Latest web results]" or "[Latest web updates digest]", treat it as up-to-date context. Do not mention training or knowledge cutoffs; answer using that context and cite sources and dates when present.
+
 Always provide practical, actionable advice that follows NHS guidelines and best practices.`;
 
     return prompt;
@@ -730,15 +732,26 @@ Always provide practical, actionable advice that follows NHS guidelines and best
       messageContent = `Please analyze the uploaded file(s): ${uploadedFiles.map(f => f.name).join(', ')}`;
     }
 
-    // Optionally include latest web updates digest
+    // Optionally include latest web updates digest or targeted web results
     if (includeLatestWeb) {
       try {
         let latestHtml: string | undefined;
-        const { data: latestData, error: latestError } = await supabase.functions.invoke('nhs-gp-news', { body: { mode: 'latest' } });
-        if (!latestError) {
-          latestHtml = latestData?.page?.html || latestData?.html;
+        const webQuery = input?.trim();
+        // 1) Try targeted live web query for the user's question
+        if (webQuery) {
+          const { data: qData, error: qError } = await supabase.functions.invoke('nhs-gp-news', { body: { mode: 'query', q: webQuery } });
+          if (!qError) {
+            latestHtml = qData?.html || qData?.page?.html;
+          }
         }
-        // If no cached page, trigger a fresh run (requires PERPLEXITY_API_KEY)
+        // 2) Fallback to cached daily digest
+        if (!latestHtml) {
+          const { data: latestData, error: latestError } = await supabase.functions.invoke('nhs-gp-news', { body: { mode: 'latest' } });
+          if (!latestError) {
+            latestHtml = latestData?.page?.html || latestData?.html;
+          }
+        }
+        // 3) If no cached page, trigger a fresh run (requires PERPLEXITY_API_KEY)
         if (!latestHtml) {
           const { data: runData, error: runError } = await supabase.functions.invoke('nhs-gp-news', { body: { mode: 'run' } });
           if (!runError) {
@@ -750,7 +763,8 @@ Always provide practical, actionable advice that follows NHS guidelines and best
         if (latestHtml) {
           const latestText = latestHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
           const snippet = latestText.slice(0, 2000);
-          messageContent = `${messageContent}\n\n[Latest web updates digest]\n${snippet}`;
+          const header = webQuery ? '[Latest web results]' : '[Latest web updates digest]';
+          messageContent = `${messageContent}\n\n${header}\n${snippet}`;
         } else {
           console.warn('No latest web digest available');
         }
