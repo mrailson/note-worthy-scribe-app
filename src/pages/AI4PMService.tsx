@@ -134,6 +134,7 @@ const AI4PMService = () => {
   const [includePracticeBranding, setIncludePracticeBranding] = useState(true);
   const [practiceDetails, setPracticeDetails] = useState<any>(null);
   const [showQuickActions, setShowQuickActions] = useState(false);
+  const [includeLatestWeb, setIncludeLatestWeb] = useState(false);
   const [currentSearchId, setCurrentSearchId] = useState<string | null>(null); // Track current conversation
   
   const [expandedMessage, setExpandedMessage] = useState<Message | null>(null);
@@ -727,6 +728,21 @@ Always provide practical, actionable advice that follows NHS guidelines and best
       messageContent = `${input}\n\n[Note: I have uploaded ${uploadedFiles.length} file(s): ${uploadedFiles.map(f => f.name).join(', ')}. Please analyze these files in relation to my question above.]`;
     } else if (uploadedFiles.length > 0 && !input.trim()) {
       messageContent = `Please analyze the uploaded file(s): ${uploadedFiles.map(f => f.name).join(', ')}`;
+    }
+
+    // Optionally include latest web updates digest
+    if (includeLatestWeb) {
+      try {
+        const { data } = await supabase.functions.invoke('nhs-gp-news', { body: { mode: 'latest' } });
+        const latestHtml = data?.page?.html || data?.html;
+        if (latestHtml) {
+          const latestText = latestHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+          const snippet = latestText.slice(0, 2000);
+          messageContent = `${messageContent}\n\n[Latest web updates digest]\n${snippet}`;
+        }
+      } catch (e) {
+        console.error('Failed to fetch latest web updates:', e);
+      }
     }
     
     const userMessage: Message = {
@@ -1698,7 +1714,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 w-full">
                     <CardTitle className="flex flex-col gap-2">
                       <div className="flex items-center gap-2">
-                        <img src="/lovable-uploads/a793ab5e-3de2-48f2-b553-ce348ae7be53.png" alt="AI4PM logo" className="h-12 sm:h-16 w-auto" loading="lazy" />
+                        <img src="/lovable-uploads/a793ab5e-3de2-48f2-b553-ce348ae7be53.png" alt="AI4PM logo" className="h-[72px] sm:h-24 w-auto" loading="lazy" />
                         <span className="sr-only">AI 4 PM Service</span>
                         {/* New Chat button moved here - visible on mobile */}
                         <Button
@@ -1941,9 +1957,17 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                      </div>
                    )}
                   
-                  <div className="flex gap-2">
-                    <div className="flex-1 relative">
-                      <Textarea
+                   <div className="mb-3 flex items-center gap-3">
+                     <Switch id="include-latest" checked={includeLatestWeb} onCheckedChange={setIncludeLatestWeb} />
+                     <Label htmlFor="include-latest" className="text-sm text-muted-foreground flex items-center gap-1">
+                       <Newspaper className="h-4 w-4" />
+                       Include latest web updates
+                     </Label>
+                   </div>
+                  
+                   <div className="flex gap-2">
+                     <div className="flex-1 relative">
+                       <Textarea
                         ref={inputRef}
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
