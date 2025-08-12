@@ -12,11 +12,16 @@ export class iPhoneWhisperTranscriber {
   private stream: MediaStream | null = null;
   private isRecording = false;
   private audioChunks: Blob[] = [];
+  private fullRecordingChunks: Blob[] = [];
   private transcriptionInterval: NodeJS.Timeout | null = null;
   private overlapBuffer: Blob[] = [];
   private chunkTimeout: ReturnType<typeof setTimeout> | null = null;
   private recordingStartTime = 0;
   private lastIntervalMs = 0;
+  private meetingId: string | null = null;
+  private sessionId: string | null = null;
+  private chunkCounter = 0;
+  private totalWordCount = 0;
 
   constructor(
     private onTranscription: (data: TranscriptData) => void,
@@ -24,10 +29,33 @@ export class iPhoneWhisperTranscriber {
     private onStatusChange: (status: string) => void
   ) {}
 
+  public setMeetingId(id: string) {
+    this.meetingId = id;
+    this.sessionId = this.sessionId || id;
+    console.log('📎 iPhoneTranscriber linked to meeting/session:', id);
+  }
+
+  public setSessionId(id: string) {
+    this.sessionId = id;
+    console.log('📎 iPhoneTranscriber session set:', id);
+  }
   async startTranscription() {
     try {
       this.onStatusChange('Starting iPhone transcription...');
       console.log('📱 Starting iPhone Whisper transcription...');
+
+      // Ensure session and meeting IDs for chunk storage and backups
+      try {
+        if (!this.sessionId) {
+          const existing = sessionStorage.getItem('currentSessionId');
+          this.sessionId = existing || crypto.randomUUID();
+          sessionStorage.setItem('currentSessionId', this.sessionId);
+        }
+        if (!this.meetingId) this.meetingId = this.sessionId;
+        console.log('🔗 iPhone session initialized', { sessionId: this.sessionId, meetingId: this.meetingId });
+      } catch (e) {
+        console.warn('Could not initialize session/meeting id', e);
+      }
 
       // Request microphone access with iPhone-optimized settings
       this.stream = await navigator.mediaDevices.getUserMedia({
@@ -66,9 +94,9 @@ export class iPhoneWhisperTranscriber {
       this.mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           this.audioChunks.push(event.data);
+          this.fullRecordingChunks.push(event.data);
         }
       };
-
       this.mediaRecorder.onstop = async () => {
         if (this.audioChunks.length > 0) {
           await this.processAudioChunks();
