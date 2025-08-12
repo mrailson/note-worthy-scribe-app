@@ -408,7 +408,9 @@ serve(async (req) => {
                   'www.northnorthants.gov.uk',
                   'www.westnorthants.gov.uk',
                   'www.heart.co.uk',
-                  'planetradio.co.uk'
+                  'planetradio.co.uk',
+                  // GP trade press
+                  'www.pulsetoday.co.uk'
                 ]
               })
             });
