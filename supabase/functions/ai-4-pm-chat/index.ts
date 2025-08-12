@@ -382,7 +382,7 @@ serve(async (req) => {
                 query,
                 search_depth: 'advanced',
                 max_results: 8,
-                time_range: '3m',
+                time_range: 'year',
                 topic: 'news',
                 include_answer: true,
                 include_raw_content: false,
