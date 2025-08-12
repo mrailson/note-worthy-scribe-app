@@ -46,7 +46,7 @@ Rules:
         method: "POST",
         headers: { Authorization: `Bearer ${perplexityKey}`, "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "sonar-small-online",
+          model: "llama-3.1-sonar-small-128k-online",
           messages: [
             { role: "system", content: "Be precise and concise. Return only clean HTML, no code fences." },
             { role: "user", content: prompt },
@@ -56,7 +56,7 @@ Rules:
           max_tokens: 1600,
           return_images: false,
           return_related_questions: false,
-          search_recency_filter: "day",
+          search_recency_filter: "month",
           frequency_penalty: 1,
           presence_penalty: 0,
         }),
@@ -126,7 +126,7 @@ Rules:
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "sonar-small-online",
+        model: "llama-3.1-sonar-large-128k-online",
         messages: [
           { role: "system", content: "Be precise and concise. Return only clean HTML, no code fences." },
           { role: "user", content: prompt },
@@ -136,7 +136,7 @@ Rules:
         max_tokens: 2000,
         return_images: false,
         return_related_questions: false,
-        search_recency_filter: "day",
+        search_recency_filter: "month",
         frequency_penalty: 1,
         presence_penalty: 0,
       }),

@@ -27,6 +27,7 @@ interface RequestBody {
   model: 'claude' | 'gpt' | 'chatgpt5';
   systemPrompt: string;
   files?: UploadedFile[];
+  enableWebSearch?: boolean;
 }
 
 // Helper function to extract text content from files
@@ -328,7 +329,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, model, systemPrompt, files }: RequestBody = await req.json();
+    const { messages, model, systemPrompt, files, enableWebSearch }: RequestBody = await req.json();
 
     console.log(`Processing ${model} request with ${messages.length} messages`);
     console.log('SystemPrompt:', systemPrompt ? 'Present' : 'Missing');
@@ -361,14 +362,65 @@ serve(async (req) => {
       })
     );
 
+    // Add web search context if enabled
+    let enhancedSystemPrompt = systemPrompt;
+    if (enableWebSearch) {
+      const lastUserMessage = processedMessages.filter(m => m.role === 'user').pop();
+      if (lastUserMessage) {
+        try {
+          const perplexityKey = Deno.env.get('PERPLEXITY_API_KEY');
+          if (perplexityKey) {
+            const webSearchResponse = await fetch('https://api.perplexity.ai/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${perplexityKey}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                model: 'llama-3.1-sonar-small-128k-online',
+                messages: [
+                  {
+                    role: 'system',
+                    content: 'You are a medical information search assistant. Search for the most recent and relevant clinical guidance, NHS updates, and medical information related to the user query. Focus on UK NHS sources, NICE guidelines, and authoritative medical sources.'
+                  },
+                  {
+                    role: 'user',
+                    content: `Search for recent information about: ${lastUserMessage.content.substring(0, 200)}`
+                  }
+                ],
+                temperature: 0.2,
+                top_p: 0.9,
+                max_tokens: 800,
+                return_images: false,
+                return_related_questions: false,
+                search_recency_filter: 'month',
+                frequency_penalty: 1,
+                presence_penalty: 0
+              }),
+            });
+
+            if (webSearchResponse.ok) {
+              const webData = await webSearchResponse.json();
+              const webSearchResults = webData?.choices?.[0]?.message?.content || '';
+              if (webSearchResults) {
+                enhancedSystemPrompt += `\n\nRECENT WEB SEARCH RESULTS (Use this information to provide up-to-date responses):\n${webSearchResults}`;
+              }
+            }
+          }
+        } catch (webSearchError) {
+          console.error('Web search error (continuing without web results):', webSearchError);
+        }
+      }
+    }
+
     let response: string;
 
     if (model === 'claude') {
-      response = await callClaude(processedMessages, systemPrompt, files);
+      response = await callClaude(processedMessages, enhancedSystemPrompt, files);
     } else if (model === 'gpt') {
-      response = await callGPT(processedMessages, systemPrompt, files);
+      response = await callGPT(processedMessages, enhancedSystemPrompt, files);
     } else if (model === 'chatgpt5') {
-      response = await callGPT5(processedMessages, systemPrompt, files);
+      response = await callGPT5(processedMessages, enhancedSystemPrompt, files);
     } else {
       throw new Error('Invalid model specified');
     }
