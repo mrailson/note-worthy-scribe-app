@@ -1580,7 +1580,7 @@ useEffect(() => {
         {/* Tab Navigation */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="flex w-full gap-2 items-stretch">
-            <TabsList className="flex w-full gap-1 overflow-x-auto p-1 rounded-xl flex-1">
+          <TabsList className="flex w-full gap-1 overflow-x-auto overflow-y-hidden p-1 rounded-xl flex-1 no-scrollbar">
               <TabsTrigger 
                 value="consultation" 
                 className="rounded-lg transition-all duration-200 font-medium shrink-0"
@@ -1607,7 +1607,7 @@ useEffect(() => {
               </TabsTrigger>
             </TabsList>
 
-            <TabsList className="flex w-full gap-1 overflow-x-auto p-1 rounded-xl flex-1">
+            <TabsList className="flex w-full gap-1 overflow-x-auto overflow-y-hidden p-1 rounded-xl flex-1 no-scrollbar">
               <TabsTrigger 
                 value="ai4gp" 
                 className="rounded-lg transition-all duration-200 font-medium shrink-0"
