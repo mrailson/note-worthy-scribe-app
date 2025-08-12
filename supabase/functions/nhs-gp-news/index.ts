@@ -46,7 +46,7 @@ Rules:
         method: "POST",
         headers: { Authorization: `Bearer ${perplexityKey}`, "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "llama-3.1-sonar-small-128k-online",
+          model: "sonar-small-online",
           messages: [
             { role: "system", content: "Be precise and concise. Return only clean HTML, no code fences." },
             { role: "user", content: prompt },
@@ -126,7 +126,7 @@ Rules:
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "llama-3.1-sonar-small-128k-online",
+        model: "sonar-small-online",
         messages: [
           { role: "system", content: "Be precise and concise. Return only clean HTML, no code fences." },
           { role: "user", content: prompt },
