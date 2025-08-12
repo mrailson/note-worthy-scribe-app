@@ -406,7 +406,18 @@ serve(async (req) => {
               const data = await tavilyResp.json();
               const results = Array.isArray(data.results) ? data.results : [];
               const summary = (data.answer || '').toString().trim();
-              const formatted = results.slice(0, 8).map((r: any) => {
+
+              // Strict recency filter: keep items within ~120 days when a date is present
+              const cutoff = new Date();
+              cutoff.setDate(cutoff.getDate() - 120);
+              const dated = results.filter((r: any) => {
+                const ds = (r.published_date || r.date || r.published_at || '').toString();
+                const d = ds ? new Date(ds) : null;
+                return d && !isNaN(d.getTime()) && d >= cutoff;
+              });
+              const used = dated.length > 0 ? dated : results;
+
+              const formatted = used.slice(0, 8).map((r: any) => {
                 const url = r.url || r.link || '';
                 let host = '';
                 try { host = new URL(url).host; } catch {}
@@ -415,14 +426,15 @@ serve(async (req) => {
                 return `- ${r.title || 'Untitled'} — ${host}${date ? ' — ' + date : ''}\n  ${url}\n  ${snippet}`;
               }).join('\n');
 
-              enhancedSystemPrompt += `\n\nDIRECTIONS: When RECENT WEB SEARCH RESULTS are present, base your answer ONLY on them. Do not rely on memory for policy/personnel status. If no items are within the last 3 months, say so and avoid outdated statements. Always cite source URLs with publication dates.\n`;
+              enhancedSystemPrompt += `\n\nDIRECTIONS: When RECENT WEB SEARCH RESULTS are present, base your answer ONLY on them. Do not rely on memory for policy/personnel status. If no items are within the last 120 days, explicitly state that and avoid outdated statements. Always cite source URLs with publication dates.\n`;
 
               if (summary) {
                 enhancedSystemPrompt += `\nRECENT WEB SEARCH SUMMARY:\n${summary}\n`;
               }
               if (formatted) {
-                enhancedSystemPrompt += `\nRECENT WEB SEARCH RESULTS (authoritative UK health sources, last 3 months):\n${formatted}`;
-                console.log(`Tavily results appended: ${results.length}`);
+                const recencyNote = dated.length === 0 ? "\n[Note: No items with clear dates in the last 120 days were found; verify before asserting 'recent' changes.]\n" : '';
+                enhancedSystemPrompt += `\nRECENT WEB SEARCH RESULTS (authoritative UK health sources, last ~120 days):\n${formatted}${recencyNote}`;
+                console.log(`Tavily results total=${results.length}, recent=${dated.length}`);
               }
             } else {
               console.error('Tavily search failed:', await tavilyResp.text());
