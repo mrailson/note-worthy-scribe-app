@@ -361,9 +361,33 @@ serve(async (req) => {
       }
     }));
 
+    // Restrict local sources to only NHS/GP/health-related items
+    const localSources = new Set([
+      'BBC Northamptonshire',
+      'Northants Live',
+      'Northampton Chronicle & Echo',
+      'Northants Telegraph',
+      'Revolution Radio Northampton'
+    ]);
+    const healthKeywords = [
+      'nhs','gp','general practice','practice manager','primary care','pcn','ics','icb',
+      'nhft','mental health','hospital','northampton general','kettering general','ngh','kgh',
+      'vaccin','immunis','flu','covid','measles','pharmacy','pharmacist','prescription',
+      'dental','dentist','urgent care','a&e','emergency department','cqc','midwife','maternity',
+      'health centre','clinic','surgery','surgeries','public health'
+    ];
+    const isHealthRelated = (a: ProcessedNewsItem) => {
+      const hay = `${a.title} ${a.summary} ${a.content}`.toLowerCase();
+      return healthKeywords.some(k => hay.includes(k));
+    };
+
+    const filteredArticles = allArticles.filter(a => {
+      return localSources.has(a.source) ? isHealthRelated(a) : true;
+    });
+
     // De-duplicate by URL and title
     const uniqueMap = new Map<string, ProcessedNewsItem>();
-    for (const a of allArticles) {
+    for (const a of filteredArticles) {
       const key = a.url || a.title;
       if (!uniqueMap.has(key)) uniqueMap.set(key, a);
     }

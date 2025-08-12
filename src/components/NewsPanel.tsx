@@ -50,6 +50,14 @@ const localKeywords = [
   'west northamptonshire','north northamptonshire'
 ];
 
+const healthKeywords = [
+  'nhs','gp','general practice','practice manager','primary care','pcn','ics','icb',
+  'nhft','mental health','hospital','northampton general','kettering general','ngh','kgh',
+  'vaccin','immunis','flu','covid','measles','pharmacy','pharmacist','prescription',
+  'dental','dentist','urgent care','a&e','emergency department','cqc','midwife','maternity',
+  'health centre','clinic','surgery','surgeries','public health'
+];
+
 const isLocalArticle = (a: NewsArticle) => {
   const hay = `${a.title} ${a.summary} ${a.source} ${a.url}`.toLowerCase();
   return localKeywords.some(k => hay.includes(k));
@@ -177,6 +185,12 @@ const NewsPanel = () => {
       
       if (filterTime === '24h' && diffHours > 24) return false;
       if (filterTime === '7d' && diffHours > 24 * 7) return false;
+    }
+
+    // Restrict local items to NHS/GP/health-related only
+    if (isLocalArticle(article)) {
+      const hay = `${article.title} ${article.summary} ${article.content}`.toLowerCase();
+      if (!healthKeywords.some(k => hay.includes(k))) return false;
     }
     
     return true;
