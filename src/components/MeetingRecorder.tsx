@@ -1245,7 +1245,12 @@ export const MeetingRecorder = ({
         handleTranscriptionError,
         handleStatusChange
       );
-      
+
+      // Ensure a session/meeting id and link it to the iPhone transcriber
+      const existingSession = sessionStorage.getItem('currentSessionId') || crypto.randomUUID();
+      sessionStorage.setItem('currentSessionId', existingSession);
+      try { iPhoneTranscriberRef.current.setMeetingId(existingSession); } catch {}
+
       console.log('📱 Starting transcription...');
       await iPhoneTranscriberRef.current.startTranscription();
       console.log('✅ iPhone Whisper transcription started successfully');

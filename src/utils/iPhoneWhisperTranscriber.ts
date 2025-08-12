@@ -242,8 +242,40 @@ export class iPhoneWhisperTranscriber {
 
         console.log('✅ iPhone transcription:', t);
         this.onTranscription(transcriptData);
-      }
 
+        // Update running word count
+        try {
+          this.totalWordCount += t.split(/\s+/).filter(Boolean).length;
+        } catch {}
+
+        // Persist chunk to DB for later full transcript assembly
+        try {
+          this.chunkCounter += 1;
+          const currentChunkNumber = this.chunkCounter;
+          const user = (await supabase.auth.getUser()).data.user?.id;
+          if (this.meetingId && this.sessionId && user) {
+            const { error: dbError } = await supabase
+              .from('meeting_transcription_chunks')
+              .insert({
+                meeting_id: this.meetingId,
+                session_id: this.sessionId,
+                chunk_number: currentChunkNumber,
+                transcription_text: t,
+                confidence: 0.9,
+                user_id: user,
+              });
+            if (dbError) {
+              console.warn('⚠️ Failed to store iPhone chunk:', dbError);
+            } else {
+              console.log(`💾 Stored iPhone chunk #${currentChunkNumber}`);
+            }
+          } else {
+            console.warn('ℹ️ Skipping DB store: missing meetingId/sessionId/user');
+          }
+        } catch (e) {
+          console.warn('⚠️ Error while saving iPhone chunk to DB:', e);
+        }
+        }
     } catch (error) {
       console.error('❌ Error processing audio:', error);
       this.onError('Failed to process audio');
@@ -294,6 +326,59 @@ export class iPhoneWhisperTranscriber {
 
     this.mediaRecorder = null;
     this.audioChunks = [];
+
+    // Upload full recording as backup to Supabase Storage and insert metadata
+    try {
+      if (this.fullRecordingChunks.length > 0 && this.meetingId) {
+        const fullBlobType = this.fullRecordingChunks[0]?.type || 'audio/webm';
+        const fullBlob = new Blob(this.fullRecordingChunks, { type: fullBlobType });
+        const durationSeconds = Math.max(1, Math.round((Date.now() - this.recordingStartTime) / 1000));
+        const userId = (await supabase.auth.getUser()).data.user?.id;
+
+        if (userId) {
+          const ext = fullBlobType.includes('mp4') ? 'm4a' : fullBlobType.includes('aac') ? 'aac' : 'webm';
+          const safeSession = this.sessionId || 'session';
+          const fileName = `${userId}/${this.meetingId}_${safeSession}_${Date.now()}.${ext}`;
+
+          console.log('📤 Uploading iPhone backup audio...', { fileName, fullBlobType, size: fullBlob.size });
+          const { data: uploadData, error: uploadErr } = await supabase.storage
+            .from('meeting-audio-backups')
+            .upload(fileName, fullBlob, { contentType: fullBlobType, upsert: false });
+
+          if (uploadErr) {
+            console.warn('⚠️ Failed to upload iPhone backup audio:', uploadErr);
+          } else if (uploadData?.path) {
+            console.log('✅ iPhone backup uploaded:', uploadData.path);
+            // Insert backup metadata (RLS now allows user-owned inserts)
+            const expectedWords = Math.max(this.totalWordCount, Math.round(durationSeconds * 2));
+            const { error: metaErr } = await supabase
+              .from('meeting_audio_backups')
+              .insert({
+                meeting_id: this.meetingId,
+                user_id: userId,
+                file_path: uploadData.path,
+                file_size: fullBlob.size,
+                duration_seconds: durationSeconds,
+                word_count: this.totalWordCount,
+                expected_word_count: expectedWords,
+                backup_reason: 'iphone_recorder'
+              });
+            if (metaErr) {
+              console.warn('⚠️ Failed to insert iPhone backup metadata:', metaErr);
+            } else {
+              console.log('💾 iPhone backup metadata stored');
+            }
+          }
+        } else {
+          console.warn('ℹ️ Skipping audio backup upload: no user context');
+        }
+      } else {
+        console.log('ℹ️ No full recording chunks or missing meetingId; skipping backup upload.');
+      }
+    } catch (e) {
+      console.warn('⚠️ Error during iPhone backup upload:', e);
+    }
+
     this.onStatusChange('Stopped');
   }
 
