@@ -1579,7 +1579,8 @@ useEffect(() => {
         
         {/* Tab Navigation */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="flex w-full gap-1 overflow-x-auto sm:grid sm:grid-cols-7 p-1 rounded-xl">
+          <div className="space-y-2">
+          <TabsList className="flex w-full gap-1 overflow-x-auto sm:grid sm:grid-cols-4 p-1 rounded-xl">
             <TabsTrigger 
               value="consultation" 
               className="rounded-lg transition-all duration-200 font-medium shrink-0"
@@ -1604,6 +1605,9 @@ useEffect(() => {
             >
               History
             </TabsTrigger>
+          </TabsList>
+
+          <TabsList className="flex w-full gap-1 overflow-x-auto sm:grid sm:grid-cols-3 p-1 rounded-xl">
             <TabsTrigger 
               value="ai4gp" 
               className="rounded-lg transition-all duration-200 font-medium shrink-0"
@@ -1623,6 +1627,7 @@ useEffect(() => {
               Audio Import + AI
             </TabsTrigger>
           </TabsList>
+        </div>
 
         {/* Consultation Tab - Recording Interface */}
         <TabsContent value="consultation" className="space-y-4">
