@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useConversation } from '@11labs/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -29,6 +29,7 @@ const GPGenieVoiceAgent = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [hasPermission, setHasPermission] = useState(false);
   const [volume, setVolume] = useState(0.8);
+  const prevVolumeRef = useRef(0.8);
   const [isMuted, setIsMuted] = useState(false);
   const [isMicMuted, setIsMicMuted] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,15 +56,17 @@ const GPGenieVoiceAgent = () => {
   });
 
   // Request microphone permission
-  const requestMicrophonePermission = async () => {
+  const requestMicrophonePermission = async (): Promise<boolean> => {
     try {
       await navigator.mediaDevices.getUserMedia({ audio: true });
       setHasPermission(true);
       toast.success('Microphone access granted');
+      return true;
     } catch (err) {
       console.error('Microphone permission denied:', err);
       setError('Microphone access is required for voice conversation');
       toast.error('Microphone access denied');
+      return false;
     }
   };
 
@@ -93,23 +96,28 @@ const GPGenieVoiceAgent = () => {
 
   // Start conversation
   const startConversation = async () => {
-    if (!hasPermission) {
-      await requestMicrophonePermission();
-      if (!hasPermission) return;
-    }
+    const permitted = hasPermission ? true : await requestMicrophonePermission();
+    if (!permitted) return;
 
     try {
       setIsLoading(true);
+      setError(null);
       
-      // Generate signed URL first
-      const url = await generateSignedUrl();
-      if (!url) {
+      // Generate signed URL first (required for authorized agents)
+      const signedUrl = await generateSignedUrl();
+      if (!signedUrl) {
         setError('Failed to get authorization for GP Genie');
         return;
       }
 
-      console.log('Starting conversation with URL:', url);
-      const conversationId = await conversation.startSession({ agentId: 'agent_01jwry2fzme7xsb2mwzatxseyt' });
+      console.log('Starting conversation with signed URL');
+      const conversationId = await conversation.startSession({ 
+        signedUrl
+      });
+
+      // Apply current volume immediately after connect
+      await conversation.setVolume({ volume: isMuted ? 0 : volume });
+      console.log('Conversation started:', conversationId);
       
     } catch (err: any) {
       console.error('Failed to start conversation:', err);
@@ -143,7 +151,16 @@ const GPGenieVoiceAgent = () => {
     setIsMuted(newMutedState);
     
     if (conversation.status === 'connected') {
-      await conversation.setVolume({ volume: newMutedState ? 0 : volume });
+      if (newMutedState) {
+        // store current volume and mute
+        prevVolumeRef.current = volume;
+        await conversation.setVolume({ volume: 0 });
+      } else {
+        // restore previous volume
+        const restore = prevVolumeRef.current ?? 0.8;
+        setVolume(restore);
+        await conversation.setVolume({ volume: restore });
+      }
       toast.info(newMutedState ? 'Sound muted' : 'Sound unmuted');
     }
   };
