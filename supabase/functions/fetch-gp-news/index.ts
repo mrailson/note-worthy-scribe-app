@@ -157,6 +157,10 @@ serve(async (req) => {
       { source: 'NICE', url: 'https://www.nice.org.uk/news/rss', type: 'rss' },
       { source: 'BBC Health', url: 'https://feeds.bbci.co.uk/news/health/rss.xml', type: 'rss' },
       { source: 'Pulse Today', url: 'https://www.pulsetoday.co.uk/feed/', type: 'rss' },
+      // Local Northamptonshire sources
+      { source: 'BBC Northamptonshire', url: 'https://feeds.bbci.co.uk/news/england/northamptonshire/rss.xml', type: 'rss' },
+      { source: 'Northants Live', url: 'https://northantslive.news/news/?service=rss', type: 'rss' },
+      { source: 'Revolution Radio Northampton', url: 'https://www.revolutionradio.com/news/local-news/feed.xml', type: 'rss' },
     ] as const;
 
     const sanitizeText = (html: string) =>

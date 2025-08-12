@@ -44,7 +44,10 @@ const decodeEntities = (input: string) => {
 
 // Northamptonshire-first prioritization
 const localKeywords = [
-  'northamptonshire','northampton','northants','kettering','corby','daventry','wellingborough','towcester','rushden','nene','nhft','icb northamptonshire','integrated care northamptonshire','nhs northamptonshire'
+  'northamptonshire','northampton','northants','kettering','corby','daventry','wellingborough','towcester','rushden','nene',
+  'nhft','northamptonshire icb','icb northamptonshire','integrated care northamptonshire','nhs northamptonshire',
+  'ngh','kgh','kettering general','northampton general','bbc northamptonshire','northants live',
+  'west northamptonshire','north northamptonshire'
 ];
 
 const isLocalArticle = (a: NewsArticle) => {
@@ -150,8 +153,8 @@ const NewsPanel = () => {
 
   // Filter articles based on selected filters
   const filteredArticles = articles.filter(article => {
-    // Front view should only show articles with images
-    if (!article.image_url || !article.image_url.trim()) return false;
+    // Front view should only show articles with images, except allow local Northamptonshire items without images
+    if ((!article.image_url || !article.image_url.trim()) && !isLocalArticle(article)) return false;
     if (filterTag !== 'all' && !article.tags.includes(filterTag)) return false;
     if (filterSource !== 'all' && article.source !== filterSource) return false;
     
