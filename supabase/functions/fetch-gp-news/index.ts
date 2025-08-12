@@ -379,9 +379,19 @@ serve(async (req) => {
       const hay = `${a.title} ${a.summary} ${a.content}`.toLowerCase();
       return healthKeywords.some(k => hay.includes(k));
     };
-
+    const isHealthRelatedByTags = (a: ProcessedNewsItem) => {
+      const tags = (a.tags || []).map(t => String(t).toLowerCase());
+      return healthKeywords.some(k => tags.some(t => t.includes(k))) || tags.includes('health');
+    };
+    const isHealthRelatedByUrl = (a: ProcessedNewsItem) => {
+      const u = (a.url || '').toLowerCase();
+      return healthKeywords.some(k => u.includes(k)) || u.includes('/health');
+    };
     const filteredArticles = allArticles.filter(a => {
       if (excludedSources.has(a.source)) return false;
+      if (a.source === 'Northampton Chronicle & Echo') {
+        return isHealthRelated(a) || isHealthRelatedByUrl(a) || isHealthRelatedByTags(a);
+      }
       return localSources.has(a.source) ? isHealthRelated(a) : true;
     });
 
