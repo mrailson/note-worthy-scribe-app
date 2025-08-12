@@ -2476,11 +2476,18 @@ export const MeetingRecorder = ({
     if (!finalTranscript && sessionId) {
       try {
         console.log(`🔍 DEBUG: Querying database directly for session: ${sessionId}`);
-        const { data, error } = await supabase
+        let mtcQuery = supabase
           .from('meeting_transcription_chunks')
           .select('transcription_text, chunk_number')
           .eq('session_id', sessionId)
           .order('chunk_number');
+
+        // Add user filter to satisfy RLS if available
+        if (user?.id) {
+          mtcQuery = mtcQuery.eq('user_id', user.id);
+        }
+
+        const { data, error } = await mtcQuery;
 
         if (!error && data && data.length > 0) {
           finalTranscript = data.map(chunk => chunk.transcription_text).join(' ').trim();
@@ -2498,15 +2505,21 @@ export const MeetingRecorder = ({
     }
     
     // If database methods failed, fall back to combining in-memory final transcripts
-    // but use the most recent complete transcript only
     if (!finalTranscript) {
-      console.log('🔍 DEBUG: No database transcript available, using in-memory transcripts');
-      const finalTranscripts = realtimeTranscripts.filter(t => t.isFinal);
-      if (finalTranscripts.length > 0) {
-        // Use only the last (most complete) final transcript to avoid duplication
-        const mostRecentTranscript = finalTranscripts[finalTranscripts.length - 1];
-        finalTranscript = mostRecentTranscript.text.trim();
-        console.log(`🔍 DEBUG: Using most recent final transcript: ${finalTranscript.length} chars`);
+      console.log('🔍 DEBUG: No database transcript available, combining all in-memory final transcripts');
+      const finals = realtimeTranscripts.filter(t => t.isFinal);
+      if (finals.length > 0) {
+        // Concatenate in order, with light de-duplication of exact suffix
+        const pieces = finals.map(t => (t.text || '').trim()).filter(Boolean);
+        let combined = '';
+        for (const piece of pieces) {
+          const needsSpace = combined.length > 0 && !combined.endsWith(' ');
+          if (!combined.endsWith(piece)) {
+            combined += (needsSpace ? ' ' : '') + piece;
+          }
+        }
+        finalTranscript = combined.trim();
+        console.log(`🔍 DEBUG: Combined in-memory transcript: ${finalTranscript.length} chars from ${finals.length} chunks`);
       }
     }
     
