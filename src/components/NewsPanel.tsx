@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ExternalLink, Filter, Clock, MapPin, Tag } from "lucide-react";
+import { ExternalLink, Filter, Clock, MapPin, Tag, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -58,7 +58,7 @@ const isLocalArticle = (a: NewsArticle) => {
 const NewsPanel = () => {
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
-  
+  const [refreshing, setRefreshing] = useState(false);
   
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
   const [fullContent, setFullContent] = useState<string>('');
@@ -73,10 +73,8 @@ const NewsPanel = () => {
       const { data, error } = await supabase
         .from('news_articles')
         .select('*')
-        .not('image_url', 'is', null)
-        .neq('image_url', '')
         .order('published_at', { ascending: false })
-        .limit(20);
+        .limit(40);
 
       console.log('Fetch result:', { data, error });
 
@@ -98,7 +96,21 @@ const NewsPanel = () => {
     }
   };
 
-
+  const refreshNews = async () => {
+    try {
+      setRefreshing(true);
+      setLoading(true);
+      const { error } = await supabase.functions.invoke('fetch-gp-news', { body: {} });
+      if (error) throw error;
+      toast.success('Latest news loaded');
+    } catch (error) {
+      console.error('Error refreshing news:', error);
+      toast.error('Failed to refresh news');
+    } finally {
+      await fetchNews();
+      setRefreshing(false);
+    }
+  };
 
   const fetchFullArticle = async (article: NewsArticle) => {
     setLoadingFullContent(true);
@@ -214,6 +226,12 @@ const NewsPanel = () => {
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center justify-end">
+        <Button variant="outline" size="sm" onClick={refreshNews} disabled={loading || refreshing}>
+          <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+          {refreshing ? 'Refreshing' : 'Refresh'}
+        </Button>
+      </div>
       <div className="sm:hidden flex items-center justify-end sticky top-0 z-30 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-1 py-2 sm:static sm:bg-transparent sm:backdrop-blur-0 sm:px-0 sm:py-0">
         <div className="flex gap-2">
           {/* Mobile: open filters in a drawer */}
