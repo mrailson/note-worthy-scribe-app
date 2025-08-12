@@ -1579,55 +1579,55 @@ useEffect(() => {
         
         {/* Tab Navigation */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <div className="space-y-2">
-          <TabsList className="flex w-full gap-1 overflow-x-auto sm:grid sm:grid-cols-4 p-1 rounded-xl">
-            <TabsTrigger 
-              value="consultation" 
-              className="rounded-lg transition-all duration-200 font-medium shrink-0"
-            >
-              Consultation
-            </TabsTrigger>
-            <TabsTrigger 
-              value="transcript" 
-              className="rounded-lg transition-all duration-200 font-medium shrink-0"
-            >
-              Transcript
-            </TabsTrigger>
-            <TabsTrigger 
-              value="examples" 
-              className="rounded-lg transition-all duration-200 font-medium shrink-0"
-            >
-              Examples
-            </TabsTrigger>
-            <TabsTrigger 
-              value="history"
-              className="rounded-lg transition-all duration-200 font-medium shrink-0"
-            >
-              History
-            </TabsTrigger>
-          </TabsList>
+          <div className="flex w-full gap-2 items-stretch">
+            <TabsList className="flex w-full gap-1 overflow-x-auto p-1 rounded-xl flex-1">
+              <TabsTrigger 
+                value="consultation" 
+                className="rounded-lg transition-all duration-200 font-medium shrink-0"
+              >
+                Consultation
+              </TabsTrigger>
+              <TabsTrigger 
+                value="transcript" 
+                className="rounded-lg transition-all duration-200 font-medium shrink-0"
+              >
+                Transcript
+              </TabsTrigger>
+              <TabsTrigger 
+                value="examples" 
+                className="rounded-lg transition-all duration-200 font-medium shrink-0"
+              >
+                Examples
+              </TabsTrigger>
+              <TabsTrigger 
+                value="history"
+                className="rounded-lg transition-all duration-200 font-medium shrink-0"
+              >
+                History
+              </TabsTrigger>
+            </TabsList>
 
-          <TabsList className="flex w-full gap-1 overflow-x-auto sm:grid sm:grid-cols-3 p-1 rounded-xl">
-            <TabsTrigger 
-              value="ai4gp" 
-              className="rounded-lg transition-all duration-200 font-medium shrink-0"
-            >
-              AI4GP
-            </TabsTrigger>
-            <TabsTrigger 
-              value="gp-genie" 
-              className="rounded-lg transition-all duration-200 font-medium shrink-0"
-            >
-              GP Genie
-            </TabsTrigger>
-            <TabsTrigger 
-              value="test-mp3" 
-              className="rounded-lg transition-all duration-200 font-medium shrink-0"
-            >
-              Audio Import + AI
-            </TabsTrigger>
-          </TabsList>
-        </div>
+            <TabsList className="flex w-full gap-1 overflow-x-auto p-1 rounded-xl flex-1">
+              <TabsTrigger 
+                value="ai4gp" 
+                className="rounded-lg transition-all duration-200 font-medium shrink-0"
+              >
+                AI4GP
+              </TabsTrigger>
+              <TabsTrigger 
+                value="gp-genie" 
+                className="rounded-lg transition-all duration-200 font-medium shrink-0"
+              >
+                GP Genie
+              </TabsTrigger>
+              <TabsTrigger 
+                value="test-mp3" 
+                className="rounded-lg transition-all duration-200 font-medium shrink-0"
+              >
+                Audio Import + AI
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
         {/* Consultation Tab - Recording Interface */}
         <TabsContent value="consultation" className="space-y-4">
