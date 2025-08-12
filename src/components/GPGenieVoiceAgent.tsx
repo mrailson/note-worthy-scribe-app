@@ -165,12 +165,23 @@ const GPGenieVoiceAgent = () => {
     }
   };
 
-  // Toggle microphone mute
-  const toggleMicMute = () => {
-    setIsMicMuted(!isMicMuted);
-    // Note: ElevenLabs doesn't provide direct mic mute API
-    // This is a visual indicator and may need additional implementation
-    toast.info(isMicMuted ? 'Microphone unmuted' : 'Microphone muted');
+  // Toggle microphone mute by pausing/resuming the session (SDK has no direct mic mute)
+  const toggleMicMute = async () => {
+    const newState = !isMicMuted;
+    setIsMicMuted(newState);
+
+    try {
+      if (newState) {
+        await conversation.endSession();
+        toast.info('Microphone muted — session paused');
+      } else {
+        await startConversation();
+        toast.info('Microphone unmuted — session resumed');
+      }
+    } catch (err) {
+      console.error('Mic toggle failed:', err);
+      toast.error('Failed to toggle microphone');
+    }
   };
 
   useEffect(() => {
