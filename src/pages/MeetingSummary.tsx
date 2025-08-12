@@ -152,6 +152,19 @@ export default function MeetingSummary() {
     location: ""
   });
 
+  // Sync attendees and agenda from Meeting Settings into summary content
+  useEffect(() => {
+    setSummaryContent(prev => {
+      const next = { ...prev } as typeof prev;
+      let changed = false;
+      const mAtt = (meetingSettings.attendees || '').trim();
+      const mAg = (meetingSettings.agenda || '').trim();
+      if (mAtt && mAtt !== prev.attendees) { next.attendees = mAtt; changed = true; }
+      if (mAg && mAg !== prev.agenda) { next.agenda = mAg; changed = true; }
+      return changed ? next : prev;
+    });
+  }, [meetingSettings.attendees, meetingSettings.agenda]);
+
   // Email modal state
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [userEmail, setUserEmail] = useState(user?.email || "");
