@@ -400,9 +400,8 @@ serve(async (req) => {
                   'www.hsj.co.uk',
                   'www.nhsconfed.org',
                   'www.theguardian.com',
-                  // Local and regional sources requested
+                  // Local and regional sources requested (excluding Northants Telegraph)
                   'www.northamptonchron.co.uk',
-                  'www.northantstelegraph.co.uk',
                   'www.itv.com',
                   'www.nhft.nhs.uk',
                   'www.northnorthants.gov.uk',

@@ -365,9 +365,9 @@ serve(async (req) => {
       'BBC Northamptonshire',
       'Northants Live',
       'Northampton Chronicle & Echo',
-      'Northants Telegraph',
       'Revolution Radio Northampton'
     ]);
+    const excludedSources = new Set(['Northants Telegraph']);
     const healthKeywords = [
       'nhs','gp','general practice','practice manager','primary care','pcn','ics','icb',
       'nhft','mental health','hospital','northampton general','kettering general','ngh','kgh',
@@ -381,6 +381,7 @@ serve(async (req) => {
     };
 
     const filteredArticles = allArticles.filter(a => {
+      if (excludedSources.has(a.source)) return false;
       return localSources.has(a.source) ? isHealthRelated(a) : true;
     });
 
