@@ -794,7 +794,8 @@ Always provide practical, actionable advice that follows NHS guidelines and best
           messages: currentMessages,
           model,
           systemPrompt: buildSystemPrompt(),
-          files: uploadedFiles
+          files: uploadedFiles,
+          enableWebSearch: includeLatestWeb
         }
       });
 

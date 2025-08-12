@@ -368,53 +368,54 @@ serve(async (req) => {
       const lastUserMessage = processedMessages.filter(m => m.role === 'user').pop();
       if (lastUserMessage) {
         try {
-          const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
-          if (openaiApiKey) {
-            // Use ChatGPT's web search capabilities
-            const webSearchResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+          const tavilyKey = Deno.env.get('TAVILY_API_KEY');
+          if (tavilyKey) {
+            const query = `${lastUserMessage.content}`.slice(0, 500);
+            console.log('Running Tavily web search for:', query);
+            const tavilyResp = await fetch('https://api.tavily.com/search', {
               method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${openaiApiKey}`,
-                'Content-Type': 'application/json',
-              },
+              headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                model: 'gpt-4.1-2025-04-14',
-                messages: [
-                  {
-                    role: 'system',
-                    content: 'You are a medical information search assistant. Search the web for the most recent and relevant clinical guidance, NHS updates, NICE guidelines, and medical information related to the user query. Focus on UK NHS sources, official government health sources, and authoritative medical sources. Provide current, factual information with sources and dates.'
-                  },
-                  {
-                    role: 'user',
-                    content: `Please search the web for recent information about: ${lastUserMessage.content.substring(0, 300)}. Focus on NHS guidance, NICE guidelines, clinical updates, and official health policy changes from the last 6 months.`
-                  }
-                ],
-                temperature: 0.2,
-                max_tokens: 1000,
-                tools: [
-                  {
-                    type: 'function',
-                    function: {
-                      name: 'web_search',
-                      description: 'Search the web for current information'
-                    }
-                  }
+                api_key: tavilyKey,
+                query,
+                search_depth: 'advanced',
+                max_results: 8,
+                time_range: '3m',
+                topic: 'news',
+                include_answer: true,
+                include_raw_content: false,
+                include_images: false,
+                include_domains: [
+                  'www.england.nhs.uk',
+                  'www.nhs.uk',
+                  'www.gov.uk',
+                  'www.nice.org.uk',
+                  'www.cqc.org.uk',
+                  'www.bma.org.uk',
+                  'www.parliament.uk'
                 ]
-              }),
+              })
             });
-
-            if (webSearchResponse.ok) {
-              const webData = await webSearchResponse.json();
-              const webSearchResults = webData?.choices?.[0]?.message?.content || '';
-              if (webSearchResults) {
-                enhancedSystemPrompt += `\n\nRECENT WEB SEARCH RESULTS (Use this current information to provide up-to-date responses):\n${webSearchResults}`;
-                console.log('Web search results added to system prompt');
+            if (tavilyResp.ok) {
+              const data = await tavilyResp.json();
+              const results = Array.isArray(data.results) ? data.results : [];
+              const formatted = results.slice(0, 8).map((r: any, idx: number) => {
+                const url = r.url || r.link || '';
+                let host = '';
+                try { host = new URL(url).host; } catch {}
+                const date = (r.published_date || r.date || r.published_at || '').toString();
+                const snippet = (r.content || r.snippet || r.answer || '').replace(/\s+/g, ' ').slice(0, 220);
+                return `- ${r.title || 'Untitled'} — ${host}${date ? ' — ' + date : ''}\n  ${url}\n  ${snippet}`;
+              }).join('\n');
+              if (formatted) {
+                enhancedSystemPrompt += `\n\nRECENT WEB SEARCH RESULTS (authoritative UK health sources, last 3 months) — cite URLs and dates in your answer:\n${formatted}`;
+                console.log(`Tavily results appended: ${results.length}`);
               }
             } else {
-              console.error('Web search request failed:', await webSearchResponse.text());
+              console.error('Tavily search failed:', await tavilyResp.text());
             }
           } else {
-            console.log('OpenAI API key not configured for web search');
+            console.log('Tavily API key not configured; proceeding without live web search');
           }
         } catch (webSearchError) {
           console.error('Web search error (continuing without web results):', webSearchError);
