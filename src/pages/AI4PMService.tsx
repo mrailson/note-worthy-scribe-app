@@ -732,46 +732,8 @@ Always provide practical, actionable advice that follows NHS guidelines and best
       messageContent = `Please analyze the uploaded file(s): ${uploadedFiles.map(f => f.name).join(', ')}`;
     }
 
-    // Optionally include latest web updates digest or targeted web results
-    if (includeLatestWeb) {
-      try {
-        let latestHtml: string | undefined;
-        const webQuery = input?.trim();
-        // 1) Try targeted live web query for the user's question
-        if (webQuery) {
-          const { data: qData, error: qError } = await supabase.functions.invoke('nhs-gp-news', { body: { mode: 'query', q: webQuery } });
-          if (!qError) {
-            latestHtml = qData?.html || qData?.page?.html;
-          }
-        }
-        // 2) Fallback to cached daily digest
-        if (!latestHtml) {
-          const { data: latestData, error: latestError } = await supabase.functions.invoke('nhs-gp-news', { body: { mode: 'latest' } });
-          if (!latestError) {
-            latestHtml = latestData?.page?.html || latestData?.html;
-          }
-        }
-        // 3) If no cached page, trigger a fresh run (requires PERPLEXITY_API_KEY)
-        if (!latestHtml) {
-          const { data: runData, error: runError } = await supabase.functions.invoke('nhs-gp-news', { body: { mode: 'run' } });
-          if (!runError) {
-            latestHtml = runData?.html;
-          } else {
-            console.error('nhs-gp-news run error:', runError);
-          }
-        }
-        if (latestHtml) {
-          const latestText = latestHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-          const snippet = latestText.slice(0, 2000);
-          const header = webQuery ? '[Latest web results]' : '[Latest web updates digest]';
-          messageContent = `${messageContent}\n\n${header}\n${snippet}`;
-        } else {
-          console.warn('No latest web digest available');
-        }
-      } catch (e) {
-        console.error('Failed to fetch latest web updates:', e);
-      }
-    }
+    // Live web updates handled server-side via enableWebSearch; avoid injecting stale local digests here.
+
     
     const userMessage: Message = {
       id: Date.now().toString(),

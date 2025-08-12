@@ -399,7 +399,8 @@ serve(async (req) => {
             if (tavilyResp.ok) {
               const data = await tavilyResp.json();
               const results = Array.isArray(data.results) ? data.results : [];
-              const formatted = results.slice(0, 8).map((r: any, idx: number) => {
+              const summary = (data.answer || '').toString().trim();
+              const formatted = results.slice(0, 8).map((r: any) => {
                 const url = r.url || r.link || '';
                 let host = '';
                 try { host = new URL(url).host; } catch {}
@@ -407,8 +408,14 @@ serve(async (req) => {
                 const snippet = (r.content || r.snippet || r.answer || '').replace(/\s+/g, ' ').slice(0, 220);
                 return `- ${r.title || 'Untitled'} — ${host}${date ? ' — ' + date : ''}\n  ${url}\n  ${snippet}`;
               }).join('\n');
+
+              enhancedSystemPrompt += `\n\nDIRECTIONS: When RECENT WEB SEARCH RESULTS are present, base your answer ONLY on them. Do not rely on memory for policy/personnel status. If no items are within the last 3 months, say so and avoid outdated statements. Always cite source URLs with publication dates.\n`;
+
+              if (summary) {
+                enhancedSystemPrompt += `\nRECENT WEB SEARCH SUMMARY:\n${summary}\n`;
+              }
               if (formatted) {
-                enhancedSystemPrompt += `\n\nRECENT WEB SEARCH RESULTS (authoritative UK health sources, last 3 months) — cite URLs and dates in your answer:\n${formatted}`;
+                enhancedSystemPrompt += `\nRECENT WEB SEARCH RESULTS (authoritative UK health sources, last 3 months):\n${formatted}`;
                 console.log(`Tavily results appended: ${results.length}`);
               }
             } else {
