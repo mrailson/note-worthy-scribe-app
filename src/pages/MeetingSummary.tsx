@@ -921,7 +921,27 @@ export default function MeetingSummary() {
       }
 
       if (!backup) {
-        toast.error('No audio backup found for this meeting');
+        console.warn('🔍 No backup linked to meeting. Searching recent backups for user...');
+        setReprocessStatus('Finding recent backup...');
+        const since = new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(); // last 24h
+        const { data: recent, error: recentErr } = await supabase
+          .from('meeting_audio_backups')
+          .select('*')
+          .eq('user_id', user?.id || '')
+          .gte('created_at', since)
+          .order('created_at', { ascending: false })
+          .limit(1);
+        if (!recentErr && recent && recent.length > 0) {
+          backup = recent[0];
+          setBackupRecord(backup);
+          console.log('✅ Using recent backup', backup.id);
+          // Try to link it to this meeting for next time
+          await supabase.from('meeting_audio_backups').update({ meeting_id: meetingData.id }).eq('id', backup.id);
+        }
+      }
+
+      if (!backup) {
+        toast.error('No audio backup found for today');
         setReprocessStatus('No backup found');
         return;
       }
