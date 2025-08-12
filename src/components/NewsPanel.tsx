@@ -343,9 +343,7 @@ const NewsPanel = () => {
               <p className="text-sm mb-4">
                 No NHS news articles are available right now. Please check back later.
               </p>
-                  Clear All Filters
-                </Button>
-              )}
+                  
             </div>
           </CardContent>
         </Card>
