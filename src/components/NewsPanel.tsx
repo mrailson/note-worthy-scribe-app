@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { RefreshCw, ExternalLink, Filter, Clock, MapPin, Tag } from "lucide-react";
+import { ExternalLink, Filter, Clock, MapPin, Tag } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -55,7 +55,7 @@ const isLocalArticle = (a: NewsArticle) => {
 const NewsPanel = () => {
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  
   
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
   const [fullContent, setFullContent] = useState<string>('');
@@ -95,26 +95,6 @@ const NewsPanel = () => {
     }
   };
 
-  const refreshNews = async () => {
-    setRefreshing(true);
-    try {
-      const { error } = await supabase.functions.invoke('fetch-gp-news');
-      
-      if (error) {
-        console.error('Error refreshing news:', error);
-        toast.error('Failed to refresh news');
-        return;
-      }
-
-      toast.success('News updated successfully');
-      await fetchNews();
-    } catch (error) {
-      console.error('Error refreshing news:', error);
-      toast.error('Failed to refresh news');
-    } finally {
-      setRefreshing(false);
-    }
-  };
 
 
   const fetchFullArticle = async (article: NewsArticle) => {
@@ -309,16 +289,6 @@ const NewsPanel = () => {
             </Drawer>
           </div>
 
-          {/* Refresh always visible */}
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={refreshNews}
-            disabled={refreshing}
-          >
-            <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
         </div>
       </div>
 
@@ -371,26 +341,8 @@ const NewsPanel = () => {
                 {articles.length === 0 ? "No NHS news articles available" : "No articles match your current filters"}
               </h3>
               <p className="text-sm mb-4">
-                {articles.length === 0 
-                  ? "Click 'Refresh' to fetch the latest NHS news for GP practices." 
-                  : "Try adjusting your filters or clearing them to see more articles."
-                }
+                No NHS news articles are available right now. Please check back later.
               </p>
-              {articles.length === 0 ? (
-                <div className="flex items-center justify-center gap-2">
-                  <Button onClick={refreshNews} disabled={refreshing}>
-                    {refreshing ? "Fetching..." : "Refresh NHS News"}
-                  </Button>
-                </div>
-              ) : (
-                <Button 
-                  variant="outline" 
-                  onClick={() => {
-                    setFilterTag('all');
-                    setFilterSource('all');
-                    setFilterTime('all');
-                  }}
-                >
                   Clear All Filters
                 </Button>
               )}
