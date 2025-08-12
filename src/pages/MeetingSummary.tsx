@@ -265,7 +265,57 @@ export default function MeetingSummary() {
         loadExistingSummary(data.id);
       }
     } else if (!data) {
-      navigate('/');
+      // Fallback: direct access without navigation state
+      const params = new URLSearchParams(window.location.search);
+      const paramId = params.get('id') || params.get('meeting_id');
+      if (paramId) {
+        console.log('Direct load by query param id', paramId);
+        setIsSaved(true);
+        setMeetingData({
+          id: paramId,
+          title: 'Meeting',
+          duration: '00:00',
+          wordCount: 0,
+          transcript: '',
+          speakerCount: 0,
+          startTime: ''
+        });
+        loadExistingSummary(paramId);
+      } else if (user?.id) {
+        (async () => {
+          try {
+            const { data: latest, error } = await supabase
+              .from('meetings')
+              .select('id, title, start_time')
+              .eq('user_id', user.id)
+              .order('start_time', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            if (!error && latest?.id) {
+              console.log('Loaded latest meeting for user', latest.id);
+              setIsSaved(true);
+              setMeetingData({
+                id: latest.id,
+                title: latest.title || 'Meeting',
+                duration: '00:00',
+                wordCount: 0,
+                transcript: '',
+                speakerCount: 0,
+                startTime: latest.start_time || ''
+              });
+              setMeetingSettings(prev => ({ ...prev, title: latest.title || prev.title }));
+              loadExistingSummary(latest.id);
+            } else {
+              toast.error('No meeting selected or found');
+            }
+          } catch (e) {
+            console.error('Failed to load latest meeting:', e);
+            toast.error('Could not load meeting');
+          }
+        })();
+      } else {
+        toast.error('No meeting selected');
+      }
     }
   }, [location.state, navigate, isSaved, isSaving, meetingData?.id]);
 
