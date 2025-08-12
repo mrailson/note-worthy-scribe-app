@@ -368,34 +368,38 @@ serve(async (req) => {
       const lastUserMessage = processedMessages.filter(m => m.role === 'user').pop();
       if (lastUserMessage) {
         try {
-          const perplexityKey = Deno.env.get('PERPLEXITY_API_KEY');
-          if (perplexityKey) {
-            const webSearchResponse = await fetch('https://api.perplexity.ai/chat/completions', {
+          const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+          if (openaiApiKey) {
+            // Use ChatGPT's web search capabilities
+            const webSearchResponse = await fetch('https://api.openai.com/v1/chat/completions', {
               method: 'POST',
               headers: {
-                'Authorization': `Bearer ${perplexityKey}`,
+                'Authorization': `Bearer ${openaiApiKey}`,
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify({
-                model: 'llama-3.1-sonar-small-128k-online',
+                model: 'gpt-4.1-2025-04-14',
                 messages: [
                   {
                     role: 'system',
-                    content: 'You are a medical information search assistant. Search for the most recent and relevant clinical guidance, NHS updates, and medical information related to the user query. Focus on UK NHS sources, NICE guidelines, and authoritative medical sources.'
+                    content: 'You are a medical information search assistant. Search the web for the most recent and relevant clinical guidance, NHS updates, NICE guidelines, and medical information related to the user query. Focus on UK NHS sources, official government health sources, and authoritative medical sources. Provide current, factual information with sources and dates.'
                   },
                   {
                     role: 'user',
-                    content: `Search for recent information about: ${lastUserMessage.content.substring(0, 200)}`
+                    content: `Please search the web for recent information about: ${lastUserMessage.content.substring(0, 300)}. Focus on NHS guidance, NICE guidelines, clinical updates, and official health policy changes from the last 6 months.`
                   }
                 ],
                 temperature: 0.2,
-                top_p: 0.9,
-                max_tokens: 800,
-                return_images: false,
-                return_related_questions: false,
-                search_recency_filter: 'month',
-                frequency_penalty: 1,
-                presence_penalty: 0
+                max_tokens: 1000,
+                tools: [
+                  {
+                    type: 'function',
+                    function: {
+                      name: 'web_search',
+                      description: 'Search the web for current information'
+                    }
+                  }
+                ]
               }),
             });
 
@@ -403,9 +407,14 @@ serve(async (req) => {
               const webData = await webSearchResponse.json();
               const webSearchResults = webData?.choices?.[0]?.message?.content || '';
               if (webSearchResults) {
-                enhancedSystemPrompt += `\n\nRECENT WEB SEARCH RESULTS (Use this information to provide up-to-date responses):\n${webSearchResults}`;
+                enhancedSystemPrompt += `\n\nRECENT WEB SEARCH RESULTS (Use this current information to provide up-to-date responses):\n${webSearchResults}`;
+                console.log('Web search results added to system prompt');
               }
+            } else {
+              console.error('Web search request failed:', await webSearchResponse.text());
             }
+          } else {
+            console.log('OpenAI API key not configured for web search');
           }
         } catch (webSearchError) {
           console.error('Web search error (continuing without web results):', webSearchError);
