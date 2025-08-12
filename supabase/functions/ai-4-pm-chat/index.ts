@@ -396,9 +396,19 @@ serve(async (req) => {
                   'www.bma.org.uk',
                   'www.parliament.uk',
                   'www.bbc.co.uk',
+                  'www.bbc.com',
                   'www.hsj.co.uk',
                   'www.nhsconfed.org',
-                  'www.theguardian.com'
+                  'www.theguardian.com',
+                  // Local and regional sources requested
+                  'www.northamptonchron.co.uk',
+                  'www.northantstelegraph.co.uk',
+                  'www.itv.com',
+                  'www.nhft.nhs.uk',
+                  'www.northnorthants.gov.uk',
+                  'www.westnorthants.gov.uk',
+                  'www.heart.co.uk',
+                  'planetradio.co.uk'
                 ]
               })
             });

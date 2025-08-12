@@ -160,7 +160,9 @@ serve(async (req) => {
       // Local Northamptonshire sources
       { source: 'BBC Northamptonshire', url: 'https://feeds.bbci.co.uk/news/england/northamptonshire/rss.xml', type: 'rss' },
       { source: 'Northants Live', url: 'https://northantslive.news/news/?service=rss', type: 'rss' },
-      { source: 'Revolution Radio Northampton', url: 'https://www.revolutionradio.com/news/local-news/feed.xml', type: 'rss' },
+      { source: 'Northampton Chronicle & Echo', url: 'https://www.northamptonchron.co.uk/rss', type: 'rss' },
+      { source: 'Northants Telegraph', url: 'https://www.northantstelegraph.co.uk/rss', type: 'rss' },
+      { source: 'Revolution Radio Northampton', url: 'https://www.revolutionradio.com/news/local-news/feed.xml', type: 'rss' }
     ] as const;
 
     const sanitizeText = (html: string) =>
