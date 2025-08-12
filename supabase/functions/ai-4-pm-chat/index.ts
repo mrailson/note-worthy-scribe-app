@@ -364,6 +364,8 @@ serve(async (req) => {
 
     // Add web search context if enabled
     let enhancedSystemPrompt = systemPrompt;
+    const today = new Date().toISOString().split('T')[0];
+    enhancedSystemPrompt += `\nCURRENT DATE: ${today}`;
     if (enableWebSearch) {
       const lastUserMessage = processedMessages.filter(m => m.role === 'user').pop();
       if (lastUserMessage) {
@@ -392,7 +394,11 @@ serve(async (req) => {
                   'www.nice.org.uk',
                   'www.cqc.org.uk',
                   'www.bma.org.uk',
-                  'www.parliament.uk'
+                  'www.parliament.uk',
+                  'www.bbc.co.uk',
+                  'www.hsj.co.uk',
+                  'www.nhsconfed.org',
+                  'www.theguardian.com'
                 ]
               })
             });
