@@ -228,14 +228,18 @@ export default function MeetingSummary() {
         toast.success('AI-generated meeting notes are ready!');
       }
       
-      // Initialize meeting settings
+      // Map startTime (ISO) from navigation state to Meeting Settings date/time for display
+      const dt = data.startTime ? new Date(data.startTime) : null;
+      const pad = (n: number) => n.toString().padStart(2, '0');
       setMeetingSettings({
         title: data.title,
         description: data.extractedSettings?.description || "",
         meetingType: data.extractedSettings?.meetingType || "general",
         meetingStyle: "standard",
         attendees: data.extractedSettings?.attendees || "",
-        agenda: data.extractedSettings?.agenda || ""
+        agenda: data.extractedSettings?.agenda || "",
+        date: dt ? `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}` : "",
+        startTime: dt ? `${pad(dt.getHours())}:${pad(dt.getMinutes())}` : "",
       });
       
       // Auto-populate summary content from imported data
