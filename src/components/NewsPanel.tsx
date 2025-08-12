@@ -63,6 +63,20 @@ const isLocalArticle = (a: NewsArticle) => {
   return localKeywords.some(k => hay.includes(k));
 };
 
+// Health-related helpers to tighten local filtering
+const isHealthRelated = (a: NewsArticle) => {
+  const hay = `${a.title} ${a.summary} ${a.content}`.toLowerCase();
+  return healthKeywords.some(k => hay.includes(k));
+};
+const isHealthRelatedByTags = (a: NewsArticle) => {
+  const tags = (a.tags || []).map(t => String(t).toLowerCase());
+  return healthKeywords.some(k => tags.some(t => t.includes(k))) || tags.includes('health');
+};
+const isHealthRelatedByUrl = (a: NewsArticle) => {
+  const u = (a.url || '').toLowerCase();
+  return healthKeywords.some(k => u.includes(k)) || u.includes('/health');
+};
+
 const NewsPanel = () => {
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
@@ -189,15 +203,18 @@ const NewsPanel = () => {
 
     // Restrict local items to NHS/GP/health-related only
     if (isLocalArticle(article)) {
-      const hay = `${article.title} ${article.summary} ${article.content}`.toLowerCase();
-      if (!healthKeywords.some(k => hay.includes(k))) return false;
+      if (article.source === 'Northampton Chronicle & Echo') {
+        if (!(isHealthRelated(article) || isHealthRelatedByUrl(article) || isHealthRelatedByTags(article))) return false;
+      } else {
+        if (!isHealthRelated(article)) return false;
+      }
     }
     
     return true;
   });
 
-  // Fallback: if filters hide everything, show unfiltered list
-  const displayedArticles = filteredArticles.length > 0 ? filteredArticles : articles;
+  // Use strictly filtered list to avoid leaking unrelated local items
+  const displayedArticles = filteredArticles;
   
   // Prioritize Northamptonshire-related articles to the top, then by date desc
   const prioritizedArticles = [...displayedArticles].sort((a, b) => {
