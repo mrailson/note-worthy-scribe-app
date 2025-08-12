@@ -733,12 +733,26 @@ Always provide practical, actionable advice that follows NHS guidelines and best
     // Optionally include latest web updates digest
     if (includeLatestWeb) {
       try {
-        const { data } = await supabase.functions.invoke('nhs-gp-news', { body: { mode: 'latest' } });
-        const latestHtml = data?.page?.html || data?.html;
+        let latestHtml: string | undefined;
+        const { data: latestData, error: latestError } = await supabase.functions.invoke('nhs-gp-news', { body: { mode: 'latest' } });
+        if (!latestError) {
+          latestHtml = latestData?.page?.html || latestData?.html;
+        }
+        // If no cached page, trigger a fresh run (requires PERPLEXITY_API_KEY)
+        if (!latestHtml) {
+          const { data: runData, error: runError } = await supabase.functions.invoke('nhs-gp-news', { body: { mode: 'run' } });
+          if (!runError) {
+            latestHtml = runData?.html;
+          } else {
+            console.error('nhs-gp-news run error:', runError);
+          }
+        }
         if (latestHtml) {
           const latestText = latestHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
           const snippet = latestText.slice(0, 2000);
           messageContent = `${messageContent}\n\n[Latest web updates digest]\n${snippet}`;
+        } else {
+          console.warn('No latest web digest available');
         }
       } catch (e) {
         console.error('Failed to fetch latest web updates:', e);
