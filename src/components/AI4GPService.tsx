@@ -265,41 +265,67 @@ const AI4GPService = () => {
     }
   };
 
+  const nhsSafetyPreamble = "You are an expert UK NHS GP assistant. Use only UK primary care sources including NICE guidelines, NHS.uk, BNF, MHRA alerts, the Green Book, and local ICB protocols. Do not use non-UK or non-NHS sources. Present information in concise, GP-friendly bullet points using UK medical terminology.";
+
   const quickActions = [
     { 
-      label: 'Clinical Protocol', 
-      icon: Bot, 
-      prompt: 'Help me create or review a clinical protocol based on the latest NICE guidelines.',
-      requiresFile: false 
-    },
-    { 
-      label: 'Patient Consultation Summary', 
-      icon: Activity, 
-      prompt: 'Summarise this patient consultation and highlight key clinical findings and actions.',
-      requiresFile: true 
-    },
-    { 
-      label: 'Referral Letter', 
-      icon: FileHeart, 
-      prompt: 'Help me draft a comprehensive referral letter for this patient case.',
-      requiresFile: false 
-    },
-    { 
-      label: 'Clinical Audit', 
-      icon: BarChart3, 
-      prompt: 'Design a clinical audit framework or analyze audit results for quality improvement.',
-      requiresFile: false 
-    },
-    { 
-      label: 'Prescribing Guidance', 
-      icon: Shield, 
-      prompt: 'Provide prescribing guidance and safety recommendations for specific medications or conditions.',
-      requiresFile: false 
-    },
-    { 
-      label: 'Patient Information', 
+      label: 'NICE Guidance Finder', 
       icon: BookOpen, 
-      prompt: 'Create patient-friendly information leaflets or educational materials.',
+      prompt: `${nhsSafetyPreamble} Summarise NICE guidance [insert NG/CG number or condition] for GP use. Include: key diagnostic criteria, first-line and step-up treatments, relevant referral triggers, and monitoring recommendations. Cite the latest NICE update date.`,
+      requiresFile: false 
+    },
+    { 
+      label: 'BNF Drug Lookup', 
+      icon: Shield, 
+      prompt: `${nhsSafetyPreamble} Provide a concise BNF summary for [insert drug name] including: adult dosing range, titration guidance, renal/hepatic adjustments, major interactions, contraindications, and common adverse effects.`,
+      requiresFile: false 
+    },
+    { 
+      label: 'Red Flag Symptom Checker', 
+      icon: AlertTriangle, 
+      prompt: `${nhsSafetyPreamble} List red flag symptoms for [insert symptom/condition] that require urgent or 2WW referral according to NICE/NHS pathways. Include pathway names and recommended referral timeframes.`,
+      requiresFile: false 
+    },
+    { 
+      label: 'Referral Criteria & Forms', 
+      icon: FileText, 
+      prompt: `${nhsSafetyPreamble} Provide referral criteria and process for [insert specialty/condition] in [insert local area or ICB], including NHS eRS form links, local service inclusion/exclusion criteria, and relevant NICE guidance.`,
+      requiresFile: false 
+    },
+    { 
+      label: 'QOF Indicator Quick Check', 
+      icon: CheckSquare, 
+      prompt: `${nhsSafetyPreamble} Summarise the QOF indicators for [insert condition] for 2025/26. Include indicator codes, thresholds, recall rules, and exception reporting criteria. Focus on what a GP practice team needs to know.`,
+      requiresFile: false 
+    },
+    { 
+      label: 'Patient Leaflet Finder', 
+      icon: HelpCircle, 
+      prompt: `${nhsSafetyPreamble} Find and summarise an NHS-approved patient information leaflet for [insert condition/treatment]. Include plain-English summary, NHS.uk link, and a printable PDF link if available.`,
+      requiresFile: false 
+    },
+    { 
+      label: 'Immunisation Schedule Lookup', 
+      icon: Activity, 
+      prompt: `${nhsSafetyPreamble} Provide the current UK vaccination schedule for [insert age/risk group] according to Green Book/NHS guidance. Include vaccine names, doses, intervals, and special considerations.`,
+      requiresFile: false 
+    },
+    { 
+      label: 'Primary Care Prescribing Alerts', 
+      icon: TrendingUp, 
+      prompt: `${nhsSafetyPreamble} List the most recent MHRA/NHS prescribing safety alerts relevant to primary care in [insert month/year]. Include drug name, nature of alert, key GP actions, and link to official notice.`,
+      requiresFile: false 
+    },
+    { 
+      label: 'Fit Note Wording Helper', 
+      icon: FileHeart, 
+      prompt: `${nhsSafetyPreamble} Suggest concise, clinically appropriate fit note wording for a patient with [insert condition/procedure]. Include expected duration, recommended work adjustments, and review advice.`,
+      requiresFile: false 
+    },
+    { 
+      label: 'Practice Policy & Protocol Finder', 
+      icon: Settings, 
+      prompt: `${nhsSafetyPreamble} Search for the local or PCN protocol on [insert topic] and summarise the key steps. Include source document link and any NHS/national guidance references.`,
       requiresFile: false 
     },
   ];
