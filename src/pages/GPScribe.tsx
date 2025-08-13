@@ -2870,7 +2870,7 @@ useEffect(() => {
           </Card>
         )}
         
-          <TabsContent value="ai4gp" className="space-y-1">
+          <TabsContent value="ai4gp" className="mt-0 pt-0">
             <AI4GPService />
           </TabsContent>
           

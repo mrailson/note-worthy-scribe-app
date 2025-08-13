@@ -1152,19 +1152,19 @@ Always provide evidence-based, clinically appropriate advice that follows curren
             
             <CardContent className="flex-1 flex flex-col p-0">
               {/* Messages */}
-              <ScrollArea className="flex-1 p-4">
-                 <div className="space-y-4">
+              <ScrollArea className="flex-1 p-2">
+                 <div className="space-y-1">
                     {messages.length === 0 && (
-                      <div className="text-center py-2">
+                      <div className="text-center py-1">
                         <Bot className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
                         <h3 className="font-semibold text-lg mb-1">Welcome to AI4GP</h3>
-                        <p className="text-muted-foreground max-w-md mx-auto mb-4">
+                        <p className="text-muted-foreground max-w-md mx-auto mb-2">
                           Your AI assistant for clinical guidance, protocol development, and evidence-based practice support.
                         </p>
                         
                         {/* Quick Actions within welcome message */}
                         <div className="max-w-4xl mx-auto">
-                          <h4 className="text-sm font-medium mb-4 text-muted-foreground">Get started with these common queries:</h4>
+                          <h4 className="text-sm font-medium mb-2 text-muted-foreground">Get started with these common queries:</h4>
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-2">
                             {quickActions.slice(0, showAllQuickActions ? quickActions.length : 6).map((action, index) => {
                               const Icon = action.icon;
