@@ -324,7 +324,7 @@ export const SpeechToText: React.FC<SpeechToTextProps> = ({
       disabled={isProcessing}
       variant={isRecording ? "destructive" : "outline"}
       size={size}
-      className={`${className} ${isRecording ? 'animate-pulse bg-destructive hover:bg-destructive text-destructive-foreground' : ''} transition-all duration-200`}
+      className={`${className} ${isRecording ? 'bg-destructive hover:bg-destructive text-destructive-foreground' : ''} transition-all duration-200`}
       title={isUsingBrowserSTT ? 
         'High-accuracy speech recognition (Speak clearly, auto-stops in 15s)' : 
         'Record audio for transcription'
