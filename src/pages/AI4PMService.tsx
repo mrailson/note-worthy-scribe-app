@@ -11,6 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { useIsMobile } from "@/hooks/use-mobile";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -52,8 +53,14 @@ import {
   Volume2,
   VolumeX,
   PhoneOff,
-  Newspaper
+  Newspaper,
+  Stethoscope,
+  ChevronDown,
+  ChevronUp,
+  Menu,
+  BarChart3
 } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { LoginForm } from '@/components/LoginForm';
 import { SpeechToText } from '@/components/SpeechToText';
@@ -119,6 +126,7 @@ interface PracticeContext {
 
 const AI4PMService = () => {
   const { user, loading } = useAuth();
+  const isMobile = useIsMobile();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -135,6 +143,7 @@ const AI4PMService = () => {
   const [showQuickActions, setShowQuickActions] = useState(false);
   const [includeLatestWeb, setIncludeLatestWeb] = useState(false);
   const [currentSearchId, setCurrentSearchId] = useState<string | null>(null); // Track current conversation
+  const [isTabMenuOpen, setIsTabMenuOpen] = useState(false);
   
   const [expandedMessage, setExpandedMessage] = useState<Message | null>(null);
   const [showVoiceAgent, setShowVoiceAgent] = useState(false);
@@ -165,6 +174,15 @@ const AI4PMService = () => {
       loadPracticeContext();
     }
   }, [user]);
+
+  // File input setup
+  useEffect(() => {
+    const fileInput = document.getElementById('file-input');
+    if (fileInput) {
+      fileInput.addEventListener('change', handleFileSelect);
+      return () => fileInput.removeEventListener('change', handleFileSelect);
+    }
+  }, []);
 
   // Voice chat message handler
   const handleVoiceMessage = (event: any) => {
@@ -244,7 +262,7 @@ const AI4PMService = () => {
       voiceChatRef.current = new RealtimeChat(handleVoiceMessage);
       const displayName = (user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || 'there') as string;
       const firstName = displayName.includes('@') ? displayName.split('@')[0] : displayName.split(' ')[0];
-      await voiceChatRef.current.init('shimmer', `Hello ${firstName}, I am the AI for GP Practice Mangers, How can I help?`);
+      await voiceChatRef.current.init('shimmer', `Hello ${firstName}, I am the AI for GP Practice Managers, How can I help?`);
       
       // Apply saved mute state after initialization
       if (voiceChatRef.current && isVoiceMuted) {
@@ -259,7 +277,7 @@ const AI4PMService = () => {
       setTimeout(() => {
         const displayName = (user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || 'there') as string;
         const firstName = displayName.includes('@') ? displayName.split('@')[0] : displayName.split(' ')[0];
-        voiceChatRef.current?.sendMessage(`Hello ${firstName}, I am the AI for GP Practice Mangers, How can I help?`);
+        voiceChatRef.current?.sendMessage(`Hello ${firstName}, I am the AI for GP Practice Managers, How can I help?`);
       }, 1000);
       
     } catch (error) {
@@ -289,7 +307,6 @@ const AI4PMService = () => {
     if (messages.length > 0) {
       saveSearchAutomatically(messages);
     }
-    
   };
 
   const loadPracticeContext = async () => {
@@ -405,35 +422,468 @@ const AI4PMService = () => {
     }
   };
 
-  const saveCurrentSearch = async () => {
-    if (!user || messages.length === 0) return;
+  // Quick Actions for AI4PM
+  const quickActions = [
+    {
+      label: "Policy Review",
+      icon: Shield,
+      prompt: "Help me review and update our practice policies. Please analyse our current policies for compliance with latest NHS guidelines and suggest improvements.",
+      requiresFiles: true
+    },
+    {
+      label: "Staff Training Plan",
+      icon: Users,
+      prompt: "Create a comprehensive staff training plan for our practice. Include mandatory training requirements, schedules, and tracking methods.",
+      requiresFiles: false
+    },
+    {
+      label: "Budget Analysis",
+      icon: TrendingUp,
+      prompt: "Analyse our practice budget and financial performance. Identify areas for cost savings and revenue optimization.",
+      requiresFiles: true
+    },
+    {
+      label: "CQC Preparation",
+      icon: CheckSquare,
+      prompt: "Help me prepare for our upcoming CQC inspection. Create a comprehensive checklist and action plan.",
+      requiresFiles: false
+    },
+    {
+      label: "Meeting Minutes",
+      icon: FileText,
+      prompt: "Review and summarize these meeting minutes, identifying key action points and follow-up tasks.",
+      requiresFiles: true
+    },
+    {
+      label: "Incident Report",
+      icon: AlertTriangle,
+      prompt: "Help me create a detailed incident report including root cause analysis and preventive measures.",
+      requiresFiles: false
+    },
+    {
+      label: "Contract Review",
+      icon: FileText,
+      prompt: "Review this contract and highlight key terms, obligations, and potential risks.",
+      requiresFiles: true
+    },
+    {
+      label: "Performance Dashboard",
+      icon: BarChart3,
+      prompt: "Create a performance dashboard report for our practice, including key metrics and trends.",
+      requiresFiles: true
+    }
+  ];
+
+  const buildSystemPrompt = () => {
+    const date = new Date().toLocaleDateString();
+    const contextInfo = practiceContext.practiceName ? 
+      `\nPractice Context: ${practiceContext.practiceName}${practiceContext.pcnName ? ` (PCN: ${practiceContext.pcnName})` : ''}${practiceContext.practiceManagerName ? `, Practice Manager: ${practiceContext.practiceManagerName}` : ''}` 
+      : '';
+
+    return `You are an AI assistant specifically designed for GP Practice Managers in the UK. Today's date is ${date}.
+
+Your expertise covers:
+- NHS regulations and compliance
+- CQC standards and inspection preparation
+- Practice management best practices
+- Staff management and HR
+- Financial management and budgeting
+- Health and safety protocols
+- Patient complaints handling
+- Clinical governance
+- Data protection and GDPR
+- Contract management
+- Performance monitoring
+- Quality improvement initiatives
+
+${contextInfo}
+
+Always provide practical, actionable advice tailored to UK primary care settings. When discussing regulations or requirements, cite specific NHS guidelines or CQC standards where relevant.
+
+If asked to review documents, provide detailed analysis with recommendations for improvement. For policy or procedure questions, ensure compliance with current NHS and CQC requirements.
+
+Format your responses clearly with headings and bullet points where appropriate to make them easy to scan and implement.`;
+  };
+
+  const handleSend = async () => {
+    if ((!input.trim() && uploadedFiles.length === 0) || isLoading) return;
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: input,
+      timestamp: new Date(),
+      files: uploadedFiles.length > 0 ? [...uploadedFiles] : undefined
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setInput('');
+    setUploadedFiles([]);
+    setIsLoading(true);
 
     try {
-      // Generate title from first user message
-      const firstUserMessage = messages.find(m => m.role === 'user');
-      const title = firstUserMessage?.content.substring(0, 50) + (firstUserMessage?.content.length > 50 ? '...' : '') || 'Untitled Search';
-      
-      // Generate brief overview from AI responses
-      const aiMessages = messages.filter(m => m.role === 'assistant');
-      const overview = aiMessages.length > 0 
-        ? aiMessages[0].content.substring(0, 100) + (aiMessages[0].content.length > 100 ? '...' : '')
-        : 'No AI response';
+      const response = await supabase.functions.invoke('ai-4-pm-chat', {
+        body: {
+          messages: [...messages, userMessage],
+          model,
+          systemPrompt: buildSystemPrompt(),
+          files: uploadedFiles.length > 0 ? uploadedFiles : undefined,
+          enableWebSearch: includeLatestWeb
+        }
+      });
 
-      const { error } = await supabase
+      if (response.error) {
+        if (response.error.message?.includes('API key')) {
+          setApiKeyMissing(prev => ({
+            ...prev,
+            [model === 'claude' ? 'claude' : 'gpt']: true
+          }));
+        }
+        throw response.error;
+      }
+
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: response.data.generatedText || 'I apologize, but I was unable to generate a response.',
+        timestamp: new Date()
+      };
+
+      const newMessages = [...messages, userMessage, assistantMessage];
+      setMessages(newMessages);
+
+      // Auto-save the conversation after AI response
+      setTimeout(() => {
+        saveSearchAutomatically(newMessages);
+      }, 1000);
+
+    } catch (error) {
+      console.error('Error sending message:', error);
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: 'I apologize, but I encountered an error while processing your request. Please try again.',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleFileSelect = async (event: Event) => {
+    const input = event.target as HTMLInputElement;
+    const files = input.files;
+    if (!files) return;
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      
+      // Add loading state immediately
+      const loadingFile: UploadedFile = {
+        name: file.name,
+        type: file.type,
+        content: '',
+        size: file.size,
+        isLoading: true
+      };
+      
+      setUploadedFiles(prev => [...prev, loadingFile]);
+
+      try {
+        if (file.type.startsWith('text/')) {
+          const content = await file.text();
+          setUploadedFiles(prev => 
+            prev.map(f => 
+              f.name === file.name && f.isLoading ? 
+              { ...f, content, isLoading: false } : f
+            )
+          );
+        } else if (file.type === 'application/pdf') {
+          const arrayBuffer = await file.arrayBuffer();
+          const base64Content = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+          setUploadedFiles(prev => 
+            prev.map(f => 
+              f.name === file.name && f.isLoading ? 
+              { ...f, content: base64Content, isLoading: false } : f
+            )
+          );
+        } else if (file.type.startsWith('image/')) {
+          const arrayBuffer = await file.arrayBuffer();
+          const base64Content = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+          setUploadedFiles(prev => 
+            prev.map(f => 
+              f.name === file.name && f.isLoading ? 
+              { ...f, content: base64Content, isLoading: false } : f
+            )
+          );
+        } else {
+          // For other file types, read as text if possible
+          try {
+            const content = await file.text();
+            setUploadedFiles(prev => 
+              prev.map(f => 
+                f.name === file.name && f.isLoading ? 
+                { ...f, content, isLoading: false } : f
+              )
+            );
+          } catch {
+            setUploadedFiles(prev => 
+              prev.map(f => 
+                f.name === file.name && f.isLoading ? 
+                { ...f, content: 'Binary file content not supported for preview', isLoading: false } : f
+              )
+            );
+          }
+        }
+      } catch (error) {
+        console.error('Error reading file:', error);
+        setUploadedFiles(prev => 
+          prev.map(f => 
+            f.name === file.name && f.isLoading ? 
+            { ...f, content: 'Error reading file', isLoading: false } : f
+          )
+        );
+      }
+    }
+    
+    // Reset the input
+    input.value = '';
+  };
+
+  const handleNewSearch = () => {
+    setMessages([]);
+    setCurrentSearchId(null);
+    setActiveTab('ai-service');
+    inputRef.current?.focus();
+  };
+
+  const generateWordDocument = async (content: string, title?: string) => {
+    // Create paragraphs from the content
+    const lines = content.split('\n').filter(line => line.trim());
+    const children = [];
+
+    for (const line of lines) {
+      if (line.startsWith('# ')) {
+        // Main heading
+        children.push(
+          new Paragraph({
+            children: [new TextRun({ text: line.replace('# ', ''), bold: true, size: 32 })],
+            heading: HeadingLevel.HEADING_1,
+            spacing: { after: 200 }
+          })
+        );
+      } else if (line.startsWith('## ')) {
+        // Sub heading
+        children.push(
+          new Paragraph({
+            children: [new TextRun({ text: line.replace('## ', ''), bold: true, size: 28 })],
+            heading: HeadingLevel.HEADING_2,
+            spacing: { after: 200, before: 200 }
+          })
+        );
+      } else if (line.startsWith('### ')) {
+        // Sub-sub heading
+        children.push(
+          new Paragraph({
+            children: [new TextRun({ text: line.replace('### ', ''), bold: true, size: 24 })],
+            heading: HeadingLevel.HEADING_3,
+            spacing: { after: 100, before: 100 }
+          })
+        );
+      } else if (line.startsWith('- ') || line.startsWith('* ')) {
+        // Bullet point
+        children.push(
+          new Paragraph({
+            children: [new TextRun(line.replace(/^[*-] /, ''))],
+            bullet: { level: 0 },
+            spacing: { after: 100 }
+          })
+        );
+      } else if (line.startsWith('  - ') || line.startsWith('  * ')) {
+        // Sub bullet point
+        children.push(
+          new Paragraph({
+            children: [new TextRun(line.replace(/^  [*-] /, ''))],
+            bullet: { level: 1 },
+            spacing: { after: 100 }
+          })
+        );
+      } else if (line.match(/^\d+\. /)) {
+        // Numbered list
+        children.push(
+          new Paragraph({
+            children: [new TextRun(line.replace(/^\d+\. /, ''))],
+            numbering: { reference: "default-numbering", level: 0 },
+            spacing: { after: 100 }
+          })
+        );
+      } else if (line.includes('**') && line.includes('**')) {
+        // Bold text handling
+        const parts = line.split('**');
+        const textRuns = [];
+        for (let i = 0; i < parts.length; i++) {
+          if (i % 2 === 0) {
+            if (parts[i]) textRuns.push(new TextRun(parts[i]));
+          } else {
+            if (parts[i]) textRuns.push(new TextRun({ text: parts[i], bold: true }));
+          }
+        }
+        children.push(
+          new Paragraph({
+            children: textRuns,
+            spacing: { after: 100 }
+          })
+        );
+      } else if (line.trim()) {
+        // Regular paragraph
+        children.push(
+          new Paragraph({
+            children: [new TextRun(line)],
+            spacing: { after: 100 }
+          })
+        );
+      }
+    }
+
+    const doc = new Document({
+      sections: [{
+        properties: {},
+        children: children
+      }]
+    });
+
+    const buffer = await Packer.toBlob(doc);
+    saveAs(buffer, `${title || 'AI4PM-Document'}.docx`);
+  };
+
+  const generatePowerPoint = async (content: string, title?: string) => {
+    const pptx = new PptxGenJS();
+    pptx.layout = 'LAYOUT_WIDE';
+
+    // Title slide
+    const titleSlide = pptx.addSlide();
+    titleSlide.addText(title || 'AI4PM Presentation', {
+      x: 1,
+      y: 2,
+      w: 10,
+      h: 1.5,
+      fontSize: 36,
+      bold: true,
+      align: 'center'
+    });
+
+    // Split content into slides based on headings
+    const sections = content.split(/(?=^##?\s)/m).filter(section => section.trim());
+
+    sections.forEach(section => {
+      const lines = section.split('\n').filter(line => line.trim());
+      if (lines.length === 0) return;
+
+      const slide = pptx.addSlide();
+      let yPos = 0.5;
+
+      const titleLine = lines[0];
+      const slideTitle = titleLine.replace(/^#+\s*/, '');
+      
+      slide.addText(slideTitle, {
+        x: 0.5,
+        y: yPos,
+        w: 12,
+        h: 1,
+        fontSize: 24,
+        bold: true,
+        color: '2C5F87'
+      });
+      yPos += 1.2;
+
+      const bulletPoints = lines.slice(1)
+        .filter(line => line.trim() && !line.startsWith('#'))
+        .map(line => line.replace(/^[*-]\s*/, ''))
+        .slice(0, 6); // Limit to 6 points per slide
+
+      if (bulletPoints.length > 0) {
+        slide.addText(bulletPoints.map(point => ({ text: point, options: {} })), {
+          x: 0.5,
+          y: yPos,
+          w: 11.5,
+          h: 5,
+          fontSize: 16,
+          bullet: true
+        });
+      }
+    });
+
+    pptx.writeFile({ fileName: `${title || 'AI4PM-Presentation'}.pptx` });
+  };
+
+  const saveSearchAutomatically = async (messagesData: Message[]) => {
+    if (!user || messagesData.length === 0) return;
+
+    try {
+      // If we have a current search ID, update it instead of creating a new one
+      if (currentSearchId) {
+        const { error } = await supabase
+          .from('ai_4_pm_searches')
+          .update({
+            messages: messagesData as any,
+            brief_overview: generateBriefOverview(messagesData)
+          })
+          .eq('id', currentSearchId);
+        
+        if (error) {
+          console.error('Error updating search:', error);
+        }
+        return;
+      }
+
+      // Create new search
+      const title = generateContextualTitle(messagesData);
+      const overview = generateBriefOverview(messagesData);
+
+      const { data, error } = await supabase
         .from('ai_4_pm_searches')
         .insert({
           user_id: user.id,
           title,
           brief_overview: overview,
-          messages: messages as any
-        });
+          messages: messagesData as any
+        })
+        .select()
+        .single();
 
       if (error) throw error;
       
+      setCurrentSearchId(data.id);
       loadSearchHistoryList(); // Refresh the list
     } catch (error) {
       console.error('Error saving search:', error);
     }
+  };
+
+  const generateContextualTitle = (messagesData: Message[]) => {
+    const userMessages = messagesData.filter(m => m.role === 'user');
+    const aiMessages = messagesData.filter(m => m.role === 'assistant');
+    
+    if (userMessages.length === 0) return 'Untitled Search';
+    
+    // Combine key words from user messages
+    const allUserText = userMessages.map(m => m.content).join(' ');
+    const words = allUserText.toLowerCase()
+      .replace(/[^\w\s]/g, ' ')
+      .split(/\s+/)
+      .filter(word => word.length > 3)
+      .slice(0, 8);
+    
+    const title = words.join(' ');
+    return title.length > 50 ? title.substring(0, 47) + '...' : title;
+  };
+
+  const generateBriefOverview = (messagesData: Message[]) => {
+    const aiMessages = messagesData.filter(m => m.role === 'assistant');
+    return aiMessages.length > 0 
+      ? aiMessages[0].content.substring(0, 100) + (aiMessages[0].content.length > 100 ? '...' : '')
+      : 'No AI response';
   };
 
   const loadPreviousSearch = async (searchId: string) => {
@@ -464,77 +914,6 @@ const AI4PMService = () => {
     }
   };
 
-  const generateContextualTitle = (messagesData: Message[]) => {
-    const userMessages = messagesData.filter(m => m.role === 'user');
-    const aiMessages = messagesData.filter(m => m.role === 'assistant');
-    
-    if (userMessages.length === 0) return 'Untitled Search';
-    
-    // Combine key words from user messages
-    const allUserText = userMessages.map(m => m.content).join(' ');
-    const words = allUserText.toLowerCase()
-      .replace(/[^\w\s]/g, ' ')
-      .split(/\s+/)
-      .filter(word => word.length > 3)
-      .slice(0, 8);
-    
-    const title = words.join(' ');
-    return title.length > 50 ? title.substring(0, 47) + '...' : title;
-  };
-
-  const saveSearchAutomatically = async (messagesData: Message[]) => {
-    if (!user || messagesData.length === 0) return;
-
-    try {
-      // If we have a current search ID, update it instead of creating a new one
-      if (currentSearchId) {
-        const { error } = await supabase
-          .from('ai_4_pm_searches')
-          .update({
-            messages: messagesData as any,
-            brief_overview: generateBriefOverview(messagesData)
-          })
-          .eq('id', currentSearchId);
-        
-        if (error) {
-          console.error('Error updating search:', error);
-        }
-        return;
-      }
-
-      // Only create a new search if this is the first message in the conversation
-      const title = generateContextualTitle(messagesData);
-      const overview = generateBriefOverview(messagesData);
-
-      const { data, error } = await supabase
-        .from('ai_4_pm_searches')
-        .insert({
-          user_id: user.id,
-          title,
-          brief_overview: overview,
-          messages: messagesData as any
-        })
-        .select('id')
-        .single();
-
-      if (!error && data) {
-        setCurrentSearchId(data.id); // Store the ID for future updates
-        loadSearchHistoryList(); // Refresh the list silently
-      }
-    } catch (error) {
-      console.error('Error auto-saving search:', error);
-    }
-  };
-
-  const generateBriefOverview = (messagesData: Message[]) => {
-    const aiMessages = messagesData.filter(m => m.role === 'assistant');
-    if (aiMessages.length === 0) return 'No AI response';
-    
-    const content = aiMessages[0].content;
-    const words = content.split(' ').slice(0, 50);
-    return words.join(' ') + (content.split(' ').length > 50 ? '...' : '');
-  };
-
   const deleteSearch = async (searchId: string) => {
     try {
       const { error } = await supabase
@@ -544,2094 +923,573 @@ const AI4PMService = () => {
 
       if (error) throw error;
       
+      // If we're deleting the currently loaded search, clear the current search
+      if (currentSearchId === searchId) {
+        setCurrentSearchId(null);
+        setMessages([]);
+      }
+      
       loadSearchHistoryList(); // Refresh the list
     } catch (error) {
       console.error('Error deleting search:', error);
     }
   };
 
-  const clearAllSearches = async () => {
-    try {
-      const { error } = await supabase
-        .from('ai_4_pm_searches')
-        .delete()
-        .eq('user_id', user?.id);
-
-      if (error) throw error;
-      
-      loadSearchHistoryList(); // Refresh the list
-    } catch (error) {
-      console.error('Error clearing all searches:', error);
-    }
-  };
-
-  const handleNewMeeting = () => {
-    // End voice chat if active
-    if (isVoiceConnected) {
-      endVoiceChat();
-    }
-    
-    // Save current search before clearing if it has messages
-    if (messages.length > 0) {
-      saveCurrentSearch();
-    }
-    // Clear current conversation and reset tracking
-    setMessages([]);
-    setUploadedFiles([]);
-    setInput('');
-    setCurrentSearchId(null); // Reset current search tracking
-  };
-
-  const quickActions = [
-    { 
-      label: 'Check Draft Reply', 
-      icon: Mail, 
-      prompt: 'Please review my draft email reply below and suggest improvements for professionalism, NHS compliance, and tone. Check for any missing information or potential issues:\n\n[Please paste your draft email and the email chain or add your supporting documents here]',
-      requiresFile: false 
-    },
-    { 
-      label: 'Help Reply to Patient', 
-      icon: MessageSquare, 
-      prompt: 'I need help replying to a patient communication. Please help me draft a professional, empathetic NHS-compliant response. Here is the patient\'s message:\n\n[Please paste the patient\'s message here]',
-      requiresFile: false 
-    },
-    { 
-      label: 'Summarise Document', 
-      icon: FileText, 
-      prompt: 'Please summarise the uploaded document and highlight any key deadlines, actions, or compliance requirements.',
-      requiresFile: true 
-    },
-    { 
-      label: 'Draft NHS Email', 
-      icon: Mail, 
-      prompt: 'Help me draft a professional NHS-compliant email response for this correspondence.',
-      requiresFile: false 
-    },
-    { 
-      label: 'CQC Compliance Check', 
-      icon: Shield, 
-      prompt: 'Review this content for CQC compliance and identify any Key Lines of Enquiry (KLOEs) that need attention. Suggest improvements if needed.',
-      requiresFile: false 
-    },
-    { 
-      label: 'Create SOP/Policy', 
-      icon: CheckSquare, 
-      prompt: 'Create a standard operating procedure or policy document based on the requirements discussed. Please specify the topic or process you need documented.',
-      requiresFile: false 
-    },
-    { 
-      label: 'Meeting Support', 
-      icon: Calendar, 
-      prompt: 'Help me with meeting preparation - create an agenda, meeting minutes template, or action points summary.',
-      requiresFile: false 
-    },
-    { 
-      label: 'Patient Complaint Analysis', 
-      icon: AlertTriangle, 
-      prompt: 'Analyze this patient complaint and help me create a professional response plan including investigation steps and resolution timeline.',
-      requiresFile: false 
-    }
-  ];
-
-  const insertPracticeDetails = () => {
-    if (!practiceDetails) return;
-    
-    let practiceText = `\n\n**Practice Details:**\n`;
-    practiceText += `**Practice Name:** ${practiceDetails.practice_name}\n`;
-    
-    if (practiceDetails.address) {
-      practiceText += `**Address:** ${practiceDetails.address}\n`;
-    }
-    
-    if (practiceDetails.phone) {
-      practiceText += `**Phone:** ${practiceDetails.phone}\n`;
-    }
-    
-    if (practiceDetails.email) {
-      practiceText += `**Email:** ${practiceDetails.email}\n`;
-    }
-    
-    if (practiceDetails.website) {
-      practiceText += `**Website:** ${practiceDetails.website}\n`;
-    }
-    
-    if (practiceContext.pcnName) {
-      practiceText += `**Primary Care Network:** ${practiceContext.pcnName}\n`;
-    }
-    
-    practiceText += `\n`;
-    
-    setInput(prev => prev + practiceText);
-  };
-
-  const buildSystemPrompt = () => {
-    let prompt = `You are "AI 4 PM Service", an AI Assistant built specifically to help GP Practice Managers in the UK NHS.
-
-You understand and can explain:
-- NHS policies (Digital Service Manual, GP contract, CQC KLOEs)
-- Common admin, HR, finance and compliance workflows
-- EMIS, SystmOne, SNOMED, QOF indicators
-- Local policies uploaded by the user
-- You summarise, draft documents, create checklists, answer SOP queries
-- Always stay professional, accurate, and NHS-compliant
-
-${uploadedFiles.length > 0 ? `\nIMPORTANT: The user has uploaded ${uploadedFiles.length} file(s): ${uploadedFiles.map(f => f.name).join(', ')}. These files contain content that you can directly analyze and reference. You have full access to the file contents, so you can answer questions about them, summarize them, or analyze them without asking the user to upload again.` : ''}`;
-
-    // Add practice context if available
-    if (practiceContext.practiceName) {
-      prompt += `\n\nCONTEXT ABOUT THE USER'S PRACTICE:
-- Practice Name: ${practiceContext.practiceName}`;
-      
-      if (practiceContext.practiceManagerName) {
-        prompt += `\n- Practice Manager: ${practiceContext.practiceManagerName}`;
-      }
-      
-      if (practiceContext.pcnName) {
-        prompt += `\n- Primary Care Network (PCN): ${practiceContext.pcnName}`;
-      }
-      
-      if (practiceContext.neighbourhoodName) {
-        prompt += `\n- Neighbourhood: ${practiceContext.neighbourhoodName}`;
-      }
-      
-      if (practiceContext.otherPracticesInPCN?.length > 0) {
-        prompt += `\n- Other practices in the same PCN: ${practiceContext.otherPracticesInPCN.join(', ')}`;
-      }
-      
-      prompt += `\n\nWhen relevant to queries, you can reference this practice information to provide more personalized and contextual responses. For example, you can mention collaboration opportunities with other practices in the PCN, or tailor advice specific to the practice's context.`;
-    }
-
-    prompt += `\n\nKnowledge domains you should reference:
-1. NHS Digital & Admin Resources (NHS England GP Contract 2024/25, PCN DES, NHS Long Term Plan)
-2. CQC and Compliance (KLOEs for GP practices, CQC Evidence Categories, compliance documents)
-3. Practice Operations (Reception SOPs, HR policies, patient access strategies)
-4. Finance & Contracts (GP Practice finance, PCN funding, ARRS roles, IIF indicators)
-5. Information Governance & GDPR (DSPT compliance, NHSmail policies, SARs)
-6. Clinical System Knowledge (SNOMED basics, EMIS/SystmOne templates, QOF indicators)
-
-SPECIAL CAPABILITIES:
-- Document Generation: When asked to create a Word document, format your response with clear headings, sections, and structured content that can be easily converted to a professional document.
-- File Analysis: When files are uploaded by the user, you have access to their full content and can analyze, summarize, and answer questions about them directly.
-
-If the user's message includes a section labeled "[Latest web results]" or "[Latest web updates digest]", treat it as up-to-date context. Do not mention training or knowledge cutoffs; answer using that context and cite sources and dates when present.
-
-Always provide practical, actionable advice that follows NHS guidelines and best practices.`;
-
-    return prompt;
-  };
-
-  const handleSend = async () => {
-    if (!input.trim() && uploadedFiles.length === 0) return;
-    
-    // Enhance the message content when files are attached
-    let messageContent = input;
-    if (uploadedFiles.length > 0 && input.trim()) {
-      messageContent = `${input}\n\n[Note: I have uploaded ${uploadedFiles.length} file(s): ${uploadedFiles.map(f => f.name).join(', ')}. Please analyze these files in relation to my question above.]`;
-    } else if (uploadedFiles.length > 0 && !input.trim()) {
-      messageContent = `Please analyze the uploaded file(s): ${uploadedFiles.map(f => f.name).join(', ')}`;
-    }
-
-    // Live web updates handled server-side via enableWebSearch; avoid injecting stale local digests here.
-
-    
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: messageContent,
-      timestamp: new Date(),
-      files: uploadedFiles.length > 0 ? [...uploadedFiles] : undefined
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-    setInput(''); // Clear input immediately to prevent concatenation
-    setIsLoading(true);
-
-    try {
-      // Ensure we're using the current messages state plus the new user message
-      const currentMessages = sessionMemory ? [...messages, userMessage] : [userMessage];
-      // Preserve conversation context even when including latest web updates
-      const effectiveMessages = currentMessages;
-      
-      const { data, error } = await supabase.functions.invoke('ai-4-pm-chat', {
-        body: {
-          messages: effectiveMessages,
-          model,
-          systemPrompt: buildSystemPrompt(),
-          files: uploadedFiles,
-          enableWebSearch: includeLatestWeb
-        }
-      });
-
-      if (error) throw error;
-
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: data.response,
-        timestamp: new Date()
-      };
-
-      setMessages(prev => [...prev, assistantMessage]);
-      setUploadedFiles([]); // Clear files after sending
-
-      // Auto-save search after AI responds
-      const wasFirstMessage = messages.length === 0;
-      if (wasFirstMessage) {
-        // First message - create new search
-        setTimeout(() => {
-          saveSearchAutomatically([userMessage, assistantMessage]);
-        }, 1000);
-      } else {
-        // Subsequent messages - update existing search
-        setTimeout(() => {
-          const allMessages = [...messages, userMessage, assistantMessage];
-          saveSearchAutomatically(allMessages);
-        }, 1000);
-      }
-
-      // Removed automatic follow-up message generation to prevent bubble splitting
-    } catch (error: any) {
-      console.error('Error:', error);
-      if (error.message?.includes('API key not configured')) {
-        if (model === 'claude') {
-          setApiKeyMissing(prev => ({...prev, claude: true}));
-          console.error('Anthropic API key not configured. Please check your settings.');
-        } else {
-          setApiKeyMissing(prev => ({...prev, gpt: true}));
-          console.error('OpenAI API key not configured. Please check your settings.');
-        }
-      } else {
-        console.error('Failed to get response. Please try again.');
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleQuickAction = (action: typeof quickActions[0]) => {
-    if (action.requiresFile && uploadedFiles.length === 0) {
-      console.error('This action requires a file to be uploaded first.');
-      return;
-    }
-    
-    setInput(action.prompt);
-  };
-
-  const handleSpeechTranscription = (text: string) => {
-    setInput(prev => prev + (prev ? ' ' : '') + text);
-  };
-
-  const handleFileUpload = (files: File[]) => {
-    files.forEach(file => {
-      // Add file with loading state immediately
-      const loadingFile: UploadedFile = {
-        name: file.name,
-        type: file.type,
-        content: '',
-        size: file.size,
-        isLoading: true
-      };
-      
-      setUploadedFiles(prev => [...prev, loadingFile]);
-      
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const content = e.target?.result as string;
-        const uploadedFile: UploadedFile = {
-          name: file.name,
-          type: file.type,
-          content,
-          size: file.size,
-          isLoading: false
-        };
-        
-        // Replace the loading file with the completed one
-        setUploadedFiles(prev => 
-          prev.map(f => 
-            f.name === file.name && f.isLoading 
-              ? uploadedFile 
-              : f
-          )
-        );
-        console.log(`File uploaded: ${file.name}`);
-      };
-      
-      reader.onerror = () => {
-        // Remove the loading file on error
-        setUploadedFiles(prev => 
-          prev.filter(f => !(f.name === file.name && f.isLoading))
-        );
-        console.error(`Failed to upload file: ${file.name}`);
-      };
-      
-      // Handle different file types
-      if (file.type.startsWith('text/') || 
-          file.name.endsWith('.txt') || 
-          file.name.endsWith('.csv') ||
-          file.name.endsWith('.msg') ||
-          file.name.endsWith('.eml')) {
-        reader.readAsText(file);
-      } else {
-        // For binary files, read as data URL
-        reader.readAsDataURL(file);
-      }
-    });
-  };
-
-  const removeFile = (index: number) => {
-    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const clearConversation = () => {
-    // End voice chat if active
-    if (isVoiceConnected) {
-      endVoiceChat();
-    }
-    
-    setMessages([]);
-    setUploadedFiles([]);
-    setInput('');
-    console.log('Conversation cleared');
-  };
-
-  const getChatBoxHeight = () => {
-    switch (chatBoxSize) {
-      case 'small': return 'h-[400px]';
-      case 'default': return 'h-[calc(100vh-280px)]';
-      case 'large': return 'h-[calc(100vh-200px)]';
-      case 'extra-large': return 'h-[calc(100vh-120px)]';
-      default: return 'h-[calc(100vh-280px)]';
-    }
-  };
-
-  const generateWordDocument = async (content: string, title: string = 'AI Generated Document') => {
-    try {
-      const paragraphs: any[] = [];
-      
-      // Add practice branding if enabled and available
-      if (includePracticeBranding && practiceContext.practiceName) {
-        // Add practice name as header
-        paragraphs.push(
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: practiceContext.practiceName,
-                bold: true,
-                size: 28,
-                color: "003087" // NHS Blue
-              })
-            ],
-            spacing: { after: 200 }
-          })
-        );
-        
-        // Add separator line
-        paragraphs.push(
-          new Paragraph({
-            children: [
-              new TextRun({
-                text: "____________________________________________",
-                color: "005EB8" // NHS Light Blue
-              })
-            ],
-            spacing: { after: 400 }
-          })
-        );
-      }
-      
-      // Add title
-      paragraphs.push(
-        new Paragraph({
-          text: title,
-          heading: HeadingLevel.TITLE,
-        })
-      );
-
-      // Enhanced content parsing - preserve all formatting including checkboxes
-      const parseContent = (content: string) => {
-        // Convert checkboxes first, then split lines
-        const processedContent = content
-          .replace(/☑/g, '✓ ') // Convert checkmark to simple tick
-          .replace(/☐/g, '□ ') // Convert empty checkbox to simple box
-          .replace(/\[\s*x\s*\]/gi, '✓ ') // Convert [x] to tick
-          .replace(/\[\s*\]/g, '□ '); // Convert [ ] to box
-        
-        return processedContent.split('\n').filter(line => line.trim());
-      };
-
-      const contentLines = parseContent(content);
-      
-      // Function to detect and parse table data
-      const detectAndParseTable = (lines: string[], startIndex: number): { table: any, endIndex: number } | null => {
-        let currentIndex = startIndex;
-        const tableRows: string[][] = [];
-        let foundTable = false;
-        
-        // Look for table patterns with | delimiters
-        while (currentIndex < lines.length) {
-          const line = lines[currentIndex].trim();
-          
-          // Check if this line looks like a table row (contains | separators)
-          if (line.includes('|') && line.split('|').length >= 3) {
-            const cells = line.split('|').map(cell => cell.trim()).filter(cell => cell.length > 0);
-            if (cells.length >= 2) {
-              tableRows.push(cells);
-              foundTable = true;
-            }
-          } else if (foundTable) {
-            // End of table reached
-            break;
-          } else {
-            // Not a table line, return null
-            return null;
-          }
-          
-          currentIndex++;
-        }
-        
-        if (tableRows.length >= 2) { // At least header + 1 data row
-          // Create table with proper formatting
-          const headerRow = tableRows[0];
-          const dataRows = tableRows.slice(1).filter(row => 
-            // Filter out separator rows (rows with just dashes)
-            !row.every(cell => /^[-\s]*$/.test(cell))
-          );
-          
-          if (dataRows.length > 0) {
-            const tableElement = new Table({
-              width: {
-                size: 100,
-                type: WidthType.PERCENTAGE,
-              },
-              borders: {
-                top: { style: BorderStyle.SINGLE, size: 1, color: "003087" },
-                bottom: { style: BorderStyle.SINGLE, size: 1, color: "003087" },
-                left: { style: BorderStyle.SINGLE, size: 1, color: "003087" },
-                right: { style: BorderStyle.SINGLE, size: 1, color: "003087" },
-                insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" },
-                insideVertical: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" },
-              },
-              rows: [
-                // Header row with NHS blue background
-                new TableRow({
-                  children: headerRow.map(cell => new TableCell({
-                    children: [new Paragraph({
-                      children: [new TextRun({
-                        text: cell,
-                        bold: true,
-                        size: 24,
-                        color: "FFFFFF"
-                      })]
-                    })],
-                    shading: {
-                      fill: "003087" // NHS Blue background for header
-                    },
-                    margins: {
-                      top: 100,
-                      bottom: 100,
-                      left: 150,
-                      right: 150,
-                    }
-                  }))
-                }),
-                // Data rows
-                ...dataRows.map((row, rowIndex) => new TableRow({
-                  children: row.map(cell => new TableCell({
-                    children: [new Paragraph({
-                      children: processFormattedText(cell)
-                    })],
-                    shading: {
-                      fill: rowIndex % 2 === 0 ? "F8FAFC" : "FFFFFF" // Alternating row colors
-                    },
-                    margins: {
-                      top: 100,
-                      bottom: 100,
-                      left: 150,
-                      right: 150,
-                    }
-                  }))
-                }))
-              ]
-            });
-            
-            return { table: tableElement, endIndex: currentIndex - 1 };
-          }
-        }
-        
-        return null;
-      };
-      
-      // Function to process text with inline formatting (bold, italic, code)
-      const processFormattedText = (text: string) => {
-        const children: any[] = [];
-        
-        // Handle the special case where the entire line is bold
-        if (text.match(/^\*\*[^*]+\*\*$/)) {
-          const boldText = text.slice(2, -2);
-          children.push(new TextRun({
-            text: boldText,
-            size: 24,
-            bold: true
-          }));
-          return children;
-        }
-        
-        // More comprehensive pattern to handle bold, italic, and mixed formatting
-        const formatPattern = /(\*\*\*[^*]+?\*\*\*|\*\*[^*]+?\*\*|\*[^*]+?\*|`[^`]+?`)/g;
-        let lastIndex = 0;
-        let match;
-        
-        while ((match = formatPattern.exec(text)) !== null) {
-          // Add any plain text before this match
-          if (match.index > lastIndex) {
-            const plainText = text.substring(lastIndex, match.index);
-            if (plainText) {
-              children.push(new TextRun({
-                text: plainText,
-                size: 24
-              }));
-            }
-          }
-          
-          const matchedText = match[0];
-          
-          // Handle bold and italic (***text***)
-          if (matchedText.startsWith('***') && matchedText.endsWith('***')) {
-            const content = matchedText.slice(3, -3);
-            children.push(new TextRun({
-              text: content,
-              size: 24,
-              bold: true,
-              italics: true
-            }));
-          }
-          // Handle bold (**text**)
-          else if (matchedText.startsWith('**') && matchedText.endsWith('**')) {
-            const content = matchedText.slice(2, -2);
-            children.push(new TextRun({
-              text: content,
-              size: 24,
-              bold: true
-            }));
-          }
-          // Handle italic (*text*)
-          else if (matchedText.startsWith('*') && matchedText.endsWith('*')) {
-            const content = matchedText.slice(1, -1);
-            children.push(new TextRun({
-              text: content,
-              size: 24,
-              italics: true
-            }));
-          }
-          // Handle code (`text`)
-          else if (matchedText.startsWith('`') && matchedText.endsWith('`')) {
-            const content = matchedText.slice(1, -1);
-            children.push(new TextRun({
-              text: content,
-              size: 22,
-              font: "Courier New",
-              shading: {
-                type: "clear",
-                color: "f6f8fa",
-                fill: "f6f8fa"
-              }
-            }));
-          }
-          
-          lastIndex = formatPattern.lastIndex;
-        }
-        
-        // Add any remaining plain text after the last match
-        if (lastIndex < text.length) {
-          const remainingText = text.substring(lastIndex);
-          if (remainingText) {
-            children.push(new TextRun({
-              text: remainingText,
-              size: 24
-            }));
-          }
-        }
-        
-        // If no formatting patterns were found, add the entire text as plain
-        if (children.length === 0) {
-          children.push(new TextRun({
-            text: text,
-            size: 24
-          }));
-        }
-        
-        return children;
-      };
-      
-      // Process content line by line, checking for tables
-      let i = 0;
-      while (i < contentLines.length) {
-        const trimmedLine = contentLines[i].trim();
-        
-        if (!trimmedLine) {
-          i++;
-          continue;
-        }
-        
-        // Skip separator lines
-        if (trimmedLine === '---' || trimmedLine === '___') {
-          i++;
-          continue;
-        }
-        
-        console.log("DEBUG Word Export - Processing line:", trimmedLine);
-        
-        // Check for table at current position
-        const tableResult = detectAndParseTable(contentLines, i);
-        if (tableResult) {
-          paragraphs.push(tableResult.table);
-          // Add spacing after table
-          paragraphs.push(new Paragraph({
-            children: [new TextRun({ text: "", size: 24 })],
-            spacing: { after: 200 }
-          }));
-          i = tableResult.endIndex + 1;
-          continue;
-        }
-        
-        // Check for headings (markdown or formatted)
-        if (trimmedLine.startsWith('#')) {
-          const headingText = trimmedLine.replace(/^#+\s*/, '').replace(/\*\*/g, ''); // Remove # and ** formatting
-          paragraphs.push(
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: headingText,
-                  bold: true,
-                  size: 32, // 16pt
-                  color: "003087" // NHS Blue
-                })
-              ],
-              spacing: { before: 400, after: 200 }
-            })
-          );
-        }
-        // Check if it's a section heading (including numbered headings with markdown)
-        else if ((trimmedLine === trimmedLine.toUpperCase() && trimmedLine.length > 5 && trimmedLine.length < 80) || 
-                 (trimmedLine.endsWith(':') && trimmedLine.length < 80 && !trimmedLine.startsWith('•') && !trimmedLine.startsWith('☑') && !trimmedLine.startsWith('☐')) ||
-                 (trimmedLine.match(/^\d+\.\s*\*\*[^*]+?\*\*$/)) ||  // Handle numbered headings like "1. **Background**"
-                 (trimmedLine.match(/^[A-Z]\.\s*\*\*[^*]+?\*\*$/))) { // Handle lettered headings like "A. **NHS England**"
-          
-          // Extract heading text and remove markdown formatting for Word display
-          let headingText = trimmedLine;
-          if (headingText.match(/^\d+\.\s*\*\*[^*]+?\*\*$/) || headingText.match(/^[A-Z]\.\s*\*\*[^*]+?\*\*$/)) {
-            // Extract from numbered/lettered bold heading format
-            headingText = headingText.replace(/^[A-Z0-9]\.\s*\*\*([^*]+?)\*\*$/, '$1');
-          } else {
-            // Remove any residual markdown
-            headingText = headingText.replace(/\*\*/g, '').replace(/:/g, '');
-          }
-          
-          paragraphs.push(
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: headingText,
-                  bold: true,
-                  size: 28, // 14pt
-                  color: "005EB8" // NHS Light Blue
-                })
-              ],
-              spacing: { before: 300, after: 150 }
-            })
-          );
-        }
-        // Handle checkboxes and special characters - preserve exactly as shown
-        else if (trimmedLine.startsWith('☑') || trimmedLine.startsWith('☐') || trimmedLine.startsWith('✓') || trimmedLine.startsWith('✗')) {
-          const checkboxSymbol = trimmedLine.substring(0, 1);
-          const checkboxText = trimmedLine.substring(1).trim();
-          const isChecked = trimmedLine.startsWith('☑') || trimmedLine.startsWith('✓');
-          
-          paragraphs.push(
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: checkboxSymbol + ' ',
-                  size: 24,
-                  color: isChecked ? "008000" : "666666", // Green for checked, gray for unchecked
-                  font: "Segoe UI Symbol" // Ensure checkbox symbols display properly
-                }),
-                new TextRun({
-                  text: checkboxText,
-                  size: 24
-                })
-              ],
-              spacing: { after: 100 },
-              indent: { left: 100 }
-            })
-          );
-        }
-        // Handle bullet points - convert to checked checkboxes for consistency
-        else if (trimmedLine.startsWith('•') || trimmedLine.startsWith('-')) {
-          const bulletText = trimmedLine.replace(/^[•-]\s*/, '');
-          
-          paragraphs.push(
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: '☑ ',
-                  size: 24,
-                  color: "008000", // Green for checked
-                  font: "Segoe UI Symbol"
-                }),
-                ...processFormattedText(bulletText)
-              ],
-              spacing: { after: 100 },
-              indent: { left: 100 }
-            })
-          );
-        }
-        // Handle numbered lists (but not if they contain markdown formatting like **text**)
-        else if (trimmedLine.match(/^\d+\./) && !trimmedLine.includes('**')) {
-          const numberedText = trimmedLine.replace(/^\d+\.\s*/, '');
-          paragraphs.push(
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: numberedText,
-                  size: 24
-                })
-              ],
-              numbering: {
-                reference: "default-numbering",
-                level: 0,
-              },
-              spacing: { after: 100 }
-            })
-          );
-        }
-        // Handle regular text with inline formatting
-        else {
-          paragraphs.push(
-            new Paragraph({
-              children: processFormattedText(trimmedLine),
-              spacing: { after: 200 }
-            })
-          );
-        }
-        
-        i++;
-      }
-
-      const doc = new Document({
-        sections: [{
-          properties: {},
-          children: paragraphs,
-        }],
-        numbering: {
-          config: [{
-            reference: "default-numbering",
-            levels: [{
-              level: 0,
-              format: "decimal",
-              text: "%1.",
-              alignment: "start",
-            }]
-          }]
-        }
-      });
-
-      const blob = await Packer.toBlob(doc);
-      saveAs(blob, `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.docx`);
-      console.log('Word document generated successfully');
-    } catch (error) {
-      console.error('Error generating Word document:', error);
-    }
-  };
-
-  const generatePowerPoint = async (content: string, title: string = 'AI Generated Presentation') => {
-    try {
-      const pptx = new PptxGenJS();
-      
-      // Set presentation properties with NHS branding
-      pptx.author = 'AI 4 PM Service';
-      pptx.company = includePracticeBranding && practiceContext.practiceName ? practiceContext.practiceName : 'NHS GP Practice';
-      pptx.title = title;
-
-      // Define NHS slide master with professional styling
-      pptx.defineSlideMaster({
-        title: 'NHS_MASTER',
-        background: { fill: '#F8FAFC' },
-        objects: [
-          // NHS Blue header bar
-          {
-            rect: {
-              x: 0, y: 0, w: '100%', h: 0.8,
-              fill: { color: '003087' }
-            }
-          },
-          // NHS logo area
-          {
-            rect: {
-              x: 0, y: 0, w: 2, h: 0.8,
-              fill: { color: '005EB8' }
-            }
-          },
-           // NHS text in header
-           {
-             text: {
-               text: 'NHS',
-               options: {
-                 x: 0.2, y: 0.15, w: 1.6, h: 0.5,
-                 fontSize: 24,
-                 bold: true,
-                 color: 'FFFFFF',
-                 fontFace: 'Arial'
-               }
-             }
-           },
-           // Practice name in header (if branding enabled)
-           ...(includePracticeBranding && practiceContext.practiceName ? [{
-             text: {
-               text: practiceContext.practiceName,
-               options: {
-                 x: 2.2, y: 0.15, w: 6, h: 0.5,
-                 fontSize: 16,
-                 bold: true,
-                 color: 'FFFFFF',
-                 fontFace: 'Arial'
-               }
-             }
-           }] : []),
-          // Accent line
-          {
-            line: {
-              x: 0, y: 0.9, w: '100%', h: 0,
-              line: { color: '005EB8', width: 2 }
-            }
-          },
-          // Footer area
-          {
-            rect: {
-              x: 0, y: 6.8, w: '100%', h: 0.7,
-              fill: { color: 'E8F4FD' }
-            }
-          }
-        ]
-      });
-
-      // Clean the content from markdown
-      const cleanContent = content
-        .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold markdown
-        .replace(/\*(.*?)\*/g, '$1') // Remove italic markdown
-        .replace(/`(.*?)`/g, '$1') // Remove code markdown
-        .replace(/#{1,6}\s*/g, '') // Remove heading markdown
-        .replace(/^\s*[-•*]\s*/gm, '• '); // Normalize bullet points
-
-      // Create NHS-branded title slide
-      const titleSlide = pptx.addSlide({ masterName: 'NHS_MASTER' });
-      
-      // Main title
-      titleSlide.addText('AI 4 PM Service', {
-        x: 1, y: 2, w: 8, h: 1,
-        fontSize: 44,
-        bold: true,
-        color: '003087',
-        align: 'center',
-        fontFace: 'Arial'
-      });
-      
-      // Subtitle
-      titleSlide.addText('Clinical Analysis & Practice Management', {
-        x: 1, y: 3.2, w: 8, h: 0.8,
-        fontSize: 24,
-        color: '005EB8',
-        align: 'center',
-        fontFace: 'Arial'
-      });
-      
-      // Document title
-      titleSlide.addText(title, {
-        x: 1, y: 4.5, w: 8, h: 1,
-        fontSize: 28,
-        bold: true,
-        color: '333333',
-        align: 'center',
-        fontFace: 'Arial'
-      });
-      
-      // Date and branding
-      titleSlide.addText(`Generated: ${new Date().toLocaleDateString('en-GB')}`, {
-        x: 1, y: 5.8, w: 8, h: 0.5,
-        fontSize: 16,
-        color: '666666',
-        align: 'center',
-        fontFace: 'Arial'
-      });
-
-      // NHS tagline
-      titleSlide.addText('Supporting Excellence in Primary Care', {
-        x: 1, y: 6.3, w: 8, h: 0.4,
-        fontSize: 14,
-        color: '666666',
-        align: 'center',
-        fontFace: 'Arial',
-        italic: true
-      });
-
-      // Parse content into logical sections
-      const lines = cleanContent.split('\n').filter(line => line.trim());
-      let currentSlideContent: string[] = [];
-      let currentTitle = '';
-      let slideCount = 0;
-
-      const createSlide = (slideTitle: string, bulletPoints: string[]) => {
-        if (bulletPoints.length === 0) return;
-        
-        const slide = pptx.addSlide({ masterName: 'NHS_MASTER' });
-        slideCount++;
-        
-        // Add slide number
-        slide.addText(`${slideCount}`, {
-          x: 9, y: 6.8, w: 0.8, h: 0.4,
-          fontSize: 12,
-          color: '666666',
-          align: 'center',
-          fontFace: 'Arial'
-        });
-
-        // Add title with NHS styling
-        slide.addText(slideTitle || `Key Points ${slideCount}`, {
-          x: 1, y: 1.2, w: 8, h: 0.8,
-          fontSize: 28,
-          bold: true,
-          color: '003087',
-          fontFace: 'Arial'
-        });
-
-        // Add decorative line under title
-        slide.addShape(pptx.ShapeType.line, {
-          x: 1, y: 2.1, w: 2, h: 0,
-          line: { color: '005EB8', width: 3 }
-        });
-
-        // Process bullet points - limit to 6 per slide for readability
-        const pointsToShow = bulletPoints.slice(0, 6);
-        
-        if (pointsToShow.length > 0) {
-          // Create bullet point text with NHS styling
-          const bulletText = pointsToShow.map(point => 
-            point.replace(/^[•-]\s*/, '').trim()
-          ).join('\n\n');
-
-          slide.addText(bulletText, {
-            x: 1, y: 2.5, w: 8, h: 4,
-            fontSize: 18,
-            color: '333333',
-            bullet: { type: 'bullet', style: '•' },
-            lineSpacing: 24,
-            fontFace: 'Arial'
-          });
-        }
-
-        // If there are more than 6 points, create additional slides
-        if (bulletPoints.length > 6) {
-          const remainingPoints = bulletPoints.slice(6);
-          createSlide(`${slideTitle} (continued)`, remainingPoints);
-        }
-      };
-
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim();
-        
-        if (!line) continue;
-
-        // Check if this is a new section/heading
-        const isHeading = line === line.toUpperCase() && line.length > 5 && line.length < 80 ||
-                         line.endsWith(':') && line.length < 80 ||
-                         /^\d+\.\s*[A-Z]/.test(line);
-
-        if (isHeading) {
-          // Save previous slide if it has content
-          if (currentTitle && currentSlideContent.length > 0) {
-            createSlide(currentTitle, currentSlideContent);
-          }
-          
-          // Start new slide
-          currentTitle = line.replace(/^\d+\.\s*/, '').replace(/:$/, '');
-          currentSlideContent = [];
-        } else if (line.startsWith('•') || line.startsWith('-') || /^\d+\./.test(line)) {
-          // This is a bullet point
-          currentSlideContent.push(line);
-        } else if (line.length > 10) {
-          // This is regular content, treat as bullet point
-          currentSlideContent.push('• ' + line);
-        }
-      }
-
-      // Add the last slide
-      if (currentTitle && currentSlideContent.length > 0) {
-        createSlide(currentTitle, currentSlideContent);
-      } else if (currentSlideContent.length > 0) {
-        createSlide('Summary', currentSlideContent);
-      }
-
-      // If no structured content was found, create a simple content slide
-      if (slideCount === 0) {
-        const slide = pptx.addSlide({ masterName: 'NHS_MASTER' });
-        slide.addText('Content Overview', {
-          x: 1, y: 1.2, w: 8, h: 0.8,
-          fontSize: 28,
-          bold: true,
-          color: '003087',
-          fontFace: 'Arial'
-        });
-
-        // Add decorative line under title
-        slide.addShape(pptx.ShapeType.line, {
-          x: 1, y: 2.1, w: 2, h: 0,
-          line: { color: '005EB8', width: 3 }
-        });
-
-        const bulletText = lines.slice(0, 8).map(line => 
-          line.replace(/^[•-]\s*/, '').trim()
-        ).join('\n\n');
-
-        slide.addText(bulletText, {
-          x: 1, y: 2.5, w: 8, h: 4,
-          fontSize: 18,
-          color: '333333',
-          bullet: { type: 'bullet', style: '•' },
-          lineSpacing: 24,
-          fontFace: 'Arial'
-        });
-      }
-
-      // Save the presentation with NHS branding
-      await pptx.writeFile({ fileName: `NHS-AI4PM-${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}-${new Date().toISOString().split('T')[0]}.pptx` });
-      console.log('NHS-styled PowerPoint presentation generated successfully');
-    } catch (error) {
-      console.error('Error generating PowerPoint presentation:', error);
-    }
-  };
-
-
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-background flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-2 text-muted-foreground">Loading...</p>
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p>Loading...</p>
         </div>
       </div>
     );
   }
 
-  // Debug logging for messages
-  console.log("DEBUG: Current messages:", messages.map(m => ({ 
-    role: m.role, 
-    contentLength: m.content?.length || 0,
-    hasContent: !!m.content 
-  })));
-
   if (!user) {
-    return (
-      <div className="min-h-screen bg-gradient-background">
-        <Header onNewMeeting={handleNewMeeting} />
-        <div className="container mx-auto px-3 py-6 sm:px-4 sm:py-8">
-          <LoginForm />
-        </div>
-      </div>
-    );
+    return <LoginForm />;
   }
 
   return (
-    <div className="min-h-[100dvh] bg-gradient-background overflow-y-auto">
-      <Header onNewMeeting={handleNewMeeting} />
+    <div className="min-h-screen bg-background">
+      <Header onNewMeeting={() => {}} />
       
-      {/* API Key Missing Alert */}
-      {(apiKeyMissing.claude || apiKeyMissing.gpt) && (
-        <div className="container mx-auto px-3 py-4 sm:px-4 max-w-6xl">
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-            <h3 className="text-lg font-semibold text-yellow-800 mb-2">API Configuration Required</h3>
-            <p className="text-yellow-700 mb-4">
-              To use the AI 4 PM Service, you need to configure API keys for the AI models.
-            </p>
-            <div className="flex gap-2 flex-wrap">
-              {apiKeyMissing.claude && (
-                <p className="text-sm text-yellow-600">
-                  Anthropic (Claude) API key is missing. Please contact your system administrator to configure it.
-                </p>
-              )}
-              {apiKeyMissing.gpt && (
-                <p className="text-sm text-yellow-600">
-                  OpenAI (GPT-4) API key is missing. Please contact your system administrator to configure it.
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-      
-      <div className="container mx-auto px-3 py-2 sm:px-4 sm:py-3 max-w-7xl pb-20 sm:pb-0">
-        {/* Mobile nav handled by fixed bottom tab bar */}
-        
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          {/* Desktop/tablet tabs */}
-          <div className="hidden sm:block">
-            <TabsList className="grid w-full grid-cols-4 lg:grid-cols-5 gap-1 h-auto p-1">
-              <TabsTrigger value="ai-service" className="flex items-center gap-1 min-h-[40px] text-sm touch-manipulation">
-                <MessageSquare className="h-4 w-4" />
-                <span>AI Service</span>
-              </TabsTrigger>
-              <TabsTrigger value="pm-genie" className="flex items-center gap-1 min-h-[40px] text-sm touch-manipulation">
-                <Bot className="h-4 w-4" />
-                <span>PM Genie</span>
-              </TabsTrigger>
-              <TabsTrigger value="latest-news" className="flex items-center gap-1 min-h-[40px] text-sm touch-manipulation">
-                <Newspaper className="h-4 w-4" />
-                <span>Latest News</span>
-              </TabsTrigger>
-              <TabsTrigger value="previous-searches" className="flex items-center gap-1 min-h-[40px] text-sm touch-manipulation">
-                <History className="h-4 w-4" />
-                <span>Previous Searches</span>
-              </TabsTrigger>
-              <TabsTrigger value="what-can-ai-do" className="flex items-center gap-1 min-h-[40px] text-sm touch-manipulation">
-                <HelpCircle className="h-4 w-4" />
-                <span>What can AI do?</span>
-              </TabsTrigger>
-            </TabsList>
-          </div>
-
-          {/* AI Service Tab */}
-          <TabsContent value="ai-service" className="mt-1">
-            <Card className={getChatBoxHeight()}>
-              <CardHeader className="pb-3">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 w-full">
-                    <CardTitle className="flex flex-col gap-2">
-                      <div className="flex items-center gap-2">
-                        <img
-                          src="/lovable-uploads/a793ab5e-3de2-48f2-b553-ce348ae7be53.png"
-                          alt="AI4PM logo"
-                          className="h-[72px] sm:h-24 w-auto cursor-pointer"
-                          loading="lazy"
-                          role="button"
-                          tabIndex={0}
-                          title="Start a new chat"
-                          onClick={clearConversation}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' || e.key === ' ') {
-                              e.preventDefault();
-                              clearConversation();
-                            }
-                          }}
-                        />
-                        <span className="sr-only">AI 4 PM Service</span>
-                        {/* Click the logo to start a new chat */}
-                        {/* Voice Chat Button - moved first */}
-                        {!isVoiceConnected ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={startVoiceChat}
-                            disabled={isVoiceConnecting}
-                            className="px-3 min-h-[44px] touch-manipulation ml-2"
-                            title="Start voice conversation with ChatGPT"
-                          >
-                            {isVoiceConnecting ? (
-                              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                            ) : (
-                              <Mic className="h-4 w-4 mr-1" />
-                            )}
-                            <span className="hidden sm:inline">{isVoiceConnecting ? 'Connecting...' : 'Live Talk'}</span>
-                          </Button>
-                        ) : (
-                          <div className="flex items-center gap-1 flex-nowrap ml-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={toggleVoiceMute}
-                              className="px-3 min-h-[44px] touch-manipulation"
-                              title={isVoiceMuted ? "Unmute audio responses" : "Mute audio responses"}
-                            >
-                              {isVoiceMuted ? (
-                                <VolumeX className="h-4 w-4 mr-1" />
-                              ) : (
-                                <Volume2 className="h-4 w-4 mr-1" />
-                              )}
-                              <span className="hidden sm:inline">{isVoiceMuted ? 'Unmute' : 'Mute'}</span>
-                            </Button>
-                            <Button
-                              variant={isVoiceSpeaking ? "default" : "destructive"}
-                              size="sm"
-                              onClick={endVoiceChat}
-                              className="px-3 min-h-[44px] touch-manipulation"
-                              title={isVoiceSpeaking ? "ChatGPT is speaking" : "End voice conversation"}
-                            >
-                              {isVoiceSpeaking ? (
-                                <Volume2 className="h-4 w-4 mr-1 animate-pulse" />
-                              ) : (
-                                <PhoneOff className="h-4 w-4 mr-1" />
-                              )}
-                              <span className="hidden sm:inline">{isVoiceSpeaking ? 'Speaking...' : 'End Voice'}</span>
-                            </Button>
-                          </div>
-                        )}
-
-                        {/* Quick Actions Expandable Button - moved second */}
-                        <Collapsible open={showQuickActions} onOpenChange={setShowQuickActions}>
-                          <CollapsibleTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="px-3 min-h-[44px] touch-manipulation ml-2"
-                              title="Quick Actions"
-                            >
-                              <Sparkles className="h-4 w-4 mr-1" />
-                              <span className="hidden sm:inline">Quick Actions</span>
-                              <span className="sm:hidden">Quick</span>
-                            </Button>
-                          </CollapsibleTrigger>
-                        </Collapsible>
-                      </div>
-                      
-                    </CardTitle>
-                  </div>
+      <div className="max-w-7xl mx-auto p-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          {/* Mobile Collapsible Menu */}
+          {isMobile && (
+            <div className="md:hidden mb-4">
+              <div className="flex items-center justify-between p-3 bg-background border rounded-lg">
+                <div className="flex items-center gap-2">
+                  {activeTab === "ai-service" && <><Bot className="h-4 w-4 text-primary" /><span className="text-sm font-medium">AI Service</span></>}
+                  {activeTab === "pm-genie" && <><Bot className="h-4 w-4 text-primary" /><span className="text-sm font-medium">PM Genie</span></>}
+                  {activeTab === "history" && <><History className="h-4 w-4 text-primary" /><span className="text-sm font-medium">History</span></>}
+                  {activeTab === "news" && <><Newspaper className="h-4 w-4 text-primary" /><span className="text-sm font-medium">News</span></>}
                 </div>
-              </CardHeader>
-
-              <CardContent className="flex flex-col h-full p-0 relative">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsTabMenuOpen(!isTabMenuOpen)}
+                >
+                  {isTabMenuOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </Button>
+              </div>
               
-              {/* Quick Actions Overlay */}
-              <Collapsible open={showQuickActions} onOpenChange={setShowQuickActions}>
-                <CollapsibleContent className="absolute top-0 left-0 right-0 z-10 bg-background border-b border-border shadow-lg">
-                  <div className="p-4 animate-fade-in">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                      {quickActions.map((action, index) => (
-                        <Button
-                          key={index}
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            handleQuickAction(action);
-                            setShowQuickActions(false); // Close after selection
-                          }}
-                          className="h-auto p-3 flex flex-col items-center gap-2 text-center min-h-[70px] hover:bg-primary/5 hover:border-primary/20 transition-all duration-200"
-                          disabled={action.requiresFile && uploadedFiles.length === 0}
-                        >
-                          <action.icon className="h-4 w-4 flex-shrink-0 text-primary" />
-                          <span className="text-xs font-medium leading-tight">{action.label}</span>
-                        </Button>
-                      ))}
-                    </div>
+              <Collapsible open={isTabMenuOpen} onOpenChange={setIsTabMenuOpen}>
+                <CollapsibleContent>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    <TabsTrigger 
+                      value="ai-service" 
+                      className="flex flex-col items-center gap-1 py-3 px-2 rounded-lg transition-all duration-200 text-xs font-medium data-[state=active]:bg-primary/90 data-[state=active]:text-primary-foreground"
+                      onClick={() => setIsTabMenuOpen(false)}
+                    >
+                      <Bot className="h-4 w-4" />
+                      <span>AI Service</span>
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="pm-genie" 
+                      className="flex flex-col items-center gap-1 py-3 px-2 rounded-lg transition-all duration-200 text-xs font-medium data-[state=active]:bg-primary/90 data-[state=active]:text-primary-foreground"
+                      onClick={() => setIsTabMenuOpen(false)}
+                    >
+                      <Bot className="h-4 w-4" />
+                      <span>PM Genie</span>
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="history" 
+                      className="flex flex-col items-center gap-1 py-3 px-2 rounded-lg transition-all duration-200 text-xs font-medium data-[state=active]:bg-primary/90 data-[state=active]:text-primary-foreground"
+                      onClick={() => setIsTabMenuOpen(false)}
+                    >
+                      <History className="h-4 w-4" />
+                      <span>History</span>
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="news" 
+                      className="flex flex-col items-center gap-1 py-3 px-2 rounded-lg transition-all duration-200 text-xs font-medium data-[state=active]:bg-primary/90 data-[state=active]:text-primary-foreground"
+                      onClick={() => setIsTabMenuOpen(false)}
+                    >
+                      <Newspaper className="h-4 w-4" />
+                      <span>News</span>
+                    </TabsTrigger>
                   </div>
                 </CollapsibleContent>
               </Collapsible>
-                {/* Messages */}
-                <ScrollArea className="flex-1 p-4">
-                {messages.length === 0 ? null : (
-                  <div className="space-y-6">
-                    {messages.reduce((acc, message, index) => {
-                      const previousMessage = messages[index - 1];
-                      const shouldGroup = previousMessage && 
-                        previousMessage.role === message.role && 
-                        message.role === 'assistant' &&
-                        Math.abs(message.timestamp.getTime() - previousMessage.timestamp.getTime()) < 30000; // Group within 30 seconds
-                      
-                      if (shouldGroup) {
-                        // Combine content with the previous message
-                        const lastGroup = acc[acc.length - 1];
-                        if (lastGroup) {
-                          lastGroup.messages.push(message);
-                        }
-                      } else {
-                        // Create new message group
-                        acc.push({
-                          key: message.id,
-                          messages: [message],
-                          role: message.role
-                        });
-                      }
-                      return acc;
-                    }, [] as Array<{key: string, messages: Message[], role: string}>).map((group) => (
-                      <div key={group.key}>
-                        {group.messages.length === 1 ? (
-                          <MessageRenderer 
-                            message={group.messages[0]} 
-                            onExpandMessage={setExpandedMessage}
-                            onExportWord={generateWordDocument}
-                            onExportPowerPoint={generatePowerPoint}
-                          />
-                        ) : (
-                          // Render combined message for grouped assistant messages
-                          <MessageRenderer 
-                            message={{
-                              ...group.messages[0],
-                              content: group.messages.map(m => m.content).join('\n\n'),
-                              files: group.messages.flatMap(m => m.files || [])
-                            }}
-                            onExpandMessage={setExpandedMessage}
-                            onExportWord={generateWordDocument}
-                            onExportPowerPoint={generatePowerPoint}
-                          />
-                        )}
-                        {/* Practice branding toggle */}
-                        {group.role === 'assistant' && group.messages.some(m => m.content.length > 100) && practiceContext.practiceName && (
-                          <div className="space-y-3 mt-3 ml-11">
-                            <div className="flex items-center gap-2 p-2 bg-muted/30 rounded-md">
-                              <input
-                                type="checkbox"
-                                id="practice-branding"
-                                checked={includePracticeBranding}
-                                onChange={(e) => setIncludePracticeBranding(e.target.checked)}
-                                className="w-4 h-4 text-primary bg-background border-border rounded focus:ring-ring focus:ring-2"
-                              />
-                              <label htmlFor="practice-branding" className="text-sm text-muted-foreground cursor-pointer">
-                                Include practice branding ({practiceContext.practiceName}
-                                {practiceContext.logoUrl ? ' + logo' : ''})
-                              </label>
+            </div>
+          )}
+
+          {/* Desktop Menu */}
+          <TabsList className={`grid w-full mb-6 ${isMobile ? 'hidden' : 'grid-cols-4'}`}>
+            <TabsTrigger 
+              value="ai-service"
+              className="rounded-lg transition-all duration-200 font-medium shrink-0"
+            >
+              <div className="flex items-center gap-2">
+                <Bot className="h-5 w-5" />
+                <span>AI Service</span>
+              </div>
+            </TabsTrigger>
+            
+            <TabsTrigger 
+              value="pm-genie"
+              className="rounded-lg transition-all duration-200 font-medium shrink-0"
+            >
+              <div className="flex items-center gap-2">
+                <Bot className="h-5 w-5" />
+                <span>PM Genie</span>
+              </div>
+            </TabsTrigger>
+            
+            <TabsTrigger 
+              value="history"
+              className="rounded-lg transition-all duration-200 font-medium shrink-0"
+            >
+              <div className="flex items-center gap-2">
+                <History className="h-5 w-5" />
+                <span>History</span>
+              </div>
+            </TabsTrigger>
+            
+            <TabsTrigger 
+              value="news"
+              className="rounded-lg transition-all duration-200 font-medium shrink-0"
+            >
+              <div className="flex items-center gap-2">
+                <Newspaper className="h-5 w-5" />
+                <span>News</span>
+              </div>
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="ai-service" className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+              {/* Left Sidebar - Search History */}
+              <div className="lg:col-span-1">
+                <Card className="h-full">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg">Search History</CardTitle>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleNewSearch}
+                        className="h-8"
+                      >
+                        <Sparkles className="h-3 w-3 mr-1" />
+                        New
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <ScrollArea className="h-[600px]">
+                      <div className="space-y-2">
+                        {searchHistory.map((search) => (
+                          <div key={search.id} className="group relative">
+                            <div
+                              className="p-3 rounded-lg border cursor-pointer hover:bg-accent transition-colors"
+                              onClick={() => loadPreviousSearch(search.id)}
+                            >
+                              <div className="font-medium text-sm truncate">
+                                {search.title}
+                              </div>
+                              {search.brief_overview && (
+                                <div className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                  {search.brief_overview}
+                                </div>
+                              )}
+                              <div className="text-xs text-muted-foreground mt-2">
+                                {new Date(search.created_at).toLocaleDateString()}
+                              </div>
                             </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteSearch(search.id);
+                              }}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ))}
+                        {searchHistory.length === 0 && (
+                          <div className="text-center text-muted-foreground py-8">
+                            <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                            <p className="text-sm">No search history yet</p>
+                            <p className="text-xs">Your conversations will appear here</p>
                           </div>
                         )}
+                      </div>
+                    </ScrollArea>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Main Chat Area */}
+              <div className="lg:col-span-3">
+                <Card className="h-full">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-xl">AI4PM Assistant</CardTitle>
+                      <div className="flex items-center gap-2">
+                        {/* Voice Controls */}
+                        {isVoiceConnected && (
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={toggleVoiceMute}
+                              className={`h-8 ${isVoiceMuted ? 'text-muted-foreground' : 'text-primary'}`}
+                            >
+                              {isVoiceMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                            </Button>
+                            {isVoiceSpeaking && (
+                              <div className="flex items-center gap-1 text-sm text-primary">
+                                <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+                                Speaking
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        
+                        <Button
+                          variant={isVoiceConnected ? "destructive" : "default"}
+                          size="sm"
+                          onClick={isVoiceConnected ? endVoiceChat : startVoiceChat}
+                          disabled={isVoiceConnecting}
+                          className="h-8"
+                        >
+                          {isVoiceConnecting ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : isVoiceConnected ? (
+                            <PhoneOff className="h-4 w-4" />
+                          ) : (
+                            <Mic className="h-4 w-4" />
+                          )}
+                        </Button>
+                        
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowQuickActions(!showQuickActions)}
+                          className="h-8"
+                        >
+                          <Sparkles className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  
+                  <CardContent className="space-y-4">
+                    {/* Quick Actions */}
+                    {showQuickActions && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 p-4 bg-accent/50 rounded-lg">
+                        {quickActions.map((action, index) => (
+                          <Button
+                            key={index}
+                            variant="ghost"
+                            size="sm"
+                            className="h-auto p-3 flex flex-col items-center gap-2"
+                            onClick={() => {
+                              if (action.requiresFiles && uploadedFiles.length === 0) {
+                                const fileInput = document.getElementById('file-input');
+                                fileInput?.click();
+                                setTimeout(() => {
+                                  setInput(action.prompt);
+                                }, 100);
+                              } else {
+                                setInput(action.prompt);
+                                inputRef.current?.focus();
+                              }
+                              setShowQuickActions(false);
+                            }}
+                          >
+                            <action.icon className="h-4 w-4" />
+                            <span className="text-xs text-center">{action.label}</span>
+                          </Button>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Settings Panel */}
+                    <div className="flex items-center gap-4 p-3 bg-accent/50 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <Label htmlFor="model-select" className="text-sm">Model:</Label>
+                        <select
+                          id="model-select"
+                          value={model}
+                          onChange={(e) => setModel(e.target.value as 'claude' | 'gpt' | 'chatgpt5')}
+                          className="text-sm border rounded px-2 py-1"
+                        >
+                          <option value="chatgpt5">ChatGPT 5</option>
+                          <option value="gpt">GPT-4</option>
+                          <option value="claude">Claude</option>
+                        </select>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          id="web-search"
+                          checked={includeLatestWeb}
+                          onCheckedChange={setIncludeLatestWeb}
+                        />
+                        <Label htmlFor="web-search" className="text-sm">Web Search</Label>
+                      </div>
+                    </div>
+
+                    {/* Messages */}
+                    <div className="h-[400px] overflow-y-auto space-y-4 p-4 border rounded-lg">
+                      {messages.length === 0 && (
+                        <div className="text-center text-muted-foreground py-8">
+                          <Bot className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                          <h3 className="text-lg font-medium mb-2">Welcome to AI4PM</h3>
+                          <p className="text-sm">Your AI assistant for practice management</p>
+                          <p className="text-xs mt-2">Ask me about policies, procedures, compliance, or any practice management question</p>
+                        </div>
+                      )}
+                      
+                      {messages.map((message) => (
+                        <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                          <div className={`max-w-[80%] rounded-lg p-3 ${
+                            message.role === 'user' 
+                              ? 'bg-primary text-primary-foreground' 
+                              : 'bg-muted'
+                          }`}>
+                            <div className="flex items-start gap-2">
+                              {message.role === 'assistant' && <Bot className="h-4 w-4 mt-1 flex-shrink-0" />}
+                              {message.role === 'user' && <User className="h-4 w-4 mt-1 flex-shrink-0" />}
+                              <div className="space-y-2">
+                                {/* Message files */}
+                                {message.files && message.files.length > 0 && (
+                                  <div className="space-y-1">
+                                    {message.files.map((file, index) => {
+                                      const FileIcon = getFileTypeIcon(file.name, file.type);
+                                      return (
+                                        <div key={index} className="flex items-center gap-2 text-xs bg-background/10 rounded p-2">
+                                          <FileIcon className="h-3 w-3" />
+                                          <span className="truncate">{file.name}</span>
+                                          {file.isLoading && <Loader2 className="h-3 w-3 animate-spin" />}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                                
+                                <MessageRenderer 
+                                  message={message}
+                                />
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       ))}
                       
                       {isLoading && (
-                        <div className="flex gap-3 justify-start">
-                          <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                            <Bot className="h-4 w-4 text-muted-foreground" />
-                          </div>
-                          <div className="bg-muted rounded-lg p-4 border border-border">
+                        <div className="flex justify-start">
+                          <div className="bg-muted rounded-lg p-3">
                             <div className="flex items-center gap-2">
-                              <div className="flex gap-1">
-                                <div className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce"></div>
-                                <div className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                                <div className="w-2 h-2 bg-muted-foreground/50 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                              </div>
-                              <span className="text-sm text-muted-foreground">AI is thinking...</span>
+                              <Bot className="h-4 w-4" />
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              <span className="text-sm">Thinking...</span>
                             </div>
                           </div>
                         </div>
                       )}
+                      
+                      <div ref={messagesEndRef} />
                     </div>
-                  )}
-                  <div ref={messagesEndRef} />
-                </ScrollArea>
 
-                {/* Input Area */}
-                <div className="border-t border-border p-4">
-                   {/* Uploaded Files Display - Compact Claude-style */}
-                   {uploadedFiles.length > 0 && (
-                     <div className="mb-3">
-                       <div className="flex flex-wrap gap-2">
-                         {uploadedFiles.map((file, index) => {
-                           const IconComponent = getFileTypeIcon(file.name, file.type);
-                           return (
-                              <div key={index} className={`flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-2 border max-w-xs ${file.isLoading ? 'opacity-75' : ''}`}>
+                    {/* Input Area */}
+                    <div className="space-y-2">
+                      {/* Uploaded Files */}
+                      {uploadedFiles.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {uploadedFiles.map((file, index) => {
+                            const FileIcon = getFileTypeIcon(file.name, file.type);
+                            return (
+                              <div key={index} className="flex items-center gap-2 bg-accent rounded-lg p-2 text-sm">
+                                <FileIcon className="h-4 w-4" />
+                                <span className="truncate max-w-[200px]">{file.name}</span>
                                 {file.isLoading ? (
-                                  <Loader2 className="h-4 w-4 flex-shrink-0 text-muted-foreground animate-spin" />
+                                  <Loader2 className="h-4 w-4 animate-spin" />
                                 ) : (
-                                  <IconComponent className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
-                                )}
-                                <div className="flex-1 min-w-0">
-                                  <div className="text-sm font-medium truncate">{file.name}</div>
-                                  <div className="text-xs text-muted-foreground">
-                                    {file.isLoading ? 'Uploading...' : `${(file.size / 1024).toFixed(1)}KB`}
-                                  </div>
-                                </div>
-                                {!file.isLoading && (
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => removeFile(index)}
-                                    className="h-6 w-6 p-0 flex-shrink-0 hover:bg-destructive/10 hover:text-destructive"
+                                    className="h-4 w-4 p-0"
+                                    onClick={() => setUploadedFiles(files => files.filter((_, i) => i !== index))}
                                   >
                                     <X className="h-3 w-3" />
                                   </Button>
                                 )}
-                             </div>
-                           );
-                         })}
-                       </div>
-                     </div>
-                   )}
-                  
-                   <div className="mb-3 flex items-center gap-3">
-                     <Switch id="include-latest" checked={includeLatestWeb} onCheckedChange={setIncludeLatestWeb} />
-                     <Label htmlFor="include-latest" className="text-sm text-muted-foreground flex items-center gap-1">
-                       <Newspaper className="h-4 w-4" />
-                       Include latest web updates
-                     </Label>
-                   </div>
-                  
-                   <div className="flex gap-2">
-                     <div className="flex-1 relative">
-                       <Textarea
-                        ref={inputRef}
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        placeholder={
-                          uploadedFiles.length > 0 
-                            ? `📎 Files attached: ${uploadedFiles.map(f => f.name).join(', ')} - Ask me about NHS policies, compliance, or your documents...`
-                            : "Ask me about NHS policies, compliance, or attach documents for analysis..."
-                        }
-                        className="min-h-[80px] pr-32 resize-none"
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault();
-                            handleSend();
-                          }
-                        }}
-                        onPaste={(e) => {
-                          const items = Array.from(e.clipboardData?.items || []);
-                          
-                          // Handle image paste
-                          const imageItem = items.find(item => item.type.startsWith('image/'));
-                          if (imageItem) {
-                            e.preventDefault();
-                            const file = imageItem.getAsFile();
-                            if (file) {
-                              handleFileUpload([file]);
-                            }
-                            return;
-                          }
-                          
-                          // Handle large text paste
-                          const textItem = items.find(item => item.type === 'text/plain');
-                          if (textItem) {
-                            textItem.getAsString((text) => {
-                              if (text.length > 500) {
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      <div className="flex items-end gap-2">
+                        <div className="flex-1">
+                          <Textarea
+                            ref={inputRef}
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            placeholder="Ask me anything about practice management..."
+                            className="min-h-[80px] resize-none"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && !e.shiftKey) {
                                 e.preventDefault();
-                                // Create a text file from the pasted content
-                                const blob = new Blob([text], { type: 'text/plain' });
-                                const file = new File([blob], `Pasted text (${text.length} chars)`, { type: 'text/plain' });
-                                handleFileUpload([file]);
-                              }
-                            });
-                          }
-                        }}
-                      />
-                      <div className="absolute bottom-2 right-2 flex gap-1">
-                        {/* Practice details insert button */}
-                        {practiceDetails && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={insertPracticeDetails}
-                            className="h-8 w-8 p-0 hover:bg-muted"
-                            title="Insert practice details"
-                          >
-                            <FileText className="h-4 w-4" />
-                          </Button>
-                        )}
-                        
-                        {/* File Upload Button */}
-                        <div className="relative">
-                          <input
-                            type="file"
-                            multiple
-                            accept=".pdf,.doc,.docx,.xlsx,.csv,.txt,.msg,.eml"
-                            onChange={(e) => {
-                              const files = Array.from(e.target.files || []);
-                              if (files.length > 0) {
-                                handleFileUpload(files);
-                                e.target.value = ''; // Reset input
+                                handleSend();
                               }
                             }}
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <input
+                            type="file"
+                            id="file-input"
+                            multiple
+                            accept=".txt,.pdf,.doc,.docx,.csv,.xlsx,.xls,.json,.md,.rtf,image/*"
+                            style={{ display: 'none' }}
                           />
                           <Button
-                            type="button"
-                            variant="ghost"
+                            variant="outline"
                             size="sm"
-                            className={`h-8 w-8 p-0 transition-all duration-300 ${
-                              uploadedFiles.length > 0 
-                                ? 'hover:bg-primary/10 bg-primary/5' 
-                                : 'hover:bg-muted'
-                            }`}
-                            title="Attach files"
+                            onClick={() => document.getElementById('file-input')?.click()}
+                            className="h-10 w-10 p-0"
                           >
-                            <Paperclip className={`h-4 w-4 transition-all duration-300 ${
-                              uploadedFiles.length > 0 
-                                ? 'text-primary scale-110' 
-                                : 'text-muted-foreground'
-                            }`} />
+                            <Paperclip className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            onClick={handleSend}
+                            disabled={(!input.trim() && uploadedFiles.length === 0) || isLoading}
+                            className="h-10 w-10 p-0"
+                          >
+                            <Send className="h-4 w-4" />
                           </Button>
                         </div>
-                        
-                        <SpeechToText
-                          onTranscription={handleSpeechTranscription}
-                          size="sm"
-                          className="h-8 w-8 p-0"
-                          inputRef={inputRef}
-                        />
                       </div>
                     </div>
-                    <Button
-                      onClick={handleSend}
-                      disabled={isLoading || (!input.trim() && uploadedFiles.length === 0)}
-                      className="h-20"
-                    >
-                      <Send className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
           </TabsContent>
 
-          {/* Latest News Tab */}
-          <TabsContent value="latest-news" className="mt-3">
-            <Card>
-              <CardContent className="p-6">
-                <NewsPanel />
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Previous Searches Tab */}
-          <TabsContent value="previous-searches" className="mt-3">
-            <Card>
-              <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <CardTitle className="flex items-center gap-2">
-                  <History className="h-5 w-5" />
-                  Previous Searches
-                </CardTitle>
-                <div className="flex gap-2">
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        disabled={searchHistory.length === 0}
-                        className="flex items-center gap-2 min-h-[44px] touch-manipulation"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        <span className="hidden sm:inline">Clear All Searches</span>
-                        <span className="sm:hidden">Clear All</span>
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Clear All Searches</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Are you sure you want to delete all {searchHistory.length} saved searches? This action cannot be undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={clearAllSearches} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                          Clear All
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                  <Button
-                    onClick={saveCurrentSearch}
-                    variant="outline"
-                    size="sm"
-                    disabled={messages.length === 0}
-                    className="flex items-center gap-2 min-h-[44px] touch-manipulation"
-                  >
-                    <Download className="h-4 w-4" />
-                    <span className="hidden sm:inline">Save Current Search</span>
-                    <span className="sm:hidden">Save</span>
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {searchHistory.length === 0 ? (
-                  <div className="text-center py-8">
-                    <History className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p className="text-lg font-medium mb-2">No Previous Searches</p>
-                    <p className="text-sm text-muted-foreground">
-                      Start a conversation in the AI Service tab to create your first saved search.
-                    </p>
-                  </div>
-                ) : (
-                   <div className="space-y-4">
-                     {searchHistory.map((search) => (
-                       <div 
-                         key={search.id} 
-                         className="border rounded-lg p-4 hover:bg-muted/50 transition-colors cursor-pointer"
-                         onClick={() => loadPreviousSearch(search.id)}
-                       >
-                         <div className="flex items-start justify-between">
-                           <div className="flex-1 min-w-0">
-                             <h3 className="font-medium text-sm mb-1 truncate">{search.title}</h3>
-                             <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
-                               {search.brief_overview || 'No overview available'}
-                             </p>
-                             <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                               <span className="flex items-center gap-1">
-                                 <Clock className="h-3 w-3" />
-                                 {new Date(search.created_at).toLocaleDateString('en-GB', {
-                                   day: '2-digit',
-                                   month: 'short',
-                                   year: 'numeric',
-                                   hour: '2-digit',
-                                   minute: '2-digit'
-                                 })}
-                               </span>
-                               <span className="flex items-center gap-1">
-                                 <MessageSquare className="h-3 w-3" />
-                                 {search.messages.length} messages
-                               </span>
-                             </div>
-                           </div>
-                           <div className="flex gap-2 ml-4">
-                             <Button
-                               onClick={(e) => {
-                                 e.stopPropagation();
-                                 deleteSearch(search.id);
-                               }}
-                               variant="outline"
-                               size="sm"
-                               className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                             >
-                               <Trash2 className="h-3 w-3" />
-                             </Button>
-                           </div>
-                         </div>
-                       </div>
-                     ))}
-                   </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-
-          {/* Chat with PM Genie Tab - ElevenLabs Voice Agent */}
-          <TabsContent value="pm-genie" className="mt-3">
+          <TabsContent value="pm-genie">
             <PMGenieVoiceAgent />
           </TabsContent>
 
-          {/* What Can AI Do Tab */}
-          <TabsContent value="what-can-ai-do" className="mt-3">
-            <div className="space-y-6">
-              {/* Overview Section */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <HelpCircle className="h-5 w-5" />
-                    What can AI do for me?
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm leading-relaxed">
-                    The AI 4 PM Service now offers <strong>three revolutionary ways</strong> to get expert assistance: traditional text-based chat, 
-                    advanced voice conversations with both OpenAI's ChatGPT Voice and ElevenLabs PM Genie, plus comprehensive document analysis. 
-                    All designed specifically for NHS GP Practice Managers with deep knowledge of NHS policies, CQC requirements, and practice operations.
-                  </p>
-                  
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mt-6">
-                    <div className="text-center p-3 bg-muted/50 rounded-lg">
-                      <Bot className="h-6 w-6 mx-auto mb-2 text-primary" />
-                      <h4 className="font-medium text-xs mb-1">AI Analysis</h4>
-                      <p className="text-xs text-muted-foreground">Smart document insights</p>
+          <TabsContent value="history">
+            <Card>
+              <CardHeader>
+                <CardTitle>Conversation History</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {searchHistory.map((search) => (
+                    <Card key={search.id} className="cursor-pointer hover:shadow-md transition-shadow">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-start justify-between">
+                          <CardTitle className="text-sm font-medium truncate">
+                            {search.title}
+                          </CardTitle>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 flex-shrink-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteSearch(search.id);
+                            }}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="pt-0">
+                        {search.brief_overview && (
+                          <p className="text-xs text-muted-foreground mb-3 line-clamp-3">
+                            {search.brief_overview}
+                          </p>
+                        )}
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <span>{new Date(search.created_at).toLocaleDateString()}</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => loadPreviousSearch(search.id)}
+                            className="h-6 text-xs"
+                          >
+                            Load
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                  {searchHistory.length === 0 && (
+                    <div className="col-span-full text-center text-muted-foreground py-8">
+                      <History className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                      <h3 className="text-lg font-medium mb-2">No History Yet</h3>
+                      <p className="text-sm">Your conversations will appear here</p>
                     </div>
-                    <div className="text-center p-3 bg-muted/50 rounded-lg">
-                      <Mic className="h-6 w-6 mx-auto mb-2 text-primary" />
-                      <h4 className="font-medium text-xs mb-1">ChatGPT Voice</h4>
-                      <p className="text-xs text-muted-foreground">Advanced AI conversations</p>
-                    </div>
-                    <div className="text-center p-3 bg-muted/50 rounded-lg">
-                      <Volume2 className="h-6 w-6 mx-auto mb-2 text-primary" />
-                      <h4 className="font-medium text-xs mb-1">PM Genie Voice</h4>
-                      <p className="text-xs text-muted-foreground">ElevenLabs voice assistant</p>
-                    </div>
-                    <div className="text-center p-3 bg-muted/50 rounded-lg">
-                      <Shield className="h-6 w-6 mx-auto mb-2 text-primary" />
-                      <h4 className="font-medium text-xs mb-1">NHS Compliant</h4>
-                      <p className="text-xs text-muted-foreground">Built-in NHS knowledge</p>
-                    </div>
-                    <div className="text-center p-3 bg-muted/50 rounded-lg">
-                      <Clock className="h-6 w-6 mx-auto mb-2 text-primary" />
-                      <h4 className="font-medium text-xs mb-1">Real-time</h4>
-                      <p className="text-xs text-muted-foreground">Instant responses</p>
-                    </div>
-                    <div className="text-center p-3 bg-muted/50 rounded-lg">
-                      <FileText className="h-6 w-6 mx-auto mb-2 text-primary" />
-                      <h4 className="font-medium text-xs mb-1">Multi-format</h4>
-                      <p className="text-xs text-muted-foreground">Text, voice & documents</p>
-                    </div>
-                  </div>
-                </CardContent>
-                </Card>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-              {/* Voice AI Features */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Mic className="h-5 w-5 text-primary" />
-                    Advanced Voice AI Capabilities
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <p className="text-sm leading-relaxed">
-                    Choose between two cutting-edge voice AI experiences, each offering unique advantages for different scenarios:
-                  </p>
-                  
-                  {/* Voice Options Comparison */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* ChatGPT Voice */}
-                    <div className="border rounded-lg p-4 bg-gradient-to-br from-blue-50 to-indigo-50">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Volume2 className="h-5 w-5 text-blue-600" />
-                        <h4 className="font-medium text-sm text-blue-900">ChatGPT Voice (OpenAI)</h4>
-                        <Badge variant="secondary" className="text-xs">Advanced</Badge>
-                      </div>
-                      <div className="space-y-2 text-xs">
-                        <div className="flex items-center gap-2">
-                          <CheckSquare className="h-3 w-3 text-blue-600" />
-                          <span>Real-time audio conversation</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <CheckSquare className="h-3 w-3 text-blue-600" />
-                          <span>Advanced reasoning & analysis</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <CheckSquare className="h-3 w-3 text-blue-600" />
-                          <span>Complex document discussions</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <CheckSquare className="h-3 w-3 text-blue-600" />
-                          <span>Technical troubleshooting</span>
-                        </div>
-                      </div>
-                      <p className="text-xs text-blue-700 mt-2 italic">Best for: Complex analysis, detailed discussions, technical guidance</p>
-                    </div>
-
-                    {/* PM Genie Voice */}
-                    <div className="border rounded-lg p-4 bg-gradient-to-br from-green-50 to-emerald-50">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Mic className="h-5 w-5 text-green-600" />
-                        <h4 className="font-medium text-sm text-green-900">PM Genie (ElevenLabs)</h4>
-                        <Badge variant="secondary" className="text-xs">Natural</Badge>
-                      </div>
-                      <div className="space-y-2 text-xs">
-                        <div className="flex items-center gap-2">
-                          <CheckSquare className="h-3 w-3 text-green-600" />
-                          <span>Ultra-natural voice quality</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <CheckSquare className="h-3 w-3 text-green-600" />
-                          <span>Quick consultations</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <CheckSquare className="h-3 w-3 text-green-600" />
-                          <span>Policy clarifications</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <CheckSquare className="h-3 w-3 text-green-600" />
-                          <span>Meeting assistance</span>
-                        </div>
-                      </div>
-                      <p className="text-xs text-green-700 mt-2 italic">Best for: Quick questions, natural conversations, on-the-go assistance</p>
-                    </div>
-                  </div>
-
-                  <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
-                    <h4 className="font-medium text-sm mb-2 text-primary">🎯 Why Voice AI Is Revolutionary:</h4>
-                    <ul className="text-xs space-y-1 text-muted-foreground">
-                      <li>• <strong>Hands-free operation</strong> - Perfect for busy practice managers multitasking</li>
-                      <li>• <strong>Natural communication</strong> - Explain complex scenarios conversationally</li>
-                      <li>• <strong>Instant responses</strong> - No typing delays, immediate expert feedback</li>
-                      <li>• <strong>Real-time transcription</strong> - See what you're saying and AI responses in text</li>
-                      <li>• <strong>Context awareness</strong> - AI remembers your practice details and conversation history</li>
-                      <li>• <strong>Accessibility focused</strong> - Perfect for visual impairments or typing difficulties</li>
-                    </ul>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-3">
-                      <h4 className="font-medium text-sm">Voice Features Include:</h4>
-                      <div className="space-y-2 text-xs">
-                        <div className="flex items-center gap-2">
-                          <Volume2 className="h-3 w-3 text-primary flex-shrink-0" />
-                          <span>Mute/unmute audio responses</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Mic className="h-3 w-3 text-primary flex-shrink-0" />
-                          <span>Voice activity detection</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <FileText className="h-3 w-3 text-primary flex-shrink-0" />
-                          <span>Live conversation transcripts</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <History className="h-3 w-3 text-primary flex-shrink-0" />
-                          <span>Auto-save conversations</span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      <h4 className="font-medium text-sm">Perfect For:</h4>
-                      <div className="space-y-2 text-xs">
-                        <div className="flex items-center gap-2">
-                          <CheckSquare className="h-3 w-3 text-primary flex-shrink-0" />
-                          <span>CQC compliance questions during inspections</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <CheckSquare className="h-3 w-3 text-primary flex-shrink-0" />
-                          <span>Policy clarifications while multitasking</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <CheckSquare className="h-3 w-3 text-primary flex-shrink-0" />
-                          <span>Urgent guidance during meetings</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <CheckSquare className="h-3 w-3 text-primary flex-shrink-0" />
-                          <span>Learning through natural conversation</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-gradient-to-r from-blue-50 to-green-50 border border-blue-200 rounded-lg p-4">
-                    <p className="text-xs text-blue-900">
-                      <strong>💡 Pro Tip:</strong> Start with ChatGPT Voice for complex analysis and detailed planning, 
-                      then use PM Genie for quick follow-up questions. Both integrate seamlessly with the text chat for comprehensive documentation.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Top 10 Use Cases */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Top 10 Ways Practice Managers Use AI</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {[
-                      {
-                        icon: FileText,
-                        title: "Document Analysis",
-                        description: "Upload CQC reports, policies, or letters for instant analysis and action points",
-                        example: "Upload a CQC inspection letter to identify required actions and timelines"
-                      },
-                      {
-                        icon: Mail,
-                        title: "Professional Email Drafting",
-                        description: "Generate NHS-compliant responses to patient complaints or CCG communications",
-                        example: "Draft a response to a patient complaint about appointment availability"
-                      },
-                      {
-                        icon: CheckSquare,
-                        title: "SOP Creation",
-                        description: "Create standard operating procedures for common practice workflows",
-                        example: "Generate an SOP for new patient registration process"
-                      },
-                      {
-                        icon: Shield,
-                        title: "CQC Compliance Checks",
-                        description: "Identify CQC requirements and prepare for inspections",
-                        example: "Check if practice policies meet current CQC Key Lines of Enquiry"
-                      },
-                      {
-                        icon: TrendingUp,
-                        title: "Financial Analysis",
-                        description: "Analyze practice finances, PCN funding, and ARRS opportunities",
-                        example: "Review practice budget and identify potential cost savings"
-                      },
-                      {
-                        icon: Users,
-                        title: "Staff Management",
-                        description: "Create job descriptions, policies, and training materials",
-                        example: "Generate a job description for a new practice nurse position"
-                      },
-                      {
-                        icon: Calendar,
-                        title: "Meeting Preparation",
-                        description: "Create agendas, minutes templates, and action plans",
-                        example: "Prepare agenda for monthly practice meeting with partners"
-                      },
-                      {
-                        icon: AlertTriangle,
-                        title: "Risk Assessment",
-                        description: "Identify potential risks and compliance issues in documents",
-                        example: "Review new practice policy for potential compliance risks"
-                      },
-                      {
-                        icon: BookOpen,
-                        title: "Policy Development",
-                        description: "Draft practice policies aligned with NHS and CQC requirements",
-                        example: "Create a new data protection policy for patient information"
-                      },
-                      {
-                        icon: MessageSquare,
-                        title: "Training Material Creation",
-                        description: "Generate training content for staff on various topics",
-                        example: "Create training materials on infection prevention and control"
-                      }
-                    ].map((useCase, index) => (
-                      <div key={index} className="p-4 border rounded-lg hover:shadow-sm transition-shadow">
-                        <div className="flex items-start gap-3">
-                          <div className="p-2 bg-primary/10 rounded-lg flex-shrink-0">
-                            <useCase.icon className="h-4 w-4 text-primary" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-medium text-sm mb-1">{useCase.title}</h4>
-                            <p className="text-xs text-muted-foreground mb-2 leading-relaxed">
-                              {useCase.description}
-                            </p>
-                            <div className="bg-muted/50 p-2 rounded text-xs">
-                              <strong>Example:</strong> {useCase.example}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* How It Works */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>How It Works</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="text-center">
-                      <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center mx-auto mb-2 text-sm font-bold">1</div>
-                      <h4 className="font-medium text-sm mb-1">Ask or Upload</h4>
-                      <p className="text-xs text-muted-foreground">Type your question or upload documents for analysis</p>
-                    </div>
-                    <div className="text-center">
-                      <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center mx-auto mb-2 text-sm font-bold">2</div>
-                      <h4 className="font-medium text-sm mb-1">AI Analysis</h4>
-                      <p className="text-xs text-muted-foreground">AI processes your request using NHS knowledge base</p>
-                    </div>
-                    <div className="text-center">
-                      <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center mx-auto mb-2 text-sm font-bold">3</div>
-                      <h4 className="font-medium text-sm mb-1">Smart Response</h4>
-                      <p className="text-xs text-muted-foreground">Get detailed, NHS-compliant answers and recommendations</p>
-                    </div>
-                    <div className="text-center">
-                      <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center mx-auto mb-2 text-sm font-bold">4</div>
-                      <h4 className="font-medium text-sm mb-1">Take Action</h4>
-                      <p className="text-xs text-muted-foreground">Copy, save, or implement the AI-generated content</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+          <TabsContent value="news">
+            <NewsPanel />
           </TabsContent>
         </Tabs>
       </div>
 
-      {/* Full Screen Message Modal */}
-      <Dialog open={!!expandedMessage} onOpenChange={(open) => !open && setExpandedMessage(null)}>
-        <DialogContent className="max-w-[98vw] max-h-[95vh] w-full flex flex-col">
-          <DialogHeader className="flex-shrink-0">
-            <DialogTitle className="flex items-center gap-2">
-              <Bot className="h-5 w-5 flex-shrink-0" />
-              <span className="truncate">AI Response - Full Screen View</span>
-            </DialogTitle>
+      {/* Expanded Message Dialog */}
+      <Dialog open={!!expandedMessage} onOpenChange={() => setExpandedMessage(null)}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Message Details</DialogTitle>
           </DialogHeader>
-          
-          <ScrollArea className="flex-1 overflow-auto" style={{ maxHeight: 'calc(95vh - 200px)' }}>
-            <div className="space-y-4 pr-4 pb-4">
-              {expandedMessage && (
-                <MessageRenderer message={expandedMessage} disableTruncation={true} />
-              )}
-            </div>
-          </ScrollArea>
-          
-          {/* Action buttons for expanded view */}
           {expandedMessage && (
-            <div className="flex flex-wrap gap-2 pt-4 border-t flex-shrink-0">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  navigator.clipboard.writeText(expandedMessage.content);
-                }}
-              >
-                <Copy className="h-4 w-4 mr-2" />
-                Copy
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => generateWordDocument(expandedMessage.content, 'AI Generated Document')}
-                className="hidden sm:inline-flex"
-              >
-                <FileDown className="h-4 w-4 mr-2" />
-                Export as Word
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => generatePowerPoint(expandedMessage.content, 'AI Generated Presentation')}
-                className="hidden sm:inline-flex"
-              >
-                <Presentation className="h-4 w-4 mr-2" />
-                Create PowerPoint
-              </Button>
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                {expandedMessage.role === 'assistant' ? <Bot className="h-4 w-4" /> : <User className="h-4 w-4" />}
+                <span className="capitalize">{expandedMessage.role}</span>
+                <span>•</span>
+                <span>{expandedMessage.timestamp.toLocaleString()}</span>
+              </div>
+              
+              <MessageRenderer 
+                message={expandedMessage}
+              />
             </div>
           )}
         </DialogContent>
       </Dialog>
-      
-      {/* Voice Agent Modal */}
-      {showVoiceAgent && (
-        <Dialog open={showVoiceAgent} onOpenChange={setShowVoiceAgent}>
-          <DialogContent className="sm:max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Voice Assistant</DialogTitle>
-            </DialogHeader>
-            <PMGenieVoiceAgent />
-          </DialogContent>
-        </Dialog>
-      )}
 
-      {/* Mobile bottom tab bar */}
-      <nav className="sm:hidden fixed bottom-0 inset-x-0 z-40 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="grid grid-cols-5 h-14">
-          <button
-            aria-label="AI Service"
-            className={`flex flex-col items-center justify-center gap-0.5 text-[11px] ${activeTab === 'ai-service' ? 'text-primary' : 'text-muted-foreground'}`}
-            onClick={() => setActiveTab('ai-service')}
-          >
-            <MessageSquare className="h-5 w-5" />
-            <span>AI</span>
-          </button>
-          <button
-            aria-label="PM Genie"
-            className={`flex flex-col items-center justify-center gap-0.5 text-[11px] ${activeTab === 'pm-genie' ? 'text-primary' : 'text-muted-foreground'}`}
-            onClick={() => setActiveTab('pm-genie')}
-          >
-            <Bot className="h-5 w-5" />
-            <span>Genie</span>
-          </button>
-          <button
-            aria-label="Latest News"
-            className={`flex flex-col items-center justify-center gap-0.5 text-[11px] ${activeTab === 'latest-news' ? 'text-primary' : 'text-muted-foreground'}`}
-            onClick={() => setActiveTab('latest-news')}
-          >
-            <Newspaper className="h-5 w-5" />
-            <span>News</span>
-          </button>
-          <button
-            aria-label="History"
-            className={`flex flex-col items-center justify-center gap-0.5 text-[11px] ${activeTab === 'previous-searches' ? 'text-primary' : 'text-muted-foreground'}`}
-            onClick={() => setActiveTab('previous-searches')}
-          >
-            <History className="h-5 w-5" />
-            <span>History</span>
-          </button>
-          <button
-            aria-label="Help"
-            className={`flex flex-col items-center justify-center gap-0.5 text-[11px] ${activeTab === 'what-can-ai-do' ? 'text-primary' : 'text-muted-foreground'}`}
-            onClick={() => setActiveTab('what-can-ai-do')}
-          >
-            <HelpCircle className="h-5 w-5" />
-            <span>Help</span>
-          </button>
+      {/* API Key Missing Alerts */}
+      {apiKeyMissing.claude && (
+        <div className="fixed bottom-4 right-4 max-w-sm">
+          <Alert className="border-orange-200 bg-orange-50">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              Claude API key is missing. Please contact support to configure it.
+            </AlertDescription>
+          </Alert>
         </div>
-      </nav>
+      )}
+      
+      {apiKeyMissing.gpt && (
+        <div className="fixed bottom-4 right-4 max-w-sm">
+          <Alert className="border-orange-200 bg-orange-50">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              OpenAI API key is missing. Please contact support to configure it.
+            </AlertDescription>
+          </Alert>
+        </div>
+      )}
     </div>
   );
 };
