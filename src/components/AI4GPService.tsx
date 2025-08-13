@@ -123,6 +123,7 @@ const AI4GPService = () => {
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [apiKeyMissing, setApiKeyMissing] = useState<{claude: boolean, gpt: boolean}>({claude: false, gpt: false});
   const [searchHistory, setSearchHistory] = useState<SearchHistory[]>([]);
+  const [showSearchHistory, setShowSearchHistory] = useState(false);
   const [practiceContext, setPracticeContext] = useState<PracticeContext>({});
   const [chatBoxSize, setChatBoxSize] = useState('default');
   const [includePracticeBranding, setIncludePracticeBranding] = useState(true);
@@ -786,13 +787,23 @@ Always provide evidence-based, clinically appropriate advice that follows curren
       <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-8rem)]">
         
         {/* Search History Sidebar */}
-        {searchHistory.length > 0 && (
+        {searchHistory.length > 0 && showSearchHistory && (
           <div className="lg:w-64 flex-shrink-0">
             <Card className="h-full">
               <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-sm">
-                  <History className="h-4 w-4" />
-                  Previous Searches
+                <CardTitle className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2">
+                    <History className="h-4 w-4" />
+                    Previous Searches
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowSearchHistory(false)}
+                    className="h-6 w-6 p-0"
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
@@ -835,6 +846,17 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                   AI4GP - Clinical Intelligence Assistant
                 </CardTitle>
                 <div className="flex items-center gap-2">
+                  {searchHistory.length > 0 && !showSearchHistory && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowSearchHistory(true)}
+                      className="text-xs"
+                    >
+                      <History className="h-3 w-3 mr-1" />
+                      History
+                    </Button>
+                  )}
                   <div className="flex items-center gap-2">
                      <div className="flex items-center gap-2">
                        <Switch
