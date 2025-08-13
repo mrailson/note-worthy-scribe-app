@@ -1377,7 +1377,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                 )}
                
                {/* Input Area */}
-              <div className="border-t p-2 space-y-2">
+              <div className="border-t px-2 py-1 space-y-1">
                 {/* Uploaded Files Display */}
                 {uploadedFiles.length > 0 && (
                   <div className="flex flex-wrap gap-2">
@@ -1402,11 +1402,11 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                 )}
                 
                  <div className="flex gap-2">
-                   <Textarea
-                     value={input}
-                     onChange={(e) => setInput(e.target.value)}
-                     placeholder="Ask AI4GP about clinical protocols, patient care, prescribing guidance..."
-                     className="min-h-[60px] resize-none"
+                    <Textarea
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      placeholder="Ask AI4GP about clinical protocols, patient care, prescribing guidance..."
+                      className="min-h-[45px] resize-none"
                      onKeyDown={(e) => {
                        if (e.key === 'Enter' && !e.shiftKey) {
                          e.preventDefault();
@@ -1414,7 +1414,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                        }
                      }}
                    />
-                   <div className="flex flex-col gap-2">
+                   <div className="flex flex-col gap-1">
                       <input
                         type="file"
                         multiple
