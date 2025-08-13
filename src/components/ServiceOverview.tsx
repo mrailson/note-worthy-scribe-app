@@ -77,9 +77,9 @@ export const ServiceOverview = () => {
         const { data, error } = await supabase
           .from('news_articles')
           .select('*')
-          .in('source', ['Pulse', 'BBC News'])
+          .or('source.ilike.%pulse%,source.ilike.%bbc%')
           .order('published_at', { ascending: false })
-          .limit(12);
+          .limit(20);
         if (error) throw error;
         if (mounted) setNews((data || []).slice(0, 6));
       } catch (e) {
