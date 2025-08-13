@@ -795,7 +795,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                
                {expandedMessage && (
                   <Dialog open={!!expandedMessage} onOpenChange={(open) => { if (!open) setExpandedMessage(null); }}>
-                    <DialogContent className="max-w-[95vw] max-h-[95vh] w-full flex flex-col">
+                    <DialogContent className="max-w-[90vw] max-h-[95vh] w-full flex flex-col">
                       <DialogHeader className="flex-shrink-0">
                         <DialogTitle>Expanded Response</DialogTitle>
                       </DialogHeader>
