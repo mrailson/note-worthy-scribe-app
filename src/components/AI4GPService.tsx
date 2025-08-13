@@ -328,6 +328,37 @@ const AI4GPService = () => {
       prompt: `${nhsSafetyPreamble} Search for the local or PCN protocol on [insert topic] and summarise the key steps. Include source document link and any NHS/national guidance references.`,
       requiresFile: false 
     },
+    { 
+      label: 'Complaint Response Helper', 
+      icon: MessageSquare, 
+      prompt: `${nhsSafetyPreamble} 
+
+ROLE: UK NHS GP practice complaints response assistant.
+
+OBJECTIVE: Gather facts, confirm understanding, then generate three outputs: (A) patient reply, (B) staff communication (if practice-based complaint), (C) lessons learnt & improvement plan.
+
+IF ATTACHMENTS/EVIDENCE PROVIDED: First, extract a concise evidence summary and a dated chronology. Identify key issues raised, any policy references, and any clinical/admin touchpoints.
+
+INTERVIEW (ask one set at a time, wait for answers):
+1) Who is making the complaint (patient, representative, staff)?
+2) Short summary of the main issue in their words.
+3) Date(s)/time(s) of incident(s); location/service.
+4) People involved (roles only; avoid attributing blame).
+5) What actions have been taken so far?
+6) What outcome is the complainant seeking?
+7) Any related policies/guidance or records to reference?
+8) Any learning/change already identified?
+
+CONFIRMATION: Restate facts and obtain confirmation before drafting.
+
+OUTPUTS (use headings):
+A) Patient Reply (empathetic, addresses each point, explains findings, apologises where appropriate, states actions taken/planned, timelines, and signposts escalation e.g., PALS/Ombudsman).
+B) Staff Communication (constructive, fact-focused, supportive tone; include next steps, supervision/learning actions; avoid blame).
+C) Lessons Learnt & Improvement Plan (bullet points suitable for CQC evidence: root cause themes, process/policy/training/IT changes, owners, target dates, how to audit effectiveness).
+
+STYLE: Plain English, culturally sensitive, trauma-informed, non-defensive. Use GP-practice context. Provide a short version and an expanded version for each output.`,
+      requiresFile: true 
+    },
   ];
 
   const buildSystemPrompt = () => {
@@ -510,6 +541,47 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     } catch (error) {
       // Silent failure for auto-save
       console.error('Error auto-saving search:', error);
+    }
+  };
+
+  const handleFileSelect = async (event: Event) => {
+    const target = event.target as HTMLInputElement;
+    const files = target.files;
+    if (!files || files.length === 0) return;
+
+    setIsLoading(true);
+    
+    try {
+      const filePromises = Array.from(files).map(async (file) => {
+        const reader = new FileReader();
+        
+        return new Promise<UploadedFile>((resolve, reject) => {
+          reader.onload = () => {
+            const content = reader.result as string;
+            resolve({
+              name: file.name,
+              type: file.type,
+              content: content,
+              size: file.size,
+              isLoading: false
+            });
+          };
+          reader.onerror = () => reject(new Error(`Failed to read ${file.name}`));
+          reader.readAsText(file);
+        });
+      });
+
+      const processedFiles = await Promise.all(filePromises);
+      setUploadedFiles(prev => [...prev, ...processedFiles]);
+      toast.success(`${processedFiles.length} file(s) uploaded successfully`);
+      
+      // Clear the input
+      target.value = '';
+    } catch (error) {
+      console.error('Error processing files:', error);
+      toast.error('Failed to process files');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -1197,30 +1269,50 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                   </div>
                 )}
                 
-                <div className="flex gap-2">
-                  <Textarea
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    placeholder="Ask AI4GP about clinical protocols, patient care, prescribing guidance..."
-                    className="min-h-[60px] resize-none"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSend();
-                      }
-                    }}
-                  />
-                  <div className="flex flex-col gap-2">
-                    <SpeechToText onTranscription={(transcript) => setInput(prev => prev + ' ' + transcript)} />
-                    <Button 
-                      onClick={handleSend} 
-                      disabled={isLoading || (!input.trim() && uploadedFiles.length === 0)}
-                      size="sm"
-                    >
-                      <Send className="h-4 w-4" />
-                    </Button>
+                 <div className="flex gap-2">
+                   <Textarea
+                     value={input}
+                     onChange={(e) => setInput(e.target.value)}
+                     placeholder="Ask AI4GP about clinical protocols, patient care, prescribing guidance..."
+                     className="min-h-[60px] resize-none"
+                     onKeyDown={(e) => {
+                       if (e.key === 'Enter' && !e.shiftKey) {
+                         e.preventDefault();
+                         handleSend();
+                       }
+                     }}
+                   />
+                   <div className="flex flex-col gap-2">
+                     <input
+                       type="file"
+                       multiple
+                       className="hidden"
+                       ref={(ref) => {
+                         if (ref) {
+                           ref.addEventListener('change', handleFileSelect);
+                         }
+                       }}
+                       accept=".pdf,.doc,.docx,.rtf,.txt,.eml,.msg,.jpg,.jpeg,.png,.wav,.mp3,.m4a"
+                     />
+                     <Button
+                       variant="outline"
+                       size="sm"
+                       onClick={() => (document.querySelector('input[type="file"]') as HTMLInputElement)?.click()}
+                       disabled={isLoading}
+                       title="Upload files (PDF, DOC, DOCX, RTF, TXT, EML, MSG, JPG, PNG, audio files)"
+                     >
+                       <Paperclip className="h-4 w-4" />
+                     </Button>
+                     <SpeechToText onTranscription={(transcript) => setInput(prev => prev + ' ' + transcript)} />
+                     <Button 
+                       onClick={handleSend} 
+                       disabled={isLoading || (!input.trim() && uploadedFiles.length === 0)}
+                       size="sm"
+                     >
+                       <Send className="h-4 w-4" />
+                     </Button>
+                   </div>
                   </div>
-                 </div>
                  
                  {/* Quick Actions */}
                  {messages.length === 0 && (
