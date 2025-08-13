@@ -2523,65 +2523,53 @@ Always provide practical, actionable advice that follows NHS guidelines and best
 
       {/* Full Screen Message Modal */}
       <Dialog open={!!expandedMessage} onOpenChange={(open) => !open && setExpandedMessage(null)}>
-        <DialogContent className="max-w-[95vw] max-h-[95vh] w-full h-full">
-          <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-4 border-b pr-12">
-            <DialogTitle className="flex items-center gap-2 flex-1 min-w-0">
+        <DialogContent className="max-w-[95vw] max-h-[95vh] w-full flex flex-col">
+          <DialogHeader className="flex-shrink-0">
+            <DialogTitle className="flex items-center gap-2">
               <Bot className="h-5 w-5 flex-shrink-0" />
               <span className="truncate">AI Response - Full Screen View</span>
             </DialogTitle>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setExpandedMessage(null)}
-              className="h-8 w-8 p-0 absolute top-4 right-4 z-10"
-            >
-              <Minimize className="h-4 w-4" />
-            </Button>
           </DialogHeader>
           
-          <div className="flex-1 overflow-hidden">
-            <ScrollArea className="h-full max-h-[calc(95vh-120px)]">
-              <div className="p-4">
-                {expandedMessage && (
-                  <MessageRenderer message={expandedMessage} disableTruncation={true} />
-                )}
-              </div>
-            </ScrollArea>
-          </div>
+          <ScrollArea className="flex-1 min-h-0">
+            <div className="space-y-4 pr-4">
+              {expandedMessage && (
+                <MessageRenderer message={expandedMessage} disableTruncation={true} />
+              )}
+            </div>
+          </ScrollArea>
           
           {/* Action buttons for expanded view */}
           {expandedMessage && (
-            <div className="border-t pt-4">
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    navigator.clipboard.writeText(expandedMessage.content);
-                  }}
-                >
-                  <Copy className="h-4 w-4 mr-2" />
-                  Copy
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => generateWordDocument(expandedMessage.content, 'AI Generated Document')}
-                  className="hidden sm:inline-flex"
-                >
-                  <FileDown className="h-4 w-4 mr-2" />
-                  Export as Word
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => generatePowerPoint(expandedMessage.content, 'AI Generated Presentation')}
-                  className="hidden sm:inline-flex"
-                >
-                  <Presentation className="h-4 w-4 mr-2" />
-                  Create PowerPoint
-                </Button>
-              </div>
+            <div className="flex flex-wrap gap-2 pt-4 border-t flex-shrink-0">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  navigator.clipboard.writeText(expandedMessage.content);
+                }}
+              >
+                <Copy className="h-4 w-4 mr-2" />
+                Copy
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => generateWordDocument(expandedMessage.content, 'AI Generated Document')}
+                className="hidden sm:inline-flex"
+              >
+                <FileDown className="h-4 w-4 mr-2" />
+                Export as Word
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => generatePowerPoint(expandedMessage.content, 'AI Generated Presentation')}
+                className="hidden sm:inline-flex"
+              >
+                <Presentation className="h-4 w-4 mr-2" />
+                Create PowerPoint
+              </Button>
             </div>
           )}
         </DialogContent>

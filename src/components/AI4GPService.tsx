@@ -794,45 +794,47 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                </ScrollArea>
                
                {expandedMessage && (
-                 <Dialog open={!!expandedMessage} onOpenChange={(open) => { if (!open) setExpandedMessage(null); }}>
-                   <DialogContent className="max-w-4xl">
-                     <DialogHeader>
-                       <DialogTitle>Expanded Response</DialogTitle>
-                     </DialogHeader>
-                     <div className="space-y-4">
-                       <MessageRenderer message={expandedMessage} disableTruncation={true} />
-                       <div className="flex justify-end gap-2">
-                         <Button
-                           variant="outline"
-                           size="sm"
-                           onClick={() => expandedMessage && navigator.clipboard.writeText(expandedMessage.content)}
-                         >
-                           <Copy className="h-4 w-4 mr-2" />
-                           Copy
-                         </Button>
-                         <Button
-                           variant="outline"
-                           size="sm"
-                           onClick={() => expandedMessage && generateWordDocument(expandedMessage.content, 'AI Generated Document')}
-                           className="hidden sm:inline-flex"
-                         >
-                           <FileDown className="h-4 w-4 mr-2" />
-                           Export as Word
-                         </Button>
-                         <Button
-                           variant="outline"
-                           size="sm"
-                           onClick={() => expandedMessage && generatePowerPoint(expandedMessage.content, 'AI Generated Presentation')}
-                           className="hidden sm:inline-flex"
-                         >
-                           <Presentation className="h-4 w-4 mr-2" />
-                           Export as PowerPoint
-                         </Button>
-                       </div>
-                     </div>
-                   </DialogContent>
-                 </Dialog>
-               )}
+                  <Dialog open={!!expandedMessage} onOpenChange={(open) => { if (!open) setExpandedMessage(null); }}>
+                    <DialogContent className="max-w-[95vw] max-h-[95vh] w-full flex flex-col">
+                      <DialogHeader className="flex-shrink-0">
+                        <DialogTitle>Expanded Response</DialogTitle>
+                      </DialogHeader>
+                      <ScrollArea className="flex-1 min-h-0">
+                        <div className="space-y-4 pr-4">
+                          <MessageRenderer message={expandedMessage} disableTruncation={true} />
+                        </div>
+                      </ScrollArea>
+                      <div className="flex justify-end gap-2 pt-4 border-t flex-shrink-0">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => expandedMessage && navigator.clipboard.writeText(expandedMessage.content)}
+                        >
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copy
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => expandedMessage && generateWordDocument(expandedMessage.content, 'AI Generated Document')}
+                          className="hidden sm:inline-flex"
+                        >
+                          <FileDown className="h-4 w-4 mr-2" />
+                          Export as Word
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => expandedMessage && generatePowerPoint(expandedMessage.content, 'AI Generated Presentation')}
+                          className="hidden sm:inline-flex"
+                        >
+                          <Presentation className="h-4 w-4 mr-2" />
+                          Export as PowerPoint
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                )}
                
                {/* Input Area */}
               <div className="border-t p-4 space-y-3">
