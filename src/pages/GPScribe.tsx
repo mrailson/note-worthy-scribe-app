@@ -102,6 +102,7 @@ const Index = () => {
   const [showExamples, setShowExamples] = useState(true);
   const [activeTab, setActiveTab] = useState("consultation");
   const [showTicker, setShowTicker] = useState(false);
+  const [isTabMenuOpen, setIsTabMenuOpen] = useState(false);
   const [tickerEnabled, setTickerEnabled] = useState(true);
   const [tickerText, setTickerText] = useState<string>("");
   const [showTranscriptTimestamps, setShowTranscriptTimestamps] = useState(true);
@@ -1579,52 +1580,85 @@ useEffect(() => {
         
         {/* Tab Navigation */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          {/* Mobile: Stack tabs vertically in a compact grid */}
+          {/* Mobile: Collapsible menu with current tab indicator */}
           {isMobile ? (
-            <TabsList className="grid grid-cols-2 gap-1 p-1 h-auto rounded-xl bg-background/80 backdrop-blur-sm border border-border/50">
-              <TabsTrigger 
-                value="consultation" 
-                className="flex flex-col items-center gap-1 py-3 px-2 rounded-lg transition-all duration-200 text-xs font-medium data-[state=active]:bg-primary/90 data-[state=active]:text-primary-foreground"
-              >
-                <Stethoscope className="h-4 w-4" />
-                <span>Consultation</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="transcript" 
-                className="flex flex-col items-center gap-1 py-3 px-2 rounded-lg transition-all duration-200 text-xs font-medium data-[state=active]:bg-primary/90 data-[state=active]:text-primary-foreground"
-              >
-                <FileText className="h-4 w-4" />
-                <span>Transcript</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="ai4gp" 
-                className="flex flex-col items-center gap-1 py-3 px-2 rounded-lg transition-all duration-200 text-xs font-medium data-[state=active]:bg-primary/90 data-[state=active]:text-primary-foreground"
-              >
-                <Brain className="h-4 w-4" />
-                <span>AI4GP</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="gp-genie" 
-                className="flex flex-col items-center gap-1 py-3 px-2 rounded-lg transition-all duration-200 text-xs font-medium data-[state=active]:bg-primary/90 data-[state=active]:text-primary-foreground"
-              >
-                <Bot className="h-4 w-4" />
-                <span>GP Genie</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="history"
-                className="flex flex-col items-center gap-1 py-3 px-2 rounded-lg transition-all duration-200 text-xs font-medium data-[state=active]:bg-primary/90 data-[state=active]:text-primary-foreground"
-              >
-                <History className="h-4 w-4" />
-                <span>History</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="examples" 
-                className="flex flex-col items-center gap-1 py-3 px-2 rounded-lg transition-all duration-200 text-xs font-medium data-[state=active]:bg-primary/90 data-[state=active]:text-primary-foreground"
-              >
-                <BookOpen className="h-4 w-4" />
-                <span>Import</span>
-              </TabsTrigger>
-            </TabsList>
+            <div className="space-y-2">
+              {/* Current tab indicator and toggle button */}
+              <div className="flex items-center justify-between bg-background/80 backdrop-blur-sm border border-border/50 rounded-xl p-3">
+                <div className="flex items-center gap-2">
+                  {activeTab === "consultation" && <><Stethoscope className="h-4 w-4 text-primary" /><span className="text-sm font-medium">Consultation</span></>}
+                  {activeTab === "transcript" && <><FileText className="h-4 w-4 text-primary" /><span className="text-sm font-medium">Transcript</span></>}
+                  {activeTab === "ai4gp" && <><Brain className="h-4 w-4 text-primary" /><span className="text-sm font-medium">AI4GP</span></>}
+                  {activeTab === "gp-genie" && <><Bot className="h-4 w-4 text-primary" /><span className="text-sm font-medium">GP Genie</span></>}
+                  {activeTab === "history" && <><History className="h-4 w-4 text-primary" /><span className="text-sm font-medium">History</span></>}
+                  {activeTab === "examples" && <><BookOpen className="h-4 w-4 text-primary" /><span className="text-sm font-medium">Import</span></>}
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setIsTabMenuOpen(!isTabMenuOpen)}
+                  className="h-8 w-8 p-0"
+                >
+                  <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isTabMenuOpen ? 'rotate-180' : ''}`} />
+                </Button>
+              </div>
+              
+              {/* Collapsible tab menu */}
+              <Collapsible open={isTabMenuOpen} onOpenChange={setIsTabMenuOpen}>
+                <CollapsibleContent className="space-y-0">
+                  <TabsList className="grid grid-cols-2 gap-1 p-1 h-auto rounded-xl bg-background/80 backdrop-blur-sm border border-border/50">
+                    <TabsTrigger 
+                      value="consultation" 
+                      className="flex flex-col items-center gap-1 py-3 px-2 rounded-lg transition-all duration-200 text-xs font-medium data-[state=active]:bg-primary/90 data-[state=active]:text-primary-foreground"
+                      onClick={() => setIsTabMenuOpen(false)}
+                    >
+                      <Stethoscope className="h-4 w-4" />
+                      <span>Consultation</span>
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="transcript" 
+                      className="flex flex-col items-center gap-1 py-3 px-2 rounded-lg transition-all duration-200 text-xs font-medium data-[state=active]:bg-primary/90 data-[state=active]:text-primary-foreground"
+                      onClick={() => setIsTabMenuOpen(false)}
+                    >
+                      <FileText className="h-4 w-4" />
+                      <span>Transcript</span>
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="ai4gp" 
+                      className="flex flex-col items-center gap-1 py-3 px-2 rounded-lg transition-all duration-200 text-xs font-medium data-[state=active]:bg-primary/90 data-[state=active]:text-primary-foreground"
+                      onClick={() => setIsTabMenuOpen(false)}
+                    >
+                      <Brain className="h-4 w-4" />
+                      <span>AI4GP</span>
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="gp-genie" 
+                      className="flex flex-col items-center gap-1 py-3 px-2 rounded-lg transition-all duration-200 text-xs font-medium data-[state=active]:bg-primary/90 data-[state=active]:text-primary-foreground"
+                      onClick={() => setIsTabMenuOpen(false)}
+                    >
+                      <Bot className="h-4 w-4" />
+                      <span>GP Genie</span>
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="history"
+                      className="flex flex-col items-center gap-1 py-3 px-2 rounded-lg transition-all duration-200 text-xs font-medium data-[state=active]:bg-primary/90 data-[state=active]:text-primary-foreground"
+                      onClick={() => setIsTabMenuOpen(false)}
+                    >
+                      <History className="h-4 w-4" />
+                      <span>History</span>
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="examples" 
+                      className="flex flex-col items-center gap-1 py-3 px-2 rounded-lg transition-all duration-200 text-xs font-medium data-[state=active]:bg-primary/90 data-[state=active]:text-primary-foreground"
+                      onClick={() => setIsTabMenuOpen(false)}
+                    >
+                      <BookOpen className="h-4 w-4" />
+                      <span>Import</span>
+                    </TabsTrigger>
+                  </TabsList>
+                </CollapsibleContent>
+              </Collapsible>
+            </div>
           ) : (
             /* Desktop: Keep original horizontal layout but in a single row */
             <div className="flex w-full gap-2 items-stretch">
