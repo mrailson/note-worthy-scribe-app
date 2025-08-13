@@ -73,6 +73,7 @@ import PptxGenJS from 'pptxgenjs';
 import PMGenieVoiceAgent from '@/components/PMGenieVoiceAgent';
 import { RealtimeChat } from '@/utils/RealtimeAudio';
 import NewsPanel from '@/components/NewsPanel';
+import { toast } from 'sonner';
 
 // Helper function to get file type icon
 const getFileTypeIcon = (fileName: string, fileType?: string) => {
@@ -203,12 +204,22 @@ const AI4PMService = () => {
     }
   }, []);
 
-  // Voice chat message handler
+  // Voice chat message handler - copied from AI4GP
   const handleVoiceMessage = (event: any) => {
-    console.log('Voice event:', event);
+    console.log('Voice event:', event.type, event);
     
+    // Track assistant speaking audio
+    if (event.type === 'response.audio.delta') {
+      setIsVoiceSpeaking(true);
+      return;
+    }
+    if (event.type === 'response.audio.done') {
+      setIsVoiceSpeaking(false);
+      return;
+    }
+
+    // Handle transcript responses
     if (event.type === 'response.audio_transcript.delta') {
-      // Update or create assistant message with transcript
       setMessages(prev => {
         const lastMessage = prev[prev.length - 1];
         if (lastMessage && lastMessage.role === 'assistant' && lastMessage.id === 'voice-response') {
@@ -231,8 +242,10 @@ const AI4PMService = () => {
           ];
         }
       });
-    } else if (event.type === 'response.audio_transcript.done') {
-      // Finalize the assistant message and auto-save
+      return;
+    }
+
+    if (event.type === 'response.audio_transcript.done') {
       setMessages(prev => {
         const lastMessage = prev[prev.length - 1];
         if (lastMessage && lastMessage.id === 'voice-response') {
@@ -253,30 +266,29 @@ const AI4PMService = () => {
         }
         return prev;
       });
-      setIsVoiceSpeaking(false);
-    } else if (event.type === 'response.audio.delta') {
-      setIsVoiceSpeaking(true);
-    } else if (event.type === 'response.audio.done') {
-      setIsVoiceSpeaking(false);
-    } else if (event.type === 'conversation.item.input_audio_transcription.completed') {
-      // Add user message from voice transcription
-      const userMessage: Message = {
-        id: `voice-user-${Date.now()}`,
-        role: 'user',
-        content: event.transcript,
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, userMessage]);
+      return;
+    }
+
+    // Handle user transcript when speaking is complete
+    if (event.type === 'conversation.item.input_audio_transcription.completed') {
+      const transcript = event.transcript || '';
+      if (transcript.trim()) {
+        setMessages(prev => [
+          ...prev,
+          { id: `voice-user-${Date.now()}`, role: 'user', content: transcript, timestamp: new Date() }
+        ]);
+      }
+      return;
     }
   };
 
-  // Start voice chat
+  // Start voice chat - copied from AI4GP
   const startVoiceChat = async () => {
     try {
       // Check if there's already an active voice session
       const existingInstanceId = localStorage.getItem('ai4pm-active-voice-instance');
       if (existingInstanceId && existingInstanceId !== voiceInstanceId) {
-        alert('Another voice session is already active. Please close it first.');
+        toast.error('Another voice session is already active. Please close it first.');
         return;
       }
 
@@ -291,63 +303,27 @@ const AI4PMService = () => {
       localStorage.setItem('ai4pm-active-voice-instance', instanceId);
       
       voiceChatRef.current = new RealtimeChat(handleVoiceMessage);
-      const displayName = (user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || 'there') as string;
-      const firstName = displayName.includes('@') ? displayName.split('@')[0] : displayName.split(' ')[0];
-      await voiceChatRef.current.init('shimmer', `Hello ${firstName}, I am the AI for GP Practice Managers, How can I help?`);
+      await voiceChatRef.current.init(selectedVoice, 'Hello, how can I help?');
       
-      // Apply saved states after initialization
-      if (voiceChatRef.current) {
-        if (isVoiceMuted) {
-          voiceChatRef.current.setMuted(true);
-        }
-        if (isMicMuted) {
-          voiceChatRef.current.setMicMuted?.(true);
-        }
-        console.log('Applied saved voice states:', { isVoiceMuted, isMicMuted });
+      if (isVoiceMuted) {
+        voiceChatRef.current.setMuted(true);
       }
       
       setIsVoiceConnected(true);
-      setIsVoiceConnecting(false);
-      
-      // Send initial greeting
-      setTimeout(() => {
-        const displayName = (user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || 'there') as string;
-        const firstName = displayName.includes('@') ? displayName.split('@')[0] : displayName.split(' ')[0];
-        voiceChatRef.current?.sendMessage(`Hello ${firstName}, I am the AI for GP Practice Managers, How can I help?`);
-      }, 1000);
-      
     } catch (error) {
       console.error('Voice chat error:', error);
-      setIsVoiceConnecting(false);
+      toast.error('Failed to start voice chat');
       // Clean up instance tracking on error
       if (voiceInstanceId) {
         localStorage.removeItem('ai4pm-active-voice-instance');
         setVoiceInstanceId(null);
       }
+    } finally {
+      setIsVoiceConnecting(false);
     }
   };
 
-  // Toggle voice mute
-  const toggleVoiceMute = () => {
-    if (voiceChatRef.current) {
-      const newMutedState = !isVoiceMuted;
-      voiceChatRef.current.setMuted(newMutedState);
-      setIsVoiceMuted(newMutedState);
-      localStorage.setItem('ai4pm-voice-muted', JSON.stringify(newMutedState));
-    }
-  };
-
-  // Toggle mic mute
-  const toggleMicMute = () => {
-    if (voiceChatRef.current) {
-      const newMutedState = !isMicMuted;
-      voiceChatRef.current.setMicMuted?.(newMutedState);
-      setIsMicMuted(newMutedState);
-      localStorage.setItem('ai4pm-mic-muted', JSON.stringify(newMutedState));
-    }
-  };
-
-  // End voice chat
+  // End voice chat - copied from AI4GP
   const endVoiceChat = () => {
     voiceChatRef.current?.disconnect();
     setIsVoiceConnected(false);
@@ -358,8 +334,6 @@ const AI4PMService = () => {
       localStorage.removeItem('ai4pm-active-voice-instance');
       setVoiceInstanceId(null);
     }
-    
-    // Don't reset mute states - preserve user preferences
     
     // Auto-save the conversation when ending voice chat if there are messages
     if (messages.length > 0) {
@@ -1221,52 +1195,42 @@ Format your responses clearly with headings and bullet points where appropriate 
                         )}
                         <CardTitle className="text-xl">AI4PM Assistant</CardTitle>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {/* Voice Controls */}
-                        {isVoiceConnected && (
-                          <div className="flex items-center gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={toggleVoiceMute}
-                              className={`h-8 ${isVoiceMuted ? 'text-muted-foreground' : 'text-primary'}`}
-                              title={isVoiceMuted ? 'Unmute speaker' : 'Mute speaker'}
-                            >
-                              {isVoiceMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={toggleMicMute}
-                              className={`h-8 ${isMicMuted ? 'text-muted-foreground' : 'text-primary'}`}
-                              title={isMicMuted ? 'Unmute microphone' : 'Mute microphone'}
-                            >
-                              {isMicMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-                            </Button>
-                            {isVoiceSpeaking && (
-                              <div className="flex items-center gap-1 text-sm text-primary">
-                                <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-                                Speaking
-                              </div>
-                            )}
-                          </div>
-                        )}
-                        
-                        <Button
-                          variant={isVoiceConnected ? "destructive" : "default"}
+                      <div className="flex items-center gap-1">
+                        <Button 
+                          variant="outline" 
                           size="sm"
                           onClick={isVoiceConnected ? endVoiceChat : startVoiceChat}
-                          disabled={isVoiceConnecting}
-                          className="h-8"
+                          className="text-xs"
+                          title={isVoiceConnected ? 'End live talk session' : 'Start live talk session'}
                         >
-                          {isVoiceConnecting ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : isVoiceConnected ? (
-                            <PhoneOff className="h-4 w-4" />
-                          ) : (
-                            <Mic className="h-4 w-4" />
-                          )}
+                          <Mic className="h-3 w-3 mr-1" />
+                          {isVoiceConnected ? 'End Live Talk' : (isVoiceConnecting ? 'Connecting…' : 'Live Talk')}
                         </Button>
+                        
+                        {isVoiceConnected && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const next = !isVoiceMuted;
+                              setIsVoiceMuted(next);
+                              voiceChatRef.current?.setMuted(next);
+                              localStorage.setItem('ai4pm-voice-muted', JSON.stringify(next));
+                            }}
+                            className="text-xs"
+                            title={isVoiceMuted ? 'Unmute AI voice output' : 'Mute AI voice output'}
+                          >
+                            {isVoiceMuted ? <VolumeX className="h-3 w-3 mr-1" /> : <Volume2 className="h-3 w-3 mr-1" />}
+                            {isVoiceMuted ? 'Muted' : 'Mute'}
+                          </Button>
+                        )}
+                        
+                        {isVoiceSpeaking && (
+                          <div className="flex items-center gap-1 text-sm text-primary">
+                            <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+                            Speaking
+                          </div>
+                        )}
                         
                         <Button
                           variant="outline"
