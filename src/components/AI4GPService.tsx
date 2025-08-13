@@ -302,12 +302,6 @@ const AI4GPService = () => {
       requiresFile: false 
     },
     { 
-      label: 'Referral Criteria & Forms', 
-      icon: FileText, 
-      prompt: `${nhsSafetyPreamble} Provide referral criteria and process for [insert specialty/condition] in [insert local area or ICB], including NHS eRS form links, local service inclusion/exclusion criteria, and relevant NICE guidance.`,
-      requiresFile: false 
-    },
-    { 
       label: 'QOF Indicator Quick Check', 
       icon: CheckSquare, 
       prompt: `${nhsSafetyPreamble} Summarise the QOF indicators for [insert condition] for 2025/26. Include indicator codes, thresholds, recall rules, and exception reporting criteria. Focus on what a GP practice team needs to know.`,
@@ -329,12 +323,6 @@ const AI4GPService = () => {
       label: 'Primary Care Prescribing Alerts', 
       icon: TrendingUp, 
       prompt: `${nhsSafetyPreamble} List the most recent MHRA/NHS prescribing safety alerts relevant to primary care in [insert month/year]. Include drug name, nature of alert, key GP actions, and link to official notice.`,
-      requiresFile: false 
-    },
-    { 
-      label: 'Fit Note Wording Helper', 
-      icon: FileHeart, 
-      prompt: `${nhsSafetyPreamble} Suggest concise, clinically appropriate fit note wording for a patient with [insert condition/procedure]. Include expected duration, recommended work adjustments, and review advice.`,
       requiresFile: false 
     },
     { 
