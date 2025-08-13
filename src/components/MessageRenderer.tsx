@@ -93,8 +93,8 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
 
   // Function to convert URLs to clickable links
   const linkifyText = (text: string): (string | React.ReactElement)[] => {
-    // URL regex pattern
-    const urlRegex = /(https?:\/\/[^\s<>"]+)/g;
+    // URL regex pattern that excludes trailing punctuation and markdown syntax
+    const urlRegex = /(https?:\/\/[^\s<>")\]]+)/g;
     const parts = text.split(urlRegex);
     
     return parts.map((part, index) => {

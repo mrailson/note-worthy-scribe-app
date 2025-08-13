@@ -14,7 +14,8 @@ export const SafeMessageRenderer: React.FC<SafeMessageRendererProps> = ({
 }) => {
   // Function to convert URLs to clickable links
   const linkifyContent = (text: string): string => {
-    const urlRegex = /(https?:\/\/[^\s<>"]+)/g;
+    // URL regex pattern that excludes trailing punctuation and markdown syntax
+    const urlRegex = /(https?:\/\/[^\s<>")\]]+)/g;
     return text.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:text-blue-600 underline break-all">$1</a>');
   };
 
