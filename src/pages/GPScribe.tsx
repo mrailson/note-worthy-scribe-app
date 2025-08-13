@@ -1579,67 +1579,116 @@ useEffect(() => {
         
         {/* Tab Navigation */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <div className="flex w-full gap-2 items-stretch">
-          <TabsList className="flex w-full gap-1 overflow-x-auto overflow-y-hidden p-1 rounded-xl flex-1 no-scrollbar">
+          {/* Mobile: Stack tabs vertically in a compact grid */}
+          {isMobile ? (
+            <TabsList className="grid grid-cols-2 gap-1 p-1 h-auto rounded-xl bg-background/80 backdrop-blur-sm border border-border/50">
               <TabsTrigger 
                 value="consultation" 
-                className="rounded-lg transition-all duration-200 font-medium shrink-0"
+                className="flex flex-col items-center gap-1 py-3 px-2 rounded-lg transition-all duration-200 text-xs font-medium data-[state=active]:bg-primary/90 data-[state=active]:text-primary-foreground"
               >
-                <div className="flex items-center gap-2">
-                  <Stethoscope className="h-5 w-5" />
-                  <span>Consultation</span>
-                </div>
+                <Stethoscope className="h-4 w-4" />
+                <span>Consultation</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="transcript" 
-                className="rounded-lg transition-all duration-200 font-medium shrink-0"
+                className="flex flex-col items-center gap-1 py-3 px-2 rounded-lg transition-all duration-200 text-xs font-medium data-[state=active]:bg-primary/90 data-[state=active]:text-primary-foreground"
               >
-                <div className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  <span>Transcript</span>
-                </div>
+                <FileText className="h-4 w-4" />
+                <span>Transcript</span>
               </TabsTrigger>
-              <TabsTrigger 
-                value="history"
-                className="rounded-lg transition-all duration-200 font-medium shrink-0"
-              >
-                <div className="flex items-center gap-2">
-                  <History className="h-5 w-5" />
-                  <span>History</span>
-                </div>
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsList className="flex w-full gap-1 overflow-x-auto overflow-y-hidden p-1 rounded-xl flex-1 no-scrollbar">
               <TabsTrigger 
                 value="ai4gp" 
-                className="rounded-lg transition-all duration-200 font-medium shrink-0"
+                className="flex flex-col items-center gap-1 py-3 px-2 rounded-lg transition-all duration-200 text-xs font-medium data-[state=active]:bg-primary/90 data-[state=active]:text-primary-foreground"
               >
-                <div className="flex items-center gap-2">
-                  <Brain className="h-5 w-5" />
-                  <span>AI4GP</span>
-                </div>
+                <Brain className="h-4 w-4" />
+                <span>AI4GP</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="gp-genie" 
-                className="rounded-lg transition-all duration-200 font-medium shrink-0"
+                className="flex flex-col items-center gap-1 py-3 px-2 rounded-lg transition-all duration-200 text-xs font-medium data-[state=active]:bg-primary/90 data-[state=active]:text-primary-foreground"
               >
-                <div className="flex items-center gap-2">
-                  <Bot className="h-5 w-5" />
-                  <span>GP Genie</span>
-                </div>
+                <Bot className="h-4 w-4" />
+                <span>GP Genie</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="history"
+                className="flex flex-col items-center gap-1 py-3 px-2 rounded-lg transition-all duration-200 text-xs font-medium data-[state=active]:bg-primary/90 data-[state=active]:text-primary-foreground"
+              >
+                <History className="h-4 w-4" />
+                <span>History</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="examples" 
-                className="rounded-lg transition-all duration-200 font-medium shrink-0"
+                className="flex flex-col items-center gap-1 py-3 px-2 rounded-lg transition-all duration-200 text-xs font-medium data-[state=active]:bg-primary/90 data-[state=active]:text-primary-foreground"
               >
-                <div className="flex items-center gap-2">
-                  <BookOpen className="h-5 w-5" />
-                  <span>Examples + Audio Import</span>
-                </div>
+                <BookOpen className="h-4 w-4" />
+                <span>Import</span>
               </TabsTrigger>
             </TabsList>
-          </div>
+          ) : (
+            /* Desktop: Keep original horizontal layout but in a single row */
+            <div className="flex w-full gap-2 items-stretch">
+              <TabsList className="flex w-full gap-1 overflow-x-auto overflow-y-hidden p-1 rounded-xl flex-1 no-scrollbar">
+                <TabsTrigger 
+                  value="consultation" 
+                  className="rounded-lg transition-all duration-200 font-medium shrink-0"
+                >
+                  <div className="flex items-center gap-2">
+                    <Stethoscope className="h-5 w-5" />
+                    <span>Consultation</span>
+                  </div>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="transcript" 
+                  className="rounded-lg transition-all duration-200 font-medium shrink-0"
+                >
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    <span>Transcript</span>
+                  </div>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="history"
+                  className="rounded-lg transition-all duration-200 font-medium shrink-0"
+                >
+                  <div className="flex items-center gap-2">
+                    <History className="h-5 w-5" />
+                    <span>History</span>
+                  </div>
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsList className="flex w-full gap-1 overflow-x-auto overflow-y-hidden p-1 rounded-xl flex-1 no-scrollbar">
+                <TabsTrigger 
+                  value="ai4gp" 
+                  className="rounded-lg transition-all duration-200 font-medium shrink-0"
+                >
+                  <div className="flex items-center gap-2">
+                    <Brain className="h-5 w-5" />
+                    <span>AI4GP</span>
+                  </div>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="gp-genie" 
+                  className="rounded-lg transition-all duration-200 font-medium shrink-0"
+                >
+                  <div className="flex items-center gap-2">
+                    <Bot className="h-5 w-5" />
+                    <span>GP Genie</span>
+                  </div>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="examples" 
+                  className="rounded-lg transition-all duration-200 font-medium shrink-0"
+                >
+                  <div className="flex items-center gap-2">
+                    <BookOpen className="h-5 w-5" />
+                    <span>Examples + Audio Import</span>
+                  </div>
+                </TabsTrigger>
+              </TabsList>
+            </div>
+          )}
 
         {/* Consultation Tab - Recording Interface */}
         <TabsContent value="consultation" className="space-y-4">
