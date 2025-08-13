@@ -139,34 +139,29 @@ const AI4PMService = () => {
   const [searchHistory, setSearchHistory] = useState<SearchHistory[]>([]);
   const [activeTab, setActiveTab] = useState('ai-service');
   const [practiceContext, setPracticeContext] = useState<PracticeContext>({});
-  const [chatBoxSize, setChatBoxSize] = useState('default'); // 'small', 'default', 'large', 'extra-large'
+  const [chatBoxSize, setChatBoxSize] = useState('default');
   const [includePracticeBranding, setIncludePracticeBranding] = useState(true);
   const [practiceDetails, setPracticeDetails] = useState<any>(null);
-  const [showQuickActions, setShowQuickActions] = useState(false);
-  const [includeLatestWeb, setIncludeLatestWeb] = useState(false);
-  const [currentSearchId, setCurrentSearchId] = useState<string | null>(null); // Track current conversation
+  const [showVoiceAgent, setShowVoiceAgent] = useState(false);
+  const [includeLatestUpdates, setIncludeLatestUpdates] = useState(true);
+  const [showAllQuickActions, setShowAllQuickActions] = useState(false);
+  const [expandedMessage, setExpandedMessage] = useState<Message | null>(null);
+  const [currentSearchId, setCurrentSearchId] = useState<string | null>(null);
   const [isTabMenuOpen, setIsTabMenuOpen] = useState(false);
   const [isHistoryCollapsed, setIsHistoryCollapsed] = useState(() => {
     const saved = localStorage.getItem('ai4pm-history-collapsed');
     return saved ? JSON.parse(saved) : false;
   });
-  
-  const [expandedMessage, setExpandedMessage] = useState<Message | null>(null);
-  const [showVoiceAgent, setShowVoiceAgent] = useState(false);
-  const [showChatGPTVoice, setShowChatGPTVoice] = useState(false);
+  const [showQuickActions, setShowQuickActions] = useState(false);
+  const [includeLatestWeb, setIncludeLatestWeb] = useState(false);
+  const [voiceInstanceId, setVoiceInstanceId] = useState<string | null>(null);
   const [isVoiceConnected, setIsVoiceConnected] = useState(false);
   const [isVoiceConnecting, setIsVoiceConnecting] = useState(false);
   const [isVoiceSpeaking, setIsVoiceSpeaking] = useState(false);
-  const [isVoiceMuted, setIsVoiceMuted] = useState(() => {
-    const saved = localStorage.getItem('ai4pm-voice-muted');
-    return saved ? JSON.parse(saved) : false;
-  });
-  const [isMicMuted, setIsMicMuted] = useState(() => {
-    const saved = localStorage.getItem('ai4pm-mic-muted');
-    return saved ? JSON.parse(saved) : false;
-  });
-  const [voiceInstanceId, setVoiceInstanceId] = useState<string | null>(null);
+  const [isVoiceMuted, setIsVoiceMuted] = useState(true);
+  const [selectedVoice, setSelectedVoice] = useState<'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer' | 'ballad'>('ballad');
   const voiceChatRef = useRef<any>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   
@@ -690,45 +685,221 @@ Format your responses clearly with headings and bullet points where appropriate 
     inputRef.current?.focus();
   };
 
-  const generateWordDocument = async (content: string, title?: string) => {
-    // Create paragraphs from the content
-    const lines = content.split('\n').filter(line => line.trim());
-    const children = [];
+  // Export: Word document - copied from AI4GP
+  const generateWordDocument = async (content: string, title: string = 'AI Generated Document') => {
+    try {
+      // Function to clean markdown formatting from text
+      const cleanMarkdown = (text: string): string => {
+        return text
+          .replace(/\*\*\*([^*]+)\*\*\*/g, '$1') // Remove triple asterisks (bold+italic)
+          .replace(/\*\*([^*]+)\*\*/g, '$1')     // Remove double asterisks (bold)
+          .replace(/\*([^*]+)\*/g, '$1')         // Remove single asterisks (italic)
+          .replace(/`([^`]+)`/g, '$1')           // Remove backticks (code)
+          .replace(/#{1,6}\s+/g, '')             // Remove heading markers
+          .trim();
+      };
 
-    for (const line of lines) {
-      if (line.startsWith('# ')) {
-        // Main heading
-        children.push(
-          new Paragraph({
-            children: [new TextRun({ text: line.replace('# ', ''), bold: true, size: 32 })],
-            heading: HeadingLevel.HEADING_1,
-            spacing: { after: 200 }
-          })
-        );
-      } else if (line.startsWith('## ')) {
-        // Sub heading
-        children.push(
-          new Paragraph({
-            children: [new TextRun({ text: line.replace('## ', ''), bold: true, size: 28 })],
-            heading: HeadingLevel.HEADING_2,
-            spacing: { after: 200, before: 200 }
-          })
-        );
-      } else if (line.startsWith('### ')) {
-        // Sub-sub heading
-        children.push(
-          new Paragraph({
-            children: [new TextRun({ text: line.replace('### ', ''), bold: true, size: 24 })],
-            heading: HeadingLevel.HEADING_3,
-            spacing: { after: 100, before: 100 }
-          })
-        );
-      } else if (line.startsWith('- ') || line.startsWith('* ')) {
-        // Bullet point
-        children.push(
-          new Paragraph({
-            children: [new TextRun(line.replace(/^[*-] /, ''))],
-            bullet: { level: 0 },
+      // Function to process text with inline formatting (bold, italic, code, links)
+      const processFormattedText = (text: string) => {
+        const children: any[] = [];
+        
+        // Clean the text first to remove any stray markdown
+        const cleanedText = cleanMarkdown(text);
+        
+        // Enhanced pattern to handle bold, italic, code, and URLs
+        const formatPattern = /(\*\*\*[^*]+?\*\*\*|\*\*[^*]+?\*\*|\*[^*]+?\*|`[^`]+?`|https?:\/\/[^\s]+)/g;
+        let lastIndex = 0;
+        let match;
+        
+        while ((match = formatPattern.exec(text)) !== null) {
+          // Add any plain text before this match
+          if (match.index > lastIndex) {
+            const plainText = text.substring(lastIndex, match.index);
+            if (plainText) {
+              children.push(new TextRun({
+                text: cleanMarkdown(plainText),
+                size: 24
+              }));
+            }
+          }
+          
+          const matchedText = match[0];
+          
+          // Handle bold and italic (***text***)
+          if (matchedText.startsWith('***') && matchedText.endsWith('***')) {
+            const content = matchedText.slice(3, -3);
+            children.push(new TextRun({
+              text: content,
+              size: 24,
+              bold: true,
+              italics: true
+            }));
+          }
+          // Handle bold (**text**)
+          else if (matchedText.startsWith('**') && matchedText.endsWith('**')) {
+            const content = matchedText.slice(2, -2);
+            children.push(new TextRun({
+              text: content,
+              size: 24,
+              bold: true
+            }));
+          }
+          // Handle italic (*text*)
+          else if (matchedText.startsWith('*') && matchedText.endsWith('*')) {
+            const content = matchedText.slice(1, -1);
+            children.push(new TextRun({
+              text: content,
+              size: 24,
+              italics: true
+            }));
+          }
+          // Handle code (`text`)
+          else if (matchedText.startsWith('`') && matchedText.endsWith('`')) {
+            const content = matchedText.slice(1, -1);
+            children.push(new TextRun({
+              text: content,
+              size: 22,
+              font: "Courier New",
+              shading: {
+                type: "clear",
+                color: "f6f8fa",
+                fill: "f6f8fa"
+              }
+            }));
+          }
+          // Handle URLs
+          else if (matchedText.match(/^https?:\/\//)) {
+            children.push(new TextRun({
+              text: matchedText,
+              size: 24,
+              color: "0563C1", // Blue color for links
+              underline: {}
+            }));
+          }
+          
+          lastIndex = formatPattern.lastIndex;
+        }
+        
+        // Add any remaining plain text after the last match
+        if (lastIndex < text.length) {
+          const remainingText = text.substring(lastIndex);
+          if (remainingText) {
+            children.push(new TextRun({
+              text: cleanMarkdown(remainingText),
+              size: 24
+            }));
+          }
+        }
+        
+        return children.length > 0 ? children : [new TextRun({ text: cleanedText, size: 24 })];
+      };
+
+      const paragraphs = [
+        new Paragraph({ 
+          children: [new TextRun({ text: title, bold: true, size: 28 })],
+          spacing: { after: 300 }
+        })
+      ];
+      
+      // Parse content into formatted paragraphs
+      const lines = content.split('\n');
+      
+      for (const line of lines) {
+        const trimmedLine = line.trim();
+        
+        if (!trimmedLine) continue;
+        
+        // Check if line is a heading
+        const headingMatch = trimmedLine.match(/^(#{1,6})\s+(.+)$/);
+        if (headingMatch) {
+          const headingLevel = headingMatch[1].length;
+          const headingText = cleanMarkdown(headingMatch[2]);
+          
+          paragraphs.push(
+            new Paragraph({
+              children: [new TextRun({ text: headingText, bold: true, size: 28 - (headingLevel * 2) })],
+              spacing: { before: 300, after: 200 }
+            })
+          );
+        } else {
+          // Regular paragraph with formatting
+          paragraphs.push(
+            new Paragraph({
+              children: processFormattedText(trimmedLine),
+              spacing: { after: 200 }
+            })
+          );
+        }
+      }
+
+      const doc = new Document({ sections: [{ children: paragraphs }] });
+      const blob = await Packer.toBlob(doc);
+      saveAs(blob, `${title}.docx`);
+      toast.success('Word document exported successfully');
+    } catch (e) {
+      console.error('Word export failed', e);
+      toast.error('Failed to export Word document');
+    }
+  };
+
+  // Export: PowerPoint - copied from AI4GP
+  const generatePowerPoint = async (content: string, title: string = 'AI Generated Presentation') => {
+    try {
+      const pptx = new PptxGenJS();
+      pptx.layout = 'LAYOUT_16x9';
+      
+      // Title slide
+      const titleSlide = pptx.addSlide();
+      titleSlide.addText(title, {
+        x: 1, y: 3, w: 8, h: 2,
+        fontSize: 44, bold: true, align: 'center',
+        color: '363636'
+      });
+      
+      // Parse content into slides
+      const sections = content.split(/(?=^#{1,2}\s)/m).filter(section => section.trim());
+      
+      sections.forEach((section, index) => {
+        const slide = pptx.addSlide();
+        const lines = section.trim().split('\n');
+        const firstLine = lines[0];
+        
+        // Extract title from heading
+        const titleMatch = firstLine.match(/^#{1,2}\s+(.+)$/);
+        const slideTitle = titleMatch ? titleMatch[1] : `Slide ${index + 1}`;
+        const contentLines = titleMatch ? lines.slice(1) : lines;
+        
+        // Add title
+        slide.addText(slideTitle, {
+          x: 0.5, y: 0.5, w: 9, h: 1,
+          fontSize: 32, bold: true, color: '363636'
+        });
+        
+        // Add content
+        const contentText = contentLines
+          .filter(line => line.trim())
+          .map(line => line.replace(/^\s*[-•*]\s*/, '• ')) // Convert to bullets
+          .join('\n');
+        
+        if (contentText) {
+          slide.addText(contentText, {
+            x: 0.5, y: 1.8, w: 9, h: 5,
+            fontSize: 18, color: '363636',
+            bullet: { type: 'bullet' }
+          });
+        }
+      });
+      
+      await pptx.writeFile(`${title}.pptx`);
+      toast.success('PowerPoint exported successfully');
+    } catch (e) {
+      console.error('PowerPoint export failed', e);
+      toast.error('Failed to export PowerPoint');
+    }
+  };
+
+  const handleSend = async () => {
+    if (!input.trim() && uploadedFiles.length === 0) return;
             spacing: { after: 100 }
           })
         );
@@ -1349,76 +1520,72 @@ Format your responses clearly with headings and bullet points where appropriate 
                       <div ref={messagesEndRef} />
                     </div>
 
-                    {/* Input Area */}
-                    <div className="space-y-2">
-                      {/* Uploaded Files */}
+                    {/* Input Area - copied from AI4GP */}
+                    <div className="border-t p-4 space-y-3">
+                      {/* Uploaded Files Display */}
                       {uploadedFiles.length > 0 && (
                         <div className="flex flex-wrap gap-2">
                           {uploadedFiles.map((file, index) => {
-                            const FileIcon = getFileTypeIcon(file.name, file.type);
+                            const Icon = getFileTypeIcon(file.name, file.type);
                             return (
-                              <div key={index} className="flex items-center gap-2 bg-accent rounded-lg p-2 text-sm">
-                                <FileIcon className="h-4 w-4" />
-                                <span className="truncate max-w-[200px]">{file.name}</span>
-                                {file.isLoading ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-4 w-4 p-0"
-                                    onClick={() => setUploadedFiles(files => files.filter((_, i) => i !== index))}
-                                  >
-                                    <X className="h-3 w-3" />
-                                  </Button>
-                                )}
+                              <div key={index} className="flex items-center gap-2 bg-muted rounded-md px-3 py-1 text-sm">
+                                <Icon className="h-4 w-4" />
+                                <span className="truncate max-w-32">{file.name}</span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-auto p-0 hover:bg-transparent"
+                                  onClick={() => setUploadedFiles(prev => prev.filter((_, i) => i !== index))}
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
                               </div>
                             );
                           })}
                         </div>
                       )}
-
-                      <div className="flex items-end gap-2">
-                        <div className="flex-1">
-                          <Textarea
-                            ref={inputRef}
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            placeholder="Ask me anything about practice management..."
-                            className="min-h-[80px] resize-none"
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' && !e.shiftKey) {
-                                e.preventDefault();
-                                handleSend();
-                              }
-                            }}
-                          />
-                        </div>
-                        <div className="flex flex-col gap-2">
-                          <input
-                            type="file"
-                            id="file-input"
-                            multiple
-                            accept=".txt,.pdf,.doc,.docx,.csv,.xlsx,.xls,.json,.md,.rtf,image/*"
-                            style={{ display: 'none' }}
-                          />
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => document.getElementById('file-input')?.click()}
-                            className="h-10 w-10 p-0"
-                          >
-                            <Paperclip className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            onClick={handleSend}
-                            disabled={(!input.trim() && uploadedFiles.length === 0) || isLoading}
-                            className="h-10 w-10 p-0"
-                          >
-                            <Send className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
+                      
+                       <div className="flex gap-2">
+                         <Textarea
+                           value={input}
+                           onChange={(e) => setInput(e.target.value)}
+                           placeholder="Ask AI4PM about practice management, policies, staff training..."
+                           className="min-h-[60px] resize-none"
+                           onKeyDown={(e) => {
+                             if (e.key === 'Enter' && !e.shiftKey) {
+                               e.preventDefault();
+                               handleSend();
+                             }
+                           }}
+                         />
+                         <div className="flex flex-col gap-2">
+                            <input
+                              type="file"
+                              multiple
+                              className="hidden"
+                              ref={fileInputRef}
+                              accept=".pdf,.doc,.docx,.rtf,.txt,.eml,.msg,.jpg,.jpeg,.png,.wav,.mp3,.m4a"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => fileInputRef.current?.click()}
+                              disabled={isLoading}
+                              title="Upload files (PDF, DOC, DOCX, RTF, TXT, EML, MSG, JPG, PNG, audio files)"
+                            >
+                              <Paperclip className="h-4 w-4" />
+                            </Button>
+                           <SpeechToText onTranscription={(transcript) => setInput(prev => prev + ' ' + transcript)} />
+                           <Button 
+                             onClick={handleSend} 
+                             disabled={isLoading || (!input.trim() && uploadedFiles.length === 0)}
+                             size="sm"
+                           >
+                             <Send className="h-4 w-4" />
+                           </Button>
+                         </div>
+                       </div>
+                     </div>
                     </div>
                   </CardContent>
                 </Card>
