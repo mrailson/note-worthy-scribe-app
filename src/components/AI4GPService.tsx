@@ -885,7 +885,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
             paragraphs.push(
               new Paragraph({
                 children: [
-                  new TextRun({ text: "☑ ", size: 24 }), // Checked checkbox symbol
+                  new TextRun({ text: "✅ ", size: 24 }), // Nice tick box symbol
                   ...processFormattedText(listItemText)
                 ],
                 spacing: { after: 100 },
