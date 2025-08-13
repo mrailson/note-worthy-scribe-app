@@ -1084,15 +1084,13 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         )}
         
         {/* Chat Interface */}
-        <div className="flex-1 flex flex-col">
-          <Card className="flex-1 flex flex-col">
-            
-            <CardContent className="flex-1 flex flex-col p-0">
-              {/* Messages */}
-              <ScrollArea className="flex-1 p-2">
-                 <div className="space-y-1">
+         <div className="flex-1 flex flex-col">
+           <div className="flex-1 flex flex-col">
+               {/* Messages */}
+               <ScrollArea className="flex-1">.
+                  <div className="space-y-1 p-2">
                     {messages.length === 0 && (
-                      <div className="text-center py-1">
+                       <div className="text-center py-2">
                         <Bot className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
                         <h3 className="font-semibold text-lg mb-1">Welcome to AI4GP</h3>
                         <p className="text-muted-foreground max-w-md mx-auto mb-2">
@@ -1373,12 +1371,11 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                     </div>
                  </div>
                </div>
-               </CardContent>
-             </Card>
-           </div>
-         </div>
-       </div>
-     );
-   };
+                </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
    
    export default AI4GPService;
