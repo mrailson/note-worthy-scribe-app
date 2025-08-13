@@ -40,6 +40,7 @@ import {
   History,
   Eye,
   Plus,
+  Minus,
   Image,
   Type,
   X,
@@ -138,6 +139,7 @@ const AI4GPService = () => {
   const [selectedVoice, setSelectedVoice] = useState<SupportedVoice>('ballad');
   const voiceChatRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showAllQuickActions, setShowAllQuickActions] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const scrollToBottom = () => {
@@ -1152,15 +1154,64 @@ Always provide evidence-based, clinically appropriate advice that follows curren
               {/* Messages */}
               <ScrollArea className="flex-1 p-4">
                  <div className="space-y-4">
-                   {messages.length === 0 && (
-                     <div className="text-center py-4">
-                       <Bot className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
-                       <h3 className="font-semibold text-lg mb-1">Welcome to AI4GP</h3>
-                       <p className="text-muted-foreground max-w-md mx-auto">
-                         Your AI assistant for clinical guidance, protocol development, and evidence-based practice support.
-                       </p>
-                     </div>
-                   )}
+                    {messages.length === 0 && (
+                      <div className="text-center py-4">
+                        <Bot className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
+                        <h3 className="font-semibold text-lg mb-1">Welcome to AI4GP</h3>
+                        <p className="text-muted-foreground max-w-md mx-auto mb-6">
+                          Your AI assistant for clinical guidance, protocol development, and evidence-based practice support.
+                        </p>
+                        
+                        {/* Quick Actions within welcome message */}
+                        <div className="max-w-4xl mx-auto">
+                          <h4 className="text-sm font-medium mb-4 text-muted-foreground">Get started with these common queries:</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-4">
+                            {quickActions.slice(0, showAllQuickActions ? quickActions.length : 6).map((action, index) => {
+                              const Icon = action.icon;
+                              return (
+                                <Button
+                                  key={index}
+                                  variant="outline"
+                                  className="h-auto p-3 text-left justify-start hover:bg-primary/5 hover:border-primary/20 transition-all duration-200"
+                                  onClick={() => setInput(action.prompt)}
+                                >
+                                  <div className="flex items-start gap-3">
+                                    <Icon className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                                    <div>
+                                      <div className="font-medium text-xs text-left">{action.label}</div>
+                                      <div className="text-xs text-muted-foreground text-left">
+                                        {action.prompt.substring(0, 50)}...
+                                      </div>
+                                    </div>
+                                  </div>
+                                </Button>
+                              );
+                            })}
+                          </div>
+                          
+                          {quickActions.length > 6 && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setShowAllQuickActions(!showAllQuickActions)}
+                              className="text-primary hover:text-primary hover:bg-primary/10"
+                            >
+                              {showAllQuickActions ? (
+                                <>
+                                  <Minus className="h-4 w-4 mr-2" />
+                                  Show Less
+                                </>
+                              ) : (
+                                <>
+                                  <Plus className="h-4 w-4 mr-2" />
+                                  Show More ({quickActions.length - 6} more)
+                                </>
+                              )}
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    )}
 
                   {messages.length > 0 && (
                     messages
@@ -1371,45 +1422,14 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                        <Send className="h-4 w-4" />
                      </Button>
                    </div>
-                  </div>
-                 
-                 {/* Quick Actions */}
-                 {messages.length === 0 && (
-                   <div className="pt-4 border-t">
-                     <h4 className="text-sm font-medium mb-3 text-muted-foreground">Quick Actions</h4>
-                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                       {quickActions.map((action, index) => {
-                         const Icon = action.icon;
-                         return (
-                           <Button
-                             key={index}
-                             variant="outline"
-                             className="h-auto p-3 text-left justify-start"
-                             onClick={() => setInput(action.prompt)}
-                           >
-                             <div className="flex items-start gap-3">
-                               <Icon className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                               <div>
-                                 <div className="font-medium text-xs">{action.label}</div>
-                                 <div className="text-xs text-muted-foreground">
-                                   {action.prompt.substring(0, 50)}...
-                                 </div>
-                               </div>
-                             </div>
-                           </Button>
-                         );
-                       })}
-                     </div>
-                   </div>
-                 )}
+                 </div>
                </div>
-            </CardContent>
-          </Card>
-        </div>
-        
-      </div>
-    </div>
-  );
-};
-
-export default AI4GPService;
+               </CardContent>
+             </Card>
+           </div>
+         </div>
+       </div>
+     );
+   };
+   
+   export default AI4GPService;
