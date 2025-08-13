@@ -200,11 +200,11 @@ export const ServiceOverview = () => {
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="primary-care" className="text-xs sm:text-sm">
                 <Heart className="h-3 w-3 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">Built by</span> Care
+                <span className="hidden sm:inline">Overview</span>
               </TabsTrigger>
               <TabsTrigger value="security" className="text-xs sm:text-sm">
                 <Lock className="h-3 w-3 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">NHS</span> Security
+                <span className="hidden sm:inline">Security</span>
               </TabsTrigger>
               <TabsTrigger value="voice" className="text-xs sm:text-sm">
                 <Mic className="h-3 w-3 mr-1 sm:mr-2" />
