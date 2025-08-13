@@ -105,12 +105,6 @@ export const ServiceOverview = () => {
     <div className="space-y-8 max-w-6xl mx-auto">
       {/* Hero Section */}
       <div className="text-center space-y-4">
-        <div className="flex items-center justify-center gap-3 mb-4">
-          <Heart className="h-8 w-8 text-primary" />
-          <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-            NoteWell AI
-          </h1>
-        </div>
         <h2 className="text-2xl font-semibold text-foreground">
           Intelligent Healthcare Administration Platform
         </h2>
