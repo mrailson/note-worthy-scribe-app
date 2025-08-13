@@ -876,13 +876,31 @@ Always provide evidence-based, clinically appropriate advice that follows curren
             })
           );
         } else {
-          // Regular paragraph with formatting
-          paragraphs.push(
-            new Paragraph({
-              children: processFormattedText(trimmedLine),
-              spacing: { after: 200 }
-            })
-          );
+          // Check if this is a list item (bullet point, dash, or number)
+          const listItemMatch = trimmedLine.match(/^[-•*]\s+(.+)$|^\d+\.\s+(.+)$/);
+          if (listItemMatch) {
+            const listItemText = listItemMatch[1] || listItemMatch[2];
+            
+            // Create a paragraph with checkbox symbol for list items
+            paragraphs.push(
+              new Paragraph({
+                children: [
+                  new TextRun({ text: "☐ ", size: 24 }), // Checkbox symbol
+                  ...processFormattedText(listItemText)
+                ],
+                spacing: { after: 100 },
+                indent: { left: 300 } // Indent the list item
+              })
+            );
+          } else {
+            // Regular paragraph with formatting
+            paragraphs.push(
+              new Paragraph({
+                children: processFormattedText(trimmedLine),
+                spacing: { after: 200 }
+              })
+            );
+          }
         }
         
         i++;
