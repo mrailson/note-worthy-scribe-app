@@ -122,7 +122,8 @@ const AI4GPService = () => {
   const [includePracticeBranding, setIncludePracticeBranding] = useState(true);
   const [practiceDetails, setPracticeDetails] = useState<any>(null);
   const [showVoiceAgent, setShowVoiceAgent] = useState(false);
-  const [includeLatestUpdates, setIncludeLatestUpdates] = useState(false);
+  const [includeLatestUpdates, setIncludeLatestUpdates] = useState(true);
+  const [expandedMessage, setExpandedMessage] = useState<Message | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const scrollToBottom = () => {
@@ -478,6 +479,36 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     setInput('');
   };
 
+  // Export: Word document
+  const generateWordDocument = async (content: string, title: string = 'AI Generated Document') => {
+    try {
+      const paragraphs = content.split('\n').map(line =>
+        new Paragraph({ children: [new TextRun({ text: line })] })
+      );
+      const doc = new Document({ sections: [{ children: [
+        new Paragraph({ children: [new TextRun({ text: title, bold: true, size: 28 })] }),
+        ...paragraphs
+      ]}] });
+      const blob = await Packer.toBlob(doc);
+      saveAs(blob, `${title}.docx`);
+    } catch (e) {
+      console.error('Word export failed', e);
+    }
+  };
+
+  // Export: PowerPoint
+  const generatePowerPoint = async (content: string, title: string = 'AI Generated Presentation') => {
+    try {
+      const pptx = new PptxGenJS();
+      const slide = pptx.addSlide();
+      slide.addText(title, { x: 0.5, y: 0.5, fontSize: 24, bold: true });
+      slide.addText(content, { x: 0.5, y: 1.1, w: 9, h: 5, fontSize: 14, valign: 'top' });
+      await pptx.writeFile({ fileName: `${title}.pptx` });
+    } catch (e) {
+      console.error('PPT export failed', e);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -579,10 +610,20 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                             ? 'bg-primary text-primary-foreground' 
                             : 'bg-muted'
                         }`}>
-                          <SafeMessageRenderer 
-                            content={message.content.replace(/\n/g, '<br/>')} 
-                            className="whitespace-pre-wrap"
-                          />
+                          {message.role === 'assistant' ? (
+                            <MessageRenderer 
+                              message={message}
+                              onExpandMessage={setExpandedMessage}
+                              onExportWord={generateWordDocument}
+                              onExportPowerPoint={generatePowerPoint}
+                            />
+                          ) : (
+                            <SafeMessageRenderer 
+                              content={message.content.replace(/\n/g, '<br/>')} 
+                              className="whitespace-pre-wrap"
+                            />
+                          )}
+
                           
                           {message.files && message.files.length > 0 && (
                             <div className="mt-2 space-y-1">
@@ -619,9 +660,50 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                   )}
                 </div>
                 <div ref={messagesEndRef} />
-              </ScrollArea>
-              
-              {/* Input Area */}
+               </ScrollArea>
+               
+               {expandedMessage && (
+                 <Dialog open={!!expandedMessage} onOpenChange={(open) => { if (!open) setExpandedMessage(null); }}>
+                   <DialogContent className="max-w-4xl">
+                     <DialogHeader>
+                       <DialogTitle>Expanded Response</DialogTitle>
+                     </DialogHeader>
+                     <div className="space-y-4">
+                       <MessageRenderer message={expandedMessage} disableTruncation={true} />
+                       <div className="flex justify-end gap-2">
+                         <Button
+                           variant="outline"
+                           size="sm"
+                           onClick={() => expandedMessage && navigator.clipboard.writeText(expandedMessage.content)}
+                         >
+                           <Copy className="h-4 w-4 mr-2" />
+                           Copy
+                         </Button>
+                         <Button
+                           variant="outline"
+                           size="sm"
+                           onClick={() => expandedMessage && generateWordDocument(expandedMessage.content, 'AI Generated Document')}
+                           className="hidden sm:inline-flex"
+                         >
+                           <FileDown className="h-4 w-4 mr-2" />
+                           Export as Word
+                         </Button>
+                         <Button
+                           variant="outline"
+                           size="sm"
+                           onClick={() => expandedMessage && generatePowerPoint(expandedMessage.content, 'AI Generated Presentation')}
+                           className="hidden sm:inline-flex"
+                         >
+                           <Presentation className="h-4 w-4 mr-2" />
+                           Export as PowerPoint
+                         </Button>
+                       </div>
+                     </div>
+                   </DialogContent>
+                 </Dialog>
+               )}
+               
+               {/* Input Area */}
               <div className="border-t p-4 space-y-3">
                 {/* Uploaded Files Display */}
                 {uploadedFiles.length > 0 && (
