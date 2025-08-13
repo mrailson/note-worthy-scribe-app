@@ -2084,7 +2084,7 @@ useEffect(() => {
                           className="shadow-elegant px-8 py-6 text-lg font-semibold min-h-[64px] rounded-xl transition-all duration-300 bg-gradient-primary hover:bg-primary-hover hover:shadow-glow hover:scale-105"
                         >
                           <Mic className="h-6 w-6 mr-3" />
-                          Start Recording
+                          Start Transcribing
                         </Button>
                       ) : (
                         <div className="flex flex-col gap-3">
