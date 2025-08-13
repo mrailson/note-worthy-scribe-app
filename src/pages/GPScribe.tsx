@@ -2102,7 +2102,7 @@ useEffect(() => {
                             className="shadow-subtle px-8 py-4 text-lg font-medium min-h-[56px] rounded-xl"
                           >
                             <MicOff className="h-5 w-5 mr-3" />
-                            Stop Recording
+                            Stop Transcribing
                           </Button>
                         </div>
                       )}
