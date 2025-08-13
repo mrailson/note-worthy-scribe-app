@@ -345,7 +345,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
           {/* Message footer */}
           <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/20">
             <span className="text-xs opacity-70">
-              {message.timestamp.toLocaleTimeString()}
+              {new Date(message.timestamp).toLocaleTimeString()}
             </span>
             <div className="flex items-center gap-1">
               {/* Action buttons for long assistant messages */}
