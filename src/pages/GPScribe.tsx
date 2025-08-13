@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Mic, MicOff, Wifi, WifiOff, Brain, Copy, Download, Mail, Save, Play, Pause, FileText, ChevronDown, ChevronUp, Lightbulb, AlertTriangle, BookOpen, Shield, BarChart3, Edit, Check, X, Send, Settings, Languages, Volume2, VolumeX, Stethoscope, Eye, EyeOff, Maximize2, RotateCcw, History, Bot, FileAudio } from "lucide-react";
+import { Mic, MicOff, Wifi, WifiOff, Brain, Copy, Download, Mail, Save, Play, Pause, FileText, ChevronDown, ChevronUp, Lightbulb, AlertTriangle, BookOpen, Shield, BarChart3, Edit, Check, X, Send, Settings, Languages, Volume2, VolumeX, Stethoscope, Eye, EyeOff, Maximize2, RotateCcw, History, Bot } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 import { UnifiedAudioCapture } from "@/utils/UnifiedAudioCapture";
@@ -1600,15 +1600,6 @@ useEffect(() => {
                 </div>
               </TabsTrigger>
               <TabsTrigger 
-                value="examples" 
-                className="rounded-lg transition-all duration-200 font-medium shrink-0"
-              >
-                <div className="flex items-center gap-2">
-                  <BookOpen className="h-5 w-5" />
-                  <span>Examples</span>
-                </div>
-              </TabsTrigger>
-              <TabsTrigger 
                 value="history"
                 className="rounded-lg transition-all duration-200 font-medium shrink-0"
               >
@@ -1639,12 +1630,12 @@ useEffect(() => {
                 </div>
               </TabsTrigger>
               <TabsTrigger 
-                value="test-mp3" 
+                value="examples" 
                 className="rounded-lg transition-all duration-200 font-medium shrink-0"
               >
                 <div className="flex items-center gap-2">
-                  <FileAudio className="h-5 w-5" />
-                  <span>Audio Import + AI</span>
+                  <BookOpen className="h-5 w-5" />
+                  <span>Examples + Audio Import</span>
                 </div>
               </TabsTrigger>
             </TabsList>
@@ -2888,7 +2879,7 @@ useEffect(() => {
             <GPGenieVoiceAgent />
           </TabsContent>
           
-          <TabsContent value="test-mp3" className="space-y-6">
+          <TabsContent value="examples" className="space-y-6">
             <Card className="border-accent/20">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
