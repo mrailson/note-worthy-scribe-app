@@ -43,7 +43,6 @@ import {
   Presentation,
   History,
   Eye,
-  Plus,
   Image,
   Type,
   X,
@@ -1706,21 +1705,24 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 w-full">
                     <CardTitle className="flex flex-col gap-2">
                       <div className="flex items-center gap-2">
-                        <img src="/lovable-uploads/a793ab5e-3de2-48f2-b553-ce348ae7be53.png" alt="AI4PM logo" className="h-[72px] sm:h-24 w-auto" loading="lazy" />
-                        <span className="sr-only">AI 4 PM Service</span>
-                        {/* New Chat button moved here - visible on mobile */}
-                        <Button
+                        <img
+                          src="/lovable-uploads/a793ab5e-3de2-48f2-b553-ce348ae7be53.png"
+                          alt="AI4PM logo"
+                          className="h-[72px] sm:h-24 w-auto cursor-pointer"
+                          loading="lazy"
+                          role="button"
+                          tabIndex={0}
+                          title="Start a new chat"
                           onClick={clearConversation}
-                          variant="outline"
-                          size="sm"
-                          className="min-h-[44px] px-3 touch-manipulation ml-2"
-                          title="Clear conversation and start new chat"
-                        >
-                          <Plus className="h-4 w-4 mr-1" />
-                          <span className="hidden sm:inline">New Chat</span>
-                          <span className="sm:hidden">New</span>
-                        </Button>
-                        
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              clearConversation();
+                            }
+                          }}
+                        />
+                        <span className="sr-only">AI 4 PM Service</span>
+                        {/* Click the logo to start a new chat */}
                         {/* Voice Chat Button - moved first */}
                         {!isVoiceConnected ? (
                           <Button
