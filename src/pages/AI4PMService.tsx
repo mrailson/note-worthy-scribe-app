@@ -367,6 +367,13 @@ const AI4PMService = () => {
     }
   };
 
+  // Clear all messages
+  const clearAllMessages = () => {
+    setMessages([]);
+    setCurrentSearchId(null);
+    setUploadedFiles([]);
+  };
+
   const loadPracticeContext = async () => {
     if (!user) return;
 
@@ -1041,7 +1048,7 @@ Format your responses clearly with headings and bullet points where appropriate 
               
               <Collapsible open={isTabMenuOpen} onOpenChange={setIsTabMenuOpen}>
                 <CollapsibleContent>
-                  <div className="mt-2 grid grid-cols-2 gap-2">
+                  <div className="mt-2 grid grid-cols-3 gap-2">
                     <TabsTrigger 
                       value="ai-service" 
                       className="flex flex-col items-center gap-1 py-3 px-2 rounded-lg transition-all duration-200 text-xs font-medium data-[state=active]:bg-primary/90 data-[state=active]:text-primary-foreground"
@@ -1059,14 +1066,6 @@ Format your responses clearly with headings and bullet points where appropriate 
                       <span>PM Genie</span>
                     </TabsTrigger>
                     <TabsTrigger 
-                      value="history" 
-                      className="flex flex-col items-center gap-1 py-3 px-2 rounded-lg transition-all duration-200 text-xs font-medium data-[state=active]:bg-primary/90 data-[state=active]:text-primary-foreground"
-                      onClick={() => setIsTabMenuOpen(false)}
-                    >
-                      <History className="h-4 w-4" />
-                      <span>History</span>
-                    </TabsTrigger>
-                    <TabsTrigger 
                       value="news" 
                       className="flex flex-col items-center gap-1 py-3 px-2 rounded-lg transition-all duration-200 text-xs font-medium data-[state=active]:bg-primary/90 data-[state=active]:text-primary-foreground"
                       onClick={() => setIsTabMenuOpen(false)}
@@ -1081,7 +1080,7 @@ Format your responses clearly with headings and bullet points where appropriate 
           )}
 
           {/* Desktop Menu */}
-          <TabsList className={`grid w-full mb-6 ${isMobile ? 'hidden' : 'grid-cols-4'}`}>
+          <TabsList className={`grid w-full mb-6 ${isMobile ? 'hidden' : 'grid-cols-3'}`}>
             <TabsTrigger 
               value="ai-service"
               className="rounded-lg transition-all duration-200 font-medium shrink-0"
@@ -1102,15 +1101,6 @@ Format your responses clearly with headings and bullet points where appropriate 
               </div>
             </TabsTrigger>
             
-            <TabsTrigger 
-              value="history"
-              className="rounded-lg transition-all duration-200 font-medium shrink-0"
-            >
-              <div className="flex items-center gap-2">
-                <History className="h-5 w-5" />
-                <span>History</span>
-              </div>
-            </TabsTrigger>
             
             <TabsTrigger 
               value="news"
@@ -1275,6 +1265,16 @@ Format your responses clearly with headings and bullet points where appropriate 
                           className="h-8"
                         >
                           <Sparkles className="h-4 w-4" />
+                        </Button>
+                        
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={clearAllMessages}
+                          className="h-8"
+                          title="Clear all messages"
+                        >
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
@@ -1466,64 +1466,6 @@ Format your responses clearly with headings and bullet points where appropriate 
             <PMGenieVoiceAgent />
           </TabsContent>
 
-          <TabsContent value="history">
-            <Card>
-              <CardHeader>
-                <CardTitle>Conversation History</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {searchHistory.map((search) => (
-                    <Card key={search.id} className="cursor-pointer hover:shadow-md transition-shadow">
-                      <CardHeader className="pb-3">
-                        <div className="flex items-start justify-between">
-                          <CardTitle className="text-sm font-medium truncate">
-                            {search.title}
-                          </CardTitle>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 w-6 p-0 flex-shrink-0"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              deleteSearch(search.id);
-                            }}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="pt-0">
-                        {search.brief_overview && (
-                          <p className="text-xs text-muted-foreground mb-3 line-clamp-3">
-                            {search.brief_overview}
-                          </p>
-                        )}
-                        <div className="flex items-center justify-between text-xs text-muted-foreground">
-                          <span>{new Date(search.created_at).toLocaleDateString()}</span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => loadPreviousSearch(search.id)}
-                            className="h-6 text-xs"
-                          >
-                            Load
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                  {searchHistory.length === 0 && (
-                    <div className="col-span-full text-center text-muted-foreground py-8">
-                      <History className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                      <h3 className="text-lg font-medium mb-2">No History Yet</h3>
-                      <p className="text-sm">Your conversations will appear here</p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
 
           <TabsContent value="news">
             <NewsPanel />
