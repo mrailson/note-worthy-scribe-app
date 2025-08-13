@@ -144,6 +144,10 @@ const AI4PMService = () => {
   const [includeLatestWeb, setIncludeLatestWeb] = useState(false);
   const [currentSearchId, setCurrentSearchId] = useState<string | null>(null); // Track current conversation
   const [isTabMenuOpen, setIsTabMenuOpen] = useState(false);
+  const [isHistoryCollapsed, setIsHistoryCollapsed] = useState(() => {
+    const saved = localStorage.getItem('ai4pm-history-collapsed');
+    return saved ? JSON.parse(saved) : false;
+  });
   
   const [expandedMessage, setExpandedMessage] = useState<Message | null>(null);
   const [showVoiceAgent, setShowVoiceAgent] = useState(false);
@@ -817,6 +821,12 @@ Format your responses clearly with headings and bullet points where appropriate 
     pptx.writeFile({ fileName: `${title || 'AI4PM-Presentation'}.pptx` });
   };
 
+  const toggleHistoryCollapsed = () => {
+    const newState = !isHistoryCollapsed;
+    setIsHistoryCollapsed(newState);
+    localStorage.setItem('ai4pm-history-collapsed', JSON.stringify(newState));
+  };
+
   const saveSearchAutomatically = async (messagesData: Message[]) => {
     if (!user || messagesData.length === 0) return;
 
@@ -1060,77 +1070,103 @@ Format your responses clearly with headings and bullet points where appropriate 
           </TabsList>
 
           <TabsContent value="ai-service" className="space-y-4">
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-              {/* Left Sidebar - Search History */}
-              <div className="lg:col-span-1">
-                <Card className="h-full">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">Search History</CardTitle>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleNewSearch}
-                        className="h-8"
-                      >
-                        <Sparkles className="h-3 w-3 mr-1" />
-                        New
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <ScrollArea className="h-[600px]">
-                      <div className="space-y-2">
-                        {searchHistory.map((search) => (
-                          <div key={search.id} className="group relative">
-                            <div
-                              className="p-3 rounded-lg border cursor-pointer hover:bg-accent transition-colors"
-                              onClick={() => loadPreviousSearch(search.id)}
-                            >
-                              <div className="font-medium text-sm truncate">
-                                {search.title}
-                              </div>
-                              {search.brief_overview && (
-                                <div className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                                  {search.brief_overview}
-                                </div>
-                              )}
-                              <div className="text-xs text-muted-foreground mt-2">
-                                {new Date(search.created_at).toLocaleDateString()}
-                              </div>
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                deleteSearch(search.id);
-                              }}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        ))}
-                        {searchHistory.length === 0 && (
-                          <div className="text-center text-muted-foreground py-8">
-                            <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                            <p className="text-sm">No search history yet</p>
-                            <p className="text-xs">Your conversations will appear here</p>
-                          </div>
-                        )}
+            <div className={`grid grid-cols-1 gap-6 ${isHistoryCollapsed ? 'lg:grid-cols-1' : 'lg:grid-cols-4'}`}>
+              {/* Left Sidebar - Collapsible Search History */}
+              {!isHistoryCollapsed && (
+                <div className="lg:col-span-1">
+                  <Card className="h-full">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-lg">Search History</CardTitle>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={toggleHistoryCollapsed}
+                            className="h-8 w-8 p-0"
+                            title="Collapse history"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleNewSearch}
+                            className="h-8"
+                          >
+                            <Sparkles className="h-3 w-3 mr-1" />
+                            New
+                          </Button>
+                        </div>
                       </div>
-                    </ScrollArea>
-                  </CardContent>
-                </Card>
-              </div>
+                    </CardHeader>
+                    <CardContent>
+                      <ScrollArea className="h-[600px]">
+                        <div className="space-y-2">
+                          {searchHistory.map((search) => (
+                            <div key={search.id} className="group relative">
+                              <div
+                                className="p-3 rounded-lg border cursor-pointer hover:bg-accent transition-colors"
+                                onClick={() => loadPreviousSearch(search.id)}
+                              >
+                                <div className="font-medium text-sm truncate">
+                                  {search.title}
+                                </div>
+                                {search.brief_overview && (
+                                  <div className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                    {search.brief_overview}
+                                  </div>
+                                )}
+                                <div className="text-xs text-muted-foreground mt-2">
+                                  {new Date(search.created_at).toLocaleDateString()}
+                                </div>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteSearch(search.id);
+                                }}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ))}
+                          {searchHistory.length === 0 && (
+                            <div className="text-center text-muted-foreground py-8">
+                              <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                              <p className="text-sm">No search history yet</p>
+                              <p className="text-xs">Your conversations will appear here</p>
+                            </div>
+                          )}
+                        </div>
+                      </ScrollArea>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
 
               {/* Main Chat Area */}
-              <div className="lg:col-span-3">
+              <div className={isHistoryCollapsed ? 'lg:col-span-1' : 'lg:col-span-3'}>
                 <Card className="h-full">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
-                      <CardTitle className="text-xl">AI4PM Assistant</CardTitle>
+                      <div className="flex items-center gap-2">
+                        {isHistoryCollapsed && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={toggleHistoryCollapsed}
+                            className="h-8 w-8 p-0"
+                            title="Show history"
+                          >
+                            <History className="h-4 w-4" />
+                          </Button>
+                        )}
+                        <CardTitle className="text-xl">AI4PM Assistant</CardTitle>
+                      </div>
                       <div className="flex items-center gap-2">
                         {/* Voice Controls */}
                         {isVoiceConnected && (
