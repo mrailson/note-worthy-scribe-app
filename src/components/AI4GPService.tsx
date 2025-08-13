@@ -50,6 +50,7 @@ import {
   BarChart3
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { Volume2, VolumeX } from 'lucide-react';
 import { SpeechToText } from '@/components/SpeechToText';
 import MessageRenderer from '@/components/MessageRenderer';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
@@ -522,19 +523,64 @@ Always provide evidence-based, clinically appropriate advice that follows curren
 
   // Voice: Realtime ChatGPT voice integration
   const handleVoiceMessage = (event: any) => {
+    // Track assistant speaking audio
     if (event.type === 'response.audio.delta') {
       setIsVoiceSpeaking(true);
-    } else if (event.type === 'response.audio.done') {
+      return;
+    }
+    if (event.type === 'response.audio.done') {
       setIsVoiceSpeaking(false);
+      return;
+    }
+
+    // Streamed assistant transcript
+    if (event.type === 'response.audio_transcript.delta') {
+      setMessages(prev => {
+        const last = prev[prev.length - 1];
+        if (last && last.role === 'assistant' && last.id === 'voice-response') {
+          return [...prev.slice(0, -1), { ...last, content: last.content + event.delta }];
+        }
+        return [
+          ...prev,
+          { id: 'voice-response', role: 'assistant', content: event.delta, timestamp: new Date() }
+        ];
+      });
+      return;
+    }
+
+    // Assistant transcript completed
+    if (event.type === 'response.audio_transcript.done') {
+      setMessages(prev => {
+        const last = prev[prev.length - 1];
+        if (last && last.id === 'voice-response') {
+          return [...prev.slice(0, -1), { ...last, id: `voice-msg-${Date.now()}` }];
+        }
+        return prev;
+      });
+      return;
+    }
+
+    // User voice recognized
+    if (event.type === 'conversation.item.input_audio_transcription.completed') {
+      const transcript = event.transcript || '';
+      if (transcript.trim()) {
+        setMessages(prev => [
+          ...prev,
+          { id: `voice-user-${Date.now()}`, role: 'user', content: transcript, timestamp: new Date() }
+        ]);
+      }
+      return;
     }
   };
-
   const startVoiceChat = async () => {
     try {
       setIsVoiceConnecting(true);
       await navigator.mediaDevices.getUserMedia({ audio: true });
       voiceChatRef.current = new RealtimeChat(handleVoiceMessage);
       await voiceChatRef.current.init(selectedVoice, 'Hello, how can I help?');
+      if (isVoiceMuted) {
+        voiceChatRef.current.setMuted(true);
+      }
       setIsVoiceConnected(true);
     } catch (error) {
       console.error('Voice chat error:', error);
@@ -586,21 +632,37 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                     <Button 
                       variant="outline" 
                       size="sm"
-                      onClick={() => setShowVoiceAgent(!showVoiceAgent)}
+                      onClick={isVoiceConnected ? endVoiceChat : startVoiceChat}
                       className="text-xs"
+                      title={isVoiceConnected ? 'End voice session' : 'Start voice session'}
                     >
                       <Mic className="h-3 w-3 mr-1" />
-                      Voice
+                      {isVoiceConnected ? 'End Voice' : (isVoiceConnecting ? 'Connecting…' : 'Voice')}
                     </Button>
-                   <Button 
-                     variant="outline" 
-                     size="sm"
-                     onClick={handleNewSearch}
-                     className="text-xs"
-                   >
-                     <Plus className="h-3 w-3 mr-1" />
-                     New Search
-                   </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const next = !isVoiceMuted;
+                        setIsVoiceMuted(next);
+                        voiceChatRef.current?.setMuted(next);
+                      }}
+                      className="text-xs"
+                      title={isVoiceMuted ? 'Unmute AI voice output' : 'Mute AI voice output'}
+                      disabled={!isVoiceConnected && !isVoiceConnecting}
+                    >
+                      {isVoiceMuted ? <VolumeX className="h-3 w-3 mr-1" /> : <Volume2 className="h-3 w-3 mr-1" />}
+                      {isVoiceMuted ? 'Muted' : 'Mute'}
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={handleNewSearch}
+                      className="text-xs"
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      New Search
+                    </Button>
                 </div>
               </div>
             </CardHeader>
@@ -810,55 +872,6 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           </Card>
         </div>
         
-        {/* Voice Agent Modal/Overlay */}
-        {showVoiceAgent && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div className="bg-background rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-              <div className="flex items-center justify-between p-4 border-b">
-                <h2 className="text-xl font-semibold">Voice Assistant</h2>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowVoiceAgent(false)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-              <div className="p-4 space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  Available voices: {SUPPORTED_VOICES.join(', ')}
-                </p>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {SUPPORTED_VOICES.map((v) => (
-                    <label
-                      key={v}
-                      className={`flex items-center gap-2 p-2 rounded-md border cursor-pointer ${selectedVoice === v ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50'}`}
-                    >
-                      <input
-                        type="radio"
-                        className="sr-only"
-                        checked={selectedVoice === v}
-                        onChange={() => setSelectedVoice(v)}
-                      />
-                      <span className="text-sm capitalize">{v}</span>
-                    </label>
-                  ))}
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button onClick={startVoiceChat} disabled={isVoiceConnecting || isVoiceConnected} size="sm">
-                    <Mic className="h-4 w-4 mr-2" /> {isVoiceConnecting ? 'Connecting...' : 'Start voice'}
-                  </Button>
-                  <Button onClick={endVoiceChat} variant="secondary" disabled={!isVoiceConnected} size="sm">
-                    End
-                  </Button>
-                  {isVoiceConnected && (
-                    <span className="text-xs text-muted-foreground">{isVoiceSpeaking ? 'Speaking…' : 'Connected'}</span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
