@@ -1377,7 +1377,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                 )}
                
                {/* Input Area */}
-              <div className="border-t p-4 space-y-3">
+              <div className="border-t p-2 space-y-2">
                 {/* Uploaded Files Display */}
                 {uploadedFiles.length > 0 && (
                   <div className="flex flex-wrap gap-2">
