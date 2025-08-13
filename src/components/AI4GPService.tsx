@@ -44,7 +44,6 @@ import {
   Type,
   X,
   Loader2,
-  Stethoscope,
   Activity,
   FileHeart,
   BarChart3
@@ -267,7 +266,7 @@ const AI4GPService = () => {
   const quickActions = [
     { 
       label: 'Clinical Protocol', 
-      icon: Stethoscope, 
+      icon: Bot, 
       prompt: 'Help me create or review a clinical protocol based on the latest NICE guidelines.',
       requiresFile: false 
     },
@@ -851,7 +850,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                  <div className="space-y-4">
                    {messages.length === 0 && (
                      <div className="text-center py-4">
-                       <Stethoscope className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
+                       <Bot className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
                        <h3 className="font-semibold text-lg mb-1">Welcome to AI4GP</h3>
                        <p className="text-muted-foreground max-w-md mx-auto">
                          Your AI assistant for clinical guidance, protocol development, and evidence-based practice support.
@@ -888,7 +887,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                           <div key={group.key} className={`flex gap-3 ${group.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                             <div className={`flex gap-3 max-w-[85%] ${group.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
                               <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${group.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
-                                {group.role === 'user' ? <User className="h-4 w-4" /> : <Stethoscope className="h-4 w-4" />}
+                                {group.role === 'user' ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
                               </div>
                               <div className={`rounded-lg p-4 ${group.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
                                 {group.role === 'assistant' ? (
@@ -929,7 +928,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                   {isLoading && (
                     <div className="flex gap-3">
                       <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                        <Stethoscope className="h-4 w-4" />
+                        <Bot className="h-4 w-4" />
                       </div>
                       <div className="bg-muted rounded-lg p-4 flex items-center gap-2">
                         <Loader2 className="h-4 w-4 animate-spin" />
