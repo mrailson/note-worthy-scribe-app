@@ -1097,6 +1097,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                     </Button>
                   )}
                   <div className="flex items-center gap-2">
+                     {/* Hidden: Include latest web updates option
                      <div className="flex items-center gap-2">
                        <Switch
                          id="include-latest"
@@ -1107,6 +1108,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                          Include latest web updates
                        </Label>
                      </div>
+                     */}
                     </div>
                     <Button 
                       variant="outline" 

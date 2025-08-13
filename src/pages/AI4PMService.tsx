@@ -1952,6 +1952,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                      </div>
                    )}
                   
+                   {/* Hidden: Include latest web updates option
                    <div className="mb-3 flex items-center gap-3">
                      <Switch id="include-latest" checked={includeLatestWeb} onCheckedChange={setIncludeLatestWeb} />
                      <Label htmlFor="include-latest" className="text-sm text-muted-foreground flex items-center gap-1">
@@ -1959,6 +1960,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                        Include latest web updates
                      </Label>
                    </div>
+                   */}
                   
                    <div className="flex gap-2">
                      <div className="flex-1 relative">
