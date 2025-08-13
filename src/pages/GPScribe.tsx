@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Mic, MicOff, Wifi, WifiOff, Brain, Copy, Download, Mail, Save, Play, Pause, FileText, ChevronDown, ChevronUp, Lightbulb, AlertTriangle, BookOpen, Shield, BarChart3, Edit, Check, X, Send, Settings, Languages, Volume2, VolumeX, Stethoscope, Eye, EyeOff, Maximize2, RotateCcw, History, Bot } from "lucide-react";
+import { Mic, MicOff, Wifi, WifiOff, Brain, Copy, Download, Mail, Save, Play, Pause, FileText, ChevronDown, ChevronUp, Lightbulb, AlertTriangle, BookOpen, Shield, BarChart3, Edit, Check, X, Send, Settings, Languages, Volume2, VolumeX, Stethoscope, Eye, EyeOff, Maximize2, RotateCcw, History, Bot, Sparkles } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 import { UnifiedAudioCapture } from "@/utils/UnifiedAudioCapture";
@@ -2060,7 +2060,7 @@ useEffect(() => {
                       </>
                     )}
 
-                    {/* Recording Stats */}
+                   {/* Recording Stats */}
                     <div className="grid grid-cols-2 gap-4">
                       <div className="bg-accent/20 rounded-lg p-4 text-center">
                         <div className="text-2xl font-bold text-primary">{formatDuration(duration)}</div>
@@ -2072,7 +2072,74 @@ useEffect(() => {
                       </div>
                     </div>
 
-                  
+                    {/* Quick Actions Button */}
+                    <Collapsible>
+                      <CollapsibleTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full justify-center min-h-[44px] touch-manipulation"
+                          title="Quick Actions"
+                        >
+                          <Sparkles className="h-4 w-4 mr-2" />
+                          Quick Actions
+                          <ChevronDown className="h-4 w-4 ml-2" />
+                        </Button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <div className="mt-3 p-3 bg-accent/10 rounded-lg border">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <Button
+                              onClick={cleanTranscript}
+                              disabled={!transcript.trim() || isCleaningTranscript}
+                              variant="outline"
+                              size="sm"
+                              className="h-auto p-3 flex flex-col items-center gap-2 text-center min-h-[70px] hover:bg-primary/5 hover:border-primary/20 transition-all duration-200"
+                            >
+                              <Sparkles className="h-4 w-4 flex-shrink-0 text-primary" />
+                              <span className="text-xs font-medium leading-tight">
+                                {isCleaningTranscript ? 'Cleaning...' : 'Clean Transcript'}
+                              </span>
+                            </Button>
+                            
+                            <Button
+                              onClick={generateSummary}
+                              disabled={!transcript.trim() || isGenerating}
+                              variant="outline"
+                              size="sm"
+                              className="h-auto p-3 flex flex-col items-center gap-2 text-center min-h-[70px] hover:bg-primary/5 hover:border-primary/20 transition-all duration-200"
+                            >
+                              <Brain className="h-4 w-4 flex-shrink-0 text-primary" />
+                              <span className="text-xs font-medium leading-tight">
+                                {isGenerating ? 'Generating...' : 'Generate Summary'}
+                              </span>
+                            </Button>
+                            
+                            <Button
+                              onClick={() => copyToClipboard(transcript)}
+                              disabled={!transcript.trim()}
+                              variant="outline"
+                              size="sm"
+                              className="h-auto p-3 flex flex-col items-center gap-2 text-center min-h-[70px] hover:bg-primary/5 hover:border-primary/20 transition-all duration-200"
+                            >
+                              <Copy className="h-4 w-4 flex-shrink-0 text-primary" />
+                              <span className="text-xs font-medium leading-tight">Copy Transcript</span>
+                            </Button>
+                            
+                            <Button
+                              onClick={() => downloadAsPDF(transcript, 'consultation-transcript')}
+                              disabled={!transcript.trim()}
+                              variant="outline"
+                              size="sm"
+                              className="h-auto p-3 flex flex-col items-center gap-2 text-center min-h-[70px] hover:bg-primary/5 hover:border-primary/20 transition-all duration-200"
+                            >
+                              <Download className="h-4 w-4 flex-shrink-0 text-primary" />
+                              <span className="text-xs font-medium leading-tight">Download PDF</span>
+                            </Button>
+                          </div>
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
                   </div>
 
                   {/* Right Side - Recording Button */}
@@ -2275,7 +2342,7 @@ useEffect(() => {
                       {isGenerating ? 'Generating...' : 'Regenerate Notes'}
                     </Button>
                   )}
-                </div>
+                 </div>
               </CardContent>
             </Card>
           )}
