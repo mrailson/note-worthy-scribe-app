@@ -78,14 +78,14 @@ const ChatGPTVoiceInterface: React.FC<ChatGPTVoiceInterfaceProps> = ({ isOpen, o
       setHasPermission(true);
       toast({
         title: "Microphone access granted",
-        description: "You can now use voice chat",
+        description: "You can now use live talk",
       });
     } catch (err) {
       console.error('Microphone permission denied:', err);
       setError('Microphone access is required for voice conversation');
       toast({
         title: "Microphone access denied",
-        description: "Please allow microphone access to use voice chat",
+        description: "Please allow microphone access to use live talk",
         variant: "destructive",
       });
     }
@@ -400,7 +400,7 @@ const ChatGPTVoiceInterface: React.FC<ChatGPTVoiceInterfaceProps> = ({ isOpen, o
                 ) : (
                   <Phone className="h-5 w-5" />
                 )}
-                {isConnecting ? 'Connecting...' : 'Start Voice Chat'}
+                {isConnecting ? 'Connecting...' : 'Start Live Talk'}
               </Button>
             ) : (
               <div className="flex items-center gap-4">

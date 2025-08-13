@@ -414,7 +414,7 @@ const EnhancedCQCAI = ({ practiceContext, onClose }: EnhancedCQCAIProps) => {
               <div className="text-sm space-y-1">
                 <p>Try: "What evidence do I need for Fire Safety?"</p>
                 <p>Or: "Review my infection control policy"</p>
-                <p>You can also upload documents or use voice input</p>
+                <p>You can also upload documents or use live talk</p>
               </div>
             </div>
           ) : (
@@ -460,7 +460,7 @@ const EnhancedCQCAI = ({ practiceContext, onClose }: EnhancedCQCAIProps) => {
             <Textarea
               value={currentMessage}
               onChange={(e) => setCurrentMessage(e.target.value)}
-              placeholder="Ask about CQC compliance... (or use voice input)"
+              placeholder="Ask about CQC compliance... (or use live talk)"
               className="flex-1"
               rows={2}
               disabled={isLoading}

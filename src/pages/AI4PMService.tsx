@@ -1739,7 +1739,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
                             ) : (
                               <Mic className="h-4 w-4 mr-1" />
                             )}
-                            <span className="hidden sm:inline">{isVoiceConnecting ? 'Connecting...' : 'Voice Chat'}</span>
+                            <span className="hidden sm:inline">{isVoiceConnecting ? 'Connecting...' : 'Live Talk'}</span>
                           </Button>
                         ) : (
                           <div className="flex items-center gap-1 flex-nowrap ml-2">

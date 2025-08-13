@@ -1114,7 +1114,7 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
   // Ask AI functionality
   const handleAskAI = async () => {
     if (!aiPrompt.trim()) {
-      toast.error("Please enter a prompt or use voice input");
+      toast.error("Please enter a prompt or use live talk");
       return;
     }
 
@@ -1201,7 +1201,7 @@ ${relevantCodes.map(code => `<code class="px-2 py-1 bg-muted rounded text-sm fon
       reader.readAsDataURL(audioBlob);
     } catch (error) {
       console.error('Error processing audio:', error);
-      toast.error("Failed to process voice input. Please try again.");
+      toast.error("Failed to process live talk. Please try again.");
     }
   };
 
