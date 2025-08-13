@@ -18,6 +18,8 @@ import {
   ExternalLink
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 export const ServiceOverview = () => {
   const navigate = useNavigate();
@@ -59,6 +61,36 @@ export const ServiceOverview = () => {
       benefits: ["Centralized storage", "Team collaboration", "Version control"]
     }
   ];
+
+  // Show only key services on the logged-out page
+  const allowedServices = new Set(['AI Practice Manager','Meeting Recorder','Complaints Management']);
+  const displayedServices = services.filter(s => allowedServices.has(s.title));
+
+  // Latest NHS News (Pulse and BBC News only)
+  type NewsArticle = { id: string; title: string; summary: string; url: string; source: string; published_at: string; image_url?: string; };
+  const [news, setNews] = useState<NewsArticle[]>([]);
+  const [newsLoading, setNewsLoading] = useState(true);
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('news_articles')
+          .select('*')
+          .in('source', ['Pulse', 'BBC News'])
+          .order('published_at', { ascending: false })
+          .limit(12);
+        if (error) throw error;
+        if (mounted) setNews((data || []).slice(0, 6));
+      } catch (e) {
+        console.error('Failed to load latest news', e);
+      } finally {
+        if (mounted) setNewsLoading(false);
+      }
+    };
+    load();
+    return () => { mounted = false; };
+  }, []);
 
   const securityFeatures = [
     "End-to-end encryption for all data transmission",
@@ -103,7 +135,7 @@ export const ServiceOverview = () => {
 
       {/* Services Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {services.map((service, index) => (
+        {displayedServices.map((service, index) => (
           <Card key={index} className="h-full hover:shadow-lg transition-shadow duration-300">
             <CardHeader className="pb-4">
               <div className="flex items-center gap-3">
@@ -129,6 +161,39 @@ export const ServiceOverview = () => {
           </Card>
         ))}
       </div>
+
+      {/* Latest NHS News */}
+      <section aria-label="Latest NHS News" className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold">Latest NHS News</h2>
+          <Button variant="outline" size="sm" onClick={() => navigate('/ai-4-pm')}>View all</Button>
+        </div>
+        {newsLoading ? (
+          <p className="text-sm text-muted-foreground">Loading latest news…</p>
+        ) : news.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No recent articles from Pulse or BBC News.</p>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {news.map(a => (
+              <Card key={a.id} className="h-full">
+                <CardHeader className="pb-2">
+                  <div className="text-sm text-muted-foreground">{a.source}</div>
+                  <CardTitle className="text-base">{a.title}</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {a.image_url && (
+                    <img src={a.image_url} alt={`${a.source} article image: ${a.title}`} className="w-full h-36 object-cover rounded-md" loading="lazy" />
+                  )}
+                  <p className="text-sm text-muted-foreground line-clamp-3">{a.summary}</p>
+                  <Button asChild variant="outline" size="sm" className="mt-1">
+                    <a href={a.url} target="_blank" rel="noopener noreferrer" aria-label={`Read on ${a.source}`}>Read article</a>
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </section>
 
       {/* Built by Primary Care Section */}
       <Card className="bg-gradient-subtle border-primary/20">
