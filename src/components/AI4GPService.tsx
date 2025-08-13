@@ -1191,20 +1191,40 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                               <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${group.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
                                 {group.role === 'user' ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
                               </div>
-                              <div className={`rounded-lg p-4 ${group.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
-                                {group.role === 'assistant' ? (
-                                  <MessageRenderer
-                                    message={combinedMessage}
-                                    onExpandMessage={setExpandedMessage}
-                                    onExportWord={generateWordDocument}
-                                    onExportPowerPoint={generatePowerPoint}
-                                  />
-                                ) : (
-                                  <SafeMessageRenderer
-                                    content={combinedContent.replace(/\n/g, '<br/>')}
-                                    className="whitespace-pre-wrap ai-response-content"
-                                  />
-                                )}
+                               <div className={`rounded-lg p-4 relative group ${group.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+                                 {group.role === 'assistant' ? (
+                                   <MessageRenderer
+                                     message={combinedMessage}
+                                     onExpandMessage={setExpandedMessage}
+                                     onExportWord={generateWordDocument}
+                                     onExportPowerPoint={generatePowerPoint}
+                                   />
+                                 ) : (
+                                   <div className="relative">
+                                     <SafeMessageRenderer
+                                       content={combinedContent.replace(/\n/g, '<br/>')}
+                                       className="whitespace-pre-wrap ai-response-content"
+                                     />
+                                     <Button
+                                       variant="ghost"
+                                       size="sm"
+                                       onClick={async () => {
+                                         try {
+                                           await navigator.clipboard.writeText(combinedContent);
+                                           setInput(combinedContent); // Put content in input for easy editing
+                                           toast.success('Message copied to clipboard and input for editing');
+                                         } catch (error) {
+                                           console.error('Failed to copy message:', error);
+                                           toast.error('Failed to copy message');
+                                         }
+                                       }}
+                                       className="absolute top-2 right-2 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-primary-foreground/20"
+                                       title="Copy message to input for editing"
+                                     >
+                                       <Copy className="h-3 w-3" />
+                                     </Button>
+                                   </div>
+                                 )}
                                 {combinedFiles && combinedFiles.length > 0 && (
                                   <div className="mt-2 space-y-1">
                                     {combinedFiles.map((file, index) => {

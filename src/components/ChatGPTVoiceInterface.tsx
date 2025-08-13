@@ -19,7 +19,8 @@ import {
   AlertCircle,
   CheckCircle2,
   Volume2,
-  VolumeX
+  VolumeX,
+  Copy
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -231,6 +232,25 @@ const ChatGPTVoiceInterface: React.FC<ChatGPTVoiceInterfaceProps> = ({ isOpen, o
     }
   };
 
+  // Copy message to clipboard and text input
+  const copyMessage = async (content: string) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setTextInput(content); // Also put it in the text input for easy editing
+      toast({
+        title: "Message copied",
+        description: "Message copied to clipboard and text input for easy editing",
+      });
+    } catch (error) {
+      console.error('Failed to copy message:', error);
+      toast({
+        title: "Copy failed",
+        description: "Failed to copy message to clipboard",
+        variant: "destructive",
+      });
+    }
+  };
+
   useEffect(() => {
     // Check if microphone permission is already granted
     navigator.permissions.query({ name: 'microphone' as PermissionName }).then((result) => {
@@ -430,16 +450,29 @@ const ChatGPTVoiceInterface: React.FC<ChatGPTVoiceInterfaceProps> = ({ isOpen, o
                     }`}>
                       {message.role === 'user' ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
                     </div>
-                    <div className={`rounded-lg p-3 ${
-                      message.role === 'user' 
-                        ? 'bg-primary text-primary-foreground' 
-                        : 'bg-muted'
-                    }`}>
-                       <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                       <p className="text-xs opacity-70 mt-1">
-                         {message.timestamp.toLocaleTimeString()}
-                       </p>
-                     </div>
+                     <div className={`rounded-lg p-3 relative group ${
+                       message.role === 'user' 
+                         ? 'bg-primary text-primary-foreground' 
+                         : 'bg-muted'
+                     }`}>
+                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                        <div className="flex items-center justify-between mt-1">
+                          <p className="text-xs opacity-70">
+                            {message.timestamp.toLocaleTimeString()}
+                          </p>
+                          {message.role === 'user' && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => copyMessage(message.content)}
+                              className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity ml-2 hover:bg-primary-foreground/20"
+                              title="Copy message to input for editing"
+                            >
+                              <Copy className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
                    </div>
                  </div>
                ))
