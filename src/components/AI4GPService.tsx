@@ -548,15 +548,10 @@ Always provide evidence-based, clinically appropriate advice that follows curren
       return;
     }
 
-    // Assistant transcript completed
+    // Assistant transcript completed - Don't change ID to allow grouping
     if (event.type === 'response.audio_transcript.done') {
-      setMessages(prev => {
-        const last = prev[prev.length - 1];
-        if (last && last.id === 'voice-response') {
-          return [...prev.slice(0, -1), { ...last, id: `voice-msg-${Date.now()}` }];
-        }
-        return prev;
-      });
+      // Don't change the ID or create a new message
+      // This allows the grouping logic to work properly for consecutive voice responses
       return;
     }
 
