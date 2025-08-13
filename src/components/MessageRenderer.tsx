@@ -115,6 +115,14 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   };
 
   const formatContent = (content: string) => {
+    // Clean AI response content by removing separators and extra blank lines
+    const cleanedContent = content
+      .replace(/^---+\s*$/gm, '') // Remove lines with only dashes
+      .replace(/^\s*---+\s*$/gm, '') // Remove lines with dashes and whitespace
+      .replace(/\n\s*\n\s*\n/g, '\n\n') // Replace multiple blank lines with single blank line
+      .replace(/^\s+$/gm, '') // Remove lines with only whitespace
+      .trim();
+    
     // Process markdown formatting
     const processMarkdown = (text: string) => {
       // Split text by URLs first to avoid processing URLs
@@ -158,8 +166,8 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
       });
     };
 
-    // Split content into paragraphs
-    const paragraphs = content.split('\n\n');
+    // Split cleanedContent into paragraphs
+    const paragraphs = cleanedContent.split('\n\n');
     
     return paragraphs.map((paragraph, index) => {
       if (!paragraph.trim()) return null;

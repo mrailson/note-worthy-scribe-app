@@ -19,8 +19,19 @@ export const SafeMessageRenderer: React.FC<SafeMessageRendererProps> = ({
     return text.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:text-blue-600 underline break-all">$1</a>');
   };
 
-  // Apply linkification before sanitization
-  const linkedContent = linkifyContent(content.replace(/\n/g, '<br/>'));
+  // Clean AI response content by removing separators and extra blank lines
+  const cleanAIContent = (text: string): string => {
+    return text
+      .replace(/^---+\s*$/gm, '') // Remove lines with only dashes
+      .replace(/^\s*---+\s*$/gm, '') // Remove lines with dashes and whitespace
+      .replace(/\n\s*\n\s*\n/g, '\n\n') // Replace multiple blank lines with single blank line
+      .replace(/^\s+$/gm, '') // Remove lines with only whitespace
+      .trim();
+  };
+
+  // Apply content cleaning and linkification before sanitization
+  const cleanedContent = cleanAIContent(content);
+  const linkedContent = linkifyContent(cleanedContent.replace(/\n/g, '<br/>'));
 
   // Configure DOMPurify to allow only safe HTML elements and attributes
   const cleanContent = DOMPurify.sanitize(linkedContent, {

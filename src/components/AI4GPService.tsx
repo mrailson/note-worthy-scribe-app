@@ -1231,36 +1231,45 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                         }
                         return acc;
                       }, [] as Array<{ key: string; role: 'user' | 'assistant'; messages: Message[] }>)
-                      .map((group) => {
-                        const combinedContent = group.messages.map(m => m.content).join('\n\n');
-                        const combinedFiles = group.messages.flatMap(m => m.files || []);
-                        const lastTimestamp = group.messages[group.messages.length - 1].timestamp;
-                        const combinedMessage: Message = {
-                          ...group.messages[0],
-                          content: combinedContent,
-                          files: combinedFiles.length ? combinedFiles : undefined,
-                          timestamp: lastTimestamp,
-                        };
-                        return (
-                          <div key={group.key} className={`flex gap-3 ${group.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                            <div className={`flex gap-3 max-w-[85%] ${group.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                              <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${group.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
-                                {group.role === 'user' ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
-                              </div>
-                               <div className={`rounded-lg p-4 relative group ${group.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
-                                 {group.role === 'assistant' ? (
-                                   <MessageRenderer
-                                     message={combinedMessage}
-                                     onExpandMessage={setExpandedMessage}
-                                     onExportWord={generateWordDocument}
-                                     onExportPowerPoint={generatePowerPoint}
-                                   />
-                                 ) : (
-                                   <div className="relative">
-                                     <SafeMessageRenderer
-                                       content={combinedContent.replace(/\n/g, '<br/>')}
-                                       className="whitespace-pre-wrap ai-response-content"
-                                     />
+                       .map((group) => {
+                         let combinedContent = group.messages.map(m => m.content).join('\n\n');
+                         
+                         // Clean AI response content by removing separators and extra blank lines
+                         combinedContent = combinedContent
+                           .replace(/^---+\s*$/gm, '') // Remove lines with only dashes
+                           .replace(/^\s*---+\s*$/gm, '') // Remove lines with dashes and whitespace
+                           .replace(/\n\s*\n\s*\n/g, '\n\n') // Replace multiple blank lines with single blank line
+                           .replace(/^\s+$/gm, '') // Remove lines with only whitespace
+                           .trim();
+                         
+                         const combinedFiles = group.messages.flatMap(m => m.files || []);
+                         const lastTimestamp = group.messages[group.messages.length - 1].timestamp;
+                         const combinedMessage: Message = {
+                           ...group.messages[0],
+                           content: combinedContent,
+                           files: combinedFiles.length ? combinedFiles : undefined,
+                           timestamp: lastTimestamp,
+                         };
+                         return (
+                           <div key={group.key} className={`flex gap-3 ${group.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                             <div className={`flex gap-3 max-w-[85%] ${group.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                               <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${group.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+                                 {group.role === 'user' ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
+                               </div>
+                                <div className={`rounded-lg p-4 relative group ${group.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+                                  {group.role === 'assistant' ? (
+                                    <MessageRenderer
+                                      message={combinedMessage}
+                                      onExpandMessage={setExpandedMessage}
+                                      onExportWord={generateWordDocument}
+                                      onExportPowerPoint={generatePowerPoint}
+                                    />
+                                  ) : (
+                                    <div className="relative">
+                                      <SafeMessageRenderer
+                                        content={combinedContent.replace(/\n/g, '<br/>')}
+                                        className="whitespace-pre-wrap ai-response-content"
+                                      />
                                      <Button
                                        variant="ghost"
                                        size="sm"
