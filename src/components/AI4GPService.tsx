@@ -1115,10 +1115,10 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                       size="sm"
                       onClick={isVoiceConnected ? endVoiceChat : startVoiceChat}
                       className="text-xs"
-                      title={isVoiceConnected ? 'End voice session' : 'Start voice session'}
+                      title={isVoiceConnected ? 'End live talk session' : 'Start live talk session'}
                     >
                       <Mic className="h-3 w-3 mr-1" />
-                      {isVoiceConnected ? 'End Voice' : (isVoiceConnecting ? 'Connecting…' : 'Voice')}
+                      {isVoiceConnected ? 'End Live Talk' : (isVoiceConnecting ? 'Connecting…' : 'Live Talk')}
                     </Button>
                     <Button
                       variant="outline"
