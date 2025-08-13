@@ -103,31 +103,7 @@ export const ServiceOverview = () => {
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
-      {/* Hero Section */}
-      <div className="text-center space-y-4">
-        <h2 className="text-2xl font-semibold text-foreground">
-          Intelligent Healthcare Administration Platform
-        </h2>
-        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-          Designed specifically for Primary Care teams by healthcare professionals who understand your daily challenges
-        </p>
-        <div className="flex flex-wrap justify-center gap-2 mt-4">
-          <Badge variant="secondary" className="text-sm">
-            <CheckCircle className="h-3 w-3 mr-1" />
-            NHS Compliant
-          </Badge>
-          <Badge variant="secondary" className="text-sm">
-            <Shield className="h-3 w-3 mr-1" />
-            Secure & Encrypted
-          </Badge>
-          <Badge variant="secondary" className="text-sm">
-            <Users className="h-3 w-3 mr-1" />
-            Built by Primary Care
-          </Badge>
-        </div>
-      </div>
-
-      {/* Services Grid */}
+      {/* Services Grid - Moved to top */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {displayedServices.map((service, index) => (
           <Card key={index} className="h-full hover:shadow-lg transition-shadow duration-300">
@@ -154,6 +130,30 @@ export const ServiceOverview = () => {
             </CardContent>
           </Card>
         ))}
+      </div>
+
+      {/* Hero Section - Moved below services */}
+      <div className="text-center space-y-4">
+        <h2 className="text-2xl font-semibold text-foreground">
+          Intelligent Healthcare Administration Platform
+        </h2>
+        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          Designed specifically for Primary Care teams by healthcare professionals who understand your daily challenges
+        </p>
+        <div className="flex flex-wrap justify-center gap-2 mt-4">
+          <Badge variant="secondary" className="text-sm">
+            <CheckCircle className="h-3 w-3 mr-1" />
+            NHS Compliant
+          </Badge>
+          <Badge variant="secondary" className="text-sm">
+            <Shield className="h-3 w-3 mr-1" />
+            Secure & Encrypted
+          </Badge>
+          <Badge variant="secondary" className="text-sm">
+            <Users className="h-3 w-3 mr-1" />
+            Built by Primary Care
+          </Badge>
+        </div>
       </div>
 
       {/* Latest NHS News */}
