@@ -47,8 +47,8 @@ export const SpeechToText: React.FC<SpeechToTextProps> = ({
     const recognition = new SpeechRecognition();
     recognitionRef.current = recognition;
 
-    recognition.continuous = false; // Changed to false to reduce hallucination
-    recognition.interimResults = false; // Only get final results
+    recognition.continuous = true; // Enable continuous listening
+    recognition.interimResults = true; // Get interim results to prevent cutting off
     recognition.lang = 'en-US';
     recognition.maxAlternatives = 1; // Only get the best match
     
@@ -75,19 +75,20 @@ export const SpeechToText: React.FC<SpeechToTextProps> = ({
     };
 
     recognition.onresult = (event: any) => {
-      let bestTranscript = '';
-      let bestConfidence = 0;
+      let finalTranscript = '';
+      let interimTranscript = '';
       
-      // Only process final results to reduce hallucination
+      // Process both interim and final results
       for (let i = 0; i < event.results.length; i++) {
+        const result = event.results[i][0];
+        const transcript = result.transcript.trim();
+        
         if (event.results[i].isFinal) {
-          const result = event.results[i][0];
-          const transcript = result.transcript.trim();
           const confidence = result.confidence || 0;
           
-          console.log('Speech result:', { transcript, confidence });
+          console.log('Final speech result:', { transcript, confidence });
           
-          // Only accept high-confidence, meaningful speech
+          // Only accept high-confidence, meaningful speech for final results
           if (confidence >= MIN_CONFIDENCE && transcript.length >= MIN_SPEECH_LENGTH) {
             // Filter out common hallucinations
             const lowercaseText = transcript.toLowerCase();
@@ -97,22 +98,34 @@ export const SpeechToText: React.FC<SpeechToTextProps> = ({
               'mm', 'hmm', 'uh', 'um', 'ah'
             ].some(phrase => lowercaseText === phrase || lowercaseText.split(' ').length <= 1);
             
-            if (!isHallucination && confidence > bestConfidence) {
-              bestTranscript = transcript;
-              bestConfidence = confidence;
+            if (!isHallucination) {
+              finalTranscript += transcript + ' ';
             }
           }
+        } else {
+          // Show interim results for user feedback
+          interimTranscript += transcript + ' ';
         }
       }
 
-      if (bestTranscript && bestConfidence >= MIN_CONFIDENCE) {
-        setCurrentText(bestTranscript);
-        onTranscription(bestTranscript);
+      // Update current text with interim or final transcript
+      const displayText = finalTranscript || interimTranscript;
+      if (displayText.trim()) {
+        setCurrentText(displayText.trim());
+      }
+
+      // If we have final transcript, send it and continue listening for more
+      if (finalTranscript.trim()) {
+        onTranscription(finalTranscript.trim());
+        // Don't stop immediately, allow for more speech
+        // Clear the timeout and set a new one for natural pauses
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
         
-        // Stop after getting a good result
-        setTimeout(() => {
+        timeoutRef.current = setTimeout(() => {
           stopRecording();
-        }, 500);
+        }, SILENCE_TIMEOUT);
       }
     };
 
@@ -311,28 +324,27 @@ export const SpeechToText: React.FC<SpeechToTextProps> = ({
       disabled={isProcessing}
       variant={isRecording ? "destructive" : "outline"}
       size={size}
-      className={`${className} ${isRecording ? 'animate-pulse' : ''}`}
+      className={`${className} ${isRecording ? 'animate-pulse bg-destructive hover:bg-destructive text-destructive-foreground' : ''} transition-all duration-200`}
       title={isUsingBrowserSTT ? 
         'High-accuracy speech recognition (Speak clearly, auto-stops in 15s)' : 
         'Record audio for transcription'
       }
     >
       {isProcessing ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
+        <>
+          <Loader2 className="h-4 w-4 animate-spin" />
+          {size !== 'sm' && <span className="ml-2">Processing...</span>}
+        </>
       ) : isRecording ? (
-        <StopCircle className="h-4 w-4" />
+        <>
+          <StopCircle className="h-4 w-4" />
+          {size !== 'sm' && <span className="ml-2 font-semibold">Stop Talking</span>}
+        </>
       ) : (
-        <Mic className="h-4 w-4" />
-      )}
-      {size !== 'sm' && (
-        <span className="ml-2">
-          {isProcessing 
-            ? 'Processing...' 
-            : isRecording 
-              ? (isUsingBrowserSTT ? 'Listening...' : 'Stop Recording')
-              : (isUsingBrowserSTT ? 'Voice Input' : 'Record')
-          }
-        </span>
+        <>
+          <Mic className="h-4 w-4" />
+          {size !== 'sm' && <span className="ml-2">Talk</span>}
+        </>
       )}
     </Button>
   );
