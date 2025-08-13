@@ -57,6 +57,7 @@ import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
 import { saveAs } from 'file-saver';
 import PptxGenJS from 'pptxgenjs';
 import { RealtimeChat } from '@/utils/RealtimeAudio';
+import { toast } from 'sonner';
 
 // Helper function to get file type icon
 const getFileTypeIcon = (fileName: string, fileType?: string) => {
@@ -494,17 +495,126 @@ Always provide evidence-based, clinically appropriate advice that follows curren
   // Export: Word document
   const generateWordDocument = async (content: string, title: string = 'AI Generated Document') => {
     try {
-      const paragraphs = content.split('\n').map(line =>
-        new Paragraph({ children: [new TextRun({ text: line })] })
-      );
-      const doc = new Document({ sections: [{ children: [
-        new Paragraph({ children: [new TextRun({ text: title, bold: true, size: 28 })] }),
-        ...paragraphs
-      ]}] });
+      // Function to process text with inline formatting (bold, italic, code)
+      const processFormattedText = (text: string) => {
+        const children: any[] = [];
+        
+        // Handle the special case where the entire line is bold
+        if (text.match(/^\*\*[^*]+\*\*$/)) {
+          const boldText = text.slice(2, -2);
+          children.push(new TextRun({
+            text: boldText,
+            size: 24,
+            bold: true
+          }));
+          return children;
+        }
+        
+        // More comprehensive pattern to handle bold, italic, and mixed formatting
+        const formatPattern = /(\*\*\*[^*]+?\*\*\*|\*\*[^*]+?\*\*|\*[^*]+?\*|`[^`]+?`)/g;
+        let lastIndex = 0;
+        let match;
+        
+        while ((match = formatPattern.exec(text)) !== null) {
+          // Add any plain text before this match
+          if (match.index > lastIndex) {
+            const plainText = text.substring(lastIndex, match.index);
+            if (plainText) {
+              children.push(new TextRun({
+                text: plainText,
+                size: 24
+              }));
+            }
+          }
+          
+          const matchedText = match[0];
+          
+          // Handle bold and italic (***text***)
+          if (matchedText.startsWith('***') && matchedText.endsWith('***')) {
+            const content = matchedText.slice(3, -3);
+            children.push(new TextRun({
+              text: content,
+              size: 24,
+              bold: true,
+              italics: true
+            }));
+          }
+          // Handle bold (**text**)
+          else if (matchedText.startsWith('**') && matchedText.endsWith('**')) {
+            const content = matchedText.slice(2, -2);
+            children.push(new TextRun({
+              text: content,
+              size: 24,
+              bold: true
+            }));
+          }
+          // Handle italic (*text*)
+          else if (matchedText.startsWith('*') && matchedText.endsWith('*')) {
+            const content = matchedText.slice(1, -1);
+            children.push(new TextRun({
+              text: content,
+              size: 24,
+              italics: true
+            }));
+          }
+          // Handle code (`text`)
+          else if (matchedText.startsWith('`') && matchedText.endsWith('`')) {
+            const content = matchedText.slice(1, -1);
+            children.push(new TextRun({
+              text: content,
+              size: 22,
+              font: "Courier New",
+              shading: {
+                type: "clear",
+                color: "f6f8fa",
+                fill: "f6f8fa"
+              }
+            }));
+          }
+          
+          lastIndex = formatPattern.lastIndex;
+        }
+        
+        // Add any remaining plain text after the last match
+        if (lastIndex < text.length) {
+          const remainingText = text.substring(lastIndex);
+          if (remainingText) {
+            children.push(new TextRun({
+              text: remainingText,
+              size: 24
+            }));
+          }
+        }
+        
+        return children.length > 0 ? children : [new TextRun({ text: text, size: 24 })];
+      };
+
+      const paragraphs = [
+        new Paragraph({ children: [new TextRun({ text: title, bold: true, size: 28 })] })
+      ];
+      
+      // Parse content into formatted paragraphs
+      const lines = content.split('\n').filter(line => line.trim());
+      
+      for (const line of lines) {
+        const trimmedLine = line.trim();
+        if (trimmedLine) {
+          paragraphs.push(
+            new Paragraph({
+              children: processFormattedText(trimmedLine),
+              spacing: { after: 200 }
+            })
+          );
+        }
+      }
+
+      const doc = new Document({ sections: [{ children: paragraphs }] });
       const blob = await Packer.toBlob(doc);
       saveAs(blob, `${title}.docx`);
+      toast.success('Word document exported successfully');
     } catch (e) {
       console.error('Word export failed', e);
+      toast.error('Failed to export Word document');
     }
   };
 
