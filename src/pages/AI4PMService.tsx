@@ -130,7 +130,7 @@ const AI4PMService = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [model, setModel] = useState<'claude' | 'gpt' | 'chatgpt5'>('chatgpt5');
+  const [model, setModel] = useState<'claude' | 'gpt' | 'chatgpt5'>('chatgpt5'); // Fixed to ChatGPT 5.0
   const [sessionMemory, setSessionMemory] = useState(true);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [apiKeyMissing, setApiKeyMissing] = useState<{claude: boolean, gpt: boolean}>({claude: false, gpt: false});
@@ -1249,20 +1249,6 @@ Format your responses clearly with headings and bullet points where appropriate 
 
                     {/* Settings Panel */}
                     <div className="flex items-center gap-4 p-3 bg-accent/50 rounded-lg">
-                      <div className="flex items-center gap-2">
-                        <Label htmlFor="model-select" className="text-sm">Model:</Label>
-                        <select
-                          id="model-select"
-                          value={model}
-                          onChange={(e) => setModel(e.target.value as 'claude' | 'gpt' | 'chatgpt5')}
-                          className="text-sm border rounded px-2 py-1"
-                        >
-                          <option value="chatgpt5">ChatGPT 5</option>
-                          <option value="gpt">GPT-4</option>
-                          <option value="claude">Claude</option>
-                        </select>
-                      </div>
-                      
                       <div className="flex items-center gap-2">
                         <Switch
                           id="web-search"
