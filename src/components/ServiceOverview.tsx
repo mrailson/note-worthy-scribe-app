@@ -67,10 +67,25 @@ export const ServiceOverview = () => {
   const allowedServices = new Set(['AI Practice Manager','Meeting Recorder','Complaints Management']);
   const displayedServices = services.filter(s => allowedServices.has(s.title));
 
-  // Latest NHS News (Pulse and BBC News only)
-  type NewsArticle = { id: string; title: string; summary: string; url: string; source: string; published_at: string; image_url?: string; };
+  // Latest NHS News (Pulse and BBC News only) with health-service filtering for local news
+  type NewsArticle = { id: string; title: string; summary: string; url: string; source: string; published_at: string; image_url?: string; tags?: string[]; content?: string; };
   const [news, setNews] = useState<NewsArticle[]>([]);
   const [newsLoading, setNewsLoading] = useState(true);
+  
+  // Health-related keywords to filter Northampton Chronicle articles
+  const healthKeywords = [
+    'nhs','gp','general practice','practice manager','primary care','pcn','ics','icb',
+    'nhft','mental health','hospital','northampton general','kettering general','ngh','kgh',
+    'vaccin','immunis','flu','covid','measles','pharmacy','pharmacist','prescription',
+    'dental','dentist','urgent care','a&e','emergency department','cqc','midwife','maternity',
+    'health centre','clinic','surgery','surgeries','public health'
+  ];
+  
+  const isHealthRelated = (article: NewsArticle) => {
+    const hay = `${article.title} ${article.summary} ${article.content || ''}`.toLowerCase();
+    return healthKeywords.some(k => hay.includes(k));
+  };
+  
   useEffect(() => {
     let mounted = true;
     const load = async () => {
@@ -82,7 +97,18 @@ export const ServiceOverview = () => {
           .order('published_at', { ascending: false })
           .limit(20);
         if (error) throw error;
-        if (mounted) setNews((data || []).slice(0, 6));
+        
+        // Filter out non-health service articles from Northampton Chronicle
+        const filteredData = (data || []).filter(article => {
+          // For Northampton Chronicle, only show health service related articles
+          if (article.source?.toLowerCase().includes('northampton chronicle')) {
+            return isHealthRelated(article);
+          }
+          // For other sources (Pulse, BBC), show all articles
+          return true;
+        });
+        
+        if (mounted) setNews(filteredData.slice(0, 6));
       } catch (e) {
         console.error('Failed to load latest news', e);
       } finally {
