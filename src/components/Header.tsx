@@ -72,13 +72,15 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
       <div className="container mx-auto px-3 py-1 sm:px-4 sm:py-4">
         <div className="flex items-center justify-between">
           {/* Mobile-friendly title */}
-          <h1 
-            className="text-sm sm:text-xl font-bold leading-tight max-w-[200px] sm:max-w-none cursor-pointer hover:opacity-80 transition-opacity"
-            onClick={() => navigate('/')}
-          >
-            <span className="hidden sm:inline">Notewell AI</span>
-            <span className="sm:hidden">Notewell AI</span>
-          </h1>
+          {user && (
+            <h1 
+              className="text-sm sm:text-xl font-bold leading-tight max-w-[200px] sm:max-w-none cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => navigate('/')}
+            >
+              <span className="hidden sm:inline">Notewell AI</span>
+              <span className="sm:hidden">Notewell AI</span>
+            </h1>
+          )}
           
           {/* Navigation */}
           <div className="hidden sm:flex gap-2">
