@@ -749,7 +749,8 @@ Always provide practical, actionable advice that follows NHS guidelines and best
     try {
       // Ensure we're using the current messages state plus the new user message
       const currentMessages = sessionMemory ? [...messages, userMessage] : [userMessage];
-      const effectiveMessages = includeLatestWeb ? [userMessage] : currentMessages;
+      // Preserve conversation context even when including latest web updates
+      const effectiveMessages = currentMessages;
       
       const { data, error } = await supabase.functions.invoke('ai-4-pm-chat', {
         body: {
