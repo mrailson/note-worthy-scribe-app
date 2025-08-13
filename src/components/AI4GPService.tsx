@@ -1086,61 +1086,6 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         {/* Chat Interface */}
         <div className="flex-1 flex flex-col">
           <Card className="flex-1 flex flex-col">
-            <CardHeader className="flex-shrink-0">
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center">
-                  <Bot className="h-6 w-6 text-primary mr-2" />
-                  AI4GP - Clinical Assistant
-                </CardTitle>
-                <div className="flex items-center gap-2">
-                  {searchHistory.length > 0 && !showSearchHistory && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowSearchHistory(true)}
-                      className="text-xs"
-                    >
-                      <History className="h-3 w-3 mr-1" />
-                      History
-                    </Button>
-                  )}
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={isVoiceConnected ? endVoiceChat : startVoiceChat}
-                      className="text-xs"
-                      title={isVoiceConnected ? 'End live talk session' : 'Start live talk session'}
-                    >
-                      <Mic className="h-3 w-3 mr-1" />
-                      {isVoiceConnected ? 'End Live Talk' : (isVoiceConnecting ? 'Connecting…' : 'Live Talk')}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        const next = !isVoiceMuted;
-                        setIsVoiceMuted(next);
-                        voiceChatRef.current?.setMuted(next);
-                      }}
-                      className="text-xs"
-                      title={isVoiceMuted ? 'Unmute AI voice output' : 'Mute AI voice output'}
-                      disabled={!isVoiceConnected && !isVoiceConnecting}
-                    >
-                      {isVoiceMuted ? <VolumeX className="h-3 w-3 mr-1" /> : <Volume2 className="h-3 w-3 mr-1" />}
-                      {isVoiceMuted ? 'Muted' : 'Mute'}
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={handleNewSearch}
-                      className="text-xs"
-                    >
-                      <Plus className="h-3 w-3 mr-1" />
-                      New Search
-                    </Button>
-                </div>
-              </div>
-            </CardHeader>
             
             <CardContent className="flex-1 flex flex-col p-0">
               {/* Messages */}
