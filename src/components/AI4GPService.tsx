@@ -599,12 +599,38 @@ Always provide evidence-based, clinically appropriate advice that follows curren
       for (const line of lines) {
         const trimmedLine = line.trim();
         if (trimmedLine) {
-          paragraphs.push(
-            new Paragraph({
-              children: processFormattedText(trimmedLine),
-              spacing: { after: 200 }
-            })
-          );
+          // Check if line is a heading
+          const headingMatch = trimmedLine.match(/^(#{1,6})\s+(.+)$/);
+          if (headingMatch) {
+            const headingLevel = headingMatch[1].length;
+            const headingText = headingMatch[2];
+            
+            // Map markdown heading levels to Word heading levels
+            const headingLevelMap = {
+              1: HeadingLevel.HEADING_1,
+              2: HeadingLevel.HEADING_2,
+              3: HeadingLevel.HEADING_3,
+              4: HeadingLevel.HEADING_4,
+              5: HeadingLevel.HEADING_5,
+              6: HeadingLevel.HEADING_6
+            };
+            
+            paragraphs.push(
+              new Paragraph({
+                children: [new TextRun({ text: headingText, bold: true, size: 28 - (headingLevel * 2) })],
+                heading: headingLevelMap[headingLevel as keyof typeof headingLevelMap] || HeadingLevel.HEADING_3,
+                spacing: { before: 300, after: 200 }
+              })
+            );
+          } else {
+            // Regular paragraph with formatting
+            paragraphs.push(
+              new Paragraph({
+                children: processFormattedText(trimmedLine),
+                spacing: { after: 200 }
+              })
+            );
+          }
         }
       }
 
