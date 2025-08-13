@@ -156,10 +156,10 @@ export const ServiceOverview = () => {
         </div>
       </div>
 
-      {/* Latest NHS News */}
-      <section aria-label="Latest NHS News" className="space-y-4">
+      {/* Latest Healthcare News */}
+      <section aria-label="Latest Healthcare News" className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold">Latest NHS News</h2>
+          <h2 className="text-xl font-semibold">Latest Healthcare News</h2>
           <Button variant="outline" size="sm" onClick={() => navigate('/ai-4-pm')}>View all</Button>
         </div>
         {newsLoading ? (
