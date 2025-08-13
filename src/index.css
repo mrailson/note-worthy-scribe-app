@@ -199,6 +199,55 @@ All colors MUST be HSL.
   border-left: 4px solid hsl(var(--primary));
 }
 
+/* Table styling for AI responses */
+.ai-response-content table,
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.375rem;
+  overflow: hidden;
+}
+
+.ai-response-content th,
+.ai-response-content td,
+th, td {
+  border: 1px solid hsl(var(--border));
+  padding: 0.75rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.ai-response-content th,
+th {
+  background-color: hsl(var(--muted));
+  font-weight: 600;
+  color: hsl(var(--foreground));
+}
+
+.ai-response-content tbody tr:nth-child(even),
+tbody tr:nth-child(even) {
+  background-color: hsl(var(--muted) / 0.3);
+}
+
+.ai-response-content tbody tr:hover,
+tbody tr:hover {
+  background-color: hsl(var(--muted) / 0.5);
+}
+
+/* Specific styling for chronology tables */
+.ai-response-content table th:first-child,
+.ai-response-content table td:first-child {
+  width: 100px;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.ai-response-content table td:last-child {
+  width: auto;
+}
+
 @layer base {
   * {
     @apply border-border;

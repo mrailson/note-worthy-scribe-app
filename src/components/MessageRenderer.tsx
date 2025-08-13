@@ -230,7 +230,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
           {/* Message Content */}
           <div className="space-y-2">
             {message.role === 'assistant' ? (
-              <div className="prose prose-sm max-w-none">
+              <div className="prose prose-sm max-w-none ai-response-content">
                 {formatContent(displayContent)}
               </div>
             ) : (

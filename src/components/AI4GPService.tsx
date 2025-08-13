@@ -1202,7 +1202,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                                 ) : (
                                   <SafeMessageRenderer
                                     content={combinedContent.replace(/\n/g, '<br/>')}
-                                    className="whitespace-pre-wrap"
+                                    className="whitespace-pre-wrap ai-response-content"
                                   />
                                 )}
                                 {combinedFiles && combinedFiles.length > 0 && (
