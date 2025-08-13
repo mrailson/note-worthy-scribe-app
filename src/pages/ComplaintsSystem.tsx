@@ -1142,7 +1142,7 @@ const ComplaintsSystem = () => {
             <span className="sm:hidden">🏥 Complaints</span>
           </h1>
           <p className="text-sm sm:text-base text-muted-foreground">
-            <span className="hidden sm:inline">Secure, NHS-compliant complaint management with full audit trail</span>
+            <span className="hidden sm:inline">Secure, NHS-compliant complaint management with full evidence management and audit trail</span>
             <span className="sm:hidden">NHS-compliant complaint management</span>
           </p>
         </div>
