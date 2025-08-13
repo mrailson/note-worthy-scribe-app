@@ -133,7 +133,7 @@ const AI4GPService = () => {
   const [isVoiceConnecting, setIsVoiceConnecting] = useState(false);
   const [isVoiceSpeaking, setIsVoiceSpeaking] = useState(false);
   const [isVoiceMuted, setIsVoiceMuted] = useState(false);
-  const [selectedVoice, setSelectedVoice] = useState<SupportedVoice>('alloy');
+  const [selectedVoice, setSelectedVoice] = useState<SupportedVoice>('ballad');
   const voiceChatRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
