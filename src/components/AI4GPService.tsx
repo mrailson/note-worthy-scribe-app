@@ -968,7 +968,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
             <CardHeader className="flex-shrink-0">
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center">
-                  <Brain className="h-6 w-6 text-primary mr-2" />
+                  <Bot className="h-6 w-6 text-primary mr-2" />
                   AI4GP - Clinical Intelligence Assistant
                 </CardTitle>
                 <div className="flex items-center gap-2">
