@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Mic, MicOff, Wifi, WifiOff, Brain, Copy, Download, Mail, Save, Play, Pause, FileText, ChevronDown, ChevronUp, Lightbulb, AlertTriangle, BookOpen, Shield, BarChart3, Edit, Check, X, Send, Settings, Languages, Volume2, VolumeX, Stethoscope, Eye, EyeOff, Maximize2, RotateCcw } from "lucide-react";
+import { Mic, MicOff, Wifi, WifiOff, Brain, Copy, Download, Mail, Save, Play, Pause, FileText, ChevronDown, ChevronUp, Lightbulb, AlertTriangle, BookOpen, Shield, BarChart3, Edit, Check, X, Send, Settings, Languages, Volume2, VolumeX, Stethoscope, Eye, EyeOff, Maximize2, RotateCcw, History, Bot, FileAudio } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 import { UnifiedAudioCapture } from "@/utils/UnifiedAudioCapture";
@@ -1585,25 +1585,37 @@ useEffect(() => {
                 value="consultation" 
                 className="rounded-lg transition-all duration-200 font-medium shrink-0"
               >
-                Consultation
+                <div className="flex items-center gap-2">
+                  <Stethoscope className="h-5 w-5" />
+                  <span>Consultation</span>
+                </div>
               </TabsTrigger>
               <TabsTrigger 
                 value="transcript" 
                 className="rounded-lg transition-all duration-200 font-medium shrink-0"
               >
-                Transcript
+                <div className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  <span>Transcript</span>
+                </div>
               </TabsTrigger>
               <TabsTrigger 
                 value="examples" 
                 className="rounded-lg transition-all duration-200 font-medium shrink-0"
               >
-                Examples
+                <div className="flex items-center gap-2">
+                  <BookOpen className="h-5 w-5" />
+                  <span>Examples</span>
+                </div>
               </TabsTrigger>
               <TabsTrigger 
                 value="history"
                 className="rounded-lg transition-all duration-200 font-medium shrink-0"
               >
-                History
+                <div className="flex items-center gap-2">
+                  <History className="h-5 w-5" />
+                  <span>History</span>
+                </div>
               </TabsTrigger>
             </TabsList>
 
@@ -1612,19 +1624,28 @@ useEffect(() => {
                 value="ai4gp" 
                 className="rounded-lg transition-all duration-200 font-medium shrink-0"
               >
-                AI4GP
+                <div className="flex items-center gap-2">
+                  <Brain className="h-5 w-5" />
+                  <span>AI4GP</span>
+                </div>
               </TabsTrigger>
               <TabsTrigger 
                 value="gp-genie" 
                 className="rounded-lg transition-all duration-200 font-medium shrink-0"
               >
-                GP Genie
+                <div className="flex items-center gap-2">
+                  <Bot className="h-5 w-5" />
+                  <span>GP Genie</span>
+                </div>
               </TabsTrigger>
               <TabsTrigger 
                 value="test-mp3" 
                 className="rounded-lg transition-all duration-200 font-medium shrink-0"
               >
-                Audio Import + AI
+                <div className="flex items-center gap-2">
+                  <FileAudio className="h-5 w-5" />
+                  <span>Audio Import + AI</span>
+                </div>
               </TabsTrigger>
             </TabsList>
           </div>
