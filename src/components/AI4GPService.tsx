@@ -137,6 +137,7 @@ const AI4GPService = () => {
   const [isVoiceMuted, setIsVoiceMuted] = useState(true);
   const [selectedVoice, setSelectedVoice] = useState<SupportedVoice>('ballad');
   const voiceChatRef = useRef<any>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const scrollToBottom = () => {
@@ -163,6 +164,18 @@ const AI4GPService = () => {
       loadPracticeContext();
     }
   }, [user]);
+
+  // Set up file input event listener
+  useEffect(() => {
+    const fileInput = fileInputRef.current;
+    if (fileInput) {
+      fileInput.addEventListener('change', handleFileSelect);
+      
+      return () => {
+        fileInput.removeEventListener('change', handleFileSelect);
+      };
+    }
+  }, []);
 
   const loadPracticeContext = async () => {
     if (!user) return;
@@ -1283,26 +1296,22 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                      }}
                    />
                    <div className="flex flex-col gap-2">
-                     <input
-                       type="file"
-                       multiple
-                       className="hidden"
-                       ref={(ref) => {
-                         if (ref) {
-                           ref.addEventListener('change', handleFileSelect);
-                         }
-                       }}
-                       accept=".pdf,.doc,.docx,.rtf,.txt,.eml,.msg,.jpg,.jpeg,.png,.wav,.mp3,.m4a"
-                     />
-                     <Button
-                       variant="outline"
-                       size="sm"
-                       onClick={() => (document.querySelector('input[type="file"]') as HTMLInputElement)?.click()}
-                       disabled={isLoading}
-                       title="Upload files (PDF, DOC, DOCX, RTF, TXT, EML, MSG, JPG, PNG, audio files)"
-                     >
-                       <Paperclip className="h-4 w-4" />
-                     </Button>
+                      <input
+                        type="file"
+                        multiple
+                        className="hidden"
+                        ref={fileInputRef}
+                        accept=".pdf,.doc,.docx,.rtf,.txt,.eml,.msg,.jpg,.jpeg,.png,.wav,.mp3,.m4a"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isLoading}
+                        title="Upload files (PDF, DOC, DOCX, RTF, TXT, EML, MSG, JPG, PNG, audio files)"
+                      >
+                        <Paperclip className="h-4 w-4" />
+                      </Button>
                      <SpeechToText onTranscription={(transcript) => setInput(prev => prev + ' ' + transcript)} />
                      <Button 
                        onClick={handleSend} 
