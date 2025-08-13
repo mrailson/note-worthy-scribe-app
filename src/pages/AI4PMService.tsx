@@ -19,7 +19,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { 
   Send, 
   Mic, 
-  MicOff,
   Paperclip, 
   FileText, 
   Mail, 
@@ -160,11 +159,6 @@ const AI4PMService = () => {
     const saved = localStorage.getItem('ai4pm-voice-muted');
     return saved ? JSON.parse(saved) : false;
   });
-  const [isMicMuted, setIsMicMuted] = useState(() => {
-    const saved = localStorage.getItem('ai4pm-mic-muted');
-    return saved ? JSON.parse(saved) : false;
-  });
-  const [voiceInstanceId, setVoiceInstanceId] = useState<string | null>(null);
   const voiceChatRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -184,15 +178,6 @@ const AI4PMService = () => {
       loadPracticeContext();
     }
   }, [user]);
-
-  // Clean up voice instance on unmount
-  useEffect(() => {
-    return () => {
-      if (voiceInstanceId) {
-        localStorage.removeItem('ai4pm-active-voice-instance');
-      }
-    };
-  }, [voiceInstanceId]);
 
   // File input setup
   useEffect(() => {
@@ -273,37 +258,20 @@ const AI4PMService = () => {
   // Start voice chat
   const startVoiceChat = async () => {
     try {
-      // Check if there's already an active voice session
-      const existingInstanceId = localStorage.getItem('ai4pm-active-voice-instance');
-      if (existingInstanceId && existingInstanceId !== voiceInstanceId) {
-        alert('Another voice session is already active. Please close it first.');
-        return;
-      }
-
       setIsVoiceConnecting(true);
       
       // Request microphone permission
       await navigator.mediaDevices.getUserMedia({ audio: true });
-      
-      // Create unique instance ID
-      const instanceId = `voice-${Date.now()}`;
-      setVoiceInstanceId(instanceId);
-      localStorage.setItem('ai4pm-active-voice-instance', instanceId);
       
       voiceChatRef.current = new RealtimeChat(handleVoiceMessage);
       const displayName = (user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || 'there') as string;
       const firstName = displayName.includes('@') ? displayName.split('@')[0] : displayName.split(' ')[0];
       await voiceChatRef.current.init('shimmer', `Hello ${firstName}, I am the AI for GP Practice Managers, How can I help?`);
       
-      // Apply saved states after initialization
-      if (voiceChatRef.current) {
-        if (isVoiceMuted) {
-          voiceChatRef.current.setMuted(true);
-        }
-        if (isMicMuted) {
-          voiceChatRef.current.setMicMuted?.(true);
-        }
-        console.log('Applied saved voice states:', { isVoiceMuted, isMicMuted });
+      // Apply saved mute state after initialization
+      if (voiceChatRef.current && isVoiceMuted) {
+        voiceChatRef.current.setMuted(true);
+        console.log('Applied saved mute state:', isVoiceMuted);
       }
       
       setIsVoiceConnected(true);
@@ -319,11 +287,6 @@ const AI4PMService = () => {
     } catch (error) {
       console.error('Voice chat error:', error);
       setIsVoiceConnecting(false);
-      // Clean up instance tracking on error
-      if (voiceInstanceId) {
-        localStorage.removeItem('ai4pm-active-voice-instance');
-        setVoiceInstanceId(null);
-      }
     }
   };
 
@@ -337,41 +300,17 @@ const AI4PMService = () => {
     }
   };
 
-  // Toggle mic mute
-  const toggleMicMute = () => {
-    if (voiceChatRef.current) {
-      const newMutedState = !isMicMuted;
-      voiceChatRef.current.setMicMuted?.(newMutedState);
-      setIsMicMuted(newMutedState);
-      localStorage.setItem('ai4pm-mic-muted', JSON.stringify(newMutedState));
-    }
-  };
-
   // End voice chat
   const endVoiceChat = () => {
     voiceChatRef.current?.disconnect();
     setIsVoiceConnected(false);
     setIsVoiceSpeaking(false);
-    
-    // Clean up instance tracking
-    if (voiceInstanceId) {
-      localStorage.removeItem('ai4pm-active-voice-instance');
-      setVoiceInstanceId(null);
-    }
-    
-    // Don't reset mute states - preserve user preferences
+    // Don't reset mute state - preserve user preference
     
     // Auto-save the conversation when ending voice chat if there are messages
     if (messages.length > 0) {
       saveSearchAutomatically(messages);
     }
-  };
-
-  // Clear all messages
-  const clearAllMessages = () => {
-    setMessages([]);
-    setCurrentSearchId(null);
-    setUploadedFiles([]);
   };
 
   const loadPracticeContext = async () => {
@@ -1048,7 +987,7 @@ Format your responses clearly with headings and bullet points where appropriate 
               
               <Collapsible open={isTabMenuOpen} onOpenChange={setIsTabMenuOpen}>
                 <CollapsibleContent>
-                  <div className="mt-2 grid grid-cols-3 gap-2">
+                  <div className="mt-2 grid grid-cols-2 gap-2">
                     <TabsTrigger 
                       value="ai-service" 
                       className="flex flex-col items-center gap-1 py-3 px-2 rounded-lg transition-all duration-200 text-xs font-medium data-[state=active]:bg-primary/90 data-[state=active]:text-primary-foreground"
@@ -1066,6 +1005,14 @@ Format your responses clearly with headings and bullet points where appropriate 
                       <span>PM Genie</span>
                     </TabsTrigger>
                     <TabsTrigger 
+                      value="history" 
+                      className="flex flex-col items-center gap-1 py-3 px-2 rounded-lg transition-all duration-200 text-xs font-medium data-[state=active]:bg-primary/90 data-[state=active]:text-primary-foreground"
+                      onClick={() => setIsTabMenuOpen(false)}
+                    >
+                      <History className="h-4 w-4" />
+                      <span>History</span>
+                    </TabsTrigger>
+                    <TabsTrigger 
                       value="news" 
                       className="flex flex-col items-center gap-1 py-3 px-2 rounded-lg transition-all duration-200 text-xs font-medium data-[state=active]:bg-primary/90 data-[state=active]:text-primary-foreground"
                       onClick={() => setIsTabMenuOpen(false)}
@@ -1080,7 +1027,7 @@ Format your responses clearly with headings and bullet points where appropriate 
           )}
 
           {/* Desktop Menu */}
-          <TabsList className={`grid w-full mb-6 ${isMobile ? 'hidden' : 'grid-cols-3'}`}>
+          <TabsList className={`grid w-full mb-6 ${isMobile ? 'hidden' : 'grid-cols-4'}`}>
             <TabsTrigger 
               value="ai-service"
               className="rounded-lg transition-all duration-200 font-medium shrink-0"
@@ -1101,6 +1048,15 @@ Format your responses clearly with headings and bullet points where appropriate 
               </div>
             </TabsTrigger>
             
+            <TabsTrigger 
+              value="history"
+              className="rounded-lg transition-all duration-200 font-medium shrink-0"
+            >
+              <div className="flex items-center gap-2">
+                <History className="h-5 w-5" />
+                <span>History</span>
+              </div>
+            </TabsTrigger>
             
             <TabsTrigger 
               value="news"
@@ -1220,18 +1176,8 @@ Format your responses clearly with headings and bullet points where appropriate 
                               size="sm"
                               onClick={toggleVoiceMute}
                               className={`h-8 ${isVoiceMuted ? 'text-muted-foreground' : 'text-primary'}`}
-                              title={isVoiceMuted ? 'Unmute speaker' : 'Mute speaker'}
                             >
                               {isVoiceMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={toggleMicMute}
-                              className={`h-8 ${isMicMuted ? 'text-muted-foreground' : 'text-primary'}`}
-                              title={isMicMuted ? 'Unmute microphone' : 'Mute microphone'}
-                            >
-                              {isMicMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                             </Button>
                             {isVoiceSpeaking && (
                               <div className="flex items-center gap-1 text-sm text-primary">
@@ -1265,16 +1211,6 @@ Format your responses clearly with headings and bullet points where appropriate 
                           className="h-8"
                         >
                           <Sparkles className="h-4 w-4" />
-                        </Button>
-                        
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={clearAllMessages}
-                          className="h-8"
-                          title="Clear all messages"
-                        >
-                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
@@ -1341,9 +1277,31 @@ Format your responses clearly with headings and bullet points where appropriate 
                               ? 'bg-primary text-primary-foreground' 
                               : 'bg-muted'
                           }`}>
-                            <MessageRenderer 
-                              message={message}
-                            />
+                            <div className="flex items-start gap-2">
+                              {message.role === 'assistant' && <Bot className="h-4 w-4 mt-1 flex-shrink-0" />}
+                              {message.role === 'user' && <User className="h-4 w-4 mt-1 flex-shrink-0" />}
+                              <div className="space-y-2">
+                                {/* Message files */}
+                                {message.files && message.files.length > 0 && (
+                                  <div className="space-y-1">
+                                    {message.files.map((file, index) => {
+                                      const FileIcon = getFileTypeIcon(file.name, file.type);
+                                      return (
+                                        <div key={index} className="flex items-center gap-2 text-xs bg-background/10 rounded p-2">
+                                          <FileIcon className="h-3 w-3" />
+                                          <span className="truncate">{file.name}</span>
+                                          {file.isLoading && <Loader2 className="h-3 w-3 animate-spin" />}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                                
+                                <MessageRenderer 
+                                  message={message}
+                                />
+                              </div>
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -1444,6 +1402,64 @@ Format your responses clearly with headings and bullet points where appropriate 
             <PMGenieVoiceAgent />
           </TabsContent>
 
+          <TabsContent value="history">
+            <Card>
+              <CardHeader>
+                <CardTitle>Conversation History</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {searchHistory.map((search) => (
+                    <Card key={search.id} className="cursor-pointer hover:shadow-md transition-shadow">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-start justify-between">
+                          <CardTitle className="text-sm font-medium truncate">
+                            {search.title}
+                          </CardTitle>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 flex-shrink-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteSearch(search.id);
+                            }}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="pt-0">
+                        {search.brief_overview && (
+                          <p className="text-xs text-muted-foreground mb-3 line-clamp-3">
+                            {search.brief_overview}
+                          </p>
+                        )}
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <span>{new Date(search.created_at).toLocaleDateString()}</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => loadPreviousSearch(search.id)}
+                            className="h-6 text-xs"
+                          >
+                            Load
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                  {searchHistory.length === 0 && (
+                    <div className="col-span-full text-center text-muted-foreground py-8">
+                      <History className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                      <h3 className="text-lg font-medium mb-2">No History Yet</h3>
+                      <p className="text-sm">Your conversations will appear here</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="news">
             <NewsPanel />

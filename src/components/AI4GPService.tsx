@@ -138,7 +138,6 @@ const AI4GPService = () => {
   const [isVoiceMuted, setIsVoiceMuted] = useState(true);
   const [selectedVoice, setSelectedVoice] = useState<SupportedVoice>('ballad');
   const voiceChatRef = useRef<any>(null);
-  const voiceSessionRef = useRef<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showAllQuickActions, setShowAllQuickActions] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -303,6 +302,12 @@ const AI4GPService = () => {
       requiresFile: false 
     },
     { 
+      label: 'Referral Criteria & Forms', 
+      icon: FileText, 
+      prompt: `${nhsSafetyPreamble} Provide referral criteria and process for [insert specialty/condition] in [insert local area or ICB], including NHS eRS form links, local service inclusion/exclusion criteria, and relevant NICE guidance.`,
+      requiresFile: false 
+    },
+    { 
       label: 'QOF Indicator Quick Check', 
       icon: CheckSquare, 
       prompt: `${nhsSafetyPreamble} Summarise the QOF indicators for [insert condition] for 2025/26. Include indicator codes, thresholds, recall rules, and exception reporting criteria. Focus on what a GP practice team needs to know.`,
@@ -324,6 +329,12 @@ const AI4GPService = () => {
       label: 'Primary Care Prescribing Alerts', 
       icon: TrendingUp, 
       prompt: `${nhsSafetyPreamble} List the most recent MHRA/NHS prescribing safety alerts relevant to primary care in [insert month/year]. Include drug name, nature of alert, key GP actions, and link to official notice.`,
+      requiresFile: false 
+    },
+    { 
+      label: 'Fit Note Wording Helper', 
+      icon: FileHeart, 
+      prompt: `${nhsSafetyPreamble} Suggest concise, clinically appropriate fit note wording for a patient with [insert condition/procedure]. Include expected duration, recommended work adjustments, and review advice.`,
       requiresFile: false 
     },
     { 
@@ -617,6 +628,13 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     }
   }, []);
 
+  const handleNewSearch = () => {
+    setMessages([]);
+    setUploadedFiles([]);
+    setInput('');
+  };
+
+  // Export: Word document
   const generateWordDocument = async (content: string, title: string = 'AI Generated Document') => {
     try {
       // Function to clean markdown formatting from text
@@ -898,6 +916,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     }
   };
 
+  // Export: PowerPoint
   const generatePowerPoint = async (content: string, title: string = 'AI Generated Presentation') => {
     try {
       const pptx = new PptxGenJS();
@@ -910,37 +929,9 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     }
   };
 
-  const handleNewSearch = () => {
-    setMessages([]);
-    setUploadedFiles([]);
-    setInput('');
-    setExpandedMessage(null);
-    setShowSearchHistory(false);
-  };
-
-  const startVoiceChat = useCallback(async () => {
-    try {
-      setIsVoiceConnecting(true);
-      await navigator.mediaDevices.getUserMedia({ audio: true });
-      voiceChatRef.current = new RealtimeChat(handleVoiceMessage);
-      await voiceChatRef.current.init(selectedVoice, 'Hello, how can I help?');
-      if (isVoiceMuted) {
-        voiceChatRef.current.setMuted(true);
-      }
-      setIsVoiceConnected(true);
-    } catch (error) {
-      console.error('Voice chat error:', error);
-    } finally {
-      setIsVoiceConnecting(false);
-    }
-  }, [selectedVoice]);
-
-  const endVoiceChat = useCallback(() => {
-    voiceChatRef.current?.disconnect();
-    setIsVoiceConnected(false);
-    setIsVoiceSpeaking(false);
-  }, []);
-
+  // Voice: Realtime ChatGPT voice integration
+  const voiceSessionRef = useRef<string | null>(null);
+  
   const handleVoiceMessage = (event: any) => {
     console.log('Voice event:', event.type, event);
     
@@ -1019,13 +1010,35 @@ Always provide evidence-based, clinically appropriate advice that follows curren
       return;
     }
   };
+  const startVoiceChat = async () => {
+    try {
+      setIsVoiceConnecting(true);
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+      voiceChatRef.current = new RealtimeChat(handleVoiceMessage);
+      await voiceChatRef.current.init(selectedVoice, 'Hello, how can I help?');
+      if (isVoiceMuted) {
+        voiceChatRef.current.setMuted(true);
+      }
+      setIsVoiceConnected(true);
+    } catch (error) {
+      console.error('Voice chat error:', error);
+    } finally {
+      setIsVoiceConnecting(false);
+    }
+  };
+
+  const endVoiceChat = () => {
+    voiceChatRef.current?.disconnect();
+    setIsVoiceConnected(false);
+    setIsVoiceSpeaking(false);
+  };
 
   if (loading) {
-    return <div className="flex items-center justify-center h-screen"><Bot className="h-8 w-8 animate-pulse" /></div>;
-  }
-
-  if (!user) {
-    return <div className="flex items-center justify-center h-screen">Please log in to access AI4GP Service.</div>;
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
   }
 
   return (
@@ -1037,8 +1050,11 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           <div className="lg:w-64 flex-shrink-0">
             <Card className="h-full">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm flex items-center justify-between">
-                  <span>Search History</span>
+                <CardTitle className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2">
+                    <History className="h-4 w-4" />
+                    Previous Searches
+                  </div>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -1082,92 +1098,239 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         {/* Chat Interface */}
         <div className="flex-1 flex flex-col">
           <Card className="flex-1 flex flex-col">
+            <CardHeader className="flex-shrink-0">
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center">
+                  <Bot className="h-6 w-6 text-primary mr-2" />
+                  AI4GP - Clinical Assistant
+                </CardTitle>
+                <div className="flex items-center gap-2">
+                  {searchHistory.length > 0 && !showSearchHistory && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowSearchHistory(true)}
+                      className="text-xs"
+                    >
+                      <History className="h-3 w-3 mr-1" />
+                      History
+                    </Button>
+                  )}
+                  <div className="flex items-center gap-2">
+                     {/* Hidden: Include latest web updates option
+                     <div className="flex items-center gap-2">
+                       <Switch
+                         id="include-latest"
+                         checked={includeLatestUpdates}
+                         onCheckedChange={setIncludeLatestUpdates}
+                       />
+                       <Label htmlFor="include-latest" className="text-xs text-muted-foreground">
+                         Include latest web updates
+                       </Label>
+                     </div>
+                     */}
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={isVoiceConnected ? endVoiceChat : startVoiceChat}
+                      className="text-xs"
+                      title={isVoiceConnected ? 'End live talk session' : 'Start live talk session'}
+                    >
+                      <Mic className="h-3 w-3 mr-1" />
+                      {isVoiceConnected ? 'End Live Talk' : (isVoiceConnecting ? 'Connecting…' : 'Live Talk')}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const next = !isVoiceMuted;
+                        setIsVoiceMuted(next);
+                        voiceChatRef.current?.setMuted(next);
+                      }}
+                      className="text-xs"
+                      title={isVoiceMuted ? 'Unmute AI voice output' : 'Mute AI voice output'}
+                      disabled={!isVoiceConnected && !isVoiceConnecting}
+                    >
+                      {isVoiceMuted ? <VolumeX className="h-3 w-3 mr-1" /> : <Volume2 className="h-3 w-3 mr-1" />}
+                      {isVoiceMuted ? 'Muted' : 'Mute'}
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={handleNewSearch}
+                      className="text-xs"
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      New Search
+                    </Button>
+                </div>
+              </div>
+            </CardHeader>
+            
             <CardContent className="flex-1 flex flex-col p-0">
               {/* Messages */}
               <ScrollArea className="flex-1 p-2">
-                <div className="space-y-1">
-                  {messages.length === 0 && (
-                    <div className="text-center py-2">
-                      <Bot className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
-                      <h3 className="font-semibold text-lg mb-1">Welcome to AI4GP</h3>
-                      <p className="text-muted-foreground max-w-md mx-auto mb-2">
-                        Your AI assistant for clinical guidance, protocol development, and evidence-based practice support.
-                      </p>
-                      
-                      {/* Quick Actions within welcome message */}
-                      <div className="max-w-4xl mx-auto">
-                        <h4 className="text-sm font-medium mb-2 text-muted-foreground">Get started with these common queries:</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-1">
-                          {quickActions.slice(0, showAllQuickActions ? quickActions.length : 6).map((action, index) => {
-                            const Icon = action.icon;
-                            return (
-                              <Button
-                                key={index}
-                                variant="outline"
-                                className="h-20 p-3 text-left justify-start hover:bg-primary/5 hover:border-primary/20 transition-all duration-200 overflow-hidden"
-                                onClick={() => setInput(action.prompt)}
-                              >
-                                <div className="flex items-start gap-3 w-full overflow-hidden">
-                                  <Icon className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                                  <div className="flex-1 min-w-0 overflow-hidden">
-                                    <div className="font-medium text-xs text-left truncate mb-1">{action.label}</div>
-                                    <div className="text-xs text-muted-foreground text-left line-clamp-2 leading-tight">
-                                      {action.prompt.length > 60 
-                                        ? `${action.prompt.substring(0, 60)}...` 
-                                        : action.prompt
-                                      }
-                                    </div>
-                                   </div>
-                                 </div>
-                              </Button>
-                            );
-                          })}
-                        </div>
+                 <div className="space-y-1">
+                    {messages.length === 0 && (
+                      <div className="text-center py-1">
+                        <Bot className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
+                        <h3 className="font-semibold text-lg mb-1">Welcome to AI4GP</h3>
+                        <p className="text-muted-foreground max-w-md mx-auto mb-2">
+                          Your AI assistant for clinical guidance, protocol development, and evidence-based practice support.
+                        </p>
                         
-                        {quickActions.length > 6 && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setShowAllQuickActions(!showAllQuickActions)}
-                            className="text-primary hover:text-primary hover:bg-primary/10"
-                          >
-                            {showAllQuickActions ? (
-                              <>
-                                <Minus className="h-4 w-4 mr-2" />
-                                Show Less
-                              </>
-                            ) : (
-                              <>
-                                <Plus className="h-4 w-4 mr-2" />
-                                Show More ({quickActions.length - 6} more)
-                              </>
-                            )}
-                          </Button>
-                        )}
+                        {/* Quick Actions within welcome message */}
+                        <div className="max-w-4xl mx-auto">
+                          <h4 className="text-sm font-medium mb-2 text-muted-foreground">Get started with these common queries:</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-2">
+                            {quickActions.slice(0, showAllQuickActions ? quickActions.length : 6).map((action, index) => {
+                              const Icon = action.icon;
+                              return (
+                                <Button
+                                  key={index}
+                                  variant="outline"
+                                  className="h-20 p-3 text-left justify-start hover:bg-primary/5 hover:border-primary/20 transition-all duration-200 overflow-hidden"
+                                  onClick={() => setInput(action.prompt)}
+                                >
+                                  <div className="flex items-start gap-3 w-full overflow-hidden">
+                                    <Icon className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                                    <div className="flex-1 min-w-0 overflow-hidden">
+                                      <div className="font-medium text-xs text-left truncate mb-1">{action.label}</div>
+                                      <div className="text-xs text-muted-foreground text-left line-clamp-2 leading-tight">
+                                        {action.prompt.length > 60 
+                                          ? `${action.prompt.substring(0, 60)}...` 
+                                          : action.prompt
+                                        }
+                                      </div>
+                          </div>
+                                  </div>
+                                </Button>
+                              );
+                            })}
+                          </div>
+                          
+                          {quickActions.length > 6 && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setShowAllQuickActions(!showAllQuickActions)}
+                              className="text-primary hover:text-primary hover:bg-primary/10"
+                            >
+                              {showAllQuickActions ? (
+                                <>
+                                  <Minus className="h-4 w-4 mr-2" />
+                                  Show Less
+                                </>
+                              ) : (
+                                <>
+                                  <Plus className="h-4 w-4 mr-2" />
+                                  Show More ({quickActions.length - 6} more)
+                                </>
+                              )}
+                            </Button>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                   )}
+                    )}
 
-                   {messages.length > 0 && (
-                     messages.map((message) => (
-                       <div key={message.id} className="flex gap-3 items-start">
-                         <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                           {message.role === 'user' ? (
-                             <User className="h-4 w-4" />
-                           ) : (
-                             <Bot className="h-4 w-4" />
-                           )}
-                         </div>
-                         <div className="flex-1 space-y-2 overflow-hidden">
-                           <div className="bg-muted rounded-lg p-4 relative">
-                             <MessageRenderer message={message} />
-                           </div>
-                         </div>
-                       </div>
-                     ))
-                   )}
+                  {messages.length > 0 && (
+                    messages
+                      .reduce((acc, message, index) => {
+                        const prev = messages[index - 1];
+                        const shouldGroup =
+                          prev && prev.role === message.role &&
+                          message.role === 'assistant' &&
+                          Math.abs(message.timestamp.getTime() - prev.timestamp.getTime()) < 30000;
+                        if (shouldGroup) {
+                          acc[acc.length - 1].messages.push(message);
+                        } else {
+                          acc.push({ key: message.id, role: message.role, messages: [message] });
+                        }
+                        return acc;
+                      }, [] as Array<{ key: string; role: 'user' | 'assistant'; messages: Message[] }>)
+                       .map((group) => {
+                         let combinedContent = group.messages.map(m => m.content).join('\n\n');
+                         
+                         // Clean AI response content by removing separators and extra blank lines
+                         combinedContent = combinedContent
+                           .replace(/^---+\s*$/gm, '') // Remove lines with only dashes
+                           .replace(/^\s*---+\s*$/gm, '') // Remove lines with dashes and whitespace
+                           .replace(/\n\s*\n\s*\n/g, '\n\n') // Replace multiple blank lines with single blank line
+                           .replace(/^\s+$/gm, '') // Remove lines with only whitespace
+                           .trim();
+                         
+                         const combinedFiles = group.messages.flatMap(m => m.files || []);
+                         const lastTimestamp = group.messages[group.messages.length - 1].timestamp;
+                         const combinedMessage: Message = {
+                           ...group.messages[0],
+                           content: combinedContent,
+                           files: combinedFiles.length ? combinedFiles : undefined,
+                           timestamp: lastTimestamp,
+                         };
+                         return (
+                           <div key={group.key} className={`flex gap-3 ${group.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                             <div className={`flex gap-3 max-w-[85%] ${group.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                               <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${group.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+                                 {group.role === 'user' ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
+                               </div>
+                                <div className={`rounded-lg p-4 relative group ${group.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+                                  {group.role === 'assistant' ? (
+                                    <MessageRenderer
+                                      message={combinedMessage}
+                                      onExpandMessage={setExpandedMessage}
+                                      onExportWord={generateWordDocument}
+                                      onExportPowerPoint={generatePowerPoint}
+                                    />
+                                  ) : (
+                                    <div className="relative">
+                                      <SafeMessageRenderer
+                                        content={combinedContent.replace(/\n/g, '<br/>')}
+                                        className="whitespace-pre-wrap ai-response-content"
+                                      />
+                                     <Button
+                                       variant="ghost"
+                                       size="sm"
+                                       onClick={async () => {
+                                         try {
+                                           await navigator.clipboard.writeText(combinedContent);
+                                           setInput(combinedContent); // Put content in input for easy editing
+                                           toast.success('Message copied to clipboard and input for editing');
+                                         } catch (error) {
+                                           console.error('Failed to copy message:', error);
+                                           toast.error('Failed to copy message');
+                                         }
+                                       }}
+                                       className="absolute top-2 right-2 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-primary-foreground/20"
+                                       title="Copy message to input for editing"
+                                     >
+                                       <Copy className="h-3 w-3" />
+                                     </Button>
+                                   </div>
+                                 )}
+                                {combinedFiles && combinedFiles.length > 0 && (
+                                  <div className="mt-2 space-y-1">
+                                    {combinedFiles.map((file, index) => {
+                                      const Icon = getFileTypeIcon(file.name, file.type);
+                                      return (
+                                        <div key={index} className="flex items-center gap-2 text-xs opacity-75">
+                                          <Icon className="h-3 w-3" />
+                                          <span>{file.name}</span>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                                <div className="text-xs opacity-50 mt-2">{new Date(lastTimestamp).toLocaleTimeString()}</div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                  )}
 
-                   {isLoading && (
+                  
+                  {isLoading && (
                     <div className="flex gap-3">
                       <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
                         <Bot className="h-4 w-4" />
@@ -1180,10 +1343,53 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                   )}
                 </div>
                 <div ref={messagesEndRef} />
-              </ScrollArea>
-              
-              {/* Input Area */}
-              <div className="border-t px-2 py-1 space-y-1">
+               </ScrollArea>
+               
+               {expandedMessage && (
+                  <Dialog open={!!expandedMessage} onOpenChange={(open) => { if (!open) setExpandedMessage(null); }}>
+                    <DialogContent className="max-w-[98vw] max-h-[95vh] w-full flex flex-col">
+                      <DialogHeader className="flex-shrink-0">
+                        <DialogTitle>Expanded Response</DialogTitle>
+                      </DialogHeader>
+                      <ScrollArea className="flex-1 overflow-auto" style={{ maxHeight: 'calc(95vh - 200px)' }}>
+                        <div className="space-y-4 pr-4 pb-4">
+                          <MessageRenderer message={expandedMessage} disableTruncation={true} />
+                        </div>
+                      </ScrollArea>
+                      <div className="flex justify-end gap-2 pt-4 border-t flex-shrink-0">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => expandedMessage && navigator.clipboard.writeText(expandedMessage.content)}
+                        >
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copy
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => expandedMessage && generateWordDocument(expandedMessage.content, 'AI Generated Document')}
+                          className="hidden sm:inline-flex"
+                        >
+                          <FileDown className="h-4 w-4 mr-2" />
+                          Export as Word
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => expandedMessage && generatePowerPoint(expandedMessage.content, 'AI Generated Presentation')}
+                          className="hidden sm:inline-flex"
+                        >
+                          <Presentation className="h-4 w-4 mr-2" />
+                          Export as PowerPoint
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                )}
+               
+               {/* Input Area */}
+              <div className="border-t p-4 space-y-3">
                 {/* Uploaded Files Display */}
                 {uploadedFiles.length > 0 && (
                   <div className="flex flex-wrap gap-2">
@@ -1207,53 +1413,53 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                   </div>
                 )}
                 
-                <div className="flex gap-2">
-                  <Textarea
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    placeholder="Ask AI4GP about clinical protocols, patient care, prescribing guidance..."
-                    className="min-h-[45px] resize-none"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSend();
-                      }
-                    }}
-                  />
-                  <div className="flex flex-col gap-1">
-                    <Button 
-                      onClick={handleSend} 
-                      disabled={isLoading || (!input.trim() && uploadedFiles.length === 0)}
-                      size="sm"
-                    >
-                      <Send className="h-4 w-4" />
-                    </Button>
-                    <input
-                      type="file"
-                      multiple
-                      className="hidden"
-                      ref={fileInputRef}
-                      accept=".pdf,.doc,.docx,.rtf,.txt,.eml,.msg,.jpg,.jpeg,.png,.wav,.mp3,.m4a"
-                    />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={isLoading}
-                      title="Upload files (PDF, DOC, DOCX, RTF, TXT, EML, MSG, JPG, PNG, audio files)"
-                    >
-                      <Paperclip className="h-4 w-4" />
-                    </Button>
-                    <SpeechToText onTranscription={(transcript) => setInput(prev => prev + ' ' + transcript)} />
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default AI4GPService;
+                 <div className="flex gap-2">
+                   <Textarea
+                     value={input}
+                     onChange={(e) => setInput(e.target.value)}
+                     placeholder="Ask AI4GP about clinical protocols, patient care, prescribing guidance..."
+                     className="min-h-[60px] resize-none"
+                     onKeyDown={(e) => {
+                       if (e.key === 'Enter' && !e.shiftKey) {
+                         e.preventDefault();
+                         handleSend();
+                       }
+                     }}
+                   />
+                   <div className="flex flex-col gap-2">
+                      <input
+                        type="file"
+                        multiple
+                        className="hidden"
+                        ref={fileInputRef}
+                        accept=".pdf,.doc,.docx,.rtf,.txt,.eml,.msg,.jpg,.jpeg,.png,.wav,.mp3,.m4a"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isLoading}
+                        title="Upload files (PDF, DOC, DOCX, RTF, TXT, EML, MSG, JPG, PNG, audio files)"
+                      >
+                        <Paperclip className="h-4 w-4" />
+                      </Button>
+                     <SpeechToText onTranscription={(transcript) => setInput(prev => prev + ' ' + transcript)} />
+                     <Button 
+                       onClick={handleSend} 
+                       disabled={isLoading || (!input.trim() && uploadedFiles.length === 0)}
+                       size="sm"
+                     >
+                       <Send className="h-4 w-4" />
+                     </Button>
+                   </div>
+                 </div>
+               </div>
+               </CardContent>
+             </Card>
+           </div>
+         </div>
+       </div>
+     );
+   };
+   
+   export default AI4GPService;
