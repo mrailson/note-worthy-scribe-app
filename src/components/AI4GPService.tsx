@@ -53,7 +53,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Volume2, VolumeX } from 'lucide-react';
 import { SpeechToText } from '@/components/SpeechToText';
 import MessageRenderer from '@/components/MessageRenderer';
-import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, ExternalHyperlink } from 'docx';
 import { saveAs } from 'file-saver';
 import PptxGenJS from 'pptxgenjs';
 import { RealtimeChat } from '@/utils/RealtimeAudio';
@@ -495,7 +495,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
   // Export: Word document
   const generateWordDocument = async (content: string, title: string = 'AI Generated Document') => {
     try {
-      // Function to process text with inline formatting (bold, italic, code)
+      // Function to process text with inline formatting (bold, italic, code, links)
       const processFormattedText = (text: string) => {
         const children: any[] = [];
         
@@ -510,8 +510,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           return children;
         }
         
-        // More comprehensive pattern to handle bold, italic, and mixed formatting
-        const formatPattern = /(\*\*\*[^*]+?\*\*\*|\*\*[^*]+?\*\*|\*[^*]+?\*|`[^`]+?`)/g;
+        // Enhanced pattern to handle bold, italic, code, and URLs
+        const formatPattern = /(\*\*\*[^*]+?\*\*\*|\*\*[^*]+?\*\*|\*[^*]+?\*|`[^`]+?`|https?:\/\/[^\s]+)/g;
         let lastIndex = 0;
         let match;
         
@@ -569,6 +569,18 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                 color: "f6f8fa",
                 fill: "f6f8fa"
               }
+            }));
+          }
+          // Handle URLs
+          else if (matchedText.match(/^https?:\/\//)) {
+            children.push(new ExternalHyperlink({
+              children: [new TextRun({
+                text: matchedText,
+                size: 24,
+                color: "0563C1", // Blue color for links
+                underline: {}
+              })],
+              link: matchedText
             }));
           }
           
