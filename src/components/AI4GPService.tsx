@@ -885,7 +885,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
             paragraphs.push(
               new Paragraph({
                 children: [
-                  new TextRun({ text: "🗹 ", size: 24 }), // Ballot box with bold check
+                  new TextRun({ text: "✓ ", size: 24 }), // Simple check mark
                   ...processFormattedText(listItemText)
                 ],
                 spacing: { after: 100 },
