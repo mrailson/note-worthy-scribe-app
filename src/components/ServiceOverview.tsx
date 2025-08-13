@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Stethoscope, 
   Users, 
@@ -189,203 +190,202 @@ export const ServiceOverview = () => {
         )}
       </section>
 
-      {/* Built by Primary Care Section */}
+      {/* Combined Features - Tabbed Interface */}
       <Card className="bg-gradient-subtle border-primary/20">
         <CardHeader className="text-center">
-          <CardTitle className="flex items-center justify-center gap-2 text-xl">
-            <Heart className="h-5 w-5 text-primary" />
-            Built by Primary Care, for Primary Care
-          </CardTitle>
+          <CardTitle className="text-xl">Platform Features & Information</CardTitle>
         </CardHeader>
-        <CardContent className="text-center space-y-4">
-          <p className="text-muted-foreground">
-            Our development team consists of practicing healthcare professionals who understand the unique challenges of primary care environments.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-            <div className="space-y-2">
-              <div className="p-3 rounded-lg bg-primary/10 text-primary mx-auto w-fit">
-                <Users className="h-6 w-6" />
-              </div>
-              <h4 className="font-semibold">PCN Managers</h4>
-              <p className="text-sm text-muted-foreground">
-                Multi-practice coordination and strategic oversight
-              </p>
-            </div>
-            <div className="space-y-2">
-              <div className="p-3 rounded-lg bg-primary/10 text-primary mx-auto w-fit">
-                <Clock className="h-6 w-6" />
-              </div>
-              <h4 className="font-semibold">Practice Managers</h4>
-              <p className="text-sm text-muted-foreground">
-                Daily operational efficiency and patient care management
-              </p>
-            </div>
-            <div className="space-y-2">
-              <div className="p-3 rounded-lg bg-primary/10 text-primary mx-auto w-fit">
-                <Stethoscope className="h-6 w-6" />
-              </div>
-              <h4 className="font-semibold">Clinical Staff</h4>
-              <p className="text-sm text-muted-foreground">
-                Front-line patient care and clinical documentation
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        <CardContent>
+          <Tabs defaultValue="primary-care" className="w-full">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="primary-care" className="text-xs sm:text-sm">
+                <Heart className="h-3 w-3 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Built by</span> Care
+              </TabsTrigger>
+              <TabsTrigger value="security" className="text-xs sm:text-sm">
+                <Lock className="h-3 w-3 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">NHS</span> Security
+              </TabsTrigger>
+              <TabsTrigger value="voice" className="text-xs sm:text-sm">
+                <Mic className="h-3 w-3 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Voice</span> AI
+              </TabsTrigger>
+              <TabsTrigger value="neighbourhoods" className="text-xs sm:text-sm">
+                <Users className="h-3 w-3 mr-1 sm:mr-2" />
+                Neighbourhoods
+              </TabsTrigger>
+            </TabsList>
 
-      {/* Security & Compliance Section */}
-      <Card className="bg-gradient-subtle border-primary/20">
-        <CardHeader className="text-center">
-          <CardTitle className="flex items-center justify-center gap-2 text-xl">
-            <Lock className="h-5 w-5 text-primary" />
-            NHS Security & IT Governance Compliance
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-center text-muted-foreground">
-            Built with NHS IT governance requirements at the core, ensuring full compliance with healthcare data protection standards.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-6">
-            {securityFeatures.map((feature, index) => (
-              <div key={index} className="flex items-start gap-3">
-                <Shield className="h-4 w-4 text-success shrink-0 mt-0.5" />
-                <span className="text-sm">{feature}</span>
+            <TabsContent value="primary-care" className="mt-6 space-y-4">
+              <div className="text-center space-y-4">
+                <h3 className="font-semibold text-lg">Built by Primary Care, for Primary Care</h3>
+                <p className="text-muted-foreground text-sm">
+                  Our development team consists of practicing healthcare professionals who understand the unique challenges of primary care environments.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
+                  <div className="space-y-2">
+                    <div className="p-2 rounded-lg bg-primary/10 text-primary mx-auto w-fit">
+                      <Users className="h-5 w-5" />
+                    </div>
+                    <h4 className="font-semibold text-sm">PCN Managers</h4>
+                    <p className="text-xs text-muted-foreground">
+                      Multi-practice coordination and strategic oversight
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="p-2 rounded-lg bg-primary/10 text-primary mx-auto w-fit">
+                      <Clock className="h-5 w-5" />
+                    </div>
+                    <h4 className="font-semibold text-sm">Practice Managers</h4>
+                    <p className="text-xs text-muted-foreground">
+                      Daily operational efficiency and patient care management
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="p-2 rounded-lg bg-primary/10 text-primary mx-auto w-fit">
+                      <Stethoscope className="h-5 w-5" />
+                    </div>
+                    <h4 className="font-semibold text-sm">Clinical Staff</h4>
+                    <p className="text-xs text-muted-foreground">
+                      Front-line patient care and clinical documentation
+                    </p>
+                  </div>
+                </div>
               </div>
-            ))}
-          </div>
-          <div className="mt-6 p-4 bg-primary/5 rounded-lg border border-primary/20">
-            <p className="text-sm text-center text-muted-foreground">
-              <strong>Data Residency:</strong> All patient and practice data is stored within UK borders in accordance with NHS Digital guidelines and never leaves the UK jurisdiction.
-            </p>
-          </div>
-          <div className="text-center mt-6">
-            <Button 
-              onClick={() => navigate('/security-compliance')}
-              variant="outline" 
-              className="gap-2"
-            >
-              <ExternalLink className="h-4 w-4" />
-              More Information on Security & Compliance
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+            </TabsContent>
 
-      {/* Interactive Voice Facility Section */}
-      <Card className="bg-gradient-subtle border-primary/20">
-        <CardHeader className="text-center">
-          <CardTitle className="flex items-center justify-center gap-2 text-xl">
-            <Mic className="h-5 w-5 text-primary" />
-            Interactive Voice Assistant
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-center text-muted-foreground">
-            It's like having a highly knowledgeable colleague available 24/7 who always gives excellent advice and follows NHS best practice guidelines. You can feel completely reassured asking anything you need!
-          </p>
-          <div className="mt-6 p-4 bg-primary/5 rounded-lg border border-primary/20 text-center">
-            <p className="text-sm font-medium text-primary">
-              💬 "Just like talking to your most experienced colleague - but they're always available and never too busy to help!"
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-            <div className="space-y-4">
-              <h4 className="font-semibold text-center">For Practice Managers</h4>
-              <ul className="space-y-2">
-                <li className="flex items-center gap-2 text-sm">
-                  <CheckCircle className="h-3 w-3 text-success shrink-0" />
-                  <span>Voice-activated practice policy queries</span>
-                </li>
-                <li className="flex items-center gap-2 text-sm">
-                  <CheckCircle className="h-3 w-3 text-success shrink-0" />
-                  <span>Staff scheduling and resource management</span>
-                </li>
-                <li className="flex items-center gap-2 text-sm">
-                  <CheckCircle className="h-3 w-3 text-success shrink-0" />
-                  <span>Compliance guidance and regulatory updates</span>
-                </li>
-                <li className="flex items-center gap-2 text-sm">
-                  <CheckCircle className="h-3 w-3 text-success shrink-0" />
-                  <span>Financial reporting and budget queries</span>
-                </li>
-              </ul>
-            </div>
-            <div className="space-y-4">
-              <h4 className="font-semibold text-center">For Clinical Staff</h4>
-              <ul className="space-y-2">
-                <li className="flex items-center gap-2 text-sm">
-                  <CheckCircle className="h-3 w-3 text-success shrink-0" />
-                  <span>Clinical protocol and guideline assistance</span>
-                </li>
-                <li className="flex items-center gap-2 text-sm">
-                  <CheckCircle className="h-3 w-3 text-success shrink-0" />
-                  <span>Drug interaction and dosage guidance</span>
-                </li>
-                <li className="flex items-center gap-2 text-sm">
-                  <CheckCircle className="h-3 w-3 text-success shrink-0" />
-                  <span>Patient care pathway recommendations</span>
-                </li>
-                <li className="flex items-center gap-2 text-sm">
-                  <CheckCircle className="h-3 w-3 text-success shrink-0" />
-                  <span>Real-time clinical decision support</span>
-                </li>
-              </ul>
-            </div>
-          </div>
-          <div className="mt-6 p-4 bg-primary/5 rounded-lg border border-primary/20 text-center">
-            <p className="text-sm text-muted-foreground">
-              <strong>Hands-Free Operation:</strong> Perfect for busy clinical environments where hands-free interaction is essential. Simply speak your questions and receive immediate, accurate responses.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+            <TabsContent value="security" className="mt-6 space-y-4">
+              <div className="space-y-4">
+                <div className="text-center">
+                  <h3 className="font-semibold text-lg">NHS Security & IT Governance Compliance</h3>
+                  <p className="text-muted-foreground text-sm mt-2">
+                    Built with NHS IT governance requirements at the core, ensuring full compliance with healthcare data protection standards.
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {securityFeatures.map((feature, index) => (
+                    <div key={index} className="flex items-start gap-2">
+                      <Shield className="h-3 w-3 text-success shrink-0 mt-0.5" />
+                      <span className="text-xs">{feature}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
+                  <p className="text-xs text-center text-muted-foreground">
+                    <strong>Data Residency:</strong> All patient and practice data is stored within UK borders in accordance with NHS Digital guidelines and never leaves the UK jurisdiction.
+                  </p>
+                </div>
+                <div className="text-center">
+                  <Button 
+                    onClick={() => navigate('/security-compliance')}
+                    variant="outline" 
+                    size="sm"
+                    className="gap-2"
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                    More Information
+                  </Button>
+                </div>
+              </div>
+            </TabsContent>
 
-      {/* Neighbourhoods Ready Section */}
-      <Card className="bg-gradient-subtle border-primary/20">
-        <CardHeader className="text-center">
-          <CardTitle className="flex items-center justify-center gap-2 text-xl">
-            <Users className="h-5 w-5 text-primary" />
-            Neighbourhoods Ready: Multi-Agency Collaboration
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-center text-muted-foreground">
-            All systems have been developed to meet the needs of the impending Neighbourhoods with a multi-agency ready system to collaborate and share without the historic IT challenges that always stifled efficient collaboration.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-            <div className="space-y-2 text-center">
-              <div className="p-3 rounded-lg bg-primary/10 text-primary mx-auto w-fit">
-                <Users className="h-6 w-6" />
+            <TabsContent value="voice" className="mt-6 space-y-4">
+              <div className="space-y-4">
+                <div className="text-center">
+                  <h3 className="font-semibold text-lg">Interactive Voice Assistant</h3>
+                  <p className="text-muted-foreground text-sm mt-2">
+                    It's like having a highly knowledgeable colleague available 24/7 who always gives excellent advice and follows NHS best practice guidelines.
+                  </p>
+                </div>
+                <div className="p-3 bg-primary/5 rounded-lg border border-primary/20 text-center">
+                  <p className="text-xs font-medium text-primary">
+                    💬 "Just like talking to your most experienced colleague - but they're always available and never too busy to help!"
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-sm text-center">For Practice Managers</h4>
+                    <ul className="space-y-1">
+                      <li className="flex items-center gap-2 text-xs">
+                        <CheckCircle className="h-2 w-2 text-success shrink-0" />
+                        <span>Voice-activated practice policy queries</span>
+                      </li>
+                      <li className="flex items-center gap-2 text-xs">
+                        <CheckCircle className="h-2 w-2 text-success shrink-0" />
+                        <span>Staff scheduling and resource management</span>
+                      </li>
+                      <li className="flex items-center gap-2 text-xs">
+                        <CheckCircle className="h-2 w-2 text-success shrink-0" />
+                        <span>Compliance guidance and regulatory updates</span>
+                      </li>
+                    </ul>
+                  </div>
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-sm text-center">For Clinical Staff</h4>
+                    <ul className="space-y-1">
+                      <li className="flex items-center gap-2 text-xs">
+                        <CheckCircle className="h-2 w-2 text-success shrink-0" />
+                        <span>Clinical protocol and guideline assistance</span>
+                      </li>
+                      <li className="flex items-center gap-2 text-xs">
+                        <CheckCircle className="h-2 w-2 text-success shrink-0" />
+                        <span>Drug interaction and dosage guidance</span>
+                      </li>
+                      <li className="flex items-center gap-2 text-xs">
+                        <CheckCircle className="h-2 w-2 text-success shrink-0" />
+                        <span>Patient care pathway recommendations</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
               </div>
-              <h4 className="font-semibold">Seamless Integration</h4>
-              <p className="text-sm text-muted-foreground">
-                Built for multi-agency collaboration from the ground up
-              </p>
-            </div>
-            <div className="space-y-2 text-center">
-              <div className="p-3 rounded-lg bg-primary/10 text-primary mx-auto w-fit">
-                <FolderOpen className="h-6 w-6" />
+            </TabsContent>
+
+            <TabsContent value="neighbourhoods" className="mt-6 space-y-4">
+              <div className="space-y-4">
+                <div className="text-center">
+                  <h3 className="font-semibold text-lg">Neighbourhoods Ready: Multi-Agency Collaboration</h3>
+                  <p className="text-muted-foreground text-sm mt-2">
+                    All systems have been developed to meet the needs of the impending Neighbourhoods with a multi-agency ready system to collaborate and share without the historic IT challenges.
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-2 text-center">
+                    <div className="p-2 rounded-lg bg-primary/10 text-primary mx-auto w-fit">
+                      <Users className="h-4 w-4" />
+                    </div>
+                    <h4 className="font-semibold text-xs">Seamless Integration</h4>
+                    <p className="text-xs text-muted-foreground">
+                      Built for multi-agency collaboration from the ground up
+                    </p>
+                  </div>
+                  <div className="space-y-2 text-center">
+                    <div className="p-2 rounded-lg bg-primary/10 text-primary mx-auto w-fit">
+                      <FolderOpen className="h-4 w-4" />
+                    </div>
+                    <h4 className="font-semibold text-xs">Unified Data Sharing</h4>
+                    <p className="text-xs text-muted-foreground">
+                      Secure, standardized data exchange across organizations
+                    </p>
+                  </div>
+                  <div className="space-y-2 text-center">
+                    <div className="p-2 rounded-lg bg-primary/10 text-primary mx-auto w-fit">
+                      <CheckCircle className="h-4 w-4" />
+                    </div>
+                    <h4 className="font-semibold text-xs">Future-Proof Design</h4>
+                    <p className="text-xs text-muted-foreground">
+                      Ready for tomorrow's healthcare collaboration models
+                    </p>
+                  </div>
+                </div>
+                <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
+                  <p className="text-xs text-center text-muted-foreground">
+                    <strong>Breaking Down IT Barriers:</strong> Our platform eliminates the traditional IT silos that have historically hindered effective multi-agency collaboration, enabling truly integrated care delivery.
+                  </p>
+                </div>
               </div>
-              <h4 className="font-semibold">Unified Data Sharing</h4>
-              <p className="text-sm text-muted-foreground">
-                Secure, standardized data exchange across organizations
-              </p>
-            </div>
-            <div className="space-y-2 text-center">
-              <div className="p-3 rounded-lg bg-primary/10 text-primary mx-auto w-fit">
-                <CheckCircle className="h-6 w-6" />
-              </div>
-              <h4 className="font-semibold">Future-Proof Design</h4>
-              <p className="text-sm text-muted-foreground">
-                Ready for tomorrow's healthcare collaboration models
-              </p>
-            </div>
-          </div>
-          <div className="mt-6 p-4 bg-primary/5 rounded-lg border border-primary/20">
-            <p className="text-sm text-center text-muted-foreground">
-              <strong>Breaking Down IT Barriers:</strong> Our platform eliminates the traditional IT silos that have historically hindered effective multi-agency collaboration, enabling truly integrated care delivery.
-            </p>
-          </div>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
 
