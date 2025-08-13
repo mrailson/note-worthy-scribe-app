@@ -957,7 +957,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                                     })}
                                   </div>
                                 )}
-                                <div className="text-xs opacity-50 mt-2">{lastTimestamp.toLocaleTimeString()}</div>
+                                <div className="text-xs opacity-50 mt-2">{new Date(lastTimestamp).toLocaleTimeString()}</div>
                               </div>
                             </div>
                           </div>
