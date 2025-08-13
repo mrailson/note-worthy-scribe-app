@@ -1082,7 +1082,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center">
                   <Bot className="h-6 w-6 text-primary mr-2" />
-                  AI4GP - Clinical Intelligence Assistant
+                  AI4GP - Clinical Assistant
                 </CardTitle>
                 <div className="flex items-center gap-2">
                   {searchHistory.length > 0 && !showSearchHistory && (
