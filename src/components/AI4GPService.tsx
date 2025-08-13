@@ -55,7 +55,7 @@ import MessageRenderer from '@/components/MessageRenderer';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
 import { saveAs } from 'file-saver';
 import PptxGenJS from 'pptxgenjs';
-import PMGenieVoiceAgent from '@/components/PMGenieVoiceAgent';
+import { RealtimeChat } from '@/utils/RealtimeAudio';
 
 // Helper function to get file type icon
 const getFileTypeIcon = (fileName: string, fileType?: string) => {
@@ -108,6 +108,10 @@ interface PracticeContext {
   logoUrl?: string;
 }
 
+const SUPPORTED_VOICES = ["alloy","ash","ballad","coral","echo","sage","shimmer","verse"] as const;
+
+type SupportedVoice = typeof SUPPORTED_VOICES[number];
+
 const AI4GPService = () => {
   const { user, loading } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -125,6 +129,12 @@ const AI4GPService = () => {
   const [showVoiceAgent, setShowVoiceAgent] = useState(false);
   const [includeLatestUpdates, setIncludeLatestUpdates] = useState(true);
   const [expandedMessage, setExpandedMessage] = useState<Message | null>(null);
+  const [isVoiceConnected, setIsVoiceConnected] = useState(false);
+  const [isVoiceConnecting, setIsVoiceConnecting] = useState(false);
+  const [isVoiceSpeaking, setIsVoiceSpeaking] = useState(false);
+  const [isVoiceMuted, setIsVoiceMuted] = useState(false);
+  const [selectedVoice, setSelectedVoice] = useState<SupportedVoice>('alloy');
+  const voiceChatRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const scrollToBottom = () => {
@@ -510,6 +520,35 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     }
   };
 
+  // Voice: Realtime ChatGPT voice integration
+  const handleVoiceMessage = (event: any) => {
+    if (event.type === 'response.audio.delta') {
+      setIsVoiceSpeaking(true);
+    } else if (event.type === 'response.audio.done') {
+      setIsVoiceSpeaking(false);
+    }
+  };
+
+  const startVoiceChat = async () => {
+    try {
+      setIsVoiceConnecting(true);
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+      voiceChatRef.current = new RealtimeChat(handleVoiceMessage);
+      await voiceChatRef.current.init(selectedVoice, 'Hello, how can I help?');
+      setIsVoiceConnected(true);
+    } catch (error) {
+      console.error('Voice chat error:', error);
+    } finally {
+      setIsVoiceConnecting(false);
+    }
+  };
+
+  const endVoiceChat = () => {
+    voiceChatRef.current?.disconnect();
+    setIsVoiceConnected(false);
+    setIsVoiceSpeaking(false);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -785,8 +824,37 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                   <X className="h-4 w-4" />
                 </Button>
               </div>
-              <div className="p-4">
-                <PMGenieVoiceAgent />
+              <div className="p-4 space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Available voices: {SUPPORTED_VOICES.join(', ')}
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {SUPPORTED_VOICES.map((v) => (
+                    <label
+                      key={v}
+                      className={`flex items-center gap-2 p-2 rounded-md border cursor-pointer ${selectedVoice === v ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50'}`}
+                    >
+                      <input
+                        type="radio"
+                        className="sr-only"
+                        checked={selectedVoice === v}
+                        onChange={() => setSelectedVoice(v)}
+                      />
+                      <span className="text-sm capitalize">{v}</span>
+                    </label>
+                  ))}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button onClick={startVoiceChat} disabled={isVoiceConnecting || isVoiceConnected} size="sm">
+                    <Mic className="h-4 w-4 mr-2" /> {isVoiceConnecting ? 'Connecting...' : 'Start voice'}
+                  </Button>
+                  <Button onClick={endVoiceChat} variant="secondary" disabled={!isVoiceConnected} size="sm">
+                    End
+                  </Button>
+                  {isVoiceConnected && (
+                    <span className="text-xs text-muted-foreground">{isVoiceSpeaking ? 'Speaking…' : 'Connected'}</span>
+                  )}
+                </div>
               </div>
             </div>
           </div>
