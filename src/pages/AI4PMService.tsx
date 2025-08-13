@@ -2523,7 +2523,7 @@ Always provide practical, actionable advice that follows NHS guidelines and best
 
       {/* Full Screen Message Modal */}
       <Dialog open={!!expandedMessage} onOpenChange={(open) => !open && setExpandedMessage(null)}>
-        <DialogContent className="max-w-[90vw] max-h-[95vh] w-full flex flex-col">
+        <DialogContent className="max-w-[98vw] max-h-[95vh] w-full flex flex-col">
           <DialogHeader className="flex-shrink-0">
             <DialogTitle className="flex items-center gap-2">
               <Bot className="h-5 w-5 flex-shrink-0" />
