@@ -681,56 +681,72 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                      </div>
                    )}
 
-                  {messages.map((message) => (
-                    <div key={message.id} className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`flex gap-3 max-w-[85%] ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                          message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'
-                        }`}>
-                          {message.role === 'user' ? <User className="h-4 w-4" /> : <Stethoscope className="h-4 w-4" />}
-                        </div>
-                        
-                        <div className={`rounded-lg p-4 ${
-                          message.role === 'user' 
-                            ? 'bg-primary text-primary-foreground' 
-                            : 'bg-muted'
-                        }`}>
-                          {message.role === 'assistant' ? (
-                            <MessageRenderer 
-                              message={message}
-                              onExpandMessage={setExpandedMessage}
-                              onExportWord={generateWordDocument}
-                              onExportPowerPoint={generatePowerPoint}
-                            />
-                          ) : (
-                            <SafeMessageRenderer 
-                              content={message.content.replace(/\n/g, '<br/>')} 
-                              className="whitespace-pre-wrap"
-                            />
-                          )}
-
-                          
-                          {message.files && message.files.length > 0 && (
-                            <div className="mt-2 space-y-1">
-                              {message.files.map((file, index) => {
-                                const Icon = getFileTypeIcon(file.name, file.type);
-                                return (
-                                  <div key={index} className="flex items-center gap-2 text-xs opacity-75">
-                                    <Icon className="h-3 w-3" />
-                                    <span>{file.name}</span>
+                  {messages.length > 0 && (
+                    messages
+                      .reduce((acc, message, index) => {
+                        const prev = messages[index - 1];
+                        const shouldGroup =
+                          prev && prev.role === message.role &&
+                          message.role === 'assistant' &&
+                          Math.abs(message.timestamp.getTime() - prev.timestamp.getTime()) < 30000;
+                        if (shouldGroup) {
+                          acc[acc.length - 1].messages.push(message);
+                        } else {
+                          acc.push({ key: message.id, role: message.role, messages: [message] });
+                        }
+                        return acc;
+                      }, [] as Array<{ key: string; role: 'user' | 'assistant'; messages: Message[] }>)
+                      .map((group) => {
+                        const combinedContent = group.messages.map(m => m.content).join('\n\n');
+                        const combinedFiles = group.messages.flatMap(m => m.files || []);
+                        const lastTimestamp = group.messages[group.messages.length - 1].timestamp;
+                        const combinedMessage: Message = {
+                          ...group.messages[0],
+                          content: combinedContent,
+                          files: combinedFiles.length ? combinedFiles : undefined,
+                          timestamp: lastTimestamp,
+                        };
+                        return (
+                          <div key={group.key} className={`flex gap-3 ${group.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`flex gap-3 max-w-[85%] ${group.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${group.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+                                {group.role === 'user' ? <User className="h-4 w-4" /> : <Stethoscope className="h-4 w-4" />}
+                              </div>
+                              <div className={`rounded-lg p-4 ${group.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+                                {group.role === 'assistant' ? (
+                                  <MessageRenderer
+                                    message={combinedMessage}
+                                    onExpandMessage={setExpandedMessage}
+                                    onExportWord={generateWordDocument}
+                                    onExportPowerPoint={generatePowerPoint}
+                                  />
+                                ) : (
+                                  <SafeMessageRenderer
+                                    content={combinedContent.replace(/\n/g, '<br/>')}
+                                    className="whitespace-pre-wrap"
+                                  />
+                                )}
+                                {combinedFiles && combinedFiles.length > 0 && (
+                                  <div className="mt-2 space-y-1">
+                                    {combinedFiles.map((file, index) => {
+                                      const Icon = getFileTypeIcon(file.name, file.type);
+                                      return (
+                                        <div key={index} className="flex items-center gap-2 text-xs opacity-75">
+                                          <Icon className="h-3 w-3" />
+                                          <span>{file.name}</span>
+                                        </div>
+                                      );
+                                    })}
                                   </div>
-                                );
-                              })}
+                                )}
+                                <div className="text-xs opacity-50 mt-2">{lastTimestamp.toLocaleTimeString()}</div>
+                              </div>
                             </div>
-                          )}
-                          
-                          <div className="text-xs opacity-50 mt-2">
-                            {message.timestamp.toLocaleTimeString()}
                           </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                        );
+                      })
+                  )}
+
                   
                   {isLoading && (
                     <div className="flex gap-3">
