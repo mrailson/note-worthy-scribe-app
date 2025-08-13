@@ -1588,7 +1588,7 @@ useEffect(() => {
                 <div className="flex items-center gap-2">
                   {activeTab === "consultation" && <><Stethoscope className="h-4 w-4 text-primary" /><span className="text-sm font-medium">Consultation</span></>}
                   {activeTab === "transcript" && <><FileText className="h-4 w-4 text-primary" /><span className="text-sm font-medium">Transcript</span></>}
-                  {activeTab === "ai4gp" && <><Brain className="h-4 w-4 text-primary" /><span className="text-sm font-medium">AI4GP</span></>}
+                  {activeTab === "ai4gp" && <><Bot className="h-4 w-4 text-primary" /><span className="text-sm font-medium">AI4GP</span></>}
                   {activeTab === "gp-genie" && <><Bot className="h-4 w-4 text-primary" /><span className="text-sm font-medium">GP Genie</span></>}
                   {activeTab === "history" && <><History className="h-4 w-4 text-primary" /><span className="text-sm font-medium">History</span></>}
                   {activeTab === "examples" && <><BookOpen className="h-4 w-4 text-primary" /><span className="text-sm font-medium">Import</span></>}
@@ -1628,7 +1628,7 @@ useEffect(() => {
                       className="flex flex-col items-center gap-1 py-3 px-2 rounded-lg transition-all duration-200 text-xs font-medium data-[state=active]:bg-primary/90 data-[state=active]:text-primary-foreground"
                       onClick={() => setIsTabMenuOpen(false)}
                     >
-                      <Brain className="h-4 w-4" />
+                      <Bot className="h-4 w-4" />
                       <span>AI4GP</span>
                     </TabsTrigger>
                     <TabsTrigger 
@@ -1698,7 +1698,7 @@ useEffect(() => {
                   className="rounded-lg transition-all duration-200 font-medium shrink-0"
                 >
                   <div className="flex items-center gap-2">
-                    <Brain className="h-5 w-5" />
+                    <Bot className="h-5 w-5" />
                     <span>AI4GP</span>
                   </div>
                 </TabsTrigger>
