@@ -115,6 +115,49 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   };
 
   const formatContent = (content: string) => {
+    // Process markdown formatting
+    const processMarkdown = (text: string) => {
+      // Split text by URLs first to avoid processing URLs
+      const urlRegex = /(https?:\/\/[^\s<>")\]]+)/g;
+      const parts = text.split(urlRegex);
+      
+      return parts.map((part, index) => {
+        if (urlRegex.test(part)) {
+          return (
+            <a 
+              key={`url-${index}`}
+              href={part} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-blue-500 hover:text-blue-600 underline break-all"
+            >
+              {part}
+            </a>
+          );
+        }
+        
+        // Process markdown in non-URL parts
+        const processedText = part
+          // Bold text **text**
+          .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+          // Italic text *text*
+          .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+          // Headers ###
+          .replace(/^### (.+)$/gm, '<h3 class="text-base font-semibold mt-4 mb-2">$1</h3>')
+          .replace(/^## (.+)$/gm, '<h2 class="text-lg font-semibold mt-4 mb-2">$1</h2>')
+          .replace(/^# (.+)$/gm, '<h1 class="text-xl font-bold mt-4 mb-2">$1</h1>')
+          // Code blocks `code`
+          .replace(/`([^`]+)`/g, '<code class="bg-muted px-1 py-0.5 rounded text-xs font-mono">$1</code>');
+        
+        return (
+          <span 
+            key={`text-${index}`} 
+            dangerouslySetInnerHTML={{ __html: processedText }}
+          />
+        );
+      });
+    };
+
     // Split content into paragraphs
     const paragraphs = content.split('\n\n');
     
@@ -134,12 +177,18 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
         if (listItems.length > 0) {
           return (
             <div key={`list-${index}`} className="mb-4">
-              {title && <div className="font-medium mb-2">{linkifyContent(title)}</div>}
+              {title && (
+                <div className="font-medium mb-2">
+                  {processMarkdown(title)}
+                </div>
+              )}
               <ul className="space-y-1 ml-4">
                 {listItems.map((item, itemIndex) => (
                   <li key={`item-${itemIndex}`} className="flex items-start gap-2">
                     <CheckSquare className="h-3 w-3 mt-1 flex-shrink-0 text-muted-foreground" />
-                    <span className="text-sm">{linkifyContent(item.replace(/^[-•*]\s*/, ''))}</span>
+                    <span className="text-sm">
+                      {processMarkdown(item.replace(/^[-•*]\s*/, ''))}
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -148,10 +197,10 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
         }
       }
       
-      // Regular paragraph
+      // Regular paragraph with markdown processing
       return (
         <p key={`para-${index}`} className="text-sm mb-3 leading-relaxed whitespace-pre-wrap">
-          {linkifyContent(paragraph)}
+          {processMarkdown(paragraph)}
         </p>
       );
     }).filter(Boolean);
