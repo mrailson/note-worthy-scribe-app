@@ -103,31 +103,73 @@ export const ComplaintSignatureSettings = () => {
 
   const loadPractices = async () => {
     try {
-      // Get user's practice details directly
-      const { data: userPractices, error: practicesError } = await supabase
-        .from('practice_details')
-        .select('id, practice_name')
-        .eq('user_id', user?.id);
+      // Get user's practice assignments from user_roles table and join with practice_details
+      const { data: userRoles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select(`
+          practice_id
+        `)
+        .eq('user_id', user?.id)
+        .not('practice_id', 'is', null);
 
-      if (!practicesError && userPractices) {
-        // Transform the data to match expected format
-        const formattedPractices = userPractices.map(p => ({
-          practice_id: p.id,
-          practice_name: p.practice_name
-        }));
+      if (!rolesError && userRoles && userRoles.length > 0) {
+        // Get unique practice IDs
+        const practiceIds = [...new Set(userRoles.map(role => role.practice_id))];
         
-        setPractices(formattedPractices);
-        
-        // Auto-select the first practice if available and none is selected
-        if (formattedPractices.length > 0 && !signature.practice_id) {
-          setSignature(prev => ({ ...prev, practice_id: formattedPractices[0].practice_id }));
-          loadPracticeStyle(formattedPractices[0].practice_id);
-        } else if (signature.practice_id) {
-          loadPracticeStyle(signature.practice_id);
+        // Fetch practice details for these IDs
+        const { data: practiceDetails, error: practiceError } = await supabase
+          .from('practice_details')
+          .select('id, practice_name')
+          .in('id', practiceIds);
+
+        if (!practiceError && practiceDetails) {
+          const formattedPractices = practiceDetails.map(p => ({
+            practice_id: p.id,
+            practice_name: p.practice_name
+          }));
+          
+          setPractices(formattedPractices);
+          
+          // Auto-select the first practice if available and none is selected
+          if (formattedPractices.length > 0 && !signature.practice_id) {
+            setSignature(prev => ({ ...prev, practice_id: formattedPractices[0].practice_id }));
+            loadPracticeStyle(formattedPractices[0].practice_id);
+          } else if (signature.practice_id) {
+            loadPracticeStyle(signature.practice_id);
+          }
         }
+      } else {
+        // Fallback: Get user's practice details directly (for backward compatibility)
+        const { data: userPractices, error: practicesError } = await supabase
+          .from('practice_details')
+          .select('id, practice_name')
+          .eq('user_id', user?.id);
+
+        if (!practicesError && userPractices) {
+          const formattedPractices = userPractices.map(p => ({
+            practice_id: p.id,
+            practice_name: p.practice_name
+          }));
+          
+          setPractices(formattedPractices);
+          
+          // Auto-select the first practice if available and none is selected
+          if (formattedPractices.length > 0 && !signature.practice_id) {
+            setSignature(prev => ({ ...prev, practice_id: formattedPractices[0].practice_id }));
+            loadPracticeStyle(formattedPractices[0].practice_id);
+          } else if (signature.practice_id) {
+            loadPracticeStyle(signature.practice_id);
+          }
+        }
+      }
+      
+      // If no practices found, show a helpful message
+      if (!userRoles?.length) {
+        toast.info('No practice assignments found. Please contact your system administrator to assign you to a practice.');
       }
     } catch (error: any) {
       console.error('Error loading practices:', error);
+      toast.error('Error loading practices. Please check your practice assignments.');
     }
   };
 
