@@ -43,7 +43,10 @@ import {
   Shield,
   X,
   Save,
-  Copy
+  Copy,
+  BarChart3,
+  Settings,
+  Home
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -1146,22 +1149,27 @@ const ComplaintsSystem = () => {
 
         <Tabs value={currentTab} onValueChange={setCurrentTab} className="space-y-4 sm:space-y-6">
           <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 gap-1 h-auto p-1">
-            <TabsTrigger value="dashboard" className="min-h-[44px] text-xs sm:text-sm touch-manipulation">
+            <TabsTrigger value="dashboard" className="flex items-center gap-1 min-h-[44px] text-xs sm:text-sm touch-manipulation">
+              <Home className="h-4 w-4" />
               <span className="hidden sm:inline">Dashboard</span>
               <span className="sm:hidden">Home</span>
             </TabsTrigger>
-            <TabsTrigger value="view" className="min-h-[44px] text-xs sm:text-sm touch-manipulation">
+            <TabsTrigger value="view" className="flex items-center gap-1 min-h-[44px] text-xs sm:text-sm touch-manipulation">
+              <Eye className="h-4 w-4" />
               <span className="hidden sm:inline">View Complaints</span>
               <span className="sm:hidden">View</span>
             </TabsTrigger>
-            <TabsTrigger value="new" className="min-h-[44px] text-xs sm:text-sm touch-manipulation">
+            <TabsTrigger value="new" className="flex items-center gap-1 min-h-[44px] text-xs sm:text-sm touch-manipulation">
+              <Plus className="h-4 w-4" />
               <span className="hidden sm:inline">New Complaint</span>
               <span className="sm:hidden">New</span>
             </TabsTrigger>
-            <TabsTrigger value="reports" className="min-h-[44px] text-xs sm:text-sm touch-manipulation">
-              Reports
+            <TabsTrigger value="reports" className="flex items-center gap-1 min-h-[44px] text-xs sm:text-sm touch-manipulation">
+              <BarChart3 className="h-4 w-4" />
+              <span>Reports</span>
             </TabsTrigger>
-            <TabsTrigger value="settings" className="min-h-[44px] text-xs sm:text-sm touch-manipulation">
+            <TabsTrigger value="settings" className="flex items-center gap-1 min-h-[44px] text-xs sm:text-sm touch-manipulation">
+              <Settings className="h-4 w-4" />
               <span className="hidden sm:inline">Signature Settings</span>
               <span className="sm:hidden">Settings</span>
             </TabsTrigger>
@@ -2109,13 +2117,16 @@ const ComplaintsSystem = () => {
                 {/* Complaint Workflow Tabs */}
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                   <TabsList className="grid w-full grid-cols-3 gap-1 h-auto p-1">
-                    <TabsTrigger value="workflow" className="min-h-[44px] text-xs sm:text-sm touch-manipulation">
-                      Workflow
+                    <TabsTrigger value="workflow" className="flex items-center gap-1 min-h-[44px] text-xs sm:text-sm touch-manipulation">
+                      <FileText className="h-4 w-4" />
+                      <span>Workflow</span>
                     </TabsTrigger>
-                    <TabsTrigger value="compliance" className="min-h-[44px] text-xs sm:text-sm touch-manipulation">
-                      Compliance
+                    <TabsTrigger value="compliance" className="flex items-center gap-1 min-h-[44px] text-xs sm:text-sm touch-manipulation">
+                      <Shield className="h-4 w-4" />
+                      <span>Compliance</span>
                     </TabsTrigger>
-                    <TabsTrigger value="audit" className="min-h-[44px] text-xs sm:text-sm touch-manipulation">
+                    <TabsTrigger value="audit" className="flex items-center gap-1 min-h-[44px] text-xs sm:text-sm touch-manipulation">
+                      <Clock className="h-4 w-4" />
                       <span className="hidden sm:inline">Audit Log</span>
                       <span className="sm:hidden">Audit</span>
                     </TabsTrigger>
