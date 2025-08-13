@@ -246,6 +246,7 @@ const AI4GPService = () => {
       const { data, error } = await supabase
         .from('ai_4_pm_searches')
         .select('*')
+        .eq('user_id', user?.id)
         .order('created_at', { ascending: false })
         .limit(20);
 
@@ -783,6 +784,46 @@ Always provide evidence-based, clinically appropriate advice that follows curren
   return (
     <div className="w-full max-w-6xl mx-auto">
       <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-8rem)]">
+        
+        {/* Search History Sidebar */}
+        {searchHistory.length > 0 && (
+          <div className="lg:w-64 flex-shrink-0">
+            <Card className="h-full">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm">
+                  <History className="h-4 w-4" />
+                  Previous Searches
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <ScrollArea className="h-[calc(100vh-12rem)]">
+                  <div className="space-y-2 p-3">
+                    {searchHistory.map((search) => (
+                      <div
+                        key={search.id}
+                        className="p-3 text-xs border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
+                        onClick={() => {
+                          setMessages(search.messages);
+                          toast.success('Previous search loaded');
+                        }}
+                      >
+                        <div className="font-medium mb-1 line-clamp-2">{search.title}</div>
+                        {search.brief_overview && (
+                          <div className="text-muted-foreground line-clamp-2 mb-1">
+                            {search.brief_overview}
+                          </div>
+                        )}
+                        <div className="text-muted-foreground">
+                          {new Date(search.created_at).toLocaleDateString()}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </div>
+        )}
         
         {/* Chat Interface */}
         <div className="flex-1 flex flex-col">
