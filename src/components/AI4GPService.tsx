@@ -799,8 +799,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                       <DialogHeader className="flex-shrink-0">
                         <DialogTitle>Expanded Response</DialogTitle>
                       </DialogHeader>
-                      <ScrollArea className="flex-1 min-h-0">
-                        <div className="space-y-4 pr-4">
+                      <ScrollArea className="flex-1 overflow-auto" style={{ maxHeight: 'calc(95vh - 200px)' }}>
+                        <div className="space-y-4 pr-4 pb-4">
                           <MessageRenderer message={expandedMessage} disableTruncation={true} />
                         </div>
                       </ScrollArea>
