@@ -19,6 +19,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { 
   Send, 
   Mic, 
+  MicOff,
   Paperclip, 
   FileText, 
   Mail, 
@@ -159,6 +160,11 @@ const AI4PMService = () => {
     const saved = localStorage.getItem('ai4pm-voice-muted');
     return saved ? JSON.parse(saved) : false;
   });
+  const [isMicMuted, setIsMicMuted] = useState(() => {
+    const saved = localStorage.getItem('ai4pm-mic-muted');
+    return saved ? JSON.parse(saved) : false;
+  });
+  const [voiceInstanceId, setVoiceInstanceId] = useState<string | null>(null);
   const voiceChatRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -178,6 +184,15 @@ const AI4PMService = () => {
       loadPracticeContext();
     }
   }, [user]);
+
+  // Clean up voice instance on unmount
+  useEffect(() => {
+    return () => {
+      if (voiceInstanceId) {
+        localStorage.removeItem('ai4pm-active-voice-instance');
+      }
+    };
+  }, [voiceInstanceId]);
 
   // File input setup
   useEffect(() => {
@@ -258,20 +273,37 @@ const AI4PMService = () => {
   // Start voice chat
   const startVoiceChat = async () => {
     try {
+      // Check if there's already an active voice session
+      const existingInstanceId = localStorage.getItem('ai4pm-active-voice-instance');
+      if (existingInstanceId && existingInstanceId !== voiceInstanceId) {
+        alert('Another voice session is already active. Please close it first.');
+        return;
+      }
+
       setIsVoiceConnecting(true);
       
       // Request microphone permission
       await navigator.mediaDevices.getUserMedia({ audio: true });
+      
+      // Create unique instance ID
+      const instanceId = `voice-${Date.now()}`;
+      setVoiceInstanceId(instanceId);
+      localStorage.setItem('ai4pm-active-voice-instance', instanceId);
       
       voiceChatRef.current = new RealtimeChat(handleVoiceMessage);
       const displayName = (user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email || 'there') as string;
       const firstName = displayName.includes('@') ? displayName.split('@')[0] : displayName.split(' ')[0];
       await voiceChatRef.current.init('shimmer', `Hello ${firstName}, I am the AI for GP Practice Managers, How can I help?`);
       
-      // Apply saved mute state after initialization
-      if (voiceChatRef.current && isVoiceMuted) {
-        voiceChatRef.current.setMuted(true);
-        console.log('Applied saved mute state:', isVoiceMuted);
+      // Apply saved states after initialization
+      if (voiceChatRef.current) {
+        if (isVoiceMuted) {
+          voiceChatRef.current.setMuted(true);
+        }
+        if (isMicMuted) {
+          voiceChatRef.current.setMicMuted?.(true);
+        }
+        console.log('Applied saved voice states:', { isVoiceMuted, isMicMuted });
       }
       
       setIsVoiceConnected(true);
@@ -287,6 +319,11 @@ const AI4PMService = () => {
     } catch (error) {
       console.error('Voice chat error:', error);
       setIsVoiceConnecting(false);
+      // Clean up instance tracking on error
+      if (voiceInstanceId) {
+        localStorage.removeItem('ai4pm-active-voice-instance');
+        setVoiceInstanceId(null);
+      }
     }
   };
 
@@ -300,12 +337,29 @@ const AI4PMService = () => {
     }
   };
 
+  // Toggle mic mute
+  const toggleMicMute = () => {
+    if (voiceChatRef.current) {
+      const newMutedState = !isMicMuted;
+      voiceChatRef.current.setMicMuted?.(newMutedState);
+      setIsMicMuted(newMutedState);
+      localStorage.setItem('ai4pm-mic-muted', JSON.stringify(newMutedState));
+    }
+  };
+
   // End voice chat
   const endVoiceChat = () => {
     voiceChatRef.current?.disconnect();
     setIsVoiceConnected(false);
     setIsVoiceSpeaking(false);
-    // Don't reset mute state - preserve user preference
+    
+    // Clean up instance tracking
+    if (voiceInstanceId) {
+      localStorage.removeItem('ai4pm-active-voice-instance');
+      setVoiceInstanceId(null);
+    }
+    
+    // Don't reset mute states - preserve user preferences
     
     // Auto-save the conversation when ending voice chat if there are messages
     if (messages.length > 0) {
@@ -1176,8 +1230,18 @@ Format your responses clearly with headings and bullet points where appropriate 
                               size="sm"
                               onClick={toggleVoiceMute}
                               className={`h-8 ${isVoiceMuted ? 'text-muted-foreground' : 'text-primary'}`}
+                              title={isVoiceMuted ? 'Unmute speaker' : 'Mute speaker'}
                             >
                               {isVoiceMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={toggleMicMute}
+                              className={`h-8 ${isMicMuted ? 'text-muted-foreground' : 'text-primary'}`}
+                              title={isMicMuted ? 'Unmute microphone' : 'Mute microphone'}
+                            >
+                              {isMicMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                             </Button>
                             {isVoiceSpeaking && (
                               <div className="flex items-center gap-1 text-sm text-primary">
