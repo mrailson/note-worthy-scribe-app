@@ -1171,7 +1171,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                         {/* Quick Actions within welcome message */}
                         <div className="max-w-4xl mx-auto">
                           <h4 className="text-sm font-medium mb-2 text-muted-foreground">Get started with these common queries:</h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-2">
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-1">
                             {quickActions.slice(0, showAllQuickActions ? quickActions.length : 6).map((action, index) => {
                               const Icon = action.icon;
                               return (
@@ -1414,32 +1414,32 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                        }
                      }}
                    />
-                   <div className="flex flex-col gap-1">
-                      <input
-                        type="file"
-                        multiple
-                        className="hidden"
-                        ref={fileInputRef}
-                        accept=".pdf,.doc,.docx,.rtf,.txt,.eml,.msg,.jpg,.jpeg,.png,.wav,.mp3,.m4a"
-                      />
-                      <Button
-                        variant="outline"
+                    <div className="flex flex-col gap-1">
+                      <Button 
+                        onClick={handleSend} 
+                        disabled={isLoading || (!input.trim() && uploadedFiles.length === 0)}
                         size="sm"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={isLoading}
-                        title="Upload files (PDF, DOC, DOCX, RTF, TXT, EML, MSG, JPG, PNG, audio files)"
                       >
-                        <Paperclip className="h-4 w-4" />
+                        <Send className="h-4 w-4" />
                       </Button>
-                     <SpeechToText onTranscription={(transcript) => setInput(prev => prev + ' ' + transcript)} />
-                     <Button 
-                       onClick={handleSend} 
-                       disabled={isLoading || (!input.trim() && uploadedFiles.length === 0)}
-                       size="sm"
-                     >
-                       <Send className="h-4 w-4" />
-                     </Button>
-                   </div>
+                       <input
+                         type="file"
+                         multiple
+                         className="hidden"
+                         ref={fileInputRef}
+                         accept=".pdf,.doc,.docx,.rtf,.txt,.eml,.msg,.jpg,.jpeg,.png,.wav,.mp3,.m4a"
+                       />
+                       <Button
+                         variant="outline"
+                         size="sm"
+                         onClick={() => fileInputRef.current?.click()}
+                         disabled={isLoading}
+                         title="Upload files (PDF, DOC, DOCX, RTF, TXT, EML, MSG, JPG, PNG, audio files)"
+                       >
+                         <Paperclip className="h-4 w-4" />
+                       </Button>
+                      <SpeechToText onTranscription={(transcript) => setInput(prev => prev + ' ' + transcript)} />
+                    </div>
                  </div>
                </div>
                </CardContent>
