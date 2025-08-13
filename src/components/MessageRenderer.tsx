@@ -91,9 +91,33 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
     }
   };
 
+  // Function to convert URLs to clickable links
+  const linkifyText = (text: string): (string | React.ReactElement)[] => {
+    // URL regex pattern
+    const urlRegex = /(https?:\/\/[^\s<>"]+)/g;
+    const parts = text.split(urlRegex);
+    
+    return parts.map((part, index) => {
+      if (urlRegex.test(part)) {
+        return (
+          <a 
+            key={index} 
+            href={part} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-blue-500 hover:text-blue-600 underline break-all"
+          >
+            {part}
+          </a>
+        );
+      }
+      return part;
+    });
+  };
+
   const formatContent = (content: string) => {
     // Convert markdown-style formatting to JSX
-    const parseMarkdown = (text: string) => {
+    const parseMarkdown = (text: string): (string | React.ReactElement)[] => {
       // Split by various markdown patterns while preserving the delimiters
       const parts = text.split(/(\*\*\*.*?\*\*\*|\*\*.*?\*\*|\*.*?\*|`.*?`|##.*?\n)/g);
       
@@ -101,19 +125,19 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
         // Bold and italic (***text***)
         if (part.startsWith('***') && part.endsWith('***')) {
           const content = part.slice(3, -3);
-          return <strong key={index} className="font-bold italic">{content}</strong>;
+          return <strong key={index} className="font-bold italic">{linkifyText(content)}</strong>;
         }
         // Bold (**text**)
         if (part.startsWith('**') && part.endsWith('**')) {
           const content = part.slice(2, -2);
-          return <strong key={index} className="font-bold">{content}</strong>;
+          return <strong key={index} className="font-bold">{linkifyText(content)}</strong>;
         }
         // Italic (*text*)
         if (part.startsWith('*') && part.endsWith('*') && !part.startsWith('**')) {
           const content = part.slice(1, -1);
-          return <em key={index} className="italic">{content}</em>;
+          return <em key={index} className="italic">{linkifyText(content)}</em>;
         }
-        // Code (`text`)
+        // Code (`text*)
         if (part.startsWith('`') && part.endsWith('`')) {
           const content = part.slice(1, -1);
           return <code key={index} className="bg-muted px-1 py-0.5 rounded text-xs font-mono">{content}</code>;
@@ -121,11 +145,11 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
         // Heading (## text)
         if (part.startsWith('##')) {
           const content = part.replace(/^#+\s*/, '').replace(/\n$/, '');
-          return <strong key={index} className="font-semibold text-base block mt-2 mb-1">{content}</strong>;
+          return <strong key={index} className="font-semibold text-base block mt-2 mb-1">{linkifyText(content)}</strong>;
         }
         
-        return part;
-      });
+        return linkifyText(part);
+      }).flat();
     };
 
     // Split content into sections based on common patterns
@@ -318,7 +342,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
               </div>
             ) : (
               <div className="whitespace-pre-wrap text-sm">
-                {displayContent}
+                {linkifyText(displayContent)}
               </div>
             )}
             

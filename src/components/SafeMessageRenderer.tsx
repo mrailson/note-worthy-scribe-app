@@ -12,8 +12,17 @@ export const SafeMessageRenderer: React.FC<SafeMessageRendererProps> = ({
   className = "",
   tag: Tag = "div" 
 }) => {
+  // Function to convert URLs to clickable links
+  const linkifyContent = (text: string): string => {
+    const urlRegex = /(https?:\/\/[^\s<>"]+)/g;
+    return text.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:text-blue-600 underline break-all">$1</a>');
+  };
+
+  // Apply linkification before sanitization
+  const linkedContent = linkifyContent(content.replace(/\n/g, '<br/>'));
+
   // Configure DOMPurify to allow only safe HTML elements and attributes
-  const cleanContent = DOMPurify.sanitize(content, {
+  const cleanContent = DOMPurify.sanitize(linkedContent, {
     ALLOWED_TAGS: [
       'p', 'br', 'strong', 'em', 'u', 'b', 'i', 
       'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
