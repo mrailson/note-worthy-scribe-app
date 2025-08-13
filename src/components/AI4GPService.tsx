@@ -522,7 +522,11 @@ Always provide evidence-based, clinically appropriate advice that follows curren
   };
 
   // Voice: Realtime ChatGPT voice integration
+  const voiceSessionRef = useRef<string | null>(null);
+  
   const handleVoiceMessage = (event: any) => {
+    console.log('Voice event:', event.type, event);
+    
     // Track assistant speaking audio
     if (event.type === 'response.audio.delta') {
       setIsVoiceSpeaking(true);
@@ -533,25 +537,56 @@ Always provide evidence-based, clinically appropriate advice that follows curren
       return;
     }
 
+    // When a new response starts, create a new session ID
+    if (event.type === 'response.created') {
+      voiceSessionRef.current = `voice-session-${Date.now()}`;
+      console.log('New voice session created:', voiceSessionRef.current);
+      return;
+    }
+
     // Streamed assistant transcript
     if (event.type === 'response.audio_transcript.delta') {
+      console.log('Voice transcript delta:', event.delta);
+      
+      // Ensure we have a session ID
+      if (!voiceSessionRef.current) {
+        voiceSessionRef.current = `voice-session-${Date.now()}`;
+      }
+      
       setMessages(prev => {
         const last = prev[prev.length - 1];
-        if (last && last.role === 'assistant' && last.id === 'voice-response') {
+        // Check if last message is from the same voice session
+        if (last && last.role === 'assistant' && last.id === voiceSessionRef.current) {
+          console.log('Appending to existing voice message');
           return [...prev.slice(0, -1), { ...last, content: last.content + event.delta }];
         }
+        
+        console.log('Creating new voice message with session ID:', voiceSessionRef.current);
+        // Create new voice response with consistent session ID
         return [
           ...prev,
-          { id: 'voice-response', role: 'assistant', content: event.delta, timestamp: new Date() }
+          { 
+            id: voiceSessionRef.current, 
+            role: 'assistant', 
+            content: event.delta, 
+            timestamp: new Date() 
+          }
         ];
       });
       return;
     }
 
-    // Assistant transcript completed - Don't change ID to allow grouping
+    // Assistant transcript completed
     if (event.type === 'response.audio_transcript.done') {
-      // Don't change the ID or create a new message
-      // This allows the grouping logic to work properly for consecutive voice responses
+      console.log('Voice transcript completed');
+      // Don't change anything - let grouping logic handle it
+      return;
+    }
+
+    // Response fully done - reset session for next response
+    if (event.type === 'response.done') {
+      console.log('Voice response fully done, clearing session');
+      voiceSessionRef.current = null;
       return;
     }
 
