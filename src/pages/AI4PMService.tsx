@@ -1341,31 +1341,9 @@ Format your responses clearly with headings and bullet points where appropriate 
                               ? 'bg-primary text-primary-foreground' 
                               : 'bg-muted'
                           }`}>
-                            <div className="flex items-start gap-2">
-                              {message.role === 'assistant' && <Bot className="h-4 w-4 mt-1 flex-shrink-0" />}
-                              {message.role === 'user' && <User className="h-4 w-4 mt-1 flex-shrink-0" />}
-                              <div className="space-y-2">
-                                {/* Message files */}
-                                {message.files && message.files.length > 0 && (
-                                  <div className="space-y-1">
-                                    {message.files.map((file, index) => {
-                                      const FileIcon = getFileTypeIcon(file.name, file.type);
-                                      return (
-                                        <div key={index} className="flex items-center gap-2 text-xs bg-background/10 rounded p-2">
-                                          <FileIcon className="h-3 w-3" />
-                                          <span className="truncate">{file.name}</span>
-                                          {file.isLoading && <Loader2 className="h-3 w-3 animate-spin" />}
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                )}
-                                
-                                <MessageRenderer 
-                                  message={message}
-                                />
-                              </div>
-                            </div>
+                            <MessageRenderer 
+                              message={message}
+                            />
                           </div>
                         </div>
                       ))}

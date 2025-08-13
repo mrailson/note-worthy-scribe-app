@@ -150,10 +150,11 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
           .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
           // Italic text *text*
           .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-          // Headers ###
-          .replace(/^### (.+)$/gm, '<h3 class="text-base font-semibold mt-4 mb-2">$1</h3>')
-          .replace(/^## (.+)$/gm, '<h2 class="text-lg font-semibold mt-4 mb-2">$1</h2>')
-          .replace(/^# (.+)$/gm, '<h1 class="text-xl font-bold mt-4 mb-2">$1</h1>')
+          // Headers - remove markdown syntax completely
+          .replace(/^#{4,}\s*(.+)$/gm, '<h3 class="text-base font-semibold mt-4 mb-2">$1</h3>')
+          .replace(/^###\s*(.+)$/gm, '<h3 class="text-base font-semibold mt-4 mb-2">$1</h3>')
+          .replace(/^##\s*(.+)$/gm, '<h2 class="text-lg font-semibold mt-4 mb-2">$1</h2>')
+          .replace(/^#\s*(.+)$/gm, '<h1 class="text-xl font-bold mt-4 mb-2">$1</h1>')
           // Code blocks `code`
           .replace(/`([^`]+)`/g, '<code class="bg-muted px-1 py-0.5 rounded text-xs font-mono">$1</code>');
         
