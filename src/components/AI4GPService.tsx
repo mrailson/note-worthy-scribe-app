@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { SafeMessageRenderer } from './SafeMessageRenderer';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -557,7 +557,11 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     }
   };
 
-  const handleFileSelect = async (event: Event) => {
+  const handleFileSelect = useCallback(async (event: Event) => {
+    // Prevent any default behavior that might cause navigation
+    event.preventDefault();
+    event.stopPropagation();
+    
     const target = event.target as HTMLInputElement;
     const files = target.files;
     if (!files || files.length === 0) return;
@@ -566,21 +570,44 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     
     try {
       const filePromises = Array.from(files).map(async (file) => {
+        // Add file type validation
+        const validTypes = ['.pdf', '.doc', '.docx', '.rtf', '.txt', '.eml', '.msg', '.jpg', '.jpeg', '.png', '.wav', '.mp3', '.m4a'];
+        const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+        
+        if (!validTypes.includes(fileExtension)) {
+          throw new Error(`Unsupported file type: ${file.name}`);
+        }
+        
+        // Add file size validation (10MB limit)
+        if (file.size > 10 * 1024 * 1024) {
+          throw new Error(`File too large: ${file.name} (max 10MB)`);
+        }
+        
         const reader = new FileReader();
         
         return new Promise<UploadedFile>((resolve, reject) => {
           reader.onload = () => {
-            const content = reader.result as string;
-            resolve({
-              name: file.name,
-              type: file.type,
-              content: content,
-              size: file.size,
-              isLoading: false
-            });
+            try {
+              const content = reader.result as string;
+              resolve({
+                name: file.name,
+                type: file.type,
+                content: content,
+                size: file.size,
+                isLoading: false
+              });
+            } catch (error) {
+              reject(new Error(`Failed to process ${file.name}: ${error.message}`));
+            }
           };
           reader.onerror = () => reject(new Error(`Failed to read ${file.name}`));
-          reader.readAsText(file);
+          
+          // Use readAsText for text files, readAsDataURL for binary files
+          if (['.jpg', '.jpeg', '.png', '.wav', '.mp3', '.m4a'].includes(fileExtension)) {
+            reader.readAsDataURL(file);
+          } else {
+            reader.readAsText(file);
+          }
         });
       });
 
@@ -592,11 +619,12 @@ Always provide evidence-based, clinically appropriate advice that follows curren
       target.value = '';
     } catch (error) {
       console.error('Error processing files:', error);
-      toast.error('Failed to process files');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to process files';
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   const handleNewSearch = () => {
     setMessages([]);
