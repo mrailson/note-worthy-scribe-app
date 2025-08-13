@@ -52,7 +52,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Volume2, VolumeX } from 'lucide-react';
 import { SpeechToText } from '@/components/SpeechToText';
 import MessageRenderer from '@/components/MessageRenderer';
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, ExternalHyperlink } from 'docx';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, ExternalHyperlink, Table, TableRow, TableCell, WidthType, BorderStyle } from 'docx';
 import { saveAs } from 'file-saver';
 import PptxGenJS from 'pptxgenjs';
 import { RealtimeChat } from '@/utils/RealtimeAudio';
@@ -496,20 +496,23 @@ Always provide evidence-based, clinically appropriate advice that follows curren
   // Export: Word document
   const generateWordDocument = async (content: string, title: string = 'AI Generated Document') => {
     try {
+      // Function to clean markdown formatting from text
+      const cleanMarkdown = (text: string): string => {
+        return text
+          .replace(/\*\*\*([^*]+)\*\*\*/g, '$1') // Remove triple asterisks (bold+italic)
+          .replace(/\*\*([^*]+)\*\*/g, '$1')     // Remove double asterisks (bold)
+          .replace(/\*([^*]+)\*/g, '$1')         // Remove single asterisks (italic)
+          .replace(/`([^`]+)`/g, '$1')           // Remove backticks (code)
+          .replace(/#{1,6}\s+/g, '')             // Remove heading markers
+          .trim();
+      };
+
       // Function to process text with inline formatting (bold, italic, code, links)
       const processFormattedText = (text: string) => {
         const children: any[] = [];
         
-        // Handle the special case where the entire line is bold
-        if (text.match(/^\*\*[^*]+\*\*$/)) {
-          const boldText = text.slice(2, -2);
-          children.push(new TextRun({
-            text: boldText,
-            size: 24,
-            bold: true
-          }));
-          return children;
-        }
+        // Clean the text first to remove any stray markdown
+        const cleanedText = cleanMarkdown(text);
         
         // Enhanced pattern to handle bold, italic, code, and URLs
         const formatPattern = /(\*\*\*[^*]+?\*\*\*|\*\*[^*]+?\*\*|\*[^*]+?\*|`[^`]+?`|https?:\/\/[^\s]+)/g;
@@ -522,7 +525,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
             const plainText = text.substring(lastIndex, match.index);
             if (plainText) {
               children.push(new TextRun({
-                text: plainText,
+                text: cleanMarkdown(plainText),
                 size: 24
               }));
             }
@@ -593,58 +596,155 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           const remainingText = text.substring(lastIndex);
           if (remainingText) {
             children.push(new TextRun({
-              text: remainingText,
+              text: cleanMarkdown(remainingText),
               size: 24
             }));
           }
         }
         
-        return children.length > 0 ? children : [new TextRun({ text: text, size: 24 })];
+        return children.length > 0 ? children : [new TextRun({ text: cleanedText, size: 24 })];
+      };
+
+      // Function to detect and parse markdown tables
+      const parseTable = (lines: string[], startIndex: number): { table: Table; endIndex: number } | null => {
+        const tableLines: string[] = [];
+        let currentIndex = startIndex;
+        
+        // Collect all table lines
+        while (currentIndex < lines.length) {
+          const line = lines[currentIndex].trim();
+          if (line.includes('|')) {
+            tableLines.push(line);
+            currentIndex++;
+          } else {
+            break;
+          }
+        }
+        
+        if (tableLines.length < 2) return null;
+        
+        // Remove separator line (usually second line with dashes)
+        const separatorIndex = tableLines.findIndex(line => /^[\|\s\-:]+$/.test(line));
+        if (separatorIndex !== -1) {
+          tableLines.splice(separatorIndex, 1);
+        }
+        
+        // Parse table data
+        const tableData = tableLines.map(line => {
+          return line.split('|')
+            .map(cell => cleanMarkdown(cell.trim()))
+            .filter(cell => cell !== ''); // Remove empty cells from start/end
+        });
+        
+        if (tableData.length === 0) return null;
+        
+        // Create table rows
+        const tableRows = tableData.map((rowData, rowIndex) => {
+          const isHeader = rowIndex === 0;
+          
+          return new TableRow({
+            children: rowData.map(cellText => 
+              new TableCell({
+                children: [new Paragraph({
+                  children: [new TextRun({
+                    text: cellText,
+                    bold: isHeader,
+                    size: isHeader ? 26 : 24
+                  })]
+                })],
+                width: { size: 100 / rowData.length, type: WidthType.PERCENTAGE },
+                margins: { top: 100, bottom: 100, left: 100, right: 100 },
+                shading: isHeader ? { fill: "E5E7EB" } : undefined
+              })
+            )
+          });
+        });
+        
+        const table = new Table({
+          rows: tableRows,
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          borders: {
+            top: { style: BorderStyle.SINGLE, size: 1 },
+            bottom: { style: BorderStyle.SINGLE, size: 1 },
+            left: { style: BorderStyle.SINGLE, size: 1 },
+            right: { style: BorderStyle.SINGLE, size: 1 },
+            insideHorizontal: { style: BorderStyle.SINGLE, size: 1 },
+            insideVertical: { style: BorderStyle.SINGLE, size: 1 },
+          }
+        });
+        
+        return { table, endIndex: currentIndex };
       };
 
       const paragraphs = [
-        new Paragraph({ children: [new TextRun({ text: title, bold: true, size: 28 })] })
+        new Paragraph({ 
+          children: [new TextRun({ text: title, bold: true, size: 28 })],
+          spacing: { after: 300 }
+        })
       ];
       
-      // Parse content into formatted paragraphs
-      const lines = content.split('\n').filter(line => line.trim());
+      // Parse content into formatted paragraphs and tables
+      const lines = content.split('\n');
+      let i = 0;
       
-      for (const line of lines) {
+      while (i < lines.length) {
+        const line = lines[i];
         const trimmedLine = line.trim();
-        if (trimmedLine) {
-          // Check if line is a heading
-          const headingMatch = trimmedLine.match(/^(#{1,6})\s+(.+)$/);
-          if (headingMatch) {
-            const headingLevel = headingMatch[1].length;
-            const headingText = headingMatch[2];
-            
-            // Map markdown heading levels to Word heading levels
-            const headingLevelMap = {
-              1: HeadingLevel.HEADING_1,
-              2: HeadingLevel.HEADING_2,
-              3: HeadingLevel.HEADING_3,
-              4: HeadingLevel.HEADING_4,
-              5: HeadingLevel.HEADING_5,
-              6: HeadingLevel.HEADING_6
-            };
-            
-            paragraphs.push(
-              new Paragraph({
-                children: [new TextRun({ text: headingText, bold: true, size: 28 - (headingLevel * 2) })],
-                heading: headingLevelMap[headingLevel as keyof typeof headingLevelMap] || HeadingLevel.HEADING_3,
-                spacing: { before: 300, after: 200 }
-              })
-            );
-          } else {
-            // Regular paragraph with formatting
-            paragraphs.push(
-              new Paragraph({
-                children: processFormattedText(trimmedLine),
-                spacing: { after: 200 }
-              })
-            );
+        
+        if (!trimmedLine) {
+          i++;
+          continue;
+        }
+        
+        // Check if this is the start of a table
+        if (trimmedLine.includes('|') && i < lines.length - 1) {
+          const tableResult = parseTable(lines, i);
+          if (tableResult) {
+            paragraphs.push(tableResult.table as any);
+            // Add spacing after table
+            paragraphs.push(new Paragraph({ 
+              children: [new TextRun({ text: "", size: 12 })],
+              spacing: { after: 200 }
+            }));
+            i = tableResult.endIndex;
+            continue;
           }
         }
+        
+        // Check if line is a heading
+        const headingMatch = trimmedLine.match(/^(#{1,6})\s+(.+)$/);
+        if (headingMatch) {
+          const headingLevel = headingMatch[1].length;
+          const headingText = cleanMarkdown(headingMatch[2]);
+          
+          // Map markdown heading levels to Word heading levels
+          const headingLevelMap = {
+            1: HeadingLevel.HEADING_1,
+            2: HeadingLevel.HEADING_2,
+            3: HeadingLevel.HEADING_3,
+            4: HeadingLevel.HEADING_4,
+            5: HeadingLevel.HEADING_5,
+            6: HeadingLevel.HEADING_6
+          };
+          
+          paragraphs.push(
+            new Paragraph({
+              children: [new TextRun({ text: headingText, bold: true, size: 28 - (headingLevel * 2) })],
+              heading: headingLevelMap[headingLevel as keyof typeof headingLevelMap] || HeadingLevel.HEADING_3,
+              spacing: { before: 300, after: 200 }
+            })
+          );
+        } else {
+          // Regular paragraph with formatting
+          paragraphs.push(
+            new Paragraph({
+              children: processFormattedText(trimmedLine),
+              spacing: { after: 200 }
+            })
+          );
+        }
+        
+        i++;
       }
 
       const doc = new Document({ sections: [{ children: paragraphs }] });
