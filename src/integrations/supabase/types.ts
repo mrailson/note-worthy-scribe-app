@@ -3898,6 +3898,14 @@ export type Database = {
         }
         Returns: string
       }
+      log_meeting_content_access: {
+        Args: {
+          p_action?: string
+          p_content_type: string
+          p_meeting_id: string
+        }
+        Returns: undefined
+      }
       log_security_event: {
         Args:
           | { event_data: Json; event_type: string }
@@ -3955,6 +3963,10 @@ export type Database = {
           p_module: Database["public"]["Enums"]["app_module"]
           p_user_id: string
         }
+        Returns: boolean
+      }
+      validate_meeting_access_and_log: {
+        Args: { p_content_type?: string; p_meeting_id: string }
         Returns: boolean
       }
       validate_nhs_email: {
