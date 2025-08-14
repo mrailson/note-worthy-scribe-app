@@ -10,6 +10,8 @@ const cleanMarkdown = (text: string): string => {
     .replace(/\*([^*]+)\*/g, '$1')         // Remove single asterisks (italic)
     .replace(/`([^`]+)`/g, '$1')           // Remove backticks (code)
     .replace(/#{1,6}\s+/g, '')             // Remove heading markers
+    .replace(/^---+$/gm, '')               // Remove horizontal rules
+    .replace(/\n\s*\n\s*\n/g, '\n\n')     // Clean up extra newlines
     .trim();
 };
 
@@ -122,7 +124,7 @@ export const generateWordDocument = async (content: string, title: string = 'AI 
           .filter(cell => cell !== '') // Remove empty cells from start/end
       });
 
-      // Skip header separator lines
+      // Skip header separator lines and horizontal rules
       const dataRows = rows.filter(row => 
         !row.every(cell => /^[-\s]*$/.test(cell))
       );
@@ -374,7 +376,7 @@ export const generatePowerPoint = async (content: string, title: string = 'AI Ge
             .filter(cell => cell !== '');
         });
 
-        // Filter out separator rows
+        // Filter out separator rows and horizontal rules
         const dataRows = tableRows.filter(row => 
           !row.every(cell => /^[-\s]*$/.test(cell))
         );
