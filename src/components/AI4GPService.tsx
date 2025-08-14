@@ -27,6 +27,7 @@ const AI4GPService = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [selectedModel, setSelectedModel] = useState('gpt-5');
   const [cardSize, setCardSize] = useState('default');
+  const [cardHeight, setCardHeight] = useState(400);
 
   const {
     messages,
@@ -156,6 +157,7 @@ const AI4GPService = () => {
                 setExpandedMessage={setExpandedMessage}
                 onExportWord={generateWordDocument}
                 onExportPowerPoint={generatePowerPoint}
+                cardHeight={cardHeight}
               />
             )}
 
@@ -205,6 +207,8 @@ const AI4GPService = () => {
         onModelChange={setSelectedModel}
         cardSize={cardSize}
         onCardSizeChange={setCardSize}
+        cardHeight={cardHeight}
+        onCardHeightChange={setCardHeight}
       />
     </div>
   );

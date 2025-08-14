@@ -11,6 +11,7 @@ interface MessagesListProps {
   setExpandedMessage: (message: Message | null) => void;
   onExportWord?: (content: string, title?: string) => void;
   onExportPowerPoint?: (content: string, title?: string) => void;
+  cardHeight?: number;
 }
 
 export const MessagesList: React.FC<MessagesListProps> = ({
@@ -19,7 +20,8 @@ export const MessagesList: React.FC<MessagesListProps> = ({
   expandedMessage,
   setExpandedMessage,
   onExportWord,
-  onExportPowerPoint
+  onExportPowerPoint,
+  cardHeight
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -48,6 +50,7 @@ export const MessagesList: React.FC<MessagesListProps> = ({
             onExpandMessage={setExpandedMessage}
             onExportWord={onExportWord}
             onExportPowerPoint={onExportPowerPoint}
+            cardHeight={cardHeight}
           />
         ))}
         

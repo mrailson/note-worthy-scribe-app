@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Brain, Search, Bot, Maximize2 } from 'lucide-react';
 
@@ -17,6 +18,8 @@ interface SettingsModalProps {
   onModelChange: (model: string) => void;
   cardSize: string;
   onCardSizeChange: (size: string) => void;
+  cardHeight: number;
+  onCardHeightChange: (height: number) => void;
 }
 
 const AI_MODELS = [
@@ -73,7 +76,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   selectedModel,
   onModelChange,
   cardSize,
-  onCardSizeChange
+  onCardSizeChange,
+  cardHeight,
+  onCardHeightChange
 }) => {
   const selectedModelInfo = AI_MODELS.find(model => model.id === selectedModel) || AI_MODELS[0];
 
@@ -200,6 +205,28 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <div className="text-xs text-muted-foreground bg-muted/30 p-3 rounded-lg">
                 <div className="font-medium">{CARD_SIZES.find(s => s.id === cardSize)?.name || 'Default'}</div>
                 <div className="mt-1">{CARD_SIZES.find(s => s.id === cardSize)?.description || 'Standard size with optimal readability'}</div>
+              </div>
+              
+              {/* Card Height Slider */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Card Height</Label>
+                <div className="px-2">
+                  <Slider
+                    value={[cardHeight]}
+                    onValueChange={(value) => onCardHeightChange(value[0])}
+                    max={800}
+                    min={200}
+                    step={50}
+                    className="w-full"
+                  />
+                </div>
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Compact ({cardHeight}px)</span>
+                  <span>Spacious</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Adjust message card height to reduce white space and keep input boxes visible
+                </p>
               </div>
             </CardContent>
           </Card>

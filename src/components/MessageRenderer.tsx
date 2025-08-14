@@ -38,6 +38,7 @@ interface MessageRendererProps {
   onExpandMessage?: (message: Message) => void;
   onExportWord?: (content: string, title: string) => void;
   onExportPowerPoint?: (content: string, title: string) => void;
+  cardHeight?: number;
 }
 
 const MessageRenderer: React.FC<MessageRendererProps> = ({ 
@@ -45,7 +46,8 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   disableTruncation = false, 
   onExpandMessage, 
   onExportWord, 
-  onExportPowerPoint 
+  onExportPowerPoint,
+  cardHeight = 400
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showFullContent, setShowFullContent] = useState(true);
@@ -237,6 +239,10 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
               ? 'bg-primary text-primary-foreground' 
               : 'bg-muted border border-border'
           }`}
+          style={{
+            maxHeight: message.role === 'assistant' ? `${cardHeight}px` : 'auto',
+            overflowY: message.role === 'assistant' ? 'auto' : 'visible'
+          }}
         >
           {/* Message Content */}
           <div className="space-y-2">
