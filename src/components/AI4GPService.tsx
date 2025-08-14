@@ -1779,6 +1779,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           </div>
         </div>
       );
-  };
+};
+};
+};
 
-  export default AI4GPService;
+export default AI4GPService;
