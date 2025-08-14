@@ -1,4 +1,4 @@
-import { Document, Packer, Paragraph, TextRun, ExternalHyperlink, Table, TableRow, TableCell, WidthType, BorderStyle } from 'docx';
+import { Document, Packer, Paragraph, TextRun, ExternalHyperlink, Table, TableRow, TableCell, WidthType, BorderStyle, SymbolRun, UnderlineType } from 'docx';
 import { saveAs } from 'file-saver';
 import PptxGenJS from 'pptxgenjs';
 
@@ -131,11 +131,49 @@ export const generateWordDocument = async (content: string, title: string = 'AI 
         continue;
       }
       
-      const formattedChildren = processFormattedText(trimmedLine);
-      paragraphs.push(new Paragraph({ 
-        children: formattedChildren,
-        spacing: { after: 120 }
-      }));
+      // Check if line starts with bullet point markers or action indicators
+      const isBulletPoint = trimmedLine.match(/^[-*•]\s+/) || 
+                           trimmedLine.match(/^(\d+\.)\s+/) ||
+                           trimmedLine.toLowerCase().includes('action:') ||
+                           trimmedLine.toLowerCase().includes('todo:') ||
+                           trimmedLine.toLowerCase().includes('follow up:') ||
+                           trimmedLine.toLowerCase().includes('next step:') ||
+                           trimmedLine.toLowerCase().includes('key gp action:') ||
+                           trimmedLine.toLowerCase().includes('prescribe') ||
+                           trimmedLine.toLowerCase().includes('monitor') ||
+                           trimmedLine.toLowerCase().includes('avoid') ||
+                           trimmedLine.toLowerCase().includes('reinforce') ||
+                           trimmedLine.toLowerCase().includes('regularly') ||
+                           trimmedLine.toLowerCase().includes('check');
+
+      if (isBulletPoint) {
+        // Remove bullet markers and create checkbox paragraph
+        const cleanedText = trimmedLine.replace(/^[-*•]\s+/, '').replace(/^\d+\.\s+/, '');
+        
+        const checkboxChildren = [
+          // Add ballot box checkbox symbol
+          new SymbolRun({
+            font: "Wingdings",
+            char: String.fromCharCode(0x2610), // Ballot box symbol ☐
+            size: 24
+          }),
+          new TextRun({ text: '  ', size: 24 }), // Space after checkbox
+          ...processFormattedText(cleanedText)
+        ];
+        
+        paragraphs.push(new Paragraph({ 
+          children: checkboxChildren,
+          spacing: { after: 120 },
+          indent: { left: 300 } // Indent checkbox items
+        }));
+      } else {
+        // Regular paragraph
+        const formattedChildren = processFormattedText(trimmedLine);
+        paragraphs.push(new Paragraph({ 
+          children: formattedChildren,
+          spacing: { after: 120 }
+        }));
+      }
     }
 
     const doc = new Document({
