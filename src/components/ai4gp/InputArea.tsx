@@ -1,7 +1,7 @@
 import React, { useRef, forwardRef, useImperativeHandle } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Send, Paperclip } from 'lucide-react';
+import { Send, Paperclip, Mic } from 'lucide-react';
 import { FileUploadArea } from './FileUploadArea';
 import { UploadedFile } from '@/types/ai4gp';
 import { useFileUpload } from '@/hooks/useFileUpload';
@@ -80,7 +80,7 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask about NHS guidelines, clinical protocols, prescribing, referrals, or practice management..."
-            className="min-h-[40px] max-h-32 resize-none pr-12"
+            className="min-h-[40px] max-h-32 resize-none pr-20"
             disabled={isLoading}
           />
           
@@ -93,15 +93,30 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
             className="hidden"
           />
           
-          <Button
-            variant="ghost"
-            size="sm"
-            className="absolute right-1 top-1 h-8 w-8 p-0"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isLoading}
-          >
-            <Paperclip className="w-4 h-4" />
-          </Button>
+          <div className="absolute right-1 top-1 flex gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={() => {
+                // TODO: Implement voice recording
+                console.log('Voice recording clicked');
+              }}
+              disabled={isLoading}
+            >
+              <Mic className="w-4 h-4" />
+            </Button>
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isLoading}
+            >
+              <Paperclip className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
         
         <Button 
