@@ -168,7 +168,7 @@ const Index = () => {
           {showAIChat && (
             <div className="mt-6 bg-card rounded-lg border shadow-sm p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">AI Chat</h3>
+                <h3 className="text-lg font-semibold">GP Genie</h3>
                 <button
                   onClick={() => setShowAIChat(false)}
                   className="text-muted-foreground hover:text-foreground transition-colors"

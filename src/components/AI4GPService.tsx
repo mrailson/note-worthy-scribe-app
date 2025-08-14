@@ -133,7 +133,7 @@ const AI4GPService = () => {
                     <span className="hidden sm:inline text-xs">History</span>
                   </Button>
 
-                  {/* AI Chat button next to History */}
+                  {/* GP Genie button next to History */}
                   <Button
                     variant="ghost"
                     size="sm"
@@ -141,7 +141,7 @@ const AI4GPService = () => {
                     className="ml-1 px-2 sm:px-3"
                   >
                     <Bot className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
-                    <span className="hidden sm:inline text-xs">AI Chat</span>
+                    <span className="hidden sm:inline text-xs">GP Genie</span>
                   </Button>
                 </CardTitle>
                 
@@ -173,7 +173,7 @@ const AI4GPService = () => {
             {showAIChat && (
               <div className="border-b bg-muted/20 p-4">
                 <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-medium text-sm">AI Chat</h4>
+                  <h4 className="font-medium text-sm">GP Genie</h4>
                   <button
                     onClick={() => setShowAIChat(false)}
                     className="text-muted-foreground hover:text-foreground text-sm"

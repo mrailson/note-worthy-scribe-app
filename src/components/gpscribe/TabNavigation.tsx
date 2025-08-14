@@ -25,7 +25,7 @@ export const TabNavigation = ({ activeTab, onTabChange, isMobile }: TabNavigatio
     { id: "guidance" as ActiveTab, label: "Guidance", icon: Lightbulb },
     { id: "settings" as ActiveTab, label: "Settings", icon: Settings },
     { id: "history" as ActiveTab, label: "History", icon: History },
-    { id: "chat" as ActiveTab, label: "AI Chat", icon: Bot },
+    { id: "chat" as ActiveTab, label: "GP Genie", icon: Bot },
     { id: "ai4gp" as ActiveTab, label: "AI4GP", icon: Sparkles }
   ];
 
