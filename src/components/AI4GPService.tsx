@@ -76,66 +76,65 @@ const AI4GPService = () => {
   }
 
   return (
-    <div className="h-screen flex bg-background relative">
-      {/* Search History Sidebar */}
-      {showSearchHistory && (
-        <SearchHistorySidebar
-          searchHistory={searchHistory}
-          onLoadSearch={handleLoadPreviousSearch}
-          onDeleteSearch={deleteSearch}
-          onClearAllHistory={clearAllHistory}
-        />
-      )}
+    <>
+      <div className="h-full flex bg-background relative">
+        {/* Search History Sidebar */}
+        {showSearchHistory && (
+          <SearchHistorySidebar
+            searchHistory={searchHistory}
+            onLoadSearch={handleLoadPreviousSearch}
+            onDeleteSearch={deleteSearch}
+            onClearAllHistory={clearAllHistory}
+          />
+        )}
 
-      {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col min-w-0 h-full">
-        <Card className="flex-1 flex flex-col h-full">
-          <CardHeader className="border-b px-3 py-2 sm:px-6 sm:py-4 flex-shrink-0">
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center text-sm sm:text-base">
-                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-primary" />
-                <span className="hidden sm:inline">AI 4 GP Service</span>
-                <span className="sm:hidden">AI4GP</span>
+        {/* Main Chat Area */}
+        <div className="flex-1 flex flex-col min-w-0 h-full">
+          <Card className="flex-1 flex flex-col h-full">
+            <CardHeader className="border-b px-3 py-2 sm:px-6 sm:py-4 flex-shrink-0">
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center text-sm sm:text-base">
+                  <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-primary" />
+                  <span className="hidden sm:inline">AI 4 GP Service</span>
+                  <span className="sm:hidden">AI4GP</span>
+                  
+                  {/* History button next to title */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowSearchHistory(!showSearchHistory)}
+                    className="ml-3 px-2 sm:px-3"
+                  >
+                    <History className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
+                    <span className="hidden sm:inline text-xs">History</span>
+                  </Button>
+                </CardTitle>
                 
-                {/* History button next to title */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowSearchHistory(!showSearchHistory)}
-                  className="ml-3 px-2 sm:px-3"
-                >
-                  <History className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
-                  <span className="hidden sm:inline text-xs">History</span>
-                </Button>
-              </CardTitle>
-              
-               <div className="flex items-center gap-1 sm:gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowSettings(true)}
-                  className="px-2 sm:px-3"
-                >
-                  <Settings className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
-                  <span className="hidden sm:inline text-xs">Settings</span>
-                </Button>
-                
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleNewSearch}
-                  className="px-2 sm:px-3"
-                >
-                  <Plus className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
-                  <span className="hidden sm:inline text-xs">New</span>
-                </Button>
+                 <div className="flex items-center gap-1 sm:gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowSettings(true)}
+                    className="px-2 sm:px-3"
+                  >
+                    <Settings className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
+                    <span className="hidden sm:inline text-xs">Settings</span>
+                  </Button>
+                  
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleNewSearch}
+                    className="px-2 sm:px-3"
+                  >
+                    <Plus className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
+                    <span className="hidden sm:inline text-xs">New</span>
+                  </Button>
+                </div>
               </div>
-            </div>
-          </CardHeader>
+            </CardHeader>
 
-          <CardContent className="flex-1 flex flex-col p-0 relative min-h-0 pb-0">
-            {/* Messages Area with bottom padding for input */}
-            <div className="flex-1 overflow-hidden" style={{ paddingBottom: '160px' }}>
+            <CardContent className="flex-1 flex flex-col p-0 relative min-h-0" style={{ paddingBottom: '160px' }}>
               {messages.length === 0 ? (
                 /* Welcome Screen - Compact, mobile-optimized */
                 <div className="p-3 sm:p-6 space-y-3 sm:space-y-4">
@@ -162,13 +161,16 @@ const AI4GPService = () => {
                   cardHeight={cardHeight}
                 />
               )}
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
-      {/* Fixed Input Area at Bottom of Viewport */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t shadow-lg">
+      {/* Fixed Input Area at Bottom of Viewport - Outside tab structure */}
+      <div 
+        className="fixed bottom-0 left-0 right-0 bg-background border-t shadow-lg"
+        style={{ zIndex: 9999 }}
+      >
         <InputArea
           input={input}
           setInput={setInput}
@@ -215,7 +217,7 @@ const AI4GPService = () => {
         cardHeight={cardHeight}
         onCardHeightChange={setCardHeight}
       />
-    </div>
+    </>
   );
 };
 
