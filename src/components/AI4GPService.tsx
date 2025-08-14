@@ -15,63 +15,44 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 import { 
   Send, 
-  Upload, 
-  X, 
-  FileText, 
-  Bot, 
   Mic, 
-  VolumeX, 
-  Volume2, 
-  Plus, 
-  History, 
-  Trash2,
-  Settings,
-  Download,
-  Copy,
-  Share2,
-  Expand,
-  Collapse,
-  Play,
-  Pause,
-  Square,
-  Clock,
-  CheckCircle,
-  AlertCircle,
-  Info,
-  FileImage,
-  FileMinus,
-  Sparkles,
-  MessageSquare,
-  Stethoscope,
+  Paperclip, 
+  FileText, 
+  Mail, 
+  CheckSquare, 
   Calendar,
-  BookOpen,
-  ClipboardList,
-  Heart,
-  Shield,
-  ChevronDown,
-  ChevronRight,
-  MoreHorizontal,
-  Paperclip,
-  Mail,
-  CheckSquare,
+  Sparkles,
+  Bot,
   User,
   Brain,
+  Download,
+  Copy,
+  Trash2,
+  Settings,
+  MessageSquare,
   HelpCircle,
+  Clock,
+  Shield,
   Users,
   TrendingUp,
   AlertTriangle,
+  BookOpen,
   FileDown,
   Presentation,
+  History,
   Eye,
+  Plus,
   Minus,
   Image,
   Type,
+  X,
   Loader2,
   Activity,
   FileHeart,
   BarChart3
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { Volume2, VolumeX } from 'lucide-react';
 import { SpeechToText } from '@/components/SpeechToText';
 import MessageRenderer from '@/components/MessageRenderer';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, ExternalHyperlink, Table, TableRow, TableCell, WidthType, BorderStyle } from 'docx';
@@ -157,11 +138,6 @@ const AI4GPService = () => {
   const [isVoiceConnecting, setIsVoiceConnecting] = useState(false);
   const [isVoiceSpeaking, setIsVoiceSpeaking] = useState(false);
   const [isVoiceMuted, setIsVoiceMuted] = useState(true);
-  
-  // Settings state
-  const [showSettings, setShowSettings] = useState(false);
-  const [showResponseTime, setShowResponseTime] = useState(false);
-  const [windowSize, setWindowSize] = useState('default');
   const [selectedVoice, setSelectedVoice] = useState<SupportedVoice>('ballad');
   const voiceChatRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -201,55 +177,9 @@ const AI4GPService = () => {
       
       return () => {
         fileInput.removeEventListener('change', handleFileSelect);
-  
-  // Load user preferences on mount
-  useEffect(() => {
-    if (!user) return;
-    
-    const savedSettings = localStorage.getItem(`ai4gp-settings-${user.id}`);
-    if (savedSettings) {
-      try {
-        const settings = JSON.parse(savedSettings);
-        setModel(settings.model || 'chatgpt5');
-        setShowResponseTime(settings.showResponseTime || false);
-        setWindowSize(settings.windowSize || 'default');
-      } catch (error) {
-        console.error('Error loading settings:', error);
-      }
+      };
     }
-  }, [user]);
-
-  // Save user preferences
-  const saveSettings = useCallback(() => {
-    if (!user) return;
-    
-    const settings = {
-      model,
-      showResponseTime,
-      windowSize
-    };
-    
-    localStorage.setItem(`ai4gp-settings-${user.id}`, JSON.stringify(settings));
-    toast.success('Settings saved');
-  }, [user, model, showResponseTime, windowSize]);
-
-  const windowSizeOptions = [
-    { value: 'compact', label: 'Compact', description: 'Smaller interface for small screens' },
-    { value: 'default', label: 'Default', description: 'Standard interface size' },
-    { value: 'comfortable', label: 'Comfortable', description: 'Larger interface for better readability' },
-    { value: 'wide', label: 'Wide', description: 'Wide layout for large screens' },
-    { value: 'full', label: 'Full', description: 'Maximum space utilization' }
-  ];
-
-  const getContainerClass = () => {
-    switch (windowSize) {
-      case 'compact': return 'max-w-3xl mx-auto px-2';
-      case 'comfortable': return 'max-w-6xl mx-auto px-6';
-      case 'wide': return 'max-w-7xl mx-auto px-8';
-      case 'full': return 'w-full px-4';
-      default: return 'max-w-5xl mx-auto px-4';
-    }
-  };
+  }, []);
 
   const loadPracticeContext = async () => {
     if (!user) return;
@@ -622,11 +552,9 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         throw error;
       }
 
-      // Prepend timing information to the response if enabled
+      // Prepend timing information to the response
       const responseContent = data.content || data.response || 'No response received';
-      const timedResponse = showResponseTime 
-        ? `**⏱️ Response Time: ${responseTime}ms (${modelDisplayName})**\n\n${responseContent}`
-        : responseContent;
+      const timedResponse = `**⏱️ Response Time: ${responseTime}ms (${modelDisplayName})**\n\n${responseContent}`;
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -1228,7 +1156,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
   }
 
   return (
-    <div className={`w-full ${getContainerClass()}`}>
+    <div className="w-full max-w-6xl mx-auto">
       <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-8rem)]">
         
         {/* Search History Sidebar */}
@@ -1351,32 +1279,21 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                          <SelectItem value="gpt" className="text-xs">GPT-4o</SelectItem>
                          <SelectItem value="claude" className="text-xs">Claude 3.5</SelectItem>
                        </SelectContent>
-                      </Select>
-                      
-                      {/* Settings Button */}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setShowSettings(true)}
-                        className="h-8 w-8 p-0"
-                        title="Settings"
-                      >
-                        <Settings className="h-3 w-3" />
-                      </Button>
-                      
-                      {/* Hidden: Include latest web updates option
-                      <div className="flex items-center gap-2">
-                        <Switch
-                          id="include-latest"
-                          checked={includeLatestUpdates}
-                          onCheckedChange={setIncludeLatestUpdates}
-                        />
-                        <Label htmlFor="include-latest" className="text-xs text-muted-foreground">
-                          Include latest web updates
-                        </Label>
-                      </div>
-                      */}
-                      </div>
+                     </Select>
+                     
+                     {/* Hidden: Include latest web updates option
+                     <div className="flex items-center gap-2">
+                       <Switch
+                         id="include-latest"
+                         checked={includeLatestUpdates}
+                         onCheckedChange={setIncludeLatestUpdates}
+                       />
+                       <Label htmlFor="include-latest" className="text-xs text-muted-foreground">
+                         Include latest web updates
+                       </Label>
+                     </div>
+                     */}
+                     </div>
                     <Button 
                       variant="outline" 
                       size="sm"
@@ -1632,80 +1549,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                         </Button>
                       </div>
                     </DialogContent>
-                   </Dialog>
+                  </Dialog>
                 )}
-
-                 {/* Settings Modal */}
-                 <Dialog open={showSettings} onOpenChange={setShowSettings}>
-                  <DialogContent className="max-w-md">
-                    <DialogHeader>
-                      <DialogTitle className="flex items-center gap-2">
-                        <Settings className="h-5 w-5" />
-                        AI4GP Settings
-                      </DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-6 py-4">
-                      {/* LLM Selection */}
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium">Language Model</Label>
-                        <Select value={model} onValueChange={(value: 'claude' | 'gpt' | 'chatgpt5') => setModel(value)}>
-                          <SelectTrigger className="w-full">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="bg-background border border-border shadow-lg z-50">
-                            <SelectItem value="chatgpt5">ChatGPT 5.0 (Default)</SelectItem>
-                            <SelectItem value="gpt">GPT-4o</SelectItem>
-                            <SelectItem value="claude">Claude 3.5 Sonnet</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      {/* Show Response Time */}
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-1">
-                          <Label className="text-sm font-medium">Show Response Time</Label>
-                          <p className="text-xs text-muted-foreground">Display API response time in messages</p>
-                        </div>
-                        <Switch
-                          checked={showResponseTime}
-                          onCheckedChange={setShowResponseTime}
-                        />
-                      </div>
-
-                      {/* Window Size Selection */}
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium">Interface Size</Label>
-                        <Select value={windowSize} onValueChange={setWindowSize}>
-                          <SelectTrigger className="w-full">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="bg-background border border-border shadow-lg z-50">
-                            {windowSizeOptions.map((option) => (
-                              <SelectItem key={option.value} value={option.value}>
-                                <div>
-                                  <div className="font-medium">{option.label}</div>
-                                  <div className="text-xs text-muted-foreground">{option.description}</div>
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    
-                    <div className="flex justify-end gap-2 pt-4 border-t">
-                      <Button variant="outline" onClick={() => setShowSettings(false)}>
-                        Cancel
-                      </Button>
-                      <Button onClick={() => {
-                        saveSettings();
-                        setShowSettings(false);
-                      }}>
-                        Save Settings
-                      </Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
                
                {/* Input Area */}
               <div className="border-t p-4 space-y-3">
@@ -1776,11 +1621,9 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                </CardContent>
              </Card>
            </div>
-          </div>
-        </div>
-      );
-};
-};
-};
-
-export default AI4GPService;
+         </div>
+       </div>
+     );
+   };
+   
+   export default AI4GPService;
