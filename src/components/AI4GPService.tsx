@@ -209,20 +209,23 @@ const AI4GPService = () => {
 
       {/* Expanded Message Dialog */}
       <Dialog open={!!expandedMessage} onOpenChange={() => setExpandedMessage(null)}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-[95vw] w-[95vw] max-h-[90vh] h-[90vh] overflow-y-auto p-6">
           <DialogHeader>
             <DialogTitle>
               {expandedMessage?.role === 'user' ? 'Your Message' : 'AI Response'}
             </DialogTitle>
           </DialogHeader>
-          <div className="text-sm">
+          <div className="text-sm h-full overflow-y-auto">
             {expandedMessage && (
-              <MessageRenderer
-                message={expandedMessage}
-                onExpandMessage={() => {}}
-                onExportWord={generateWordDocument}
-                onExportPowerPoint={generatePowerPoint}
-              />
+              <div className="prose prose-sm max-w-none w-full">
+                <MessageRenderer
+                  message={expandedMessage}
+                  onExpandMessage={() => {}}
+                  onExportWord={generateWordDocument}
+                  onExportPowerPoint={generatePowerPoint}
+                  cardHeight={undefined} // Remove height restrictions in modal
+                />
+              </div>
             )}
           </div>
         </DialogContent>
