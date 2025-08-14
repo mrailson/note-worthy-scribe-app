@@ -5,12 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Sparkles, History, Plus } from 'lucide-react';
+import { Sparkles, History, Plus, Settings } from 'lucide-react';
 import { LoginForm } from '@/components/LoginForm';
 import { MessagesList } from '@/components/ai4gp/MessagesList';
 import { InputArea } from '@/components/ai4gp/InputArea';
 import MessageRenderer from '@/components/MessageRenderer';
 import { QuickActionsPanel } from '@/components/ai4gp/QuickActionsPanel';
+import { SettingsModal } from '@/components/ai4gp/SettingsModal';
 import { SearchHistorySidebar } from '@/components/ai4gp/SearchHistorySidebar';
 import { useAI4GPService } from '@/hooks/useAI4GPService';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
@@ -23,6 +24,8 @@ const AI4GPService = () => {
   const [showSearchHistory, setShowSearchHistory] = useState(false);
   const [showAllQuickActions, setShowAllQuickActions] = useState(false);
   const [expandedMessage, setExpandedMessage] = useState<Message | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const [selectedModel, setSelectedModel] = useState('gpt-5');
 
   const {
     messages,
@@ -93,7 +96,17 @@ const AI4GPService = () => {
                 <span className="sm:hidden">AI4GP</span>
               </CardTitle>
               
-              <div className="flex items-center gap-1 sm:gap-2">
+               <div className="flex items-center gap-1 sm:gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowSettings(true)}
+                  className="px-2 sm:px-3"
+                >
+                  <Settings className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Settings</span>
+                </Button>
+                
                 <Button
                   variant="outline"
                   size="sm"
@@ -113,30 +126,7 @@ const AI4GPService = () => {
                   <Plus className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" />
                   <span className="hidden sm:inline">New</span>
                 </Button>
-              </div>
-            </div>
-
-            {/* Settings - Compact for mobile */}
-            <div className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm overflow-x-auto">
-              <div className="flex items-center space-x-1 sm:space-x-2 whitespace-nowrap">
-                <Switch
-                  id="session-memory"
-                  checked={sessionMemory}
-                  onCheckedChange={setSessionMemory}
-                  className="scale-75 sm:scale-100"
-                />
-                <Label htmlFor="session-memory" className="text-xs sm:text-sm">Memory</Label>
-              </div>
-              
-              <div className="flex items-center space-x-1 sm:space-x-2 whitespace-nowrap">
-                <Switch
-                  id="latest-updates"
-                  checked={includeLatestUpdates}
-                  onCheckedChange={setIncludeLatestUpdates}
-                  className="scale-75 sm:scale-100"
-                />
-                <Label htmlFor="latest-updates" className="text-xs sm:text-sm">Web Search</Label>
-              </div>
+               </div>
             </div>
           </CardHeader>
 
@@ -213,6 +203,18 @@ const AI4GPService = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Settings Modal */}
+      <SettingsModal
+        open={showSettings}
+        onOpenChange={setShowSettings}
+        sessionMemory={sessionMemory}
+        onSessionMemoryChange={setSessionMemory}
+        includeLatestUpdates={includeLatestUpdates}
+        onIncludeLatestUpdatesChange={setIncludeLatestUpdates}
+        selectedModel={selectedModel}
+        onModelChange={setSelectedModel}
+      />
     </div>
   );
 };
