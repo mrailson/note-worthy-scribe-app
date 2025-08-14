@@ -173,18 +173,6 @@ const Index = () => {
               onPauseRecording={recording.pauseRecording}
               onResumeRecording={recording.resumeRecording}
             />
-
-            <TranscriptPanel
-              transcript={recording.transcript}
-              realtimeTranscripts={recording.realtimeTranscripts}
-              cleanedTranscript={recording.cleanedTranscript}
-              isCleaningTranscript={recording.isCleaningTranscript}
-              showTranscriptTimestamps={settings.showTranscriptTimestamps}
-              isRecording={recording.isRecording}
-              onTranscriptChange={recording.setTranscript}
-              onCleanTranscript={handleCleanTranscript}
-              onClearTranscript={recording.clearTranscript}
-            />
           </TabsContent>
 
           {/* Translation Tab */}

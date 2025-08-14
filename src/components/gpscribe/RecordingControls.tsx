@@ -1,10 +1,8 @@
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Mic, RotateCcw, WifiOff, FileText, Languages } from "lucide-react";
+import { Mic, RotateCcw, FileText } from "lucide-react";
 import { useState } from "react";
 
 interface RecordingControlsProps {
@@ -35,7 +33,6 @@ export const RecordingControls = ({
   onResumeRecording
 }: RecordingControlsProps) => {
   const [consultationType, setConsultationType] = useState("face-to-face");
-  const [translationLanguage, setTranslationLanguage] = useState("none");
 
   const handleReset = () => {
     if (isRecording) {
@@ -47,20 +44,13 @@ export const RecordingControls = ({
   return (
     <Card className="w-full">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <FileText className="h-5 w-5 text-primary" />
+        <CardTitle className="text-lg">
           GP Consultation
         </CardTitle>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="flex items-center gap-1">
-            <WifiOff className="h-3 w-3" />
-            Disconnected
-          </Badge>
-          <Button variant="outline" size="sm" onClick={handleReset}>
-            <RotateCcw className="h-4 w-4 mr-1" />
-            Reset
-          </Button>
-        </div>
+        <Button variant="outline" size="sm" onClick={handleReset}>
+          <RotateCcw className="h-4 w-4 mr-1" />
+          Reset
+        </Button>
       </CardHeader>
       
       <CardContent className="space-y-6">
@@ -84,30 +74,6 @@ export const RecordingControls = ({
               <Label htmlFor="telephone" className="cursor-pointer">Telephone</Label>
             </div>
           </RadioGroup>
-        </div>
-
-        {/* Real-time Translation */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Languages className="h-4 w-4 text-primary" />
-            <Label className="text-sm font-medium">Real-time Translation</Label>
-          </div>
-          <Select value={translationLanguage} onValueChange={setTranslationLanguage}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select language" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">None</SelectItem>
-              <SelectItem value="spanish">Spanish</SelectItem>
-              <SelectItem value="french">French</SelectItem>
-              <SelectItem value="german">German</SelectItem>
-              <SelectItem value="portuguese">Portuguese</SelectItem>
-              <SelectItem value="arabic">Arabic</SelectItem>
-              <SelectItem value="urdu">Urdu</SelectItem>
-              <SelectItem value="bengali">Bengali</SelectItem>
-              <SelectItem value="polish">Polish</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
 
         {/* Duration and Words Counter */}
