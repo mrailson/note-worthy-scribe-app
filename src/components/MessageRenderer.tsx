@@ -52,6 +52,17 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showFullContent, setShowFullContent] = useState(true);
+  // Calculate if this is a large response (more than 1000 characters or multiple sections)
+  const isLargeResponse = message.role === 'assistant' && (
+    message.content.length > 1000 || 
+    message.content.includes('###') || 
+    message.content.includes('##') ||
+    message.content.split('\n').length > 20
+  );
+
+  // Use 75% more height for large responses
+  const effectiveCardHeight = isLargeResponse ? Math.floor((cardHeight || 400) * 1.75) : (cardHeight || 400);
+
   const messageRef = React.useRef<HTMLDivElement>(null);
 
   const handleScrollToInput = () => {
@@ -270,7 +281,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
               : 'bg-muted border border-border'
           }`}
           style={{
-            maxHeight: message.role === 'assistant' ? `${cardHeight || 400}px` : 'auto'
+            maxHeight: message.role === 'assistant' ? `${effectiveCardHeight}px` : 'auto'
           }}
         >
           {/* Message Content */}
@@ -279,7 +290,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
               <div 
                 className="prose prose-sm max-w-none ai-response-content overflow-y-auto"
                 style={{
-                  maxHeight: `${(cardHeight || 400) - 120}px`
+                  maxHeight: `${effectiveCardHeight - 120}px`
                 }}
               >
                 {formatContent(displayContent)}
