@@ -97,12 +97,6 @@ const AI4GPService = () => {
       <div 
         className="h-full flex flex-col bg-background relative" 
         data-component="ai4gp-service"
-        ref={(el) => {
-          if (el) {
-            el.addEventListener('scrollToInput', handleScrollToInput);
-            return () => el.removeEventListener('scrollToInput', handleScrollToInput);
-          }
-        }}
       >
         <div className="flex h-full">
           {/* Search History Sidebar */}

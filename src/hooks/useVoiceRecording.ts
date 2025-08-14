@@ -108,9 +108,12 @@ export const useVoiceRecording = () => {
     });
 
     // Send to speech-to-text service
+    console.log('Sending audio to speech-to-text function...');
     const { data, error } = await supabase.functions.invoke('speech-to-text', {
       body: { audio: base64Audio }
     });
+
+    console.log('Speech-to-text response:', { data, error });
 
     if (error) {
       console.error('Speech-to-text error:', error);
