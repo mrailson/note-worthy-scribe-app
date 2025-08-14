@@ -263,23 +263,25 @@ const AI4GPService = () => {
       </div>
 
       {/* Fixed Input Area at Bottom of Viewport - Outside tab structure */}
-      <div 
-        className="fixed left-0 right-0 bg-background border-t shadow-lg"
-        style={{ 
-          bottom: '20px',
-          zIndex: 9999 
-        }}
-      >
-        <InputArea
-          ref={inputRef}
-          input={input}
-          setInput={setInput}
-          uploadedFiles={uploadedFiles}
-          setUploadedFiles={setUploadedFiles}
-          onSend={handleSendWithContext}
-          isLoading={isLoading}
-        />
-      </div>
+      {!showNews && (
+        <div 
+          className="fixed left-0 right-0 bg-background border-t shadow-lg"
+          style={{ 
+            bottom: '20px',
+            zIndex: 9999 
+          }}
+        >
+          <InputArea
+            ref={inputRef}
+            input={input}
+            setInput={setInput}
+            uploadedFiles={uploadedFiles}
+            setUploadedFiles={setUploadedFiles}
+            onSend={handleSendWithContext}
+            isLoading={isLoading}
+          />
+        </div>
+      )}
 
       {/* Expanded Message Dialog */}
       <Dialog open={!!expandedMessage} onOpenChange={() => setExpandedMessage(null)}>
