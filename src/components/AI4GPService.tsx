@@ -1239,8 +1239,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                       .reduce((acc, message, index) => {
                         const prev = messages[index - 1];
                         const shouldGroup =
-                          prev && prev.role === message.role &&
-                          message.role === 'assistant' &&
+                          prev && 
+                          prev.role === message.role &&
                           Math.abs(message.timestamp.getTime() - prev.timestamp.getTime()) < 30000;
                         if (shouldGroup) {
                           acc[acc.length - 1].messages.push(message);
