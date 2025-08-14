@@ -303,6 +303,28 @@ const AI4GPService = () => {
     }
   };
 
+  const deleteIndividualHistory = async (searchId: string) => {
+    if (!user) return;
+    
+    try {
+      const { error } = await supabase
+        .from('ai_4_pm_searches')
+        .delete()
+        .eq('id', searchId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+      
+      // Remove from local state
+      setSearchHistory(prev => prev.filter(item => item.id !== searchId));
+      
+      toast.success('Search deleted');
+    } catch (error) {
+      console.error('Error deleting search:', error);
+      toast.error('Failed to delete search');
+    }
+  };
+
   const nhsSafetyPreamble = "You are an expert UK NHS GP assistant. Use only UK primary care sources including NICE guidelines, NHS.uk, BNF, MHRA alerts, the Green Book, and local ICB protocols. Do not use non-UK or non-NHS sources. Present information in concise, GP-friendly bullet points using UK medical terminology.";
 
   const quickActions = [
@@ -1177,15 +1199,26 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                     {searchHistory.map((search) => (
                       <div
                         key={search.id}
-                        className="p-3 text-xs border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
+                        className="relative group p-3 text-xs border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
                         onClick={() => {
                           setMessages(search.messages);
                           toast.success('Previous search loaded');
                         }}
                       >
-                        <div className="font-medium mb-1 line-clamp-2">{search.title}</div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="absolute top-2 right-2 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteIndividualHistory(search.id);
+                          }}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                        <div className="font-medium mb-1 line-clamp-2 pr-8">{search.title}</div>
                         {search.brief_overview && (
-                          <div className="text-muted-foreground line-clamp-2 mb-1">
+                          <div className="text-muted-foreground line-clamp-2 mb-1 pr-8">
                             {search.brief_overview}
                           </div>
                         )}
