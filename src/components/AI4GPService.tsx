@@ -88,9 +88,9 @@ const AI4GPService = () => {
       )}
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <Card className="flex-1 flex flex-col relative">
-          <CardHeader className="border-b px-3 py-2 sm:px-6 sm:py-4">
+      <div className="flex-1 flex flex-col min-w-0 h-full">
+        <Card className="flex-1 flex flex-col h-full">
+          <CardHeader className="border-b px-3 py-2 sm:px-6 sm:py-4 flex-shrink-0">
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center text-sm sm:text-base">
                 <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-primary" />
@@ -133,43 +133,48 @@ const AI4GPService = () => {
             </div>
           </CardHeader>
 
-          <CardContent className="flex-1 flex flex-col p-0 relative">
-            {messages.length === 0 ? (
-              /* Welcome Screen - Compact, mobile-optimized */
-              <div className="p-3 sm:p-6 space-y-3 sm:space-y-4">
-                <div className="w-full max-w-2xl mx-auto">
-                  <p className="text-center text-muted-foreground text-xs sm:text-sm mb-2 sm:mb-3">
-                    Get started with these common queries:
-                  </p>
-                  <QuickActionsPanel
-                    showAllQuickActions={showAllQuickActions}
-                    setShowAllQuickActions={setShowAllQuickActions}
-                    setInput={setInput}
-                  />
+          <CardContent className="flex-1 flex flex-col p-0 relative min-h-0">
+            {/* Chat Content Area */}
+            <div className="flex-1 flex flex-col min-h-0" style={{ paddingBottom: '140px' }}>
+              {messages.length === 0 ? (
+                /* Welcome Screen - Compact, mobile-optimized */
+                <div className="p-3 sm:p-6 space-y-3 sm:space-y-4">
+                  <div className="w-full max-w-2xl mx-auto">
+                    <p className="text-center text-muted-foreground text-xs sm:text-sm mb-2 sm:mb-3">
+                      Get started with these common queries:
+                    </p>
+                    <QuickActionsPanel
+                      showAllQuickActions={showAllQuickActions}
+                      setShowAllQuickActions={setShowAllQuickActions}
+                      setInput={setInput}
+                    />
+                  </div>
                 </div>
-              </div>
-            ) : (
-              /* Messages Area */
-              <MessagesList
-                messages={messages}
-                isLoading={isLoading}
-                expandedMessage={expandedMessage}
-                setExpandedMessage={setExpandedMessage}
-                onExportWord={generateWordDocument}
-                onExportPowerPoint={generatePowerPoint}
-                cardHeight={cardHeight}
-              />
-            )}
+              ) : (
+                /* Messages Area */
+                <MessagesList
+                  messages={messages}
+                  isLoading={isLoading}
+                  expandedMessage={expandedMessage}
+                  setExpandedMessage={setExpandedMessage}
+                  onExportWord={generateWordDocument}
+                  onExportPowerPoint={generatePowerPoint}
+                  cardHeight={cardHeight}
+                />
+              )}
+            </div>
 
-            {/* Input Area */}
-            <InputArea
-              input={input}
-              setInput={setInput}
-              uploadedFiles={uploadedFiles}
-              setUploadedFiles={setUploadedFiles}
-              onSend={handleSendWithContext}
-              isLoading={isLoading}
-            />
+            {/* Input Area - Fixed at bottom */}
+            <div className="absolute bottom-0 left-0 right-0">
+              <InputArea
+                input={input}
+                setInput={setInput}
+                uploadedFiles={uploadedFiles}
+                setUploadedFiles={setUploadedFiles}
+                onSend={handleSendWithContext}
+                isLoading={isLoading}
+              />
+            </div>
           </CardContent>
         </Card>
       </div>

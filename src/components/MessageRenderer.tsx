@@ -234,20 +234,22 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
         
         <div 
           ref={messageRef}
-          className={`rounded-lg p-4 ${
+          className={`rounded-lg p-4 flex flex-col ${
             message.role === 'user' 
               ? 'bg-primary text-primary-foreground' 
               : 'bg-muted border border-border'
           }`}
+          style={{
+            maxHeight: message.role === 'assistant' ? `${cardHeight || 400}px` : 'auto'
+          }}
         >
           {/* Message Content */}
-          <div className="space-y-2">
+          <div className="space-y-2 flex-1 min-h-0">
             {message.role === 'assistant' ? (
               <div 
-                className="prose prose-sm max-w-none ai-response-content"
+                className="prose prose-sm max-w-none ai-response-content overflow-y-auto"
                 style={{
-                  maxHeight: `${cardHeight}px`,
-                  overflowY: 'auto'
+                  maxHeight: `${(cardHeight || 400) - 120}px`
                 }}
               >
                 {formatContent(displayContent)}

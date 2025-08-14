@@ -41,7 +41,7 @@ export const MessagesList: React.FC<MessagesListProps> = ({
   }, [messages]);
 
   return (
-    <ScrollArea className="flex-1 px-2 sm:p-2 pb-40 sm:pb-32">
+    <ScrollArea className="flex-1 px-2 sm:p-2">
       <div className="space-y-4 py-2">
         {messages.map((message) => (
           <MessageRenderer
