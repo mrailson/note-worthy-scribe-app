@@ -150,7 +150,10 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
           .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
           // Italic text *text*
           .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-          // Headers ###
+          // Headers ######, #####, ####, ###, ##, #
+          .replace(/^###### (.+)$/gm, '<h6 class="text-xs font-semibold mt-3 mb-1">$1</h6>')
+          .replace(/^##### (.+)$/gm, '<h5 class="text-sm font-semibold mt-3 mb-1">$1</h5>')
+          .replace(/^#### (.+)$/gm, '<h4 class="text-sm font-semibold mt-3 mb-2">$1</h4>')
           .replace(/^### (.+)$/gm, '<h3 class="text-base font-semibold mt-4 mb-2">$1</h3>')
           .replace(/^## (.+)$/gm, '<h2 class="text-lg font-semibold mt-4 mb-2">$1</h2>')
           .replace(/^# (.+)$/gm, '<h1 class="text-xl font-bold mt-4 mb-2">$1</h1>')
