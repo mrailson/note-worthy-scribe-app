@@ -83,69 +83,74 @@ const AI4GPService = () => {
       )}
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0">
         <Card className="flex-1 flex flex-col relative">
-          <CardHeader className="border-b">
+          <CardHeader className="border-b px-3 py-2 sm:px-6 sm:py-4">
             <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center">
-                <Sparkles className="w-5 h-5 mr-2 text-primary" />
-                AI 4 GP Service
+              <CardTitle className="flex items-center text-sm sm:text-base">
+                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-primary" />
+                <span className="hidden sm:inline">AI 4 GP Service</span>
+                <span className="sm:hidden">AI4GP</span>
               </CardTitle>
               
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 sm:gap-2">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setShowSearchHistory(!showSearchHistory)}
+                  className="px-2 sm:px-3"
                 >
-                  <History className="w-4 h-4 mr-2" />
-                  History
+                  <History className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">History</span>
                 </Button>
                 
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={handleNewSearch}
+                  className="px-2 sm:px-3"
                 >
-                  <Plus className="w-4 h-4 mr-2" />
-                  New
+                  <Plus className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">New</span>
                 </Button>
               </div>
             </div>
 
-            {/* Settings */}
-            <div className="flex items-center gap-4 text-sm">
-              <div className="flex items-center space-x-2">
+            {/* Settings - Compact for mobile */}
+            <div className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm overflow-x-auto">
+              <div className="flex items-center space-x-1 sm:space-x-2 whitespace-nowrap">
                 <Switch
                   id="session-memory"
                   checked={sessionMemory}
                   onCheckedChange={setSessionMemory}
+                  className="scale-75 sm:scale-100"
                 />
-                <Label htmlFor="session-memory">Session Memory</Label>
+                <Label htmlFor="session-memory" className="text-xs sm:text-sm">Memory</Label>
               </div>
               
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-1 sm:space-x-2 whitespace-nowrap">
                 <Switch
                   id="latest-updates"
                   checked={includeLatestUpdates}
                   onCheckedChange={setIncludeLatestUpdates}
+                  className="scale-75 sm:scale-100"
                 />
-                <Label htmlFor="latest-updates">Web Search</Label>
+                <Label htmlFor="latest-updates" className="text-xs sm:text-sm">Web Search</Label>
               </div>
             </div>
           </CardHeader>
 
           <CardContent className="flex-1 flex flex-col p-0 relative">
             {messages.length === 0 ? (
-              /* Welcome Screen - Compact, no flex-1 */
-              <div className="p-6 space-y-4">
-                <div className="text-center space-y-3">
-                  <div className="w-12 h-12 mx-auto bg-primary/10 rounded-lg flex items-center justify-center">
-                    <Sparkles className="w-6 h-6 text-primary" />
+              /* Welcome Screen - Compact, mobile-optimized */
+              <div className="p-3 sm:p-6 space-y-3 sm:space-y-4">
+                <div className="text-center space-y-2 sm:space-y-3">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 mx-auto bg-primary/10 rounded-lg flex items-center justify-center">
+                    <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-semibold text-foreground">Welcome to AI4GP</h2>
-                    <p className="text-muted-foreground text-sm mt-1 max-w-md mx-auto">
+                    <h2 className="text-lg sm:text-xl font-semibold text-foreground">Welcome to AI4GP</h2>
+                    <p className="text-muted-foreground text-xs sm:text-sm mt-1 max-w-md mx-auto">
                       Your AI assistant for clinical guidance, protocol development,
                       and evidence-based practice support.
                     </p>
@@ -153,7 +158,7 @@ const AI4GPService = () => {
                 </div>
                 
                 <div className="w-full max-w-2xl mx-auto">
-                  <p className="text-center text-muted-foreground text-sm mb-3">
+                  <p className="text-center text-muted-foreground text-xs sm:text-sm mb-2 sm:mb-3">
                     Get started with these common queries:
                   </p>
                   <QuickActionsPanel

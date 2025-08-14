@@ -219,7 +219,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
 
   return (
     <div className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-      <div className={`flex gap-3 max-w-[85%] ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+      <div className={`flex gap-3 w-full max-w-[95%] sm:max-w-[85%] ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
         <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
           message.role === 'user' ? 'bg-primary' : 'bg-muted'
         }`}>
