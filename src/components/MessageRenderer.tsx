@@ -13,6 +13,7 @@ import {
   List,
   CheckSquare,
   Expand,
+  Minimize2,
   FileDown,
   Presentation
 } from 'lucide-react';
@@ -40,6 +41,7 @@ interface MessageRendererProps {
   onExportPowerPoint?: (content: string, title?: string) => void;
   cardHeight?: number;
   isModal?: boolean; // New prop to indicate if rendering in modal
+  onCloseModal?: () => void; // New prop to close modal
 }
 
 const MessageRenderer: React.FC<MessageRendererProps> = ({ 
@@ -48,7 +50,8 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   onExportWord, 
   onExportPowerPoint, 
   cardHeight,
-  isModal = false 
+  isModal = false,
+  onCloseModal 
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showFullContent, setShowFullContent] = useState(true);
@@ -325,16 +328,29 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
             </div>
           )}
           
-          {/* Message footer - hidden in modal */}
-          {!isModal && (
-            <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/20">
+          {/* Message footer - always show action buttons in modal */}
+          {(!isModal || (isModal && message.role === 'assistant')) && (
+            <div className={`flex items-center justify-between mt-3 pt-3 ${isModal ? 'border-t border-border/20' : 'border-t border-border/20'}`}>
               <span className="text-xs opacity-70">
-                {new Date(message.timestamp).toLocaleTimeString()}
+                {!isModal && new Date(message.timestamp).toLocaleTimeString()}
               </span>
               <div className="flex items-center gap-1">
-                {/* Action buttons for long assistant messages */}
-                {message.role === 'assistant' && isLongMessage && (
+                {/* Action buttons for assistant messages */}
+                {message.role === 'assistant' && (
                   <>
+                    {/* Modal-specific close button */}
+                    {isModal && onCloseModal && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={onCloseModal}
+                        className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-muted-foreground hover:text-foreground"
+                        title="Close modal"
+                      >
+                        <Minimize2 className="h-3 w-3" />
+                      </Button>
+                    )}
+
                     {/* Export to Word button */}
                     {onExportWord && (
                       <Button
@@ -383,8 +399,8 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                       <ChevronsUp className="h-3 w-3" />
                     </Button>
                     
-                    {/* Expand to full screen button */}
-                    {onExpandMessage && (
+                    {/* Expand to full screen button - only show in regular chat */}
+                    {!isModal && onExpandMessage && (
                       <Button
                         variant="ghost"
                         size="sm"
@@ -398,8 +414,8 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                   </>
                 )}
                 
-                {/* Copy button for user messages */}
-                {message.role === 'user' && (
+                {/* Copy button for user messages - only in regular chat */}
+                {!isModal && message.role === 'user' && (
                   <Button
                     variant="ghost"
                     size="sm"

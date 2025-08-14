@@ -225,6 +225,7 @@ const AI4GPService = () => {
                   onExportPowerPoint={generatePowerPoint}
                   cardHeight={undefined} // Remove height restrictions in modal
                   isModal={true} // Hide avatar and scroll arrow in modal
+                  onCloseModal={() => setExpandedMessage(null)} // Close modal function
                 />
               </div>
             )}
