@@ -1419,8 +1419,15 @@ const Index = () => {
   const formatTextForDisplay = (text: string) => {
     if (!text) return null;
     
+    // Remove robot emojis and other unwanted decorative elements
+    const cleanedText = text
+      .replace(/🤖/g, '') // Remove robot emojis
+      .replace(/^\s*[-–—]\s*/gm, '') // Remove leading dashes/separators
+      .replace(/^\s*[*•]\s*/gm, '') // Remove leading bullet points/asterisks
+      .trim();
+    
     // Split by double asterisks for bold
-    const parts = text.split(/(\*\*.*?\*\*)/g);
+    const parts = cleanedText.split(/(\*\*.*?\*\*)/g);
     
     return parts.map((part, index) => {
       if (part.startsWith('**') && part.endsWith('**')) {
