@@ -263,7 +263,7 @@ const AI4GPService = () => {
       </div>
 
       {/* Fixed Input Area at Bottom of Viewport - Outside tab structure */}
-      {!showNews && (
+      {!showNews && !showAIChat && (
         <div 
           className="fixed left-0 right-0 bg-background border-t shadow-lg"
           style={{ 
