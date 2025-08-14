@@ -1605,22 +1605,6 @@ const handleUserSubmit = async (e: React.FormEvent) => {
                     </div>
 
 
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="ai_4_pm_access">AI 4 PM Assistant</Label>
-                        <p className="text-xs text-muted-foreground">Access to AI practice management tools</p>
-                      </div>
-                      <Switch
-                        id="ai_4_pm_access"
-                        checked={userFormData.module_access.ai_4_pm_access}
-                        onCheckedChange={(checked) => 
-                          setUserFormData({
-                            ...userFormData, 
-                            module_access: {...userFormData.module_access, ai_4_pm_access: checked}
-                          })
-                        }
-                      />
-                    </div>
 
                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
@@ -1710,8 +1694,12 @@ const handleUserSubmit = async (e: React.FormEvent) => {
                         }
                       />
                     </div>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-            <DialogFooter className="mt-4 pt-4 border-t">
+            <DialogFooter className="flex-shrink-0 mt-4 pt-4 border-t">
               <Button type="button" variant="outline" onClick={() => setShowUserModal(false)}>
                 Cancel
               </Button>
