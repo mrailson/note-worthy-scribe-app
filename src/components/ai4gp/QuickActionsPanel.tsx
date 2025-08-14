@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus, Minus } from 'lucide-react';
-import { quickActions } from '@/constants/quickActions';
+import { quickActions, practiceManagerQuickActions } from '@/constants/quickActions';
 
 interface QuickActionsPanelProps {
   showAllQuickActions: boolean;
@@ -16,17 +16,10 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
   setInput,
   selectedRole = 'gp'
 }) => {
-  // Filter actions based on selected role
-  const filteredActions = quickActions.filter(action => {
-    if (selectedRole === 'practice-manager') {
-      // For now, show all actions for practice managers
-      // You can add role-specific filtering here later
-      return true;
-    }
-    return true; // Show all for GP by default
-  });
+  // Get the appropriate actions based on selected role
+  const currentActions = selectedRole === 'practice-manager' ? practiceManagerQuickActions : quickActions;
   
-  const visibleActions = showAllQuickActions ? filteredActions : filteredActions.slice(0, 4);
+  const visibleActions = showAllQuickActions ? currentActions : currentActions.slice(0, 4);
 
   return (
     <div className="space-y-2">
@@ -48,7 +41,7 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
         })}
       </div>
       
-      {filteredActions.length > 4 && (
+      {currentActions.length > 4 && (
         <Button
           variant="ghost"
           size="sm"
@@ -63,7 +56,7 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
           ) : (
             <>
               <Plus className="w-4 h-4 mr-2" />
-              Show More ({filteredActions.length - 4} more)
+              Show More ({currentActions.length - 4} more)
             </>
           )}
         </Button>

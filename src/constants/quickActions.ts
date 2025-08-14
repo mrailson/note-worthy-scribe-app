@@ -1,4 +1,4 @@
-import { BookOpen, Shield, AlertTriangle, FileText, CheckSquare, HelpCircle, Activity, TrendingUp, FileHeart, Settings, MessageSquare } from 'lucide-react';
+import { BookOpen, Shield, AlertTriangle, FileText, CheckSquare, HelpCircle, Activity, TrendingUp, FileHeart, Settings, MessageSquare, Users, ClipboardCheck, Building, Calendar, Database, Scale, UserCheck, Syringe, Megaphone, NotebookPen } from 'lucide-react';
 
 const nhsSafetyPreamble = "You are an expert UK NHS GP assistant. Use only UK primary care sources including NICE guidelines, NHS.uk, BNF, MHRA alerts, the Green Book, and local ICB protocols. Do not use non-UK or non-NHS sources. Present information in concise, GP-friendly bullet points using UK medical terminology.";
 
@@ -88,4 +88,81 @@ C) Lessons Learnt & Improvement Plan (bullet points suitable for CQC evidence: r
 STYLE: Plain English, culturally sensitive, trauma-informed, non-defensive. Use GP-practice context. Provide a short version and an expanded version for each output.`,
     requiresFile: true 
   },
+];
+
+const pmSafetyPreamble = "You are an expert UK NHS Practice Manager assistant. Use current NHS England guidance, PCN DES specifications, CQC standards, and UK GDPR/IG requirements. Present information clearly for practice management use.";
+
+export const practiceManagerQuickActions = [
+  {
+    label: 'Complaint Response Helper (PM)',
+    icon: MessageSquare,
+    prompt: `${pmSafetyPreamble} 
+
+ROLE: PM complaints assistant. 
+
+OBJECTIVE: Gather facts, confirm, then generate: (A) patient reply, (B) staff comms, (C) lessons learnt & improvement plan, (D) partner/exec brief, (E) action log (owner, due, status). 
+
+IF ATTACHMENTS: extract a concise evidence summary + dated chronology. 
+
+INTERVIEW (ask stepwise, wait for answers): complainant; issue summary; dates/locations; people (roles); actions so far; outcome sought; relevant policies/records; learning so far; target response deadline. 
+
+CONFIRM facts. 
+
+OUTPUTS with headings; plain English; short and expanded versions for A & B; signpost escalation.`,
+    requiresFile: true
+  },
+  {
+    label: 'ARRS Claim Checker',
+    icon: ClipboardCheck,
+    prompt: `${pmSafetyPreamble} Validate an ARRS claim for [role title] in [PCN name]. Assess: eligibility, reimbursable cost elements, WTE/hours calc, supervisor requirements, claim window, evidence needed (contract, JD, payroll), common rejection reasons, and back-claim options. Provide a checklist and a ready-to-send query email to the ICB if needed.`,
+    requiresFile: true
+  },
+  {
+    label: 'PCN DES / Contract Finder',
+    icon: Building,
+    prompt: `${pmSafetyPreamble} Find the relevant clause for [topic] within the PCN DES/contract and provide: plain-English summary, 'what this means operationally', deadlines, evidence required, and any dependencies (e.g., workforce or IT).`,
+    requiresFile: false
+  },
+  {
+    label: 'Staff Rota & Leave Planner',
+    icon: Calendar,
+    prompt: `${pmSafetyPreamble} Given [staff count] staff, [FTE] FTE, [leave days] leave days, [clinics per day] clinics/day, and [avg contacts] contacts/day, estimate coverage, identify shortfalls, and propose mitigations (locum, role-mix, overtime, redirect to PCN services). Output a table and 5 bullet risks with actions.`,
+    requiresFile: false
+  },
+  {
+    label: 'CQC Evidence Pack Builder',
+    icon: Database,
+    prompt: `${pmSafetyPreamble} From the inputs and any uploads, map current evidence to CQC quality statements/KLOEs, list gaps, and produce an action plan (owner, due date, evidence needed). Provide a 1-page summary for inspectors.`,
+    requiresFile: true
+  },
+  {
+    label: 'DPIA / IG Helper',
+    icon: Scale,
+    prompt: `${pmSafetyPreamble} Guide a DPIA for [project name]. Collect purpose, lawful basis, data flows, processors, risks (confidentiality/integrity/availability), mitigations, DCB0129/0160 relevance, and decision. Produce: (1) DPIA summary, (2) risk register, (3) comms plan, (4) approvals list.`,
+    requiresFile: true
+  },
+  {
+    label: 'Subject Access Request (SAR) Assistant',
+    icon: UserCheck,
+    prompt: `${pmSafetyPreamble} Build a SAR plan for requester [name]. Create: (1) timeline with statutory deadline, (2) scope/data sources list, (3) redaction checklist (3rd-party/clinical risk), (4) response letter template, (5) proof-of-identity checklist.`,
+    requiresFile: true
+  },
+  {
+    label: 'Vaccine Clinic Planner',
+    icon: Syringe,
+    prompt: `${pmSafetyPreamble} Plan a vaccine clinic for [programme] on [date]. Inputs: staff [list], site constraints [notes], target doses [number]. Output: session timetable, staffing matrix, consumables list, booking target curve, risk/contingency notes.`,
+    requiresFile: false
+  },
+  {
+    label: 'Practice Comms Builder',
+    icon: Megaphone,
+    prompt: `${pmSafetyPreamble} From this core message: [message], generate: (1) 160-char SMS, (2) patient letter, (3) website news post, (4) phone/IVR script, (5) social post. Keep consistent tone; add accessibility/readability improvements.`,
+    requiresFile: false
+  },
+  {
+    label: 'Meeting Notes Summariser',
+    icon: NotebookPen,
+    prompt: `${pmSafetyPreamble} Summarise the attached/pasted transcript into: (1) executive summary, (2) decisions, (3) actions with owner/due date, (4) risks/issues log. Keep neutral, no hallucinations; mark any unclear sections for review.`,
+    requiresFile: true
+  }
 ];
