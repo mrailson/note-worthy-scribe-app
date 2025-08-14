@@ -1109,34 +1109,32 @@ Format your responses clearly with headings and bullet points where appropriate 
                            >
                              <X className="h-4 w-4" />
                            </Button>
-                           {searchHistory.length > 0 && (
-                             <AlertDialog>
-                               <AlertDialogTrigger asChild>
-                                 <Button
-                                   variant="outline"
-                                   size="sm"
-                                   className="h-8 text-destructive"
-                                 >
-                                   <Trash2 className="h-3 w-3 mr-1" />
-                                   Clear
-                                 </Button>
-                               </AlertDialogTrigger>
-                               <AlertDialogContent>
-                                 <AlertDialogHeader>
-                                   <AlertDialogTitle>Clear All History</AlertDialogTitle>
-                                   <AlertDialogDescription>
-                                     Are you sure you want to delete all conversation history? This action cannot be undone.
-                                   </AlertDialogDescription>
-                                 </AlertDialogHeader>
-                                 <AlertDialogFooter>
-                                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                   <AlertDialogAction onClick={clearAllHistory} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                     Clear All
-                                   </AlertDialogAction>
-                                 </AlertDialogFooter>
-                               </AlertDialogContent>
-                             </AlertDialog>
-                           )}
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 text-destructive"
+                                >
+                                  <Trash2 className="h-3 w-3 mr-1" />
+                                  Clear
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Clear All History</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete all conversation history? This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={clearAllHistory} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                    Clear All
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                            <Button
                              variant="outline"
                              size="sm"
