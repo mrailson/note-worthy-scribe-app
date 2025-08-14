@@ -1635,8 +1635,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                    </Dialog>
                 )}
 
-                {/* Settings Modal */}
-                <Dialog open={showSettings} onOpenChange={setShowSettings}>
+                 {/* Settings Modal */}
+                 <Dialog open={showSettings} onOpenChange={setShowSettings}>
                   <DialogContent className="max-w-md">
                     <DialogHeader>
                       <DialogTitle className="flex items-center gap-2">
@@ -1706,7 +1706,6 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                     </div>
                   </DialogContent>
                 </Dialog>
-                )}
                
                {/* Input Area */}
               <div className="border-t p-4 space-y-3">
@@ -1781,5 +1780,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         </div>
       );
     };
+  };
+};
 
-    export default AI4GPService;
+export default AI4GPService;
