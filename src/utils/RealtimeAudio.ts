@@ -163,9 +163,25 @@ export class RealtimeChat {
           } catch (err) {
             console.error('Failed to send session.update/initial response:', err);
           }
+          return; // Don't pass session.created to the message handler
         }
 
-        this.onMessage(event);
+        // Only process events that are relevant for message handling
+        const relevantEventTypes = [
+          'response.created',
+          'response.audio_transcript.delta',
+          'response.audio_transcript.done',
+          'response.done',
+          'conversation.item.input_audio_transcription.completed',
+          'error'
+        ];
+
+        if (relevantEventTypes.includes(event.type)) {
+          console.log('Processing relevant event:', event.type);
+          this.onMessage(event);
+        } else {
+          console.log('Ignoring irrelevant event:', event.type);
+        }
       });
 
       this.dc.addEventListener("open", () => {
