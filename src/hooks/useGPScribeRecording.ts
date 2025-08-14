@@ -59,67 +59,81 @@ export const useGPScribeRecording = () => {
         setDuration(prev => prev + 1);
       }, 1000);
 
-      // Initialize transcriber based on device
+      // Initialize transcriber based on device - same as meeting recorder
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
       if (isIOS) {
+        console.log('📱 Starting iPhone Whisper transcription for GP Scribe...');
         iPhoneTranscriberRef.current = new iPhoneWhisperTranscriber(
           (data: IPhoneTranscriptData) => {
             handleTranscriptUpdate({
               text: data.text,
-              speaker: data.speaker || "Speaker",
+              speaker: data.speaker || "Patient",
               confidence: data.confidence || 0.8,
               timestamp: new Date().toISOString(),
               isFinal: data.is_final || false
             });
           },
-          (status: string) => {
-            setConnectionStatus(status);
-          },
           (error: string) => {
             console.error("iPhone transcriber error:", error);
             toast.error(`Transcription error: ${error}`);
+            setConnectionStatus("Error");
+          },
+          (status: string) => {
+            setConnectionStatus(status);
           }
         );
         
         await iPhoneTranscriberRef.current.startTranscription();
       } else if (isMobile) {
-        // Use desktop transcriber for Android
+        console.log('📱 Starting Desktop Whisper transcription for Android GP Scribe...');
+        // Use desktop transcriber for Android - same as meeting recorder
         desktopTranscriberRef.current = new DesktopWhisperTranscriber(
           (data: DesktopTranscriptData) => {
             handleTranscriptUpdate({
               text: data.text,
-              speaker: data.speaker || "Speaker",
+              speaker: data.speaker || "Patient",
               confidence: data.confidence || 0.8,
               timestamp: new Date().toISOString(),
               isFinal: data.is_final || false
             });
           },
-          (status: string) => {
-            setConnectionStatus(status);
-          },
           (error: string) => {
             console.error("Desktop transcriber error:", error);
             toast.error(`Transcription error: ${error}`);
+            setConnectionStatus("Error");
+          },
+          (status: string) => {
+            setConnectionStatus(status);
           }
         );
         
         await desktopTranscriberRef.current.startTranscription();
       } else {
-        // Desktop fallback
-        transciberRef.current = new UnifiedAudioCapture(
-          handleTranscriptUpdate,
-          (status: string) => {
-            setConnectionStatus(status);
+        console.log('🖥️ Starting Desktop Whisper transcription for GP Scribe...');
+        // Use desktop transcriber for better reliability - don't use UnifiedAudioCapture
+        desktopTranscriberRef.current = new DesktopWhisperTranscriber(
+          (data: DesktopTranscriptData) => {
+            handleTranscriptUpdate({
+              text: data.text,
+              speaker: data.speaker || "Patient",
+              confidence: data.confidence || 0.8,
+              timestamp: new Date().toISOString(),
+              isFinal: data.is_final || false
+            });
           },
           (error: string) => {
-            console.error("Unified audio capture error:", error);
-            toast.error(`Recording error: ${error}`);
+            console.error("Desktop transcriber error:", error);
+            toast.error(`Transcription error: ${error}`);
+            setConnectionStatus("Error");
+          },
+          (status: string) => {
+            setConnectionStatus(status);
           }
         );
         
-        await transciberRef.current.startCapture();
+        await desktopTranscriberRef.current.startTranscription();
       }
 
       setConnectionStatus("Connected");
