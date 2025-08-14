@@ -137,14 +137,14 @@ const AI4GPService = () => {
           <CardContent className="flex-1 flex flex-col p-0 relative">
             {messages.length === 0 ? (
               /* Welcome Screen */
-              <div className="flex-1 flex flex-col p-8 space-y-6">
-                <div className="text-center space-y-4">
-                  <div className="w-16 h-16 mx-auto bg-primary/10 rounded-lg flex items-center justify-center">
-                    <Sparkles className="w-8 h-8 text-primary" />
+              <div className="flex-1 flex flex-col p-4 pt-8 space-y-4">
+                <div className="text-center space-y-3">
+                  <div className="w-12 h-12 mx-auto bg-primary/10 rounded-lg flex items-center justify-center">
+                    <Sparkles className="w-6 h-6 text-primary" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-semibold text-foreground">Welcome to AI4GP</h2>
-                    <p className="text-muted-foreground mt-2 max-w-md mx-auto">
+                    <h2 className="text-xl font-semibold text-foreground">Welcome to AI4GP</h2>
+                    <p className="text-muted-foreground text-sm mt-1 max-w-md mx-auto">
                       Your AI assistant for clinical guidance, protocol development,
                       and evidence-based practice support.
                     </p>
@@ -152,7 +152,7 @@ const AI4GPService = () => {
                 </div>
                 
                 <div className="w-full max-w-2xl mx-auto">
-                  <p className="text-center text-muted-foreground mb-4">
+                  <p className="text-center text-muted-foreground text-sm mb-3">
                     Get started with these common queries:
                   </p>
                   <QuickActionsPanel
