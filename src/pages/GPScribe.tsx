@@ -1420,11 +1420,18 @@ const Index = () => {
     if (!text) return null;
     
     // Remove robot emojis and other unwanted decorative elements
-    const cleanedText = text
+    let cleanedText = text
       .replace(/🤖/g, '') // Remove robot emojis
       .replace(/^\s*[-–—]\s*/gm, '') // Remove leading dashes/separators
       .replace(/^\s*[*•]\s*/gm, '') // Remove leading bullet points/asterisks
       .trim();
+    
+    // Convert markdown headings to HTML
+    cleanedText = cleanedText
+      .replace(/^#### (.*$)/gim, '<h4>$1</h4>') // #### Heading 4
+      .replace(/^### (.*$)/gim, '<h3>$1</h3>')  // ### Heading 3
+      .replace(/^## (.*$)/gim, '<h2>$1</h2>')   // ## Heading 2
+      .replace(/^# (.*$)/gim, '<h1>$1</h1>');   // # Heading 1
     
     // Split by double asterisks for bold
     const parts = cleanedText.split(/(\*\*.*?\*\*)/g);
@@ -1432,6 +1439,10 @@ const Index = () => {
     return parts.map((part, index) => {
       if (part.startsWith('**') && part.endsWith('**')) {
         return <strong key={index}>{part.slice(2, -2)}</strong>;
+      }
+      // Handle HTML headings
+      if (part.includes('<h')) {
+        return <div key={index} dangerouslySetInnerHTML={{ __html: part }} />;
       }
       return part;
     });
