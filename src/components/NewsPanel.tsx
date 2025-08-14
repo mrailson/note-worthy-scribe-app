@@ -81,6 +81,7 @@ const NewsPanel = () => {
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
   
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
   const [fullContent, setFullContent] = useState<string>('');
@@ -257,7 +258,8 @@ const NewsPanel = () => {
 
   return (
     <div className="space-y-6">
-      <div className="sm:hidden flex items-center justify-end sticky top-0 z-30 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-1 py-2 sm:static sm:bg-transparent sm:backdrop-blur-0 sm:px-0 sm:py-0">
+      {/* Filter Controls */}
+      <div className="flex items-center justify-end">
         <div className="flex gap-2">
           {/* Mobile: open filters in a drawer */}
           <div className="sm:hidden">
@@ -335,46 +337,67 @@ const NewsPanel = () => {
             </Drawer>
           </div>
 
+          {/* Desktop: toggle filters button */}
+          <div className="hidden sm:block">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              <Filter className="w-4 h-4 mr-2" />
+              Filters
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* Desktop filters */}
-      <div className="hidden sm:flex flex-wrap gap-3">
-        <Select value={filterTag} onValueChange={setFilterTag}>
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder="All Tags" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Tags</SelectItem>
-            {allTags.map(tag => (
-              <SelectItem key={tag} value={tag}>{tag}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      {/* Desktop filters - collapsible */}
+      {showFilters && (
+        <div className="hidden sm:flex flex-wrap gap-3 p-4 bg-muted/20 rounded-lg">
+          <Select value={filterTag} onValueChange={setFilterTag}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="All Tags" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Tags</SelectItem>
+              {allTags.map(tag => (
+                <SelectItem key={tag} value={tag}>{tag}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-        <Select value={filterSource} onValueChange={setFilterSource}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="All Sources" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Sources</SelectItem>
-            {allSources.map(source => (
-              <SelectItem key={source} value={source}>{source}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <Select value={filterSource} onValueChange={setFilterSource}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="All Sources" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Sources</SelectItem>
+              {allSources.map(source => (
+                <SelectItem key={source} value={source}>{source}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-        <Select value={filterTime} onValueChange={setFilterTime}>
-          <SelectTrigger className="w-32">
-            <SelectValue placeholder="All Time" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Time</SelectItem>
-            <SelectItem value="24h">Last 24h</SelectItem>
-            <SelectItem value="7d">Last 7 days</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+          <Select value={filterTime} onValueChange={setFilterTime}>
+            <SelectTrigger className="w-32">
+              <SelectValue placeholder="All Time" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Time</SelectItem>
+              <SelectItem value="24h">Last 24h</SelectItem>
+              <SelectItem value="7d">Last 7 days</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => { setFilterTag('all'); setFilterSource('all'); setFilterTime('all'); }}
+          >
+            Clear All
+          </Button>
+        </div>
+      )}
 
       {articles.length === 0 ? (
         <Card>
