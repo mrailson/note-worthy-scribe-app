@@ -160,11 +160,6 @@ export const RecordingControls = ({
                   {realtimeTranscripts.length > 0 ? (
                     realtimeTranscripts.map((item, index) => (
                       <div key={index} className="text-foreground/80">
-                        {item.speaker && (
-                          <span className="font-medium text-primary">
-                            {item.speaker}:
-                          </span>
-                        )}{" "}
                         {item.text}
                         {item.confidence && (
                           <span className="text-xs text-muted-foreground ml-2">
