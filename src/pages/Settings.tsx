@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Settings as SettingsIcon, Users, Building, BookOpen, Search, Plus, Pencil, Trash2, X, Clock, HelpCircle, Mail, Globe, Github, ExternalLink, BarChart3, Calendar, Timer, Key, Eye, EyeOff, Shield, Lock, Database, FileCheck, AlertTriangle, Download, FileText, Award, FolderOpen, Headphones, Sparkles } from "lucide-react";
+import { Settings as SettingsIcon, Users, Building, BookOpen, Search, Plus, Pencil, Trash2, X, Clock, HelpCircle, Mail, Globe, Github, ExternalLink, BarChart3, Calendar, Timer, Key, Eye, EyeOff, Shield, Lock, Database, FileCheck, AlertTriangle, Download, FileText, Award, FolderOpen, Headphones } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -66,9 +66,6 @@ export default function Settings() {
   // Admin state
   const [isAdmin, setIsAdmin] = useState(false);
 
-  // AI4GP access state
-  const [ai4gpAccess, setAi4gpAccess] = useState(false);
-  const [ai4gpLoading, setAi4gpLoading] = useState(false);
 
   // Fetch NHS terms
   const fetchTerms = async () => {
@@ -127,7 +124,6 @@ export default function Settings() {
     fetchRetentionPolicy();
     fetchUsageStats();
     checkAdminStatus();
-    fetchAI4GPAccess();
   }, [user]);
 
   // Fetch retention policy
@@ -351,49 +347,6 @@ export default function Settings() {
     }
   };
 
-  // Fetch AI4GP access status
-  const fetchAI4GPAccess = async () => {
-    if (!user) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('ai4gp_access')
-        .eq('user_id', user.id)
-        .single();
-
-      if (error && error.code !== 'PGRST116') throw error;
-      
-      if (data?.ai4gp_access !== undefined) {
-        setAi4gpAccess(data.ai4gp_access);
-      }
-    } catch (error) {
-      console.error('Error fetching AI4GP access:', error);
-    }
-  };
-
-  // Update AI4GP access (admin only)
-  const handleAI4GPAccessChange = async (enabled: boolean) => {
-    if (!user || !isAdmin) return;
-
-    setAi4gpLoading(true);
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ ai4gp_access: enabled })
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-
-      setAi4gpAccess(enabled);
-      toast.success(`AI4GP access ${enabled ? 'enabled' : 'disabled'} successfully`);
-    } catch (error) {
-      console.error('Error updating AI4GP access:', error);
-      toast.error('Failed to update AI4GP access');
-    } finally {
-      setAi4gpLoading(false);
-    }
-  };
 
   
   console.log('Settings page loaded, user:', user);
@@ -588,51 +541,6 @@ export default function Settings() {
                 </CardContent>
               </Card>
 
-              {/* AI4GP Access Control Card */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Sparkles className="h-5 w-5" />
-                    AI4GP Service Access
-                  </CardTitle>
-                  <p className="text-muted-foreground">
-                    Control access to the AI4GP service for enhanced GP practice support.
-                  </p>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-1">
-                        <Label htmlFor="ai4gp-access">AI4GP Access</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Enable access to the AI4GP service for AI-powered assistance in General Practice
-                        </p>
-                      </div>
-                      <Switch
-                        id="ai4gp-access"
-                        checked={ai4gpAccess}
-                        onCheckedChange={handleAI4GPAccessChange}
-                        disabled={ai4gpLoading || !isAdmin}
-                      />
-                    </div>
-                    
-                    <div className="p-3 border rounded-lg bg-muted/50">
-                      <div className="flex items-center gap-2 text-sm">
-                        <Lock className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">Current Status:</span>
-                        <Badge variant={ai4gpAccess ? "default" : "secondary"}>
-                          {ai4gpAccess ? "Enabled" : "Disabled"}
-                        </Badge>
-                      </div>
-                      {!isAdmin && (
-                        <div className="mt-2 text-xs text-muted-foreground">
-                          Only system administrators can modify AI4GP access settings. Contact your admin for changes.
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
 
               {/* Password Change Card */}
               <Card>
