@@ -42,12 +42,14 @@ export const useVoiceRecording = () => {
       audioChunksRef.current = [];
 
       mediaRecorder.ondataavailable = (event) => {
+        console.log('Audio data available:', event.data.size, 'bytes');
         if (event.data.size > 0) {
           audioChunksRef.current.push(event.data);
         }
       };
 
       mediaRecorder.onstart = () => {
+        console.log('Recording started');
         setState(prev => ({ ...prev, isRecording: true, isProcessing: false }));
         toast({
           title: "Recording started",
@@ -56,12 +58,14 @@ export const useVoiceRecording = () => {
       };
 
       mediaRecorder.onstop = () => {
+        console.log('Recording stopped, audio chunks collected:', audioChunksRef.current.length);
         stream.getTracks().forEach(track => track.stop());
         setState(prev => ({ ...prev, isRecording: false, isProcessing: true }));
       };
 
       mediaRecorderRef.current = mediaRecorder;
-      mediaRecorder.start();
+      // Start recording with timeslice to ensure we get data chunks
+      mediaRecorder.start(100); // Collect data every 100ms
 
     } catch (error) {
       console.error('Error starting recording:', error);
@@ -87,12 +91,15 @@ export const useVoiceRecording = () => {
   }, [state.isRecording]);
 
   const processRecording = useCallback(async (): Promise<string> => {
+    console.log('Processing recording, chunks available:', audioChunksRef.current.length);
+    
     if (audioChunksRef.current.length === 0) {
       throw new Error('No audio data recorded');
     }
 
     // Create audio blob
     const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+    console.log('Created audio blob, size:', audioBlob.size, 'bytes');
     
     // Convert to base64
     const base64Audio = await new Promise<string>((resolve, reject) => {
