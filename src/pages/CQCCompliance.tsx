@@ -23,7 +23,8 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  ChevronDown
+  ChevronDown,
+  Lock
 } from "lucide-react";
 import { toast } from "sonner";
 import EnhancedCQCAI from "@/components/EnhancedCQCAI";
@@ -54,9 +55,35 @@ interface PracticeSettings {
 }
 
 const CQCCompliance = () => {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, hasModuleAccess } = useAuth();
   const [loading, setLoading] = useState(true);
 
+  // Show login form if not authenticated
+  if (authLoading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
+
+  if (!user) {
+    return <LoginForm />;
+  }
+
+  // Check if user has access to CQC compliance
+  if (!hasModuleAccess('cqc_compliance')) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header onNewMeeting={() => {}} />
+        <div className="container mx-auto p-6">
+          <Alert className="max-w-md mx-auto">
+            <Lock className="h-4 w-4" />
+            <AlertDescription>
+              You don't have access to the CQC Compliance service. Please contact your administrator to enable this feature.
+            </AlertDescription>
+          </Alert>
+        </div>
+      </div>
+    );
+  }
+  
   const handleNewMeeting = () => {
     // Navigation logic for new meeting
   };
@@ -207,27 +234,6 @@ const CQCCompliance = () => {
 
   // loadDashboardData function handles loading mock data
 
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-2 text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-gradient-background">
-        <Header onNewMeeting={handleNewMeeting} />
-        <div className="container mx-auto px-3 py-6 sm:px-4 sm:py-8">
-          <LoginForm />
-        </div>
-      </div>
-    );
-  }
 
   if (loading) {
     return (

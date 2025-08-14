@@ -796,24 +796,35 @@ const MeetingHistory = () => {
     return `${meeting.title} - ${formattedDate} at ${formattedTime}${meeting.location ? ` (${meeting.location})` : ''}`;
   };
 
-  // Fetch mic test service settings
+  // Fetch mic test service access from user_roles 
   const fetchMicTestServiceSettings = async () => {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('mic_test_service_visible')
-        .eq('user_id', user.id)
-        .single();
+      // Check both user_roles access and profile visibility setting
+      const [roleData, profileData] = await Promise.all([
+        supabase
+          .from('user_roles')
+          .select('mic_test_service_access')
+          .eq('user_id', user.id)
+          .limit(1)
+          .single(),
+        supabase
+          .from('profiles')
+          .select('mic_test_service_visible')
+          .eq('user_id', user.id)
+          .single()
+      ]);
 
-      if (error && error.code !== 'PGRST116') throw error;
+      // Service is visible if both access is granted AND visibility is enabled
+      const hasAccess = roleData.data?.mic_test_service_access ?? false;
+      const isVisible = profileData.data?.mic_test_service_visible ?? true; // Default to true for backwards compatibility
       
-      if (data?.mic_test_service_visible !== undefined) {
-        setMicTestServiceVisible(data.mic_test_service_visible);
-      }
+      setMicTestServiceVisible(hasAccess && isVisible);
     } catch (error) {
       console.error('Error fetching mic test service settings:', error);
+      // Default to false if there's an error
+      setMicTestServiceVisible(false);
     }
   };
   useEffect(() => {

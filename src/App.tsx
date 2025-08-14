@@ -22,6 +22,7 @@ import SecurityCompliance from "./pages/SecurityCompliance";
 
 import NotFound from "./pages/NotFound";
 import { ResetPassword } from "./components/ResetPassword";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 
 
 const App = () => (
@@ -40,12 +41,20 @@ const App = () => (
       <Route path="/complaints" element={<ComplaintsSystem />} />
       <Route path="/complaints/:complaintId" element={<ComplaintDetails />} />
       <Route path="/complaint-response/:accessToken" element={<ComplaintResponse />} />
-      <Route path="/shared-drive" element={<SharedDrive />} />
+      <Route path="/shared-drive" element={
+        <ProtectedRoute requiredModule="shared_drive_access">
+          <SharedDrive />
+        </ProtectedRoute>
+      } />
       
       
       <Route path="/ai-4-pm" element={<AI4PMService />} />
       <Route path="/enhanced-access" element={<EnhancedAccess />} />
-      <Route path="/cqc-compliance" element={<CQCCompliance />} />
+      <Route path="/cqc-compliance" element={
+        <ProtectedRoute requiredModule="cqc_compliance">
+          <CQCCompliance />
+        </ProtectedRoute>
+      } />
       <Route path="/compliance-docs" element={<ComplianceDocumentation />} />
       <Route path="/security-compliance" element={<SecurityCompliance />} />
       

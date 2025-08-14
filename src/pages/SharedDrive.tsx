@@ -1,12 +1,16 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { LoginForm } from "@/components/LoginForm";
 import { Header } from "@/components/Header";
 import { SharedDriveToolbar } from "@/components/shared-drive/SharedDriveToolbar";
 import { SharedDriveNavigationPane } from "@/components/shared-drive/SharedDriveNavigationPane";
 import { SharedDriveContentView } from "@/components/shared-drive/SharedDriveContentView";
 import { SharedDriveBreadcrumb } from "@/components/shared-drive/SharedDriveBreadcrumb";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Lock } from "lucide-react";
 import { toast } from "sonner";
 
 interface SharedDriveFolder {
@@ -35,6 +39,38 @@ interface SharedDriveFile {
 }
 
 export default function SharedDrive() {
+  const { user, loading: authLoading, hasModuleAccess } = useAuth();
+
+  // Show login form if not authenticated
+  if (authLoading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
+
+  if (!user) {
+    return <LoginForm />;
+  }
+
+  // Check if user has access to shared drive
+  if (!hasModuleAccess('shared_drive_access')) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header onNewMeeting={() => {}} />
+        <div className="container mx-auto p-6">
+          <Alert className="max-w-md mx-auto">
+            <Lock className="h-4 w-4" />
+            <AlertDescription>
+              You don't have access to the Shared Drive service. Please contact your administrator to enable this feature.
+            </AlertDescription>
+          </Alert>
+        </div>
+      </div>
+    );
+  }
+
+  return <SharedDriveContent />;
+}
+
+function SharedDriveContent() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(
     searchParams.get("folder") || null
