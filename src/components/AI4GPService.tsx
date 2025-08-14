@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 import { 
   Send, 
@@ -277,6 +278,28 @@ const AI4GPService = () => {
       })));
     } catch (error) {
       console.error('Error loading search history:', error);
+    }
+  };
+
+  const clearAllHistory = async () => {
+    if (!user) return;
+    
+    try {
+      const { error } = await supabase
+        .from('ai_4_pm_searches')
+        .delete()
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+      
+      // Clear local state
+      setSearchHistory([]);
+      setMessages([]);
+      
+      toast.success('All search history cleared');
+    } catch (error) {
+      console.error('Error clearing all history:', error);
+      toast.error('Failed to clear history');
     }
   };
 
@@ -1111,14 +1134,41 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                     <History className="h-4 w-4" />
                     Previous Searches
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowSearchHistory(false)}
-                    className="h-6 w-6 p-0"
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 text-destructive"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Clear All History</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete all conversation history? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={clearAllHistory} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                            Clear All
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowSearchHistory(false)}
+                      className="h-6 w-6 p-0"
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
