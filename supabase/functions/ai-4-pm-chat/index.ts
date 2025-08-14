@@ -372,8 +372,23 @@ serve(async (req) => {
         try {
           const tavilyKey = Deno.env.get('TAVILY_API_KEY');
           if (tavilyKey) {
-            const query = `${lastUserMessage.content}`.slice(0, 500);
-            console.log('Running Tavily web search for:', query);
+            // Extract key terms from the user's message, limiting to 300 chars for safety
+            let query = lastUserMessage.content.replace(/\n--- File:.*?--- End of.*?---/gs, '').trim();
+            
+            // If query is still too long, extract key medical/healthcare terms
+            if (query.length > 300) {
+              // Extract key terms (medical conditions, drugs, procedures, etc.)
+              const keyTerms = query.match(/\b(?:[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*|[a-z]+(?:ide|ine|ate|tion|osis|itis|oma|pathy|therapy|treatment|drug|medicine|NHS|NICE|BNF|CQC|GP|prescription|patient|clinical|diagnosis|symptoms?))\b/g);
+              
+              if (keyTerms && keyTerms.length > 0) {
+                query = keyTerms.slice(0, 10).join(' ').slice(0, 300);
+              } else {
+                // Fallback: take first few words
+                query = query.split(' ').slice(0, 20).join(' ').slice(0, 300);
+              }
+            }
+            
+            console.log(`Running Tavily web search for: ${query}\n`);
             const tavilyResp = await fetch('https://api.tavily.com/search', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -448,7 +463,45 @@ serve(async (req) => {
                 console.log(`Tavily results total=${results.length}, recent=${dated.length}`);
               }
             } else {
-              console.error('Tavily search failed:', await tavilyResp.text());
+              const errorText = await tavilyResp.text();
+              console.log(`Tavily search failed: ${errorText}`);
+              
+              // If query too long, try with a shorter version
+              if (errorText.includes('too long')) {
+                console.log('Retrying with shorter query...');
+                const shortQuery = query.split(' ').slice(0, 5).join(' ').slice(0, 100);
+                console.log(`Retry query: ${shortQuery}`);
+                
+                const retryResp = await fetch('https://api.tavily.com/search', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    api_key: tavilyKey,
+                    query: shortQuery,
+                    search_depth: 'basic',
+                    max_results: 5,
+                    include_answer: true,
+                    include_raw_content: false,
+                    include_images: false
+                  })
+                });
+                
+                if (retryResp.ok) {
+                  const retryData = await retryResp.json();
+                  const retryResults = Array.isArray(retryData.results) ? retryData.results : [];
+                  if (retryResults.length > 0) {
+                    const retryFormatted = retryResults.slice(0, 3).map((r: any) => {
+                      const url = r.url || r.link || '';
+                      let host = '';
+                      try { host = new URL(url).host; } catch {}
+                      const snippet = (r.content || r.snippet || '').replace(/\s+/g, ' ').slice(0, 150);
+                      return `- ${r.title || 'Untitled'} — ${host}\n  ${snippet}`;
+                    }).join('\n');
+                    
+                    enhancedSystemPrompt += `\n\nLIMITED WEB SEARCH RESULTS:\n${retryFormatted}`;
+                  }
+                }
+              }
             }
           } else {
             console.log('Tavily API key not configured; proceeding without live web search');
