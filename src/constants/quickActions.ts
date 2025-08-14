@@ -52,12 +52,6 @@ export const quickActions = [
     requiresFile: false 
   },
   { 
-    label: 'Fit Note Wording Helper', 
-    icon: FileHeart, 
-    prompt: `${nhsSafetyPreamble} Suggest concise, clinically appropriate fit note wording for a patient with [insert condition/procedure]. Include expected duration, recommended work adjustments, and review advice.`,
-    requiresFile: false 
-  },
-  { 
     label: 'Practice Policy & Protocol Finder', 
     icon: Settings, 
     prompt: `${nhsSafetyPreamble} Search for the local or PCN protocol on [insert topic] and summarise the key steps. Include source document link and any NHS/national guidance references.`,
