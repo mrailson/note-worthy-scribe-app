@@ -168,8 +168,11 @@ const AI4GPService = () => {
 
       {/* Fixed Input Area at Bottom of Viewport - Outside tab structure */}
       <div 
-        className="fixed bottom-0 left-0 right-0 bg-background border-t shadow-lg"
-        style={{ zIndex: 9999 }}
+        className="fixed left-0 right-0 bg-background border-t shadow-lg"
+        style={{ 
+          bottom: '20px',
+          zIndex: 9999 
+        }}
       >
         <InputArea
           input={input}
