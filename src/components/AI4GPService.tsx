@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Sparkles, History, Plus, Settings, Sparkles as GenieIcon, Newspaper } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Sparkles, History, Plus, Settings, Sparkles as GenieIcon, Newspaper, MoreVertical } from 'lucide-react';
 import { LoginForm } from '@/components/LoginForm';
 import { MessagesList } from '@/components/ai4gp/MessagesList';
 import { InputArea, InputAreaRef } from '@/components/ai4gp/InputArea';
@@ -160,25 +161,36 @@ const AI4GPService = () => {
                   </CardTitle>
                   
                    <div className="flex items-center gap-1 sm:gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowSettings(true)}
-                      className="px-2 sm:px-3"
-                    >
-                      <Settings className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
-                      <span className="hidden sm:inline text-xs">Settings</span>
-                    </Button>
-                    
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleNewSearch}
-                      className="px-2 sm:px-3"
-                    >
-                      <Plus className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
-                      <span className="hidden sm:inline text-xs">New</span>
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="px-2 sm:px-3"
+                        >
+                          <MoreVertical className="w-3 h-3 sm:w-4 sm:h-4" />
+                          <span className="hidden sm:inline text-xs ml-1">Quick Pick</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuItem onClick={() => setShowSettings(true)}>
+                          <Settings className="w-4 h-4 mr-2" />
+                          Settings
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setShowAIChat(!showAIChat)}>
+                          <GenieIcon className="w-4 h-4 mr-2" />
+                          GP Genie
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setShowNews(!showNews)}>
+                          <Newspaper className="w-4 h-4 mr-2" />
+                          GP News
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={handleNewSearch}>
+                          <Plus className="w-4 h-4 mr-2" />
+                          New Search
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
               </CardHeader>
