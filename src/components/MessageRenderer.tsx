@@ -5,6 +5,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   ChevronDown, 
   ChevronsUp, 
+  ChevronsDown,
   Copy, 
   Bot, 
   User,
@@ -52,6 +53,21 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const [showFullContent, setShowFullContent] = useState(true);
   const messageRef = React.useRef<HTMLDivElement>(null);
+
+  const handleScrollToInput = () => {
+    // Scroll to bottom of viewport
+    window.scrollTo({
+      top: document.documentElement.scrollHeight,
+      behavior: 'smooth'
+    });
+    // Focus the input after a small delay to ensure scroll completes
+    setTimeout(() => {
+      const inputArea = document.querySelector('textarea[placeholder*="Ask about NHS guidelines"]') as HTMLTextAreaElement;
+      if (inputArea) {
+        inputArea.focus();
+      }
+    }, 300);
+  };
   
   const maxPreviewLength = 500;
   const isLongMessage = message.content.length > 1000;
@@ -222,13 +238,27 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   return (
     <div className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
       <div className={`flex gap-3 w-full max-w-[95%] sm:max-w-[85%] ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-        <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-          message.role === 'user' ? 'bg-primary' : 'bg-muted'
-        }`}>
-          {message.role === 'user' ? (
-            <User className="h-4 w-4 text-primary-foreground" />
-          ) : (
-            <Bot className="h-4 w-4 text-muted-foreground" />
+        {/* Avatar with scroll arrow for assistant messages */}
+        <div className="flex flex-col items-center gap-1">
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+            message.role === 'user' ? 'bg-primary' : 'bg-muted'
+          }`}>
+            {message.role === 'user' ? (
+              <User className="h-4 w-4 text-primary-foreground" />
+            ) : (
+              <Bot className="h-4 w-4 text-muted-foreground" />
+            )}
+          </div>
+          
+          {/* Scroll to input arrow - only show for assistant messages */}
+          {message.role === 'assistant' && (
+            <button
+              onClick={handleScrollToInput}
+              className="p-1 rounded-full hover:bg-muted transition-colors opacity-60 hover:opacity-100"
+              title="Scroll to input"
+            >
+              <ChevronsDown className="h-3 w-3 text-muted-foreground" />
+            </button>
           )}
         </div>
         
