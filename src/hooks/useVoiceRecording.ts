@@ -1,6 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/components/ui/use-toast';
 
 export interface VoiceRecordingState {
   isRecording: boolean;
@@ -9,7 +8,6 @@ export interface VoiceRecordingState {
 }
 
 export const useVoiceRecording = () => {
-  const { toast } = useToast();
   const [state, setState] = useState<VoiceRecordingState>({
     isRecording: false,
     isProcessing: false,
@@ -51,10 +49,6 @@ export const useVoiceRecording = () => {
       mediaRecorder.onstart = () => {
         console.log('Recording started');
         setState(prev => ({ ...prev, isRecording: true, isProcessing: false }));
-        toast({
-          title: "Recording started",
-          description: "Speak now, tap the mic again to stop",
-        });
       };
 
       mediaRecorder.onstop = () => {
@@ -69,19 +63,14 @@ export const useVoiceRecording = () => {
 
     } catch (error) {
       console.error('Error starting recording:', error);
-      setState(prev => ({ 
-        ...prev, 
-        isRecording: false, 
-        isProcessing: false, 
-        error: 'Failed to access microphone' 
-      }));
-      toast({
-        title: "Recording failed",
-        description: "Could not access microphone. Please check permissions.",
-        variant: "destructive"
-      });
+        setState(prev => ({ 
+          ...prev, 
+          isRecording: false, 
+          isProcessing: false, 
+          error: 'Failed to access microphone' 
+        }));
     }
-  }, [toast]);
+  }, []);
 
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && state.isRecording) {
@@ -137,10 +126,7 @@ export const useVoiceRecording = () => {
       stopRecording();
       try {
         const text = await processRecording();
-        toast({
-          title: "Recording processed",
-          description: text ? "Speech converted to text" : "No speech detected",
-        });
+        setState(prev => ({ ...prev, isProcessing: false }));
         return text;
       } catch (error) {
         console.error('Error processing recording:', error);
@@ -149,18 +135,13 @@ export const useVoiceRecording = () => {
           isProcessing: false, 
           error: 'Failed to process recording' 
         }));
-        toast({
-          title: "Processing failed",
-          description: "Could not convert speech to text",
-          variant: "destructive"
-        });
         return null;
       }
     } else {
       await startRecording();
       return null;
     }
-  }, [state.isRecording, startRecording, stopRecording, processRecording, toast]);
+  }, [state.isRecording, startRecording, stopRecording, processRecording]);
 
   return {
     ...state,
