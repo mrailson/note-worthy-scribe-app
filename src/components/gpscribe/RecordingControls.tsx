@@ -2,7 +2,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { Mic, RotateCcw, FileText } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Mic, RotateCcw, FileText, ChevronDown, ChevronRight } from "lucide-react";
 import { useState } from "react";
 
 interface RecordingControlsProps {
@@ -13,6 +15,14 @@ interface RecordingControlsProps {
   wordCount: number;
   currentConfidence?: number;
   formatDuration: (seconds: number) => string;
+  transcript: string;
+  realtimeTranscripts: Array<{
+    text: string;
+    timestamp: string;
+    speaker?: string;
+    confidence?: number;
+    isFinal?: boolean;
+  }>;
   onStartRecording: () => void;
   onStopRecording: () => void;
   onPauseRecording: () => void;
@@ -27,12 +37,15 @@ export const RecordingControls = ({
   wordCount,
   currentConfidence,
   formatDuration,
+  transcript,
+  realtimeTranscripts,
   onStartRecording,
   onStopRecording,
   onPauseRecording,
   onResumeRecording
 }: RecordingControlsProps) => {
   const [consultationType, setConsultationType] = useState("face-to-face");
+  const [isTranscriptExpanded, setIsTranscriptExpanded] = useState(false);
 
   const handleReset = () => {
     if (isRecording) {
@@ -110,6 +123,70 @@ export const RecordingControls = ({
             </Button>
           )}
         </div>
+
+        {/* Transcript Service - Collapsible */}
+        <Collapsible open={isTranscriptExpanded} onOpenChange={setIsTranscriptExpanded}>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" className="w-full justify-between p-2">
+              <span className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Transcript Service
+              </span>
+              {isTranscriptExpanded ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )}
+            </Button>
+          </CollapsibleTrigger>
+          
+          <CollapsibleContent className="space-y-3">
+            <div className="border rounded-lg p-3 bg-muted/30">
+              <div className="flex items-center justify-between mb-2">
+                <Label className="text-xs font-medium text-muted-foreground">
+                  Live Transcript
+                </Label>
+                {isRecording && (
+                  <div className="flex items-center gap-1 text-xs text-green-600">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                    Recording
+                  </div>
+                )}
+              </div>
+              
+              <ScrollArea className="h-32 w-full">
+                <div className="space-y-2 text-sm">
+                  {/* Real-time transcripts */}
+                  {realtimeTranscripts.length > 0 ? (
+                    realtimeTranscripts.map((item, index) => (
+                      <div key={index} className="text-foreground/80">
+                        {item.speaker && (
+                          <span className="font-medium text-primary">
+                            {item.speaker}:
+                          </span>
+                        )}{" "}
+                        {item.text}
+                        {item.confidence && (
+                          <span className="text-xs text-muted-foreground ml-2">
+                            ({Math.round(item.confidence * 100)}%)
+                          </span>
+                        )}
+                      </div>
+                    ))
+                  ) : transcript ? (
+                    <div className="text-foreground/80">{transcript}</div>
+                  ) : (
+                    <div className="text-muted-foreground italic">
+                      {isRecording 
+                        ? "Listening for speech..." 
+                        : "No transcript available. Start recording to see real-time transcription."}
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
       </CardContent>
     </Card>
   );

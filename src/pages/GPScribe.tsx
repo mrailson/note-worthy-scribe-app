@@ -168,6 +168,8 @@ const Index = () => {
               wordCount={recording.wordCount}
               currentConfidence={recording.currentConfidence}
               formatDuration={recording.formatDuration}
+              transcript={recording.transcript}
+              realtimeTranscripts={recording.realtimeTranscripts}
               onStartRecording={recording.startRecording}
               onStopRecording={recording.stopRecording}
               onPauseRecording={recording.pauseRecording}
