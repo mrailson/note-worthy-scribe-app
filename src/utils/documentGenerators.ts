@@ -75,12 +75,7 @@ export const generateWordDocument = async (content: string, title: string = 'AI 
           children.push(new TextRun({
             text: content,
             size: 22,
-            font: "Courier New",
-            shading: {
-              type: "clear",
-              color: "f6f8fa",
-              fill: "f6f8fa"
-            }
+            font: "Courier New"
           }));
         }
         // Handle URLs
@@ -89,7 +84,7 @@ export const generateWordDocument = async (content: string, title: string = 'AI 
             children: [new TextRun({
               text: matchedText,
               size: 24,
-              color: "0563C1", // Blue color for links
+              color: "0563C1",
               underline: {}
             })],
             link: matchedText
@@ -115,8 +110,8 @@ export const generateWordDocument = async (content: string, title: string = 'AI 
 
     const paragraphs = [
       new Paragraph({ 
-        children: [new TextRun({ text: title, bold: true, size: 28 })],
-        spacing: { after: 300 }
+        children: [new TextRun({ text: title, bold: true, size: 32 })],
+        spacing: { after: 400 }
       })
     ];
     
@@ -127,7 +122,10 @@ export const generateWordDocument = async (content: string, title: string = 'AI 
       const trimmedLine = line.trim();
       
       if (!trimmedLine) {
-        paragraphs.push(new Paragraph({ children: [new TextRun({ text: '', size: 24 })] }));
+        paragraphs.push(new Paragraph({ 
+          children: [new TextRun({ text: '', size: 12 })],
+          spacing: { after: 200 }
+        }));
         continue;
       }
       
@@ -147,49 +145,59 @@ export const generateWordDocument = async (content: string, title: string = 'AI 
                            trimmedLine.toLowerCase().includes('check');
 
       if (isBulletPoint) {
-        // Remove bullet markers and create checkbox paragraph
+        // Remove bullet markers and create simple bulleted paragraph
         const cleanedText = trimmedLine.replace(/^[-*•]\s+/, '').replace(/^\d+\.\s+/, '');
         
-        const checkboxChildren = [
-          // Add ballot box checkbox symbol
-          new SymbolRun({
-            font: "Wingdings",
-            char: String.fromCharCode(0x2610), // Ballot box symbol ☐
-            size: 24
-          }),
-          new TextRun({ text: '  ', size: 24 }), // Space after checkbox
+        const bulletChildren = [
+          new TextRun({ text: '• ', size: 24 }), // Simple bullet point
           ...processFormattedText(cleanedText)
         ];
         
         paragraphs.push(new Paragraph({ 
-          children: checkboxChildren,
-          spacing: { after: 120 },
-          indent: { left: 300 } // Indent checkbox items
+          children: bulletChildren,
+          spacing: { after: 150 },
+          indent: { left: 400 } // Indent bullet items
         }));
       } else {
         // Regular paragraph
         const formattedChildren = processFormattedText(trimmedLine);
         paragraphs.push(new Paragraph({ 
           children: formattedChildren,
-          spacing: { after: 120 }
+          spacing: { after: 200 }
         }));
       }
     }
 
+    // Create document with proper properties
     const doc = new Document({
+      creator: "Notewell AI",
+      title: title,
+      description: "AI Generated Document",
       sections: [{
-        properties: {},
+        properties: {
+          page: {
+            margin: {
+              top: 720,    // 0.5 inch
+              right: 720,  // 0.5 inch
+              bottom: 720, // 0.5 inch
+              left: 720    // 0.5 inch
+            }
+          }
+        },
         children: paragraphs
       }]
     });
 
+    // Generate the document and save
     const blob = await Packer.toBlob(doc);
-    const fileName = `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.docx`;
+    const fileName = `${title.replace(/[^a-z0-9\s]/gi, '_').toLowerCase().replace(/\s+/g, '_')}.docx`;
     saveAs(blob, fileName);
+    
+    return true;
     
   } catch (error) {
     console.error('Error generating Word document:', error);
-    throw new Error('Failed to generate Word document');
+    throw new Error(`Failed to generate Word document: ${error.message}`);
   }
 };
 
