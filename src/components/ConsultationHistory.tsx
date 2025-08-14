@@ -184,6 +184,28 @@ export const ConsultationHistory = () => {
     }
   };
 
+  const handleClearAll = async () => {
+    if (!user || consultations.length === 0) return;
+
+    try {
+      const { error } = await supabase
+        .from('meetings')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('meeting_type', 'gp_consultation');
+
+      if (error) throw error;
+
+      console.log("All consultations cleared successfully");
+
+      setSelectedConsultationIds(new Set());
+      setConsultations([]);
+    } catch (error) {
+      console.error('Error clearing all consultations:', error);
+      console.error("Failed to clear all consultations");
+    }
+  };
+
   const toggleConsultationSelection = (consultationId: string) => {
     const newSelected = new Set(selectedConsultationIds);
     if (newSelected.has(consultationId)) {
@@ -303,6 +325,32 @@ export const ConsultationHistory = () => {
                   </AlertDialogContent>
                 </AlertDialog>
               )}
+
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="text-destructive">
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Clear All
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Clear All Consultations</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to delete all consultation history? This action cannot be undone and will remove all {consultations.length} consultations.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleClearAll}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Clear All
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+                </AlertDialog>
             </>
           )}
         </div>
