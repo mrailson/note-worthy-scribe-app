@@ -30,7 +30,7 @@ export const TabNavigation = ({ activeTab, onTabChange, isMobile }: TabNavigatio
 
   return (
     <div className="w-full">
-      <TabsList className={`grid w-full ${isMobile ? 'grid-cols-4' : 'grid-cols-8'} gap-1`}>
+      <TabsList className={`grid w-full ${isMobile ? 'grid-cols-4' : 'grid-cols-7'} gap-1`}>
         {tabs.map((tab) => {
           const Icon = tab.icon;
           return (
