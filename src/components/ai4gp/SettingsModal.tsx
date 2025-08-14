@@ -4,7 +4,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Brain, Search, Bot } from 'lucide-react';
+import { Brain, Search, Bot, Maximize2 } from 'lucide-react';
 
 interface SettingsModalProps {
   open: boolean;
@@ -15,6 +15,8 @@ interface SettingsModalProps {
   onIncludeLatestUpdatesChange: (enabled: boolean) => void;
   selectedModel: string;
   onModelChange: (model: string) => void;
+  cardSize: string;
+  onCardSizeChange: (size: string) => void;
 }
 
 const AI_MODELS = [
@@ -51,6 +53,16 @@ const AI_MODELS = [
   }
 ];
 
+const CARD_SIZES = [
+  { id: 'xs', name: 'Extra Small', description: 'Compact messages for quick scanning' },
+  { id: 'sm', name: 'Small', description: 'Condensed layout for more content per screen' },
+  { id: 'md', name: 'Medium', description: 'Balanced size for comfortable reading' },
+  { id: 'default', name: 'Default', description: 'Standard size with optimal readability' },
+  { id: 'lg', name: 'Large', description: 'Enhanced visibility for detailed content' },
+  { id: 'xl', name: 'Extra Large', description: 'Maximum readability for complex responses' },
+  { id: 'full', name: 'Full Width', description: 'Complete screen utilization' }
+];
+
 export const SettingsModal: React.FC<SettingsModalProps> = ({
   open,
   onOpenChange,
@@ -59,7 +71,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   includeLatestUpdates,
   onIncludeLatestUpdatesChange,
   selectedModel,
-  onModelChange
+  onModelChange,
+  cardSize,
+  onCardSizeChange
 }) => {
   const selectedModelInfo = AI_MODELS.find(model => model.id === selectedModel) || AI_MODELS[0];
 
@@ -150,6 +164,42 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   checked={includeLatestUpdates}
                   onCheckedChange={onIncludeLatestUpdatesChange}
                 />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Message Card Size */}
+          <Card className="bg-white">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Maximize2 className="h-4 w-4" />
+                Message Card Size
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Select value={cardSize} onValueChange={onCardSizeChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select card size" />
+                </SelectTrigger>
+                <SelectContent>
+                  {CARD_SIZES.map((size) => (
+                    <SelectItem key={size.id} value={size.id}>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{size.name}</span>
+                        {size.id === 'default' && (
+                          <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                            Default
+                          </span>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              <div className="text-xs text-muted-foreground bg-muted/30 p-3 rounded-lg">
+                <div className="font-medium">{CARD_SIZES.find(s => s.id === cardSize)?.name || 'Default'}</div>
+                <div className="mt-1">{CARD_SIZES.find(s => s.id === cardSize)?.description || 'Standard size with optimal readability'}</div>
               </div>
             </CardContent>
           </Card>

@@ -26,6 +26,7 @@ const AI4GPService = () => {
   const [expandedMessage, setExpandedMessage] = useState<Message | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [selectedModel, setSelectedModel] = useState('gpt-5');
+  const [cardSize, setCardSize] = useState('default');
 
   const {
     messages,
@@ -202,6 +203,8 @@ const AI4GPService = () => {
         onIncludeLatestUpdatesChange={setIncludeLatestUpdates}
         selectedModel={selectedModel}
         onModelChange={setSelectedModel}
+        cardSize={cardSize}
+        onCardSizeChange={setCardSize}
       />
     </div>
   );
