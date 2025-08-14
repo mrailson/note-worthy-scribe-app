@@ -945,6 +945,27 @@ Format your responses clearly with headings and bullet points where appropriate 
     }
   };
 
+  const clearAllHistory = async () => {
+    if (!user) return;
+    
+    try {
+      const { error } = await supabase
+        .from('ai_4_pm_searches')
+        .delete()
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+      
+      // Clear current search and messages
+      setCurrentSearchId(null);
+      setMessages([]);
+      setSearchHistory([]);
+      
+    } catch (error) {
+      console.error('Error clearing all history:', error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -1405,7 +1426,33 @@ Format your responses clearly with headings and bullet points where appropriate 
           <TabsContent value="history">
             <Card>
               <CardHeader>
-                <CardTitle>Conversation History</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Conversation History</CardTitle>
+                  {searchHistory.length > 0 && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="text-destructive">
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Clear All
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Clear All History</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete all conversation history? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={clearAllHistory} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                            Clear All
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
