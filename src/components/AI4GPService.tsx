@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Sparkles, History, Plus, Settings, Sparkles as GenieIcon } from 'lucide-react';
+import { Sparkles, History, Plus, Settings, Sparkles as GenieIcon, Newspaper } from 'lucide-react';
 import { LoginForm } from '@/components/LoginForm';
 import { MessagesList } from '@/components/ai4gp/MessagesList';
 import { InputArea, InputAreaRef } from '@/components/ai4gp/InputArea';
@@ -19,6 +19,7 @@ import { useSearchHistory } from '@/hooks/useSearchHistory';
 import { generateWordDocument, generatePowerPoint } from '@/utils/documentGenerators';
 import { Message } from '@/types/ai4gp';
 import GPGenieVoiceAgent from '@/components/GPGenieVoiceAgent';
+import NewsPanel from '@/components/NewsPanel';
 
 const AI4GPService = () => {
   const inputRef = useRef<InputAreaRef>(null);
@@ -28,6 +29,7 @@ const AI4GPService = () => {
   const [expandedMessage, setExpandedMessage] = useState<Message | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showAIChat, setShowAIChat] = useState(false);
+  const [showNews, setShowNews] = useState(false);
   const [selectedRole, setSelectedRole] = useState<'gp' | 'practice-manager'>('gp');
   const [selectedModel, setSelectedModel] = useState('gpt-5');
   const [cardSize, setCardSize] = useState('default');
@@ -144,6 +146,17 @@ const AI4GPService = () => {
                     <GenieIcon className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
                     <span className="hidden sm:inline text-xs">GP Genie</span>
                   </Button>
+
+                  {/* News button next to GP Genie */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowNews(!showNews)}
+                    className="ml-1 px-2 sm:px-3"
+                  >
+                    <Newspaper className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
+                    <span className="hidden sm:inline text-xs">News</span>
+                  </Button>
                 </CardTitle>
                 
                  <div className="flex items-center gap-1 sm:gap-2">
@@ -184,6 +197,24 @@ const AI4GPService = () => {
                 </div>
                 <div className="max-h-96 overflow-y-auto">
                   <GPGenieVoiceAgent />
+                </div>
+              </div>
+            )}
+
+            {/* News Display */}
+            {showNews && (
+              <div className="border-b bg-muted/20 p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="font-medium text-sm">GP News & Updates</h4>
+                  <button
+                    onClick={() => setShowNews(false)}
+                    className="text-muted-foreground hover:text-foreground text-sm"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div className="max-h-96 overflow-y-auto">
+                  <NewsPanel />
                 </div>
               </div>
             )}
