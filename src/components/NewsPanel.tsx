@@ -257,7 +257,7 @@ const NewsPanel = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       {/* Filter Controls */}
       <div className="flex items-center justify-end">
         <div className="flex gap-2">
@@ -353,7 +353,7 @@ const NewsPanel = () => {
 
       {/* Desktop filters - collapsible */}
       {showFilters && (
-        <div className="hidden sm:flex flex-wrap gap-3 p-4 bg-muted/20 rounded-lg">
+        <div className="hidden sm:flex flex-wrap gap-3 p-3 bg-muted/20 rounded-lg">
           <Select value={filterTag} onValueChange={setFilterTag}>
             <SelectTrigger className="w-40">
               <SelectValue placeholder="All Tags" />
@@ -412,7 +412,7 @@ const NewsPanel = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {prioritizedArticles.map((article) => (
             <Card key={article.id} className="cursor-pointer hover:shadow-lg transition-shadow">
               <CardHeader className="pb-3">
