@@ -146,7 +146,18 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-background overflow-x-hidden">
-      <Header onNewMeeting={() => {}} />
+      <Header onNewMeeting={() => {}} onScrollToInput={() => {
+        // Find the AI4GP tab and switch to it if not already active
+        if (activeTab !== 'ai4gp') {
+          setActiveTab('ai4gp');
+        }
+        // Scroll to input - this will be handled by the AI4GPService component
+        const ai4gpService = document.querySelector('[data-component="ai4gp-service"]');
+        if (ai4gpService) {
+          const event = new CustomEvent('scrollToInput');
+          ai4gpService.dispatchEvent(event);
+        }
+      }} />
       
       <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 lg:py-8 space-y-4 sm:space-y-6 max-w-6xl pb-28 sm:pb-6 mobile-container" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 96px)' }}>
         

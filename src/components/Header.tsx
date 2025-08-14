@@ -11,7 +11,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning, Sparkles, Mail, Users, Clock, FolderOpen, Wrench, BookOpen, Menu } from "lucide-react";
+import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning, Sparkles, Mail, Users, Clock, FolderOpen, Wrench, BookOpen, Menu, ChevronsDown } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,9 +19,10 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, Dr
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 interface HeaderProps {
   onNewMeeting: () => void;
+  onScrollToInput?: () => void;
 }
 
-export const Header = ({ onNewMeeting }: HeaderProps) => {
+export const Header = ({ onNewMeeting, onScrollToInput }: HeaderProps) => {
   const { user, signOut, hasModuleAccess, refreshUserModules } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -71,15 +72,27 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
     <header className="bg-gradient-primary text-primary-foreground shadow-strong sticky top-0 z-50">
       <div className="container mx-auto px-3 py-1 sm:px-4 sm:py-4">
         <div className="flex items-center justify-between">
-          {/* Mobile-friendly title */}
+          {/* Mobile-friendly title with scroll arrow */}
           {user && (
-            <h1 
-              className="text-sm sm:text-xl font-bold leading-tight max-w-[200px] sm:max-w-none cursor-pointer hover:opacity-80 transition-opacity"
-              onClick={() => navigate('/')}
-            >
-              <span className="hidden sm:inline">Notewell AI</span>
-              <span className="sm:hidden">Notewell AI</span>
-            </h1>
+            <div className="flex flex-col items-start">
+              <h1 
+                className="text-sm sm:text-xl font-bold leading-tight max-w-[200px] sm:max-w-none cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={() => navigate('/')}
+              >
+                <span className="hidden sm:inline">Notewell AI</span>
+                <span className="sm:hidden">Notewell AI</span>
+              </h1>
+              {/* Scroll to input arrow - only show on AI4GP page */}
+              {isGPScribePage && onScrollToInput && (
+                <button
+                  onClick={onScrollToInput}
+                  className="mt-1 p-1 rounded-full hover:bg-white/10 transition-colors opacity-60 hover:opacity-100"
+                  title="Scroll to input"
+                >
+                  <ChevronsDown className="h-3 w-3 text-white" />
+                </button>
+              )}
+            </div>
           )}
           
           {/* Navigation */}

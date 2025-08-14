@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Sparkles, History, Plus, Settings } from 'lucide-react';
 import { LoginForm } from '@/components/LoginForm';
 import { MessagesList } from '@/components/ai4gp/MessagesList';
-import { InputArea } from '@/components/ai4gp/InputArea';
+import { InputArea, InputAreaRef } from '@/components/ai4gp/InputArea';
 import MessageRenderer from '@/components/MessageRenderer';
 import { QuickActionsPanel } from '@/components/ai4gp/QuickActionsPanel';
 import { SettingsModal } from '@/components/ai4gp/SettingsModal';
@@ -20,6 +20,7 @@ import { generateWordDocument, generatePowerPoint } from '@/utils/documentGenera
 import { Message } from '@/types/ai4gp';
 
 const AI4GPService = () => {
+  const inputRef = useRef<InputAreaRef>(null);
   const { user, loading } = useAuth();
   const [showSearchHistory, setShowSearchHistory] = useState(false);
   const [showAllQuickActions, setShowAllQuickActions] = useState(false);
@@ -63,6 +64,18 @@ const AI4GPService = () => {
     setShowSearchHistory(false);
   };
 
+  const handleScrollToInput = () => {
+    // Scroll to bottom of viewport
+    window.scrollTo({
+      top: document.documentElement.scrollHeight,
+      behavior: 'smooth'
+    });
+    // Focus the input after a small delay to ensure scroll completes
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 300);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -77,7 +90,16 @@ const AI4GPService = () => {
 
   return (
     <>
-      <div className="h-full flex bg-background relative">
+      <div 
+        className="h-full flex bg-background relative" 
+        data-component="ai4gp-service"
+        ref={(el) => {
+          if (el) {
+            el.addEventListener('scrollToInput', handleScrollToInput);
+            return () => el.removeEventListener('scrollToInput', handleScrollToInput);
+          }
+        }}
+      >
         {/* Search History Sidebar */}
         {showSearchHistory && (
           <SearchHistorySidebar
@@ -175,6 +197,7 @@ const AI4GPService = () => {
         }}
       >
         <InputArea
+          ref={inputRef}
           input={input}
           setInput={setInput}
           uploadedFiles={uploadedFiles}

@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, forwardRef, useImperativeHandle } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Send, Paperclip } from 'lucide-react';
@@ -15,16 +15,27 @@ interface InputAreaProps {
   isLoading: boolean;
 }
 
-export const InputArea: React.FC<InputAreaProps> = ({
+export interface InputAreaRef {
+  focus: () => void;
+}
+
+export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
   input,
   setInput,
   uploadedFiles,
   setUploadedFiles,
   onSend,
   isLoading
-}) => {
+}, ref) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { processFiles } = useFileUpload();
+
+  useImperativeHandle(ref, () => ({
+    focus: () => {
+      textareaRef.current?.focus();
+    }
+  }));
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -64,6 +75,7 @@ export const InputArea: React.FC<InputAreaProps> = ({
       <div className="flex gap-2">
         <div className="flex-1 relative">
           <Textarea
+            ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -107,4 +119,4 @@ export const InputArea: React.FC<InputAreaProps> = ({
       </div>
     </div>
   );
-};
+});
