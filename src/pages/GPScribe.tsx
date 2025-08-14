@@ -1669,10 +1669,10 @@ useEffect(() => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-background">
+    <div className="min-h-screen bg-gradient-background overflow-x-hidden">
       <Header onNewMeeting={() => {}} />
       
-      <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 lg:py-8 space-y-4 sm:space-y-6 max-w-6xl pb-28 sm:pb-6" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 96px)' }}>
+      <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 lg:py-8 space-y-4 sm:space-y-6 max-w-6xl pb-28 sm:pb-6 mobile-container" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 96px)' }}>
         
         {/* Tab Navigation */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -2447,7 +2447,8 @@ useEffect(() => {
                     <Button
                       onClick={generateSummary}
                       disabled={isGenerating}
-                      className="bg-gradient-primary hover:bg-primary-hover"
+                      className="bg-gradient-primary hover:bg-primary-hover touch-manipulation min-h-[44px] text-base font-medium px-6"
+                      size="lg"
                     >
                       <Brain className="h-4 w-4 mr-2" />
                       {isGenerating ? 'Generating...' : 'Regenerate Notes'}
@@ -2638,6 +2639,7 @@ useEffect(() => {
                   onClick={generateReferralLetter}
                   disabled={!transcript.trim() || isGenerating}
                   variant="outline"
+                  className="touch-manipulation min-h-[44px]"
                   size="sm"
                 >
                   <Send className="h-4 w-4 mr-2" />
