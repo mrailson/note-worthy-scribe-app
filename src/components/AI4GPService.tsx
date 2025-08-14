@@ -109,25 +109,25 @@ const AI4GPService = () => {
               
                <div className="flex items-center gap-1 sm:gap-2">
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
                   onClick={() => setShowSettings(true)}
                   className="px-2 sm:px-3"
                 >
-                  <Settings className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Settings</span>
+                  <Settings className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
+                  <span className="hidden sm:inline text-xs">Settings</span>
                 </Button>
                 
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
                   onClick={handleNewSearch}
                   className="px-2 sm:px-3"
                 >
-                  <Plus className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" />
-                  <span className="hidden sm:inline">New</span>
+                  <Plus className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
+                  <span className="hidden sm:inline text-xs">New</span>
                 </Button>
-               </div>
+              </div>
             </div>
           </CardHeader>
 
