@@ -1097,29 +1097,57 @@ Format your responses clearly with headings and bullet points where appropriate 
                 <div className="lg:col-span-1">
                   <Card className="h-full">
                     <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-lg">Search History</CardTitle>
-                        <div className="flex items-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={toggleHistoryCollapsed}
-                            className="h-8 w-8 p-0"
-                            title="Collapse history"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleNewSearch}
-                            className="h-8"
-                          >
-                            <Sparkles className="h-3 w-3 mr-1" />
-                            New
-                          </Button>
-                        </div>
-                      </div>
+                       <div className="flex items-center justify-between">
+                         <CardTitle className="text-lg">Search History</CardTitle>
+                         <div className="flex items-center gap-1">
+                           <Button
+                             variant="ghost"
+                             size="sm"
+                             onClick={toggleHistoryCollapsed}
+                             className="h-8 w-8 p-0"
+                             title="Collapse history"
+                           >
+                             <X className="h-4 w-4" />
+                           </Button>
+                           {searchHistory.length > 0 && (
+                             <AlertDialog>
+                               <AlertDialogTrigger asChild>
+                                 <Button
+                                   variant="outline"
+                                   size="sm"
+                                   className="h-8 text-destructive"
+                                 >
+                                   <Trash2 className="h-3 w-3 mr-1" />
+                                   Clear
+                                 </Button>
+                               </AlertDialogTrigger>
+                               <AlertDialogContent>
+                                 <AlertDialogHeader>
+                                   <AlertDialogTitle>Clear All History</AlertDialogTitle>
+                                   <AlertDialogDescription>
+                                     Are you sure you want to delete all conversation history? This action cannot be undone.
+                                   </AlertDialogDescription>
+                                 </AlertDialogHeader>
+                                 <AlertDialogFooter>
+                                   <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                   <AlertDialogAction onClick={clearAllHistory} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                     Clear All
+                                   </AlertDialogAction>
+                                 </AlertDialogFooter>
+                               </AlertDialogContent>
+                             </AlertDialog>
+                           )}
+                           <Button
+                             variant="outline"
+                             size="sm"
+                             onClick={handleNewSearch}
+                             className="h-8"
+                           >
+                             <Sparkles className="h-3 w-3 mr-1" />
+                             New
+                           </Button>
+                         </div>
+                       </div>
                     </CardHeader>
                     <CardContent>
                       <ScrollArea className="h-[600px]">
