@@ -338,18 +338,16 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                 {/* Action buttons for assistant messages */}
                 {message.role === 'assistant' && (
                   <>
-                    {/* Modal-specific close button */}
-                    {isModal && onCloseModal && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={onCloseModal}
-                        className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-muted-foreground hover:text-foreground"
-                        title="Close modal"
-                      >
-                        <Minimize2 className="h-3 w-3" />
-                      </Button>
-                    )}
+                    {/* Scroll to top button - moved to first position in modal */}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={scrollToTop}
+                      className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-muted-foreground hover:text-foreground"
+                      title="Scroll to top of this message"
+                    >
+                      <ChevronsUp className="h-3 w-3" />
+                    </Button>
 
                     {/* Export to Word button */}
                     {onExportWord && (
@@ -388,16 +386,18 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                       <Copy className="h-3 w-3" />
                     </Button>
 
-                    {/* Scroll to top button */}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={scrollToTop}
-                      className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-muted-foreground hover:text-foreground"
-                      title="Scroll to top of this message"
-                    >
-                      <ChevronsUp className="h-3 w-3" />
-                    </Button>
+                    {/* Modal-specific close button - moved to last position */}
+                    {isModal && onCloseModal && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={onCloseModal}
+                        className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-muted-foreground hover:text-foreground"
+                        title="Close modal"
+                      >
+                        <Minimize2 className="h-3 w-3" />
+                      </Button>
+                    )}
                     
                     {/* Expand to full screen button - only show in regular chat */}
                     {!isModal && onExpandMessage && (
