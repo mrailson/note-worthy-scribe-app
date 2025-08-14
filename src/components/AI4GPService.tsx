@@ -133,50 +133,47 @@ const AI4GPService = () => {
             </div>
           </CardHeader>
 
-          <CardContent className="flex-1 flex flex-col p-0 relative min-h-0">
-            {/* Chat Content Area */}
-            <div className="flex-1 flex flex-col min-h-0" style={{ paddingBottom: '140px' }}>
-              {messages.length === 0 ? (
-                /* Welcome Screen - Compact, mobile-optimized */
-                <div className="p-3 sm:p-6 space-y-3 sm:space-y-4">
-                  <div className="w-full max-w-2xl mx-auto">
-                    <p className="text-center text-muted-foreground text-xs sm:text-sm mb-2 sm:mb-3">
-                      Get started with these common queries:
-                    </p>
-                    <QuickActionsPanel
-                      showAllQuickActions={showAllQuickActions}
-                      setShowAllQuickActions={setShowAllQuickActions}
-                      setInput={setInput}
-                    />
-                  </div>
+          <CardContent className="flex-1 flex flex-col p-0 relative min-h-0" style={{ paddingBottom: '160px' }}>
+            {messages.length === 0 ? (
+              /* Welcome Screen - Compact, mobile-optimized */
+              <div className="p-3 sm:p-6 space-y-3 sm:space-y-4">
+                <div className="w-full max-w-2xl mx-auto">
+                  <p className="text-center text-muted-foreground text-xs sm:text-sm mb-2 sm:mb-3">
+                    Get started with these common queries:
+                  </p>
+                  <QuickActionsPanel
+                    showAllQuickActions={showAllQuickActions}
+                    setShowAllQuickActions={setShowAllQuickActions}
+                    setInput={setInput}
+                  />
                 </div>
-              ) : (
-                /* Messages Area */
-                <MessagesList
-                  messages={messages}
-                  isLoading={isLoading}
-                  expandedMessage={expandedMessage}
-                  setExpandedMessage={setExpandedMessage}
-                  onExportWord={generateWordDocument}
-                  onExportPowerPoint={generatePowerPoint}
-                  cardHeight={cardHeight}
-                />
-              )}
-            </div>
-
-            {/* Input Area - Fixed at bottom */}
-            <div className="absolute bottom-0 left-0 right-0">
-              <InputArea
-                input={input}
-                setInput={setInput}
-                uploadedFiles={uploadedFiles}
-                setUploadedFiles={setUploadedFiles}
-                onSend={handleSendWithContext}
+              </div>
+            ) : (
+              /* Messages Area */
+              <MessagesList
+                messages={messages}
                 isLoading={isLoading}
+                expandedMessage={expandedMessage}
+                setExpandedMessage={setExpandedMessage}
+                onExportWord={generateWordDocument}
+                onExportPowerPoint={generatePowerPoint}
+                cardHeight={cardHeight}
               />
-            </div>
+            )}
           </CardContent>
         </Card>
+      </div>
+
+      {/* Fixed Input Area at Bottom of Viewport */}
+      <div className="fixed bottom-0 left-0 right-0 z-50">
+        <InputArea
+          input={input}
+          setInput={setInput}
+          uploadedFiles={uploadedFiles}
+          setUploadedFiles={setUploadedFiles}
+          onSend={handleSendWithContext}
+          isLoading={isLoading}
+        />
       </div>
 
       {/* Expanded Message Dialog */}

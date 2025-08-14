@@ -55,7 +55,7 @@ export const InputArea: React.FC<InputAreaProps> = ({
   };
 
   return (
-    <div className="border-t p-4 space-y-3 bg-background/95 backdrop-blur-sm z-10">
+    <div className="border-t bg-background/95 backdrop-blur-sm p-4 space-y-3 shadow-lg">
       <FileUploadArea 
         uploadedFiles={uploadedFiles}
         onRemoveFile={handleRemoveFile}
