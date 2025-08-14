@@ -162,7 +162,6 @@ const Index = () => {
             activeTab={activeTab} 
             onTabChange={setActiveTab} 
             isMobile={isMobile}
-            onAIChatClick={handleAIChatClick}
           />
 
           {/* AI Chat Display in White Box */}

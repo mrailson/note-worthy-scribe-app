@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Sparkles, History, Plus, Settings } from 'lucide-react';
+import { Sparkles, History, Plus, Settings, Bot } from 'lucide-react';
 import { LoginForm } from '@/components/LoginForm';
 import { MessagesList } from '@/components/ai4gp/MessagesList';
 import { InputArea, InputAreaRef } from '@/components/ai4gp/InputArea';
@@ -18,6 +18,7 @@ import { usePracticeContext } from '@/hooks/usePracticeContext';
 import { useSearchHistory } from '@/hooks/useSearchHistory';
 import { generateWordDocument, generatePowerPoint } from '@/utils/documentGenerators';
 import { Message } from '@/types/ai4gp';
+import GPGenieVoiceAgent from '@/components/GPGenieVoiceAgent';
 
 const AI4GPService = () => {
   const inputRef = useRef<InputAreaRef>(null);
@@ -26,6 +27,7 @@ const AI4GPService = () => {
   const [showAllQuickActions, setShowAllQuickActions] = useState(false);
   const [expandedMessage, setExpandedMessage] = useState<Message | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [showAIChat, setShowAIChat] = useState(false);
   const [selectedModel, setSelectedModel] = useState('gpt-5');
   const [cardSize, setCardSize] = useState('default');
   const [cardHeight, setCardHeight] = useState(400);
@@ -130,6 +132,17 @@ const AI4GPService = () => {
                     <History className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
                     <span className="hidden sm:inline text-xs">History</span>
                   </Button>
+
+                  {/* AI Chat button next to History */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowAIChat(!showAIChat)}
+                    className="ml-1 px-2 sm:px-3"
+                  >
+                    <Bot className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
+                    <span className="hidden sm:inline text-xs">AI Chat</span>
+                  </Button>
                 </CardTitle>
                 
                  <div className="flex items-center gap-1 sm:gap-2">
@@ -155,6 +168,24 @@ const AI4GPService = () => {
                 </div>
               </div>
             </CardHeader>
+
+            {/* AI Chat Display */}
+            {showAIChat && (
+              <div className="border-b bg-muted/20 p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="font-medium text-sm">AI Chat</h4>
+                  <button
+                    onClick={() => setShowAIChat(false)}
+                    className="text-muted-foreground hover:text-foreground text-sm"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div className="max-h-96 overflow-y-auto">
+                  <GPGenieVoiceAgent />
+                </div>
+              </div>
+            )}
 
             <CardContent className="flex-1 flex flex-col p-0 relative min-h-0" style={{ paddingBottom: '160px' }}>
               {messages.length === 0 ? (
