@@ -954,9 +954,15 @@ Always provide evidence-based, clinically appropriate advice that follows curren
 
     // When a new response starts, create a new session ID
     if (event.type === 'response.created') {
-      const newSessionId = `voice-session-${Date.now()}`;
-      voiceSessionRef.current = newSessionId;
-      console.log('🆕 New voice session created:', newSessionId);
+      // CRITICAL FIX: Only create new session if no session is active
+      // This prevents overlapping sessions from causing message splitting
+      if (!voiceSessionRef.current) {
+        const newSessionId = `voice-session-${Date.now()}`;
+        voiceSessionRef.current = newSessionId;
+        console.log('🆕 New voice session created:', newSessionId);
+      } else {
+        console.log('🚫 Ignoring response.created - session already active:', voiceSessionRef.current);
+      }
       return;
     }
 
