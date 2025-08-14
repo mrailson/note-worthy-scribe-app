@@ -1540,7 +1540,10 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                   </Dialog>
                 )}
                
-               {/* Input Area */}
+                </ScrollArea>
+              </CardContent>
+              
+              {/* Input Area - Fixed at bottom, outside of CardContent */}
               <div className="border-t p-4 space-y-3 flex-shrink-0">
                 {/* Uploaded Files Display */}
                 {uploadedFiles.length > 0 && (
@@ -1606,7 +1609,6 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                    </div>
                  </div>
                </div>
-               </CardContent>
              </Card>
            </div>
          </div>
