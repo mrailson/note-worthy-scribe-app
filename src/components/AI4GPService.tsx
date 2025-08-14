@@ -209,15 +209,15 @@ const AI4GPService = () => {
 
       {/* Expanded Message Dialog */}
       <Dialog open={!!expandedMessage} onOpenChange={() => setExpandedMessage(null)}>
-        <DialogContent className="max-w-[95vw] w-[95vw] max-h-[90vh] h-[90vh] overflow-y-auto p-6">
-          <DialogHeader>
-            <DialogTitle>
+        <DialogContent className="max-w-[98vw] w-[98vw] max-h-[95vh] h-[95vh] overflow-y-auto p-2 sm:p-4">
+          <DialogHeader className="pb-2">
+            <DialogTitle className="text-left">
               {expandedMessage?.role === 'user' ? 'Your Message' : 'AI Response'}
             </DialogTitle>
           </DialogHeader>
-          <div className="text-sm h-full overflow-y-auto">
+          <div className="text-sm h-full overflow-y-auto px-1 sm:px-2">
             {expandedMessage && (
-              <div className="prose prose-sm max-w-none w-full">
+              <div className="prose prose-sm w-full" style={{ maxWidth: 'none' }}>
                 <MessageRenderer
                   message={expandedMessage}
                   onExpandMessage={() => {}}
