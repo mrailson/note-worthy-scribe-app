@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Mic, MicOff, Wifi, WifiOff, Brain, Copy, Download, Mail, Save, Play, Pause, FileText, ChevronDown, ChevronUp, Lightbulb, AlertTriangle, BookOpen, Shield, BarChart3, Edit, Check, X, Send, Settings, Languages, Volume2, VolumeX, Stethoscope, Eye, EyeOff, Maximize2, RotateCcw, History, Bot, Sparkles } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -166,6 +167,13 @@ const Index = () => {
     patientCopy: "",
     traineeFeedback: "",
     referralLetter: ""
+  });
+
+  // Expand dialog states
+  const [expandDialog, setExpandDialog] = useState({
+    isOpen: false,
+    title: "",
+    content: ""
   });
   
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -1331,10 +1339,80 @@ const Index = () => {
       // Remove markdown formatting for clipboard
       const cleanText = text.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1');
       await navigator.clipboard.writeText(cleanText);
-      // Copied to clipboard
-    } catch (error) {
-      console.error("Failed to copy to clipboard");
+      toast.success("Copied to clipboard!");
+    } catch (err) {
+      console.error("Failed to copy text: ", err);
+      toast.error("Failed to copy to clipboard");
     }
+  };
+
+  const generateWordDocument = async (content: string, title: string) => {
+    if (!content) {
+      toast.error("No content to export");
+      return;
+    }
+
+    try {
+      const docx = await import('docx');
+      const { Document, Packer, Paragraph, TextRun } = docx;
+
+      // Split content into paragraphs and handle basic formatting
+      const paragraphs = content.split('\n').filter(line => line.trim()).map(line => {
+        // Handle bold text **bold**
+        if (line.includes('**')) {
+          const parts = line.split(/\*\*(.*?)\*\*/);
+          const runs: any[] = [];
+          
+          for (let i = 0; i < parts.length; i++) {
+            if (i % 2 === 0) {
+              // Regular text
+              if (parts[i]) runs.push(new TextRun(parts[i]));
+            } else {
+              // Bold text
+              runs.push(new TextRun({ text: parts[i], bold: true }));
+            }
+          }
+          
+          return new Paragraph({ children: runs });
+        } else {
+          return new Paragraph({ children: [new TextRun(line)] });
+        }
+      });
+
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children: [
+            new Paragraph({
+              children: [new TextRun({ text: title, bold: true, size: 28 })]
+            }),
+            new Paragraph({ children: [new TextRun("")] }), // Empty line
+            ...paragraphs
+          ]
+        }]
+      });
+
+      const blob = await Packer.toBlob(doc);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${title.toLowerCase().replace(/\s+/g, '-')}.docx`;
+      link.click();
+      window.URL.revokeObjectURL(url);
+      
+      toast.success("Word document downloaded!");
+    } catch (error) {
+      console.error("Error generating Word document:", error);
+      toast.error("Failed to generate Word document");
+    }
+  };
+
+  const expandContent = (content: string, title: string) => {
+    setExpandDialog({
+      isOpen: true,
+      title,
+      content
+    });
   };
 
   // Function to format text for display (convert markdown to JSX)
@@ -2646,6 +2724,22 @@ useEffect(() => {
                     </Button>
                     <Button 
                       size="sm" 
+                      onClick={() => generateWordDocument(gpSummary, 'GP Summary')}
+                      className="touch-manipulation min-h-[44px] flex-1 sm:flex-none"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Word
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      onClick={() => expandContent(gpSummary, 'GP Summary')}
+                      className="touch-manipulation min-h-[44px] flex-1 sm:flex-none"
+                    >
+                      <Maximize2 className="h-4 w-4 mr-2" />
+                      Expand
+                    </Button>
+                    <Button 
+                      size="sm" 
                       onClick={() => downloadAsPDF(gpSummary, 'gp-summary')}
                       className="touch-manipulation min-h-[44px] flex-1 sm:flex-none"
                     >
@@ -2691,12 +2785,36 @@ useEffect(() => {
                       {formatTextForDisplay(fullNote) || "No full note generated yet"}
                     </div>
                   )}
-                  <div className="flex gap-2">
-                    <Button size="sm" onClick={() => copyToClipboard(fullNote)}>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Button 
+                      size="sm" 
+                      onClick={() => copyToClipboard(fullNote)}
+                      className="touch-manipulation min-h-[44px] flex-1 sm:flex-none"
+                    >
                       <Copy className="h-4 w-4 mr-2" />
                       Copy
                     </Button>
-                    <Button size="sm" onClick={() => downloadAsPDF(fullNote, 'full-note')}>
+                    <Button 
+                      size="sm" 
+                      onClick={() => generateWordDocument(fullNote, 'Full Clinical Note')}
+                      className="touch-manipulation min-h-[44px] flex-1 sm:flex-none"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Word
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      onClick={() => expandContent(fullNote, 'Full Clinical Note')}
+                      className="touch-manipulation min-h-[44px] flex-1 sm:flex-none"
+                    >
+                      <Maximize2 className="h-4 w-4 mr-2" />
+                      Expand
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      onClick={() => downloadAsPDF(fullNote, 'full-note')}
+                      className="touch-manipulation min-h-[44px] flex-1 sm:flex-none"
+                    >
                       <Download className="h-4 w-4 mr-2" />
                       PDF
                     </Button>
@@ -2739,12 +2857,36 @@ useEffect(() => {
                       {formatTextForDisplay(patientCopy) || "No patient copy generated yet"}
                     </div>
                   )}
-                  <div className="flex gap-2">
-                    <Button size="sm" onClick={() => copyToClipboard(patientCopy)}>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Button 
+                      size="sm" 
+                      onClick={() => copyToClipboard(patientCopy)}
+                      className="touch-manipulation min-h-[44px] flex-1 sm:flex-none"
+                    >
                       <Copy className="h-4 w-4 mr-2" />
                       Copy
                     </Button>
-                    <Button size="sm" onClick={() => downloadAsPDF(patientCopy, 'patient-copy')}>
+                    <Button 
+                      size="sm" 
+                      onClick={() => generateWordDocument(patientCopy, 'Patient Copy')}
+                      className="touch-manipulation min-h-[44px] flex-1 sm:flex-none"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Word
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      onClick={() => expandContent(patientCopy, 'Patient Copy')}
+                      className="touch-manipulation min-h-[44px] flex-1 sm:flex-none"
+                    >
+                      <Maximize2 className="h-4 w-4 mr-2" />
+                      Expand
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      onClick={() => downloadAsPDF(patientCopy, 'patient-copy')}
+                      className="touch-manipulation min-h-[44px] flex-1 sm:flex-none"
+                    >
                       <Download className="h-4 w-4 mr-2" />
                       PDF
                     </Button>
@@ -2883,12 +3025,36 @@ useEffect(() => {
                       )}
                     </div>
                   )}
-                  <div className="flex gap-2">
-                    <Button size="sm" onClick={() => copyToClipboard(traineeFeedback)}>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Button 
+                      size="sm" 
+                      onClick={() => copyToClipboard(traineeFeedback)}
+                      className="touch-manipulation min-h-[44px] flex-1 sm:flex-none"
+                    >
                       <Copy className="h-4 w-4 mr-2" />
                       Copy
                     </Button>
-                    <Button size="sm" onClick={() => downloadAsPDF(traineeFeedback, 'trainee-feedback')}>
+                    <Button 
+                      size="sm" 
+                      onClick={() => generateWordDocument(traineeFeedback, 'Trainee Feedback')}
+                      className="touch-manipulation min-h-[44px] flex-1 sm:flex-none"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Word
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      onClick={() => expandContent(traineeFeedback, 'Trainee Feedback')}
+                      className="touch-manipulation min-h-[44px] flex-1 sm:flex-none"
+                    >
+                      <Maximize2 className="h-4 w-4 mr-2" />
+                      Expand
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      onClick={() => downloadAsPDF(traineeFeedback, 'trainee-feedback')}
+                      className="touch-manipulation min-h-[44px] flex-1 sm:flex-none"
+                    >
                       <Download className="h-4 w-4 mr-2" />
                       PDF
                     </Button>
@@ -2937,12 +3103,36 @@ useEffect(() => {
                       />
                     </div>
                   )}
-                  <div className="flex gap-2">
-                    <Button size="sm" onClick={() => copyToClipboard(referralLetter)}>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Button 
+                      size="sm" 
+                      onClick={() => copyToClipboard(referralLetter)}
+                      className="touch-manipulation min-h-[44px] flex-1 sm:flex-none"
+                    >
                       <Copy className="h-4 w-4 mr-2" />
                       Copy
                     </Button>
-                    <Button size="sm" onClick={() => downloadAsPDF(referralLetter, 'referral-letter')}>
+                    <Button 
+                      size="sm" 
+                      onClick={() => generateWordDocument(referralLetter, 'Referral Letter')}
+                      className="touch-manipulation min-h-[44px] flex-1 sm:flex-none"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Word
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      onClick={() => expandContent(referralLetter, 'Referral Letter')}
+                      className="touch-manipulation min-h-[44px] flex-1 sm:flex-none"
+                    >
+                      <Maximize2 className="h-4 w-4 mr-2" />
+                      Expand
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      onClick={() => downloadAsPDF(referralLetter, 'referral-letter')}
+                      className="touch-manipulation min-h-[44px] flex-1 sm:flex-none"
+                    >
                       <Download className="h-4 w-4 mr-2" />
                       PDF
                     </Button>
@@ -2979,6 +3169,18 @@ useEffect(() => {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Expand Dialog */}
+        <Dialog open={expandDialog.isOpen} onOpenChange={(open) => setExpandDialog(prev => ({ ...prev, isOpen: open }))}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{expandDialog.title}</DialogTitle>
+            </DialogHeader>
+            <div className="mt-4">
+              <SafeMessageRenderer content={expandDialog.content} className="whitespace-pre-wrap" />
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
