@@ -2,7 +2,7 @@ import React from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Clock, Trash2, Eye } from 'lucide-react';
+import { Clock, Trash2, Eye, X } from 'lucide-react';
 import { SearchHistory, Message } from '@/types/ai4gp';
 
 interface SearchHistorySidebarProps {
@@ -10,13 +10,15 @@ interface SearchHistorySidebarProps {
   onLoadSearch: (search: SearchHistory) => void;
   onDeleteSearch: (searchId: string) => void;
   onClearAllHistory: () => void;
+  onClose: () => void;
 }
 
 export const SearchHistorySidebar: React.FC<SearchHistorySidebarProps> = ({
   searchHistory,
   onLoadSearch,
   onDeleteSearch,
-  onClearAllHistory
+  onClearAllHistory,
+  onClose
 }) => {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-GB', {
@@ -34,29 +36,34 @@ export const SearchHistorySidebar: React.FC<SearchHistorySidebarProps> = ({
             <Clock className="w-4 h-4 mr-2" />
             Search History
           </h3>
-          {searchHistory.length > 0 && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-                  <Trash2 className="w-3 h-3" />
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Clear All History</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will permanently delete all your search history. This action cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={onClearAllHistory}>
-                    Clear All
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
+          <div className="flex items-center gap-1">
+            {searchHistory.length > 0 && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Clear All History</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently delete all your search history. This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={onClearAllHistory}>
+                      Clear All
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={onClose}>
+              <X className="w-3 h-3" />
+            </Button>
+          </div>
         </div>
       </div>
       

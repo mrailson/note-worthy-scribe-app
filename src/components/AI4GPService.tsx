@@ -105,12 +105,13 @@ const AI4GPService = () => {
       >
         {/* Search History Sidebar */}
         {showSearchHistory && (
-          <SearchHistorySidebar
-            searchHistory={searchHistory}
-            onLoadSearch={handleLoadPreviousSearch}
-            onDeleteSearch={deleteSearch}
-            onClearAllHistory={clearAllHistory}
-          />
+        <SearchHistorySidebar
+          searchHistory={searchHistory}
+          onLoadSearch={handleLoadPreviousSearch}
+          onDeleteSearch={deleteSearch}
+          onClearAllHistory={clearAllHistory}
+          onClose={() => setShowSearchHistory(false)}
+        />
         )}
 
         {/* Main Chat Area */}
