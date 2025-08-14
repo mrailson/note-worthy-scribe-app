@@ -525,6 +525,10 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         };
       });
 
+      // Start timing the API call
+      const startTime = performance.now();
+      const modelDisplayName = model === 'chatgpt5' ? 'ChatGPT 5.0' : model === 'gpt' ? 'GPT-4o' : 'Claude 3.5 Sonnet';
+      
       const { data, error } = await supabase.functions.invoke('ai-4-pm-chat', {
         body: {
           messages: messagesForAPI,
@@ -535,6 +539,10 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         }
       });
 
+      // Calculate response time
+      const endTime = performance.now();
+      const responseTime = Math.round(endTime - startTime);
+
       if (error) {
         if (error.message?.includes('API key')) {
           setApiKeyMissing(prev => ({ ...prev, [model]: true }));
@@ -543,10 +551,14 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         throw error;
       }
 
+      // Prepend timing information to the response
+      const responseContent = data.content || data.response || 'No response received';
+      const timedResponse = `**⏱️ Response Time: ${responseTime}ms (${modelDisplayName})**\n\n${responseContent}`;
+
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: data.content || data.response || 'No response received',
+        content: timedResponse,
         timestamp: new Date(),
       };
 
