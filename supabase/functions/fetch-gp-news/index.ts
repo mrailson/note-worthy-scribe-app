@@ -436,6 +436,26 @@ serve(async (req) => {
     if (validArticles.length === 0 && body.mode === 'generate' && openaiApiKey) {
       // Optional fallback to AI generation if explicitly requested
       console.log('No articles parsed, falling back to AI generation (explicit request).');
+      
+      // Clear existing articles from database first
+      const { error: deleteError } = await supabase
+        .from('news_articles')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+
+      if (deleteError) {
+        console.error('Error clearing articles:', deleteError);
+      }
+
+      // Store articles in database, replacing old ones
+      const { error: deleteError2 } = await supabase
+        .from('news_articles')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+
+      if (deleteError2) {
+        console.error('Error clearing articles:', deleteError2);
+      }
       // ... keep minimal AI fallback for explicit generate mode
       const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -483,7 +503,7 @@ serve(async (req) => {
 
     console.log(`Fetched ${validArticles.length} real articles. Writing to DB...`);
 
-    // Store in database
+    // Clear existing articles from database first to ensure fresh data
     const { error: deleteError } = await supabase
       .from('news_articles')
       .delete()
