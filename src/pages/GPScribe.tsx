@@ -1,200 +1,57 @@
-import { useState, useEffect, useRef } from "react";
-import { format } from "date-fns";
+import { useState } from "react";
 import { Header } from "@/components/Header";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Mic, MicOff, Wifi, WifiOff, Brain, Copy, Download, Mail, Save, Play, Pause, FileText, ChevronDown, ChevronUp, Lightbulb, AlertTriangle, BookOpen, Shield, BarChart3, Edit, Check, X, Send, Settings, Languages, Volume2, VolumeX, Stethoscope, Eye, EyeOff, Maximize2, RotateCcw, History, Bot, Sparkles } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-
-import { UnifiedAudioCapture } from "@/utils/UnifiedAudioCapture";
 import { useIsMobile } from "@/hooks/use-mobile";
-
-// Simple transcript data interface for single session mode
-interface TranscriptData {
-  text: string;
-  speaker: string;
-  confidence: number;
-  timestamp: string;
-  isFinal: boolean;
-  isCompleteSession?: boolean;
-}
-import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, useLocation } from "react-router-dom";
-import { toast } from "sonner";
-import jsPDF from 'jspdf';
-import { consultationExamples, type ConsultationExample } from "@/data/consultationExamples";
+
+// Import extracted hooks
+import { useGPScribeRecording } from "@/hooks/useGPScribeRecording";
+import { useTranslationService } from "@/hooks/useTranslationService";
+import { useConsultationGuidance } from "@/hooks/useConsultationGuidance";
+import { useConsultationHistory } from "@/hooks/useConsultationHistory";
+import { useGPScribeSettings } from "@/hooks/useGPScribeSettings";
+import { useDocumentGeneration } from "@/hooks/useDocumentGeneration";
+
+// Import extracted components
+import { RecordingControls } from "@/components/gpscribe/RecordingControls";
+import { TranscriptPanel } from "@/components/gpscribe/TranscriptPanel";
+import { SummaryPanel } from "@/components/gpscribe/SummaryPanel";
+import { TabNavigation } from "@/components/gpscribe/TabNavigation";
+import { SettingsPanel } from "@/components/gpscribe/SettingsPanel";
+
+// Import existing components
 import { TranslationInterface } from "@/components/TranslationInterface";
 import { MP3TranscriptionTest } from "@/components/MP3TranscriptionTest";
 import { ConsultationHistory } from "@/components/ConsultationHistory";
-
 import { PatientTranslationView } from "@/components/PatientTranslationView";
-import { SafeMessageRenderer } from "@/components/SafeMessageRenderer";
 import AI4GPService from "@/components/AI4GPService";
 import GPGenieVoiceAgent from "@/components/GPGenieVoiceAgent";
-import { LiveTranscript } from "@/components/LiveTranscript";
-import { iPhoneWhisperTranscriber, TranscriptData as IPhoneTranscriptData } from '@/utils/iPhoneWhisperTranscriber';
-import { DesktopWhisperTranscriber, TranscriptData as DesktopTranscriptData } from '@/utils/DesktopWhisperTranscriber';
 
-const HEALTHCARE_LANGUAGES = [
-  { code: 'none', name: 'No Translation', flag: '🚫' },
-  { code: 'ar', name: 'Arabic', flag: '🇸🇦', voice: 'ar-XA-Wavenet-A' },
-  { code: 'bn', name: 'Bengali', flag: '🇧🇩', voice: 'bn-IN-Wavenet-A' },
-  { code: 'bg', name: 'Bulgarian', flag: '🇧🇬', voice: 'bg-BG-Standard-A' },
-  { code: 'zh', name: 'Chinese (Mandarin)', flag: '🇨🇳', voice: 'cmn-CN-Wavenet-A' },
-  { code: 'hr', name: 'Croatian', flag: '🇭🇷', voice: 'hr-HR-Wavenet-A' },
-  { code: 'cs', name: 'Czech', flag: '🇨🇿', voice: 'cs-CZ-Wavenet-A' },
-  { code: 'da', name: 'Danish', flag: '🇩🇰', voice: 'da-DK-Wavenet-A' },
-  { code: 'nl', name: 'Dutch', flag: '🇳🇱', voice: 'nl-NL-Wavenet-A' },
-  { code: 'fr', name: 'French', flag: '🇫🇷', voice: 'fr-FR-Wavenet-A' },
-  { code: 'de', name: 'German', flag: '🇩🇪', voice: 'de-DE-Wavenet-A' },
-  { code: 'el', name: 'Greek', flag: '🇬🇷', voice: 'el-GR-Wavenet-A' },
-  { code: 'hi', name: 'Hindi', flag: '🇮🇳', voice: 'hi-IN-Wavenet-A' },
-  { code: 'hu', name: 'Hungarian', flag: '🇭🇺', voice: 'hu-HU-Wavenet-A' },
-  { code: 'it', name: 'Italian', flag: '🇮🇹', voice: 'it-IT-Wavenet-A' },
-  { code: 'pl', name: 'Polish', flag: '🇵🇱', voice: 'pl-PL-Wavenet-A' },
-  { code: 'pt', name: 'Portuguese', flag: '🇵🇹', voice: 'pt-PT-Wavenet-A' },
-  { code: 'ro', name: 'Romanian', flag: '🇷🇴', voice: 'ro-RO-Wavenet-A' },
-  { code: 'ru', name: 'Russian', flag: '🇷🇺', voice: 'ru-RU-Wavenet-A' },
-  { code: 'es', name: 'Spanish', flag: '🇪🇸', voice: 'es-ES-Wavenet-A' },
-  { code: 'tr', name: 'Turkish', flag: '🇹🇷', voice: 'tr-TR-Wavenet-A' },
-  { code: 'ur', name: 'Urdu', flag: '🇵🇰', voice: 'ur-IN-Wavenet-A' }
-];
-
-interface ConsultationGuidance {
-  suggestedQuestions: string[];
-  potentialRedFlags: string[];
-  missedOpportunities: string[];
-  safetyNetting: string[];
-  consultationQuality: {
-    score: number;
-    feedback: string;
-  };
-}
+import { ActiveTab, ExpandDialog } from "@/types/gpscribe";
 
 const Index = () => {
   const { user, loading } = useAuth();
-  
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useIsMobile();
   
-  // Recording states
-  const [isRecording, setIsRecording] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
-  const [duration, setDuration] = useState(0);
-  const [transcript, setTranscript] = useState("");
-  const [realtimeTranscripts, setRealtimeTranscripts] = useState<TranscriptData[]>([]);
-  const [connectionStatus, setConnectionStatus] = useState<string>("Disconnected");
-  const [wordCount, setWordCount] = useState(0);
+  // Use extracted hooks
+  const recording = useGPScribeRecording();
+  const translation = useTranslationService();
+  const guidance = useConsultationGuidance();
+  const history = useConsultationHistory();
+  const settings = useGPScribeSettings();
+  const documents = useDocumentGeneration();
   
   // UI states
-  
-  const [isConfigOpen, setIsConfigOpen] = useState(false);
-  const [isTranslationCollapsed, setIsTranslationCollapsed] = useState(true); // Collapsed by default
-  const [selectedExample, setSelectedExample] = useState<string>("");
-  const [showExamples, setShowExamples] = useState(true);
-  const [activeTab, setActiveTab] = useState("consultation");
-  const [showTicker, setShowTicker] = useState(false);
-  const [isTabMenuOpen, setIsTabMenuOpen] = useState(false);
-  const [tickerEnabled, setTickerEnabled] = useState(true);
-  const [tickerText, setTickerText] = useState<string>("");
-  const [showTranscriptTimestamps, setShowTranscriptTimestamps] = useState(true);
-  const [currentConfidence, setCurrentConfidence] = useState<number | undefined>(undefined);
-  const [cleanedTranscript, setCleanedTranscript] = useState("");
-  const [isCleaningTranscript, setIsCleaningTranscript] = useState(false);
-  const [completedConsultation, setCompletedConsultation] = useState<any>(null);
-  const [savedMeetingId, setSavedMeetingId] = useState<string | null>(null);
-  
-  // New consultation setup states
-  const [consultationType, setConsultationType] = useState<"face-to-face" | "telephone">("face-to-face");
-  const [translationLanguage, setTranslationLanguage] = useState<string>('none');
-  const [isTranslationEnabled, setIsTranslationEnabled] = useState(false);
-  const [translations, setTranslations] = useState<any[]>([]);
-  const [isTranslating, setIsTranslating] = useState(false);
-  const [autoSpeak, setAutoSpeak] = useState(true);
-  const [isMuted, setIsMuted] = useState(false);
-  const [isCurrentlyPlaying, setIsCurrentlyPlaying] = useState(false);
-  const [isMicMuted, setIsMicMuted] = useState(false);
-  const [playedTranslations, setPlayedTranslations] = useState<Set<string>>(new Set());
-  
-  // Audio queue management
-  const audioQueueRef = useRef<Array<{text: string, languageCode: string, id: string}>>([]);
-  const currentAudioRef = useRef<HTMLAudioElement | null>(null);
-  
-  // Guidance states - Removed guidance UI but keep for trainee feedback integration
-  const [guidance, setGuidance] = useState<ConsultationGuidance | null>(null);
-  const [isGuidanceLoading, setIsGuidanceLoading] = useState(false);
-  const [autoGuidance, setAutoGuidance] = useState(true);
-  
-  // Output configuration - Will be loaded from user settings
-  const [outputLevel, setOutputLevel] = useState<number>(3); // Default to Standard
-  const [showSnomedCodes, setShowSnomedCodes] = useState(true); // Default to true
-  const [formatForEmis, setFormatForEmis] = useState(true); // Default to true
-  const [formatForSystmOne, setFormatForSystmOne] = useState(false);
-  
-  // User settings loading state
-  const [settingsLoaded, setSettingsLoaded] = useState(false);
-  
-  // Generated outputs
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [gpSummary, setGpSummary] = useState("");
-  const [fullNote, setFullNote] = useState("");
-  const [patientCopy, setPatientCopy] = useState("");
-  const [traineeFeedback, setTraineeFeedback] = useState("");
-  const [referralLetter, setReferralLetter] = useState("");
-  
-  // Edit states
-  const [editStates, setEditStates] = useState({
-    gpSummary: false,
-    fullNote: false,
-    patientCopy: false,
-    traineeFeedback: false,
-    referralLetter: false
-  });
-  
-  // Temporary edit content
-  const [editContent, setEditContent] = useState({
-    gpSummary: "",
-    fullNote: "",
-    patientCopy: "",
-    traineeFeedback: "",
-    referralLetter: ""
-  });
-
-  // Expand dialog states
-  const [expandDialog, setExpandDialog] = useState({
+  const [activeTab, setActiveTab] = useState<ActiveTab>("consultation");
+  const [expandDialog, setExpandDialog] = useState<ExpandDialog>({
     isOpen: false,
     title: "",
     content: ""
   });
-  
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const transciberRef = useRef<UnifiedAudioCapture | null>(null);
-  const iPhoneTranscriberRef = useRef<iPhoneWhisperTranscriber | null>(null);
-  const desktopTranscriberRef = useRef<DesktopWhisperTranscriber | null>(null);
-
-  const outputLevels = [
-    { value: 1, label: "Code", description: "GP shorthand only (e.g., 'URTI, 2/7, safety-netted')" },
-    { value: 2, label: "Brief", description: "Concise summary with key points" },
-    { value: 3, label: "Standard", description: "Complete clinical note" },
-    { value: 4, label: "Detailed", description: "Comprehensive with examination findings" },
-    { value: 5, label: "Full", description: "Complete with patient quotes and context" }
-  ];
-
-  // Format duration as MM:SS
-  const formatDuration = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
 
   // Load user settings on component mount
   const loadUserSettings = async () => {
