@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Sparkles, History, Plus, Settings, Bot } from 'lucide-react';
+import { Sparkles, History, Plus, Settings, Sparkles as GenieIcon } from 'lucide-react';
 import { LoginForm } from '@/components/LoginForm';
 import { MessagesList } from '@/components/ai4gp/MessagesList';
 import { InputArea, InputAreaRef } from '@/components/ai4gp/InputArea';
@@ -140,7 +140,7 @@ const AI4GPService = () => {
                     onClick={() => setShowAIChat(!showAIChat)}
                     className="ml-1 px-2 sm:px-3"
                   >
-                    <Bot className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
+                    <GenieIcon className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
                     <span className="hidden sm:inline text-xs">GP Genie</span>
                   </Button>
                 </CardTitle>
