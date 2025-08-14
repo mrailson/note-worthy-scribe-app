@@ -94,6 +94,17 @@ const AI4GPService = () => {
                 <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-primary" />
                 <span className="hidden sm:inline">AI 4 GP Service</span>
                 <span className="sm:hidden">AI4GP</span>
+                
+                {/* History button next to title */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowSearchHistory(!showSearchHistory)}
+                  className="ml-3 px-2 sm:px-3"
+                >
+                  <History className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
+                  <span className="hidden sm:inline text-xs">History</span>
+                </Button>
               </CardTitle>
               
                <div className="flex items-center gap-1 sm:gap-2">
@@ -105,16 +116,6 @@ const AI4GPService = () => {
                 >
                   <Settings className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" />
                   <span className="hidden sm:inline">Settings</span>
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowSearchHistory(!showSearchHistory)}
-                  className="px-2 sm:px-3"
-                >
-                  <History className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" />
-                  <span className="hidden sm:inline">History</span>
                 </Button>
                 
                 <Button
