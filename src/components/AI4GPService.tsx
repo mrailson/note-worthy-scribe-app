@@ -11,6 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 import { 
   Send, 
@@ -1268,6 +1269,18 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                     </Button>
                   )}
                   <div className="flex items-center gap-2">
+                     {/* Model Selector */}
+                     <Select value={model} onValueChange={(value: 'claude' | 'gpt' | 'chatgpt5') => setModel(value)}>
+                       <SelectTrigger className="w-[120px] h-8 text-xs bg-background border border-border z-50">
+                         <SelectValue />
+                       </SelectTrigger>
+                       <SelectContent className="bg-background border border-border shadow-lg z-50">
+                         <SelectItem value="chatgpt5" className="text-xs">ChatGPT 5.0</SelectItem>
+                         <SelectItem value="gpt" className="text-xs">GPT-4o</SelectItem>
+                         <SelectItem value="claude" className="text-xs">Claude 3.5</SelectItem>
+                       </SelectContent>
+                     </Select>
+                     
                      {/* Hidden: Include latest web updates option
                      <div className="flex items-center gap-2">
                        <Switch
@@ -1280,7 +1293,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                        </Label>
                      </div>
                      */}
-                    </div>
+                     </div>
                     <Button 
                       variant="outline" 
                       size="sm"
