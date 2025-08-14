@@ -110,6 +110,7 @@ const SystemAdmin = () => {
       gp_scribe_access: false,
       complaints_manager_access: false,
       ai_4_pm_access: false,
+      ai4gp_access: false,
       enhanced_access: false,
       cqc_compliance_access: false,
       shared_drive_access: false,
@@ -223,12 +224,20 @@ const [patientDataAccess, setPatientDataAccess] = useState([]);
             .limit(1)
             .single();
           
+          // Get AI4GP access from profiles table
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('ai4gp_access')
+            .eq('user_id', user.user_id)
+            .single();
+          
           return {
             ...user,
             meeting_notes_access: roleData?.meeting_notes_access ?? false,
             gp_scribe_access: roleData?.gp_scribe_access ?? false,
             complaints_manager_access: roleData?.complaints_manager_access ?? false,
             ai_4_pm_access: roleData?.ai_4_pm_access ?? false,
+            ai4gp_access: profileData?.ai4gp_access ?? false,
             enhanced_access: roleData?.enhanced_access ?? false,
             cqc_compliance_access: roleData?.cqc_compliance_access ?? false,
             shared_drive_access: roleData?.shared_drive_access ?? false,
@@ -426,6 +435,7 @@ const [patientDataAccess, setPatientDataAccess] = useState([]);
         gp_scribe_access: false,
         complaints_manager_access: false,
         ai_4_pm_access: false,
+        ai4gp_access: false,
         enhanced_access: false,
         cqc_compliance_access: false,
         shared_drive_access: false,
@@ -455,6 +465,7 @@ const [patientDataAccess, setPatientDataAccess] = useState([]);
         gp_scribe_access: user.gp_scribe_access ?? false,
         complaints_manager_access: user.complaints_manager_access ?? false,
         ai_4_pm_access: user.ai_4_pm_access ?? false,
+        ai4gp_access: user.ai4gp_access ?? false,
         enhanced_access: user.enhanced_access ?? false,
         cqc_compliance_access: user.cqc_compliance_access ?? false,
         shared_drive_access: user.shared_drive_access ?? false,
@@ -532,6 +543,19 @@ const handleUserSubmit = async (e: React.FormEvent) => {
         if (updateError) {
           console.error('Update error:', updateError);
           throw updateError;
+        }
+        
+        // Update AI4GP access in profiles table
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({
+            ai4gp_access: userFormData.module_access.ai4gp_access
+          })
+          .eq('user_id', editingUser.user_id);
+        
+        if (profileError) {
+          console.error('Profile update error:', profileError);
+          throw profileError;
         }
         
         console.log('Successfully updated all user_roles records for user:', editingUser.user_id);
@@ -1593,6 +1617,23 @@ const handleUserSubmit = async (e: React.FormEvent) => {
                           setUserFormData({
                             ...userFormData, 
                             module_access: {...userFormData.module_access, ai_4_pm_access: checked}
+                          })
+                        }
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="ai4gp_access">AI4GP Service</Label>
+                        <p className="text-xs text-muted-foreground">Access to AI4GP service for enhanced GP practice support</p>
+                      </div>
+                      <Switch
+                        id="ai4gp_access"
+                        checked={userFormData.module_access.ai4gp_access}
+                        onCheckedChange={(checked) => 
+                          setUserFormData({
+                            ...userFormData, 
+                            module_access: {...userFormData.module_access, ai4gp_access: checked}
                           })
                         }
                       />
