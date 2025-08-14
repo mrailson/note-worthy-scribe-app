@@ -155,7 +155,7 @@ const AI4GPService = () => {
                     className="ml-1 px-2 sm:px-3"
                   >
                     <Newspaper className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
-                    <span className="hidden sm:inline text-xs">News</span>
+                    <span className="hidden sm:inline text-xs">GP News</span>
                   </Button>
                 </CardTitle>
                 
