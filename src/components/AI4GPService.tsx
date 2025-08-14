@@ -134,19 +134,6 @@ const AI4GPService = () => {
             {messages.length === 0 ? (
               /* Welcome Screen - Compact, mobile-optimized */
               <div className="p-3 sm:p-6 space-y-3 sm:space-y-4">
-                <div className="text-center space-y-2 sm:space-y-3">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 mx-auto bg-primary/10 rounded-lg flex items-center justify-center">
-                    <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg sm:text-xl font-semibold text-foreground">Welcome to AI4GP</h2>
-                    <p className="text-muted-foreground text-xs sm:text-sm mt-1 max-w-md mx-auto">
-                      Your AI assistant for clinical guidance, protocol development,
-                      and evidence-based practice support.
-                    </p>
-                  </div>
-                </div>
-                
                 <div className="w-full max-w-2xl mx-auto">
                   <p className="text-center text-muted-foreground text-xs sm:text-sm mb-2 sm:mb-3">
                     Get started with these common queries:
