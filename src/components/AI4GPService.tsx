@@ -224,6 +224,7 @@ const AI4GPService = () => {
                   onExportWord={generateWordDocument}
                   onExportPowerPoint={generatePowerPoint}
                   cardHeight={undefined} // Remove height restrictions in modal
+                  isModal={true} // Hide avatar and scroll arrow in modal
                 />
               </div>
             )}

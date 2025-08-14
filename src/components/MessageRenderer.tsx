@@ -35,23 +35,24 @@ interface UploadedFile {
 
 interface MessageRendererProps {
   message: Message;
-  disableTruncation?: boolean;
   onExpandMessage?: (message: Message) => void;
-  onExportWord?: (content: string, title: string) => void;
-  onExportPowerPoint?: (content: string, title: string) => void;
+  onExportWord?: (content: string, title?: string) => void;
+  onExportPowerPoint?: (content: string, title?: string) => void;
   cardHeight?: number;
+  isModal?: boolean; // New prop to indicate if rendering in modal
 }
 
 const MessageRenderer: React.FC<MessageRendererProps> = ({ 
   message, 
-  disableTruncation = false, 
   onExpandMessage, 
   onExportWord, 
-  onExportPowerPoint,
-  cardHeight = 400
+  onExportPowerPoint, 
+  cardHeight,
+  isModal = false 
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showFullContent, setShowFullContent] = useState(true);
+  
   // Calculate if this is a large response (more than 1000 characters or multiple sections)
   const isLargeResponse = message.role === 'assistant' && (
     message.content.length > 1000 || 
@@ -249,29 +250,31 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   return (
     <div className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
       <div className={`flex gap-3 w-full max-w-[95%] sm:max-w-[85%] ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-        {/* Avatar with scroll arrow for assistant messages */}
-        <div className="flex items-center gap-2">
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-            message.role === 'user' ? 'bg-primary' : 'bg-muted'
-          }`}>
-            {message.role === 'user' ? (
-              <User className="h-4 w-4 text-primary-foreground" />
-            ) : (
-              <Bot className="h-4 w-4 text-muted-foreground" />
+        {/* Avatar with scroll arrow for assistant messages - hidden in modal */}
+        {!isModal && (
+          <div className="flex items-center gap-2">
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+              message.role === 'user' ? 'bg-primary' : 'bg-muted'
+            }`}>
+              {message.role === 'user' ? (
+                <User className="h-4 w-4 text-primary-foreground" />
+              ) : (
+                <Bot className="h-4 w-4 text-muted-foreground" />
+              )}
+            </div>
+            
+            {/* Scroll to input arrow - only show for assistant messages, on the right side */}
+            {message.role === 'assistant' && (
+              <button
+                onClick={handleScrollToInput}
+                className="p-1 rounded-full hover:bg-muted transition-colors opacity-60 hover:opacity-100"
+                title="Scroll to input"
+              >
+                <ChevronsDown className="h-3 w-3 text-muted-foreground" />
+              </button>
             )}
           </div>
-          
-          {/* Scroll to input arrow - only show for assistant messages, on the right side */}
-          {message.role === 'assistant' && (
-            <button
-              onClick={handleScrollToInput}
-              className="p-1 rounded-full hover:bg-muted transition-colors opacity-60 hover:opacity-100"
-              title="Scroll to input"
-            >
-              <ChevronsDown className="h-3 w-3 text-muted-foreground" />
-            </button>
-          )}
-        </div>
+        )}
         
         <div 
           ref={messageRef}
@@ -319,92 +322,94 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
             </div>
           )}
           
-          {/* Message footer */}
-          <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/20">
-            <span className="text-xs opacity-70">
-              {new Date(message.timestamp).toLocaleTimeString()}
-            </span>
-            <div className="flex items-center gap-1">
-              {/* Action buttons for long assistant messages */}
-              {message.role === 'assistant' && isLongMessage && (
-                <>
-                  {/* Export to Word button */}
-                  {onExportWord && (
+          {/* Message footer - hidden in modal */}
+          {!isModal && (
+            <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/20">
+              <span className="text-xs opacity-70">
+                {new Date(message.timestamp).toLocaleTimeString()}
+              </span>
+              <div className="flex items-center gap-1">
+                {/* Action buttons for long assistant messages */}
+                {message.role === 'assistant' && isLongMessage && (
+                  <>
+                    {/* Export to Word button */}
+                    {onExportWord && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleExportWord}
+                        className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-muted-foreground hover:text-foreground"
+                        title="Export as Word document"
+                      >
+                        <FileDown className="h-3 w-3" />
+                      </Button>
+                    )}
+
+                    {/* Export to PowerPoint button */}
+                    {onExportPowerPoint && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleExportPowerPoint}
+                        className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-muted-foreground hover:text-foreground"
+                        title="Export as PowerPoint presentation"
+                      >
+                        <Presentation className="h-3 w-3" />
+                      </Button>
+                    )}
+
+                    {/* Copy button */}
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={handleExportWord}
+                      onClick={copyMessage}
                       className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-muted-foreground hover:text-foreground"
-                      title="Export as Word document"
+                      title="Copy message to clipboard"
                     >
-                      <FileDown className="h-3 w-3" />
+                      <Copy className="h-3 w-3" />
                     </Button>
-                  )}
 
-                  {/* Export to PowerPoint button */}
-                  {onExportPowerPoint && (
+                    {/* Scroll to top button */}
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={handleExportPowerPoint}
+                      onClick={scrollToTop}
                       className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-muted-foreground hover:text-foreground"
-                      title="Export as PowerPoint presentation"
+                      title="Scroll to top of this message"
                     >
-                      <Presentation className="h-3 w-3" />
+                      <ChevronsUp className="h-3 w-3" />
                     </Button>
-                  )}
-
-                  {/* Copy button */}
+                    
+                    {/* Expand to full screen button */}
+                    {onExpandMessage && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleExpandMessage}
+                        className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-muted-foreground hover:text-foreground"
+                        title="Expand to full screen"
+                      >
+                        <Expand className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </>
+                )}
+                
+                {/* Copy button for user messages */}
+                {message.role === 'user' && (
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={copyMessage}
-                    className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-muted-foreground hover:text-foreground"
+                    className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-primary-foreground/70 hover:text-primary-foreground"
                     title="Copy message to clipboard"
                   >
                     <Copy className="h-3 w-3" />
                   </Button>
-
-                  {/* Scroll to top button */}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={scrollToTop}
-                    className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-muted-foreground hover:text-foreground"
-                    title="Scroll to top of this message"
-                  >
-                    <ChevronsUp className="h-3 w-3" />
-                  </Button>
-                  
-                  {/* Expand to full screen button */}
-                  {onExpandMessage && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleExpandMessage}
-                      className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-muted-foreground hover:text-foreground"
-                      title="Expand to full screen"
-                    >
-                      <Expand className="h-3 w-3" />
-                    </Button>
-                  )}
-                </>
-              )}
-              
-              {/* Copy button for user messages */}
-              {message.role === 'user' && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={copyMessage}
-                  className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-primary-foreground/70 hover:text-primary-foreground"
-                  title="Copy message to clipboard"
-                >
-                  <Copy className="h-3 w-3" />
-                </Button>
-              )}
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
