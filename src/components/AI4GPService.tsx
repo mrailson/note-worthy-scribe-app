@@ -1247,8 +1247,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         )}
         
         {/* Chat Interface */}
-        <div className="flex-1 flex flex-col">
-          <Card className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col h-[calc(100vh-8rem)]">
+          <Card className="flex-1 flex flex-col h-full">
             <CardHeader className="flex-shrink-0">
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center">
@@ -1320,9 +1320,9 @@ Always provide evidence-based, clinically appropriate advice that follows curren
               </div>
             </CardHeader>
             
-            <CardContent className="flex-1 flex flex-col p-0 h-[calc(100vh-16rem)]">
+            <CardContent className="flex-1 flex flex-col p-0 overflow-hidden">
               {/* Messages */}
-              <ScrollArea className="flex-1 p-2 h-[calc(100vh-20rem)]">
+              <ScrollArea className="flex-1 p-2">
                  <div className="space-y-1">
                     {messages.length === 0 && (
                       <div className="text-center py-1">
