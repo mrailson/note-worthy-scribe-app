@@ -933,7 +933,14 @@ Always provide evidence-based, clinically appropriate advice that follows curren
   const voiceSessionRef = useRef<string | null>(null);
   
   const handleVoiceMessage = (event: any) => {
-    console.log('Voice event:', event.type, event);
+    console.log('🎯 Voice event received:', {
+      type: event.type,
+      eventId: event.event_id,
+      responseId: event.response_id,
+      delta: event.delta,
+      transcript: event.transcript,
+      currentSessionId: voiceSessionRef.current
+    });
     
     // Track assistant speaking audio
     if (event.type === 'response.audio.delta') {
@@ -947,54 +954,71 @@ Always provide evidence-based, clinically appropriate advice that follows curren
 
     // When a new response starts, create a new session ID
     if (event.type === 'response.created') {
-      voiceSessionRef.current = `voice-session-${Date.now()}`;
-      console.log('New voice session created:', voiceSessionRef.current);
+      const newSessionId = `voice-session-${Date.now()}`;
+      voiceSessionRef.current = newSessionId;
+      console.log('🆕 New voice session created:', newSessionId);
       return;
     }
 
     // Streamed assistant transcript
     if (event.type === 'response.audio_transcript.delta') {
-      console.log('Voice transcript delta:', event.delta);
+      console.log('🤖 AI transcript delta:', event.delta, 'Session:', voiceSessionRef.current);
       
-      // Ensure we have a session ID - use the one created in response.created
       if (!voiceSessionRef.current) {
-        console.error('No voice session ID found, this should not happen');
-        return; // Don't process if no session ID
+        console.error('❌ No voice session ID found for AI response, this should not happen');
+        return;
       }
       
       setMessages(prev => {
+        console.log('📋 Current messages before AI delta:', prev.map(m => ({
+          id: m.id,
+          role: m.role,
+          content: m.content.substring(0, 50) + '...',
+          timestamp: m.timestamp
+        })));
+        
         const last = prev[prev.length - 1];
+        
         // Check if last message is from the same voice session and is assistant role
         if (last && last.role === 'assistant' && last.id === voiceSessionRef.current) {
-          console.log('Appending to existing voice message');
-          return [...prev.slice(0, -1), { ...last, content: last.content + event.delta }];
+          console.log('➕ Appending to existing AI message:', last.id);
+          const updatedMessage = { ...last, content: last.content + event.delta };
+          const newMessages = [...prev.slice(0, -1), updatedMessage];
+          console.log('📋 Messages after AI append:', newMessages.map(m => ({
+            id: m.id,
+            role: m.role,
+            content: m.content.substring(0, 50) + '...'
+          })));
+          return newMessages;
         }
         
-        console.log('Creating new voice message with session ID:', voiceSessionRef.current);
-        // Create new voice response with consistent session ID
-        return [
-          ...prev,
-          { 
-            id: voiceSessionRef.current!, 
-            role: 'assistant', 
-            content: event.delta, 
-            timestamp: new Date() 
-          }
-        ];
+        console.log('🆕 Creating new AI message with session ID:', voiceSessionRef.current);
+        const newMessage = { 
+          id: voiceSessionRef.current!, 
+          role: 'assistant' as const, 
+          content: event.delta, 
+          timestamp: new Date() 
+        };
+        const newMessages = [...prev, newMessage];
+        console.log('📋 Messages after new AI message:', newMessages.map(m => ({
+          id: m.id,
+          role: m.role,
+          content: m.content.substring(0, 50) + '...'
+        })));
+        return newMessages;
       });
       return;
     }
 
     // Assistant transcript completed
     if (event.type === 'response.audio_transcript.done') {
-      console.log('Voice transcript completed');
-      // Don't change anything - let grouping logic handle it
+      console.log('✅ AI transcript completed');
       return;
     }
 
     // Response fully done - reset session for next response
     if (event.type === 'response.done') {
-      console.log('Voice response fully done, clearing session');
+      console.log('🏁 AI response fully done, clearing session');
       voiceSessionRef.current = null;
       return;
     }
@@ -1003,19 +1027,38 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     if (event.type === 'conversation.item.input_audio_transcription.completed') {
       const transcript = event.transcript || '';
       if (transcript.trim()) {
-        console.log('Adding user voice message:', transcript);
+        const userId = `voice-user-${Date.now()}`;
+        console.log('👤 Adding user voice message:', transcript, 'ID:', userId);
+        
         setMessages(prev => {
-          console.log('Current messages before adding user message:', prev.length);
-          const newMessages: Message[] = [
-            ...prev,
-            { id: `voice-user-${Date.now()}`, role: 'user' as const, content: transcript, timestamp: new Date() }
-          ];
-          console.log('Messages after adding user message:', newMessages.length);
+          console.log('📋 Current messages before user message:', prev.map(m => ({
+            id: m.id,
+            role: m.role,
+            content: m.content.substring(0, 50) + '...',
+            timestamp: m.timestamp
+          })));
+          
+          const newMessage = { 
+            id: userId, 
+            role: 'user' as const, 
+            content: transcript, 
+            timestamp: new Date() 
+          };
+          const newMessages = [...prev, newMessage];
+          
+          console.log('📋 Messages after user message:', newMessages.map(m => ({
+            id: m.id,
+            role: m.role,
+            content: m.content.substring(0, 50) + '...'
+          })));
+          
           return newMessages;
         });
       }
       return;
     }
+
+    console.log('❓ Unhandled voice event type:', event.type);
   };
   const startVoiceChat = async () => {
     try {
