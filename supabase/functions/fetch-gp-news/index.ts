@@ -402,8 +402,26 @@ serve(async (req) => {
       if (!uniqueMap.has(key)) uniqueMap.set(key, a);
     }
 
+    // Limit Northampton Chronicle & Echo to max 2 articles, prioritize healthcare/GP content
+    const chronicleEchoArticles = Array.from(uniqueMap.values())
+      .filter(a => a.source === 'Northampton Chronicle & Echo')
+      .sort((a, b) => {
+        // Sort by healthcare relevance first, then by date
+        const aHealthScore = (isHealthRelated(a) ? 100 : 0) + (isHealthRelatedByTags(a) ? 50 : 0) + (isHealthRelatedByUrl(a) ? 25 : 0);
+        const bHealthScore = (isHealthRelated(b) ? 100 : 0) + (isHealthRelatedByTags(b) ? 50 : 0) + (isHealthRelatedByUrl(b) ? 25 : 0);
+        if (aHealthScore !== bHealthScore) return bHealthScore - aHealthScore;
+        return new Date(b.published_at).getTime() - new Date(a.published_at).getTime();
+      })
+      .slice(0, 2); // Limit to max 2 articles
+
+    const otherArticles = Array.from(uniqueMap.values())
+      .filter(a => a.source !== 'Northampton Chronicle & Echo');
+
+    // Combine limited Chronicle & Echo articles with others
+    const combinedArticles = [...chronicleEchoArticles, ...otherArticles];
+
     // Sort by published_at desc and keep latest 40
-    const validArticles = Array.from(uniqueMap.values())
+    const validArticles = combinedArticles
       .sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime())
       .slice(0, 40);
 
