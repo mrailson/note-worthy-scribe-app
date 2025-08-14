@@ -160,7 +160,6 @@ serve(async (req) => {
       // Local Northamptonshire sources
       { source: 'BBC Northamptonshire', url: 'https://feeds.bbci.co.uk/news/england/northamptonshire/rss.xml', type: 'rss' },
       { source: 'Northants Live', url: 'https://northantslive.news/news/?service=rss', type: 'rss' },
-      { source: 'Northampton Chronicle & Echo', url: 'https://www.northamptonchron.co.uk/rss', type: 'rss' },
       { source: 'Revolution Radio Northampton', url: 'https://www.revolutionradio.com/news/local-news/feed.xml', type: 'rss' }
     ] as const;
 
@@ -364,7 +363,6 @@ serve(async (req) => {
     const localSources = new Set([
       'BBC Northamptonshire',
       'Northants Live',
-      'Northampton Chronicle & Echo',
       'Revolution Radio Northampton'
     ]);
     const excludedSources = new Set(['Northants Telegraph']);
@@ -389,9 +387,6 @@ serve(async (req) => {
     };
     const filteredArticles = allArticles.filter(a => {
       if (excludedSources.has(a.source)) return false;
-      if (a.source === 'Northampton Chronicle & Echo') {
-        return isHealthRelated(a) || isHealthRelatedByUrl(a) || isHealthRelatedByTags(a);
-      }
       return localSources.has(a.source) ? isHealthRelated(a) : true;
     });
 
@@ -402,29 +397,8 @@ serve(async (req) => {
       if (!uniqueMap.has(key)) uniqueMap.set(key, a);
     }
 
-    // Limit Northampton Chronicle & Echo to max 2 articles, prioritize healthcare/GP content
-    const chronicleEchoArticles = Array.from(uniqueMap.values())
-      .filter(a => a.source === 'Northampton Chronicle & Echo')
-      .sort((a, b) => {
-        // Sort by healthcare relevance first, then by date
-        const aHealthScore = (isHealthRelated(a) ? 100 : 0) + (isHealthRelatedByTags(a) ? 50 : 0) + (isHealthRelatedByUrl(a) ? 25 : 0);
-        const bHealthScore = (isHealthRelated(b) ? 100 : 0) + (isHealthRelatedByTags(b) ? 50 : 0) + (isHealthRelatedByUrl(b) ? 25 : 0);
-        if (aHealthScore !== bHealthScore) return bHealthScore - aHealthScore;
-        return new Date(b.published_at).getTime() - new Date(a.published_at).getTime();
-      })
-      .slice(0, 2); // Limit to max 2 articles
-    
-    console.log(`Chronicle & Echo articles found: ${Array.from(uniqueMap.values()).filter(a => a.source === 'Northampton Chronicle & Echo').length}`);
-    console.log(`Chronicle & Echo articles after limit: ${chronicleEchoArticles.length}`);
-
-    const otherArticles = Array.from(uniqueMap.values())
-      .filter(a => a.source !== 'Northampton Chronicle & Echo');
-
-    // Combine limited Chronicle & Echo articles with others
-    const combinedArticles = [...chronicleEchoArticles, ...otherArticles];
-
     // Sort by published_at desc and keep latest 40
-    const validArticles = combinedArticles
+    const validArticles = Array.from(uniqueMap.values())
       .sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime())
       .slice(0, 40);
     
