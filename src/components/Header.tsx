@@ -165,24 +165,33 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                         Enhanced Access
                       </DropdownMenuItem>
                      )}
-                      {hasModuleAccess('cqc_compliance') && (
+                       {hasModuleAccess('cqc_compliance_access') && (
+                         <DropdownMenuItem 
+                           onClick={() => navigate('/cqc-compliance')}
+                           className="cursor-pointer py-3"
+                         >
+                           <Shield className="h-4 w-4 mr-2" />
+                           CQC Compliance
+                         </DropdownMenuItem>
+                       )}
+                      {hasModuleAccess('shared_drive_access') && (
                         <DropdownMenuItem 
-                          onClick={() => navigate('/cqc-compliance')}
+                          onClick={() => navigate('/shared-drive')}
                           className="cursor-pointer py-3"
                         >
-                          <Shield className="h-4 w-4 mr-2" />
-                          CQC Compliance
+                          <FolderOpen className="h-4 w-4 mr-2" />
+                          Shared Drive
                         </DropdownMenuItem>
                       )}
-                     {sharedDriveVisible && (
-                       <DropdownMenuItem 
-                         onClick={() => navigate('/shared-drive')}
-                         className="cursor-pointer py-3"
-                       >
-                         <FolderOpen className="h-4 w-4 mr-2" />
-                         Shared Drive
-                       </DropdownMenuItem>
-                     )}
+                      {hasModuleAccess('mic_test_service_access') && (
+                        <DropdownMenuItem 
+                          onClick={() => navigate('/meetings')}
+                          className="cursor-pointer py-3"
+                        >
+                          <Wrench className="h-4 w-4 mr-2" />
+                          Mic Test Service
+                        </DropdownMenuItem>
+                      )}
                  </DropdownMenuContent>
               </DropdownMenu>
             )}
@@ -353,22 +362,30 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                             </Button>
                           </DrawerClose>
                         )}
-                        {hasModuleAccess('cqc_compliance') && (
-                          <DrawerClose asChild>
-                            <Button variant="ghost" className="justify-start" onClick={() => navigate('/cqc-compliance')}>
-                              <Shield className="h-4 w-4 mr-2" />
-                              CQC Compliance
-                            </Button>
-                          </DrawerClose>
-                        )}
-                        {sharedDriveVisible && (
-                          <DrawerClose asChild>
-                            <Button variant="ghost" className="justify-start" onClick={() => navigate('/shared-drive')}>
-                              <FolderOpen className="h-4 w-4 mr-2" />
-                              Shared Drive
-                            </Button>
-                          </DrawerClose>
-                        )}
+                         {hasModuleAccess('cqc_compliance_access') && (
+                           <DrawerClose asChild>
+                             <Button variant="ghost" className="justify-start" onClick={() => navigate('/cqc-compliance')}>
+                               <Shield className="h-4 w-4 mr-2" />
+                               CQC Compliance
+                             </Button>
+                           </DrawerClose>
+                         )}
+                         {hasModuleAccess('shared_drive_access') && (
+                           <DrawerClose asChild>
+                             <Button variant="ghost" className="justify-start" onClick={() => navigate('/shared-drive')}>
+                               <FolderOpen className="h-4 w-4 mr-2" />
+                               Shared Drive
+                             </Button>
+                           </DrawerClose>
+                         )}
+                         {hasModuleAccess('mic_test_service_access') && (
+                           <DrawerClose asChild>
+                             <Button variant="ghost" className="justify-start" onClick={() => navigate('/meetings')}>
+                               <Wrench className="h-4 w-4 mr-2" />
+                               Mic Test Service
+                             </Button>
+                           </DrawerClose>
+                         )}
                       </>
                     )}
 
