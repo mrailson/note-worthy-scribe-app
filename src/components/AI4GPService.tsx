@@ -76,7 +76,7 @@ const AI4GPService = () => {
   }
 
   return (
-    <div className="h-screen flex bg-background">
+    <div className="h-screen flex bg-background relative">
       {/* Search History Sidebar */}
       {showSearchHistory && (
         <SearchHistorySidebar
@@ -133,39 +133,42 @@ const AI4GPService = () => {
             </div>
           </CardHeader>
 
-          <CardContent className="flex-1 flex flex-col p-0 relative min-h-0" style={{ paddingBottom: '160px' }}>
-            {messages.length === 0 ? (
-              /* Welcome Screen - Compact, mobile-optimized */
-              <div className="p-3 sm:p-6 space-y-3 sm:space-y-4">
-                <div className="w-full max-w-2xl mx-auto">
-                  <p className="text-center text-muted-foreground text-xs sm:text-sm mb-2 sm:mb-3">
-                    Get started with these common queries:
-                  </p>
-                  <QuickActionsPanel
-                    showAllQuickActions={showAllQuickActions}
-                    setShowAllQuickActions={setShowAllQuickActions}
-                    setInput={setInput}
-                  />
+          <CardContent className="flex-1 flex flex-col p-0 relative min-h-0 pb-0">
+            {/* Messages Area with bottom padding for input */}
+            <div className="flex-1 overflow-hidden" style={{ paddingBottom: '160px' }}>
+              {messages.length === 0 ? (
+                /* Welcome Screen - Compact, mobile-optimized */
+                <div className="p-3 sm:p-6 space-y-3 sm:space-y-4">
+                  <div className="w-full max-w-2xl mx-auto">
+                    <p className="text-center text-muted-foreground text-xs sm:text-sm mb-2 sm:mb-3">
+                      Get started with these common queries:
+                    </p>
+                    <QuickActionsPanel
+                      showAllQuickActions={showAllQuickActions}
+                      setShowAllQuickActions={setShowAllQuickActions}
+                      setInput={setInput}
+                    />
+                  </div>
                 </div>
-              </div>
-            ) : (
-              /* Messages Area */
-              <MessagesList
-                messages={messages}
-                isLoading={isLoading}
-                expandedMessage={expandedMessage}
-                setExpandedMessage={setExpandedMessage}
-                onExportWord={generateWordDocument}
-                onExportPowerPoint={generatePowerPoint}
-                cardHeight={cardHeight}
-              />
-            )}
+              ) : (
+                /* Messages Area */
+                <MessagesList
+                  messages={messages}
+                  isLoading={isLoading}
+                  expandedMessage={expandedMessage}
+                  setExpandedMessage={setExpandedMessage}
+                  onExportWord={generateWordDocument}
+                  onExportPowerPoint={generatePowerPoint}
+                  cardHeight={cardHeight}
+                />
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Fixed Input Area at Bottom of Viewport */}
-      <div className="fixed bottom-0 left-0 right-0 z-50">
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t shadow-lg">
         <InputArea
           input={input}
           setInput={setInput}
