@@ -141,28 +141,6 @@ const AI4GPService = () => {
                       <History className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
                       <span className="hidden sm:inline text-xs">History</span>
                     </Button>
-
-                    {/* GP Genie button next to History */}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowAIChat(!showAIChat)}
-                      className="ml-1 px-2 sm:px-3"
-                    >
-                      <GenieIcon className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
-                      <span className="hidden sm:inline text-xs">GP Genie</span>
-                    </Button>
-
-                    {/* News button next to GP Genie */}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowNews(!showNews)}
-                      className="ml-1 px-2 sm:px-3"
-                    >
-                      <Newspaper className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
-                      <span className="hidden sm:inline text-xs">GP News</span>
-                    </Button>
                   </CardTitle>
                   
                    <div className="flex items-center gap-1 sm:gap-2">
