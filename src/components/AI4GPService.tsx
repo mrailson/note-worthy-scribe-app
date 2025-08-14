@@ -143,6 +143,7 @@ const AI4GPService = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showAllQuickActions, setShowAllQuickActions] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   
   const scrollToBottom = () => {
     // Only scroll if the chat container is visible and has content
@@ -1267,33 +1268,16 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                       <History className="h-3 w-3 mr-1" />
                       History
                     </Button>
-                  )}
-                  <div className="flex items-center gap-2">
-                     {/* Model Selector */}
-                     <Select value={model} onValueChange={(value: 'claude' | 'gpt' | 'chatgpt5') => setModel(value)}>
-                       <SelectTrigger className="w-[120px] h-8 text-xs bg-background border border-border z-50">
-                         <SelectValue />
-                       </SelectTrigger>
-                       <SelectContent className="bg-background border border-border shadow-lg z-50">
-                         <SelectItem value="chatgpt5" className="text-xs">ChatGPT 5.0</SelectItem>
-                         <SelectItem value="gpt" className="text-xs">GPT-4o</SelectItem>
-                         <SelectItem value="claude" className="text-xs">Claude 3.5</SelectItem>
-                       </SelectContent>
-                     </Select>
-                     
-                     {/* Hidden: Include latest web updates option
-                     <div className="flex items-center gap-2">
-                       <Switch
-                         id="include-latest"
-                         checked={includeLatestUpdates}
-                         onCheckedChange={setIncludeLatestUpdates}
-                       />
-                       <Label htmlFor="include-latest" className="text-xs text-muted-foreground">
-                         Include latest web updates
-                       </Label>
-                     </div>
-                     */}
-                     </div>
+                   )}
+                   <Button
+                     variant="outline"
+                     size="sm"
+                     onClick={() => setShowSettingsModal(true)}
+                     className="text-xs"
+                   >
+                     <Settings className="h-3 w-3 mr-1" />
+                     Settings
+                   </Button>
                     <Button 
                       variant="outline" 
                       size="sm"
@@ -1618,12 +1602,41 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                    </div>
                  </div>
                </div>
-               </CardContent>
-             </Card>
-           </div>
-         </div>
-       </div>
-     );
-   };
-   
-   export default AI4GPService;
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Settings Modal */}
+      <Dialog open={showSettingsModal} onOpenChange={setShowSettingsModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>AI4GP Settings</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="model-select">AI Model</Label>
+              <Select value={model} onValueChange={(value: 'claude' | 'gpt' | 'chatgpt5') => setModel(value)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="chatgpt5">ChatGPT 5.0</SelectItem>
+                  <SelectItem value="gpt">GPT-4o</SelectItem>
+                  <SelectItem value="claude">Claude 3.5 Sonnet</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-sm text-muted-foreground">
+                Choose the AI model to use for generating responses.
+              </p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default AI4GPService;
