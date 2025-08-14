@@ -202,11 +202,84 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
       });
     };
 
+    // Function to detect and format tables
+    const formatTable = (tableText: string) => {
+      const lines = tableText.split('\n').map(line => line.trim()).filter(Boolean);
+      
+      // Check if this looks like a table (multiple lines with | separators)
+      const tableLines = lines.filter(line => line.includes('|') && line.split('|').length > 2);
+      
+      if (tableLines.length < 2) {
+        return null; // Not a valid table
+      }
+
+      // Parse table rows
+      const rows = tableLines.map(line => {
+        return line.split('|')
+          .map(cell => cell.trim())
+          .filter(cell => cell !== '') // Remove empty cells from start/end
+      });
+
+      // Skip header separator lines (lines with just dashes and pipes)
+      const dataRows = rows.filter(row => 
+        !row.every(cell => /^[-\s]*$/.test(cell))
+      );
+
+      if (dataRows.length === 0) return null;
+
+      const headerRow = dataRows[0];
+      const bodyRows = dataRows.slice(1);
+
+      return (
+        <div className="my-4 overflow-x-auto">
+          <table className="min-w-full border-collapse border border-border">
+            <thead>
+              <tr className="bg-muted/50">
+                {headerRow.map((header, index) => (
+                  <th 
+                    key={index} 
+                    className="border border-border px-3 py-2 text-left font-semibold text-xs"
+                  >
+                    {processMarkdown(header)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {bodyRows.map((row, rowIndex) => (
+                <tr key={rowIndex} className={rowIndex % 2 === 0 ? 'bg-background' : 'bg-muted/20'}>
+                  {row.map((cell, cellIndex) => (
+                    <td 
+                      key={cellIndex} 
+                      className="border border-border px-3 py-2 text-xs"
+                    >
+                      {processMarkdown(cell)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+    };
+
     // Split cleanedContent into paragraphs
     const paragraphs = cleanedContent.split('\n\n');
     
     return paragraphs.map((paragraph, index) => {
       if (!paragraph.trim()) return null;
+      
+      // Check if paragraph contains a table (multiple lines with | separators)
+      const lines = paragraph.split('\n');
+      const pipeLines = lines.filter(line => line.includes('|') && line.split('|').length > 2);
+      
+      if (pipeLines.length >= 2) {
+        const table = formatTable(paragraph);
+        if (table) {
+          return <div key={`table-${index}`}>{table}</div>;
+        }
+      }
       
       // Check if it's a list
       if (paragraph.includes('\n-') || paragraph.includes('\n•') || paragraph.includes('\n*')) {
