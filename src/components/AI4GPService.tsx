@@ -136,8 +136,8 @@ const AI4GPService = () => {
 
           <CardContent className="flex-1 flex flex-col p-0 relative">
             {messages.length === 0 ? (
-              /* Welcome Screen */
-              <div className="flex-1 flex flex-col p-4 pt-8 space-y-4">
+              /* Welcome Screen - Compact, no flex-1 */
+              <div className="p-6 space-y-4">
                 <div className="text-center space-y-3">
                   <div className="w-12 h-12 mx-auto bg-primary/10 rounded-lg flex items-center justify-center">
                     <Sparkles className="w-6 h-6 text-primary" />
