@@ -1,0 +1,134 @@
+import React, { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { AlertCircle, Lock } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { LoginForm } from '@/components/LoginForm';
+import AI4GPService from '@/components/AI4GPService';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
+
+const AI4GP = () => {
+  const { user, loading: authLoading } = useAuth();
+  const [loading, setLoading] = useState(false);
+
+  // Fetch user profile to check AI4GP access
+  const { data: profile, isLoading: profileLoading } = useQuery({
+    queryKey: ['profile', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('ai4gp_access')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (error) {
+        console.error('Error fetching profile:', error);
+        return null;
+      }
+      
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  const requestAccess = async () => {
+    setLoading(true);
+    try {
+      // In a real implementation, this would send a request to administrators
+      // For now, we'll just show a message
+      alert('Access request submitted. Please contact your administrator for AI4GP access.');
+    } catch (error) {
+      console.error('Error requesting access:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (authLoading || profileLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-6">
+            <h1 className="text-3xl font-bold text-foreground mb-2">AI4GP Service</h1>
+            <p className="text-muted-foreground">
+              Please log in to access the AI4GP service
+            </p>
+          </div>
+          <LoginForm />
+        </div>
+      </div>
+    );
+  }
+
+  // Check if user has AI4GP access
+  if (!profile?.ai4gp_access) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="w-full max-w-md p-6">
+          <div className="text-center space-y-4">
+            <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center">
+              <Lock className="h-8 w-8 text-muted-foreground" />
+            </div>
+            
+            <div>
+              <h2 className="text-2xl font-bold text-foreground mb-2">Access Required</h2>
+              <p className="text-muted-foreground mb-4">
+                You need permission to access the AI4GP service. Please contact your administrator to request access.
+              </p>
+            </div>
+
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                AI4GP access is controlled at the user level and must be granted by system administrators.
+              </AlertDescription>
+            </Alert>
+
+            <Button 
+              onClick={requestAccess} 
+              disabled={loading}
+              className="w-full"
+            >
+              {loading ? 'Requesting...' : 'Request Access'}
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="border-b bg-card">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">AI4GP Service</h1>
+              <p className="text-sm text-muted-foreground">
+                AI-powered assistance for General Practice
+              </p>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main className="container mx-auto px-4 py-6">
+        <AI4GPService />
+      </main>
+    </div>
+  );
+};
+
+export default AI4GP;

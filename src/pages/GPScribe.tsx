@@ -282,10 +282,6 @@ const Index = () => {
             <GPGenieVoiceAgent />
           </TabsContent>
 
-          {/* AI4GP Tab */}
-          <TabsContent value="ai4gp" className="space-y-6 mt-6">
-            <AI4GPService />
-          </TabsContent>
         </Tabs>
       </div>
     </div>

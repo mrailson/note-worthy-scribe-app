@@ -1,6 +1,7 @@
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
+import AI4GP from "./pages/AI4GP";
 import GPScribe from "./pages/GPScribe";
 import GPScribeSettings from "./pages/GPScribeSettings";
 import MeetingHistory from "./pages/MeetingHistory";
@@ -27,7 +28,8 @@ const App = () => (
   <TooltipProvider>
     <Routes>
       <Route path="/" element={<Index />} />
-      <Route path="/gp-scribe" element={<GPScribe />} />
+          <Route path="/ai4gp" element={<AI4GP />} />
+          <Route path="/gp-scribe" element={<GPScribe />} />
       <Route path="/gp-scribe/settings" element={<GPScribeSettings />} />
       <Route path="/meetings" element={<MeetingHistory />} />
       <Route path="/meeting-history" element={<MeetingHistory />} />

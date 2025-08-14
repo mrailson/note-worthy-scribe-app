@@ -6,9 +6,7 @@ import {
   FileText, 
   Lightbulb, 
   Settings, 
-  History, 
-  Sparkles as GenieIcon,
-  Sparkles
+  History
 } from "lucide-react";
 
 interface TabNavigationProps {
@@ -24,13 +22,12 @@ export const TabNavigation = ({ activeTab, onTabChange, isMobile }: TabNavigatio
     { id: "summary" as ActiveTab, label: "Summary", icon: FileText },
     { id: "guidance" as ActiveTab, label: "Guidance", icon: Lightbulb },
     { id: "settings" as ActiveTab, label: "Settings", icon: Settings },
-    { id: "history" as ActiveTab, label: "History", icon: History },
-    { id: "ai4gp" as ActiveTab, label: "AI4GP", icon: Sparkles }
+    { id: "history" as ActiveTab, label: "History", icon: History }
   ];
 
   return (
     <div className="w-full">
-      <TabsList className={`grid w-full ${isMobile ? 'grid-cols-4' : 'grid-cols-7'} gap-1`}>
+      <TabsList className={`grid w-full ${isMobile ? 'grid-cols-3' : 'grid-cols-6'} gap-1`}>
         {tabs.map((tab) => {
           const Icon = tab.icon;
           return (

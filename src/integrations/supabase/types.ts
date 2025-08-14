@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -2689,6 +2689,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          ai4gp_access: boolean | null
           created_at: string
           department: string | null
           email: string
@@ -2704,6 +2705,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          ai4gp_access?: boolean | null
           created_at?: string
           department?: string | null
           email: string
@@ -2719,6 +2721,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          ai4gp_access?: boolean | null
           created_at?: string
           department?: string | null
           email?: string
@@ -3688,10 +3691,10 @@ export type Database = {
     Functions: {
       assign_user_to_practice: {
         Args: {
-          p_user_id: string
+          p_assigned_by?: string
           p_practice_id: string
           p_role: Database["public"]["Enums"]["app_role"]
-          p_assigned_by?: string
+          p_user_id: string
         }
         Returns: string
       }
@@ -3710,27 +3713,27 @@ export type Database = {
       get_complaint_compliance_summary: {
         Args: { complaint_id_param: string }
         Returns: {
-          total_items: number
-          compliant_items: number
           compliance_percentage: number
+          compliant_items: number
           outstanding_items: string[]
+          total_items: number
         }[]
       }
       get_complaint_for_external_access: {
         Args: { access_token_param: string }
         Returns: {
-          complaint_id: string
-          reference_number: string
-          complaint_title: string
-          complaint_description: string
           category: Database["public"]["Enums"]["complaint_category"]
+          complaint_description: string
+          complaint_id: string
+          complaint_title: string
           incident_date: string
           location_service: string
-          staff_name: string
-          staff_email: string
-          staff_role: string
-          response_text: string
+          reference_number: string
           response_submitted: boolean
+          response_text: string
+          staff_email: string
+          staff_name: string
+          staff_role: string
         }[]
       }
       get_current_user_id: {
@@ -3744,9 +3747,9 @@ export type Database = {
       get_meeting_full_transcript: {
         Args: { p_meeting_id: string }
         Returns: {
+          item_count: number
           source: string
           transcript: string
-          item_count: number
         }[]
       }
       get_meeting_transcript: {
@@ -3768,19 +3771,19 @@ export type Database = {
       get_user_modules: {
         Args: { p_user_id?: string }
         Returns: {
-          module: Database["public"]["Enums"]["app_module"]
           granted_at: string
           granted_by: string
+          module: Database["public"]["Enums"]["app_module"]
         }[]
       }
       get_user_practice_assignments: {
         Args: { p_user_id: string }
         Returns: {
+          assigned_at: string
+          assigned_by: string
           practice_id: string
           practice_name: string
           role: Database["public"]["Enums"]["app_role"]
-          assigned_at: string
-          assigned_by: string
         }[]
       }
       get_user_practice_ids: {
@@ -3794,42 +3797,42 @@ export type Database = {
       get_user_roles: {
         Args: { _user_id?: string }
         Returns: {
-          role: Database["public"]["Enums"]["app_role"]
           practice_id: string
           practice_name: string
+          role: Database["public"]["Enums"]["app_role"]
         }[]
       }
       get_users_with_practices: {
         Args: Record<PropertyKey, never>
         Returns: {
-          user_id: string
           email: string
           full_name: string
           last_login: string
           practice_assignments: Json
+          user_id: string
         }[]
       }
       grant_user_module: {
         Args: {
-          p_user_id: string
-          p_module: Database["public"]["Enums"]["app_module"]
           p_granted_by?: string
+          p_module: Database["public"]["Enums"]["app_module"]
+          p_user_id: string
         }
         Returns: string
       }
       has_role: {
         Args: {
-          _user_id: string
           _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
         }
         Returns: boolean
       }
       has_shared_drive_permission: {
         Args: {
-          p_user_id: string
+          p_action: Database["public"]["Enums"]["permission_action"]
           p_target_id: string
           p_target_type: Database["public"]["Enums"]["file_type"]
-          p_action: Database["public"]["Enums"]["permission_action"]
+          p_user_id: string
         }
         Returns: boolean
       }
@@ -3842,11 +3845,11 @@ export type Database = {
         Returns: boolean
       }
       is_pcn_manager_for_practice: {
-        Args: { _user_id: string; _practice_id: string }
+        Args: { _practice_id: string; _user_id: string }
         Returns: boolean
       }
       is_practice_manager_for_practice: {
-        Args: { _user_id: string; _practice_id: string }
+        Args: { _practice_id: string; _user_id: string }
         Returns: boolean
       }
       is_session_valid: {
@@ -3858,25 +3861,25 @@ export type Database = {
         Returns: boolean
       }
       log_complaint_action: {
-        Args: { p_complaint_id: string; p_action: string; p_details?: Json }
+        Args: { p_action: string; p_complaint_id: string; p_details?: Json }
         Returns: string
       }
       log_complaint_activity: {
         Args: {
-          p_complaint_id: string
-          p_action_type: string
           p_action_description: string
-          p_old_values?: Json
+          p_action_type: string
+          p_complaint_id: string
           p_new_values?: Json
+          p_old_values?: Json
         }
         Returns: string
       }
       log_complaint_document_action: {
         Args: {
-          p_complaint_id: string
           p_action_type: string
-          p_document_name: string
+          p_complaint_id: string
           p_document_id?: string
+          p_document_name: string
         }
         Returns: string
       }
@@ -3889,34 +3892,34 @@ export type Database = {
           p_complaint_id: string
           p_compliance_check_id: string
           p_compliance_item: string
-          p_previous_status: boolean
           p_new_status: boolean
           p_notes?: string
+          p_previous_status: boolean
         }
         Returns: string
       }
       log_security_event: {
         Args:
-          | { event_type: string; event_data: Json }
+          | { event_data: Json; event_type: string }
+          | { p_details?: Json; p_event_type: string; p_user_id: string }
           | {
-              p_event_type: string
-              p_severity?: string
-              p_user_id?: string
-              p_user_email?: string
-              p_ip_address?: unknown
-              p_user_agent?: string
               p_event_details?: Json
+              p_event_type: string
+              p_ip_address?: unknown
+              p_severity?: string
+              p_user_agent?: string
+              p_user_email?: string
+              p_user_id?: string
             }
-          | { p_event_type: string; p_user_id: string; p_details?: Json }
         Returns: undefined
       }
       log_system_activity: {
         Args: {
-          p_table_name: string
+          p_new_values?: Json
+          p_old_values?: Json
           p_operation: string
           p_record_id?: string
-          p_old_values?: Json
-          p_new_values?: Json
+          p_table_name: string
         }
         Returns: string
       }
@@ -3926,16 +3929,16 @@ export type Database = {
       }
       remove_user_from_practice: {
         Args: {
-          p_user_id: string
           p_practice_id: string
           p_role?: Database["public"]["Enums"]["app_role"]
+          p_user_id: string
         }
         Returns: boolean
       }
       revoke_user_module: {
         Args: {
-          p_user_id: string
           p_module: Database["public"]["Enums"]["app_module"]
+          p_user_id: string
         }
         Returns: boolean
       }
@@ -3949,8 +3952,8 @@ export type Database = {
       }
       user_has_module_access: {
         Args: {
-          p_user_id: string
           p_module: Database["public"]["Enums"]["app_module"]
+          p_user_id: string
         }
         Returns: boolean
       }
