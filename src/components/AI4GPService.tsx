@@ -201,23 +201,6 @@ const AI4GPService = () => {
               </div>
             )}
 
-            {/* News Display */}
-            {showNews && (
-              <div className="border-b bg-muted/20 p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-medium text-sm">GP News & Updates</h4>
-                  <button
-                    onClick={() => setShowNews(false)}
-                    className="text-muted-foreground hover:text-foreground text-sm"
-                  >
-                    ✕
-                  </button>
-                </div>
-                <div className="max-h-96 overflow-y-auto">
-                  <NewsPanel />
-                </div>
-              </div>
-            )}
 
             <CardContent className="flex-1 flex flex-col p-0 relative min-h-0" style={{ paddingBottom: '160px' }}>
               {messages.length === 0 ? (
@@ -320,6 +303,18 @@ const AI4GPService = () => {
                 />
               </div>
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* News Modal */}
+      <Dialog open={showNews} onOpenChange={setShowNews}>
+        <DialogContent className="max-w-[100vw] w-[100vw] max-h-[100vh] h-[100vh] overflow-y-auto p-0 m-0">
+          <DialogHeader className="p-4 border-b">
+            <DialogTitle className="text-left">GP News & Updates</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto p-4">
+            <NewsPanel />
           </div>
         </DialogContent>
       </Dialog>
