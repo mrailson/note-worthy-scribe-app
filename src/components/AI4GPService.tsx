@@ -1320,9 +1320,9 @@ Always provide evidence-based, clinically appropriate advice that follows curren
               </div>
             </CardHeader>
             
-            <CardContent className="flex-1 flex flex-col p-0">
+            <CardContent className="flex-1 flex flex-col p-0 h-[calc(100vh-16rem)]">
               {/* Messages */}
-              <ScrollArea className="flex-1 p-2">
+              <ScrollArea className="flex-1 p-2 h-[calc(100vh-20rem)]">
                  <div className="space-y-1">
                     {messages.length === 0 && (
                       <div className="text-center py-1">
@@ -1541,7 +1541,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                 )}
                
                {/* Input Area */}
-              <div className="border-t p-4 space-y-3 -mt-[200px]">
+              <div className="border-t p-4 space-y-3 flex-shrink-0">
                 {/* Uploaded Files Display */}
                 {uploadedFiles.length > 0 && (
                   <div className="flex flex-wrap gap-2">
