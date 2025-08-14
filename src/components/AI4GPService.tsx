@@ -121,10 +121,10 @@ const AI4GPService = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [model, setModel] = useState<'claude' | 'gpt' | 'chatgpt5'>('chatgpt5');
+  
   const [sessionMemory, setSessionMemory] = useState(true);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
-  const [apiKeyMissing, setApiKeyMissing] = useState<{claude: boolean, gpt: boolean}>({claude: false, gpt: false});
+  
   const [searchHistory, setSearchHistory] = useState<SearchHistory[]>([]);
   const [showSearchHistory, setShowSearchHistory] = useState(false);
   const [practiceContext, setPracticeContext] = useState<PracticeContext>({});
@@ -526,40 +526,27 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         };
       });
 
-      // Start timing the API call
-      const startTime = performance.now();
-      const modelDisplayName = model === 'chatgpt5' ? 'ChatGPT 5.0' : model === 'gpt' ? 'GPT-4o' : 'Claude 3.5 Sonnet';
       
       const { data, error } = await supabase.functions.invoke('ai-4-pm-chat', {
         body: {
           messages: messagesForAPI,
-          model: model,
+          model: 'chatgpt5',
           systemPrompt: systemPrompt,
           files: uploadedFiles.length > 0 ? uploadedFiles : undefined,
           enableWebSearch: includeLatestUpdates
         }
       });
 
-      // Calculate response time
-      const endTime = performance.now();
-      const responseTime = Math.round(endTime - startTime);
-
       if (error) {
-        if (error.message?.includes('API key')) {
-          setApiKeyMissing(prev => ({ ...prev, [model]: true }));
-          throw new Error(`${model.toUpperCase()} API key is missing. Please contact your administrator.`);
-        }
         throw error;
       }
 
-      // Prepend timing information to the response
       const responseContent = data.content || data.response || 'No response received';
-      const timedResponse = `**⏱️ Response Time: ${responseTime}ms (${modelDisplayName})**\n\n${responseContent}`;
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: timedResponse,
+        content: responseContent,
         timestamp: new Date(),
       };
 
@@ -1268,18 +1255,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                       History
                     </Button>
                   )}
-                  <div className="flex items-center gap-2">
-                     {/* Model Selector */}
-                     <Select value={model} onValueChange={(value: 'claude' | 'gpt' | 'chatgpt5') => setModel(value)}>
-                       <SelectTrigger className="w-[120px] h-8 text-xs bg-background border border-border z-50">
-                         <SelectValue />
-                       </SelectTrigger>
-                       <SelectContent className="bg-background border border-border shadow-lg z-50">
-                         <SelectItem value="chatgpt5" className="text-xs">ChatGPT 5.0</SelectItem>
-                         <SelectItem value="gpt" className="text-xs">GPT-4o</SelectItem>
-                         <SelectItem value="claude" className="text-xs">Claude 3.5</SelectItem>
-                       </SelectContent>
-                     </Select>
+                   <div className="flex items-center gap-2">
                      
                      {/* Hidden: Include latest web updates option
                      <div className="flex items-center gap-2">
