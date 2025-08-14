@@ -32,8 +32,6 @@ const AI4GPService = () => {
   const [showNews, setShowNews] = useState(false);
   const [selectedRole, setSelectedRole] = useState<'gp' | 'practice-manager'>('gp');
   const [selectedModel, setSelectedModel] = useState('gpt-5');
-  const [cardSize, setCardSize] = useState('default');
-  const [cardHeight, setCardHeight] = useState(400);
 
   const {
     messages,
@@ -254,7 +252,6 @@ const AI4GPService = () => {
                   setExpandedMessage={setExpandedMessage}
                   onExportWord={generateWordDocument}
                   onExportPowerPoint={generatePowerPoint}
-                  cardHeight={cardHeight}
                 />
               )}
             </CardContent>
@@ -299,7 +296,6 @@ const AI4GPService = () => {
                   onExpandMessage={() => {}}
                   onExportWord={generateWordDocument}
                   onExportPowerPoint={generatePowerPoint}
-                  cardHeight={undefined} // Remove height restrictions in modal
                   isModal={true} // Hide avatar and scroll arrow in modal
                   onCloseModal={() => setExpandedMessage(null)} // Close modal function
                 />
@@ -331,10 +327,6 @@ const AI4GPService = () => {
         onIncludeLatestUpdatesChange={setIncludeLatestUpdates}
         selectedModel={selectedModel}
         onModelChange={setSelectedModel}
-        cardSize={cardSize}
-        onCardSizeChange={setCardSize}
-        cardHeight={cardHeight}
-        onCardHeightChange={setCardHeight}
       />
     </>
   );

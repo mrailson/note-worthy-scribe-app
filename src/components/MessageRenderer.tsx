@@ -39,7 +39,6 @@ interface MessageRendererProps {
   onExpandMessage?: (message: Message) => void;
   onExportWord?: (content: string, title?: string) => void;
   onExportPowerPoint?: (content: string, title?: string) => void;
-  cardHeight?: number;
   isModal?: boolean; // New prop to indicate if rendering in modal
   onCloseModal?: () => void; // New prop to close modal
 }
@@ -49,7 +48,6 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   onExpandMessage, 
   onExportWord, 
   onExportPowerPoint, 
-  cardHeight,
   isModal = false,
   onCloseModal 
 }) => {
@@ -64,8 +62,6 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
     message.content.split('\n').length > 20
   );
 
-  // Use 75% more height for large responses
-  const effectiveCardHeight = isLargeResponse ? Math.floor((cardHeight || 400) * 1.75) : (cardHeight || 400);
 
   const messageRef = React.useRef<HTMLDivElement>(null);
 
@@ -360,7 +356,6 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
               : isModal ? 'bg-transparent border-0' : 'bg-muted border border-border'
           } ${isModal ? 'p-0' : 'p-4'}`}
           style={{
-            maxHeight: message.role === 'assistant' && cardHeight ? `${effectiveCardHeight}px` : 'auto',
             width: '100%'
           }}
         >
@@ -370,7 +365,6 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
               <div 
                 className={`ai-response-content overflow-y-auto w-full ${isModal ? 'prose-lg' : 'prose prose-sm'}`}
                 style={{
-                  maxHeight: cardHeight ? `${effectiveCardHeight - 120}px` : 'none',
                   maxWidth: 'none',
                   width: '100%'
                 }}
