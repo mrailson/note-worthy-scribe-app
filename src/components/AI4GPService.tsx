@@ -28,6 +28,7 @@ const AI4GPService = () => {
   const [expandedMessage, setExpandedMessage] = useState<Message | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showAIChat, setShowAIChat] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<'gp' | 'practice-manager'>('gp');
   const [selectedModel, setSelectedModel] = useState('gpt-5');
   const [cardSize, setCardSize] = useState('default');
   const [cardHeight, setCardHeight] = useState(400);
@@ -192,13 +193,41 @@ const AI4GPService = () => {
                 /* Welcome Screen - Compact, mobile-optimized */
                 <div className="p-3 sm:p-6 space-y-3 sm:space-y-4">
                   <div className="w-full max-w-2xl mx-auto">
-                    <p className="text-center text-muted-foreground text-xs sm:text-sm mb-2 sm:mb-3">
+                    <p className="text-center text-muted-foreground text-xs sm:text-sm mb-3">
                       Get started with these common queries:
                     </p>
+                    
+                    {/* Role Selection */}
+                    <div className="flex justify-center mb-4">
+                      <div className="flex bg-muted rounded-lg p-1">
+                        <button
+                          onClick={() => setSelectedRole('gp')}
+                          className={`px-3 py-1.5 text-xs sm:text-sm rounded-md transition-all ${
+                            selectedRole === 'gp'
+                              ? 'bg-background text-foreground shadow-sm'
+                              : 'text-muted-foreground hover:text-foreground'
+                          }`}
+                        >
+                          For GP
+                        </button>
+                        <button
+                          onClick={() => setSelectedRole('practice-manager')}
+                          className={`px-3 py-1.5 text-xs sm:text-sm rounded-md transition-all ${
+                            selectedRole === 'practice-manager'
+                              ? 'bg-background text-foreground shadow-sm'
+                              : 'text-muted-foreground hover:text-foreground'
+                          }`}
+                        >
+                          For Practice Managers
+                        </button>
+                      </div>
+                    </div>
+                    
                     <QuickActionsPanel
                       showAllQuickActions={showAllQuickActions}
                       setShowAllQuickActions={setShowAllQuickActions}
                       setInput={setInput}
+                      selectedRole={selectedRole}
                     />
                   </div>
                 </div>

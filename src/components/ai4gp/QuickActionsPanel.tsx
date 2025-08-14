@@ -7,14 +7,26 @@ interface QuickActionsPanelProps {
   showAllQuickActions: boolean;
   setShowAllQuickActions: (show: boolean) => void;
   setInput: (input: string) => void;
+  selectedRole?: 'gp' | 'practice-manager';
 }
 
 export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
   showAllQuickActions,
   setShowAllQuickActions,
-  setInput
+  setInput,
+  selectedRole = 'gp'
 }) => {
-  const visibleActions = showAllQuickActions ? quickActions : quickActions.slice(0, 4);
+  // Filter actions based on selected role
+  const filteredActions = quickActions.filter(action => {
+    if (selectedRole === 'practice-manager') {
+      // For now, show all actions for practice managers
+      // You can add role-specific filtering here later
+      return true;
+    }
+    return true; // Show all for GP by default
+  });
+  
+  const visibleActions = showAllQuickActions ? filteredActions : filteredActions.slice(0, 4);
 
   return (
     <div className="space-y-2">
@@ -36,7 +48,7 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
         })}
       </div>
       
-      {quickActions.length > 4 && (
+      {filteredActions.length > 4 && (
         <Button
           variant="ghost"
           size="sm"
@@ -51,7 +63,7 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
           ) : (
             <>
               <Plus className="w-4 h-4 mr-2" />
-              Show More ({quickActions.length - 4} more)
+              Show More ({filteredActions.length - 4} more)
             </>
           )}
         </Button>
