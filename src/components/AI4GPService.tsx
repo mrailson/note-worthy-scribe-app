@@ -9,6 +9,7 @@ import { Sparkles, History, Plus } from 'lucide-react';
 import { LoginForm } from '@/components/LoginForm';
 import { MessagesList } from '@/components/ai4gp/MessagesList';
 import { InputArea } from '@/components/ai4gp/InputArea';
+import MessageRenderer from '@/components/MessageRenderer';
 import { QuickActionsPanel } from '@/components/ai4gp/QuickActionsPanel';
 import { SearchHistorySidebar } from '@/components/ai4gp/SearchHistorySidebar';
 import { useAI4GPService } from '@/hooks/useAI4GPService';
@@ -195,8 +196,15 @@ const AI4GPService = () => {
               {expandedMessage?.role === 'user' ? 'Your Message' : 'AI Response'}
             </DialogTitle>
           </DialogHeader>
-          <div className="whitespace-pre-wrap text-sm">
-            {expandedMessage?.content}
+          <div className="text-sm">
+            {expandedMessage && (
+              <MessageRenderer
+                message={expandedMessage}
+                onExpandMessage={() => {}}
+                onExportWord={generateWordDocument}
+                onExportPowerPoint={generatePowerPoint}
+              />
+            )}
           </div>
         </DialogContent>
       </Dialog>
