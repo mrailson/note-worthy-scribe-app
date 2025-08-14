@@ -123,7 +123,11 @@ const AI4GPService = () => {
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center text-sm sm:text-base">
                     <button 
-                      onClick={handleNewSearch}
+                      onClick={() => {
+                        setMessages([]);
+                        setInput('');
+                        setUploadedFiles([]);
+                      }}
                       className="flex items-center hover:opacity-80 transition-opacity cursor-pointer"
                     >
                       <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-primary" />
