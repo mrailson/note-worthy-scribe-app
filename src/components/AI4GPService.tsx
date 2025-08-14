@@ -127,6 +127,7 @@ const AI4GPService = () => {
                         setMessages([]);
                         setInput('');
                         setUploadedFiles([]);
+                        setShowAIChat(false);
                       }}
                       className="flex items-center hover:opacity-80 transition-opacity cursor-pointer"
                     >
