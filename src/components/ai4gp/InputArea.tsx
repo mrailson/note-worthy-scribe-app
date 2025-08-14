@@ -5,6 +5,7 @@ import { Send, Paperclip, Mic } from 'lucide-react';
 import { FileUploadArea } from './FileUploadArea';
 import { UploadedFile } from '@/types/ai4gp';
 import { useFileUpload } from '@/hooks/useFileUpload';
+import { useVoiceRecording } from '@/hooks/useVoiceRecording';
 
 interface InputAreaProps {
   input: string;
@@ -30,6 +31,7 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { processFiles } = useFileUpload();
+  const { isRecording, isProcessing, toggleRecording } = useVoiceRecording();
 
   useImperativeHandle(ref, () => ({
     focus: () => {
@@ -97,12 +99,14 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 w-8 p-0"
-              onClick={() => {
-                // TODO: Implement voice recording
-                console.log('Voice recording clicked');
+              className={`h-8 w-8 p-0 ${isRecording ? 'bg-red-500 text-white animate-pulse' : ''}`}
+              onClick={async () => {
+                const text = await toggleRecording();
+                if (text) {
+                  setInput(input + (input ? ' ' : '') + text);
+                }
               }}
-              disabled={isLoading}
+              disabled={isLoading || isProcessing}
             >
               <Mic className="w-4 h-4" />
             </Button>
@@ -130,7 +134,7 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
       </div>
       
       <div className="text-xs text-muted-foreground text-center">
-        Press Ctrl+Enter to send • Upload files: PDF, Word, text, images, audio
+        Press Ctrl+Enter to send • Upload files: PDF, Word, text, images, audio • {isRecording ? 'Recording... tap mic to stop' : isProcessing ? 'Processing speech...' : 'Tap mic to record voice'}
       </div>
     </div>
   );
