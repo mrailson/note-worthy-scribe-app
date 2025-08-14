@@ -48,6 +48,7 @@ const Index = () => {
   
   // UI states
   const [activeTab, setActiveTab] = useState<ActiveTab>("consultation");
+  const [showAIChat, setShowAIChat] = useState(false);
   const [expandDialog, setExpandDialog] = useState<ExpandDialog>({
     isOpen: false,
     title: "",
@@ -114,6 +115,11 @@ const Index = () => {
     });
   };
 
+  // AI Chat handler
+  const handleAIChatClick = () => {
+    setShowAIChat(true);
+  };
+
   // Edit content handlers
   const handleEditContentChange = (field: keyof typeof documents.editContent, value: string) => {
     documents.setEditContent(prev => ({
@@ -155,8 +161,25 @@ const Index = () => {
           <TabNavigation 
             activeTab={activeTab} 
             onTabChange={setActiveTab} 
-            isMobile={isMobile} 
+            isMobile={isMobile}
+            onAIChatClick={handleAIChatClick}
           />
+
+          {/* AI Chat Display in White Box */}
+          {showAIChat && (
+            <div className="mt-6 bg-card rounded-lg border shadow-sm p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">AI Chat</h3>
+                <button
+                  onClick={() => setShowAIChat(false)}
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+              <GPGenieVoiceAgent />
+            </div>
+          )}
 
           {/* Consultation Tab */}
           <TabsContent value="consultation" className="space-y-6 mt-6">

@@ -15,9 +15,10 @@ interface TabNavigationProps {
   activeTab: ActiveTab;
   onTabChange: (tab: ActiveTab) => void;
   isMobile: boolean;
+  onAIChatClick?: () => void;
 }
 
-export const TabNavigation = ({ activeTab, onTabChange, isMobile }: TabNavigationProps) => {
+export const TabNavigation = ({ activeTab, onTabChange, isMobile, onAIChatClick }: TabNavigationProps) => {
   const tabs = [
     { id: "consultation" as ActiveTab, label: "Consultation", icon: Stethoscope },
     { id: "translation" as ActiveTab, label: "Translation", icon: Languages },
@@ -55,6 +56,18 @@ export const TabNavigation = ({ activeTab, onTabChange, isMobile }: TabNavigatio
           );
         })}
       </TabsList>
+      
+      {/* AI Chat Link next to History */}
+      <div className="mt-4 flex items-center gap-4">
+        <span className="text-sm text-muted-foreground">Quick Access:</span>
+        <button
+          onClick={onAIChatClick}
+          className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors"
+        >
+          <Bot className="h-4 w-4" />
+          AI Chat
+        </button>
+      </div>
     </div>
   );
 };
