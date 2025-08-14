@@ -109,8 +109,6 @@ const SystemAdmin = () => {
       meeting_notes_access: true,
       gp_scribe_access: false,
       complaints_manager_access: false,
-      complaints_admin_access: false,
-      replywell_access: false,
       ai_4_pm_access: false,
       enhanced_access: false,
       cqc_compliance_access: false,
@@ -220,7 +218,7 @@ const [patientDataAccess, setPatientDataAccess] = useState([]);
           // Get ALL user_roles for this user and take the first one for display
           const { data: roleData } = await supabase
             .from('user_roles')
-            .select('meeting_notes_access, gp_scribe_access, complaints_manager_access, complaints_admin_access, replywell_access, ai_4_pm_access, enhanced_access, cqc_compliance_access, shared_drive_access, mic_test_service_access')
+            .select('meeting_notes_access, gp_scribe_access, complaints_manager_access, ai_4_pm_access, enhanced_access, cqc_compliance_access, shared_drive_access, mic_test_service_access')
             .eq('user_id', user.user_id)
             .limit(1)
             .single();
@@ -230,8 +228,6 @@ const [patientDataAccess, setPatientDataAccess] = useState([]);
             meeting_notes_access: roleData?.meeting_notes_access ?? false,
             gp_scribe_access: roleData?.gp_scribe_access ?? false,
             complaints_manager_access: roleData?.complaints_manager_access ?? false,
-            complaints_admin_access: roleData?.complaints_admin_access ?? false,
-            replywell_access: roleData?.replywell_access ?? false,
             ai_4_pm_access: roleData?.ai_4_pm_access ?? false,
             enhanced_access: roleData?.enhanced_access ?? false,
             cqc_compliance_access: roleData?.cqc_compliance_access ?? false,
@@ -429,8 +425,6 @@ const [patientDataAccess, setPatientDataAccess] = useState([]);
         meeting_notes_access: true,
         gp_scribe_access: false,
         complaints_manager_access: false,
-        complaints_admin_access: false,
-        replywell_access: false,
         ai_4_pm_access: false,
         enhanced_access: false,
         cqc_compliance_access: false,
@@ -447,8 +441,6 @@ const [patientDataAccess, setPatientDataAccess] = useState([]);
       meeting_notes: user.meeting_notes_access,
       gp_scribe: user.gp_scribe_access,
       complaints_manager: user.complaints_manager_access,
-      complaints_admin: user.complaints_admin_access,
-      replywell: user.replywell_access,
       ai_4_pm: user.ai_4_pm_access
     });
     setEditingUser(user);
@@ -462,8 +454,6 @@ const [patientDataAccess, setPatientDataAccess] = useState([]);
         meeting_notes_access: user.meeting_notes_access ?? false,
         gp_scribe_access: user.gp_scribe_access ?? false,
         complaints_manager_access: user.complaints_manager_access ?? false,
-        complaints_admin_access: user.complaints_admin_access ?? false,
-        replywell_access: user.replywell_access ?? false,
         ai_4_pm_access: user.ai_4_pm_access ?? false,
         enhanced_access: user.enhanced_access ?? false,
         cqc_compliance_access: user.cqc_compliance_access ?? false,
@@ -531,8 +521,6 @@ const handleUserSubmit = async (e: React.FormEvent) => {
             meeting_notes_access: userFormData.module_access.meeting_notes_access,
             gp_scribe_access: userFormData.module_access.gp_scribe_access,
             complaints_manager_access: userFormData.module_access.complaints_manager_access,
-            complaints_admin_access: userFormData.module_access.complaints_admin_access,
-            replywell_access: userFormData.module_access.replywell_access,
             ai_4_pm_access: userFormData.module_access.ai_4_pm_access,
             enhanced_access: userFormData.module_access.enhanced_access,
             cqc_compliance_access: userFormData.module_access.cqc_compliance_access,
@@ -1592,39 +1580,6 @@ const handleUserSubmit = async (e: React.FormEvent) => {
                       />
                     </div>
 
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="complaints_admin_access">Complaints Admin</Label>
-                        <p className="text-xs text-muted-foreground">Full administrative access to complaints system</p>
-                      </div>
-                      <Switch
-                        id="complaints_admin_access"
-                        checked={userFormData.module_access.complaints_admin_access}
-                        onCheckedChange={(checked) => 
-                          setUserFormData({
-                            ...userFormData, 
-                            module_access: {...userFormData.module_access, complaints_admin_access: checked}
-                          })
-                        }
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="replywell_access">ReplyWell</Label>
-                        <p className="text-xs text-muted-foreground">Access to AI-powered communication assistance</p>
-                      </div>
-                      <Switch
-                        id="replywell_access"
-                        checked={userFormData.module_access.replywell_access}
-                        onCheckedChange={(checked) => 
-                          setUserFormData({
-                            ...userFormData, 
-                            module_access: {...userFormData.module_access, replywell_access: checked}
-                          })
-                        }
-                      />
-                    </div>
 
                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">

@@ -164,15 +164,6 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                         Enhanced Access
                       </DropdownMenuItem>
                      )}
-                      {hasModuleAccess('replywell') && (
-                        <DropdownMenuItem 
-                          onClick={() => navigate('/replywell')}
-                          className="cursor-pointer py-3"
-                        >
-                          <Mail className="h-4 w-4 mr-2" />
-                          ReplyWell
-                        </DropdownMenuItem>
-                      )}
                       {hasModuleAccess('cqc_compliance') && (
                         <DropdownMenuItem 
                           onClick={() => navigate('/cqc-compliance')}
@@ -358,14 +349,6 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                             <Button variant="ghost" className="justify-start" onClick={() => navigate('/enhanced-access')}>
                               <Clock className="h-4 w-4 mr-2" />
                               Enhanced Access
-                            </Button>
-                          </DrawerClose>
-                        )}
-                        {hasModuleAccess('replywell') && (
-                          <DrawerClose asChild>
-                            <Button variant="ghost" className="justify-start" onClick={() => navigate('/replywell')}>
-                              <Mail className="h-4 w-4 mr-2" />
-                              ReplyWell
                             </Button>
                           </DrawerClose>
                         )}
