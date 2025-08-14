@@ -239,7 +239,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
     <div className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
       <div className={`flex gap-3 w-full max-w-[95%] sm:max-w-[85%] ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
         {/* Avatar with scroll arrow for assistant messages */}
-        <div className="flex flex-col items-center gap-1">
+        <div className="flex items-center gap-2">
           <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
             message.role === 'user' ? 'bg-primary' : 'bg-muted'
           }`}>
@@ -250,7 +250,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
             )}
           </div>
           
-          {/* Scroll to input arrow - only show for assistant messages */}
+          {/* Scroll to input arrow - only show for assistant messages, on the right side */}
           {message.role === 'assistant' && (
             <button
               onClick={handleScrollToInput}
