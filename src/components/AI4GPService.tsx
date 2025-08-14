@@ -1155,8 +1155,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
   }
 
   return (
-    <div className="w-full max-w-6xl mx-auto h-[calc(100vh-6rem)]">
-      <div className="flex flex-col lg:flex-row gap-6 h-full">
+    <div className="w-full max-w-6xl mx-auto">
+      <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-8rem)]">
         
         {/* Search History Sidebar */}
         {searchHistory.length > 0 && showSearchHistory && (
@@ -1247,8 +1247,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         )}
         
         {/* Chat Interface */}
-        <div className="flex-1 flex flex-col min-h-0">
-          <Card className="flex-1 flex flex-col min-h-0">
+        <div className="flex-1 flex flex-col">
+          <Card className="flex-1 flex flex-col">
             <CardHeader className="flex-shrink-0">
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center">
@@ -1320,9 +1320,9 @@ Always provide evidence-based, clinically appropriate advice that follows curren
               </div>
             </CardHeader>
             
-            <CardContent className="flex-1 flex flex-col p-0 relative">
+            <CardContent className="flex-1 flex flex-col p-0">
               {/* Messages */}
-              <ScrollArea className="flex-1 p-2 pb-32">
+              <ScrollArea className="flex-1 p-2">
                  <div className="space-y-1">
                     {messages.length === 0 && (
                       <div className="text-center py-1">
@@ -1537,84 +1537,81 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                         </Button>
                       </div>
                     </DialogContent>
-                   </Dialog>
-                 )}
-                 
+                  </Dialog>
+                )}
+               
+               {/* Input Area */}
+              <div className="border-t p-4 space-y-3">
+                {/* Uploaded Files Display */}
+                {uploadedFiles.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {uploadedFiles.map((file, index) => {
+                      const Icon = getFileTypeIcon(file.name, file.type);
+                      return (
+                        <div key={index} className="flex items-center gap-2 bg-muted rounded-md px-3 py-1 text-sm">
+                          <Icon className="h-4 w-4" />
+                          <span className="truncate max-w-32">{file.name}</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-auto p-0 hover:bg-transparent"
+                            onClick={() => setUploadedFiles(prev => prev.filter((_, i) => i !== index))}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      );
+                    })}
                   </div>
-                </ScrollArea>
+                )}
                 
-                {/* Input Area */}
-                <div className="absolute bottom-0 left-0 right-0 border-t p-4 space-y-3 bg-background z-10">
-                  {/* Uploaded Files Display */}
-                  {uploadedFiles.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      {uploadedFiles.map((file, index) => {
-                        const Icon = getFileTypeIcon(file.name, file.type);
-                        return (
-                          <div key={index} className="flex items-center gap-2 bg-muted rounded-md px-3 py-1 text-sm">
-                            <Icon className="h-4 w-4" />
-                            <span className="truncate max-w-32">{file.name}</span>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-auto p-0 hover:bg-transparent"
-                              onClick={() => setUploadedFiles(prev => prev.filter((_, i) => i !== index))}
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                  
-                   <div className="flex gap-2">
-                     <Textarea
-                       value={input}
-                       onChange={(e) => setInput(e.target.value)}
-                       placeholder="Ask AI4GP about clinical protocols, patient care, prescribing guidance..."
-                       className="min-h-[60px] resize-none"
-                       onKeyDown={(e) => {
-                         if (e.key === 'Enter' && !e.shiftKey) {
-                           e.preventDefault();
-                           handleSend();
-                         }
-                       }}
-                     />
-                     <div className="flex flex-col gap-2">
-                        <input
-                          type="file"
-                          multiple
-                          className="hidden"
-                          ref={fileInputRef}
-                          accept=".pdf,.doc,.docx,.rtf,.txt,.eml,.msg,.jpg,.jpeg,.png,.wav,.mp3,.m4a"
-                        />
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => fileInputRef.current?.click()}
-                          disabled={isLoading}
-                          title="Upload files (PDF, DOC, DOCX, RTF, TXT, EML, MSG, JPG, PNG, audio files)"
-                        >
-                          <Paperclip className="h-4 w-4" />
-                        </Button>
-                       <SpeechToText onTranscription={(transcript) => setInput(prev => prev + ' ' + transcript)} />
-                       <Button 
-                         onClick={handleSend} 
-                         disabled={isLoading || (!input.trim() && uploadedFiles.length === 0)}
-                         size="sm"
-                       >
-                         <Send className="h-4 w-4" />
-                       </Button>
-                     </div>
+                 <div className="flex gap-2">
+                   <Textarea
+                     value={input}
+                     onChange={(e) => setInput(e.target.value)}
+                     placeholder="Ask AI4GP about clinical protocols, patient care, prescribing guidance..."
+                     className="min-h-[60px] resize-none"
+                     onKeyDown={(e) => {
+                       if (e.key === 'Enter' && !e.shiftKey) {
+                         e.preventDefault();
+                         handleSend();
+                       }
+                     }}
+                   />
+                   <div className="flex flex-col gap-2">
+                      <input
+                        type="file"
+                        multiple
+                        className="hidden"
+                        ref={fileInputRef}
+                        accept=".pdf,.doc,.docx,.rtf,.txt,.eml,.msg,.jpg,.jpeg,.png,.wav,.mp3,.m4a"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isLoading}
+                        title="Upload files (PDF, DOC, DOCX, RTF, TXT, EML, MSG, JPG, PNG, audio files)"
+                      >
+                        <Paperclip className="h-4 w-4" />
+                      </Button>
+                     <SpeechToText onTranscription={(transcript) => setInput(prev => prev + ' ' + transcript)} />
+                     <Button 
+                       onClick={handleSend} 
+                       disabled={isLoading || (!input.trim() && uploadedFiles.length === 0)}
+                       size="sm"
+                     >
+                       <Send className="h-4 w-4" />
+                     </Button>
                    </div>
                  </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </div>
-    );
-  };
-  
-  export default AI4GPService;
+               </div>
+               </CardContent>
+             </Card>
+           </div>
+         </div>
+       </div>
+     );
+   };
+   
+   export default AI4GPService;
