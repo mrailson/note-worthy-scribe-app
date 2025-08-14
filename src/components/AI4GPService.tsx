@@ -1155,8 +1155,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
   }
 
   return (
-    <div className="w-full max-w-6xl mx-auto">
-      <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-8rem)]">
+    <div className="w-full max-w-6xl mx-auto h-[calc(100vh-6rem)]">
+      <div className="flex flex-col lg:flex-row gap-6 h-full">
         
         {/* Search History Sidebar */}
         {searchHistory.length > 0 && showSearchHistory && (
@@ -1247,8 +1247,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         )}
         
         {/* Chat Interface */}
-        <div className="flex-1 flex flex-col h-[calc(100vh-8rem)]">
-          <Card className="flex-1 flex flex-col h-full">
+        <div className="flex-1 flex flex-col min-h-0">
+          <Card className="flex-1 flex flex-col min-h-0">
             <CardHeader className="flex-shrink-0">
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center">
