@@ -956,14 +956,15 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     if (event.type === 'response.audio_transcript.delta') {
       console.log('Voice transcript delta:', event.delta);
       
-      // Ensure we have a session ID
+      // Ensure we have a session ID - use the one created in response.created
       if (!voiceSessionRef.current) {
-        voiceSessionRef.current = `voice-session-${Date.now()}`;
+        console.error('No voice session ID found, this should not happen');
+        return; // Don't process if no session ID
       }
       
       setMessages(prev => {
         const last = prev[prev.length - 1];
-        // Check if last message is from the same voice session
+        // Check if last message is from the same voice session and is assistant role
         if (last && last.role === 'assistant' && last.id === voiceSessionRef.current) {
           console.log('Appending to existing voice message');
           return [...prev.slice(0, -1), { ...last, content: last.content + event.delta }];
@@ -974,7 +975,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         return [
           ...prev,
           { 
-            id: voiceSessionRef.current, 
+            id: voiceSessionRef.current!, 
             role: 'assistant', 
             content: event.delta, 
             timestamp: new Date() 
@@ -1002,10 +1003,16 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     if (event.type === 'conversation.item.input_audio_transcription.completed') {
       const transcript = event.transcript || '';
       if (transcript.trim()) {
-        setMessages(prev => [
-          ...prev,
-          { id: `voice-user-${Date.now()}`, role: 'user', content: transcript, timestamp: new Date() }
-        ]);
+        console.log('Adding user voice message:', transcript);
+        setMessages(prev => {
+          console.log('Current messages before adding user message:', prev.length);
+          const newMessages: Message[] = [
+            ...prev,
+            { id: `voice-user-${Date.now()}`, role: 'user' as const, content: transcript, timestamp: new Date() }
+          ];
+          console.log('Messages after adding user message:', newMessages.length);
+          return newMessages;
+        });
       }
       return;
     }
