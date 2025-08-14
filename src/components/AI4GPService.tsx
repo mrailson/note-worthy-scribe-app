@@ -586,17 +586,29 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         ? aiMessages[0].content.substring(0, 100) + (aiMessages[0].content.length > 100 ? '...' : '')
         : 'No AI response';
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('ai_4_pm_searches')
         .insert({
           user_id: user.id,
           title,
           brief_overview: overview,
           messages: messagesData as any
-        });
+        })
+        .select()
+        .single();
 
-      if (!error) {
-        loadSearchHistoryList(); // Refresh the list silently
+      if (!error && data) {
+        // Add the new search to the beginning of the local state instead of reloading everything
+        const newSearch: SearchHistory = {
+          id: data.id,
+          title: data.title,
+          brief_overview: data.brief_overview || undefined,
+          messages: (data.messages as any) as Message[] || [],
+          created_at: data.created_at,
+          updated_at: data.updated_at
+        };
+        
+        setSearchHistory(prev => [newSearch, ...prev.slice(0, 19)]); // Keep only 20 items
       }
     } catch (error) {
       // Silent failure for auto-save
