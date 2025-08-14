@@ -313,7 +313,7 @@ const AI4GPService = () => {
       <Dialog open={showNews} onOpenChange={setShowNews}>
         <DialogContent className="max-w-[100vw] w-[100vw] max-h-[100vh] h-[100vh] overflow-y-auto p-0 m-0">
           <DialogHeader className="p-4 border-b">
-            <DialogTitle className="text-left">GP News & Local Updates</DialogTitle>
+            <DialogTitle className="text-left">GP News & Local Health News</DialogTitle>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto p-4">
             <NewsPanel />
