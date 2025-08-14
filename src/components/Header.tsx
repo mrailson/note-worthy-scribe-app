@@ -77,9 +77,9 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
               className="text-sm sm:text-xl font-bold leading-tight max-w-[200px] sm:max-w-none cursor-pointer hover:opacity-80 transition-opacity flex items-center"
               onClick={() => navigate('/')}
             >
-              <Stars className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-yellow-300" />
               <span className="hidden sm:inline">Notewell AI</span>
               <span className="sm:hidden">Notewell AI</span>
+              <Stars className="h-4 w-4 sm:h-5 sm:w-5 ml-2 text-white" />
             </h1>
           )}
           
