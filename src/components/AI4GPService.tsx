@@ -94,7 +94,7 @@ const AI4GPService = () => {
   return (
     <>
       <div 
-        className="h-full flex bg-background relative" 
+        className="h-full flex flex-col bg-background relative" 
         data-component="ai4gp-service"
         ref={(el) => {
           if (el) {
@@ -103,183 +103,182 @@ const AI4GPService = () => {
           }
         }}
       >
-        {/* Search History Sidebar */}
-        {showSearchHistory && (
-        <SearchHistorySidebar
-          searchHistory={searchHistory}
-          onLoadSearch={handleLoadPreviousSearch}
-          onDeleteSearch={deleteSearch}
-          onClearAllHistory={clearAllHistory}
-          onClose={() => setShowSearchHistory(false)}
-        />
-        )}
+        <div className="flex h-full">
+          {/* Search History Sidebar */}
+          {showSearchHistory && (
+          <SearchHistorySidebar
+            searchHistory={searchHistory}
+            onLoadSearch={handleLoadPreviousSearch}
+            onDeleteSearch={deleteSearch}
+            onClearAllHistory={clearAllHistory}
+            onClose={() => setShowSearchHistory(false)}
+          />
+          )}
 
-        {/* Main Chat Area */}
-        <div className="flex-1 flex flex-col min-w-0 h-full">
-          <Card className="flex-1 flex flex-col h-full">
-            <CardHeader className="border-b px-3 py-2 sm:px-6 sm:py-4 flex-shrink-0">
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center text-sm sm:text-base">
-                  <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-primary" />
-                  <span className="hidden sm:inline">AI 4 GP Service</span>
-                  <span className="sm:hidden">AI4GP</span>
-                  
-                  {/* History button next to title */}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowSearchHistory(!showSearchHistory)}
-                    className="ml-3 px-2 sm:px-3"
-                  >
-                    <History className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
-                    <span className="hidden sm:inline text-xs">History</span>
-                  </Button>
-
-                  {/* GP Genie button next to History */}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowAIChat(!showAIChat)}
-                    className="ml-1 px-2 sm:px-3"
-                  >
-                    <GenieIcon className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
-                    <span className="hidden sm:inline text-xs">GP Genie</span>
-                  </Button>
-
-                  {/* News button next to GP Genie */}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowNews(!showNews)}
-                    className="ml-1 px-2 sm:px-3"
-                  >
-                    <Newspaper className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
-                    <span className="hidden sm:inline text-xs">GP News</span>
-                  </Button>
-                </CardTitle>
-                
-                 <div className="flex items-center gap-1 sm:gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowSettings(true)}
-                    className="px-2 sm:px-3"
-                  >
-                    <Settings className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
-                    <span className="hidden sm:inline text-xs">Settings</span>
-                  </Button>
-                  
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleNewSearch}
-                    className="px-2 sm:px-3"
-                  >
-                    <Plus className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
-                    <span className="hidden sm:inline text-xs">New</span>
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-
-            {/* AI Chat Display */}
-            {showAIChat && (
-              <div className="border-b bg-muted/20 p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-medium text-sm">GP Genie</h4>
-                  <button
-                    onClick={() => setShowAIChat(false)}
-                    className="text-muted-foreground hover:text-foreground text-sm"
-                  >
-                    ✕
-                  </button>
-                </div>
-                <div className="max-h-96 overflow-y-auto">
-                  <GPGenieVoiceAgent />
-                </div>
-              </div>
-            )}
-
-
-            <CardContent className="flex-1 flex flex-col p-0 relative min-h-0" style={{ paddingBottom: '160px' }}>
-              {messages.length === 0 ? (
-                /* Welcome Screen - Compact, mobile-optimized */
-                <div className="p-3 sm:p-6 space-y-3 sm:space-y-4">
-                  <div className="w-full max-w-2xl mx-auto">
-                    <p className="text-center text-muted-foreground text-xs sm:text-sm mb-3">
-                      Get started with these common queries:
-                    </p>
+          {/* Main Chat Area */}
+          <div className="flex-1 flex flex-col min-w-0 h-full">
+            <Card className="flex-1 flex flex-col h-full">
+              <CardHeader className="border-b px-3 py-2 sm:px-6 sm:py-4 flex-shrink-0">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center text-sm sm:text-base">
+                    <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-primary" />
+                    <span className="hidden sm:inline">AI 4 GP Service</span>
+                    <span className="sm:hidden">AI4GP</span>
                     
-                    {/* Role Selection */}
-                    <div className="flex justify-center mb-4">
-                      <div className="flex bg-muted rounded-lg p-1">
-                        <button
-                          onClick={() => setSelectedRole('gp')}
-                          className={`px-3 py-1.5 text-xs sm:text-sm rounded-md transition-all ${
-                            selectedRole === 'gp'
-                              ? 'bg-background text-foreground shadow-sm'
-                              : 'text-muted-foreground hover:text-foreground'
-                          }`}
-                        >
-                          For GP
-                        </button>
-                        <button
-                          onClick={() => setSelectedRole('practice-manager')}
-                          className={`px-3 py-1.5 text-xs sm:text-sm rounded-md transition-all ${
-                            selectedRole === 'practice-manager'
-                              ? 'bg-background text-foreground shadow-sm'
-                              : 'text-muted-foreground hover:text-foreground'
-                          }`}
-                        >
-                          For Practice Managers
-                        </button>
-                      </div>
-                    </div>
+                    {/* History button next to title */}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowSearchHistory(!showSearchHistory)}
+                      className="ml-3 px-2 sm:px-3"
+                    >
+                      <History className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
+                      <span className="hidden sm:inline text-xs">History</span>
+                    </Button>
+
+                    {/* GP Genie button next to History */}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowAIChat(!showAIChat)}
+                      className="ml-1 px-2 sm:px-3"
+                    >
+                      <GenieIcon className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
+                      <span className="hidden sm:inline text-xs">GP Genie</span>
+                    </Button>
+
+                    {/* News button next to GP Genie */}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowNews(!showNews)}
+                      className="ml-1 px-2 sm:px-3"
+                    >
+                      <Newspaper className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
+                      <span className="hidden sm:inline text-xs">GP News</span>
+                    </Button>
+                  </CardTitle>
+                  
+                   <div className="flex items-center gap-1 sm:gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowSettings(true)}
+                      className="px-2 sm:px-3"
+                    >
+                      <Settings className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
+                      <span className="hidden sm:inline text-xs">Settings</span>
+                    </Button>
                     
-                    <QuickActionsPanel
-                      showAllQuickActions={showAllQuickActions}
-                      setShowAllQuickActions={setShowAllQuickActions}
-                      setInput={setInput}
-                      selectedRole={selectedRole}
-                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleNewSearch}
+                      className="px-2 sm:px-3"
+                    >
+                      <Plus className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
+                      <span className="hidden sm:inline text-xs">New</span>
+                    </Button>
                   </div>
                 </div>
-              ) : (
-                /* Messages Area */
-                <MessagesList
-                  messages={messages}
-                  isLoading={isLoading}
-                  expandedMessage={expandedMessage}
-                  setExpandedMessage={setExpandedMessage}
-                  onExportWord={generateWordDocument}
-                  onExportPowerPoint={generatePowerPoint}
-                />
+              </CardHeader>
+
+              {/* AI Chat Display */}
+              {showAIChat && (
+                <div className="border-b bg-muted/20 p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-medium text-sm">GP Genie</h4>
+                    <button
+                      onClick={() => setShowAIChat(false)}
+                      className="text-muted-foreground hover:text-foreground text-sm"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <div className="max-h-96 overflow-y-auto">
+                    <GPGenieVoiceAgent />
+                  </div>
+                </div>
               )}
-            </CardContent>
-          </Card>
+
+
+              <CardContent className="flex-1 flex flex-col p-0 relative min-h-0 overflow-hidden">
+                {messages.length === 0 ? (
+                  /* Welcome Screen - Compact, mobile-optimized */
+                  <div className="flex-1 p-3 sm:p-6 space-y-3 sm:space-y-4 overflow-y-auto">
+                    <div className="w-full max-w-2xl mx-auto">
+                      <p className="text-center text-muted-foreground text-xs sm:text-sm mb-3">
+                        Get started with these common queries:
+                      </p>
+                      
+                      {/* Role Selection */}
+                      <div className="flex justify-center mb-4">
+                        <div className="flex bg-muted rounded-lg p-1">
+                          <button
+                            onClick={() => setSelectedRole('gp')}
+                            className={`px-3 py-1.5 text-xs sm:text-sm rounded-md transition-all ${
+                              selectedRole === 'gp'
+                                ? 'bg-background text-foreground shadow-sm'
+                                : 'text-muted-foreground hover:text-foreground'
+                            }`}
+                          >
+                            For GP
+                          </button>
+                          <button
+                            onClick={() => setSelectedRole('practice-manager')}
+                            className={`px-3 py-1.5 text-xs sm:text-sm rounded-md transition-all ${
+                              selectedRole === 'practice-manager'
+                                ? 'bg-background text-foreground shadow-sm'
+                                : 'text-muted-foreground hover:text-foreground'
+                            }`}
+                          >
+                            For Practice Managers
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <QuickActionsPanel
+                        showAllQuickActions={showAllQuickActions}
+                        setShowAllQuickActions={setShowAllQuickActions}
+                        setInput={setInput}
+                        selectedRole={selectedRole}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  /* Messages Area */
+                  <div className="flex-1 overflow-y-auto">
+                    <MessagesList
+                      messages={messages}
+                      isLoading={isLoading}
+                      expandedMessage={expandedMessage}
+                      setExpandedMessage={setExpandedMessage}
+                      onExportWord={generateWordDocument}
+                      onExportPowerPoint={generatePowerPoint}
+                    />
+                  </div>
+                )}
+                
+                {/* Input Area at Bottom */}
+                {!showNews && !showAIChat && !showSettings && (
+                  <div className="border-t bg-background">
+                    <InputArea
+                      ref={inputRef}
+                      input={input}
+                      setInput={setInput}
+                      uploadedFiles={uploadedFiles}
+                      setUploadedFiles={setUploadedFiles}
+                      onSend={handleSendWithContext}
+                      isLoading={isLoading}
+                    />
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
 
-      {/* Fixed Input Area at Bottom of Viewport - Outside tab structure */}
-      {!showNews && !showAIChat && !showSettings && (
-        <div 
-          className="fixed left-0 right-0 bg-background border-t shadow-lg"
-          style={{ 
-            bottom: '20px',
-            zIndex: 9999 
-          }}
-        >
-          <InputArea
-            ref={inputRef}
-            input={input}
-            setInput={setInput}
-            uploadedFiles={uploadedFiles}
-            setUploadedFiles={setUploadedFiles}
-            onSend={handleSendWithContext}
-            isLoading={isLoading}
-          />
-        </div>
-      )}
 
       {/* Expanded Message Dialog */}
       <Dialog open={!!expandedMessage} onOpenChange={() => setExpandedMessage(null)}>
