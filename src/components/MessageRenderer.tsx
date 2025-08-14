@@ -239,15 +239,17 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
               ? 'bg-primary text-primary-foreground' 
               : 'bg-muted border border-border'
           }`}
-          style={{
-            maxHeight: message.role === 'assistant' ? `${cardHeight}px` : 'auto',
-            overflowY: message.role === 'assistant' ? 'auto' : 'visible'
-          }}
         >
           {/* Message Content */}
           <div className="space-y-2">
             {message.role === 'assistant' ? (
-              <div className="prose prose-sm max-w-none ai-response-content">
+              <div 
+                className="prose prose-sm max-w-none ai-response-content"
+                style={{
+                  maxHeight: `${cardHeight}px`,
+                  overflowY: 'auto'
+                }}
+              >
                 {formatContent(displayContent)}
               </div>
             ) : (
