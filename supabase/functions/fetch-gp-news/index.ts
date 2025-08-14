@@ -413,6 +413,9 @@ serve(async (req) => {
         return new Date(b.published_at).getTime() - new Date(a.published_at).getTime();
       })
       .slice(0, 2); // Limit to max 2 articles
+    
+    console.log(`Chronicle & Echo articles found: ${Array.from(uniqueMap.values()).filter(a => a.source === 'Northampton Chronicle & Echo').length}`);
+    console.log(`Chronicle & Echo articles after limit: ${chronicleEchoArticles.length}`);
 
     const otherArticles = Array.from(uniqueMap.values())
       .filter(a => a.source !== 'Northampton Chronicle & Echo');
@@ -424,6 +427,11 @@ serve(async (req) => {
     const validArticles = combinedArticles
       .sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime())
       .slice(0, 40);
+    
+    console.log(`Final articles by source:`, validArticles.reduce((acc, a) => {
+      acc[a.source] = (acc[a.source] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>));
 
     if (validArticles.length === 0 && body.mode === 'generate' && openaiApiKey) {
       // Optional fallback to AI generation if explicitly requested
