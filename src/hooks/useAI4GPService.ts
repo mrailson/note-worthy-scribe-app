@@ -98,6 +98,20 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     setUploadedFiles([]);
     setIsLoading(true);
 
+    // Create assistant message for streaming
+    const assistantMessageId = (Date.now() + 1).toString();
+    const assistantMessage: Message = {
+      id: assistantMessageId,
+      role: 'assistant',
+      content: '',
+      timestamp: new Date(),
+      model: selectedModel,
+      isStreaming: true
+    };
+
+    const messagesWithStreaming = [...newMessages, assistantMessage];
+    setMessages(messagesWithStreaming);
+
     try {
       const startTime = Date.now();
       const systemPrompt = buildSystemPrompt(practiceContext, uploadedFiles, includeLatestUpdates);
@@ -120,51 +134,90 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         };
       });
 
-      
+      const requestBody = {
+        messages: messagesForAPI,
+        model: selectedModel,
+        systemPrompt: systemPrompt,
+        files: uploadedFiles.length > 0 ? uploadedFiles : undefined,
+        enableWebSearch: includeLatestUpdates
+      };
+
+      // Get response from edge function
       const { data, error } = await supabase.functions.invoke('ai-4-pm-chat', {
-        body: {
-          messages: messagesForAPI,
-          model: selectedModel,
-          systemPrompt: systemPrompt,
-          files: uploadedFiles.length > 0 ? uploadedFiles : undefined,
-          enableWebSearch: includeLatestUpdates
-        }
+        body: requestBody
       });
 
       if (error) {
         throw error;
       }
 
-      const responseContent = data.content || data.response || 'No response received';
-      const endTime = Date.now();
-      const responseTime = endTime - startTime;
+      const responseContent = data?.response || data?.content || 'No response received';
+      
+      // Simulate streaming by chunking the response
+      const chunks = responseContent.split(' ');
+      const chunkSize = Math.max(1, Math.floor(chunks.length / 20)); // ~20 updates
+      let currentIndex = 0;
+      let accumulatedContent = '';
 
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: responseContent,
-        timestamp: new Date(),
-        responseTime: responseTime,
-        model: selectedModel
+      const streamChunks = () => {
+        if (currentIndex < chunks.length) {
+          const endIndex = Math.min(currentIndex + chunkSize, chunks.length);
+          const chunkText = chunks.slice(currentIndex, endIndex).join(' ') + ' ';
+          accumulatedContent += chunkText;
+          currentIndex = endIndex;
+
+          setMessages(prev => prev.map(msg => 
+            msg.id === assistantMessageId 
+              ? { ...msg, content: accumulatedContent.trim(), isStreaming: true }
+              : msg
+          ));
+
+          if (currentIndex < chunks.length) {
+            // Continue streaming with slight delay for better UX
+            setTimeout(streamChunks, 50 + Math.random() * 50);
+          } else {
+            // Streaming complete
+            const endTime = Date.now();
+            const responseTime = endTime - startTime;
+            
+            setMessages(prev => prev.map(msg => 
+              msg.id === assistantMessageId 
+                ? { ...msg, content: responseContent, isStreaming: false, responseTime }
+                : msg
+            ));
+
+            // Auto-save the search
+            setTimeout(async () => {
+              const finalMessages = [...newMessages, {
+                ...assistantMessage,
+                content: responseContent,
+                isStreaming: false,
+                responseTime
+              }];
+              await saveSearchAutomatically(finalMessages);
+            }, 100);
+          }
+        }
       };
 
-      const finalMessages = [...newMessages, assistantMessage];
-      setMessages(finalMessages);
-      
-      // Auto-save the search
-      await saveSearchAutomatically(finalMessages);
+      // Start the streaming simulation
+      streamChunks();
+
 
     } catch (error: any) {
-      console.error('Error:', error);
+      console.error('Streaming error:', error);
       
       const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
+        id: assistantMessageId,
         role: 'assistant',
         content: `Error: ${error.message || 'Something went wrong. Please try again.'}`,
         timestamp: new Date(),
+        isStreaming: false
       };
 
-      setMessages(prev => [...prev, errorMessage]);
+      setMessages(prev => prev.map(msg => 
+        msg.id === assistantMessageId ? errorMessage : msg
+      ));
     } finally {
       setIsLoading(false);
     }

@@ -154,7 +154,7 @@ function extractPowerPointContent(file: UploadedFile): string {
 PowerPoint automatic text extraction is limited. Converting to .docx or .txt format will provide better results.]`;
 }
 
-async function callClaude(messages: Message[], systemPrompt: string, files?: UploadedFile[]): Promise<string> {
+async function streamClaude(messages: Message[], systemPrompt: string, writer: WritableStreamDefaultWriter<Uint8Array>, files?: UploadedFile[]): Promise<void> {
   const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
   if (!anthropicApiKey) {
     throw new Error('Anthropic API key not configured');
@@ -162,9 +162,8 @@ async function callClaude(messages: Message[], systemPrompt: string, files?: Upl
 
   // Format messages for Claude
   const claudeMessages = messages.map(msg => {
-    let content = msg.content || ''; // Ensure content is never null/undefined
+    let content = msg.content || '';
     
-    // Add file content if present
     if (msg.files && msg.files.length > 0) {
       const fileContent = msg.files.map(file => 
         `\n\n--- File: ${file.name} ---\n${file.content}\n--- End of ${file.name} ---`
@@ -172,7 +171,6 @@ async function callClaude(messages: Message[], systemPrompt: string, files?: Upl
       content += fileContent;
     }
     
-    // Ensure content is not empty
     if (!content.trim()) {
       content = '[No message content]';
     }
@@ -194,7 +192,8 @@ async function callClaude(messages: Message[], systemPrompt: string, files?: Upl
       model: 'claude-3-5-sonnet-20241022',
       max_tokens: 4000,
       system: systemPrompt,
-      messages: claudeMessages
+      messages: claudeMessages,
+      stream: true
     })
   });
 
@@ -204,25 +203,63 @@ async function callClaude(messages: Message[], systemPrompt: string, files?: Upl
     throw new Error(`Claude API error: ${response.status}`);
   }
 
-  const data = await response.json();
-  return data.content[0].text;
+  const reader = response.body?.getReader();
+  if (!reader) {
+    throw new Error('No response body');
+  }
+
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const data = line.slice(6);
+          if (data === '[DONE]') continue;
+          
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed.type === 'content_block_delta' && parsed.delta?.text) {
+              const chunk = {
+                type: 'chunk',
+                content: parsed.delta.text,
+                done: false
+              };
+              await writer.write(new TextEncoder().encode(`data: ${JSON.stringify(chunk)}\n\n`));
+            }
+          } catch (e) {
+            // Skip invalid JSON
+          }
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+    await writer.write(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'done', done: true })}\n\n`));
+  }
 }
 
-async function callGPT(messages: Message[], systemPrompt: string, files?: UploadedFile[]): Promise<string> {
+async function streamGPT(messages: Message[], systemPrompt: string, writer: WritableStreamDefaultWriter<Uint8Array>, files?: UploadedFile[]): Promise<void> {
   const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
   if (!openaiApiKey) {
     throw new Error('OpenAI API key not configured');
   }
 
-  // Format messages for GPT
   const gptMessages = [
     { role: 'system', content: systemPrompt }
   ];
 
   messages.forEach(msg => {
-    let content = msg.content || ''; // Ensure content is never null/undefined
+    let content = msg.content || '';
     
-    // Add file content if present
     if (msg.files && msg.files.length > 0) {
       const fileContent = msg.files.map(file => 
         `\n\n--- File: ${file.name} ---\n${file.content}\n--- End of ${file.name} ---`
@@ -230,7 +267,6 @@ async function callGPT(messages: Message[], systemPrompt: string, files?: Upload
       content += fileContent;
     }
     
-    // Ensure content is not empty
     if (!content.trim()) {
       content = '[No message content]';
     }
@@ -251,7 +287,8 @@ async function callGPT(messages: Message[], systemPrompt: string, files?: Upload
       model: 'gpt-4o',
       messages: gptMessages,
       max_tokens: 4000,
-      temperature: 0.7
+      temperature: 0.7,
+      stream: true
     })
   });
 
@@ -261,25 +298,63 @@ async function callGPT(messages: Message[], systemPrompt: string, files?: Upload
     throw new Error(`OpenAI API error: ${response.status}`);
   }
 
-  const data = await response.json();
-  return data.choices[0].message.content;
+  const reader = response.body?.getReader();
+  if (!reader) {
+    throw new Error('No response body');
+  }
+
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const data = line.slice(6);
+          if (data === '[DONE]') continue;
+          
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed.choices?.[0]?.delta?.content) {
+              const chunk = {
+                type: 'chunk',
+                content: parsed.choices[0].delta.content,
+                done: false
+              };
+              await writer.write(new TextEncoder().encode(`data: ${JSON.stringify(chunk)}\n\n`));
+            }
+          } catch (e) {
+            // Skip invalid JSON
+          }
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+    await writer.write(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'done', done: true })}\n\n`));
+  }
 }
 
-async function callGPT5(messages: Message[], systemPrompt: string, files?: UploadedFile[]): Promise<string> {
+async function streamGPT5(messages: Message[], systemPrompt: string, writer: WritableStreamDefaultWriter<Uint8Array>, files?: UploadedFile[]): Promise<void> {
   const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
   if (!openaiApiKey) {
     throw new Error('OpenAI API key not configured');
   }
 
-  // Format messages for GPT-5 (using flagship model)
   const gptMessages = [
     { role: 'system', content: systemPrompt }
   ];
 
   messages.forEach(msg => {
-    let content = msg.content || ''; // Ensure content is never null/undefined
+    let content = msg.content || '';
     
-    // Add file content if present
     if (msg.files && msg.files.length > 0) {
       const fileContent = msg.files.map(file => 
         `\n\n--- File: ${file.name} ---\n${file.content}\n--- End of ${file.name} ---`
@@ -287,7 +362,6 @@ async function callGPT5(messages: Message[], systemPrompt: string, files?: Uploa
       content += fileContent;
     }
     
-    // Ensure content is not empty
     if (!content.trim()) {
       content = '[No message content]';
     }
@@ -305,10 +379,10 @@ async function callGPT5(messages: Message[], systemPrompt: string, files?: Uploa
       'Authorization': `Bearer ${openaiApiKey}`
     },
     body: JSON.stringify({
-      model: 'gpt-4.1-2025-04-14', // Using the flagship model for ChatGPT 5.0
+      model: 'gpt-4.1-2025-04-14',
       messages: gptMessages,
-      max_tokens: 4000,
-      temperature: 0.7
+      max_completion_tokens: 4000,
+      stream: true
     })
   });
 
@@ -318,11 +392,51 @@ async function callGPT5(messages: Message[], systemPrompt: string, files?: Uploa
     throw new Error(`OpenAI API error: ${response.status}`);
   }
 
-  const data = await response.json();
-  return data.choices[0].message.content;
+  const reader = response.body?.getReader();
+  if (!reader) {
+    throw new Error('No response body');
+  }
+
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const data = line.slice(6);
+          if (data === '[DONE]') continue;
+          
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed.choices?.[0]?.delta?.content) {
+              const chunk = {
+                type: 'chunk',
+                content: parsed.choices[0].delta.content,
+                done: false
+              };
+              await writer.write(new TextEncoder().encode(`data: ${JSON.stringify(chunk)}\n\n`));
+            }
+          } catch (e) {
+            // Skip invalid JSON
+          }
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+    await writer.write(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'done', done: true })}\n\n`));
+  }
 }
 
-async function callGrok(messages: Message[], systemPrompt: string, files?: UploadedFile[]): Promise<string> {
+async function streamGrok(messages: Message[], systemPrompt: string, writer: WritableStreamDefaultWriter<Uint8Array>, files?: UploadedFile[]): Promise<void> {
   const grokApiKey = Deno.env.get('GROK_API_KEY');
   if (!grokApiKey) {
     throw new Error('Grok API key not configured');
@@ -330,15 +444,13 @@ async function callGrok(messages: Message[], systemPrompt: string, files?: Uploa
 
   console.log('Calling Grok API...');
 
-  // Format messages for Grok (following OpenAI-compatible format)
   const grokMessages = [
     { role: 'system', content: systemPrompt }
   ];
 
   messages.forEach(msg => {
-    let content = msg.content || ''; // Ensure content is never null/undefined
+    let content = msg.content || '';
     
-    // Add file content if present
     if (msg.files && msg.files.length > 0) {
       const fileContent = msg.files.map(file => 
         `\n\n--- File: ${file.name} ---\n${file.content}\n--- End of ${file.name} ---`
@@ -346,7 +458,6 @@ async function callGrok(messages: Message[], systemPrompt: string, files?: Uploa
       content += fileContent;
     }
     
-    // Ensure content is not empty
     if (!content.trim()) {
       content = '[No message content]';
     }
@@ -369,7 +480,7 @@ async function callGrok(messages: Message[], systemPrompt: string, files?: Uploa
         messages: grokMessages,
         max_tokens: 4000,
         temperature: 0.7,
-        stream: false
+        stream: true
       })
     });
 
@@ -380,15 +491,48 @@ async function callGrok(messages: Message[], systemPrompt: string, files?: Uploa
       throw new Error(`Grok API error: ${response.status} - ${errorText}`);
     }
 
-    const data = await response.json();
-    console.log('Grok API response received successfully');
-    
-    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-      console.error('Unexpected Grok API response structure:', data);
-      throw new Error('Unexpected response structure from Grok API');
+    const reader = response.body?.getReader();
+    if (!reader) {
+      throw new Error('No response body');
     }
-    
-    return data.choices[0].message.content;
+
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6);
+            if (data === '[DONE]') continue;
+            
+            try {
+              const parsed = JSON.parse(data);
+              if (parsed.choices?.[0]?.delta?.content) {
+                const chunk = {
+                  type: 'chunk',
+                  content: parsed.choices[0].delta.content,
+                  done: false
+                };
+                await writer.write(new TextEncoder().encode(`data: ${JSON.stringify(chunk)}\n\n`));
+              }
+            } catch (e) {
+              // Skip invalid JSON
+            }
+          }
+        }
+      }
+    } finally {
+      reader.releaseLock();
+      await writer.write(new TextEncoder().encode(`data: ${JSON.stringify({ type: 'done', done: true })}\n\n`));
+    }
   } catch (error) {
     console.error('Error calling Grok API:', error);
     throw error;
@@ -585,30 +729,48 @@ serve(async (req) => {
       }
     }
 
-    let response: string;
+    // Set up streaming response
+    const { readable, writable } = new TransformStream();
+    const writer = writable.getWriter();
 
-    // Model routing with proper mapping
-    if (model === 'claude' || model === 'claude-4-opus' || model === 'claude-4-sonnet') {
-      response = await callClaude(processedMessages, enhancedSystemPrompt, files);
-    } else if (model === 'gpt' || model === 'gpt-4-turbo') {
-      response = await callGPT(processedMessages, enhancedSystemPrompt, files);
-    } else if (model === 'chatgpt5' || model === 'gpt-5') {
-      response = await callGPT5(processedMessages, enhancedSystemPrompt, files);
-    } else if (model === 'grok-beta') {
-      response = await callGrok(processedMessages, enhancedSystemPrompt, files);
-    } else {
-      throw new Error(`Unsupported model: ${model}`);
-    }
-
-    return new Response(
-      JSON.stringify({ response }),
-      { 
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json' 
-        } 
+    // Start streaming in background
+    (async () => {
+      try {
+        console.log(`Starting streaming response for model: ${model}`);
+        
+        // Model routing for streaming
+        if (model === 'claude' || model === 'claude-4-opus' || model === 'claude-4-sonnet') {
+          await streamClaude(processedMessages, enhancedSystemPrompt, writer, files);
+        } else if (model === 'gpt' || model === 'gpt-4-turbo') {
+          await streamGPT(processedMessages, enhancedSystemPrompt, writer, files);
+        } else if (model === 'chatgpt5' || model === 'gpt-5') {
+          await streamGPT5(processedMessages, enhancedSystemPrompt, writer, files);
+        } else if (model === 'grok-beta') {
+          await streamGrok(processedMessages, enhancedSystemPrompt, writer, files);
+        } else {
+          throw new Error(`Unsupported model: ${model}`);
+        }
+      } catch (error) {
+        console.error('Streaming error:', error);
+        const errorChunk = {
+          type: 'error',
+          content: error.message || 'Streaming failed',
+          done: true
+        };
+        await writer.write(new TextEncoder().encode(`data: ${JSON.stringify(errorChunk)}\n\n`));
+      } finally {
+        await writer.close();
       }
-    );
+    })();
+
+    return new Response(readable, {
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
+    });
 
   } catch (error) {
     console.error('Error in ai-4-pm-chat function:', error);

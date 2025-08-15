@@ -28,6 +28,7 @@ interface Message {
   files?: UploadedFile[];
   responseTime?: number;
   model?: string;
+  isStreaming?: boolean;
 }
 
 interface UploadedFile {
@@ -58,6 +59,18 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showFullContent, setShowFullContent] = useState(true);
+  
+  // Auto-scroll to bottom when content updates during streaming
+  const contentRef = React.useRef<HTMLDivElement>(null);
+  
+  React.useEffect(() => {
+    if (message.isStreaming && contentRef.current) {
+      const container = contentRef.current.closest('.overflow-y-auto');
+      if (container) {
+        container.scrollTop = container.scrollHeight;
+      }
+    }
+  }, [message.content, message.isStreaming]);
   
   // Calculate if this is a large response (more than 1000 characters or multiple sections)
   const isLargeResponse = message.role === 'assistant' && (
@@ -368,6 +381,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
           <div className="space-y-2 flex-1 min-h-0">
             {message.role === 'assistant' ? (
               <div 
+                ref={contentRef}
                 className={`ai-response-content overflow-y-auto w-full ${isModal ? 'prose-lg' : 'prose prose-sm'}`}
                 style={{
                   maxWidth: 'none',
@@ -375,6 +389,13 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                 }}
               >
                 {formatContent(displayContent)}
+                {message.isStreaming && (
+                  <span className="inline-flex items-center gap-1 text-muted-foreground">
+                    <span className="animate-pulse">●</span>
+                    <span className="animate-pulse delay-100">●</span>
+                    <span className="animate-pulse delay-200">●</span>
+                  </span>
+                )}
               </div>
             ) : (
               <div className="whitespace-pre-wrap text-sm">
