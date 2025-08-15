@@ -46,11 +46,19 @@ export const MessagesList: React.FC<MessagesListProps> = ({
   useEffect(() => {
     if (isLoading) {
       setLoadingText("AI is thinking...");
-      const timer = setTimeout(() => {
+      
+      const timer1 = setTimeout(() => {
         setLoadingText("...receiving and processing the reply...");
       }, 5000);
       
-      return () => clearTimeout(timer);
+      const timer2 = setTimeout(() => {
+        setLoadingText("... I hope its worth the wait...");
+      }, 10000);
+      
+      return () => {
+        clearTimeout(timer1);
+        clearTimeout(timer2);
+      };
     }
   }, [isLoading]);
 
