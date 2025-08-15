@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Bot, Sparkles } from 'lucide-react';
 import MessageRenderer from '@/components/MessageRenderer';
@@ -26,6 +26,7 @@ export const MessagesList: React.FC<MessagesListProps> = ({
   onQuickResponse
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [loadingText, setLoadingText] = useState("AI is thinking...");
 
   const scrollToBottom = () => {
     if (messagesEndRef.current && messages.length > 0) {
@@ -41,6 +42,17 @@ export const MessagesList: React.FC<MessagesListProps> = ({
       scrollToBottom();
     }
   }, [messages]);
+
+  useEffect(() => {
+    if (isLoading) {
+      setLoadingText("AI is thinking...");
+      const timer = setTimeout(() => {
+        setLoadingText("...receiving and processing the reply...");
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading]);
 
   return (
     <ScrollArea className="flex-1 px-2 sm:p-2">
@@ -74,7 +86,7 @@ export const MessagesList: React.FC<MessagesListProps> = ({
                 </div>
               </div>
             </div>
-            <span className="text-muted-foreground">AI is thinking...</span>
+            <span className="text-muted-foreground">{loadingText}</span>
           </div>
         )}
         
