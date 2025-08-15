@@ -4059,6 +4059,7 @@ export type Database = {
         | "cqc_compliance"
         | "shared_drive_access"
         | "mic_test_service"
+        | "api_testing_service"
       app_role:
         | "system_admin"
         | "practice_manager"
@@ -4257,6 +4258,7 @@ export const Constants = {
         "cqc_compliance",
         "shared_drive_access",
         "mic_test_service",
+        "api_testing_service",
       ],
       app_role: [
         "system_admin",

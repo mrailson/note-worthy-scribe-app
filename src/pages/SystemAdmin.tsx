@@ -144,7 +144,8 @@ const SystemAdmin = () => {
       enhanced_access: false,
       cqc_compliance_access: false,
       shared_drive_access: false,
-      mic_test_service_access: false
+      mic_test_service_access: false,
+      api_testing_service_access: false
     }
   });
   
@@ -521,7 +522,8 @@ const [patientDataAccess, setPatientDataAccess] = useState([]);
         enhanced_access: false,
         cqc_compliance_access: false,
         shared_drive_access: false,
-        mic_test_service_access: false
+        mic_test_service_access: false,
+        api_testing_service_access: false
       }
     });
     setShowUserModal(true);
@@ -549,7 +551,8 @@ const [patientDataAccess, setPatientDataAccess] = useState([]);
         enhanced_access: user.enhanced_access ?? false,
         cqc_compliance_access: user.cqc_compliance_access ?? false,
         shared_drive_access: user.shared_drive_access ?? false,
-        mic_test_service_access: user.mic_test_service_access ?? false
+        mic_test_service_access: user.mic_test_service_access ?? false,
+        api_testing_service_access: user.api_testing_service_access ?? false
       }
     });
     setShowUserModal(true);
@@ -627,33 +630,14 @@ const handleUserSubmit = async (e: React.FormEvent) => {
               enhanced_access: userFormData.module_access.enhanced_access,
               cqc_compliance_access: userFormData.module_access.cqc_compliance_access,
               shared_drive_access: userFormData.module_access.shared_drive_access,
-              mic_test_service_access: userFormData.module_access.mic_test_service_access
-            });
-            
-          if (roleError) {
-            console.error('Role assignment error:', roleError);
-            throw roleError;
-          }
-        } else {
-          // Update existing user_roles records (no practice assignment)
-          const { error: updateError } = await supabase
-            .from('user_roles')
-            .update({
-              role: userFormData.role,
-              practice_id: null, // Clear practice assignment
-              meeting_notes_access: userFormData.module_access.meeting_notes_access,
-              gp_scribe_access: userFormData.module_access.gp_scribe_access,
-              complaints_manager_access: userFormData.module_access.complaints_manager_access,
-              enhanced_access: userFormData.module_access.enhanced_access,
-              cqc_compliance_access: userFormData.module_access.cqc_compliance_access,
-              shared_drive_access: userFormData.module_access.shared_drive_access,
-              mic_test_service_access: userFormData.module_access.mic_test_service_access
+              mic_test_service_access: userFormData.module_access.mic_test_service_access,
+              api_testing_service_access: userFormData.module_access.api_testing_service_access
             })
             .eq('user_id', editingUser.user_id);
           
-          if (updateError) {
-            console.error('Update error:', updateError);
-            throw updateError;
+          if (roleError) {
+            console.error('Update error:', roleError);
+            throw roleError;
           }
         }
         
@@ -661,7 +645,8 @@ const handleUserSubmit = async (e: React.FormEvent) => {
         const { error: profileError } = await supabase
           .from('profiles')
           .update({
-            ai4gp_access: userFormData.module_access.ai4gp_access
+            ai4gp_access: userFormData.module_access.ai4gp_access,
+            api_testing_service_access: userFormData.module_access.api_testing_service_access
           })
           .eq('user_id', editingUser.user_id);
         
@@ -689,7 +674,8 @@ const handleUserSubmit = async (e: React.FormEvent) => {
             role: userFormData.role,
             practice_id: userFormData.practice_id === 'none' ? null : userFormData.practice_id,
             assigned_by: user?.id,
-            module_access: userFormData.module_access
+            module_access: userFormData.module_access,
+            api_testing_service_access: userFormData.module_access.api_testing_service_access
           }
         });
         if (error) throw error;
@@ -1953,6 +1939,23 @@ const handleUserSubmit = async (e: React.FormEvent) => {
                           setUserFormData({
                             ...userFormData, 
                             module_access: {...userFormData.module_access, mic_test_service_access: checked}
+                          })
+                        }
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="api_testing_service_access">API Testing Service</Label>
+                        <p className="text-xs text-muted-foreground">Access to AI model comparison and API testing features</p>
+                      </div>
+                      <Switch
+                        id="api_testing_service_access"
+                        checked={userFormData.module_access.api_testing_service_access}
+                        onCheckedChange={(checked) => 
+                          setUserFormData({
+                            ...userFormData, 
+                            module_access: {...userFormData.module_access, api_testing_service_access: checked}
                           })
                         }
                       />
