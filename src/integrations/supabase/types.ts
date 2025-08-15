@@ -3576,6 +3576,7 @@ export type Database = {
           meeting_notes_access: boolean | null
           mic_test_service_access: boolean | null
           practice_id: string | null
+          practice_role: Database["public"]["Enums"]["practice_role"] | null
           replywell_access: boolean | null
           role: Database["public"]["Enums"]["app_role"]
           shared_drive_access: boolean | null
@@ -3595,6 +3596,7 @@ export type Database = {
           meeting_notes_access?: boolean | null
           mic_test_service_access?: boolean | null
           practice_id?: string | null
+          practice_role?: Database["public"]["Enums"]["practice_role"] | null
           replywell_access?: boolean | null
           role: Database["public"]["Enums"]["app_role"]
           shared_drive_access?: boolean | null
@@ -3614,6 +3616,7 @@ export type Database = {
           meeting_notes_access?: boolean | null
           mic_test_service_access?: boolean | null
           practice_id?: string | null
+          practice_role?: Database["public"]["Enums"]["practice_role"] | null
           replywell_access?: boolean | null
           role?: Database["public"]["Enums"]["app_role"]
           shared_drive_access?: boolean | null
@@ -3845,6 +3848,10 @@ export type Database = {
       }
       get_practice_manager_practice_id: {
         Args: { _user_id?: string }
+        Returns: string
+      }
+      get_practice_role_display_name: {
+        Args: { role_enum: Database["public"]["Enums"]["practice_role"] }
         Returns: string
       }
       get_practice_users: {
@@ -4142,6 +4149,12 @@ export type Database = {
       file_type: "folder" | "file"
       permission_action: "view" | "edit" | "delete" | "share" | "upload"
       permission_level: "owner" | "editor" | "viewer" | "no_access"
+      practice_role:
+        | "gp_partner"
+        | "salaried_gp"
+        | "reception_team"
+        | "admin_team"
+        | "secretaries"
       staff_role:
         | "gp"
         | "phlebotomist"
@@ -4346,6 +4359,13 @@ export const Constants = {
       file_type: ["folder", "file"],
       permission_action: ["view", "edit", "delete", "share", "upload"],
       permission_level: ["owner", "editor", "viewer", "no_access"],
+      practice_role: [
+        "gp_partner",
+        "salaried_gp",
+        "reception_team",
+        "admin_team",
+        "secretaries",
+      ],
       staff_role: [
         "gp",
         "phlebotomist",
