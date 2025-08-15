@@ -10,6 +10,7 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   userModules: string[];
+  isSystemAdmin: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: any }>;
@@ -33,6 +34,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [userModules, setUserModules] = useState<string[]>([]);
+  const [isSystemAdmin, setIsSystemAdmin] = useState(false);
   
   const navigate = useNavigate();
   const location = useLocation();
@@ -70,6 +72,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  // Function to check if user is system admin
+  const checkSystemAdmin = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .rpc('is_system_admin', { _user_id: userId });
+      
+      if (!error) {
+        setIsSystemAdmin(data || false);
+      }
+    } catch (error) {
+      console.error('Error checking system admin status:', error);
+      setIsSystemAdmin(false);
+    }
+  };
+
   // Function to check if user has access to a specific module
   const hasModuleAccess = (module: string) => {
     return userModules.includes(module);
@@ -83,13 +100,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(session?.user ?? null);
         setLoading(false);
         
-        // Fetch user modules when user logs in
+        // Fetch user modules and check admin status when user logs in
         if (session?.user) {
           setTimeout(() => {
             fetchUserModules(session.user.id);
+            checkSystemAdmin(session.user.id);
           }, 0);
         } else {
           setUserModules([]);
+          setIsSystemAdmin(false);
         }
       }
     );
@@ -99,10 +118,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
-      // Also fetch modules for existing session
+      // Also fetch modules and check admin status for existing session
       if (session?.user) {
         setTimeout(() => {
           fetchUserModules(session.user.id);
+          checkSystemAdmin(session.user.id);
         }, 0);
       }
     });
@@ -110,14 +130,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Force refresh user modules every 2 seconds to catch permission changes
+  // Force refresh user modules and admin status every 2 seconds to catch permission changes
   useEffect(() => {
     if (user?.id) {
       // Immediate refresh
       fetchUserModules(user.id);
+      checkSystemAdmin(user.id);
       
       const interval = setInterval(() => {
         fetchUserModules(user.id);
+        checkSystemAdmin(user.id);
       }, 2000); // Reduced to 2 seconds for faster updates
       
       return () => clearInterval(interval);
@@ -193,6 +215,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     session,
     loading,
     userModules,
+    isSystemAdmin,
     signIn,
     signOut,
     resetPassword,

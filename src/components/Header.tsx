@@ -22,10 +22,9 @@ interface HeaderProps {
 }
 
 export const Header = ({ onNewMeeting }: HeaderProps) => {
-  const { user, signOut, hasModuleAccess, refreshUserModules } = useAuth();
+  const { user, signOut, hasModuleAccess, refreshUserModules, isSystemAdmin } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  const [isAdmin, setIsAdmin] = useState(false);
   const [sharedDriveVisible, setSharedDriveVisible] = useState(true);
   
   const isHomePage = location.pathname === '/';
@@ -41,14 +40,6 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
       }
       
       try {
-        // Check admin access
-        const { data: adminData, error: adminError } = await supabase
-          .rpc('is_system_admin', { _user_id: user.id });
-        
-        if (!adminError) {
-          setIsAdmin(adminData);
-        }
-
         // Check shared drive visibility
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
@@ -220,7 +211,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                     <Settings className="h-4 w-4 mr-2" />
                     User Settings
                   </DropdownMenuItem>
-                   {isAdmin && (
+                   {isSystemAdmin && (
                      <DropdownMenuSub>
                        <DropdownMenuSubTrigger className="cursor-pointer py-3">
                          <Shield className="h-4 w-4 mr-2" />
@@ -398,7 +389,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                             User Settings
                           </Button>
                         </DrawerClose>
-                        {isAdmin && (
+                        {isSystemAdmin && (
                           <>
                             <DrawerClose asChild>
                               <Button variant="ghost" className="justify-start" onClick={() => navigate('/admin')}>
