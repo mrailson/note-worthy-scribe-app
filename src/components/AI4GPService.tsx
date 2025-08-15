@@ -282,7 +282,7 @@ const AI4GPService = () => {
               {expandedMessage?.role === 'user' ? 'Your Message' : 'AI Response'}
             </DialogTitle>
           </DialogHeader>
-          <div className="flex-1 min-h-0 mobile-container overflow-y-auto px-2 sm:px-4">
+          <div className="flex-1 min-h-0 overflow-y-auto px-2 sm:px-4" style={{ WebkitOverflowScrolling: 'touch' }}>
             {expandedMessage && (
               <div className="prose prose-sm w-full pb-20" style={{ maxWidth: 'none' }}>
                 <MessageRenderer
