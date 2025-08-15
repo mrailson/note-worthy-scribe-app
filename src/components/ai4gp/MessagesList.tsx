@@ -52,12 +52,22 @@ export const MessagesList: React.FC<MessagesListProps> = ({
       }, 5000);
       
       const timer2 = setTimeout(() => {
-        setLoadingText("... I hope its worth the wait...");
+        setLoadingText("....nearly there.....");
       }, 10000);
+      
+      const timer3 = setTimeout(() => {
+        setLoadingText("... I hope its worth the wait...");
+      }, 15000);
+      
+      const timer4 = setTimeout(() => {
+        setLoadingText("....come on then, I dont have all day....");
+      }, 25000);
       
       return () => {
         clearTimeout(timer1);
         clearTimeout(timer2);
+        clearTimeout(timer3);
+        clearTimeout(timer4);
       };
     }
   }, [isLoading]);
