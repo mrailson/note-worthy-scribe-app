@@ -1,11 +1,12 @@
-import React, { useRef, forwardRef, useImperativeHandle } from 'react';
+import React, { useRef, forwardRef, useImperativeHandle, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Send, Paperclip, Mic } from 'lucide-react';
+import { Send, Paperclip, Mic, MicOff } from 'lucide-react';
 import { FileUploadArea } from './FileUploadArea';
 import { UploadedFile } from '@/types/ai4gp';
 import { useFileUpload } from '@/hooks/useFileUpload';
 import { useVoiceRecording } from '@/hooks/useVoiceRecording';
+import { useToast } from '@/hooks/use-toast';
 
 interface InputAreaProps {
   input: string;
@@ -32,6 +33,7 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { processFiles } = useFileUpload();
   const { isRecording, isProcessing, toggleRecording } = useVoiceRecording();
+  const { toast } = useToast();
 
   useImperativeHandle(ref, () => ({
     focus: () => {
@@ -67,6 +69,17 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
     }
   };
 
+  // Show toast when recording starts
+  useEffect(() => {
+    if (isRecording) {
+      toast({
+        title: "🎙️ Recording",
+        description: "Click the mic again to stop recording",
+        duration: 3000,
+      });
+    }
+  }, [isRecording, toast]);
+
   return (
     <div className="p-4 space-y-3">{/* Removed bg and border styling since it's handled by parent */}
       <FileUploadArea 
@@ -99,16 +112,27 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
             <Button
               variant="ghost"
               size="sm"
-              className={`h-8 w-8 p-0 ${isRecording ? 'bg-red-500 text-white animate-pulse' : ''}`}
+              className={`h-8 w-8 p-0 transition-all duration-200 ${
+                isRecording 
+                  ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse shadow-lg shadow-red-500/30' 
+                  : isProcessing 
+                    ? 'bg-amber-500 hover:bg-amber-600 text-white animate-pulse' 
+                    : 'hover:bg-accent'
+              }`}
               onClick={async () => {
                 const text = await toggleRecording();
                 if (text) {
                   setInput(input + (input ? ' ' : '') + text);
                 }
               }}
-              disabled={isLoading || isProcessing}
+              disabled={isLoading}
+              title={isRecording ? 'Click to stop recording' : isProcessing ? 'Processing speech...' : 'Click to start recording'}
             >
-              <Mic className="w-4 h-4" />
+              {isRecording ? (
+                <MicOff className="w-4 h-4" />
+              ) : (
+                <Mic className="w-4 h-4" />
+              )}
             </Button>
             
             <Button
@@ -134,7 +158,13 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
       </div>
       
       <div className="text-xs text-muted-foreground text-center">
-        Press Ctrl+Enter to send • Upload files: PDF, Word, text, images, audio • {isRecording ? 'Recording... tap mic to stop' : isProcessing ? 'Processing speech...' : 'Tap mic to record voice'}
+        Press Ctrl+Enter to send • Upload files: PDF, Word, text, images, audio • {
+          isRecording 
+            ? '🔴 Recording... click mic to stop' 
+            : isProcessing 
+              ? '⏳ Processing speech...' 
+              : '🎙️ Click mic to record voice'
+        }
       </div>
     </div>
   );
