@@ -324,10 +324,18 @@ const APITesting = () => {
                     {predefinedPrompts.map((p, i) => (
                       <div
                         key={i}
-                        className="p-3 border rounded-lg cursor-pointer hover:border-primary/50 transition-colors"
+                        className={`p-3 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
+                          prompt === p.prompt 
+                            ? 'border-blue-600 bg-blue-50 ring-2 ring-blue-600 ring-opacity-20 shadow-md' 
+                            : 'border-border hover:border-blue-400 hover:bg-blue-50/50'
+                        }`}
                         onClick={() => setPrompt(p.prompt)}
                       >
-                        <div className="font-medium text-sm text-primary mb-2">{p.category}</div>
+                        <div className={`font-medium text-sm mb-2 ${
+                          prompt === p.prompt ? 'text-blue-700' : 'text-primary'
+                        }`}>
+                          {p.category}
+                        </div>
                         <div className="text-xs text-muted-foreground leading-relaxed whitespace-normal break-words">
                           {p.prompt}
                         </div>
@@ -344,6 +352,7 @@ const APITesting = () => {
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
                     rows={4}
+                    className="focus:ring-2 focus:ring-blue-600 focus:border-blue-600 border-2 transition-all duration-200"
                   />
                 </div>
 
