@@ -151,9 +151,36 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         throw error;
       }
 
-      const responseContent = data?.response || data?.content || 'No response received';
+      // Handle streaming response - the data comes as raw text with streaming format
+      let responseContent = '';
       
-      // Simulate streaming by chunking the response
+      if (typeof data === 'string') {
+        // Parse streaming data format
+        const lines = data.split('\n').filter(line => line.startsWith('data: '));
+        let accumulatedContent = '';
+        
+        for (const line of lines) {
+          const jsonData = line.slice(6); // Remove 'data: ' prefix
+          try {
+            const parsed = JSON.parse(jsonData);
+            if (parsed.type === 'chunk' && parsed.content) {
+              accumulatedContent += parsed.content;
+            }
+          } catch (e) {
+            // Skip invalid JSON lines
+          }
+        }
+        responseContent = accumulatedContent || 'No response received';
+      } else {
+        // Handle regular JSON response
+        responseContent = data?.response || data?.content || 'No response received';
+      }
+
+      if (!responseContent || responseContent === 'No response received') {
+        throw new Error('No valid response received from AI service');
+      }
+      
+      // Simulate streaming by chunking the response for better UX
       const chunks = responseContent.split(' ');
       const chunkSize = Math.max(1, Math.floor(chunks.length / 20)); // ~20 updates
       let currentIndex = 0;
