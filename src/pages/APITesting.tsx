@@ -46,7 +46,9 @@ const APITesting = () => {
     { id: 'gpt-5', name: 'GPT-5', color: 'bg-green-500' },
     { id: 'gpt', name: 'GPT-4o', color: 'bg-blue-500' },
     { id: 'grok-beta', name: 'Grok', color: 'bg-red-500' },
-    { id: 'chatgpt5', name: 'ChatGPT-5', color: 'bg-teal-500' }
+    { id: 'chatgpt5', name: 'ChatGPT-5', color: 'bg-teal-500' },
+    { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', color: 'bg-indigo-500' },
+    { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', color: 'bg-pink-500' }
   ];
 
   const predefinedPrompts = [

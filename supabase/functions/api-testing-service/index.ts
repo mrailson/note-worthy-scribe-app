@@ -8,7 +8,7 @@ const corsHeaders = {
 
 interface RequestBody {
   prompt: string;
-  model: 'claude' | 'gpt' | 'chatgpt5' | 'grok-beta' | 'claude-4-opus' | 'claude-4-sonnet' | 'gpt-4-turbo' | 'gemini-ultra' | 'gpt-5';
+  model: 'claude' | 'gpt' | 'chatgpt5' | 'grok-beta' | 'claude-4-opus' | 'claude-4-sonnet' | 'gpt-4-turbo' | 'gemini-ultra' | 'gpt-5' | 'gemini-1.5-pro' | 'gemini-1.5-flash';
   systemPrompt: string;
 }
 
@@ -122,6 +122,38 @@ async function callGrok(prompt: string, systemPrompt: string): Promise<string> {
   return data.choices[0].message.content;
 }
 
+async function callGemini(prompt: string, systemPrompt: string, model: string = 'gemini-1.5-pro'): Promise<string> {
+  const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+  if (!geminiApiKey) {
+    throw new Error('Gemini API key not configured');
+  }
+
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      contents: [{
+        parts: [{ text: `${systemPrompt}\n\n${prompt}` }]
+      }],
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 4000,
+      }
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    console.error('Gemini API error:', error);
+    throw new Error(`Gemini API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response generated';
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -160,6 +192,14 @@ serve(async (req) => {
       case 'grok-beta':
         response = await callGrok(prompt, systemPrompt);
         modelName = 'Grok';
+        break;
+      case 'gemini-1.5-pro':
+        response = await callGemini(prompt, systemPrompt, 'gemini-1.5-pro');
+        modelName = 'Gemini 1.5 Pro';
+        break;
+      case 'gemini-1.5-flash':
+        response = await callGemini(prompt, systemPrompt, 'gemini-1.5-flash');
+        modelName = 'Gemini 1.5 Flash';
         break;
       default:
         throw new Error(`Unsupported model: ${model}`);
