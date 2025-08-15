@@ -289,8 +289,10 @@ async function callGPT(messages: Message[], systemPrompt: string, files?: Upload
     throw new Error('OpenAI API key not configured');
   }
 
+  const enhancedSystemPrompt = systemPrompt + "\n\nCRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:\n- When analyzing uploaded images with handwritten or printed text, you MUST transcribe ONLY the actual visible text\n- DO NOT generate fictional content, clinical scenarios, or patient information\n- DO NOT hallucinate or invent details not visible in the image\n- Only describe what you can actually see written or printed in the image\n- If text is unclear, state that it's unclear rather than guessing";
+
   const gptMessages = [
-    { role: 'system', content: systemPrompt }
+    { role: 'system', content: enhancedSystemPrompt }
   ];
 
   messages.forEach(msg => {
@@ -323,7 +325,7 @@ async function callGPT(messages: Message[], systemPrompt: string, files?: Upload
       model: 'gpt-4o',
       messages: gptMessages,
       max_tokens: 4000,
-      temperature: 0.7
+      temperature: 0.1
     })
   });
 
@@ -343,8 +345,10 @@ async function callGPT5(messages: Message[], systemPrompt: string, files?: Uploa
     throw new Error('OpenAI API key not configured');
   }
 
+  const enhancedSystemPrompt = systemPrompt + "\n\nCRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:\n- When analyzing uploaded images with handwritten or printed text, you MUST transcribe ONLY the actual visible text\n- DO NOT generate fictional content, clinical scenarios, or patient information\n- DO NOT hallucinate or invent details not visible in the image\n- Only describe what you can actually see written or printed in the image\n- If text is unclear, state that it's unclear rather than guessing\n- Focus on accurate transcription rather than interpretation";
+
   const gptMessages = [
-    { role: 'system', content: systemPrompt }
+    { role: 'system', content: enhancedSystemPrompt }
   ];
 
   messages.forEach(msg => {
@@ -398,8 +402,10 @@ async function callGrok(messages: Message[], systemPrompt: string, files?: Uploa
 
   console.log('Calling Grok API...');
 
+  const enhancedSystemPrompt = systemPrompt + "\n\nCRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:\n- When analyzing uploaded images with handwritten or printed text, you MUST transcribe ONLY the actual visible text\n- DO NOT generate fictional content, clinical scenarios, or patient information\n- DO NOT hallucinate or invent details not visible in the image\n- Only describe what you can actually see written or printed in the image\n- If text is unclear, state that it's unclear rather than guessing";
+
   const grokMessages = [
-    { role: 'system', content: systemPrompt }
+    { role: 'system', content: enhancedSystemPrompt }
   ];
 
   messages.forEach(msg => {
@@ -433,7 +439,7 @@ async function callGrok(messages: Message[], systemPrompt: string, files?: Uploa
         model: 'grok-2-1212',
         messages: grokMessages,
         max_tokens: 4000,
-        temperature: 0.7
+        temperature: 0.1
       })
     });
 
@@ -467,8 +473,10 @@ async function callGemini(messages: Message[], systemPrompt: string, model: stri
 
   console.log(`Calling Gemini API with model: ${model}...`);
 
+  const enhancedSystemPrompt = systemPrompt + "\n\nCRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:\n- When analyzing uploaded images with handwritten or printed text, you MUST transcribe ONLY the actual visible text\n- DO NOT generate fictional content, clinical scenarios, or patient information\n- DO NOT hallucinate or invent details not visible in the image\n- Only describe what you can actually see written or printed in the image\n- If text is unclear, state that it's unclear rather than guessing";
+
   // Format messages for Gemini
-  let content = systemPrompt + '\n\n';
+  let content = enhancedSystemPrompt + '\n\n';
   
   messages.forEach(msg => {
     content += `${msg.role}: `;
@@ -497,7 +505,7 @@ async function callGemini(messages: Message[], systemPrompt: string, model: stri
         parts: [{ text: content }]
       }],
       generationConfig: {
-        temperature: 0.7,
+        temperature: 0.1,
         maxOutputTokens: 4000,
       }
     }),
