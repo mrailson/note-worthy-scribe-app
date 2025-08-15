@@ -64,7 +64,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (data?.enhanced_access) modules.push('enhanced_access');
       if (data?.cqc_compliance_access) modules.push('cqc_compliance');
       if (data?.shared_drive_access) modules.push('shared_drive_access');
-      if (data?.mic_test_service_access) modules.push('mic_test_service');
+      if (data?.mic_test_service_access) modules.push('mic_test_service_access');
       if (data?.api_testing_service_access) modules.push('api_testing_service');
       
       setUserModules(modules);
