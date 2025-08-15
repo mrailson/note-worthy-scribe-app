@@ -337,25 +337,6 @@ const GPGenieVoiceAgent = () => {
                   {isMuted ? 'Sound Off' : 'Sound On'}
                 </Button>
               </div>
-              
-              {/* Volume Slider */}
-              <div className="flex items-center gap-3">
-                <VolumeX className="h-4 w-4 text-muted-foreground" />
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.1"
-                  value={isMuted ? 0 : volume}
-                  onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
-                  disabled={isMuted}
-                  className="flex-1 disabled:opacity-50"
-                />
-                <Volume2 className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground min-w-[3ch]">
-                  {Math.round((isMuted ? 0 : volume) * 100)}%
-                </span>
-              </div>
             </div>
           )}
         </div>
