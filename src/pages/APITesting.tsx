@@ -22,10 +22,19 @@ interface APITestResult {
   startTime?: number;
 }
 
+interface TestHistory {
+  id: string;
+  prompt: string;
+  timestamp: number;
+  results: APITestResult[];
+  selectedModels: string[];
+}
+
 const APITesting = () => {
   const { user, loading } = useAuth();
   const [prompt, setPrompt] = useState('');
   const [results, setResults] = useState<APITestResult[]>([]);
+  const [history, setHistory] = useState<TestHistory[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [selectedModels, setSelectedModels] = useState<string[]>([
     'claude-4-sonnet', 'gpt-5', 'gpt', 'grok-beta'
@@ -152,6 +161,17 @@ const APITesting = () => {
     });
 
     await Promise.all(testPromises);
+    
+    // Save to history
+    const historyEntry: TestHistory = {
+      id: Date.now().toString(),
+      prompt,
+      timestamp: Date.now(),
+      results: results.filter(r => r.status === 'completed'),
+      selectedModels
+    };
+    setHistory(prev => [historyEntry, ...prev]);
+    
     setIsRunning(false);
   };
 
@@ -357,10 +377,11 @@ const APITesting = () => {
                 </CardHeader>
                 <CardContent>
                   <Tabs defaultValue="overview" className="w-full">
-                    <TabsList className="grid w-full grid-cols-3">
+                    <TabsList className="grid w-full grid-cols-4">
                       <TabsTrigger value="overview">Overview</TabsTrigger>
                       <TabsTrigger value="responses">Responses</TabsTrigger>
                       <TabsTrigger value="analysis">Analysis</TabsTrigger>
+                      <TabsTrigger value="history">History</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="overview" className="space-y-4">
@@ -561,6 +582,79 @@ const APITesting = () => {
                           </CardContent>
                         </Card>
                       </div>
+                    </TabsContent>
+
+                    <TabsContent value="history" className="space-y-4">
+                      {history.length > 0 ? (
+                        <div className="space-y-4">
+                          {history.map((entry) => (
+                            <Card key={entry.id}>
+                              <CardHeader className="pb-3">
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <div className="text-sm text-muted-foreground">
+                                      {new Date(entry.timestamp).toLocaleString()}
+                                    </div>
+                                    <div className="text-xs text-muted-foreground mt-1">
+                                      {entry.selectedModels.length} models tested
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setPrompt(entry.prompt)}
+                                  >
+                                    Reuse Prompt
+                                  </Button>
+                                </div>
+                              </CardHeader>
+                              <CardContent>
+                                <div className="space-y-3">
+                                  <div>
+                                    <div className="text-sm font-medium mb-1">Prompt:</div>
+                                    <div className="text-sm text-muted-foreground bg-muted p-2 rounded">
+                                      {entry.prompt.length > 200 
+                                        ? `${entry.prompt.substring(0, 200)}...`
+                                        : entry.prompt
+                                      }
+                                    </div>
+                                  </div>
+                                  
+                                  <div>
+                                    <div className="text-sm font-medium mb-2">Results:</div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                                      {entry.results.map((result) => {
+                                        const modelInfo = getModelInfo(result.model);
+                                        return (
+                                          <div key={result.model} className="p-2 border rounded">
+                                            <div className="flex items-center gap-2 mb-1">
+                                              <div className={`w-2 h-2 rounded-full ${modelInfo.color}`} />
+                                              <span className="text-xs font-medium">{modelInfo.name}</span>
+                                            </div>
+                                            <div className="text-xs text-muted-foreground">
+                                              {formatTime(result.responseTime)} • {result.response.length} chars
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      ) : (
+                        <Card>
+                          <CardContent className="py-12 text-center">
+                            <Clock className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                            <h3 className="text-lg font-medium mb-2">No Test History</h3>
+                            <p className="text-muted-foreground">
+                              Your previous test results will appear here after running tests.
+                            </p>
+                          </CardContent>
+                        </Card>
+                      )}
                     </TabsContent>
                   </Tabs>
                 </CardContent>
