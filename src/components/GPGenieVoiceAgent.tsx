@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Mic, 
   MicOff, 
@@ -19,12 +20,16 @@ import {
   Sparkles,
   Stethoscope,
   Heart,
-  Shield
+  Shield,
+  Building2,
+  Users,
+  FileText
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 const GPGenieVoiceAgent = () => {
+  const [activeTab, setActiveTab] = useState('gp-genie');
   const [agentUrl, setAgentUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [hasPermission, setHasPermission] = useState(false);
@@ -36,13 +41,15 @@ const GPGenieVoiceAgent = () => {
 
   const conversation = useConversation({
     onConnect: () => {
-      console.log('Connected to GP Genie');
-      toast.success('Connected to GP Genie');
+      const serviceName = activeTab === 'gp-genie' ? 'GP Genie' : 'PM Genie';
+      console.log(`Connected to ${serviceName}`);
+      toast.success(`Connected to ${serviceName}`);
       setError(null);
     },
     onDisconnect: () => {
-      console.log('Disconnected from GP Genie');
-      toast.info('Disconnected from GP Genie');
+      const serviceName = activeTab === 'gp-genie' ? 'GP Genie' : 'PM Genie';
+      console.log(`Disconnected from ${serviceName}`);
+      toast.info(`Disconnected from ${serviceName}`);
     },
     onMessage: (message) => {
       console.log('Message:', message);
@@ -76,8 +83,13 @@ const GPGenieVoiceAgent = () => {
       setIsLoading(true);
       setError(null);
 
+      // Select agent ID based on active tab
+      const agentId = activeTab === 'gp-genie' 
+        ? 'agent_01jwry2fzme7xsb2mwzatxseyt'  // GP Genie
+        : 'agent_01jwry2fzme7xsb2mwzatxseyt';  // PM Genie (placeholder - will be updated)
+
       const { data, error } = await supabase.functions.invoke('elevenlabs-agent-url', {
-        body: { agentId: 'agent_01jwry2fzme7xsb2mwzatxseyt' }
+        body: { agentId }
       });
 
       if (error) throw error;
@@ -86,8 +98,9 @@ const GPGenieVoiceAgent = () => {
       return data.signed_url;
     } catch (err: any) {
       console.error('Failed to generate signed URL:', err);
-      setError('Failed to connect to GP Genie. Please check your ElevenLabs API key.');
-      toast.error('Failed to connect to GP Genie');
+      const serviceName = activeTab === 'gp-genie' ? 'GP Genie' : 'PM Genie';
+      setError(`Failed to connect to ${serviceName}. Please check your ElevenLabs API key.`);
+      toast.error(`Failed to connect to ${serviceName}`);
       return null;
     } finally {
       setIsLoading(false);
@@ -106,7 +119,8 @@ const GPGenieVoiceAgent = () => {
       // Generate signed URL first (required for authorized agents)
       const signedUrl = await generateSignedUrl();
       if (!signedUrl) {
-        setError('Failed to get authorization for GP Genie');
+        const serviceName = activeTab === 'gp-genie' ? 'GP Genie' : 'PM Genie';
+        setError(`Failed to get authorization for ${serviceName}`);
         return;
       }
 
@@ -121,7 +135,8 @@ const GPGenieVoiceAgent = () => {
       
     } catch (err: any) {
       console.error('Failed to start conversation:', err);
-      setError('Failed to start conversation with GP Genie');
+      const serviceName = activeTab === 'gp-genie' ? 'GP Genie' : 'PM Genie';
+      setError(`Failed to start conversation with ${serviceName}`);
       toast.error('Failed to start conversation');
     } finally {
       setIsLoading(false);
@@ -208,13 +223,22 @@ const GPGenieVoiceAgent = () => {
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
-            <Stethoscope className="h-6 w-6 text-primary" />
-            GP Genie Voice Assistant
+            {activeTab === 'gp-genie' ? (
+              <>
+                <Stethoscope className="h-6 w-6 text-primary" />
+                GP Genie Voice Assistant
+              </>
+            ) : (
+              <>
+                <Building2 className="h-6 w-6 text-primary" />
+                PM Genie Voice Assistant
+              </>
+            )}
           </CardTitle>
           <div className="flex items-center gap-2">
             <Badge variant="secondary" className="text-xs">
               <Sparkles className="h-3 w-3 mr-1" />
-              Clinical Voice AI
+              {activeTab === 'gp-genie' ? 'Clinical Voice AI' : 'Practice Management AI'}
             </Badge>
             {conversation.status === 'connected' && (
               <Badge variant="default" className="text-xs">
@@ -224,8 +248,26 @@ const GPGenieVoiceAgent = () => {
             )}
           </div>
         </div>
-        <p className="text-sm text-muted-foreground">
-          Speak naturally with GP Genie, your AI assistant for clinical guidance, patient reassurance advice, and evidence-based medicine support.
+        
+        {/* Service Selection Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="gp-genie" className="flex items-center gap-2">
+              <Stethoscope className="h-4 w-4" />
+              GP Genie
+            </TabsTrigger>
+            <TabsTrigger value="pm-genie" className="flex items-center gap-2">
+              <Building2 className="h-4 w-4" />
+              PM Genie
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+        
+        <p className="text-sm text-muted-foreground mt-3">
+          {activeTab === 'gp-genie' 
+            ? 'Speak naturally with GP Genie, your AI assistant for clinical guidance, patient reassurance advice, and evidence-based medicine support.'
+            : 'Speak with PM Genie, your calm and knowledgeable voice assistant for GP Practice Management in Northamptonshire, providing operational, HR, and practice management guidance.'
+          }
         </p>
       </CardHeader>
       
@@ -264,15 +306,17 @@ const GPGenieVoiceAgent = () => {
               <p className="font-medium">
                 {conversation.status === 'connected' 
                   ? conversation.isSpeaking 
-                    ? 'GP Genie is speaking...' 
-                    : 'Listening for your clinical question...'
+                    ? `${activeTab === 'gp-genie' ? 'GP Genie' : 'PM Genie'} is speaking...` 
+                    : `Listening for your ${activeTab === 'gp-genie' ? 'clinical' : 'practice management'} question...`
                   : 'Ready to connect'
                 }
               </p>
               <p className="text-sm text-muted-foreground">
                 {conversation.status === 'connected'
-                  ? 'Ask about patient care, clinical protocols, or consultation guidance'
-                  : 'Click start to talk with GP Genie'
+                  ? activeTab === 'gp-genie'
+                    ? 'Ask about patient care, clinical protocols, or consultation guidance'
+                    : 'Ask about operational matters, HR guidance, or practice management'
+                  : `Click start to talk with ${activeTab === 'gp-genie' ? 'GP Genie' : 'PM Genie'}`
                 }
               </p>
             </div>
@@ -308,75 +352,160 @@ const GPGenieVoiceAgent = () => {
           </div>
         </div>
 
-        {/* What GP Genie Can Help With & Sources */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-muted/50 rounded-lg p-4">
-            <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
-              <Heart className="h-4 w-4 text-primary" />
-              What GP Genie Can Help With
-            </h4>
-            <div className="text-xs text-muted-foreground space-y-1">
-              <p>• <strong>Patient Reassurance:</strong> Scripts and approaches for anxious patients</p>
-              <p>• <strong>Clinical Guidance:</strong> Evidence-based advice for common presentations</p>
-              <p>• <strong>Consultation Skills:</strong> Communication techniques and difficult conversations</p>
-              <p>• <strong>Safety Netting:</strong> When to worry, red flags, and follow-up advice</p>
-              <p>• <strong>Documentation Help:</strong> Note templates and coding guidance</p>
-              <p>• <strong>Prescribing Support:</strong> Drug interactions, dosing, and alternatives</p>
-            </div>
-          </div>
+        {/* Dynamic Content Based on Selected Service */}
+        <Tabs value={activeTab} className="w-full">
+          <TabsContent value="gp-genie" className="mt-0">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="bg-muted/50 rounded-lg p-4">
+                <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
+                  <Heart className="h-4 w-4 text-primary" />
+                  What GP Genie Can Help With
+                </h4>
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <p>• <strong>Patient Reassurance:</strong> Scripts and approaches for anxious patients</p>
+                  <p>• <strong>Clinical Guidance:</strong> Evidence-based advice for common presentations</p>
+                  <p>• <strong>Consultation Skills:</strong> Communication techniques and difficult conversations</p>
+                  <p>• <strong>Safety Netting:</strong> When to worry, red flags, and follow-up advice</p>
+                  <p>• <strong>Documentation Help:</strong> Note templates and coding guidance</p>
+                  <p>• <strong>Prescribing Support:</strong> Drug interactions, dosing, and alternatives</p>
+                </div>
+              </div>
 
-          <div className="bg-muted/50 rounded-lg p-4">
-            <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
-              <Shield className="h-4 w-4 text-primary" />
-              Sources & Clinical Intelligence
-            </h4>
-            <div className="text-xs text-muted-foreground space-y-1">
-              <p>• <strong>NICE Guidelines & CKS:</strong> Latest clinical evidence and recommendations</p>
-              <p>• <strong>BMJ Best Practice:</strong> Evidence-based clinical decision support</p>
-              <p>• <strong>BNF & MHRA Alerts:</strong> Prescribing guidance and safety alerts</p>
-              <p>• <strong>Clinical Prediction Rules:</strong> QRISK, CHA2DS2-VASc scoring systems</p>
-              <p>• <strong>QOF & CQC Standards:</strong> Quality frameworks and regulatory compliance</p>
-              <p>• <strong>Cochrane Reviews:</strong> Systematic evidence synthesis</p>
+              <div className="bg-muted/50 rounded-lg p-4">
+                <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
+                  <Shield className="h-4 w-4 text-primary" />
+                  Sources & Clinical Intelligence
+                </h4>
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <p>• <strong>NICE Guidelines & CKS:</strong> Latest clinical evidence and recommendations</p>
+                  <p>• <strong>BMJ Best Practice:</strong> Evidence-based clinical decision support</p>
+                  <p>• <strong>BNF & MHRA Alerts:</strong> Prescribing guidance and safety alerts</p>
+                  <p>• <strong>Clinical Prediction Rules:</strong> QRISK, CHA2DS2-VASc scoring systems</p>
+                  <p>• <strong>QOF & CQC Standards:</strong> Quality frameworks and regulatory compliance</p>
+                  <p>• <strong>Cochrane Reviews:</strong> Systematic evidence synthesis</p>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          </TabsContent>
+          
+          <TabsContent value="pm-genie" className="mt-0">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="bg-muted/50 rounded-lg p-4">
+                <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
+                  <Users className="h-4 w-4 text-primary" />
+                  What PM Genie Can Help With
+                </h4>
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <p>• <strong>Patient Complaints:</strong> Professional handling and resolution strategies</p>
+                  <p>• <strong>Staff Management:</strong> Sickness, recruitment, and rota planning</p>
+                  <p>• <strong>ARRS & QOF:</strong> Additional roles, Quality Outcomes Framework guidance</p>
+                  <p>• <strong>CQC Inspections:</strong> Preparation strategies and compliance requirements</p>
+                  <p>• <strong>HR Letters & Policies:</strong> Template creation and policy guidance</p>
+                  <p>• <strong>NHS Updates:</strong> Latest NHS England and ICB guidance</p>
+                </div>
+              </div>
+
+              <div className="bg-muted/50 rounded-lg p-4">
+                <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-primary" />
+                  Practice Management Intelligence
+                </h4>
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <p>• <strong>IIF & PCN Funding:</strong> Investment and Incentive Framework guidance</p>
+                  <p>• <strong>NHS Contract Management:</strong> GMS, PMS, and APMS contract advice</p>
+                  <p>• <strong>Staff Development:</strong> Training requirements and career progression</p>
+                  <p>• <strong>Financial Management:</strong> Budget planning and cost optimization</p>
+                  <p>• <strong>Digital Transformation:</strong> System implementations and workflow optimization</p>
+                  <p>• <strong>Regulatory Compliance:</strong> GDPR, IG, and clinical governance</p>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
 
         {/* Features */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-6 border-t">
-          <div className="text-center p-4 bg-muted/50 rounded-lg">
-            <Stethoscope className="h-6 w-6 mx-auto mb-2 text-primary" />
-            <h4 className="font-medium text-sm mb-1">Clinical Expertise</h4>
-            <p className="text-xs text-muted-foreground">
-              NICE guidelines, RCGP protocols, and evidence-based clinical decision support
-            </p>
-          </div>
-          <div className="text-center p-4 bg-muted/50 rounded-lg">
-            <Heart className="h-6 w-6 mx-auto mb-2 text-primary" />
-            <h4 className="font-medium text-sm mb-1">Patient Reassurance</h4>
-            <p className="text-xs text-muted-foreground">
-              Effective communication strategies for anxious patients and difficult consultations
-            </p>
-          </div>
-          <div className="text-center p-4 bg-muted/50 rounded-lg">
-            <Shield className="h-6 w-6 mx-auto mb-2 text-primary" />
-            <h4 className="font-medium text-sm mb-1">Safety Netting</h4>
-            <p className="text-xs text-muted-foreground">
-              Red flag recognition, when to refer, and comprehensive follow-up planning
-            </p>
-          </div>
-        </div>
+        <Tabs value={activeTab} className="w-full">
+          <TabsContent value="gp-genie" className="mt-0">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-6 border-t">
+              <div className="text-center p-4 bg-muted/50 rounded-lg">
+                <Stethoscope className="h-6 w-6 mx-auto mb-2 text-primary" />
+                <h4 className="font-medium text-sm mb-1">Clinical Expertise</h4>
+                <p className="text-xs text-muted-foreground">
+                  NICE guidelines, RCGP protocols, and evidence-based clinical decision support
+                </p>
+              </div>
+              <div className="text-center p-4 bg-muted/50 rounded-lg">
+                <Heart className="h-6 w-6 mx-auto mb-2 text-primary" />
+                <h4 className="font-medium text-sm mb-1">Patient Reassurance</h4>
+                <p className="text-xs text-muted-foreground">
+                  Effective communication strategies for anxious patients and difficult consultations
+                </p>
+              </div>
+              <div className="text-center p-4 bg-muted/50 rounded-lg">
+                <Shield className="h-6 w-6 mx-auto mb-2 text-primary" />
+                <h4 className="font-medium text-sm mb-1">Safety Netting</h4>
+                <p className="text-xs text-muted-foreground">
+                  Red flag recognition, when to refer, and comprehensive follow-up planning
+                </p>
+              </div>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="pm-genie" className="mt-0">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-6 border-t">
+              <div className="text-center p-4 bg-muted/50 rounded-lg">
+                <Building2 className="h-6 w-6 mx-auto mb-2 text-primary" />
+                <h4 className="font-medium text-sm mb-1">Practice Operations</h4>
+                <p className="text-xs text-muted-foreground">
+                  Staff management, rotas, and operational efficiency guidance for GP practices
+                </p>
+              </div>
+              <div className="text-center p-4 bg-muted/50 rounded-lg">
+                <Users className="h-6 w-6 mx-auto mb-2 text-primary" />
+                <h4 className="font-medium text-sm mb-1">HR & Compliance</h4>
+                <p className="text-xs text-muted-foreground">
+                  Professional complaint handling and CQC inspection preparation strategies
+                </p>
+              </div>
+              <div className="text-center p-4 bg-muted/50 rounded-lg">
+                <FileText className="h-6 w-6 mx-auto mb-2 text-primary" />
+                <h4 className="font-medium text-sm mb-1">NHS Frameworks</h4>
+                <p className="text-xs text-muted-foreground">
+                  QOF, IIF, ARRS roles, and PCN funding guidance with latest NHS updates
+                </p>
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
 
         {/* Usage Tips */}
-        <div className="bg-blue-50 dark:bg-blue-950/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-          <h4 className="font-medium text-sm mb-2 text-blue-900 dark:text-blue-100">💡 How to Use GP Genie</h4>
-          <div className="text-xs text-blue-800 dark:text-blue-200 space-y-1">
-            <p>• Speak naturally about your clinical scenario or patient concern</p>
-            <p>• Ask for specific guidance: "How do I reassure a patient about chest pain?"</p>
-            <p>• Request templates: "Give me safety netting advice for abdominal pain"</p>
-            <p>• Get prescribing help: "What are the alternatives to amoxicillin?"</p>
-            <p>• Practice difficult conversations with role-play scenarios</p>
-          </div>
-        </div>
+        <Tabs value={activeTab} className="w-full">
+          <TabsContent value="gp-genie" className="mt-0">
+            <div className="bg-blue-50 dark:bg-blue-950/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+              <h4 className="font-medium text-sm mb-2 text-blue-900 dark:text-blue-100">💡 How to Use GP Genie</h4>
+              <div className="text-xs text-blue-800 dark:text-blue-200 space-y-1">
+                <p>• Speak naturally about your clinical scenario or patient concern</p>
+                <p>• Ask for specific guidance: "How do I reassure a patient about chest pain?"</p>
+                <p>• Request templates: "Give me safety netting advice for abdominal pain"</p>
+                <p>• Get prescribing help: "What are the alternatives to amoxicillin?"</p>
+                <p>• Practice difficult conversations with role-play scenarios</p>
+              </div>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="pm-genie" className="mt-0">
+            <div className="bg-green-50 dark:bg-green-950/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
+              <h4 className="font-medium text-sm mb-2 text-green-900 dark:text-green-100">💡 How to Use PM Genie</h4>
+              <div className="text-xs text-green-800 dark:text-green-200 space-y-1">
+                <p>• Ask about operational challenges: "How do I handle staff sickness cover?"</p>
+                <p>• Get complaint guidance: "Help me respond to a patient complaint professionally"</p>
+                <p>• Request HR templates: "Draft a recruitment letter for a practice nurse"</p>
+                <p>• QOF & funding queries: "Explain the latest IIF requirements"</p>
+                <p>• CQC preparation: "What should I prepare for our next inspection?"</p>
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );
