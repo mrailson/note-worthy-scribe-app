@@ -214,14 +214,72 @@ Please try:
 }
 
 function extractPowerPointContent(file: UploadedFile): string {
-  // Basic PowerPoint handling - in a real implementation you'd use a PPTX parser
-  const fileSize = (file.size / 1024 / 1024).toFixed(2);
-  return `[PowerPoint File: ${file.name} (${fileSize}MB) - For best results with PowerPoint files, please:
-1. Open your PowerPoint file
-2. Copy the text content from slides
-3. Paste the text directly in your message
+  try {
+    const fileName = file.name.toLowerCase();
+    const fileSize = (file.size / 1024 / 1024).toFixed(2);
+    
+    console.log(`Processing PowerPoint: ${fileName}, size: ${fileSize}MB`);
+    
+    // Try to extract text from PowerPoint binary format
+    try {
+      const base64Data = file.content.replace(/^data:.*,/, '');
+      const binaryString = atob(base64Data);
+      
+      console.log('Attempting PowerPoint text extraction...');
+      
+      // PowerPoint files contain XML structures we can extract from
+      // Look for slide content, text boxes, and other readable content
+      const textMatches = binaryString.match(/[\x20-\x7E]{4,}/g) || [];
+      const extractedText = textMatches
+        .filter(text => {
+          // Filter for meaningful text content
+          return /[a-zA-Z]/.test(text) && 
+                 text.length > 3 && 
+                 !text.match(/^[0-9.]+$/) && // Not just numbers
+                 !text.match(/^[^a-zA-Z]*$/) && // Contains letters
+                 !text.includes('<?xml') && // Not XML headers
+                 !text.includes('Microsoft') && // Not software metadata
+                 !text.includes('PowerPoint'); // Not software metadata
+        })
+        .slice(0, 50) // Limit output
+        .join(' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      
+      console.log(`PowerPoint extraction result: ${extractedText.length} characters extracted`);
+      
+      if (extractedText.length > 50) {
+        return `POWERPOINT CONTENT EXTRACTED FROM: ${file.name}
 
-PowerPoint automatic text extraction is limited. Converting to .docx or .txt format will provide better results.]`;
+Detected slide content:
+${extractedText}
+
+[Note: PowerPoint extraction may not preserve slide structure or formatting. For complete content, please export to PDF or copy text manually.]`;
+      }
+    } catch (pptError) {
+      console.error('Error parsing PowerPoint binary:', pptError);
+    }
+    
+    // Fallback instructions
+    return `[PowerPoint File: ${file.name} (${fileSize}MB) - Automatic extraction was unsuccessful.
+
+RECOMMENDED SOLUTIONS:
+1. Export to PDF format for automatic text extraction
+2. Copy and paste slide content directly into your message
+3. Export as Word document (.docx) for better text extraction
+4. Take screenshots of key slides and upload as images
+
+For best results with PowerPoint analysis:
+- Export to PDF and re-upload for automatic text extraction
+- Copy slide content manually
+- Use "Save As" > "Plain Text" to extract all text content
+
+Please try uploading the content in a different format, or paste the slide content directly into your message.]`;
+    
+  } catch (error) {
+    console.error('Error processing PowerPoint file:', error);
+    return `[PowerPoint File: ${file.name} - Error processing file: ${error.message}. Please export to PDF or copy content manually.]`;
+  }
 }
 
 function extractExcelContent(file: UploadedFile): string {
@@ -229,32 +287,94 @@ function extractExcelContent(file: UploadedFile): string {
     const fileName = file.name.toLowerCase();
     const fileSize = (file.size / 1024 / 1024).toFixed(2);
     
+    console.log(`Processing Excel/CSV: ${fileName}, size: ${fileSize}MB`);
+    
     // Handle CSV files
     if (fileName.endsWith('.csv')) {
-      // For CSV files, try to read as text
-      if (file.content.startsWith('data:')) {
-        const base64Data = file.content.replace(/^data:.*,/, '');
-        const csvContent = atob(base64Data);
-        return `[CSV File: ${file.name}]\n\nContent:\n${csvContent}`;
-      } else {
-        return `[CSV File: ${file.name}]\n\nContent:\n${file.content}`;
+      try {
+        let csvContent = '';
+        
+        // For CSV files, try to read as text
+        if (file.content.startsWith('data:')) {
+          const base64Data = file.content.replace(/^data:.*,/, '');
+          csvContent = atob(base64Data);
+        } else {
+          csvContent = file.content;
+        }
+        
+        console.log(`CSV extraction successful: ${csvContent.length} characters`);
+        
+        // Parse CSV content for better formatting
+        const lines = csvContent.split('\n').filter(line => line.trim());
+        const formattedContent = lines.map((line, index) => {
+          if (index === 0) {
+            return `Header: ${line}`;
+          }
+          return `Row ${index}: ${line}`;
+        }).join('\n');
+        
+        return `CSV CONTENT EXTRACTED FROM: ${file.name}
+
+${formattedContent}
+
+[Note: CSV data has been parsed and formatted. Original structure preserved.]`;
+        
+      } catch (csvError) {
+        console.error('Error parsing CSV:', csvError);
+        return `[CSV File: ${file.name} - Error parsing CSV content. Please ensure it's a valid CSV file or paste the data directly.]`;
       }
     }
     
-    // For Excel files (.xls, .xlsx), provide instructions
-    return `[Excel File: ${file.name} (${fileSize}MB) - For best results with Excel files, please:
-1. Open your Excel file
-2. Copy the data from relevant sheets
-3. Paste directly in your message
-4. Or export to CSV format for automatic processing
+    // Handle Excel files (.xls, .xlsx)
+    if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+      try {
+        // Convert base64 to binary for analysis
+        const base64Data = file.content.replace(/^data:.*,/, '');
+        const binaryString = atob(base64Data);
+        
+        // Look for text patterns in Excel binary format
+        // Excel files contain XML-like structures we can extract from
+        const textMatches = binaryString.match(/[\x20-\x7E]{3,}/g) || [];
+        const extractedText = textMatches
+          .filter(text => /[a-zA-Z0-9]/.test(text) && text.length > 2)
+          .filter(text => !text.match(/^[0-9.]+$/)) // Filter out pure numbers/decimals
+          .slice(0, 100) // Limit to prevent huge outputs
+          .join(' ');
+        
+        console.log(`Excel extraction result: ${extractedText.length} characters extracted`);
+        
+        if (extractedText.length > 50) {
+          return `EXCEL CONTENT EXTRACTED FROM: ${file.name}
 
-Excel automatic data extraction is limited. Converting to CSV or copying data directly will provide better results.
+Detected text content:
+${extractedText}
 
-If this file contains tabular data that you'd like me to analyze, please paste the data directly in your message.]`;
+[Note: Excel extraction may not preserve exact cell structure or formulas. For precise data analysis, please export to CSV or copy data directly.]`;
+        }
+      } catch (excelError) {
+        console.error('Error parsing Excel binary:', excelError);
+      }
+    }
+    
+    // Fallback instructions for Excel files or failed extraction
+    return `[Excel File: ${file.name} (${fileSize}MB) - Automatic extraction was unsuccessful.
+
+RECOMMENDED SOLUTIONS:
+1. Export to CSV format for automatic processing
+2. Copy and paste the spreadsheet data directly into your message
+3. Take a screenshot of the data and upload as an image
+4. Export to PDF or Word format
+
+For best results with Excel analysis:
+- Paste tabular data directly in your message
+- Use CSV format for automatic parsing
+- Include column headers when copying data
+
+Please try uploading the content in a different format, or paste the data directly into your message.]`;
     
   } catch (error) {
     console.error('Error processing Excel file:', error);
-    return `[Excel File: ${file.name} - Error processing file. Please copy data manually or convert to CSV format.]`;
+    return `[Excel File: ${file.name} - Error processing file: ${error.message}. Please copy data manually or convert to CSV format.]`;
   }
 }
 
@@ -262,32 +382,68 @@ function extractImageContent(file: UploadedFile): string {
   try {
     const fileName = file.name.toLowerCase();
     const fileSize = (file.size / 1024 / 1024).toFixed(2);
+    const fileType = file.content.split(';')[0]?.replace('data:', '') || 'unknown';
     
-    console.log(`Processing image: ${fileName}, size: ${fileSize}MB`);
+    console.log(`Processing image: ${fileName}, size: ${fileSize}MB, type: ${fileType}`);
     
     // For image files, provide base64 data for AI analysis
     if (file.content.startsWith('data:image/')) {
-      console.log('Image has valid base64 data format');
+      console.log('Image has valid base64 data format - preparing for AI analysis');
       
-      // Return the image in a format that AI models can properly analyze
-      return `IMAGE_ANALYSIS_REQUEST: Please analyze this image for handwritten or printed text extraction.
+      // Enhanced image analysis instructions
+      return `IMAGE_ANALYSIS_REQUEST: Analyze this uploaded image for content extraction.
 
-Filename: ${file.name}
+CRITICAL INSTRUCTIONS:
+- Extract ANY visible text (handwritten, printed, typed)
+- Describe visible content objectively
+- DO NOT hallucinate or invent content not visible in the image
+- If text is unclear, state "text unclear" rather than guessing
+- Focus on accurate transcription and description
+
+IMAGE DETAILS:
+Filename: ${fileName}
 Size: ${fileSize}MB
-Format: ${file.content.split(';')[0].replace('data:', '')}
+Format: ${fileType}
+Purpose: Content extraction and analysis
 
-IMPORTANT: This is a real image upload that requires actual analysis. Please extract any visible text, especially handwritten content, and provide a detailed transcription.
+ANALYSIS REQUIREMENTS:
+1. Transcribe all visible text exactly as written
+2. Describe document structure (forms, tables, notes, etc.)
+3. Identify any signatures, stamps, or official markings
+4. Note handwritten vs. printed text
+5. Describe any diagrams, charts, or visual elements
 
 Base64 Image Data:
-${file.content}`;
+${file.content}
+
+Remember: Only describe what is actually visible in the image. Do not create fictional content.`;
     } else {
       console.log('Image does not have proper base64 format');
-      return `[Image File: ${file.name} (${fileSize}MB) - Image format error. Please ensure the image is properly uploaded.]`;
+      return `[Image File: ${fileName} (${fileSize}MB) - Image format error. 
+
+The uploaded file appears to be corrupted or in an unsupported format.
+
+TROUBLESHOOTING:
+1. Ensure the image is in a common format (JPG, PNG, GIF, WebP)
+2. Try reducing the image size if it's very large
+3. Re-upload the image
+4. If the image contains text, consider scanning it again with better quality
+
+Supported formats: JPG, PNG, GIF, WebP
+Maximum recommended size: 10MB]`;
     }
     
   } catch (error) {
     console.error('Error processing image file:', error);
-    return `[Image File: ${file.name} - Error processing image: ${error.message}. Please try uploading again.]`;
+    return `[Image File: ${file.name} - Error processing image: ${error.message}
+
+TROUBLESHOOTING STEPS:
+1. Check that the image file isn't corrupted
+2. Try re-uploading the image
+3. Ensure the image is in a supported format (JPG, PNG, GIF, WebP)
+4. If the image contains important text, try taking a clearer photo or scan
+
+If the issue persists, you can describe the image content manually in your message.]`;
   }
 }
 
