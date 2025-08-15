@@ -1832,7 +1832,9 @@ export type Database = {
       }
       gp_practices: {
         Row: {
+          address: string | null
           created_at: string
+          email: string | null
           ics_code: string
           ics_name: string
           id: string
@@ -1840,10 +1842,16 @@ export type Database = {
           neighbourhood_id: string | null
           organisation_type: string
           pcn_code: string | null
+          phone: string | null
+          postcode: string | null
           practice_code: string
+          updated_at: string | null
+          website: string | null
         }
         Insert: {
+          address?: string | null
           created_at?: string
+          email?: string | null
           ics_code: string
           ics_name: string
           id?: string
@@ -1851,10 +1859,16 @@ export type Database = {
           neighbourhood_id?: string | null
           organisation_type: string
           pcn_code?: string | null
+          phone?: string | null
+          postcode?: string | null
           practice_code: string
+          updated_at?: string | null
+          website?: string | null
         }
         Update: {
+          address?: string | null
           created_at?: string
+          email?: string | null
           ics_code?: string
           ics_name?: string
           id?: string
@@ -1862,7 +1876,11 @@ export type Database = {
           neighbourhood_id?: string | null
           organisation_type?: string
           pcn_code?: string | null
+          phone?: string | null
+          postcode?: string | null
           practice_code?: string
+          updated_at?: string | null
+          website?: string | null
         }
         Relationships: [
           {
