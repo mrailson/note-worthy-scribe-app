@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
 import { 
@@ -27,6 +28,7 @@ interface PracticeUser {
   full_name: string;
   last_login: string | null;
   role: string;
+  practice_role: string | null;
   assigned_at: string;
   meeting_notes_access: boolean;
   gp_scribe_access: boolean;
@@ -38,6 +40,14 @@ interface PracticeUser {
   mic_test_service_access: boolean;
   api_testing_service_access: boolean;
 }
+
+const practiceRoles = [
+  { value: 'gp_partner', label: 'GP Partner' },
+  { value: 'salaried_gp', label: 'Salaried GP' },
+  { value: 'reception_team', label: 'Reception Team' },
+  { value: 'admin_team', label: 'Admin Team' },
+  { value: 'secretaries', label: 'Secretaries' }
+];
 
 export const PracticeUserManagement = () => {
   const { user } = useAuth();
@@ -53,6 +63,7 @@ export const PracticeUserManagement = () => {
     full_name: '',
     password: '',
     role: 'user',
+    practice_role: '',
     module_access: {
       meeting_notes_access: true,
       gp_scribe_access: false,
@@ -229,6 +240,7 @@ export const PracticeUserManagement = () => {
       full_name: user.full_name,
       password: '',
       role: user.role,
+      practice_role: user.practice_role || '',
       module_access: {
         meeting_notes_access: user.meeting_notes_access,
         gp_scribe_access: user.gp_scribe_access,
@@ -250,6 +262,7 @@ export const PracticeUserManagement = () => {
       full_name: '',
       password: '',
       role: 'user',
+      practice_role: '',
       module_access: {
         meeting_notes_access: true,
         gp_scribe_access: false,
