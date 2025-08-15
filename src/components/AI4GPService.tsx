@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Sparkles, History, Plus, Settings, Sparkles as GenieIcon, Newspaper, MoreVertical } from 'lucide-react';
 import { LoginForm } from '@/components/LoginForm';
@@ -118,19 +119,28 @@ const AI4GPService = () => {
               <CardHeader className="border-b px-3 py-2 sm:px-6 sm:py-4 flex-shrink-0">
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center text-sm sm:text-base">
-                    <button 
-                      onClick={() => {
-                        setMessages([]);
-                        setInput('');
-                        setUploadedFiles([]);
-                        setShowAIChat(false);
-                      }}
-                      className="flex items-center hover:opacity-80 transition-opacity cursor-pointer"
-                    >
-                      <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-primary" />
-                      <span className="hidden sm:inline">AI 4 GP Service</span>
-                      <span className="sm:hidden">AI4GP</span>
-                    </button>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button 
+                            onClick={() => {
+                              setMessages([]);
+                              setInput('');
+                              setUploadedFiles([]);
+                              setShowAIChat(false);
+                            }}
+                            className="flex items-center hover:opacity-80 transition-opacity cursor-pointer"
+                          >
+                            <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-primary" />
+                            <span className="hidden sm:inline">AI 4 GP Service</span>
+                            <span className="sm:hidden">AI4GP</span>
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Click to Clear Chat</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                     
                     {/* History button next to title */}
                     <Button
