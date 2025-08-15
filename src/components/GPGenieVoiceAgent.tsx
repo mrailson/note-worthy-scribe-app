@@ -306,34 +306,6 @@ const GPGenieVoiceAgent = () => {
               </Button>
             )}
           </div>
-
-          {/* Audio Controls */}
-          {conversation.status === 'connected' && (
-            <div className="space-y-4 w-full max-w-md">
-              {/* Mute Controls */}
-              <div className="flex items-center justify-center gap-6">
-                <Button
-                  variant={isMicMuted ? "destructive" : "outline"}
-                  size="sm"
-                  onClick={toggleMicMute}
-                  className="flex items-center gap-2"
-                >
-                  {isMicMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-                  {isMicMuted ? 'Unmute' : 'Mute'}
-                </Button>
-                
-                <Button
-                  variant={isMuted ? "destructive" : "outline"}
-                  size="sm"
-                  onClick={toggleSoundMute}
-                  className="flex items-center gap-2"
-                >
-                  {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-                  {isMuted ? 'Sound Off' : 'Sound On'}
-                </Button>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* What GP Genie Can Help With & Sources */}
