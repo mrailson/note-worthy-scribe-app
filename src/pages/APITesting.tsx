@@ -232,20 +232,18 @@ const APITesting = () => {
                 {/* Predefined Prompts */}
                 <div>
                   <label className="text-sm font-medium mb-3 block">Quick Start Prompts</label>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {predefinedPrompts.map((p, i) => (
-                      <Button
+                      <div
                         key={i}
-                        variant="outline"
-                        size="sm"
-                        className="w-full justify-start text-left h-auto py-2"
+                        className="p-3 border rounded-lg cursor-pointer hover:border-primary/50 transition-colors"
                         onClick={() => setPrompt(p.prompt)}
                       >
-                        <div>
-                          <div className="font-medium text-xs text-primary">{p.category}</div>
-                          <div className="text-xs text-muted-foreground line-clamp-2">{p.prompt}</div>
+                        <div className="font-medium text-sm text-primary mb-2">{p.category}</div>
+                        <div className="text-xs text-muted-foreground leading-relaxed whitespace-normal break-words">
+                          {p.prompt}
                         </div>
-                      </Button>
+                      </div>
                     ))}
                   </div>
                 </div>
