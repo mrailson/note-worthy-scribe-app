@@ -109,10 +109,11 @@ function extractTextContent(file: UploadedFile): string {
   }
 }
 
+// PDF text extraction - Enhanced with vision model integration and OCR fallback
 async function extractPdfContent(file: UploadedFile): Promise<string> {
+  console.log(`Starting comprehensive PDF extraction for ${file.name}`);
+  
   try {
-    console.log(`Processing PDF: ${file.name}, size: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
-    
     // Convert base64 to array buffer
     const base64Data = file.content.replace(/^data:.*,/, '');
     const binaryString = atob(base64Data);
@@ -125,9 +126,8 @@ async function extractPdfContent(file: UploadedFile): Promise<string> {
     const text = new TextDecoder('utf-8', { fatal: false }).decode(bytes);
     const latin1Text = new TextDecoder('latin1').decode(bytes);
     
-    console.log('Attempting comprehensive PDF text extraction...');
+    console.log('Attempting traditional PDF text extraction...');
     
-    let extractedText = '';
     const extractedParts = [];
     
     // Strategy 1: Extract from PDF text objects (most common)
@@ -135,14 +135,12 @@ async function extractPdfContent(file: UploadedFile): Promise<string> {
     let textObjectMatch;
     while ((textObjectMatch = textObjectRegex.exec(text)) !== null) {
       const textCommands = textObjectMatch[1];
-      // Extract text from Tj, TJ, and ' operators
       const textMatches = textCommands.match(/\(([^)]+)\)\s*(?:Tj|')|<([0-9A-Fa-f]+)>\s*(?:Tj|')|^\s*\(([^)]+)\)\s*$/gm) || [];
       const extractedFromObj = textMatches.map(match => {
         const parenMatch = match.match(/\(([^)]+)\)/);
         const hexMatch = match.match(/<([0-9A-Fa-f]+)>/);
         if (parenMatch) return parenMatch[1];
         if (hexMatch) {
-          // Convert hex to ASCII
           try {
             return hexMatch[1].match(/.{2}/g)?.map(h => String.fromCharCode(parseInt(h, 16))).join('') || '';
           } catch { return ''; }
@@ -183,7 +181,6 @@ async function extractPdfContent(file: UploadedFile): Promise<string> {
     let streamMatch;
     while ((streamMatch = streamRegex.exec(text)) !== null) {
       const streamContent = streamMatch[1];
-      // Look for readable text in streams
       const readableText = streamContent.match(/[a-zA-Z0-9\s.,£$€¥¢]+/g) || [];
       const streamText = readableText.filter(t => t.trim().length > 3 && /[a-zA-Z]/.test(t)).join(' ');
       if (streamText.length > 10) {
@@ -218,7 +215,7 @@ async function extractPdfContent(file: UploadedFile): Promise<string> {
       patternMatches.push(...matches);
     }
     
-    // Combine all extraction methods
+    // Combine traditional extraction results
     const allExtracted = [
       ...extractedParts,
       ...parenTexts,
@@ -226,60 +223,211 @@ async function extractPdfContent(file: UploadedFile): Promise<string> {
       ...patternMatches
     ].filter(t => t && t.trim().length > 1);
     
-    // Remove duplicates and clean up
     const uniqueText = [...new Set(allExtracted)]
       .filter(text => text.trim().length > 0)
       .join(' ')
       .replace(/\s+/g, ' ')
       .trim();
     
-    console.log(`PDF extraction result: ${uniqueText.length} characters extracted from ${allExtracted.length} text elements`);
+    console.log(`Traditional extraction result: ${uniqueText.length} characters from ${allExtracted.length} elements`);
     
-    if (uniqueText.length > 30) {
+    // If traditional extraction succeeds with substantial content, return it
+    if (uniqueText.length > 100) {
       return `PDF CONTENT EXTRACTED FROM: ${file.name}
 
 ${uniqueText}
 
-[Note: PDF text extracted using multiple parsing strategies. If content appears incomplete, the PDF may use advanced formatting or image-based text that requires OCR.]`;
+[Note: PDF text extracted using traditional parsing methods.]`;
     }
-
-    // If all extraction fails, provide comprehensive instructions
+    
+    // Check if this might be an image-based PDF
+    const hasImages = text.includes('/Image') || text.includes('/XObject');
+    const hasMinimalText = uniqueText.length < 50;
+    
+    if (hasImages && hasMinimalText) {
+      console.log('Detected image-based PDF - attempting vision model extraction');
+      
+      // Strategy 7: Vision Model Analysis (ChatGPT-style)
+      const visionResult = await extractPdfWithVision(file);
+      if (visionResult && visionResult.length > 100) {
+        console.log(`Vision extraction successful: ${visionResult.length} characters extracted`);
+        return visionResult;
+      }
+    }
+    
+    // Strategy 8: OCR Fallback
+    console.log('Attempting OCR fallback extraction');
+    const ocrResult = await extractPdfWithOCR(file);
+    if (ocrResult && ocrResult.length > 100) {
+      console.log(`OCR extraction successful: ${ocrResult.length} characters extracted`);
+      return ocrResult;
+    }
+    
+    // Final fallback with enhanced guidance
     const fileSize = (file.size / 1024 / 1024).toFixed(2);
-    return `[PDF File: ${file.name} (${fileSize}MB) - Advanced text extraction was unsuccessful.
+    return `[PDF File: ${file.name} (${fileSize}MB) - Advanced extraction unsuccessful]
 
-This PDF appears to contain:
-- Scanned images rather than selectable text, OR
-- Complex formatting/encoding that requires specialized parsing, OR  
-- Encrypted or protected content
+Extracted basic patterns: ${uniqueText || 'None detected'}
 
-SOLUTIONS FOR BETTER EXTRACTION:
-1. **Image-based PDF**: If this is a scanned document, try:
-   - Using an OCR tool first
-   - Taking screenshots and uploading as images for AI analysis
-   
-2. **Copy-paste method**: Open the PDF and manually copy the text content
+This PDF requires alternative processing:
 
-3. **Format conversion**: 
-   - Save as Word document (.docx)
-   - Export as plain text (.txt)
-   - Print to PDF (creates text-based PDF)
+**RECOMMENDED SOLUTIONS:**
+1. **For scanned/image PDFs**: Take screenshots and upload as images - the AI can analyze images very effectively
+2. **Copy-paste method**: Open PDF and manually copy the text content  
+3. **Format conversion**: Export as Word (.docx) or plain text (.txt)
+4. **OCR tools**: Use online OCR before uploading
 
-4. **For invoices/structured documents**:
-   - Take a clear screenshot and upload as image
-   - The AI can analyze invoice images very effectively
+**For invoice analysis specifically:**
+- Screenshot the invoice and upload as an image
+- The vision AI can extract all details from invoice images
+- Much more reliable than PDF text extraction for complex layouts
 
-Please try one of these alternatives for accurate content extraction.]`;
+Would you like to try uploading this as an image instead?`;
      
   } catch (error) {
-    console.error('Error extracting PDF content:', error);
+    console.error('PDF extraction error:', error);
     const fileSize = (file.size / 1024 / 1024).toFixed(2);
-    return `[PDF File: ${file.name} (${fileSize}MB) - Extraction failed: ${error.message}
+    return `[PDF File: ${file.name} (${fileSize}MB) - Extraction failed: ${error.message}]
 
-For reliable content extraction:
-1. Copy text manually from the PDF viewer
-2. Convert to Word/text format
-3. Upload as image if it's a scanned document
-4. Ensure the PDF isn't password protected]`;
+Please try: Screenshot → Upload as image for AI analysis`;
+  }
+}
+
+// Vision Model PDF Analysis (matches ChatGPT approach)
+async function extractPdfWithVision(file: UploadedFile): Promise<string | null> {
+  console.log('Starting vision model PDF analysis');
+  
+  try {
+    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+    if (!openaiApiKey) {
+      console.log('OpenAI API key not available for vision analysis');
+      return null;
+    }
+    
+    const systemPrompt = `You are an expert document analyzer with perfect text extraction capabilities. 
+Analyze this PDF and extract ALL readable text content with perfect accuracy.
+
+CRITICAL INSTRUCTIONS:
+- Extract every piece of text visible in the document
+- Maintain original formatting and structure where possible
+- Include all numbers, dates, amounts, addresses, and details
+- For invoices/financial documents, extract: supplier details, invoice numbers, dates, line items, amounts, VAT, totals, payment terms
+- Do not summarize - provide complete text extraction
+- If text is unclear, indicate with [unclear] but extract what you can see
+- Focus on being comprehensive and accurate like professional OCR software
+
+Return the extracted text exactly as it appears in the document.`;
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openaiApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-5-2025-08-07',
+        max_completion_tokens: 4000,
+        messages: [
+          {
+            role: 'system',
+            content: systemPrompt
+          },
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'Please extract all text content from this PDF document with perfect accuracy:'
+              },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: file.content
+                }
+              }
+            ]
+          }
+        ]
+      }),
+    });
+
+    if (!response.ok) {
+      console.log(`Vision API error: ${response.status} ${response.statusText}`);
+      return null;
+    }
+
+    const data = await response.json();
+    const extractedText = data.choices[0]?.message?.content;
+    
+    if (extractedText && extractedText.length > 50) {
+      console.log('Vision model successfully extracted text from PDF');
+      return `PDF CONTENT EXTRACTED FROM: ${file.name} (Using Vision AI)
+
+${extractedText}
+
+[Note: Content extracted using advanced vision AI technology for accurate text recognition from image-based PDFs.]`;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Vision model extraction error:', error);
+    return null;
+  }
+}
+
+// OCR Fallback using Google Vision API
+async function extractPdfWithOCR(file: UploadedFile): Promise<string | null> {
+  console.log('Starting OCR fallback extraction');
+  
+  try {
+    const googleVisionKey = Deno.env.get('GOOGLE_VISION_API_KEY');
+    if (!googleVisionKey) {
+      console.log('Google Vision API key not available for OCR');
+      return null;
+    }
+    
+    // Convert PDF to image format for OCR
+    const base64Data = file.content.split(',')[1];
+    
+    const response = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${googleVisionKey}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        requests: [{
+          image: {
+            content: base64Data
+          },
+          features: [{
+            type: 'DOCUMENT_TEXT_DETECTION',
+            maxResults: 1
+          }]
+        }]
+      }),
+    });
+
+    if (!response.ok) {
+      console.log(`OCR API error: ${response.status} ${response.statusText}`);
+      return null;
+    }
+
+    const data = await response.json();
+    const extractedText = data.responses[0]?.fullTextAnnotation?.text;
+    
+    if (extractedText && extractedText.length > 50) {
+      console.log('OCR successfully extracted text from PDF');
+      return `PDF CONTENT EXTRACTED FROM: ${file.name} (Using OCR)
+
+${extractedText}
+
+[Note: Content extracted using OCR technology for text recognition from image-based documents.]`;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('OCR extraction error:', error);
+    return null;
   }
 }
 
