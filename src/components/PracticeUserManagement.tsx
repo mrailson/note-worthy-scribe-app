@@ -28,7 +28,7 @@ interface PracticeUser {
   full_name: string;
   last_login: string | null;
   role: string;
-  practice_role: string | null;
+  practice_role?: string | null;
   assigned_at: string;
   meeting_notes_access: boolean;
   gp_scribe_access: boolean;
@@ -182,6 +182,7 @@ export const PracticeUserManagement = () => {
           user_id: editingUser.user_id,
           full_name: userFormData.full_name,
           role: userFormData.role,
+          practice_role: userFormData.practice_role,
           module_access: userFormData.module_access
         }
       });
@@ -338,6 +339,7 @@ export const PracticeUserManagement = () => {
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Role</TableHead>
+                    <TableHead>Practice Role</TableHead>
                     <TableHead>Module Access</TableHead>
                     <TableHead>Last Login</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -346,13 +348,13 @@ export const PracticeUserManagement = () => {
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8">
+                      <TableCell colSpan={7} className="text-center py-8">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
                       </TableCell>
                     </TableRow>
                   ) : filteredUsers.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                         No users found
                       </TableCell>
                     </TableRow>
@@ -365,6 +367,15 @@ export const PracticeUserManagement = () => {
                           <Badge variant={user.role === 'user' ? 'secondary' : 'default'}>
                             {user.role}
                           </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {user.practice_role ? (
+                            <Badge variant="outline">
+                              {practiceRoles.find(r => r.value === user.practice_role)?.label || user.practice_role}
+                            </Badge>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">Not set</span>
+                          )}
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-wrap gap-1">
@@ -446,6 +457,25 @@ export const PracticeUserManagement = () => {
                   placeholder="John Doe"
                 />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="practice_role">Practice Role</Label>
+              <Select
+                value={userFormData.practice_role}
+                onValueChange={(value) => setUserFormData(prev => ({ ...prev, practice_role: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a practice role" />
+                </SelectTrigger>
+                <SelectContent>
+                  {practiceRoles.map((role) => (
+                    <SelectItem key={role.value} value={role.value}>
+                      {role.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {!editingUser && (

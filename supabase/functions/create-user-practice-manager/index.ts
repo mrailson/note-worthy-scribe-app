@@ -12,6 +12,7 @@ interface CreateUserRequest {
   full_name: string;
   password: string;
   role: string;
+  practice_role?: string;
   module_access: {
     meeting_notes_access?: boolean;
     gp_scribe_access?: boolean;
@@ -76,7 +77,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Parse the request body
-    const { email, full_name, password, role, module_access }: CreateUserRequest = await req.json();
+    const { email, full_name, password, role, practice_role, module_access }: CreateUserRequest = await req.json();
 
     // Validate role is allowed for practice managers
     const allowedRoles = ['user'];
@@ -112,10 +113,11 @@ const handler = async (req: Request): Promise<Response> => {
           throw new Error("Failed to assign existing user to practice");
         }
 
-        // Update module access
+        // Update module access and practice role
         const { error: moduleError } = await supabase
           .from('user_roles')
           .update({
+            practice_role: practice_role || null,
             meeting_notes_access: module_access.meeting_notes_access || false,
             gp_scribe_access: module_access.gp_scribe_access || false,
             complaints_manager_access: module_access.complaints_manager_access || false,
@@ -201,6 +203,7 @@ const handler = async (req: Request): Promise<Response> => {
         user_id: newUser.user.id,
         practice_id: practiceId,
         role: role,
+        practice_role: practice_role || null,
         assigned_by: user.id,
         meeting_notes_access: module_access.meeting_notes_access || false,
         gp_scribe_access: module_access.gp_scribe_access || false,

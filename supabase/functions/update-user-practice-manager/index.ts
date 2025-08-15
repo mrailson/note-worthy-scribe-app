@@ -11,6 +11,7 @@ interface UpdateUserRequest {
   user_id: string;
   full_name?: string;
   role?: string;
+  practice_role?: string;
   module_access?: {
     meeting_notes_access?: boolean;
     gp_scribe_access?: boolean;
@@ -75,7 +76,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Parse the request body
-    const { user_id, full_name, role, module_access }: UpdateUserRequest = await req.json();
+    const { user_id, full_name, role, practice_role, module_access }: UpdateUserRequest = await req.json();
 
     // Verify the user being updated belongs to the practice manager's practice
     const { data: userInPractice, error: verifyError } = await supabase
@@ -117,6 +118,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Update user role and module access
     const roleUpdate: any = {};
     if (role) roleUpdate.role = role;
+    if (practice_role !== undefined) roleUpdate.practice_role = practice_role || null;
     if (module_access) {
       if (module_access.meeting_notes_access !== undefined) roleUpdate.meeting_notes_access = module_access.meeting_notes_access;
       if (module_access.gp_scribe_access !== undefined) roleUpdate.gp_scribe_access = module_access.gp_scribe_access;
