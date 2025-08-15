@@ -257,7 +257,7 @@ const NewsPanel = () => {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {/* Filter Controls */}
       <div className="flex items-center justify-end">
         <div className="flex gap-2">
