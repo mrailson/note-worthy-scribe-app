@@ -28,22 +28,18 @@ export const NotewellAIAnimation = ({ isVisible }: NotewellAIAnimationProps) => 
   return (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
       <div className="bg-card rounded-lg p-8 shadow-lg border max-w-md mx-4 text-center">
-        <div className="relative mb-6">
-          {/* Animated circles */}
+        <div className="relative mb-6 w-20 h-20 mx-auto">
+          {/* Main rotating gear */}
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-20 h-20 rounded-full border-4 border-primary/20 animate-ping"></div>
-          </div>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-16 h-16 rounded-full border-4 border-primary/40 animate-ping" style={{ animationDelay: '200ms' }}></div>
-          </div>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-12 h-12 rounded-full border-4 border-primary/60 animate-ping" style={{ animationDelay: '400ms' }}></div>
+            <div className="bg-primary rounded-full p-3 animate-spin" style={{ animationDuration: '3s' }}>
+              <Bot className="h-8 w-8 text-primary-foreground" />
+            </div>
           </div>
           
-          {/* Central icon */}
-          <div className="relative z-10 flex items-center justify-center w-20 h-20 mx-auto">
-            <div className="bg-primary rounded-full p-4 animate-pulse">
-              <Bot className="h-8 w-8 text-primary-foreground" />
+          {/* Secondary rotating gear */}
+          <div className="absolute top-0 right-2 flex items-center justify-center">
+            <div className="bg-primary/70 rounded-full p-2 animate-spin" style={{ animationDuration: '2s', animationDirection: 'reverse' }}>
+              <Sparkles className="h-5 w-5 text-primary-foreground" />
             </div>
           </div>
         </div>
