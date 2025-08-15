@@ -45,4 +45,7 @@ verify_jwt = true
 [functions.ingest-transcript-chunk]
 verify_jwt = true
 
+[functions.api-testing-service]
+verify_jwt = true
+
 
