@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -282,6 +282,64 @@ Always provide evidence-based, clinically appropriate advice that follows curren
       console.error('Error auto-saving search:', error);
     }
   };
+
+  // Load user settings on component mount
+  useEffect(() => {
+    const loadUserSettings = async () => {
+      if (!user) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('user_settings')
+          .select('setting_key, setting_value')
+          .eq('user_id', user.id)
+          .eq('setting_key', 'ai4gp_preferences');
+
+        if (data && data.length > 0) {
+          const preferences = data[0].setting_value as any;
+          setSessionMemory(preferences.sessionMemory ?? true);
+          setIncludeLatestUpdates(preferences.includeLatestUpdates ?? true);
+          setShowResponseMetrics(preferences.showResponseMetrics ?? false);
+        }
+      } catch (error) {
+        console.error('Error loading user settings:', error);
+      }
+    };
+
+    loadUserSettings();
+  }, [user]);
+
+  // Save user settings when they change
+  const saveUserSettings = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      const preferences = {
+        sessionMemory,
+        includeLatestUpdates,
+        showResponseMetrics
+      };
+
+      await supabase
+        .from('user_settings')
+        .upsert({
+          user_id: user.id,
+          setting_key: 'ai4gp_preferences',
+          setting_value: preferences
+        }, {
+          onConflict: 'user_id,setting_key'
+        });
+    } catch (error) {
+      console.error('Error saving user settings:', error);
+    }
+  }, [user, sessionMemory, includeLatestUpdates, showResponseMetrics]);
+
+  // Save settings when they change
+  useEffect(() => {
+    if (user) {
+      saveUserSettings();
+    }
+  }, [sessionMemory, includeLatestUpdates, showResponseMetrics, saveUserSettings]);
 
   const handleNewSearch = useCallback(() => {
     setMessages([]);
