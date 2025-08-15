@@ -45,7 +45,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const { data, error } = await supabase
         .from('user_roles')
-        .select('meeting_notes_access, gp_scribe_access, complaints_manager_access, ai_4_pm_access, enhanced_access, cqc_compliance_access, shared_drive_access, mic_test_service_access, api_testing_service_access')
+        .select('meeting_notes_access, gp_scribe_access, complaints_manager_access, enhanced_access, cqc_compliance_access, shared_drive_access, mic_test_service_access, api_testing_service_access')
         .eq('user_id', userId)
         .limit(1)
         .single();
@@ -60,7 +60,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (data?.meeting_notes_access) modules.push('meeting_recorder');
       if (data?.gp_scribe_access) modules.push('gp_scribe');
       if (data?.complaints_manager_access) modules.push('complaints_system');
-      if (data?.ai_4_pm_access) modules.push('ai_4_pm');
       if (data?.enhanced_access) modules.push('enhanced_access');
       if (data?.cqc_compliance_access) modules.push('cqc_compliance');
       if (data?.shared_drive_access) modules.push('shared_drive_access');
