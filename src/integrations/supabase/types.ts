@@ -3743,6 +3743,10 @@ export type Database = {
         }
         Returns: string
       }
+      check_user_practice_assignment: {
+        Args: { p_email: string; p_practice_id: string }
+        Returns: Json
+      }
       generate_complaint_reference: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -3835,9 +3839,33 @@ export type Database = {
         Args: { _user_id?: string }
         Returns: string[]
       }
+      get_practice_manager_assignable_roles: {
+        Args: Record<PropertyKey, never>
+        Returns: Database["public"]["Enums"]["app_role"][]
+      }
       get_practice_manager_practice_id: {
         Args: { _user_id?: string }
         Returns: string
+      }
+      get_practice_users: {
+        Args: { p_practice_id: string }
+        Returns: {
+          ai4gp_access: boolean
+          api_testing_service_access: boolean
+          assigned_at: string
+          complaints_manager_access: boolean
+          cqc_compliance_access: boolean
+          email: string
+          enhanced_access: boolean
+          full_name: string
+          gp_scribe_access: boolean
+          last_login: string
+          meeting_notes_access: boolean
+          mic_test_service_access: boolean
+          role: Database["public"]["Enums"]["app_role"]
+          shared_drive_access: boolean
+          user_id: string
+        }[]
       }
       get_security_setting: {
         Args: { setting_name: string }
