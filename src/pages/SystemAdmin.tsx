@@ -641,24 +641,56 @@ const handleUserSubmit = async (e: React.FormEvent) => {
             throw roleError;
           }
         } else {
-          // Update existing user_roles record when no practice is assigned
-          const { error: roleError } = await supabase
+          // Check if user_roles record exists first
+          const { data: existingRole } = await supabase
             .from('user_roles')
-            .update({
-              meeting_notes_access: userFormData.module_access.meeting_notes_access,
-              gp_scribe_access: userFormData.module_access.gp_scribe_access,
-              complaints_manager_access: userFormData.module_access.complaints_manager_access,
-              enhanced_access: userFormData.module_access.enhanced_access,
-              cqc_compliance_access: userFormData.module_access.cqc_compliance_access,
-              shared_drive_access: userFormData.module_access.shared_drive_access,
-              mic_test_service_access: userFormData.module_access.mic_test_service_access,
-              api_testing_service_access: userFormData.module_access.api_testing_service_access
-            })
-            .eq('user_id', editingUser.user_id);
+            .select('id')
+            .eq('user_id', editingUser.user_id)
+            .single();
           
-          if (roleError) {
-            console.error('Update error:', roleError);
-            throw roleError;
+          if (existingRole) {
+            // Update existing user_roles record when no practice is assigned
+            const { error: roleError } = await supabase
+              .from('user_roles')
+              .update({
+                meeting_notes_access: userFormData.module_access.meeting_notes_access,
+                gp_scribe_access: userFormData.module_access.gp_scribe_access,
+                complaints_manager_access: userFormData.module_access.complaints_manager_access,
+                enhanced_access: userFormData.module_access.enhanced_access,
+                cqc_compliance_access: userFormData.module_access.cqc_compliance_access,
+                shared_drive_access: userFormData.module_access.shared_drive_access,
+                mic_test_service_access: userFormData.module_access.mic_test_service_access,
+                api_testing_service_access: userFormData.module_access.api_testing_service_access,
+                role: userFormData.role || 'user'
+              })
+              .eq('user_id', editingUser.user_id);
+              
+            if (roleError) {
+              console.error('Update error:', roleError);
+              throw roleError;
+            }
+          } else {
+            // Create new user_roles record if none exists
+            const { error: roleError } = await supabase
+              .from('user_roles')
+              .insert({
+                user_id: editingUser.user_id,
+                role: userFormData.role || 'user',
+                assigned_by: user?.id,
+                meeting_notes_access: userFormData.module_access.meeting_notes_access,
+                gp_scribe_access: userFormData.module_access.gp_scribe_access,
+                complaints_manager_access: userFormData.module_access.complaints_manager_access,
+                enhanced_access: userFormData.module_access.enhanced_access,
+                cqc_compliance_access: userFormData.module_access.cqc_compliance_access,
+                shared_drive_access: userFormData.module_access.shared_drive_access,
+                mic_test_service_access: userFormData.module_access.mic_test_service_access,
+                api_testing_service_access: userFormData.module_access.api_testing_service_access
+              });
+              
+            if (roleError) {
+              console.error('Insert error:', roleError);
+              throw roleError;
+            }
           }
         }
         

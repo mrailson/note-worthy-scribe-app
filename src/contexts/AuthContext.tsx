@@ -84,6 +84,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (!error) {
         setIsSystemAdmin(data || false);
         console.log('Set isSystemAdmin to:', data || false);
+      } else {
+        console.error('RPC error:', error);
+        setIsSystemAdmin(false);
       }
     } catch (error) {
       console.error('Error checking system admin status:', error);
