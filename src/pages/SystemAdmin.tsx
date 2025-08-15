@@ -214,6 +214,8 @@ const [patientDataAccess, setPatientDataAccess] = useState([]);
       fetchPCNs();
       fetchNeighbourhoods();
       fetchDashboardStats();
+      fetchDatabaseSizes();
+      fetchLargeFiles();
       fetchSupplierIncidents();
       fetchSecurityEvents();
       fetchEnhancedSecurityData();
@@ -380,6 +382,28 @@ const [patientDataAccess, setPatientDataAccess] = useState([]);
       });
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);
+    }
+  };
+
+  const fetchDatabaseSizes = async () => {
+    try {
+      const { data, error } = await supabase.rpc('get_database_table_sizes');
+      if (error) throw error;
+      setDatabaseSizes(data || []);
+    } catch (error) {
+      console.error('Error fetching database sizes:', error);
+      toast.error("Failed to fetch database sizes");
+    }
+  };
+
+  const fetchLargeFiles = async () => {
+    try {
+      const { data, error } = await supabase.rpc('get_large_files');
+      if (error) throw error;
+      setLargeFiles(data || []);
+    } catch (error) {
+      console.error('Error fetching large files:', error);
+      toast.error("Failed to fetch large files");
     }
   };
 
@@ -863,6 +887,71 @@ const handleUserSubmit = async (e: React.FormEvent) => {
                 <CardContent>
                   <div className="text-2xl font-bold text-green-600">98%</div>
                   <p className="text-xs text-muted-foreground">Uptime</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Database Size Breakdown */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Database className="h-5 w-5" />
+                    Database Size Breakdown
+                  </CardTitle>
+                  <CardDescription>Storage usage by table</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {databaseSizes.slice(0, 10).map((table, index) => (
+                      <div key={table.table_name} className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <p className="font-medium text-sm">{table.table_name}</p>
+                          <p className="text-xs text-muted-foreground">{table.row_count.toLocaleString()} rows</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-medium">{table.size_pretty}</p>
+                          <p className="text-xs text-muted-foreground">{table.size_bytes.toLocaleString()} bytes</p>
+                        </div>
+                      </div>
+                    ))}
+                    {databaseSizes.length === 0 && (
+                      <p className="text-sm text-muted-foreground text-center py-4">Loading database sizes...</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Large Files Overview
+                  </CardTitle>
+                  <CardDescription>Files larger than 10MB across all tables</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {largeFiles.slice(0, 10).map((file, index) => (
+                      <div key={`${file.table_name}-${index}`} className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <p className="font-medium text-sm truncate">{file.file_name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {file.table_name} • {file.uploaded_by_email}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-medium">{file.file_size_pretty}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(file.uploaded_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                    {largeFiles.length === 0 && (
+                      <p className="text-sm text-muted-foreground text-center py-4">No large files found</p>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             </div>

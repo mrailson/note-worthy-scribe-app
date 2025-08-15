@@ -3798,6 +3798,17 @@ export type Database = {
           table_name: string
         }[]
       }
+      get_large_files: {
+        Args: { min_size_bytes?: number }
+        Returns: {
+          file_name: string
+          file_size: number
+          file_size_pretty: string
+          table_name: string
+          uploaded_at: string
+          uploaded_by_email: string
+        }[]
+      }
       get_meeting_full_transcript: {
         Args: { p_meeting_id: string }
         Returns: {
