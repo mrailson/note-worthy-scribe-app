@@ -188,16 +188,33 @@ const APITesting = () => {
           return <h3 key={index} className="text-sm font-bold mt-2 mb-1">{line.substring(4)}</h3>;
         }
         
-        // Handle bold text **text**
-        const parts = line.split(/(\*\*.*?\*\*)/g);
-        const formattedLine = parts.map((part, partIndex) => {
-          if (part.startsWith('**') && part.endsWith('**')) {
-            return <strong key={partIndex}>{part.slice(2, -2)}</strong>;
-          }
-          return part;
-        });
+        // Handle bold text **text** - improved regex to catch all cases
+        const boldRegex = /\*\*(.*?)\*\*/g;
+        const parts = [];
+        let lastIndex = 0;
+        let match;
         
-        return <p key={index} className="mb-2">{formattedLine}</p>;
+        while ((match = boldRegex.exec(line)) !== null) {
+          // Add text before the bold
+          if (match.index > lastIndex) {
+            parts.push(line.substring(lastIndex, match.index));
+          }
+          // Add the bold text
+          parts.push(<strong key={`bold-${index}-${match.index}`}>{match[1]}</strong>);
+          lastIndex = match.index + match[0].length;
+        }
+        
+        // Add remaining text after last bold
+        if (lastIndex < line.length) {
+          parts.push(line.substring(lastIndex));
+        }
+        
+        // If no bold text was found, just return the line
+        if (parts.length === 0) {
+          parts.push(line);
+        }
+        
+        return <p key={index} className="mb-2 leading-relaxed">{parts}</p>;
       });
   };
 
