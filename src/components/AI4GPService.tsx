@@ -225,8 +225,8 @@ const AI4GPService = () => {
                             onClick={() => setSelectedRole('gp')}
                             className={`px-3 py-1.5 text-xs sm:text-sm rounded-md transition-all ${
                               selectedRole === 'gp'
-                                ? 'bg-background text-foreground shadow-sm'
-                                : 'text-muted-foreground hover:text-foreground'
+                                ? 'bg-background text-foreground shadow-sm font-bold'
+                                : 'text-muted-foreground/60 hover:text-muted-foreground hover:font-medium'
                             }`}
                           >
                             For GP
@@ -235,8 +235,8 @@ const AI4GPService = () => {
                             onClick={() => setSelectedRole('practice-manager')}
                             className={`px-3 py-1.5 text-xs sm:text-sm rounded-md transition-all ${
                               selectedRole === 'practice-manager'
-                                ? 'bg-background text-foreground shadow-sm'
-                                : 'text-muted-foreground hover:text-foreground'
+                                ? 'bg-background text-foreground shadow-sm font-bold'
+                                : 'text-muted-foreground/60 hover:text-muted-foreground hover:font-medium'
                             }`}
                           >
                             For Practice Managers
