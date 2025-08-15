@@ -260,7 +260,7 @@ const GPGenieVoiceAgent = () => {
               <p className="text-sm text-muted-foreground">
                 {conversation.status === 'connected'
                   ? 'Ask about patient care, clinical protocols, or consultation guidance'
-                  : 'Click start to begin your clinical consultation with GP Genie'
+                  : 'Click start to talk with GP Genie'
                 }
               </p>
             </div>
