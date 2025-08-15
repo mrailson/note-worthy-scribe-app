@@ -374,7 +374,7 @@ async function callGPT5(messages: Message[], systemPrompt: string, files?: Uploa
       'Authorization': `Bearer ${openaiApiKey}`
     },
     body: JSON.stringify({
-      model: 'gpt-4.1-2025-04-14',
+      model: 'gpt-5-2025-08-07',
       messages: gptMessages,
       max_completion_tokens: 4000
     })
