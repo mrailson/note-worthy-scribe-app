@@ -229,7 +229,7 @@ const AI4GPService = () => {
                                 : 'text-muted-foreground/60 hover:text-muted-foreground hover:font-medium'
                             }`}
                           >
-                            For GP
+                            For GP/Clinical
                           </button>
                           <button
                             onClick={() => setSelectedRole('practice-manager')}
