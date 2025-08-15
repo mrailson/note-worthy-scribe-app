@@ -128,7 +128,10 @@ async function callGemini(prompt: string, systemPrompt: string, model: string = 
     throw new Error('Gemini API key not configured');
   }
 
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`, {
+  // Ensure correct model format for Gemini API
+  const modelPath = model.includes('gemini-') ? model : `gemini-${model}`;
+  
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelPath}:generateContent?key=${geminiApiKey}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -146,12 +149,18 @@ async function callGemini(prompt: string, systemPrompt: string, model: string = 
 
   if (!response.ok) {
     const error = await response.text();
-    console.error('Gemini API error:', error);
-    throw new Error(`Gemini API error: ${response.status}`);
+    console.error(`Gemini API error for model ${modelPath}:`, error);
+    throw new Error(`Gemini API error: ${response.status} - ${error}`);
   }
 
   const data = await response.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response generated';
+  
+  if (!data.candidates || !data.candidates[0] || !data.candidates[0].content || !data.candidates[0].content.parts) {
+    console.error('Unexpected Gemini response structure:', JSON.stringify(data));
+    throw new Error('Invalid response structure from Gemini API');
+  }
+  
+  return data.candidates[0].content.parts[0].text || 'No response generated';
 }
 
 serve(async (req) => {
