@@ -254,29 +254,46 @@ const [patientDataAccess, setPatientDataAccess] = useState([]);
 
   const fetchUsers = async () => {
     try {
+      console.log('=== FETCHING USERS START ===');
       setLoading(true);
       const { data, error } = await supabase.rpc('get_users_with_practices');
       if (error) throw error;
       
+      console.log('Base user data fetched:', data);
+      
       // Fetch user roles with module access for each user
         const usersWithModules = await Promise.all(
         (data || []).map(async (user: any) => {
+          console.log(`Fetching roles for user ${user.user_id}`);
+          
           // Get ALL user_roles for this user and take the first one for display
-          const { data: roleData } = await supabase
+          const { data: roleData, error: roleError } = await supabase
             .from('user_roles')
             .select('meeting_notes_access, gp_scribe_access, complaints_manager_access, enhanced_access, cqc_compliance_access, shared_drive_access, mic_test_service_access, api_testing_service_access')
             .eq('user_id', user.user_id)
             .limit(1)
             .single();
           
+          if (roleError) {
+            console.log(`No roles found for user ${user.user_id}:`, roleError);
+          } else {
+            console.log(`Role data for user ${user.user_id}:`, roleData);
+          }
+          
           // Get AI4GP access from profiles table
-          const { data: profileData } = await supabase
+          const { data: profileData, error: profileError } = await supabase
             .from('profiles')
             .select('ai4gp_access')
             .eq('user_id', user.user_id)
             .single();
           
-          return {
+          if (profileError) {
+            console.log(`No profile found for user ${user.user_id}:`, profileError);
+          } else {
+            console.log(`Profile data for user ${user.user_id}:`, profileData);
+          }
+          
+          const userWithModules = {
             ...user,
             meeting_notes_access: roleData?.meeting_notes_access ?? false,
             gp_scribe_access: roleData?.gp_scribe_access ?? false,
@@ -288,10 +305,15 @@ const [patientDataAccess, setPatientDataAccess] = useState([]);
             mic_test_service_access: roleData?.mic_test_service_access ?? false,
             api_testing_service_access: roleData?.api_testing_service_access ?? false
           };
+          
+          console.log(`Final user data for ${user.user_id}:`, userWithModules);
+          return userWithModules;
         })
       );
       
+      console.log('All users with modules:', usersWithModules);
       setUsers(usersWithModules as User[]);
+      console.log('=== FETCHING USERS END ===');
     } catch (error) {
       console.error('Error fetching users:', error);
       toast.error("Failed to fetch users");
@@ -531,14 +553,23 @@ const [patientDataAccess, setPatientDataAccess] = useState([]);
   };
 
   const handleEditUser = (user: any) => {
-    console.log('Editing user:', user);
+    console.log('=== EDITING USER START ===');
+    console.log('Full user object:', user);
     console.log('User module access data:', {
       meeting_notes: user.meeting_notes_access,
       gp_scribe: user.gp_scribe_access,
-      complaints_manager: user.complaints_manager_access
+      complaints_manager: user.complaints_manager_access,
+      ai4gp: user.ai4gp_access,
+      enhanced: user.enhanced_access,
+      cqc_compliance: user.cqc_compliance_access,
+      shared_drive: user.shared_drive_access,
+      mic_test: user.mic_test_service_access,
+      api_testing: user.api_testing_service_access
     });
+    
     setEditingUser(user);
-    setUserFormData({
+    
+    const formData = {
       email: user.email,
       full_name: user.full_name,
       password: '',
@@ -555,8 +586,15 @@ const [patientDataAccess, setPatientDataAccess] = useState([]);
         mic_test_service_access: user.mic_test_service_access ?? false,
         api_testing_service_access: user.api_testing_service_access ?? false
       }
-    });
+    };
+    
+    console.log('Setting form data:', formData);
+    console.log('Module access being set:', formData.module_access);
+    
+    setUserFormData(formData);
     setShowUserModal(true);
+    
+    console.log('=== EDITING USER END ===');
   };
 
   const handleDeleteUser = async (userId: string) => {
@@ -605,100 +643,139 @@ const handlePasswordUpdate = async () => {
 
 const handleUserSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('=== FORM SUBMIT START ===');
     console.log('Submitting user form with data:', userFormData);
     console.log('Module access being saved:', userFormData.module_access);
+    console.log('Editing user:', editingUser?.user_id);
+    
     try {
       if (editingUser) {
+        console.log('=== UPDATING EXISTING USER ===');
+        
+        // Store the current form data to prevent it from being overwritten
+        const currentFormData = { ...userFormData };
+        console.log('Stored current form data:', currentFormData.module_access);
+        
         // First, handle practice assignment if specified
         if (userFormData.practice_id !== 'none') {
+          console.log('Updating user with practice assignment');
           // Remove any existing role assignments for this user
-          await supabase
+          const { error: deleteError } = await supabase
             .from('user_roles')
             .delete()
             .eq('user_id', editingUser.user_id);
+            
+          if (deleteError) {
+            console.error('Delete error:', deleteError);
+            throw deleteError;
+          }
           
           // Create new role assignment with practice
+          const insertData = {
+            user_id: editingUser.user_id,
+            role: currentFormData.role,
+            practice_id: currentFormData.practice_id,
+            assigned_by: user?.id,
+            meeting_notes_access: currentFormData.module_access.meeting_notes_access,
+            gp_scribe_access: currentFormData.module_access.gp_scribe_access,
+            complaints_manager_access: currentFormData.module_access.complaints_manager_access,
+            enhanced_access: currentFormData.module_access.enhanced_access,
+            cqc_compliance_access: currentFormData.module_access.cqc_compliance_access,
+            shared_drive_access: currentFormData.module_access.shared_drive_access,
+            mic_test_service_access: currentFormData.module_access.mic_test_service_access,
+            api_testing_service_access: currentFormData.module_access.api_testing_service_access
+          };
+          
+          console.log('Inserting new role with data:', insertData);
+          
           const { error: roleError } = await supabase
             .from('user_roles')
-            .insert({
-              user_id: editingUser.user_id,
-              role: userFormData.role,
-              practice_id: userFormData.practice_id,
-              assigned_by: user?.id,
-              meeting_notes_access: userFormData.module_access.meeting_notes_access,
-              gp_scribe_access: userFormData.module_access.gp_scribe_access,
-              complaints_manager_access: userFormData.module_access.complaints_manager_access,
-              enhanced_access: userFormData.module_access.enhanced_access,
-              cqc_compliance_access: userFormData.module_access.cqc_compliance_access,
-              shared_drive_access: userFormData.module_access.shared_drive_access,
-              mic_test_service_access: userFormData.module_access.mic_test_service_access,
-              api_testing_service_access: userFormData.module_access.api_testing_service_access
-            })
-            .eq('user_id', editingUser.user_id);
+            .insert(insertData);
           
           if (roleError) {
-            console.error('Update error:', roleError);
+            console.error('Insert error:', roleError);
             throw roleError;
           }
         } else {
+          console.log('Updating user without practice assignment');
           // Check if user_roles record exists first
-          const { data: existingRole } = await supabase
+          const { data: existingRoles, error: fetchError } = await supabase
             .from('user_roles')
-            .select('id')
-            .eq('user_id', editingUser.user_id)
-            .single();
+            .select('*')
+            .eq('user_id', editingUser.user_id);
+            
+          if (fetchError) {
+            console.error('Fetch error:', fetchError);
+            throw fetchError;
+          }
           
-          if (existingRole) {
+          console.log('Existing roles found:', existingRoles);
+          
+          if (existingRoles && existingRoles.length > 0) {
             // Update existing user_roles record when no practice is assigned
+            const updateData = {
+              meeting_notes_access: currentFormData.module_access.meeting_notes_access,
+              gp_scribe_access: currentFormData.module_access.gp_scribe_access,
+              complaints_manager_access: currentFormData.module_access.complaints_manager_access,
+              enhanced_access: currentFormData.module_access.enhanced_access,
+              cqc_compliance_access: currentFormData.module_access.cqc_compliance_access,
+              shared_drive_access: currentFormData.module_access.shared_drive_access,
+              mic_test_service_access: currentFormData.module_access.mic_test_service_access,
+              api_testing_service_access: currentFormData.module_access.api_testing_service_access,
+              role: currentFormData.role || 'user'
+            };
+            
+            console.log('Updating existing roles with data:', updateData);
+            
             const { error: roleError } = await supabase
               .from('user_roles')
-              .update({
-                meeting_notes_access: userFormData.module_access.meeting_notes_access,
-                gp_scribe_access: userFormData.module_access.gp_scribe_access,
-                complaints_manager_access: userFormData.module_access.complaints_manager_access,
-                enhanced_access: userFormData.module_access.enhanced_access,
-                cqc_compliance_access: userFormData.module_access.cqc_compliance_access,
-                shared_drive_access: userFormData.module_access.shared_drive_access,
-                mic_test_service_access: userFormData.module_access.mic_test_service_access,
-                api_testing_service_access: userFormData.module_access.api_testing_service_access,
-                role: userFormData.role || 'user'
-              })
+              .update(updateData)
               .eq('user_id', editingUser.user_id);
               
             if (roleError) {
               console.error('Update error:', roleError);
               throw roleError;
             }
+            
+            console.log('Successfully updated user_roles');
           } else {
+            console.log('No existing roles found, creating new one');
             // Create new user_roles record if none exists
+            const insertData = {
+              user_id: editingUser.user_id,
+              role: currentFormData.role || 'user',
+              assigned_by: user?.id,
+              meeting_notes_access: currentFormData.module_access.meeting_notes_access,
+              gp_scribe_access: currentFormData.module_access.gp_scribe_access,
+              complaints_manager_access: currentFormData.module_access.complaints_manager_access,
+              enhanced_access: currentFormData.module_access.enhanced_access,
+              cqc_compliance_access: currentFormData.module_access.cqc_compliance_access,
+              shared_drive_access: currentFormData.module_access.shared_drive_access,
+              mic_test_service_access: currentFormData.module_access.mic_test_service_access,
+              api_testing_service_access: currentFormData.module_access.api_testing_service_access
+            };
+            
+            console.log('Inserting new role with data:', insertData);
+            
             const { error: roleError } = await supabase
               .from('user_roles')
-              .insert({
-                user_id: editingUser.user_id,
-                role: userFormData.role || 'user',
-                assigned_by: user?.id,
-                meeting_notes_access: userFormData.module_access.meeting_notes_access,
-                gp_scribe_access: userFormData.module_access.gp_scribe_access,
-                complaints_manager_access: userFormData.module_access.complaints_manager_access,
-                enhanced_access: userFormData.module_access.enhanced_access,
-                cqc_compliance_access: userFormData.module_access.cqc_compliance_access,
-                shared_drive_access: userFormData.module_access.shared_drive_access,
-                mic_test_service_access: userFormData.module_access.mic_test_service_access,
-                api_testing_service_access: userFormData.module_access.api_testing_service_access
-              });
+              .insert(insertData);
               
             if (roleError) {
               console.error('Insert error:', roleError);
               throw roleError;
             }
+            
+            console.log('Successfully created new user_roles record');
           }
         }
         
         // Update AI4GP access in profiles table
+        console.log('Updating AI4GP access in profiles:', currentFormData.module_access.ai4gp_access);
         const { error: profileError } = await supabase
           .from('profiles')
           .update({
-            ai4gp_access: userFormData.module_access.ai4gp_access
+            ai4gp_access: currentFormData.module_access.ai4gp_access
           })
           .eq('user_id', editingUser.user_id);
         
@@ -707,16 +784,20 @@ const handleUserSubmit = async (e: React.FormEvent) => {
           throw profileError;
         }
         
-        console.log('Successfully updated all user_roles records for user:', editingUser.user_id);
+        console.log('Successfully updated profiles table');
+        console.log('Successfully updated all records for user:', editingUser.user_id);
         
         // If we're updating the current user, refresh their permissions immediately
         if (editingUser.user_id === user?.id) {
+          console.log('Refreshing current user modules');
           await refreshUserModules();
         }
         
+        console.log('=== REFRESHING USER LIST ===');
         await fetchUsers(); // Refresh the users list
         toast.success('User updated successfully');
       } else {
+        console.log('=== CREATING NEW USER ===');
         // Create new user
         const { data, error } = await supabase.functions.invoke('create-user-admin', {
           body: {
@@ -735,9 +816,11 @@ const handleUserSubmit = async (e: React.FormEvent) => {
         toast.success('User created successfully');
       }
       setShowUserModal(false);
+      console.log('=== FORM SUBMIT SUCCESS ===');
     } catch (error) {
+      console.error('=== FORM SUBMIT ERROR ===');
       console.error('Error saving user:', error);
-      toast.error('Failed to save user');
+      toast.error('Failed to save user: ' + (error as any)?.message);
     }
   };
 
