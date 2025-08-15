@@ -414,14 +414,14 @@ const APITesting = () => {
                                 .map((result, index) => {
                                   const modelInfo = getModelInfo(result.model);
                                   return (
-                                    <div key={result.model} className="flex items-center justify-between text-sm">
-                                      <div className="flex items-center gap-2">
-                                        <span className="w-4 text-center font-mono">{index + 1}</span>
-                                        <div className={`w-2 h-2 rounded-full ${modelInfo.color}`} />
-                                        <span>{modelInfo.name}</span>
-                                      </div>
-                                      <span className="font-mono">{formatTime(result.responseTime)}</span>
-                                    </div>
+                                     <div key={result.model} className="flex items-center justify-between text-sm">
+                                       <div className="flex items-center gap-2">
+                                         <span className="w-4 text-center font-mono">{index + 1}</span>
+                                         <div className={`w-2 h-2 rounded-full ${modelInfo.color}`} />
+                                         <span>{modelInfo.name}</span>
+                                       </div>
+                                       <span className="font-mono">{formatTime(result.responseTime)}</span>
+                                     </div>
                                   );
                                 })}
                             </div>
@@ -447,6 +447,33 @@ const APITesting = () => {
                                         <span>{modelInfo.name}</span>
                                       </div>
                                       <span className="font-mono">{result.response.length} chars</span>
+                                    </div>
+                                  );
+                                })}
+                            </div>
+                          </CardContent>
+                        </Card>
+
+                        {/* Response per 1000 chars */}
+                        <Card>
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-sm">Response per 1000 chars</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-2">
+                              {results
+                                .filter(r => r.status === 'completed')
+                                .sort((a, b) => (b.response.length / prompt.length * 1000) - (a.response.length / prompt.length * 1000))
+                                .map((result) => {
+                                  const modelInfo = getModelInfo(result.model);
+                                  const ratio = Math.round((result.response.length / prompt.length) * 1000);
+                                  return (
+                                    <div key={result.model} className="flex items-center justify-between text-sm">
+                                      <div className="flex items-center gap-2">
+                                        <div className={`w-2 h-2 rounded-full ${modelInfo.color}`} />
+                                        <span>{modelInfo.name}</span>
+                                      </div>
+                                      <span className="font-mono">{ratio} chars</span>
                                     </div>
                                   );
                                 })}
