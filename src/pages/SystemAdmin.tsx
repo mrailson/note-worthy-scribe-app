@@ -1858,7 +1858,7 @@ const handleUserSubmit = async (e: React.FormEvent) => {
                   <p className="text-sm text-muted-foreground mb-4">Select which modules this user can access</p>
                   
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between">
+                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
                         <Label htmlFor="meeting_notes_access">Meeting Notes</Label>
                         <p className="text-xs text-muted-foreground">Access to meeting recording and note-taking features</p>
@@ -1866,16 +1866,17 @@ const handleUserSubmit = async (e: React.FormEvent) => {
                       <Switch
                         id="meeting_notes_access"
                         checked={userFormData.module_access.meeting_notes_access}
-                        onCheckedChange={(checked) => 
-                          setUserFormData({
-                            ...userFormData, 
-                            module_access: {...userFormData.module_access, meeting_notes_access: checked}
-                          })
-                        }
+                        onCheckedChange={(checked) => {
+                          console.log('Meeting notes access changed to:', checked);
+                          setUserFormData(prevData => ({
+                            ...prevData, 
+                            module_access: {...prevData.module_access, meeting_notes_access: checked}
+                          }));
+                        }}
                       />
                     </div>
 
-                    <div className="flex items-center justify-between">
+                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
                         <Label htmlFor="gp_scribe_access">GP Scribe</Label>
                         <p className="text-xs text-muted-foreground">Access to consultation transcription and note generation</p>
@@ -1883,16 +1884,17 @@ const handleUserSubmit = async (e: React.FormEvent) => {
                       <Switch
                         id="gp_scribe_access"
                         checked={userFormData.module_access.gp_scribe_access}
-                        onCheckedChange={(checked) => 
-                          setUserFormData({
-                            ...userFormData, 
-                            module_access: {...userFormData.module_access, gp_scribe_access: checked}
-                          })
-                        }
+                        onCheckedChange={(checked) => {
+                          console.log('GP Scribe access changed to:', checked);
+                          setUserFormData(prevData => ({
+                            ...prevData, 
+                            module_access: {...prevData.module_access, gp_scribe_access: checked}
+                          }));
+                        }}
                       />
                     </div>
 
-                    <div className="flex items-center justify-between">
+                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
                         <Label htmlFor="complaints_manager_access">Complaints Manager</Label>
                         <p className="text-xs text-muted-foreground">Access to view and manage complaints</p>
@@ -1900,18 +1902,19 @@ const handleUserSubmit = async (e: React.FormEvent) => {
                       <Switch
                         id="complaints_manager_access"
                         checked={userFormData.module_access.complaints_manager_access}
-                        onCheckedChange={(checked) => 
-                          setUserFormData({
-                            ...userFormData, 
-                            module_access: {...userFormData.module_access, complaints_manager_access: checked}
-                          })
-                        }
+                        onCheckedChange={(checked) => {
+                          console.log('Complaints Manager access changed to:', checked);
+                          setUserFormData(prevData => ({
+                            ...prevData, 
+                            module_access: {...prevData.module_access, complaints_manager_access: checked}
+                          }));
+                        }}
                       />
                     </div>
 
 
 
-                    <div className="flex items-center justify-between">
+                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
                         <Label htmlFor="ai4gp_access">AI4GP Service</Label>
                         <p className="text-xs text-muted-foreground">Access to AI4GP service for enhanced GP practice support</p>
@@ -1919,16 +1922,17 @@ const handleUserSubmit = async (e: React.FormEvent) => {
                       <Switch
                         id="ai4gp_access"
                         checked={userFormData.module_access.ai4gp_access}
-                        onCheckedChange={(checked) => 
-                          setUserFormData({
-                            ...userFormData, 
-                            module_access: {...userFormData.module_access, ai4gp_access: checked}
-                          })
-                        }
+                        onCheckedChange={(checked) => {
+                          console.log('AI4GP access changed to:', checked);
+                          setUserFormData(prevData => ({
+                            ...prevData, 
+                            module_access: {...prevData.module_access, ai4gp_access: checked}
+                          }));
+                        }}
                       />
                     </div>
 
-                    <div className="flex items-center justify-between">
+                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
                         <Label htmlFor="enhanced_access">Enhanced Access</Label>
                         <p className="text-xs text-muted-foreground">Access to enhanced appointment booking and patient services</p>
@@ -1936,16 +1940,17 @@ const handleUserSubmit = async (e: React.FormEvent) => {
                       <Switch
                         id="enhanced_access"
                         checked={userFormData.module_access.enhanced_access}
-                        onCheckedChange={(checked) => 
-                          setUserFormData({
-                            ...userFormData, 
-                            module_access: {...userFormData.module_access, enhanced_access: checked}
-                          })
-                        }
+                        onCheckedChange={(checked) => {
+                          console.log('Enhanced access changed to:', checked);
+                          setUserFormData(prevData => ({
+                            ...prevData, 
+                            module_access: {...prevData.module_access, enhanced_access: checked}
+                          }));
+                        }}
                       />
                     </div>
 
-                    <div className="flex items-center justify-between">
+                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
                         <Label htmlFor="cqc_compliance_access">CQC Compliance</Label>
                         <p className="text-xs text-muted-foreground">Access to CQC compliance monitoring and assessment tools</p>
@@ -1953,16 +1958,17 @@ const handleUserSubmit = async (e: React.FormEvent) => {
                       <Switch
                         id="cqc_compliance_access"
                         checked={userFormData.module_access.cqc_compliance_access}
-                        onCheckedChange={(checked) => 
-                          setUserFormData({
-                            ...userFormData, 
-                            module_access: {...userFormData.module_access, cqc_compliance_access: checked}
-                          })
-                        }
+                        onCheckedChange={(checked) => {
+                          console.log('CQC Compliance access changed to:', checked);
+                          setUserFormData(prevData => ({
+                            ...prevData, 
+                            module_access: {...prevData.module_access, cqc_compliance_access: checked}
+                          }));
+                        }}
                       />
                     </div>
 
-                    <div className="flex items-center justify-between">
+                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
                         <Label htmlFor="shared_drive_access">Shared Drive Access</Label>
                         <p className="text-xs text-muted-foreground">Access to shared file storage and collaboration features</p>
@@ -1970,16 +1976,17 @@ const handleUserSubmit = async (e: React.FormEvent) => {
                       <Switch
                         id="shared_drive_access"
                         checked={userFormData.module_access.shared_drive_access}
-                        onCheckedChange={(checked) => 
-                          setUserFormData({
-                            ...userFormData, 
-                            module_access: {...userFormData.module_access, shared_drive_access: checked}
-                          })
-                        }
+                        onCheckedChange={(checked) => {
+                          console.log('Shared Drive access changed to:', checked);
+                          setUserFormData(prevData => ({
+                            ...prevData, 
+                            module_access: {...prevData.module_access, shared_drive_access: checked}
+                          }));
+                        }}
                       />
                     </div>
 
-                    <div className="flex items-center justify-between">
+                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
                         <Label htmlFor="mic_test_service_access">Mic Test Service</Label>
                         <p className="text-xs text-muted-foreground">Access to microphone testing and recording playback features</p>
@@ -1987,16 +1994,17 @@ const handleUserSubmit = async (e: React.FormEvent) => {
                       <Switch
                         id="mic_test_service_access"
                         checked={userFormData.module_access.mic_test_service_access}
-                        onCheckedChange={(checked) => 
-                          setUserFormData({
-                            ...userFormData, 
-                            module_access: {...userFormData.module_access, mic_test_service_access: checked}
-                          })
-                        }
+                        onCheckedChange={(checked) => {
+                          console.log('Mic Test Service access changed to:', checked);
+                          setUserFormData(prevData => ({
+                            ...prevData, 
+                            module_access: {...prevData.module_access, mic_test_service_access: checked}
+                          }));
+                        }}
                       />
                     </div>
 
-                    <div className="flex items-center justify-between">
+                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
                         <Label htmlFor="api_testing_service_access">API Testing Service</Label>
                         <p className="text-xs text-muted-foreground">Access to AI model comparison and API testing features</p>
@@ -2004,12 +2012,13 @@ const handleUserSubmit = async (e: React.FormEvent) => {
                       <Switch
                         id="api_testing_service_access"
                         checked={userFormData.module_access.api_testing_service_access}
-                        onCheckedChange={(checked) => 
-                          setUserFormData({
-                            ...userFormData, 
-                            module_access: {...userFormData.module_access, api_testing_service_access: checked}
-                          })
-                        }
+                        onCheckedChange={(checked) => {
+                          console.log('API Testing Service access changed to:', checked);
+                          setUserFormData(prevData => ({
+                            ...prevData, 
+                            module_access: {...prevData.module_access, api_testing_service_access: checked}
+                          }));
+                        }}
                       />
                     </div>
                   </div>
