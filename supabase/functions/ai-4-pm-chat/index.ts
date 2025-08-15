@@ -304,19 +304,41 @@ async function extractPdfWithVision(file: UploadedFile): Promise<string | null> 
       return null;
     }
     
-    const systemPrompt = `You are an expert document analyzer with perfect text extraction capabilities. 
-Analyze this PDF and extract ALL readable text content with perfect accuracy.
+    // For PDF files, we need to indicate it's a PDF document to the vision model
+    let imageData = file.content;
+    
+    // Convert PDF data URL to proper format if needed
+    if (!imageData.startsWith('data:image/')) {
+      // If it's a PDF, convert the data URL format
+      if (file.name.toLowerCase().endsWith('.pdf')) {
+        console.log('Converting PDF to vision-compatible format');
+        imageData = file.content.replace('data:application/pdf;base64,', 'data:image/png;base64,');
+      }
+    }
+    
+    const systemPrompt = `You are an expert document analyzer specializing in PDF and invoice text extraction. 
+This image contains a PDF document that needs complete text extraction.
 
-CRITICAL INSTRUCTIONS:
-- Extract every piece of text visible in the document
-- Maintain original formatting and structure where possible
-- Include all numbers, dates, amounts, addresses, and details
-- For invoices/financial documents, extract: supplier details, invoice numbers, dates, line items, amounts, VAT, totals, payment terms
-- Do not summarize - provide complete text extraction
-- If text is unclear, indicate with [unclear] but extract what you can see
-- Focus on being comprehensive and accurate like professional OCR software
+CRITICAL EXTRACTION REQUIREMENTS:
+- Extract EVERY piece of visible text with 100% accuracy
+- Include ALL: company names, addresses, phone numbers, emails
+- Include ALL: invoice numbers, dates, reference numbers
+- Include ALL: line items, descriptions, quantities, rates, amounts
+- Include ALL: subtotals, VAT/tax amounts, total amounts
+- Include ALL: payment terms, due dates, bank details
+- Preserve formatting and structure where possible
+- If text is partially obscured, extract what you can see and note [partial]
 
-Return the extracted text exactly as it appears in the document.`;
+For invoices specifically extract:
+- Supplier/vendor details (name, address, contact info)
+- Customer/recipient details  
+- Invoice number and date
+- Service period covered
+- Itemized services/products with costs
+- Net amounts, VAT rates and amounts, gross totals
+- Payment terms and bank details
+
+Return complete extracted text preserving document structure.`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -337,12 +359,13 @@ Return the extracted text exactly as it appears in the document.`;
             content: [
               {
                 type: 'text',
-                text: 'Please extract all text content from this PDF document with perfect accuracy:'
+                text: 'Extract ALL text content from this PDF document image with complete accuracy. Focus on invoice details if this is an invoice:'
               },
               {
                 type: 'image_url',
                 image_url: {
-                  url: file.content
+                  url: imageData,
+                  detail: 'high'
                 }
               }
             ]
@@ -352,7 +375,8 @@ Return the extracted text exactly as it appears in the document.`;
     });
 
     if (!response.ok) {
-      console.log(`Vision API error: ${response.status} ${response.statusText}`);
+      const errorText = await response.text();
+      console.log(`Vision API error: ${response.status} - ${errorText}`);
       return null;
     }
 
@@ -360,14 +384,15 @@ Return the extracted text exactly as it appears in the document.`;
     const extractedText = data.choices[0]?.message?.content;
     
     if (extractedText && extractedText.length > 50) {
-      console.log('Vision model successfully extracted text from PDF');
-      return `PDF CONTENT EXTRACTED FROM: ${file.name} (Using Vision AI)
+      console.log(`Vision model successfully extracted ${extractedText.length} characters from PDF`);
+      return `PDF CONTENT EXTRACTED FROM: ${file.name} (Using Advanced Vision AI)
 
 ${extractedText}
 
-[Note: Content extracted using advanced vision AI technology for accurate text recognition from image-based PDFs.]`;
+[Note: Content extracted using GPT-5 Vision AI technology for comprehensive text recognition from PDF documents.]`;
     }
     
+    console.log('Vision model returned insufficient content');
     return null;
   } catch (error) {
     console.error('Vision model extraction error:', error);
