@@ -354,15 +354,10 @@ const NewsPanel = ({ showFiltersInHeader = false }: { showFiltersInHeader?: bool
   }
 
   return (
-    <div className="space-y-2">
-      {/* Filter Controls */}
-      <div className="flex items-center justify-end">
-        <FilterControls />
-      </div>
-
+    <div>
       {/* Desktop filters - collapsible */}
       {showFilters && (
-        <div className="hidden sm:flex flex-wrap gap-3 p-3 bg-muted/20 rounded-lg">
+        <div className="hidden sm:flex flex-wrap gap-3 p-3 bg-muted/20 rounded-lg mb-4">
           <Select value={filterTag} onValueChange={setFilterTag}>
             <SelectTrigger className="w-40">
               <SelectValue placeholder="All Tags" />
