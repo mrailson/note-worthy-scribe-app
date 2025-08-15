@@ -86,7 +86,7 @@ const GPGenieVoiceAgent = () => {
       // Select agent ID based on active tab
       const agentId = activeTab === 'gp-genie' 
         ? 'agent_01jwry2fzme7xsb2mwzatxseyt'  // GP Genie
-        : 'agent_01jwry2fzme7xsb2mwzatxseyt';  // PM Genie (placeholder - will be updated)
+        : 'agent_01jzsg04q1fwy9bfydkhszan7s';  // PM Genie
 
       const { data, error } = await supabase.functions.invoke('elevenlabs-agent-url', {
         body: { agentId }
