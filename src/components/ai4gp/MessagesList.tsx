@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2 } from 'lucide-react';
+import { Bot, Sparkles } from 'lucide-react';
 import MessageRenderer from '@/components/MessageRenderer';
 import { Message } from '@/types/ai4gp';
 
@@ -59,7 +59,21 @@ export const MessagesList: React.FC<MessagesListProps> = ({
         
         {isLoading && (
           <div className="flex items-center justify-center py-4">
-            <Loader2 className="w-6 h-6 animate-spin mr-2" />
+            <div className="relative w-8 h-8 mr-3">
+              {/* Main rotating gear */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="bg-primary rounded-full p-1.5 animate-spin" style={{ animationDuration: '3s' }}>
+                  <Bot className="h-4 w-4 text-primary-foreground" />
+                </div>
+              </div>
+              
+              {/* Secondary rotating gear */}
+              <div className="absolute top-0 right-0 flex items-center justify-center">
+                <div className="bg-primary/70 rounded-full p-1 animate-spin" style={{ animationDuration: '2s', animationDirection: 'reverse' }}>
+                  <Sparkles className="h-2.5 w-2.5 text-primary-foreground" />
+                </div>
+              </div>
+            </div>
             <span className="text-muted-foreground">AI is thinking...</span>
           </div>
         )}
