@@ -451,23 +451,36 @@ export const PracticeUserManagement = () => {
             <div className="space-y-3">
               <Label>Module Access</Label>
               <div className="grid grid-cols-2 gap-3">
-                {Object.entries(userFormData.module_access).map(([key, value]) => (
-                  <div key={key} className="flex items-center space-x-2">
-                    <Switch
-                      id={key}
-                      checked={value}
-                      onCheckedChange={(checked) => 
-                        setUserFormData(prev => ({
-                          ...prev,
-                          module_access: { ...prev.module_access, [key]: checked }
-                        }))
-                      }
-                    />
-                    <Label htmlFor={key} className="text-sm">
-                      {key.replace(/_/g, ' ').replace(/access/g, '').trim()}
-                    </Label>
-                  </div>
-                ))}
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="meeting_notes_access"
+                    checked={userFormData.module_access.meeting_notes_access}
+                    onCheckedChange={(checked) => 
+                      setUserFormData(prev => ({
+                        ...prev,
+                        module_access: { ...prev.module_access, meeting_notes_access: checked }
+                      }))
+                    }
+                  />
+                  <Label htmlFor="meeting_notes_access" className="text-sm">
+                    Meeting Notes
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="ai4gp_access"
+                    checked={userFormData.module_access.ai4gp_access}
+                    onCheckedChange={(checked) => 
+                      setUserFormData(prev => ({
+                        ...prev,
+                        module_access: { ...prev.module_access, ai4gp_access: checked }
+                      }))
+                    }
+                  />
+                  <Label htmlFor="ai4gp_access" className="text-sm">
+                    AI4GP
+                  </Label>
+                </div>
               </div>
             </div>
           </div>
