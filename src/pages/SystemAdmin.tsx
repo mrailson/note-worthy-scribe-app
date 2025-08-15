@@ -264,7 +264,7 @@ const [patientDataAccess, setPatientDataAccess] = useState([]);
           // Get ALL user_roles for this user and take the first one for display
           const { data: roleData } = await supabase
             .from('user_roles')
-            .select('meeting_notes_access, gp_scribe_access, complaints_manager_access, enhanced_access, cqc_compliance_access, shared_drive_access, mic_test_service_access')
+            .select('meeting_notes_access, gp_scribe_access, complaints_manager_access, enhanced_access, cqc_compliance_access, shared_drive_access, mic_test_service_access, api_testing_service_access')
             .eq('user_id', user.user_id)
             .limit(1)
             .single();
@@ -285,7 +285,8 @@ const [patientDataAccess, setPatientDataAccess] = useState([]);
             enhanced_access: roleData?.enhanced_access ?? false,
             cqc_compliance_access: roleData?.cqc_compliance_access ?? false,
             shared_drive_access: roleData?.shared_drive_access ?? false,
-            mic_test_service_access: roleData?.mic_test_service_access ?? false
+            mic_test_service_access: roleData?.mic_test_service_access ?? false,
+            api_testing_service_access: roleData?.api_testing_service_access ?? false
           };
         })
       );
