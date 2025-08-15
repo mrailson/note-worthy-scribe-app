@@ -4,6 +4,8 @@ export interface Message {
   content: string;
   timestamp: Date;
   files?: UploadedFile[];
+  responseTime?: number;
+  model?: string;
 }
 
 export interface UploadedFile {

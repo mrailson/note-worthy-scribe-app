@@ -4,7 +4,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Brain, Search, Bot } from 'lucide-react';
+import { Brain, Search, Bot, Clock } from 'lucide-react';
 
 interface SettingsModalProps {
   open: boolean;
@@ -15,6 +15,8 @@ interface SettingsModalProps {
   onIncludeLatestUpdatesChange: (enabled: boolean) => void;
   selectedModel: string;
   onModelChange: (model: string) => void;
+  showResponseMetrics: boolean;
+  onShowResponseMetricsChange: (enabled: boolean) => void;
 }
 
 const AI_MODELS = [
@@ -60,7 +62,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   includeLatestUpdates,
   onIncludeLatestUpdatesChange,
   selectedModel,
-  onModelChange
+  onModelChange,
+  showResponseMetrics,
+  onShowResponseMetricsChange
 }) => {
   const selectedModelInfo = AI_MODELS.find(model => model.id === selectedModel) || AI_MODELS[0];
 
@@ -150,6 +154,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   id="web-search"
                   checked={includeLatestUpdates}
                   onCheckedChange={onIncludeLatestUpdatesChange}
+                />
+              </div>
+              
+              <div className="flex items-center justify-between space-x-2">
+                <div className="space-y-0.5">
+                  <Label htmlFor="response-metrics" className="text-sm font-medium flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    Response Metrics
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Show response time and model used for each AI response
+                  </p>
+                </div>
+                <Switch
+                  id="response-metrics"
+                  checked={showResponseMetrics}
+                  onCheckedChange={onShowResponseMetricsChange}
                 />
               </div>
             </CardContent>

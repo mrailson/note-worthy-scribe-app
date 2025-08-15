@@ -15,7 +15,8 @@ import {
   Expand,
   Minimize2,
   FileDown,
-  Presentation
+  Presentation,
+  Clock
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -25,6 +26,8 @@ interface Message {
   content: string;
   timestamp: Date;
   files?: UploadedFile[];
+  responseTime?: number;
+  model?: string;
 }
 
 interface UploadedFile {
@@ -41,15 +44,17 @@ interface MessageRendererProps {
   onExportPowerPoint?: (content: string, title?: string) => void;
   isModal?: boolean; // New prop to indicate if rendering in modal
   onCloseModal?: () => void; // New prop to close modal
+  showResponseMetrics?: boolean; // New prop to show response metrics
 }
 
 const MessageRenderer: React.FC<MessageRendererProps> = ({ 
   message, 
   onExpandMessage, 
   onExportWord, 
-  onExportPowerPoint, 
+  onExportPowerPoint,
   isModal = false,
-  onCloseModal 
+  onCloseModal,
+  showResponseMetrics = false
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showFullContent, setShowFullContent] = useState(true);
@@ -395,6 +400,24 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
             </div>
           )}
           
+          {/* Response metrics for assistant messages */}
+          {showResponseMetrics && message.role === 'assistant' && message.responseTime && (
+            <div className="mt-2 pt-2 border-t border-border/20">
+              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                <div className="flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  <span>{message.responseTime}ms</span>
+                </div>
+                {message.model && (
+                  <div className="flex items-center gap-1">
+                    <Bot className="h-3 w-3" />
+                    <span>{message.model}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Message footer - always show action buttons in modal */}
           {(!isModal || (isModal && message.role === 'assistant')) && (
             <div className={`${isModal ? 'fixed bottom-4 left-4 right-4 bg-background/95 backdrop-blur-sm border rounded-lg p-3 shadow-lg z-50' : 'flex items-center justify-between mt-3 pt-3 border-t border-border/20'}`}>

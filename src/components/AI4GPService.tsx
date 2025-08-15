@@ -46,6 +46,8 @@ const AI4GPService = () => {
     setSessionMemory,
     includeLatestUpdates,
     setIncludeLatestUpdates,
+    showResponseMetrics,
+    setShowResponseMetrics,
     handleSend,
     handleNewSearch
   } = useAI4GPService();
@@ -249,6 +251,7 @@ const AI4GPService = () => {
                       setExpandedMessage={setExpandedMessage}
                       onExportWord={generateWordDocument}
                       onExportPowerPoint={generatePowerPoint}
+                      showResponseMetrics={showResponseMetrics}
                     />
                   </div>
                 )}
@@ -292,6 +295,7 @@ const AI4GPService = () => {
                   onExportPowerPoint={generatePowerPoint}
                   isModal={true} // Hide avatar and scroll arrow in modal
                   onCloseModal={() => setExpandedMessage(null)} // Close modal function
+                  showResponseMetrics={showResponseMetrics}
                 />
               </div>
             )}
@@ -321,6 +325,8 @@ const AI4GPService = () => {
         onIncludeLatestUpdatesChange={setIncludeLatestUpdates}
         selectedModel={selectedModel}
         onModelChange={setSelectedModel}
+        showResponseMetrics={showResponseMetrics}
+        onShowResponseMetricsChange={setShowResponseMetrics}
       />
     </>
   );
