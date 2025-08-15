@@ -150,18 +150,28 @@ const GPGenieVoiceAgent = () => {
     const newMutedState = !isMuted;
     setIsMuted(newMutedState);
     
-    if (conversation.status === 'connected') {
-      if (newMutedState) {
-        // store current volume and mute
-        prevVolumeRef.current = volume;
-        await conversation.setVolume({ volume: 0 });
+    try {
+      if (conversation.status === 'connected') {
+        if (newMutedState) {
+          // store current volume and mute
+          prevVolumeRef.current = volume;
+          await conversation.setVolume({ volume: 0 });
+          toast.info('Speaker muted');
+        } else {
+          // restore previous volume
+          const restore = prevVolumeRef.current ?? 0.8;
+          setVolume(restore);
+          await conversation.setVolume({ volume: restore });
+          toast.info('Speaker unmuted');
+        }
       } else {
-        // restore previous volume
-        const restore = prevVolumeRef.current ?? 0.8;
-        setVolume(restore);
-        await conversation.setVolume({ volume: restore });
+        toast.info(newMutedState ? 'Speaker muted' : 'Speaker unmuted');
       }
-      toast.info(newMutedState ? 'Sound muted' : 'Sound unmuted');
+    } catch (err) {
+      console.error('Sound toggle failed:', err);
+      toast.error('Failed to toggle speaker');
+      // Revert state if operation failed
+      setIsMuted(!newMutedState);
     }
   };
 
