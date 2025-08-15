@@ -307,7 +307,7 @@ const GPGenieVoiceAgent = () => {
                   className="flex items-center gap-2"
                 >
                   {isMicMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-                  {isMicMuted ? 'Mic Off' : 'Mic On'}
+                  {isMicMuted ? 'Unmute' : 'Mute'}
                 </Button>
                 
                 <Button
