@@ -11,7 +11,7 @@ export const useFileUpload = () => {
     try {
       const filePromises = Array.from(files).map(async (file) => {
         // Add file type validation
-        const validTypes = ['.pdf', '.doc', '.docx', '.rtf', '.txt', '.eml', '.msg', '.jpg', '.jpeg', '.png', '.wav', '.mp3', '.m4a'];
+        const validTypes = ['.pdf', '.doc', '.docx', '.rtf', '.txt', '.eml', '.msg', '.jpg', '.jpeg', '.png', '.wav', '.mp3', '.m4a', '.xls', '.xlsx', '.csv'];
         const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
         
         if (!validTypes.includes(fileExtension)) {
@@ -43,7 +43,7 @@ export const useFileUpload = () => {
           reader.onerror = () => reject(new Error(`Failed to read ${file.name}`));
           
           // Use readAsText for text files, readAsDataURL for binary files
-          if (['.jpg', '.jpeg', '.png', '.wav', '.mp3', '.m4a'].includes(fileExtension)) {
+          if (['.jpg', '.jpeg', '.png', '.wav', '.mp3', '.m4a', '.xls', '.xlsx', '.pdf', '.doc', '.docx'].includes(fileExtension)) {
             reader.readAsDataURL(file);
           } else {
             reader.readAsText(file);

@@ -41,6 +41,11 @@ async function extractFileContent(file: UploadedFile): Promise<string> {
       return await extractWordContent(file);
     }
     
+    // Handle Excel files
+    if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls') || fileName.endsWith('.csv') || fileType.includes('spreadsheet')) {
+      return extractExcelContent(file);
+    }
+    
     // Handle text files
     if (fileName.endsWith('.txt') || fileType.includes('text/plain')) {
       return extractTextContent(file);
@@ -56,9 +61,14 @@ async function extractFileContent(file: UploadedFile): Promise<string> {
       return extractPowerPointContent(file);
     }
     
+    // Handle images (for OCR or analysis)
+    if (fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') || fileName.endsWith('.png') || fileName.endsWith('.gif') || fileName.endsWith('.webp') || fileType.includes('image/')) {
+      return extractImageContent(file);
+    }
+    
     // For other file types, return the original content (might be base64)
     console.log(`Unsupported file type: ${fileName}, type: ${fileType}`);
-    return `[File: ${file.name} - Content extraction not supported for this file type. Please convert to .txt, .docx format for full text extraction.]`;
+    return `[File: ${file.name} - Content extraction not supported for this file type. Please convert to .txt, .docx, .xlsx format for full text extraction.]`;
     
   } catch (error) {
     console.error(`Error extracting content from ${file.name}:`, error);
@@ -152,6 +162,69 @@ function extractPowerPointContent(file: UploadedFile): string {
 3. Paste the text directly in your message
 
 PowerPoint automatic text extraction is limited. Converting to .docx or .txt format will provide better results.]`;
+}
+
+function extractExcelContent(file: UploadedFile): string {
+  try {
+    const fileName = file.name.toLowerCase();
+    const fileSize = (file.size / 1024 / 1024).toFixed(2);
+    
+    // Handle CSV files
+    if (fileName.endsWith('.csv')) {
+      // For CSV files, try to read as text
+      if (file.content.startsWith('data:')) {
+        const base64Data = file.content.replace(/^data:.*,/, '');
+        const csvContent = atob(base64Data);
+        return `[CSV File: ${file.name}]\n\nContent:\n${csvContent}`;
+      } else {
+        return `[CSV File: ${file.name}]\n\nContent:\n${file.content}`;
+      }
+    }
+    
+    // For Excel files (.xls, .xlsx), provide instructions
+    return `[Excel File: ${file.name} (${fileSize}MB) - For best results with Excel files, please:
+1. Open your Excel file
+2. Copy the data from relevant sheets
+3. Paste directly in your message
+4. Or export to CSV format for automatic processing
+
+Excel automatic data extraction is limited. Converting to CSV or copying data directly will provide better results.
+
+If this file contains tabular data that you'd like me to analyze, please paste the data directly in your message.]`;
+    
+  } catch (error) {
+    console.error('Error processing Excel file:', error);
+    return `[Excel File: ${file.name} - Error processing file. Please copy data manually or convert to CSV format.]`;
+  }
+}
+
+function extractImageContent(file: UploadedFile): string {
+  try {
+    const fileName = file.name.toLowerCase();
+    const fileSize = (file.size / 1024 / 1024).toFixed(2);
+    
+    // For image files, provide base64 data for AI analysis
+    if (file.content.startsWith('data:image/')) {
+      return `[Image File: ${file.name} (${fileSize}MB)]
+
+Image data available for analysis. I can analyze this image and help with:
+- Text extraction from handwritten or printed documents
+- Medical image interpretation (when appropriate)
+- Document analysis and summarization
+- Visual content description
+
+Please describe what you'd like me to focus on in this image.
+
+[Base64 Image Data]
+${file.content}`;
+    } else {
+      return `[Image File: ${file.name} (${fileSize}MB) - Image content available for analysis. Please describe what you'd like me to analyze in this image.]`;
+    }
+    
+  } catch (error) {
+    console.error('Error processing image file:', error);
+    return `[Image File: ${file.name} - Error processing image. Please try uploading again or describe the image content manually.]`;
+  }
 }
 
 async function callClaude(messages: Message[], systemPrompt: string, files?: UploadedFile[]): Promise<string> {

@@ -103,7 +103,7 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
             ref={fileInputRef}
             type="file"
             multiple
-            accept=".pdf,.doc,.docx,.rtf,.txt,.eml,.msg,.jpg,.jpeg,.png,.wav,.mp3,.m4a"
+            accept=".pdf,.doc,.docx,.rtf,.txt,.eml,.msg,.jpg,.jpeg,.png,.wav,.mp3,.m4a,.xls,.xlsx,.csv"
             onChange={handleFileSelect}
             className="hidden"
           />
@@ -158,7 +158,7 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
       </div>
       
       <div className="text-xs text-muted-foreground text-center">
-        Press Ctrl+Enter to send • Upload files: PDF, Word, text, images, audio • {
+        Press Ctrl+Enter to send • Upload files: PDF, Word, Excel, text, images, audio • {
           isRecording 
             ? '🔴 Recording... click mic to stop' 
             : isProcessing 
