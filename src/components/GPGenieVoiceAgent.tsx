@@ -179,9 +179,26 @@ const GPGenieVoiceAgent = () => {
     const newState = !isMicMuted;
     setIsMicMuted(newState);
 
-    // The ElevenLabs SDK doesn't support pausing input directly
-    // So we just update the UI state - the user can end/restart if needed
-    toast.info(newState ? 'Microphone muted' : 'Microphone unmuted');
+    try {
+      if (conversation.status === 'connected') {
+        if (newState) {
+          // Actually end the session to stop microphone input
+          await conversation.endSession();
+          toast.info('Microphone muted - session paused');
+        } else {
+          // Restart the conversation to resume microphone input
+          await startConversation();
+          toast.info('Microphone unmuted - session resumed');
+        }
+      } else {
+        toast.info(newState ? 'Microphone muted' : 'Microphone unmuted');
+      }
+    } catch (err) {
+      console.error('Mic toggle failed:', err);
+      toast.error('Failed to toggle microphone');
+      // Revert state if operation failed
+      setIsMicMuted(!newState);
+    }
   };
 
   useEffect(() => {
