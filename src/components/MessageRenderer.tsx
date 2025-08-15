@@ -429,18 +429,18 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
               <div className="flex items-center gap-3 text-xs text-muted-foreground">
                 <div className="flex items-center gap-1">
                   <Clock className="h-3 w-3" />
-                  <span>{message.responseTime}ms total</span>
+                  <span>{(message.responseTime / 1000).toFixed(1)}s total</span>
                 </div>
                 {message.apiResponseTime && (
                   <div className="flex items-center gap-1">
                     <Clock className="h-3 w-3" />
-                    <span>{message.apiResponseTime}ms API</span>
+                    <span>{(message.apiResponseTime / 1000).toFixed(1)}s API</span>
                   </div>
                 )}
                 {message.timeToFirstWords && (
                   <div className="flex items-center gap-1">
                     <Clock className="h-3 w-3" />
-                    <span>{message.timeToFirstWords}ms first words</span>
+                    <span>{(message.timeToFirstWords / 1000).toFixed(1)}s first words</span>
                   </div>
                 )}
                 {message.model && (
