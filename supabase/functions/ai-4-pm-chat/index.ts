@@ -24,7 +24,7 @@ interface UploadedFile {
 
 interface RequestBody {
   messages: Message[];
-  model: 'claude' | 'gpt' | 'chatgpt5';
+  model: 'claude' | 'gpt' | 'chatgpt5' | 'grok-beta' | 'claude-4-opus' | 'claude-4-sonnet' | 'gpt-4-turbo' | 'gemini-ultra' | 'gpt-5';
   systemPrompt: string;
   files?: UploadedFile[];
   enableWebSearch?: boolean;
@@ -322,6 +322,63 @@ async function callGPT5(messages: Message[], systemPrompt: string, files?: Uploa
   return data.choices[0].message.content;
 }
 
+async function callGrok(messages: Message[], systemPrompt: string, files?: UploadedFile[]): Promise<string> {
+  const grokApiKey = Deno.env.get('GROK_API_KEY');
+  if (!grokApiKey) {
+    throw new Error('Grok API key not configured');
+  }
+
+  // Format messages for Grok
+  const grokMessages = [
+    { role: 'system', content: systemPrompt }
+  ];
+
+  messages.forEach(msg => {
+    let content = msg.content || ''; // Ensure content is never null/undefined
+    
+    // Add file content if present
+    if (msg.files && msg.files.length > 0) {
+      const fileContent = msg.files.map(file => 
+        `\n\n--- File: ${file.name} ---\n${file.content}\n--- End of ${file.name} ---`
+      ).join('');
+      content += fileContent;
+    }
+    
+    // Ensure content is not empty
+    if (!content.trim()) {
+      content = '[No message content]';
+    }
+    
+    grokMessages.push({
+      role: msg.role,
+      content
+    });
+  });
+
+  const response = await fetch('https://api.x.ai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${grokApiKey}`
+    },
+    body: JSON.stringify({
+      model: 'grok-beta',
+      messages: grokMessages,
+      max_tokens: 4000,
+      temperature: 0.7
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    console.error('Grok API error:', error);
+    throw new Error(`Grok API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.choices[0].message.content;
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -514,14 +571,17 @@ serve(async (req) => {
 
     let response: string;
 
-    if (model === 'claude') {
+    // Model routing with proper mapping
+    if (model === 'claude' || model === 'claude-4-opus' || model === 'claude-4-sonnet') {
       response = await callClaude(processedMessages, enhancedSystemPrompt, files);
-    } else if (model === 'gpt') {
+    } else if (model === 'gpt' || model === 'gpt-4-turbo') {
       response = await callGPT(processedMessages, enhancedSystemPrompt, files);
-    } else if (model === 'chatgpt5') {
+    } else if (model === 'chatgpt5' || model === 'gpt-5') {
       response = await callGPT5(processedMessages, enhancedSystemPrompt, files);
+    } else if (model === 'grok-beta') {
+      response = await callGrok(processedMessages, enhancedSystemPrompt, files);
     } else {
-      throw new Error('Invalid model specified');
+      throw new Error(`Unsupported model: ${model}`);
     }
 
     return new Response(

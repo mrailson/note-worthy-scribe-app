@@ -73,7 +73,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     return prompt;
   }, []);
 
-  const handleSend = useCallback(async (practiceContext: any) => {
+  const handleSend = useCallback(async (practiceContext: any, selectedModel: string = 'gpt-5') => {
     if (!input.trim() && uploadedFiles.length === 0) return;
     
     // Enhance the message content when files are attached
@@ -124,7 +124,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
       const { data, error } = await supabase.functions.invoke('ai-4-pm-chat', {
         body: {
           messages: messagesForAPI,
-          model: 'chatgpt5',
+          model: selectedModel,
           systemPrompt: systemPrompt,
           files: uploadedFiles.length > 0 ? uploadedFiles : undefined,
           enableWebSearch: includeLatestUpdates
@@ -145,7 +145,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         content: responseContent,
         timestamp: new Date(),
         responseTime: responseTime,
-        model: 'GPT-5' // This should ideally come from the API response
+        model: selectedModel
       };
 
       const finalMessages = [...newMessages, assistantMessage];

@@ -62,7 +62,7 @@ const AI4GPService = () => {
   } = useSearchHistory();
 
   const handleSendWithContext = () => {
-    handleSend(practiceContext);
+    handleSend(practiceContext, selectedModel);
   };
 
   const handleLoadPreviousSearch = (search: any) => {

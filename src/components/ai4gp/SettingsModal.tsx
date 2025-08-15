@@ -40,6 +40,12 @@ const AI_MODELS = [
     description: 'High performance with excellent efficiency'
   },
   {
+    id: 'grok-beta',
+    name: 'Grok',
+    provider: 'xAI',
+    description: 'Real-time information and conversational AI'
+  },
+  {
     id: 'gpt-4-turbo',
     name: 'GPT-4 Turbo',
     provider: 'OpenAI',
