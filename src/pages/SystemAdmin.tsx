@@ -65,6 +65,11 @@ interface Practice {
   ics_code: string;
   ics_name: string;
   organisation_type: string;
+  address?: string;
+  postcode?: string;
+  website?: string;
+  email?: string;
+  phone?: string;
 }
 
 interface PCN {
@@ -120,6 +125,17 @@ const SystemAdmin = () => {
   // Practice management state
   const [practices, setPractices] = useState<Practice[]>([]);
   const [practiceSearchQuery, setPracticeSearchQuery] = useState('');
+  const [showPracticeModal, setShowPracticeModal] = useState(false);
+  const [editingPractice, setEditingPractice] = useState<Practice | null>(null);
+  const [practiceFormData, setPracticeFormData] = useState({
+    name: '',
+    practice_code: '',
+    address: '',
+    postcode: '',
+    website: '',
+    email: '',
+    phone: ''
+  });
   
   // PCN management state
   const [pcns, setPcns] = useState<PCN[]>([]);
@@ -266,6 +282,11 @@ const [patientDataAccess, setPatientDataAccess] = useState([]);
           ics_name,
           organisation_type,
           neighbourhood_id,
+          address,
+          postcode,
+          website,
+          email,
+          phone,
           neighbourhoods(name)
         `)
         .order('name');
@@ -618,6 +639,69 @@ const handleUserSubmit = async (e: React.FormEvent) => {
     }
   };
 
+  // Practice Management Functions
+  const handleAddPractice = () => {
+    setEditingPractice(null);
+    setPracticeFormData({
+      name: '',
+      practice_code: '',
+      address: '',
+      postcode: '',
+      website: '',
+      email: '',
+      phone: ''
+    });
+    setShowPracticeModal(true);
+  };
+
+  const handleEditPractice = (practice: Practice) => {
+    setEditingPractice(practice);
+    setPracticeFormData({
+      name: practice.name,
+      practice_code: practice.practice_code || '',
+      address: practice.address || '',
+      postcode: practice.postcode || '',
+      website: practice.website || '',
+      email: practice.email || '',
+      phone: practice.phone || ''
+    });
+    setShowPracticeModal(true);
+  };
+
+  const handlePracticeSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (editingPractice) {
+        // Update existing practice
+        const { error } = await supabase
+          .from('gp_practices')
+          .update({
+            name: practiceFormData.name,
+            practice_code: practiceFormData.practice_code,
+            address: practiceFormData.address,
+            postcode: practiceFormData.postcode,
+            website: practiceFormData.website,
+            email: practiceFormData.email,
+            phone: practiceFormData.phone,
+          })
+          .eq('id', editingPractice.id);
+        
+        if (error) throw error;
+        toast.success('Practice updated successfully');
+      } else {
+        // Create new practice - need admin function for proper setup
+        toast.error('Creating new practices is not yet implemented');
+        return;
+      }
+      
+      setShowPracticeModal(false);
+      await fetchPractices(); // Refresh the practices list
+    } catch (error) {
+      console.error('Error saving practice:', error);
+      toast.error('Failed to save practice');
+    }
+  };
+
   if (!isAdmin) {
     return (
       <div className="min-h-screen bg-background">
@@ -863,7 +947,7 @@ const handleUserSubmit = async (e: React.FormEvent) => {
                       className="w-64"
                     />
                   </div>
-                  <Button>
+                  <Button onClick={handleAddPractice}>
                     <Plus className="h-4 w-4 mr-2" />
                     Add Practice
                   </Button>
@@ -874,7 +958,9 @@ const handleUserSubmit = async (e: React.FormEvent) => {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Practice Name</TableHead>
-                        <TableHead>Practice Code</TableHead>
+                        <TableHead>K Code (ODS)</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Phone</TableHead>
                         <TableHead>PCN Name</TableHead>
                         <TableHead>Actions</TableHead>
                       </TableRow>
@@ -886,16 +972,19 @@ const handleUserSubmit = async (e: React.FormEvent) => {
                         )
                         .map((practice) => (
                           <TableRow key={practice.id}>
-                            <TableCell>{practice.name}</TableCell>
+                            <TableCell className="font-medium">{practice.name}</TableCell>
                             <TableCell>{practice.practice_code}</TableCell>
+                            <TableCell>{practice.email || 'Not specified'}</TableCell>
+                            <TableCell>{practice.phone || 'Not specified'}</TableCell>
                             <TableCell>{practice.pcn_name || 'Unassigned'}</TableCell>
                             <TableCell>
                               <div className="flex space-x-2">
-                                <Button variant="ghost" size="sm">
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => handleEditPractice(practice)}
+                                >
                                   <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button variant="ghost" size="sm">
-                                  <Trash2 className="h-4 w-4" />
                                 </Button>
                               </div>
                             </TableCell>
@@ -1728,6 +1817,110 @@ const handleUserSubmit = async (e: React.FormEvent) => {
               </Button>
               <Button type="submit">
                 {editingUser ? 'Update User' : 'Create User'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Practice Management Modal */}
+      <Dialog open={showPracticeModal} onOpenChange={setShowPracticeModal}>
+        <DialogContent className="sm:max-w-[600px]">
+          <form onSubmit={handlePracticeSubmit}>
+            <DialogHeader>
+              <DialogTitle>{editingPractice ? 'Edit Practice' : 'Add New Practice'}</DialogTitle>
+              <DialogDescription>
+                {editingPractice ? 'Update practice information.' : 'Create a new practice with complete details.'}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="practice_name">Practice Name *</Label>
+                  <Input
+                    id="practice_name"
+                    value={practiceFormData.name}
+                    onChange={(e) => setPracticeFormData({...practiceFormData, name: e.target.value})}
+                    placeholder="Enter practice name"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="practice_k_code">K Code (ODS Code) *</Label>
+                  <Input
+                    id="practice_k_code"
+                    value={practiceFormData.practice_code}
+                    onChange={(e) => setPracticeFormData({...practiceFormData, practice_code: e.target.value})}
+                    placeholder="Enter ODS code"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="practice_address">Address</Label>
+                <Textarea
+                  id="practice_address"
+                  value={practiceFormData.address}
+                  onChange={(e) => setPracticeFormData({...practiceFormData, address: e.target.value})}
+                  placeholder="Enter full practice address"
+                  rows={3}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="practice_postcode">Postcode</Label>
+                  <Input
+                    id="practice_postcode"
+                    value={practiceFormData.postcode}
+                    onChange={(e) => setPracticeFormData({...practiceFormData, postcode: e.target.value})}
+                    placeholder="Enter postcode"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="practice_website">Website</Label>
+                  <Input
+                    id="practice_website"
+                    type="url"
+                    value={practiceFormData.website}
+                    onChange={(e) => setPracticeFormData({...practiceFormData, website: e.target.value})}
+                    placeholder="https://example.com"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="practice_email">Practice Email</Label>
+                  <Input
+                    id="practice_email"
+                    type="email"
+                    value={practiceFormData.email}
+                    onChange={(e) => setPracticeFormData({...practiceFormData, email: e.target.value})}
+                    placeholder="practice@example.com"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="practice_phone">Practice Phone Number</Label>
+                  <Input
+                    id="practice_phone"
+                    type="tel"
+                    value={practiceFormData.phone}
+                    onChange={(e) => setPracticeFormData({...practiceFormData, phone: e.target.value})}
+                    placeholder="01234 567890"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowPracticeModal(false)}>
+                Cancel
+              </Button>
+              <Button type="submit">
+                {editingPractice ? 'Update Practice' : 'Create Practice'}
               </Button>
             </DialogFooter>
           </form>
