@@ -111,6 +111,8 @@ function extractTextContent(file: UploadedFile): string {
 
 async function extractPdfContent(file: UploadedFile): Promise<string> {
   try {
+    console.log(`Processing PDF: ${file.name}, size: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+    
     // Convert base64 to array buffer
     const base64Data = file.content.replace(/^data:.*,/, '');
     const binaryString = atob(base64Data);
@@ -119,37 +121,95 @@ async function extractPdfContent(file: UploadedFile): Promise<string> {
       bytes[i] = binaryString.charCodeAt(i);
     }
 
-    // Basic PDF text extraction using a simple approach
-    // Convert bytes to string and try to extract readable text
+    // Convert to string for text pattern matching
     const text = new TextDecoder('utf-8', { fatal: false }).decode(bytes);
     
-    // Look for text patterns in PDF (very basic extraction)
-    const textMatches = text.match(/\((.*?)\)/g) || [];
-    const extractedText = textMatches
+    console.log('Attempting PDF text extraction...');
+    
+    // Multiple extraction strategies
+    let extractedText = '';
+    
+    // Strategy 1: Look for stream content between 'stream' and 'endstream'
+    const streamMatches = text.match(/stream\s*([\s\S]*?)\s*endstream/g) || [];
+    const streamContent = streamMatches.map(match => {
+      const content = match.replace(/^stream\s*/, '').replace(/\s*endstream$/, '');
+      // Try to decode if it looks like text
+      if (/[a-zA-Z0-9\s]/.test(content)) {
+        return content;
+      }
+      return '';
+    }).join(' ').trim();
+    
+    // Strategy 2: Look for text objects with Tj and TJ operators
+    const textObjects = text.match(/\[([^\]]*)\]\s*TJ|BT([^E]*?)ET|\(([^)]+)\)\s*Tj/g) || [];
+    const tjContent = textObjects.map(match => {
+      // Extract text from different PDF text operators
+      if (match.includes('TJ')) {
+        const arrayMatch = match.match(/\[([^\]]*)\]/);
+        if (arrayMatch) {
+          return arrayMatch[1].replace(/[()]/g, '').trim();
+        }
+      } else if (match.includes('Tj')) {
+        const parenMatch = match.match(/\(([^)]+)\)/);
+        if (parenMatch) {
+          return parenMatch[1].trim();
+        }
+      } else if (match.includes('BT') && match.includes('ET')) {
+        const textMatch = match.match(/\(([^)]+)\)/g) || [];
+        return textMatch.map(t => t.replace(/[()]/g, '')).join(' ');
+      }
+      return '';
+    }).filter(text => text.length > 1).join(' ');
+    
+    // Strategy 3: Simple parentheses extraction (fallback)
+    const textMatches = text.match(/\(([^)]{2,})\)/g) || [];
+    const parenContent = textMatches
       .map(match => match.replace(/[()]/g, '').trim())
       .filter(text => text.length > 2 && /[a-zA-Z]/.test(text))
       .join(' ');
-
+    
+    // Combine all extraction methods
+    extractedText = [streamContent, tjContent, parenContent]
+      .filter(content => content.length > 10)
+      .join(' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    
+    console.log(`PDF extraction result: ${extractedText.length} characters extracted`);
+    
     if (extractedText.length > 50) {
-      return extractedText;
+      return `PDF CONTENT EXTRACTED FROM: ${file.name}
+
+${extractedText}
+
+[Note: PDF text extraction may not preserve exact formatting. For critical documents, please verify accuracy.]`;
     }
 
-    // If basic extraction fails, return instructions
+    // If extraction fails, provide clear instructions
     const fileSize = (file.size / 1024 / 1024).toFixed(2);
-    return `[PDF File: ${file.name} (${fileSize}MB) - Text extraction partially successful. For better results:
-1. Open your PDF file and copy the text manually
-2. Or convert to .docx/.txt format for better extraction
-3. If this is a scanned PDF, OCR processing would be needed
+    return `[PDF File: ${file.name} (${fileSize}MB) - Automatic text extraction was unsuccessful.
 
-Some text may have been extracted but might be incomplete or fragmented.]`;
-    
+This could be because:
+1. The PDF contains scanned images rather than selectable text
+2. The PDF uses complex formatting or encryption
+3. The text is embedded in a way that requires specialized PDF parsing
+
+RECOMMENDED SOLUTIONS:
+1. Copy and paste the text directly from the PDF viewer
+2. Convert the PDF to a Word document (.docx) or text file (.txt)
+3. If it's a scanned document, use OCR software first
+
+Please try uploading the content in a different format, or paste the text directly into your message.]`;
+     
   } catch (error) {
     console.error('Error extracting PDF content:', error);
     const fileSize = (file.size / 1024 / 1024).toFixed(2);
-    return `[PDF File: ${file.name} (${fileSize}MB) - Text extraction failed. Please:
-1. Copy text manually from the PDF
-2. Convert to .docx or .txt format
-3. Ensure the PDF contains selectable text (not just images)]`;
+    return `[PDF File: ${file.name} (${fileSize}MB) - Text extraction failed with error: ${error.message}
+
+Please try:
+1. Copying text manually from the PDF
+2. Converting to .docx or .txt format
+3. Ensuring the PDF contains selectable text (not just scanned images)]`;
   }
 }
 
