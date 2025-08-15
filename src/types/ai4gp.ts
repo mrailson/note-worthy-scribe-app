@@ -5,6 +5,7 @@ export interface Message {
   timestamp: Date;
   files?: UploadedFile[];
   responseTime?: number;
+  timeToFirstWords?: number;
   model?: string;
   isStreaming?: boolean;
 }

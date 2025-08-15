@@ -27,6 +27,7 @@ interface Message {
   timestamp: Date;
   files?: UploadedFile[];
   responseTime?: number;
+  timeToFirstWords?: number;
   model?: string;
   isStreaming?: boolean;
 }
@@ -427,8 +428,14 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
               <div className="flex items-center gap-3 text-xs text-muted-foreground">
                 <div className="flex items-center gap-1">
                   <Clock className="h-3 w-3" />
-                  <span>{message.responseTime}ms</span>
+                  <span>{message.responseTime}ms total</span>
                 </div>
+                {message.timeToFirstWords && (
+                  <div className="flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    <span>{message.timeToFirstWords}ms first words</span>
+                  </div>
+                )}
                 {message.model && (
                   <div className="flex items-center gap-1">
                     <Bot className="h-3 w-3" />

@@ -163,6 +163,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
       let currentIndex = 0;
       let accumulatedContent = '';
 
+      let timeToFirstWords: number | undefined;
+
       const streamChunks = () => {
         if (currentIndex < chunks.length) {
           const endIndex = Math.min(currentIndex + chunkSize, chunks.length);
@@ -170,9 +172,14 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           accumulatedContent += chunkText;
           currentIndex = endIndex;
 
+          // Capture time to first words on first chunk
+          if (currentIndex === chunkSize && !timeToFirstWords) {
+            timeToFirstWords = Date.now() - startTime;
+          }
+
           setMessages(prev => prev.map(msg => 
             msg.id === assistantMessageId 
-              ? { ...msg, content: accumulatedContent.trim(), isStreaming: true }
+              ? { ...msg, content: accumulatedContent.trim(), isStreaming: true, timeToFirstWords }
               : msg
           ));
 
@@ -186,7 +193,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
             
             setMessages(prev => prev.map(msg => 
               msg.id === assistantMessageId 
-                ? { ...msg, content: responseContent, isStreaming: false, responseTime }
+                ? { ...msg, content: responseContent, isStreaming: false, responseTime, timeToFirstWords }
                 : msg
             ));
 
@@ -196,7 +203,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                 ...assistantMessage,
                 content: responseContent,
                 isStreaming: false,
-                responseTime
+                responseTime,
+                timeToFirstWords
               }];
               await saveSearchAutomatically(finalMessages);
             }, 100);
