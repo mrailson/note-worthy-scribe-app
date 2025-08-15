@@ -3789,6 +3789,15 @@ export type Database = {
         Args: { check_user_id?: string }
         Returns: Database["public"]["Enums"]["app_role"]
       }
+      get_database_table_sizes: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          row_count: number
+          size_bytes: number
+          size_pretty: string
+          table_name: string
+        }[]
+      }
       get_meeting_full_transcript: {
         Args: { p_meeting_id: string }
         Returns: {
