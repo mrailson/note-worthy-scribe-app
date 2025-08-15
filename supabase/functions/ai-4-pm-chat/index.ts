@@ -253,6 +253,15 @@ ${uniqueText}
         console.log(`Vision extraction successful: ${visionResult.length} characters extracted`);
         return visionResult;
       }
+    } else {
+      console.log('PDF appears to have some text content, but trying vision model anyway for completeness');
+      
+      // Also try vision model for text-based PDFs that might have complex layouts
+      const visionResult = await extractPdfWithVision(file);
+      if (visionResult && visionResult.length > uniqueText.length + 50) {
+        console.log(`Vision extraction provided better results: ${visionResult.length} vs ${uniqueText.length} characters`);
+        return visionResult;
+      }
     }
     
     // Strategy 8: OCR Fallback
