@@ -77,7 +77,7 @@ const isHealthRelatedByUrl = (a: NewsArticle) => {
   return healthKeywords.some(k => u.includes(k)) || u.includes('/health');
 };
 
-const NewsPanel = () => {
+const NewsPanel = ({ showFiltersInHeader = false }: { showFiltersInHeader?: boolean }) => {
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -256,99 +256,108 @@ const NewsPanel = () => {
     );
   }
 
+  const FilterControls = () => (
+    <div className="flex gap-2">
+      {/* Mobile: open filters in a drawer */}
+      <div className="sm:hidden">
+        <Drawer>
+          <DrawerTrigger asChild>
+            <Button variant="outline" size="sm">
+              <Filter className="w-4 h-4 mr-2" />
+              Filters
+            </Button>
+          </DrawerTrigger>
+          <DrawerContent>
+            <DrawerHeader className="text-left">
+              <DrawerTitle>Filters</DrawerTitle>
+              <DrawerDescription>Refine your news feed</DrawerDescription>
+            </DrawerHeader>
+            <div className="p-4 space-y-4">
+              <div className="space-y-2">
+                <div className="text-sm font-medium">Tag</div>
+                <Select value={filterTag} onValueChange={setFilterTag}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="All Tags" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Tags</SelectItem>
+                    {allTags.map(tag => (
+                      <SelectItem key={tag} value={tag}>{tag}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <div className="text-sm font-medium">Source</div>
+                <Select value={filterSource} onValueChange={setFilterSource}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="All Sources" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Sources</SelectItem>
+                    {allSources.map(source => (
+                      <SelectItem key={source} value={source}>{source}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <div className="text-sm font-medium">Time</div>
+                <Select value={filterTime} onValueChange={setFilterTime}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="All Time" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Time</SelectItem>
+                    <SelectItem value="24h">Last 24h</SelectItem>
+                    <SelectItem value="7d">Last 7 days</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <DrawerClose asChild>
+                  <Button variant="default" className="flex-1">Apply</Button>
+                </DrawerClose>
+                <Button 
+                  variant="outline" 
+                  className="flex-1"
+                  onClick={() => { setFilterTag('all'); setFilterSource('all'); setFilterTime('all'); }}
+                >
+                  Clear
+                </Button>
+              </div>
+            </div>
+          </DrawerContent>
+        </Drawer>
+      </div>
+
+      {/* Desktop: toggle filters button */}
+      <div className="hidden sm:block">
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={() => setShowFilters(!showFilters)}
+        >
+          <Filter className="w-4 h-4 mr-2" />
+          Filters
+        </Button>
+      </div>
+    </div>
+  );
+
+  if (showFiltersInHeader) {
+    // Return just the filter controls for header rendering
+    return <FilterControls />;
+  }
+
   return (
     <div className="space-y-2">
       {/* Filter Controls */}
       <div className="flex items-center justify-end">
-        <div className="flex gap-2">
-          {/* Mobile: open filters in a drawer */}
-          <div className="sm:hidden">
-            <Drawer>
-              <DrawerTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <Filter className="w-4 h-4 mr-2" />
-                  Filters
-                </Button>
-              </DrawerTrigger>
-              <DrawerContent>
-                <DrawerHeader className="text-left">
-                  <DrawerTitle>Filters</DrawerTitle>
-                  <DrawerDescription>Refine your news feed</DrawerDescription>
-                </DrawerHeader>
-                <div className="p-4 space-y-4">
-                  <div className="space-y-2">
-                    <div className="text-sm font-medium">Tag</div>
-                    <Select value={filterTag} onValueChange={setFilterTag}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="All Tags" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Tags</SelectItem>
-                        {allTags.map(tag => (
-                          <SelectItem key={tag} value={tag}>{tag}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="text-sm font-medium">Source</div>
-                    <Select value={filterSource} onValueChange={setFilterSource}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="All Sources" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Sources</SelectItem>
-                        {allSources.map(source => (
-                          <SelectItem key={source} value={source}>{source}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="text-sm font-medium">Time</div>
-                    <Select value={filterTime} onValueChange={setFilterTime}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="All Time" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Time</SelectItem>
-                        <SelectItem value="24h">Last 24h</SelectItem>
-                        <SelectItem value="7d">Last 7 days</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="flex gap-2 pt-2">
-                    <DrawerClose asChild>
-                      <Button variant="default" className="flex-1">Apply</Button>
-                    </DrawerClose>
-                    <Button 
-                      variant="outline" 
-                      className="flex-1"
-                      onClick={() => { setFilterTag('all'); setFilterSource('all'); setFilterTime('all'); }}
-                    >
-                      Clear
-                    </Button>
-                  </div>
-                </div>
-              </DrawerContent>
-            </Drawer>
-          </div>
-
-          {/* Desktop: toggle filters button */}
-          <div className="hidden sm:block">
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => setShowFilters(!showFilters)}
-            >
-              <Filter className="w-4 h-4 mr-2" />
-              Filters
-            </Button>
-          </div>
-        </div>
+        <FilterControls />
       </div>
 
       {/* Desktop filters - collapsible */}

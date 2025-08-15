@@ -21,7 +21,6 @@ import { useSearchHistory } from '@/hooks/useSearchHistory';
 import { generateWordDocument, generatePowerPoint } from '@/utils/documentGenerators';
 import { Message } from '@/types/ai4gp';
 import GPGenieVoiceAgent from '@/components/GPGenieVoiceAgent';
-
 import NewsPanel from '@/components/NewsPanel';
 
 const AI4GPService = () => {
@@ -320,8 +319,9 @@ const AI4GPService = () => {
       {/* News Modal */}
       <Dialog open={showNews} onOpenChange={setShowNews}>
         <DialogContent className="max-w-[100vw] w-[100vw] max-h-[100vh] h-[100vh] overflow-y-auto p-0 m-0">
-          <DialogHeader className="p-4 border-b">
+          <DialogHeader className="p-4 border-b flex-row items-center justify-between space-y-0">
             <DialogTitle className="text-left">GP News & Local Health News</DialogTitle>
+            <NewsPanel showFiltersInHeader />
           </DialogHeader>
           <div className="flex-1 overflow-y-auto p-4">
             <NewsPanel />
