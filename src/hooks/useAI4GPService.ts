@@ -14,6 +14,7 @@ export const useAI4GPService = () => {
   const [sessionMemory, setSessionMemory] = useState(true);
   const [includeLatestUpdates, setIncludeLatestUpdates] = useState(true);
   const [showResponseMetrics, setShowResponseMetrics] = useState(false);
+  const [selectedModel, setSelectedModel] = useState('gpt-5');
 
   const buildSystemPrompt = useCallback((practiceContext: any, uploadedFiles: UploadedFile[], includeLatestUpdates: boolean) => {
     let prompt = `You are "AI 4 GP Service", an AI Assistant built specifically to help General Practitioners (GPs) in the UK NHS.
@@ -300,6 +301,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           setSessionMemory(preferences.sessionMemory ?? true);
           setIncludeLatestUpdates(preferences.includeLatestUpdates ?? true);
           setShowResponseMetrics(preferences.showResponseMetrics ?? false);
+          setSelectedModel(preferences.selectedModel ?? 'gpt-5');
         }
       } catch (error) {
         console.error('Error loading user settings:', error);
@@ -317,7 +319,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
       const preferences = {
         sessionMemory,
         includeLatestUpdates,
-        showResponseMetrics
+        showResponseMetrics,
+        selectedModel
       };
 
       await supabase
@@ -332,14 +335,14 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     } catch (error) {
       console.error('Error saving user settings:', error);
     }
-  }, [user, sessionMemory, includeLatestUpdates, showResponseMetrics]);
+  }, [user, sessionMemory, includeLatestUpdates, showResponseMetrics, selectedModel]);
 
   // Save settings when they change
   useEffect(() => {
     if (user) {
       saveUserSettings();
     }
-  }, [sessionMemory, includeLatestUpdates, showResponseMetrics, saveUserSettings]);
+  }, [sessionMemory, includeLatestUpdates, showResponseMetrics, selectedModel, saveUserSettings]);
 
   const handleNewSearch = useCallback(() => {
     setMessages([]);
@@ -382,6 +385,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     setIncludeLatestUpdates,
     showResponseMetrics,
     setShowResponseMetrics,
+    selectedModel,
+    setSelectedModel,
     handleSend,
     handleNewSearch,
     saveSearchAutomatically,

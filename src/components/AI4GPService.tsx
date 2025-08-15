@@ -34,7 +34,6 @@ const AI4GPService = () => {
   
   const [showNews, setShowNews] = useState(false);
   const [selectedRole, setSelectedRole] = useState<'gp' | 'practice-manager'>('gp');
-  const [selectedModel, setSelectedModel] = useState('gpt-5');
 
   const {
     messages,
@@ -50,6 +49,8 @@ const AI4GPService = () => {
     setIncludeLatestUpdates,
     showResponseMetrics,
     setShowResponseMetrics,
+    selectedModel,
+    setSelectedModel,
     handleSend,
     handleNewSearch,
     handleQuickResponse

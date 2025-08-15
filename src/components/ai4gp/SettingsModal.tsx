@@ -40,6 +40,18 @@ const AI_MODELS = [
     description: 'High performance with excellent efficiency'
   },
   {
+    id: 'gemini-1.5-pro',
+    name: 'Gemini 1.5 Pro',
+    provider: 'Google',
+    description: 'Advanced multimodal reasoning capabilities'
+  },
+  {
+    id: 'gemini-1.5-flash',
+    name: 'Gemini 1.5 Flash',
+    provider: 'Google',
+    description: 'Fast and efficient for quick responses'
+  },
+  {
     id: 'grok-beta',
     name: 'Grok',
     provider: 'xAI',
