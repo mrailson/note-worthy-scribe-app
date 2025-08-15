@@ -171,13 +171,41 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    // Only show logout toast on desktop
-    if (!isMobile) {
-      console.log("Logged Out - You have been successfully logged out");
+    try {
+      console.log('Starting logout process...');
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error('Logout error:', error);
+      } else {
+        console.log('Logout successful');
+      }
+      
+      // Clear local state immediately
+      setUser(null);
+      setSession(null);
+      setUserModules([]);
+      setIsSystemAdmin(false);
+      
+      // Only show logout toast on desktop
+      if (!isMobile) {
+        console.log("Logged Out - You have been successfully logged out");
+      }
+      
+      // Navigate to home page to show login form with forced reload on mobile browsers
+      navigate('/', { replace: true });
+      
+      // Force page refresh on Edge/mobile browsers to ensure clean state
+      if (navigator.userAgent.includes('Edge') || navigator.userAgent.includes('Edg/')) {
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 100);
+      }
+    } catch (error) {
+      console.error('Error during logout:', error);
+      // Force navigation even if there's an error
+      navigate('/', { replace: true });
     }
-    // Navigate to home page to show login form
-    navigate('/', { replace: true });
   };
 
   const resetPassword = async (email: string) => {
