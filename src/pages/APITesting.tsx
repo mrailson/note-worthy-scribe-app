@@ -500,26 +500,30 @@ const APITesting = () => {
                           </CardContent>
                         </Card>
 
-                        {/* Response per 1000 chars */}
+                        {/* Response time per 1000 chars */}
                         <Card>
                           <CardHeader className="pb-3">
-                            <CardTitle className="text-sm">Response per 1000 chars</CardTitle>
+                            <CardTitle className="text-sm">Response time per 1000 chars</CardTitle>
                           </CardHeader>
                           <CardContent>
                             <div className="space-y-2">
                               {results
                                 .filter(r => r.status === 'completed')
-                                .sort((a, b) => (b.response.length / prompt.length * 1000) - (a.response.length / prompt.length * 1000))
+                                .sort((a, b) => {
+                                  const aRatio = (a.responseTime / 1000) / (a.response.length / 1000);
+                                  const bRatio = (b.responseTime / 1000) / (b.response.length / 1000);
+                                  return aRatio - bRatio;
+                                })
                                 .map((result) => {
                                   const modelInfo = getModelInfo(result.model);
-                                  const ratio = Math.round((result.response.length / prompt.length) * 1000);
+                                  const timePerThousandChars = (result.responseTime / 1000) / (result.response.length / 1000);
                                   return (
                                     <div key={result.model} className="flex items-center justify-between text-sm">
                                       <div className="flex items-center gap-2">
                                         <div className={`w-2 h-2 rounded-full ${modelInfo.color}`} />
                                         <span>{modelInfo.name}</span>
                                       </div>
-                                      <span className="font-mono">{ratio} chars</span>
+                                      <span className="font-mono">{timePerThousandChars.toFixed(2)}s</span>
                                     </div>
                                   );
                                 })}
