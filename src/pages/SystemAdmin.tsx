@@ -98,6 +98,23 @@ const SystemAdmin = () => {
     totalPractices: 0,
     totalPCNs: 0
   });
+
+  // Database monitoring state
+  const [databaseSizes, setDatabaseSizes] = useState<Array<{
+    table_name: string;
+    size_bytes: number;
+    size_pretty: string;
+    row_count: number;
+  }>>([]);
+
+  const [largeFiles, setLargeFiles] = useState<Array<{
+    table_name: string;
+    file_name: string;
+    file_size: number;
+    file_size_pretty: string;
+    uploaded_at: string;
+    uploaded_by_email: string;
+  }>>([]);
   
   // User management state
   const [users, setUsers] = useState<User[]>([]);
