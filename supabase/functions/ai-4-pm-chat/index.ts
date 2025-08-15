@@ -313,96 +313,11 @@ async function extractPdfWithVision(file: UploadedFile): Promise<string | null> 
       return null;
     }
     
-    // For PDF files, we need to indicate it's a PDF document to the vision model
-    let imageData = file.content;
-    
-    // Convert PDF data URL to proper format if needed
-    if (!imageData.startsWith('data:image/')) {
-      // If it's a PDF, convert the data URL format
-      if (file.name.toLowerCase().endsWith('.pdf')) {
-        console.log('Converting PDF to vision-compatible format');
-        imageData = file.content.replace('data:application/pdf;base64,', 'data:image/png;base64,');
-      }
-    }
-    
-    const systemPrompt = `You are an expert document analyzer specializing in PDF and invoice text extraction. 
-This image contains a PDF document that needs complete text extraction.
-
-CRITICAL EXTRACTION REQUIREMENTS:
-- Extract EVERY piece of visible text with 100% accuracy
-- Include ALL: company names, addresses, phone numbers, emails
-- Include ALL: invoice numbers, dates, reference numbers
-- Include ALL: line items, descriptions, quantities, rates, amounts
-- Include ALL: subtotals, VAT/tax amounts, total amounts
-- Include ALL: payment terms, due dates, bank details
-- Preserve formatting and structure where possible
-- If text is partially obscured, extract what you can see and note [partial]
-
-For invoices specifically extract:
-- Supplier/vendor details (name, address, contact info)
-- Customer/recipient details  
-- Invoice number and date
-- Service period covered
-- Itemized services/products with costs
-- Net amounts, VAT rates and amounts, gross totals
-- Payment terms and bank details
-
-Return complete extracted text preserving document structure.`;
-
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openaiApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-5-2025-08-07',
-        max_completion_tokens: 4000,
-        messages: [
-          {
-            role: 'system',
-            content: systemPrompt
-          },
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: 'Extract ALL text content from this PDF document image with complete accuracy. Focus on invoice details if this is an invoice:'
-              },
-              {
-                type: 'image_url',
-                image_url: {
-                  url: imageData,
-                  detail: 'high'
-                }
-              }
-            ]
-          }
-        ]
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.log(`Vision API error: ${response.status} - ${errorText}`);
-      return null;
-    }
-
-    const data = await response.json();
-    const extractedText = data.choices[0]?.message?.content;
-    
-    if (extractedText && extractedText.length > 50) {
-      console.log(`Vision model successfully extracted ${extractedText.length} characters from PDF`);
-      return `PDF CONTENT EXTRACTED FROM: ${file.name} (Using Advanced Vision AI)
-
-${extractedText}
-
-[Note: Content extracted using GPT-5 Vision AI technology for comprehensive text recognition from PDF documents.]`;
-    }
-    
-    console.log('Vision model returned insufficient content');
+    // For PDF files, we can't directly use them with vision models
+    // Vision models need image data, so this is a fallback message
+    console.log('PDF vision processing requires conversion to image format');
     return null;
+    
   } catch (error) {
     console.error('Vision model extraction error:', error);
     return null;
