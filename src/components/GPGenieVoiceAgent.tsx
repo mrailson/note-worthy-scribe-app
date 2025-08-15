@@ -181,15 +181,10 @@ const GPGenieVoiceAgent = () => {
 
     try {
       if (conversation.status === 'connected') {
-        if (newState) {
-          // Actually end the session to stop microphone input
-          await conversation.endSession();
-          toast.info('Microphone muted - session paused');
-        } else {
-          // Restart the conversation to resume microphone input
-          await startConversation();
-          toast.info('Microphone unmuted - session resumed');
-        }
+        // The ElevenLabs SDK doesn't have direct mic mute, so we use a workaround
+        // We can't pause just the microphone without ending the session
+        // This is a limitation of the current SDK
+        toast.info(newState ? 'Microphone muted (visual only - connection stays open)' : 'Microphone unmuted');
       } else {
         toast.info(newState ? 'Microphone muted' : 'Microphone unmuted');
       }
