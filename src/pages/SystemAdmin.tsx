@@ -645,8 +645,7 @@ const handleUserSubmit = async (e: React.FormEvent) => {
         const { error: profileError } = await supabase
           .from('profiles')
           .update({
-            ai4gp_access: userFormData.module_access.ai4gp_access,
-            api_testing_service_access: userFormData.module_access.api_testing_service_access
+            ai4gp_access: userFormData.module_access.ai4gp_access
           })
           .eq('user_id', editingUser.user_id);
         
