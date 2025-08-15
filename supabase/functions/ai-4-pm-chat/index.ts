@@ -203,27 +203,31 @@ function extractImageContent(file: UploadedFile): string {
     const fileName = file.name.toLowerCase();
     const fileSize = (file.size / 1024 / 1024).toFixed(2);
     
+    console.log(`Processing image: ${fileName}, size: ${fileSize}MB`);
+    
     // For image files, provide base64 data for AI analysis
     if (file.content.startsWith('data:image/')) {
-      return `[Image File: ${file.name} (${fileSize}MB)]
+      console.log('Image has valid base64 data format');
+      
+      // Return the image in a format that AI models can properly analyze
+      return `IMAGE_ANALYSIS_REQUEST: Please analyze this image for handwritten or printed text extraction.
 
-Image data available for analysis. I can analyze this image and help with:
-- Text extraction from handwritten or printed documents
-- Medical image interpretation (when appropriate)
-- Document analysis and summarization
-- Visual content description
+Filename: ${file.name}
+Size: ${fileSize}MB
+Format: ${file.content.split(';')[0].replace('data:', '')}
 
-Please describe what you'd like me to focus on in this image.
+IMPORTANT: This is a real image upload that requires actual analysis. Please extract any visible text, especially handwritten content, and provide a detailed transcription.
 
-[Base64 Image Data]
+Base64 Image Data:
 ${file.content}`;
     } else {
-      return `[Image File: ${file.name} (${fileSize}MB) - Image content available for analysis. Please describe what you'd like me to analyze in this image.]`;
+      console.log('Image does not have proper base64 format');
+      return `[Image File: ${file.name} (${fileSize}MB) - Image format error. Please ensure the image is properly uploaded.]`;
     }
     
   } catch (error) {
     console.error('Error processing image file:', error);
-    return `[Image File: ${file.name} - Error processing image. Please try uploading again or describe the image content manually.]`;
+    return `[Image File: ${file.name} - Error processing image: ${error.message}. Please try uploading again.]`;
   }
 }
 
