@@ -27,6 +27,19 @@ export const MessagesList: React.FC<MessagesListProps> = ({
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [loadingText, setLoadingText] = useState("AI is thinking...");
+  
+  const impatientMessages = [
+    "....come on then, I dont have all day....",
+    "....seriously, I could have written this myself by now....",
+    "....checking if the hamsters are still running in their wheels....",
+    "....did someone unplug the AI? Hello? Anyone there?....",
+    "....I've made three cups of tea waiting for this....",
+    "....even my dial-up internet was faster than this....",
+    "....the AI is probably googling 'how to be an AI'....",
+    "....I could have walked to the library and back by now....",
+    "....maybe the AI is having an existential crisis....",
+    "....tick tock, tick tock... still waiting...."
+  ];
 
   const scrollToBottom = () => {
     if (messagesEndRef.current && messages.length > 0) {
@@ -60,7 +73,8 @@ export const MessagesList: React.FC<MessagesListProps> = ({
       }, 15000);
       
       const timer4 = setTimeout(() => {
-        setLoadingText("....come on then, I dont have all day....");
+        const randomMessage = impatientMessages[Math.floor(Math.random() * impatientMessages.length)];
+        setLoadingText(randomMessage);
       }, 25000);
       
       return () => {
