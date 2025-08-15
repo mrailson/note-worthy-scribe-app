@@ -95,6 +95,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Function to check if user has access to a specific module
   const hasModuleAccess = (module: string) => {
+    // Special handling for practice manager access
+    if (module === 'practice_manager_access') {
+      // This should be checked via the role, not module access
+      // The ProtectedRoute component will handle this check
+      return true; // Allow the component to handle the actual check
+    }
     return userModules.includes(module);
   };
 

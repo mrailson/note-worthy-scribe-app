@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface ProtectedRouteProps {
@@ -14,15 +15,40 @@ export const ProtectedRoute = ({
   requiredModule, 
   fallbackPath = '/' 
 }: ProtectedRouteProps) => {
-  const { hasModuleAccess, loading } = useAuth();
+  const { hasModuleAccess, loading, user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     if (!loading && !hasModuleAccess(requiredModule)) {
+      // Special handling for practice manager access
+      if (requiredModule === 'practice_manager_access') {
+        // Check if user has practice_manager role
+        const checkPracticeManagerRole = async () => {
+          if (!user) return false;
+          
+          try {
+            const { data, error } = await supabase
+              .rpc('has_role', { _user_id: user.id, _role: 'practice_manager' });
+            return !error && data;
+          } catch (error) {
+            console.error('Error checking practice manager role:', error);
+            return false;
+          }
+        };
+
+        checkPracticeManagerRole().then(isPracticeManager => {
+          if (!isPracticeManager) {
+            toast.error('You must be a practice manager to access this module.');
+            navigate(fallbackPath, { replace: true });
+          }
+        });
+        return;
+      }
+
       toast.error('You do not have access to this module. Please contact your administrator.');
       navigate(fallbackPath, { replace: true });
     }
-  }, [hasModuleAccess, requiredModule, loading, navigate, fallbackPath]);
+  }, [hasModuleAccess, requiredModule, loading, navigate, fallbackPath, user]);
 
   if (loading) {
     return (

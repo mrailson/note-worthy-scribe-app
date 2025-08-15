@@ -1,0 +1,245 @@
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+};
+
+interface CreateUserRequest {
+  email: string;
+  full_name: string;
+  password: string;
+  role: string;
+  module_access: {
+    meeting_notes_access?: boolean;
+    gp_scribe_access?: boolean;
+    complaints_manager_access?: boolean;
+    ai4gp_access?: boolean;
+    enhanced_access?: boolean;
+    cqc_compliance_access?: boolean;
+    shared_drive_access?: boolean;
+    mic_test_service_access?: boolean;
+    api_testing_service_access?: boolean;
+  };
+}
+
+const handler = async (req: Request): Promise<Response> => {
+  // Handle CORS preflight requests
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    // Get the authorization header
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      throw new Error("No authorization header");
+    }
+
+    // Create Supabase client with the user's session
+    const supabaseUrl = "https://dphcnbricafkbtizkoal.supabase.co";
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    
+    if (!supabaseServiceKey) {
+      throw new Error("Missing service role key");
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabaseUser = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: {
+        headers: { Authorization: authHeader },
+      },
+    });
+
+    // Get the current user from the authorization header
+    const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
+    if (userError || !user) {
+      throw new Error("Unauthorized");
+    }
+
+    // Verify the user is a practice manager
+    const { data: practiceManagerData, error: pmError } = await supabase
+      .rpc('has_role', { _user_id: user.id, _role: 'practice_manager' });
+
+    if (pmError || !practiceManagerData) {
+      throw new Error("Only practice managers can create users");
+    }
+
+    // Get the practice manager's practice ID
+    const { data: practiceId, error: practiceError } = await supabase
+      .rpc('get_practice_manager_practice_id', { _user_id: user.id });
+
+    if (practiceError || !practiceId) {
+      throw new Error("Practice manager must be assigned to a practice");
+    }
+
+    // Parse the request body
+    const { email, full_name, password, role, module_access }: CreateUserRequest = await req.json();
+
+    // Validate role is allowed for practice managers
+    const allowedRoles = ['user'];
+    if (!allowedRoles.includes(role)) {
+      throw new Error(`Practice managers can only assign these roles: ${allowedRoles.join(', ')}`);
+    }
+
+    // Check if user already exists and their practice assignment
+    const { data: existingUserCheck, error: checkError } = await supabase
+      .rpc('check_user_practice_assignment', { p_email: email, p_practice_id: practiceId });
+
+    if (checkError) {
+      throw new Error("Error checking existing user");
+    }
+
+    if (existingUserCheck?.exists) {
+      if (existingUserCheck.already_assigned_to_practice) {
+        throw new Error("User is already assigned to your practice");
+      } else {
+        // User exists but not assigned to this practice - assign them
+        const existingUserId = existingUserCheck.user_id;
+        
+        // Assign to practice
+        const { error: assignError } = await supabase
+          .rpc('assign_user_to_practice', {
+            p_user_id: existingUserId,
+            p_practice_id: practiceId,
+            p_role: role,
+            p_assigned_by: user.id
+          });
+
+        if (assignError) {
+          throw new Error("Failed to assign existing user to practice");
+        }
+
+        // Update module access
+        const { error: moduleError } = await supabase
+          .from('user_roles')
+          .update({
+            meeting_notes_access: module_access.meeting_notes_access || false,
+            gp_scribe_access: module_access.gp_scribe_access || false,
+            complaints_manager_access: module_access.complaints_manager_access || false,
+            enhanced_access: module_access.enhanced_access || false,
+            cqc_compliance_access: module_access.cqc_compliance_access || false,
+            shared_drive_access: module_access.shared_drive_access || false,
+            mic_test_service_access: module_access.mic_test_service_access || false,
+            api_testing_service_access: module_access.api_testing_service_access || false
+          })
+          .eq('user_id', existingUserId)
+          .eq('practice_id', practiceId);
+
+        if (moduleError) {
+          console.warn("Failed to update module access:", moduleError);
+        }
+
+        // Update AI4GP access in profiles table
+        if (module_access.ai4gp_access !== undefined) {
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .update({ ai4gp_access: module_access.ai4gp_access })
+            .eq('user_id', existingUserId);
+
+          if (profileError) {
+            console.warn("Failed to update AI4GP access:", profileError);
+          }
+        }
+
+        const otherPractices = existingUserCheck.other_practices || [];
+        const practiceList = otherPractices.map((p: any) => p.practice_name).join(', ');
+        
+        return new Response(JSON.stringify({
+          success: true,
+          message: `User was already registered and assigned to other practices (${practiceList}). They have now been assigned to your practice as well.`,
+          user_existed: true
+        }), {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+            ...corsHeaders,
+          },
+        });
+      }
+    }
+
+    // Create new user
+    const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: {
+        full_name
+      }
+    });
+
+    if (createError) {
+      throw new Error(`Failed to create user: ${createError.message}`);
+    }
+
+    if (!newUser.user?.id) {
+      throw new Error("No user ID returned from user creation");
+    }
+
+    // Create profile
+    const { error: profileInsertError } = await supabase
+      .from('profiles')
+      .insert({
+        user_id: newUser.user.id,
+        email: email,
+        full_name: full_name,
+        ai4gp_access: module_access.ai4gp_access || false
+      });
+
+    if (profileInsertError) {
+      console.error("Failed to create profile:", profileInsertError);
+      // Don't throw here, continue with role assignment
+    }
+
+    // Assign user to practice with role and module access
+    const { error: roleInsertError } = await supabase
+      .from('user_roles')
+      .insert({
+        user_id: newUser.user.id,
+        practice_id: practiceId,
+        role: role,
+        assigned_by: user.id,
+        meeting_notes_access: module_access.meeting_notes_access || false,
+        gp_scribe_access: module_access.gp_scribe_access || false,
+        complaints_manager_access: module_access.complaints_manager_access || false,
+        enhanced_access: module_access.enhanced_access || false,
+        cqc_compliance_access: module_access.cqc_compliance_access || false,
+        shared_drive_access: module_access.shared_drive_access || false,
+        mic_test_service_access: module_access.mic_test_service_access || false,
+        api_testing_service_access: module_access.api_testing_service_access || false
+      });
+
+    if (roleInsertError) {
+      throw new Error(`Failed to assign role: ${roleInsertError.message}`);
+    }
+
+    return new Response(JSON.stringify({
+      success: true,
+      message: "User created successfully and assigned to your practice",
+      user_existed: false
+    }), {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json",
+        ...corsHeaders,
+      },
+    });
+  } catch (error: any) {
+    console.error("Error in create-user-practice-manager function:", error);
+    return new Response(
+      JSON.stringify({ 
+        error: error.message,
+        success: false 
+      }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      }
+    );
+  }
+};
+
+serve(handler);

@@ -9,6 +9,7 @@ import MeetingSummary from "./pages/MeetingSummary";
 import ConsultationSummary from "./pages/ConsultationSummary";
 import Settings from "./pages/Settings";
 import SystemAdmin from "./pages/SystemAdmin";
+import PracticeAdmin from "./pages/PracticeAdmin";
 import ComplaintsSystem from "./pages/ComplaintsSystem";
 import ComplaintDetails from "./pages/ComplaintDetails";
 import ComplaintResponse from "./pages/ComplaintResponse";
@@ -40,6 +41,7 @@ const App = () => (
       <Route path="/consultation-summary" element={<ConsultationSummary />} />
       <Route path="/settings" element={<Settings />} />
       <Route path="/admin" element={<SystemAdmin />} />
+      <Route path="/practice-admin" element={<PracticeAdmin />} />
       <Route path="/complaints" element={<ComplaintsSystem />} />
       <Route path="/complaints/:complaintId" element={<ComplaintDetails />} />
       <Route path="/complaint-response/:accessToken" element={<ComplaintResponse />} />

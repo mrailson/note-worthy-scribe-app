@@ -220,6 +220,18 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                     <Settings className="h-4 w-4 mr-2" />
                     User Settings
                   </DropdownMenuItem>
+                   {/* Practice Manager Menu */}
+                   {hasModuleAccess('practice_manager_access') && (
+                     <DropdownMenuItem 
+                       onClick={() => navigate('/practice-admin')}
+                       className="cursor-pointer py-3"
+                     >
+                       <Users className="h-4 w-4 mr-2" />
+                       Practice Management
+                     </DropdownMenuItem>
+                   )}
+                   
+                   {/* System Admin Menu */}
                    {isSystemAdmin && (
                      <DropdownMenuSub>
                        <DropdownMenuSubTrigger className="cursor-pointer py-3">
@@ -406,6 +418,17 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                             User Settings
                           </Button>
                         </DrawerClose>
+                        
+                        {/* Practice Manager Menu - Mobile */}
+                        {hasModuleAccess('practice_manager_access') && (
+                          <DrawerClose asChild>
+                            <Button variant="ghost" className="justify-start" onClick={() => navigate('/practice-admin')}>
+                              <Users className="h-4 w-4 mr-2" />
+                              Practice Management
+                            </Button>
+                          </DrawerClose>
+                        )}
+                        
                         {isSystemAdmin && (
                           <>
                             <DrawerClose asChild>
