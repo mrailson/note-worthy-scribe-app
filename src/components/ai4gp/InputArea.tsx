@@ -114,7 +114,7 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
               size="sm"
               className={`h-8 w-8 p-0 transition-all duration-200 ${
                 isRecording 
-                  ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse shadow-lg shadow-red-500/30' 
+                  ? 'bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/30' 
                   : isProcessing 
                     ? 'bg-amber-500 hover:bg-amber-600 text-white animate-pulse' 
                     : 'hover:bg-accent'
