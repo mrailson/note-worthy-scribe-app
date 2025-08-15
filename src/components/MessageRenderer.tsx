@@ -28,6 +28,7 @@ interface Message {
   files?: UploadedFile[];
   responseTime?: number;
   timeToFirstWords?: number;
+  apiResponseTime?: number;
   model?: string;
   isStreaming?: boolean;
 }
@@ -430,6 +431,12 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                   <Clock className="h-3 w-3" />
                   <span>{message.responseTime}ms total</span>
                 </div>
+                {message.apiResponseTime && (
+                  <div className="flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    <span>{message.apiResponseTime}ms API</span>
+                  </div>
+                )}
                 {message.timeToFirstWords && (
                   <div className="flex items-center gap-1">
                     <Clock className="h-3 w-3" />

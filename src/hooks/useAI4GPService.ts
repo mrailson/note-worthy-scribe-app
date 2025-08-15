@@ -153,6 +153,9 @@ Always provide evidence-based, clinically appropriate advice that follows curren
 
       const responseContent = data?.response || data?.content || 'No response received';
       
+      // Capture API response time (when data first comes back)
+      const apiResponseTime = Date.now() - startTime;
+      
       if (!responseContent || responseContent === 'No response received') {
         throw new Error('No valid response received from AI service');
       }
@@ -179,7 +182,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
 
           setMessages(prev => prev.map(msg => 
             msg.id === assistantMessageId 
-              ? { ...msg, content: accumulatedContent.trim(), isStreaming: true, timeToFirstWords }
+              ? { ...msg, content: accumulatedContent.trim(), isStreaming: true, timeToFirstWords, apiResponseTime }
               : msg
           ));
 
@@ -193,7 +196,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
             
             setMessages(prev => prev.map(msg => 
               msg.id === assistantMessageId 
-                ? { ...msg, content: responseContent, isStreaming: false, responseTime, timeToFirstWords }
+                ? { ...msg, content: responseContent, isStreaming: false, responseTime, timeToFirstWords, apiResponseTime }
                 : msg
             ));
 
@@ -204,7 +207,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                 content: responseContent,
                 isStreaming: false,
                 responseTime,
-                timeToFirstWords
+                timeToFirstWords,
+                apiResponseTime
               }];
               await saveSearchAutomatically(finalMessages);
             }, 100);

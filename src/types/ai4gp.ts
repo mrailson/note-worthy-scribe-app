@@ -6,6 +6,7 @@ export interface Message {
   files?: UploadedFile[];
   responseTime?: number;
   timeToFirstWords?: number;
+  apiResponseTime?: number;
   model?: string;
   isStreaming?: boolean;
 }
