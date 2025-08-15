@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Sparkles, History, Plus, Settings, Sparkles as GenieIcon, Newspaper, MoreVertical } from 'lucide-react';
+import { Sparkles, History, Plus, Settings, Sparkles as GenieIcon, Newspaper, MoreVertical, Building2 } from 'lucide-react';
 import { LoginForm } from '@/components/LoginForm';
 import { MessagesList } from '@/components/ai4gp/MessagesList';
 import { InputArea, InputAreaRef } from '@/components/ai4gp/InputArea';
@@ -21,6 +21,7 @@ import { useSearchHistory } from '@/hooks/useSearchHistory';
 import { generateWordDocument, generatePowerPoint } from '@/utils/documentGenerators';
 import { Message } from '@/types/ai4gp';
 import GPGenieVoiceAgent from '@/components/GPGenieVoiceAgent';
+import PMGenieVoiceAgent from '@/components/PMGenieVoiceAgent';
 import NewsPanel from '@/components/NewsPanel';
 
 const AI4GPService = () => {
@@ -31,6 +32,7 @@ const AI4GPService = () => {
   const [expandedMessage, setExpandedMessage] = useState<Message | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showAIChat, setShowAIChat] = useState(false);
+  const [showPMGenie, setShowPMGenie] = useState(false);
   const [showNews, setShowNews] = useState(false);
   const [selectedRole, setSelectedRole] = useState<'gp' | 'practice-manager'>('gp');
   const [selectedModel, setSelectedModel] = useState('gpt-5');
@@ -176,6 +178,10 @@ const AI4GPService = () => {
                           <GenieIcon className="w-4 h-4 mr-2" />
                           GP Genie
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setShowPMGenie(!showPMGenie)}>
+                          <Building2 className="w-4 h-4 mr-2" />
+                          PM Genie
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setShowNews(!showNews)}>
                           <Newspaper className="w-4 h-4 mr-2" />
                           GP News
@@ -208,6 +214,23 @@ const AI4GPService = () => {
                 </div>
               )}
 
+              {/* PM Genie Display */}
+              {showPMGenie && (
+                <div className="border-b bg-muted/20 p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-medium text-sm">PM Genie</h4>
+                    <button
+                      onClick={() => setShowPMGenie(false)}
+                      className="text-muted-foreground hover:text-foreground text-sm"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <div className="max-h-96 overflow-y-auto">
+                    <PMGenieVoiceAgent />
+                  </div>
+                </div>
+              )}
 
               <CardContent className="flex-1 flex flex-col p-0 relative min-h-0 overflow-hidden">
                 {messages.length === 0 ? (
@@ -269,7 +292,7 @@ const AI4GPService = () => {
                 )}
                 
                 {/* Input Area at Bottom */}
-                {!showNews && !showAIChat && !showSettings && (
+                {!showNews && !showAIChat && !showPMGenie && !showSettings && (
                   <div className="border-t bg-background">
                     <InputArea
                       ref={inputRef}
