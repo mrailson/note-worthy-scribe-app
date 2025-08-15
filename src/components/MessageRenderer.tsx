@@ -397,11 +397,13 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
           
           {/* Message footer - always show action buttons in modal */}
           {(!isModal || (isModal && message.role === 'assistant')) && (
-            <div className={`flex items-center justify-between mt-3 pt-3 ${isModal ? 'border-t border-border/20' : 'border-t border-border/20'}`}>
-              <span className="text-xs opacity-70">
-                {!isModal && new Date(message.timestamp).toLocaleTimeString()}
-              </span>
-              <div className="flex items-center gap-1">
+            <div className={`${isModal ? 'fixed bottom-4 left-4 right-4 bg-background/95 backdrop-blur-sm border rounded-lg p-3 shadow-lg z-50' : 'flex items-center justify-between mt-3 pt-3 border-t border-border/20'}`}>
+              {!isModal && (
+                <span className="text-xs opacity-70">
+                  {new Date(message.timestamp).toLocaleTimeString()}
+                </span>
+              )}
+              <div className={`flex items-center gap-2 ${isModal ? 'justify-center w-full' : ''}`}>
                 {/* Action buttons for assistant messages */}
                 {message.role === 'assistant' && (
                   <>
