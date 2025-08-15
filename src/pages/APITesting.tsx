@@ -172,6 +172,35 @@ const APITesting = () => {
     return `${(ms / 1000).toFixed(2)}s`;
   };
 
+  const formatMarkdown = (text: string) => {
+    // Simple markdown formatting for better readability
+    return text
+      .split('\n')
+      .map((line, index) => {
+        // Handle headers
+        if (line.startsWith('# ')) {
+          return <h1 key={index} className="text-lg font-bold mt-4 mb-2">{line.substring(2)}</h1>;
+        }
+        if (line.startsWith('## ')) {
+          return <h2 key={index} className="text-base font-bold mt-3 mb-2">{line.substring(3)}</h2>;
+        }
+        if (line.startsWith('### ')) {
+          return <h3 key={index} className="text-sm font-bold mt-2 mb-1">{line.substring(4)}</h3>;
+        }
+        
+        // Handle bold text **text**
+        const parts = line.split(/(\*\*.*?\*\*)/g);
+        const formattedLine = parts.map((part, partIndex) => {
+          if (part.startsWith('**') && part.endsWith('**')) {
+            return <strong key={partIndex}>{part.slice(2, -2)}</strong>;
+          }
+          return part;
+        });
+        
+        return <p key={index} className="mb-2">{formattedLine}</p>;
+      });
+  };
+
   const getFastestModel = () => {
     const completedResults = results.filter(r => r.status === 'completed');
     if (completedResults.length === 0) return null;
@@ -390,8 +419,8 @@ const APITesting = () => {
                               </div>
                             </CardHeader>
                             <CardContent>
-                              <div className="text-sm whitespace-pre-wrap">
-                                {result.response}
+                              <div className="text-sm space-y-1">
+                                {formatMarkdown(result.response)}
                               </div>
                             </CardContent>
                           </Card>
