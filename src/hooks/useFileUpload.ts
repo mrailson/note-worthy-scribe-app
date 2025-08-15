@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 import { UploadedFile } from '@/types/ai4gp';
+import { FileProcessorManager } from '@/utils/fileProcessors/FileProcessorManager';
 
 export const useFileUpload = () => {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -10,49 +11,26 @@ export const useFileUpload = () => {
     
     try {
       const filePromises = Array.from(files).map(async (file) => {
-        // Add file type validation
-        const validTypes = ['.pdf', '.doc', '.docx', '.rtf', '.txt', '.eml', '.msg', '.jpg', '.jpeg', '.png', '.wav', '.mp3', '.m4a', '.xls', '.xlsx', '.csv'];
-        const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
-        
-        if (!validTypes.includes(fileExtension)) {
-          throw new Error(`Unsupported file type: ${file.name}`);
+        // Validate file type using FileProcessorManager
+        if (!FileProcessorManager.isSupported(file.name)) {
+          throw new Error(`Unsupported file type: ${file.name}. Supported: Word, Excel, PDF, Text, Images`);
         }
         
-        // Add file size validation (10MB limit)
-        if (file.size > 10 * 1024 * 1024) {
-          throw new Error(`File too large: ${file.name} (max 10MB)`);
-        }
+        // Process file using the appropriate processor
+        const processedFile = await FileProcessorManager.processFile(file);
         
-        const reader = new FileReader();
-        
-        return new Promise<UploadedFile>((resolve, reject) => {
-          reader.onload = () => {
-            try {
-              const content = reader.result as string;
-              resolve({
-                name: file.name,
-                type: file.type,
-                content: content,
-                size: file.size,
-                isLoading: false
-              });
-            } catch (error: any) {
-              reject(new Error(`Failed to process ${file.name}: ${error.message}`));
-            }
-          };
-          reader.onerror = () => reject(new Error(`Failed to read ${file.name}`));
-          
-          // Use readAsText for text files, readAsDataURL for binary files
-          if (['.jpg', '.jpeg', '.png', '.wav', '.mp3', '.m4a', '.xls', '.xlsx', '.pdf', '.doc', '.docx'].includes(fileExtension)) {
-            reader.readAsDataURL(file);
-          } else {
-            reader.readAsText(file);
-          }
-        });
+        // Convert to UploadedFile format
+        return {
+          name: processedFile.name,
+          type: processedFile.type,
+          content: processedFile.content,
+          size: processedFile.size,
+          isLoading: false
+        };
       });
 
       const processedFiles = await Promise.all(filePromises);
-      toast.success(`${processedFiles.length} file(s) uploaded successfully`);
+      toast.success(`${processedFiles.length} file(s) processed successfully`);
       return processedFiles;
       
     } catch (error) {

@@ -313,9 +313,80 @@ async function extractPdfWithVision(file: UploadedFile): Promise<string | null> 
       return null;
     }
     
-    // For PDF files, we can't directly use them with vision models
-    // Vision models need image data, so this is a fallback message
-    console.log('PDF vision processing requires conversion to image format');
+    // Re-enable vision processing for PDFs with proper handling
+    let imageData = file.content;
+    
+    // For PDF files, treat the base64 content as image data for vision processing
+    if (file.name.toLowerCase().endsWith('.pdf')) {
+      console.log('Processing PDF with vision model');
+      imageData = file.content; // Already in data URL format
+    }
+    
+    const systemPrompt = `You are an expert document analyzer specializing in PDF and document text extraction. 
+Extract ALL visible text from this document with complete accuracy.
+
+EXTRACTION REQUIREMENTS:
+- Extract EVERY piece of visible text
+- Include ALL: names, addresses, numbers, dates, amounts
+- Include ALL: line items, descriptions, totals
+- Preserve structure where possible
+- If text is unclear, extract what you can see and note [unclear]
+
+Return complete extracted text preserving document structure.`;
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openaiApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini', // Use more reliable vision model
+        max_tokens: 4000,
+        messages: [
+          {
+            role: 'system',
+            content: systemPrompt
+          },
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'Extract ALL text content from this document:'
+              },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: imageData,
+                  detail: 'high'
+                }
+              }
+            ]
+          }
+        ]
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.log(`Vision API error: ${response.status} - ${errorText}`);
+      return null;
+    }
+
+    const data = await response.json();
+    const extractedText = data.choices[0]?.message?.content;
+    
+    if (extractedText && extractedText.length > 50) {
+      console.log(`Vision model successfully extracted ${extractedText.length} characters`);
+      return `DOCUMENT CONTENT EXTRACTED FROM: ${file.name}
+
+${extractedText}
+
+[Content extracted using AI Vision technology]`;
+    }
+    
+    console.log('Vision model returned insufficient content');
     return null;
     
   } catch (error) {
@@ -929,11 +1000,19 @@ serve(async (req) => {
         if (message.files && message.files.length > 0) {
           console.log(`Processing ${message.files.length} files for message`);
           
-          // Extract text content from each file
+          // Extract text content from each file with intelligent content management
           const processedFiles = await Promise.all(
             message.files.map(async (file) => {
               console.log(`Extracting content from: ${file.name} (${file.type})`);
-              const extractedContent = await extractFileContent(file);
+              let extractedContent = await extractFileContent(file);
+              
+              // Implement intelligent content management for large files
+              const maxFileContentLength = 50000; // Per file limit to avoid token issues
+              if (extractedContent.length > maxFileContentLength) {
+                console.log(`File ${file.name} content too large (${extractedContent.length} chars), truncating to ${maxFileContentLength} chars`);
+                extractedContent = extractedContent.substring(0, maxFileContentLength) + '\n\n[CONTENT TRUNCATED DUE TO SIZE - Only first portion shown]';
+              }
+              
               return {
                 ...file,
                 content: extractedContent
