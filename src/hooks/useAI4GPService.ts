@@ -151,31 +151,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         throw error;
       }
 
-      // Handle streaming response - the data comes as raw text with streaming format
-      let responseContent = '';
+      const responseContent = data?.response || data?.content || 'No response received';
       
-      if (typeof data === 'string') {
-        // Parse streaming data format
-        const lines = data.split('\n').filter(line => line.startsWith('data: '));
-        let accumulatedContent = '';
-        
-        for (const line of lines) {
-          const jsonData = line.slice(6); // Remove 'data: ' prefix
-          try {
-            const parsed = JSON.parse(jsonData);
-            if (parsed.type === 'chunk' && parsed.content) {
-              accumulatedContent += parsed.content;
-            }
-          } catch (e) {
-            // Skip invalid JSON lines
-          }
-        }
-        responseContent = accumulatedContent || 'No response received';
-      } else {
-        // Handle regular JSON response
-        responseContent = data?.response || data?.content || 'No response received';
-      }
-
       if (!responseContent || responseContent === 'No response received') {
         throw new Error('No valid response received from AI service');
       }
