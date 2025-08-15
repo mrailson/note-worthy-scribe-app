@@ -116,7 +116,7 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
                 isRecording 
                   ? 'bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/30' 
                   : isProcessing 
-                    ? 'bg-amber-500 hover:bg-amber-600 text-white animate-pulse' 
+                    ? 'bg-amber-500 hover:bg-amber-600 text-white' 
                     : 'hover:bg-accent'
               }`}
               onClick={async () => {
