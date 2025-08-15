@@ -121,95 +121,165 @@ async function extractPdfContent(file: UploadedFile): Promise<string> {
       bytes[i] = binaryString.charCodeAt(i);
     }
 
-    // Convert to string for text pattern matching
+    // Convert to string for comprehensive text pattern matching
     const text = new TextDecoder('utf-8', { fatal: false }).decode(bytes);
+    const latin1Text = new TextDecoder('latin1').decode(bytes);
     
-    console.log('Attempting PDF text extraction...');
+    console.log('Attempting comprehensive PDF text extraction...');
     
-    // Multiple extraction strategies
     let extractedText = '';
+    const extractedParts = [];
     
-    // Strategy 1: Look for stream content between 'stream' and 'endstream'
-    const streamMatches = text.match(/stream\s*([\s\S]*?)\s*endstream/g) || [];
-    const streamContent = streamMatches.map(match => {
-      const content = match.replace(/^stream\s*/, '').replace(/\s*endstream$/, '');
-      // Try to decode if it looks like text
-      if (/[a-zA-Z0-9\s]/.test(content)) {
-        return content;
-      }
-      return '';
-    }).join(' ').trim();
-    
-    // Strategy 2: Look for text objects with Tj and TJ operators
-    const textObjects = text.match(/\[([^\]]*)\]\s*TJ|BT([^E]*?)ET|\(([^)]+)\)\s*Tj/g) || [];
-    const tjContent = textObjects.map(match => {
-      // Extract text from different PDF text operators
-      if (match.includes('TJ')) {
-        const arrayMatch = match.match(/\[([^\]]*)\]/);
-        if (arrayMatch) {
-          return arrayMatch[1].replace(/[()]/g, '').trim();
-        }
-      } else if (match.includes('Tj')) {
+    // Strategy 1: Extract from PDF text objects (most common)
+    const textObjectRegex = /BT\s*([\s\S]*?)\s*ET/g;
+    let textObjectMatch;
+    while ((textObjectMatch = textObjectRegex.exec(text)) !== null) {
+      const textCommands = textObjectMatch[1];
+      // Extract text from Tj, TJ, and ' operators
+      const textMatches = textCommands.match(/\(([^)]+)\)\s*(?:Tj|')|<([0-9A-Fa-f]+)>\s*(?:Tj|')|^\s*\(([^)]+)\)\s*$/gm) || [];
+      const extractedFromObj = textMatches.map(match => {
         const parenMatch = match.match(/\(([^)]+)\)/);
-        if (parenMatch) {
-          return parenMatch[1].trim();
+        const hexMatch = match.match(/<([0-9A-Fa-f]+)>/);
+        if (parenMatch) return parenMatch[1];
+        if (hexMatch) {
+          // Convert hex to ASCII
+          try {
+            return hexMatch[1].match(/.{2}/g)?.map(h => String.fromCharCode(parseInt(h, 16))).join('') || '';
+          } catch { return ''; }
         }
-      } else if (match.includes('BT') && match.includes('ET')) {
-        const textMatch = match.match(/\(([^)]+)\)/g) || [];
-        return textMatch.map(t => t.replace(/[()]/g, '')).join(' ');
+        return '';
+      }).filter(t => t.trim().length > 0);
+      
+      if (extractedFromObj.length > 0) {
+        extractedParts.push(extractedFromObj.join(' '));
       }
-      return '';
-    }).filter(text => text.length > 1).join(' ');
+    }
+    
+    // Strategy 2: Extract from TJ arrays (for formatted text)
+    const tjArrayRegex = /\[([^\]]*)\]\s*TJ/g;
+    let tjMatch;
+    while ((tjMatch = tjArrayRegex.exec(text)) !== null) {
+      const arrayContent = tjMatch[1];
+      const textElements = arrayContent.match(/\(([^)]+)\)/g) || [];
+      const tjText = textElements.map(elem => elem.replace(/[()]/g, '')).join('');
+      if (tjText.trim().length > 2) {
+        extractedParts.push(tjText);
+      }
+    }
     
     // Strategy 3: Simple parentheses extraction (fallback)
-    const textMatches = text.match(/\(([^)]{2,})\)/g) || [];
-    const parenContent = textMatches
-      .map(match => match.replace(/[()]/g, '').trim())
-      .filter(text => text.length > 2 && /[a-zA-Z]/.test(text))
-      .join(' ');
+    const simpleParenRegex = /\(([^)]{2,})\)/g;
+    let parenMatch;
+    const parenTexts = [];
+    while ((parenMatch = simpleParenRegex.exec(text)) !== null) {
+      const parenText = parenMatch[1].trim();
+      if (parenText.length > 1 && /[a-zA-Z0-9]/.test(parenText)) {
+        parenTexts.push(parenText);
+      }
+    }
+    
+    // Strategy 4: Stream content extraction
+    const streamRegex = /stream\s*([\s\S]*?)\s*endstream/g;
+    let streamMatch;
+    while ((streamMatch = streamRegex.exec(text)) !== null) {
+      const streamContent = streamMatch[1];
+      // Look for readable text in streams
+      const readableText = streamContent.match(/[a-zA-Z0-9\s.,£$€¥¢]+/g) || [];
+      const streamText = readableText.filter(t => t.trim().length > 3 && /[a-zA-Z]/.test(t)).join(' ');
+      if (streamText.length > 10) {
+        extractedParts.push(streamText);
+      }
+    }
+    
+    // Strategy 5: Try Latin1 encoding for older PDFs
+    const latin1Regex = /\(([^)]{2,})\)/g;
+    let latin1Match;
+    const latin1Texts = [];
+    while ((latin1Match = latin1Regex.exec(latin1Text)) !== null) {
+      const latin1ParenText = latin1Match[1].trim();
+      if (latin1ParenText.length > 1 && /[a-zA-Z0-9]/.test(latin1ParenText) && !extractedParts.includes(latin1ParenText)) {
+        latin1Texts.push(latin1ParenText);
+      }
+    }
+    
+    // Strategy 6: Look for common invoice/document patterns
+    const documentPatterns = [
+      /Invoice[^a-zA-Z]*([A-Z0-9\-]{3,})/gi,
+      /£\s*[\d,]+\.?\d*/g,
+      /\d{1,2}\/\d{1,2}\/\d{4}/g,
+      /[A-Z][a-z]+\s+[A-Z][a-z]+(?:\s+Ltd)?/g,
+      /Account[^0-9]*(\d+)/gi,
+      /Sort[^0-9]*(\d{2}-\d{2}-\d{2})/gi
+    ];
+    
+    const patternMatches = [];
+    for (const pattern of documentPatterns) {
+      const matches = text.match(pattern) || [];
+      patternMatches.push(...matches);
+    }
     
     // Combine all extraction methods
-    extractedText = [streamContent, tjContent, parenContent]
-      .filter(content => content.length > 10)
+    const allExtracted = [
+      ...extractedParts,
+      ...parenTexts,
+      ...latin1Texts,
+      ...patternMatches
+    ].filter(t => t && t.trim().length > 1);
+    
+    // Remove duplicates and clean up
+    const uniqueText = [...new Set(allExtracted)]
+      .filter(text => text.trim().length > 0)
       .join(' ')
       .replace(/\s+/g, ' ')
       .trim();
     
-    console.log(`PDF extraction result: ${extractedText.length} characters extracted`);
+    console.log(`PDF extraction result: ${uniqueText.length} characters extracted from ${allExtracted.length} text elements`);
     
-    if (extractedText.length > 50) {
+    if (uniqueText.length > 30) {
       return `PDF CONTENT EXTRACTED FROM: ${file.name}
 
-${extractedText}
+${uniqueText}
 
-[Note: PDF text extraction may not preserve exact formatting. For critical documents, please verify accuracy.]`;
+[Note: PDF text extracted using multiple parsing strategies. If content appears incomplete, the PDF may use advanced formatting or image-based text that requires OCR.]`;
     }
 
-    // If extraction fails, provide clear instructions
+    // If all extraction fails, provide comprehensive instructions
     const fileSize = (file.size / 1024 / 1024).toFixed(2);
-    return `[PDF File: ${file.name} (${fileSize}MB) - Automatic text extraction was unsuccessful.
+    return `[PDF File: ${file.name} (${fileSize}MB) - Advanced text extraction was unsuccessful.
 
-This could be because:
-1. The PDF contains scanned images rather than selectable text
-2. The PDF uses complex formatting or encryption
-3. The text is embedded in a way that requires specialized PDF parsing
+This PDF appears to contain:
+- Scanned images rather than selectable text, OR
+- Complex formatting/encoding that requires specialized parsing, OR  
+- Encrypted or protected content
 
-RECOMMENDED SOLUTIONS:
-1. Copy and paste the text directly from the PDF viewer
-2. Convert the PDF to a Word document (.docx) or text file (.txt)
-3. If it's a scanned document, use OCR software first
+SOLUTIONS FOR BETTER EXTRACTION:
+1. **Image-based PDF**: If this is a scanned document, try:
+   - Using an OCR tool first
+   - Taking screenshots and uploading as images for AI analysis
+   
+2. **Copy-paste method**: Open the PDF and manually copy the text content
 
-Please try uploading the content in a different format, or paste the text directly into your message.]`;
+3. **Format conversion**: 
+   - Save as Word document (.docx)
+   - Export as plain text (.txt)
+   - Print to PDF (creates text-based PDF)
+
+4. **For invoices/structured documents**:
+   - Take a clear screenshot and upload as image
+   - The AI can analyze invoice images very effectively
+
+Please try one of these alternatives for accurate content extraction.]`;
      
   } catch (error) {
     console.error('Error extracting PDF content:', error);
     const fileSize = (file.size / 1024 / 1024).toFixed(2);
-    return `[PDF File: ${file.name} (${fileSize}MB) - Text extraction failed with error: ${error.message}
+    return `[PDF File: ${file.name} (${fileSize}MB) - Extraction failed: ${error.message}
 
-Please try:
-1. Copying text manually from the PDF
-2. Converting to .docx or .txt format
-3. Ensuring the PDF contains selectable text (not just scanned images)]`;
+For reliable content extraction:
+1. Copy text manually from the PDF viewer
+2. Convert to Word/text format
+3. Upload as image if it's a scanned document
+4. Ensure the PDF isn't password protected]`;
   }
 }
 
