@@ -75,11 +75,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // Function to check if user is system admin
   const checkSystemAdmin = async (userId: string) => {
     try {
+      console.log('Checking system admin status for user:', userId);
       const { data, error } = await supabase
         .rpc('is_system_admin', { _user_id: userId });
       
+      console.log('System admin check result:', { data, error });
       if (!error) {
         setIsSystemAdmin(data || false);
+        console.log('Set isSystemAdmin to:', data || false);
       }
     } catch (error) {
       console.error('Error checking system admin status:', error);
