@@ -290,7 +290,7 @@ const GPGenieVoiceAgent = () => {
                 ) : (
                   <Phone className="h-5 w-5" />
                 )}
-                {isLoading ? 'Connecting...' : 'Start Clinical Consultation'}
+                {isLoading ? 'Connecting...' : 'Start the Conversation'}
               </Button>
             )}
           </div>
