@@ -268,7 +268,7 @@ async function callClaude(messages: Message[], systemPrompt: string, files?: Upl
     body: JSON.stringify({
       model: 'claude-3-5-sonnet-20241022',
       max_tokens: 4000,
-      system: systemPrompt,
+      system: systemPrompt + "\n\nCRITICAL: When analyzing uploaded images with handwritten text, you MUST transcribe only the actual visible text. DO NOT generate fictional content. DO NOT hallucinate clinical scenarios. Only describe what you can actually see written in the image.",
       messages: claudeMessages
     })
   });
