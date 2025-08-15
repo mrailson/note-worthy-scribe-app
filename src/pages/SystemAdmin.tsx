@@ -134,7 +134,7 @@ const SystemAdmin = () => {
     email: '',
     full_name: '',
     password: '',
-    role: 'user' as const,
+    role: 'user' as 'user' | 'practice_manager' | 'pcn_manager' | 'system_admin',
     practice_id: 'none',
     module_access: {
       meeting_notes_access: true,
@@ -569,11 +569,23 @@ const [patientDataAccess, setPatientDataAccess] = useState([]);
     
     setEditingUser(user);
     
+    // Get the user's role - check if they have a system_admin role first
+    let userRole: 'user' | 'practice_manager' | 'pcn_manager' | 'system_admin' = 'user';
+    if (user.practice_assignments && user.practice_assignments.length > 0) {
+      // Check if any assignment has system_admin role
+      const systemAdminAssignment = user.practice_assignments.find((assignment: any) => assignment.role === 'system_admin');
+      if (systemAdminAssignment) {
+        userRole = 'system_admin';
+      } else {
+        userRole = user.practice_assignments[0].role || 'user';
+      }
+    }
+    
     const formData = {
       email: user.email,
       full_name: user.full_name,
       password: '',
-      role: user.practice_assignments[0]?.role || 'user',
+      role: userRole,
       practice_id: user.practice_assignments[0]?.practice_id || 'none',
       module_access: {
         meeting_notes_access: user.meeting_notes_access ?? false,
@@ -590,6 +602,7 @@ const [patientDataAccess, setPatientDataAccess] = useState([]);
     
     console.log('Setting form data:', formData);
     console.log('Module access being set:', formData.module_access);
+    console.log('User role determined:', userRole);
     
     setUserFormData(formData);
     setShowUserModal(true);
