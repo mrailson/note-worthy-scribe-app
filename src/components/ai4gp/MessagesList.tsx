@@ -12,6 +12,7 @@ interface MessagesListProps {
   onExportWord?: (content: string, title?: string) => void;
   onExportPowerPoint?: (content: string, title?: string) => void;
   showResponseMetrics?: boolean;
+  onQuickResponse?: (response: string) => void;
 }
 
 export const MessagesList: React.FC<MessagesListProps> = ({
@@ -21,7 +22,8 @@ export const MessagesList: React.FC<MessagesListProps> = ({
   setExpandedMessage,
   onExportWord,
   onExportPowerPoint,
-  showResponseMetrics = false
+  showResponseMetrics = false,
+  onQuickResponse
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -48,10 +50,11 @@ export const MessagesList: React.FC<MessagesListProps> = ({
             key={message.id}
             message={message}
             onExpandMessage={setExpandedMessage}
-            onExportWord={onExportWord}
-            onExportPowerPoint={onExportPowerPoint}
-            showResponseMetrics={showResponseMetrics}
-          />
+              onExportWord={onExportWord}
+              onExportPowerPoint={onExportPowerPoint}
+              showResponseMetrics={showResponseMetrics}
+              onQuickResponse={onQuickResponse}
+            />
         ))}
         
         {isLoading && (

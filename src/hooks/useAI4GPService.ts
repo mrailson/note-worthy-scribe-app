@@ -347,6 +347,25 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     setInput('');
   }, []);
 
+  // Handle quick action responses
+  const handleQuickResponse = useCallback(async (quickResponse: string, practiceContext: any, selectedModel: string = 'gpt-5') => {
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: quickResponse,
+      timestamp: new Date(),
+      files: []
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    
+    // Auto-send the quick response - temporarily set input
+    const originalInput = input;
+    setInput(quickResponse);
+    await handleSend(practiceContext, selectedModel);
+    setInput(originalInput);
+  }, [handleSend, input]);
+
   return {
     messages,
     setMessages,
@@ -365,6 +384,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     setShowResponseMetrics,
     handleSend,
     handleNewSearch,
-    saveSearchAutomatically
+    saveSearchAutomatically,
+    handleQuickResponse
   };
 };

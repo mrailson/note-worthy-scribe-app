@@ -50,7 +50,8 @@ const AI4GPService = () => {
     showResponseMetrics,
     setShowResponseMetrics,
     handleSend,
-    handleNewSearch
+    handleNewSearch,
+    handleQuickResponse
   } = useAI4GPService();
 
   const { practiceContext } = usePracticeContext();
@@ -262,6 +263,7 @@ const AI4GPService = () => {
                       onExportWord={generateWordDocument}
                       onExportPowerPoint={generatePowerPoint}
                       showResponseMetrics={showResponseMetrics}
+                      onQuickResponse={(response) => handleQuickResponse(response, practiceContext, selectedModel)}
                     />
                   </div>
                 )}

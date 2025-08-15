@@ -19,6 +19,7 @@ import {
   Clock
 } from 'lucide-react';
 import { toast } from 'sonner';
+import QuickActionButtons from '@/components/QuickActionButtons';
 
 interface Message {
   id: string;
@@ -48,6 +49,7 @@ interface MessageRendererProps {
   isModal?: boolean; // New prop to indicate if rendering in modal
   onCloseModal?: () => void; // New prop to close modal
   showResponseMetrics?: boolean; // New prop to show response metrics
+  onQuickResponse?: (response: string) => void; // New prop for quick responses
 }
 
 const MessageRenderer: React.FC<MessageRendererProps> = ({ 
@@ -57,7 +59,8 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   onExportPowerPoint,
   isModal = false,
   onCloseModal,
-  showResponseMetrics = false
+  showResponseMetrics = false,
+  onQuickResponse
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showFullContent, setShowFullContent] = useState(true);
@@ -451,6 +454,14 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                 )}
               </div>
             </div>
+          )}
+
+          {/* Quick Action Buttons - only for assistant messages, not in modal, and only if not streaming */}
+          {message.role === 'assistant' && !isModal && !message.isStreaming && onQuickResponse && (
+            <QuickActionButtons
+              content={message.content}
+              onQuickResponse={onQuickResponse}
+            />
           )}
 
           {/* Message footer - always show action buttons in modal */}
