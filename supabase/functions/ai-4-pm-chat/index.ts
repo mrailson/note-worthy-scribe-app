@@ -353,7 +353,7 @@ async function callGrok(messages: Message[], systemPrompt: string, files?: Uploa
         'Authorization': `Bearer ${grokApiKey}`
       },
       body: JSON.stringify({
-        model: 'grok-beta',
+        model: 'grok-2-1212',
         messages: grokMessages,
         max_tokens: 4000,
         temperature: 0.7
