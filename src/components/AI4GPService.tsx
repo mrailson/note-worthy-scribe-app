@@ -319,9 +319,8 @@ const AI4GPService = () => {
       {/* News Modal */}
       <Dialog open={showNews} onOpenChange={setShowNews}>
         <DialogContent className="max-w-[100vw] w-[100vw] max-h-[100vh] h-[100vh] overflow-y-auto p-0 m-0">
-          <DialogHeader className="p-4 border-b flex-row items-center justify-between space-y-0">
+          <DialogHeader className="p-4 border-b">
             <DialogTitle className="text-left">GP News & Local Health News</DialogTitle>
-            <NewsPanel showFiltersInHeader />
           </DialogHeader>
           <div className="flex-1 overflow-y-auto p-4">
             <NewsPanel />
