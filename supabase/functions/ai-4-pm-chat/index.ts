@@ -24,7 +24,7 @@ interface UploadedFile {
 
 interface RequestBody {
   messages: Message[];
-  model: 'claude' | 'gpt' | 'chatgpt5' | 'grok-beta' | 'claude-4-opus' | 'claude-4-sonnet' | 'gpt-4-turbo' | 'gemini-ultra' | 'gpt-5';
+  model: 'claude' | 'gpt' | 'chatgpt5' | 'grok-beta' | 'claude-4-opus' | 'claude-4-sonnet' | 'gpt-4-turbo' | 'gemini-ultra' | 'gemini-1.5-pro' | 'gemini-1.5-flash' | 'gpt-5';
   systemPrompt: string;
   files?: UploadedFile[];
   enableWebSearch?: boolean;
@@ -382,6 +382,66 @@ async function callGrok(messages: Message[], systemPrompt: string, files?: Uploa
   }
 }
 
+async function callGemini(messages: Message[], systemPrompt: string, model: string = 'gemini-1.5-pro', files?: UploadedFile[]): Promise<string> {
+  const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+  if (!geminiApiKey) {
+    throw new Error('Gemini API key not configured');
+  }
+
+  console.log(`Calling Gemini API with model: ${model}...`);
+
+  // Format messages for Gemini
+  let content = systemPrompt + '\n\n';
+  
+  messages.forEach(msg => {
+    content += `${msg.role}: `;
+    content += msg.content || '[No message content]';
+    
+    if (msg.files && msg.files.length > 0) {
+      const fileContent = msg.files.map(file => 
+        `\n\n--- File: ${file.name} ---\n${file.content}\n--- End of ${file.name} ---`
+      ).join('');
+      content += fileContent;
+    }
+    
+    content += '\n\n';
+  });
+
+  // Ensure correct model format for Gemini API
+  const modelPath = model.includes('gemini-') ? model : `gemini-${model}`;
+  
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelPath}:generateContent?key=${geminiApiKey}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      contents: [{
+        parts: [{ text: content }]
+      }],
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 4000,
+      }
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    console.error(`Gemini API error for model ${modelPath}:`, error);
+    throw new Error(`Gemini API error: ${response.status} - ${error}`);
+  }
+
+  const data = await response.json();
+  
+  if (!data.candidates || !data.candidates[0] || !data.candidates[0].content || !data.candidates[0].content.parts) {
+    console.error('Unexpected Gemini response structure:', JSON.stringify(data));
+    throw new Error('Invalid response structure from Gemini API');
+  }
+  
+  return data.candidates[0].content.parts[0].text || 'No response generated';
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -583,6 +643,10 @@ serve(async (req) => {
       response = await callGPT5(processedMessages, enhancedSystemPrompt, files);
     } else if (model === 'grok-beta') {
       response = await callGrok(processedMessages, enhancedSystemPrompt, files);
+    } else if (model === 'gemini-ultra' || model === 'gemini-1.5-pro') {
+      response = await callGemini(processedMessages, enhancedSystemPrompt, 'gemini-1.5-pro', files);
+    } else if (model === 'gemini-1.5-flash') {
+      response = await callGemini(processedMessages, enhancedSystemPrompt, 'gemini-1.5-flash', files);
     } else {
       throw new Error(`Unsupported model: ${model}`);
     }
