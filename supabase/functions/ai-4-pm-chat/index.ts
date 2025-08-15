@@ -328,7 +328,9 @@ async function callGrok(messages: Message[], systemPrompt: string, files?: Uploa
     throw new Error('Grok API key not configured');
   }
 
-  // Format messages for Grok
+  console.log('Calling Grok API...');
+
+  // Format messages for Grok (following OpenAI-compatible format)
   const grokMessages = [
     { role: 'system', content: systemPrompt }
   ];
@@ -355,28 +357,42 @@ async function callGrok(messages: Message[], systemPrompt: string, files?: Uploa
     });
   });
 
-  const response = await fetch('https://api.x.ai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${grokApiKey}`
-    },
-    body: JSON.stringify({
-      model: 'grok-beta',
-      messages: grokMessages,
-      max_tokens: 4000,
-      temperature: 0.7
-    })
-  });
+  try {
+    const response = await fetch('https://api.x.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${grokApiKey}`
+      },
+      body: JSON.stringify({
+        model: 'grok-beta',
+        messages: grokMessages,
+        max_tokens: 4000,
+        temperature: 0.7,
+        stream: false
+      })
+    });
 
-  if (!response.ok) {
-    const error = await response.text();
-    console.error('Grok API error:', error);
-    throw new Error(`Grok API error: ${response.status}`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Grok API error response:', errorText);
+      console.error('Grok API status:', response.status);
+      throw new Error(`Grok API error: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log('Grok API response received successfully');
+    
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      console.error('Unexpected Grok API response structure:', data);
+      throw new Error('Unexpected response structure from Grok API');
+    }
+    
+    return data.choices[0].message.content;
+  } catch (error) {
+    console.error('Error calling Grok API:', error);
+    throw error;
   }
-
-  const data = await response.json();
-  return data.choices[0].message.content;
 }
 
 serve(async (req) => {
