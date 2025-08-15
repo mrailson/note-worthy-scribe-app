@@ -146,7 +146,14 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                    >
                      <Sparkles className="h-4 w-4 mr-2" />
                      AI4GP Service
-                   </DropdownMenuItem>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => navigate('/api-testing')}
+                      className="cursor-pointer py-3"
+                    >
+                      <Wrench className="h-4 w-4 mr-2" />
+                      API Testing & Comparison
+                    </DropdownMenuItem>
                     {hasModuleAccess('enhanced_access') && (
                       <DropdownMenuItem 
                         onClick={() => navigate('/enhanced-access')}
@@ -343,6 +350,12 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                           <Button variant="ghost" className="justify-start" onClick={() => navigate('/ai4gp')}>
                             <Sparkles className="h-4 w-4 mr-2" />
                             AI4GP Service
+                          </Button>
+                        </DrawerClose>
+                        <DrawerClose asChild>
+                          <Button variant="ghost" className="justify-start" onClick={() => navigate('/api-testing')}>
+                            <Wrench className="h-4 w-4 mr-2" />
+                            API Testing & Comparison
                           </Button>
                         </DrawerClose>
                         {hasModuleAccess('enhanced_access') && (
