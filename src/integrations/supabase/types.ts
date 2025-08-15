@@ -3809,6 +3809,16 @@ export type Database = {
           uploaded_by_email: string
         }[]
       }
+      get_large_files_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          files_500kb_to_1mb: number
+          files_over_1mb: number
+          total_large_files: number
+          total_large_files_size: number
+          total_large_files_size_pretty: string
+        }[]
+      }
       get_meeting_full_transcript: {
         Args: { p_meeting_id: string }
         Returns: {

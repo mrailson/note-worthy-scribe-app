@@ -115,6 +115,14 @@ const SystemAdmin = () => {
     uploaded_at: string;
     uploaded_by_email: string;
   }>>([]);
+
+  const [fileStats, setFileStats] = useState<{
+    files_over_1mb: number;
+    files_500kb_to_1mb: number;
+    total_large_files: number;
+    total_large_files_size: number;
+    total_large_files_size_pretty: string;
+  } | null>(null);
   
   // User management state
   const [users, setUsers] = useState<User[]>([]);
@@ -216,6 +224,7 @@ const [patientDataAccess, setPatientDataAccess] = useState([]);
       fetchDashboardStats();
       fetchDatabaseSizes();
       fetchLargeFiles();
+      fetchFileStats();
       fetchSupplierIncidents();
       fetchSecurityEvents();
       fetchEnhancedSecurityData();
@@ -404,6 +413,19 @@ const [patientDataAccess, setPatientDataAccess] = useState([]);
     } catch (error) {
       console.error('Error fetching large files:', error);
       toast.error("Failed to fetch large files");
+    }
+  };
+
+  const fetchFileStats = async () => {
+    try {
+      const { data, error } = await supabase.rpc('get_large_files_stats');
+      if (error) throw error;
+      if (data && data.length > 0) {
+        setFileStats(data[0]);
+      }
+    } catch (error) {
+      console.error('Error fetching file stats:', error);
+      toast.error("Failed to fetch file statistics");
     }
   };
 
@@ -928,9 +950,31 @@ const handleUserSubmit = async (e: React.FormEvent) => {
                     <FileText className="h-5 w-5" />
                     Large Files Overview
                   </CardTitle>
-                  <CardDescription>Files larger than 10MB across all tables</CardDescription>
+                  <CardDescription>File statistics and large files overview</CardDescription>
                 </CardHeader>
                 <CardContent>
+                  {fileStats ? (
+                    <div className="grid grid-cols-2 gap-4 mb-6">
+                      <div className="bg-card rounded-lg border p-4">
+                        <div className="text-2xl font-bold text-primary">{fileStats.files_over_1mb}</div>
+                        <p className="text-muted-foreground text-sm">Files over 1MB</p>
+                      </div>
+                      <div className="bg-card rounded-lg border p-4">
+                        <div className="text-2xl font-bold text-primary">{fileStats.files_500kb_to_1mb}</div>
+                        <p className="text-muted-foreground text-sm">Files 500KB-1MB</p>
+                      </div>
+                      <div className="bg-card rounded-lg border p-4">
+                        <div className="text-2xl font-bold text-primary">{fileStats.total_large_files}</div>
+                        <p className="text-muted-foreground text-sm">Total files tracked</p>
+                      </div>
+                      <div className="bg-card rounded-lg border p-4">
+                        <div className="text-2xl font-bold text-primary">{fileStats.total_large_files_size_pretty}</div>
+                        <p className="text-muted-foreground text-sm">Total storage used</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-muted-foreground mb-6">Loading file statistics...</div>
+                  )}
                   <div className="space-y-3">
                     {largeFiles.slice(0, 10).map((file, index) => (
                       <div key={`${file.table_name}-${index}`} className="flex items-center justify-between">
