@@ -4,8 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ExternalLink, Filter, Clock, MapPin, Tag, RefreshCw } from "lucide-react";
+import { ExternalLink, Filter, Clock, MapPin, Tag, RefreshCw, X } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -78,7 +79,8 @@ const isHealthRelatedByUrl = (a: NewsArticle) => {
   return healthKeywords.some(k => u.includes(k)) || u.includes('/health');
 };
 
-const NewsPanel = ({ showFiltersInHeader = false }: { showFiltersInHeader?: boolean }) => {
+const NewsPanel = ({ showFiltersInHeader = false, onClose }: { showFiltersInHeader?: boolean; onClose?: () => void }) => {
+  const isMobile = useIsMobile();
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -370,10 +372,20 @@ const NewsPanel = ({ showFiltersInHeader = false }: { showFiltersInHeader?: bool
 
   return (
     <div>
+      {/* Mobile Close Header */}
+      {isMobile && onClose && (
+        <div className="flex items-center justify-between p-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-10">
+          <h2 className="text-lg font-semibold">GP News</h2>
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+      
       {/* News Source Toggles */}
-      <div className="mb-6 p-4 bg-muted/10 rounded-lg border">
+      <div className={`${isMobile ? 'mx-4 mt-4' : ''} mb-6 p-4 bg-muted/10 rounded-lg border`}>
         <h3 className="text-sm font-medium mb-3 text-muted-foreground">News Sources</h3>
-        <div className="flex flex-wrap gap-4">
+        <div className={`flex ${isMobile ? 'flex-col space-y-3' : 'flex-wrap'} gap-4`}>
           <div className="flex items-center space-x-2">
             <Switch
               id="local-toggle"
@@ -486,7 +498,7 @@ const NewsPanel = ({ showFiltersInHeader = false }: { showFiltersInHeader?: bool
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className={`grid gap-4 ${isMobile ? 'grid-cols-1 mx-4' : 'md:grid-cols-2 lg:grid-cols-3'}`}>
           {prioritizedArticles.map((article) => (
             <Card key={article.id} className="cursor-pointer hover:shadow-lg transition-shadow">
               <CardHeader className="pb-3">
