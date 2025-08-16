@@ -161,64 +161,125 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         throw new Error('No valid response received from AI service');
       }
       
-      // Simulate streaming by chunking the response for better UX
+      // Fast response when no files, slower when files are present for better UX
+      const hasFiles = uploadedFiles.length > 0;
       const chunks = responseContent.split(' ');
-      const chunkSize = Math.max(1, Math.floor(chunks.length / 20)); // ~20 updates
-      let currentIndex = 0;
-      let accumulatedContent = '';
+      
+      if (!hasFiles) {
+        // Fast response - show immediately with minimal chunking for natural feel
+        const chunkSize = Math.max(5, Math.floor(chunks.length / 5)); // ~5 fast updates
+        let currentIndex = 0;
+        let accumulatedContent = '';
+        let timeToFirstWords: number | undefined;
 
-      let timeToFirstWords: number | undefined;
-
-      const streamChunks = () => {
-        if (currentIndex < chunks.length) {
-          const endIndex = Math.min(currentIndex + chunkSize, chunks.length);
-          const chunkText = chunks.slice(currentIndex, endIndex).join(' ') + ' ';
-          accumulatedContent += chunkText;
-          currentIndex = endIndex;
-
-          // Capture time to first words on first chunk
-          if (currentIndex === chunkSize && !timeToFirstWords) {
-            timeToFirstWords = Date.now() - startTime;
-          }
-
-          setMessages(prev => prev.map(msg => 
-            msg.id === assistantMessageId 
-              ? { ...msg, content: accumulatedContent.trim(), isStreaming: true, timeToFirstWords, apiResponseTime }
-              : msg
-          ));
-
+        const streamChunks = () => {
           if (currentIndex < chunks.length) {
-            // Continue streaming with slight delay for better UX
-            setTimeout(streamChunks, 50 + Math.random() * 50);
-          } else {
-            // Streaming complete
-            const endTime = Date.now();
-            const responseTime = endTime - startTime;
-            
+            const endIndex = Math.min(currentIndex + chunkSize, chunks.length);
+            const chunkText = chunks.slice(currentIndex, endIndex).join(' ') + ' ';
+            accumulatedContent += chunkText;
+            currentIndex = endIndex;
+
+            // Capture time to first words on first chunk
+            if (currentIndex === chunkSize && !timeToFirstWords) {
+              timeToFirstWords = Date.now() - startTime;
+            }
+
             setMessages(prev => prev.map(msg => 
               msg.id === assistantMessageId 
-                ? { ...msg, content: responseContent, isStreaming: false, responseTime, timeToFirstWords, apiResponseTime }
+                ? { ...msg, content: accumulatedContent.trim(), isStreaming: true, timeToFirstWords, apiResponseTime }
                 : msg
             ));
 
-            // Auto-save the search
-            setTimeout(async () => {
-              const finalMessages = [...newMessages, {
-                ...assistantMessage,
-                content: responseContent,
-                isStreaming: false,
-                responseTime,
-                timeToFirstWords,
-                apiResponseTime
-              }];
-              await saveSearchAutomatically(finalMessages);
-            }, 100);
-          }
-        }
-      };
+            if (currentIndex < chunks.length) {
+              // Very fast streaming - minimal delay
+              setTimeout(streamChunks, 15 + Math.random() * 10);
+            } else {
+              // Streaming complete
+              const endTime = Date.now();
+              const responseTime = endTime - startTime;
+              
+              setMessages(prev => prev.map(msg => 
+                msg.id === assistantMessageId 
+                  ? { ...msg, content: responseContent, isStreaming: false, responseTime, timeToFirstWords, apiResponseTime }
+                  : msg
+              ));
 
-      // Start the streaming simulation
-      streamChunks();
+              // Auto-save the search
+              setTimeout(async () => {
+                const finalMessages = [...newMessages, {
+                  ...assistantMessage,
+                  content: responseContent,
+                  isStreaming: false,
+                  responseTime,
+                  timeToFirstWords,
+                  apiResponseTime
+                }];
+                await saveSearchAutomatically(finalMessages);
+              }, 100);
+            }
+          }
+        };
+
+        // Start fast streaming
+        streamChunks();
+      } else {
+        // Slower streaming for file-based responses
+        const chunkSize = Math.max(1, Math.floor(chunks.length / 20)); // ~20 updates
+        let currentIndex = 0;
+        let accumulatedContent = '';
+        let timeToFirstWords: number | undefined;
+
+        const streamChunks = () => {
+          if (currentIndex < chunks.length) {
+            const endIndex = Math.min(currentIndex + chunkSize, chunks.length);
+            const chunkText = chunks.slice(currentIndex, endIndex).join(' ') + ' ';
+            accumulatedContent += chunkText;
+            currentIndex = endIndex;
+
+            // Capture time to first words on first chunk
+            if (currentIndex === chunkSize && !timeToFirstWords) {
+              timeToFirstWords = Date.now() - startTime;
+            }
+
+            setMessages(prev => prev.map(msg => 
+              msg.id === assistantMessageId 
+                ? { ...msg, content: accumulatedContent.trim(), isStreaming: true, timeToFirstWords, apiResponseTime }
+                : msg
+            ));
+
+            if (currentIndex < chunks.length) {
+              // Continue streaming with delay for file processing
+              setTimeout(streamChunks, 50 + Math.random() * 50);
+            } else {
+              // Streaming complete
+              const endTime = Date.now();
+              const responseTime = endTime - startTime;
+              
+              setMessages(prev => prev.map(msg => 
+                msg.id === assistantMessageId 
+                  ? { ...msg, content: responseContent, isStreaming: false, responseTime, timeToFirstWords, apiResponseTime }
+                  : msg
+              ));
+
+              // Auto-save the search
+              setTimeout(async () => {
+                const finalMessages = [...newMessages, {
+                  ...assistantMessage,
+                  content: responseContent,
+                  isStreaming: false,
+                  responseTime,
+                  timeToFirstWords,
+                  apiResponseTime
+                }];
+                await saveSearchAutomatically(finalMessages);
+              }, 100);
+            }
+          }
+        };
+
+        // Start slower streaming for file processing
+        streamChunks();
+      }
 
 
     } catch (error: any) {
@@ -445,12 +506,11 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         throw new Error('No valid response received from AI service');
       }
       
-      // Simulate streaming by chunking the response for better UX
+      // Fast response for quick actions - no files expected
       const chunks = responseContent.split(' ');
-      const chunkSize = Math.max(1, Math.floor(chunks.length / 20)); // ~20 updates
+      const chunkSize = Math.max(5, Math.floor(chunks.length / 5)); // ~5 fast updates
       let currentIndex = 0;
       let accumulatedContent = '';
-
       let timeToFirstWords: number | undefined;
 
       const streamChunks = () => {
@@ -472,8 +532,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           ));
 
           if (currentIndex < chunks.length) {
-            // Continue streaming with slight delay for better UX
-            setTimeout(streamChunks, 50 + Math.random() * 50);
+            // Very fast streaming for quick actions
+            setTimeout(streamChunks, 15 + Math.random() * 10);
           } else {
             // Streaming complete
             const endTime = Date.now();
@@ -501,7 +561,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         }
       };
 
-      // Start the streaming simulation
+      // Start fast streaming for quick actions
       streamChunks();
 
     } catch (error: any) {
