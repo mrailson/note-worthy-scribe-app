@@ -855,43 +855,17 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
     });
   });
 
-  // Define the tavily_search function tool
-  const tools = [{
-    type: "function",
-    function: {
-      name: "tavily_search",
-      description: "Search trusted UK health sources for recent information",
-      parameters: {
-        type: "object",
-        properties: {
-          query: { 
-            type: "string",
-            description: "Search query for UK health information"
-          },
-          recencyDays: { 
-            type: "integer", 
-            default: 180,
-            description: "How many days back to search"
-          }
-        },
-        required: ["query"]
-      }
-    }
-  }];
-
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  const response = await fetch('https://api.openai.com/v1/responses', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${openaiApiKey}`
     },
     body: JSON.stringify({
-      model: 'gpt-5-2025-08-07',
-      tools: tools,
-      tool_choice: "auto",
-      temperature: 0.2,
-      messages: gptMessages,
-      max_completion_tokens: 4000
+      model: 'gpt-4o',
+      tools: [{ type: 'web_search' }],
+      max_output_tokens: 4000,
+      input: gptMessages
     })
   });
 
@@ -902,120 +876,7 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
   }
 
   const data = await response.json();
-  
-  // Handle tool calls if the model requested them
-  const choice = data.choices[0];
-  if (choice.message.tool_calls) {
-    console.log('Model requested tool calls:', choice.message.tool_calls.length);
-    
-    // Add the assistant message with tool calls to conversation
-    gptMessages.push(choice.message);
-    
-    // Process each tool call
-    for (const toolCall of choice.message.tool_calls) {
-      if (toolCall.function.name === 'tavily_search') {
-        const args = JSON.parse(toolCall.function.arguments);
-        console.log('Tavily search requested:', args.query);
-        
-        // Call Tavily API
-        const tavilyApiKey = Deno.env.get('TAVILY_API_KEY');
-        if (!tavilyApiKey) {
-          console.error('Tavily API key not configured');
-          gptMessages.push({
-            role: 'tool',
-            tool_call_id: toolCall.id,
-            name: 'tavily_search',
-            content: JSON.stringify({
-              error: "Search functionality temporarily unavailable",
-              message: "Unable to perform web search at this time"
-            })
-          });
-          continue;
-        }
-        
-        try {
-          const tavilyResponse = await fetch('https://api.tavily.com/search', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              api_key: tavilyApiKey,
-              query: args.query,
-              search_depth: 'advanced',
-              include_domains: [
-                'gov.uk', 'nhs.uk', 'england.nhs.uk', 'nice.org.uk', 
-                'bnf.nice.org.uk', 'ukhsa.gov.uk', 'dhsc.gov.uk'
-              ],
-              max_results: 5,
-              include_raw_content: false
-            }),
-          });
-          
-          const tavilyData = await tavilyResponse.json();
-          
-          // Format results for the model
-          const searchResults = {
-            query: args.query,
-            results: tavilyData.results?.map((result: any) => ({
-              title: result.title,
-              url: result.url,
-              content: result.content,
-              published_date: result.published_date
-            })) || []
-          };
-          
-          gptMessages.push({
-            role: 'tool',
-            tool_call_id: toolCall.id,
-            name: 'tavily_search',
-            content: JSON.stringify(searchResults)
-          });
-          
-          console.log(`Tavily search completed: ${searchResults.results.length} results`);
-          
-        } catch (searchError) {
-          console.error('Tavily search error:', searchError);
-          gptMessages.push({
-            role: 'tool',
-            tool_call_id: toolCall.id,
-            name: 'tavily_search',
-            content: JSON.stringify({
-              error: "Search failed",
-              message: "Unable to complete web search request"
-            })
-          });
-        }
-      }
-    }
-    
-    // Make a second call to get the final answer with search results
-    const finalResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${openaiApiKey}`
-      },
-      body: JSON.stringify({
-        model: 'gpt-5-2025-08-07',
-        tools: tools,
-        temperature: 0.2,
-        messages: gptMessages,
-        max_completion_tokens: 4000
-      })
-    });
-    
-    if (!finalResponse.ok) {
-      const error = await finalResponse.text();
-      console.error('OpenAI final API error:', error);
-      throw new Error(`OpenAI final API error: ${finalResponse.status}`);
-    }
-    
-    const finalData = await finalResponse.json();
-    return finalData.choices[0].message.content;
-  }
-  
-  return choice.message.content;
+  return data.choices[0].message.content;
 }
 
 async function callGrok(messages: Message[], systemPrompt: string, files?: UploadedFile[]): Promise<string> {
