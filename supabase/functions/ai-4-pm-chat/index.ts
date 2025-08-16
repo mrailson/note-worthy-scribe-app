@@ -7,6 +7,69 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
+const grokApiKey = Deno.env.get('GROK_API_KEY');
+const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+const tavilyApiKey = Deno.env.get('TAVILY_API_KEY');
+
+// Tavily search function
+async function runTavilySearch(query: string, recencyDays: number = 180, siteLimit?: string[]): Promise<any> {
+  if (!tavilyApiKey) {
+    throw new Error('Tavily API key not configured');
+  }
+
+  const searchParams = {
+    query,
+    search_depth: "advanced",
+    max_results: 10,
+    include_domains: siteLimit || [
+      "gov.uk",
+      "england.nhs.uk", 
+      "nhs.uk",
+      "nice.org.uk",
+      "bnf.nice.org.uk",
+      "ukhsa.gov.uk"
+    ],
+    days: recencyDays
+  };
+
+  console.log('Tavily search params:', searchParams);
+
+  try {
+    const response = await fetch('https://api.tavily.com/search', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${tavilyApiKey}`
+      },
+      body: JSON.stringify(searchParams)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Tavily API error:', response.status, errorText);
+      throw new Error(`Tavily search failed: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('Tavily search results:', data);
+    
+    return {
+      results: data.results?.map((result: any) => ({
+        title: result.title,
+        url: result.url,
+        snippet: result.content,
+        publishedDate: result.published_date,
+        score: result.score
+      })) || []
+    };
+  } catch (error) {
+    console.error('Error in Tavily search:', error);
+    throw error;
+  }
+}
+
 interface Message {
   id: string;
   role: 'user' | 'assistant';
@@ -799,9 +862,56 @@ async function callGPT4Turbo(messages: Message[], systemPrompt: string, files?: 
     throw new Error('OpenAI API key not configured');
   }
 
-  console.log('Calling GPT-4 Turbo...');
+  console.log('Calling GPT-4 Turbo with web search tools...');
 
-  const enhancedSystemPrompt = systemPrompt + "\n\nCRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:\n- When analyzing uploaded images with handwritten or printed text, you MUST transcribe ONLY the actual visible text\n- DO NOT generate fictional content, clinical scenarios, or patient information\n- DO NOT hallucinate or invent details not visible in the image\n- Only describe what you can actually see written or printed in the image\n- If text is unclear, state that it's unclear rather than guessing";
+  const today = new Date().toLocaleDateString('en-GB', {
+    timeZone: 'Europe/London',
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+
+  const enhancedSystemPrompt = `You are "AI 4 GP Service" for UK NHS primary care.
+Today is ${today} (Europe/London).
+
+If a question is time-sensitive (BNF/NICE updates, DHSC/NHSE policy, Wes Streeting announcements, ARRS, vaccination programmes),
+CALL tavily_search first with a recency window and an allow-list:
+["gov.uk","england.nhs.uk","nhs.uk","nice.org.uk","bnf.nice.org.uk","ukhsa.gov.uk"].
+
+Never write "I will search now" unless you actually call tavily_search.
+Always include dates + sources. If nothing recent is found, say what you searched.
+
+${systemPrompt}
+
+CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
+- When analyzing uploaded images with handwritten or printed text, you MUST transcribe ONLY the actual visible text
+- DO NOT generate fictional content, clinical scenarios, or patient information
+- DO NOT hallucinate or invent details not visible in the image
+- Only describe what you can actually see written or printed in the image
+- If text is unclear, state that it's unclear rather than guessing`;
+
+  // Define the tavily_search tool
+  const tools = [{
+    type: "function",
+    function: {
+      name: "tavily_search",
+      description: "Search trusted UK health sources for recent items",
+      parameters: {
+        type: "object",
+        properties: {
+          q: { type: "string" },
+          recencyDays: { type: "integer", default: 180 },
+          siteLimit: {
+            type: "array",
+            items: { type: "string" },
+            description: "Allowed domains"
+          }
+        },
+        required: ["q"]
+      }
+    }
+  }];
 
   const gptMessages = [
     { role: 'system', content: enhancedSystemPrompt }
@@ -827,7 +937,8 @@ async function callGPT4Turbo(messages: Message[], systemPrompt: string, files?: 
     });
   });
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  // First completion - check for tool calls
+  const initial = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -835,19 +946,88 @@ async function callGPT4Turbo(messages: Message[], systemPrompt: string, files?: 
     },
     body: JSON.stringify({
       model: 'gpt-4o',
-      messages: gptMessages,
-      max_tokens: 4000
+      temperature: 0.2,
+      max_tokens: 1400,
+      tools,
+      tool_choice: "auto",
+      messages: gptMessages
     })
   });
 
-  if (!response.ok) {
-    const error = await response.text();
+  if (!initial.ok) {
+    const error = await initial.text();
     console.error('OpenAI API error:', error);
-    throw new Error(`OpenAI API error: ${response.status}`);
+    throw new Error(`OpenAI API error: ${initial.status}`);
   }
 
-  const data = await response.json();
-  return data.choices[0].message.content;
+  const initialData = await initial.json();
+  const choice = initialData.choices?.[0];
+  const toolCalls = choice?.message?.tool_calls ?? [];
+
+  console.log('Tool calls detected:', toolCalls.length);
+
+  if (toolCalls.length > 0) {
+    // Handle tool calls
+    for (const call of toolCalls) {
+      if (call.function.name === "tavily_search") {
+        console.log('Executing tavily_search...');
+        const args = JSON.parse(call.function.arguments);
+        console.log('Search args:', args);
+        
+        try {
+          const tavilyResults = await runTavilySearch(args.q, args.recencyDays, args.siteLimit);
+          
+          // Add the assistant message with tool call
+          gptMessages.push({
+            role: "assistant",
+            content: choice.message.content ?? "",
+            tool_calls: toolCalls
+          });
+
+          // Add the tool result
+          gptMessages.push({
+            role: "tool",
+            name: "tavily_search",
+            tool_call_id: call.id,
+            content: JSON.stringify(tavilyResults)
+          });
+
+          // Second completion with tool results
+          console.log('Running final completion with search results...');
+          const final = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${openaiApiKey}`
+            },
+            body: JSON.stringify({
+              model: 'gpt-4o',
+              temperature: 0.2,
+              max_tokens: 1400,
+              tools,
+              messages: gptMessages
+            })
+          });
+
+          if (!final.ok) {
+            const error = await final.text();
+            console.error('OpenAI final API error:', error);
+            throw new Error(`OpenAI API error: ${final.status}`);
+          }
+
+          const finalData = await final.json();
+          return finalData.choices[0].message.content;
+        } catch (searchError) {
+          console.error('Error in tavily search:', searchError);
+          // Continue with original response if search fails
+          return choice.message.content || "I encountered an error while searching for recent information.";
+        }
+      }
+    }
+  }
+
+  // No tool calls, return the initial response
+  return choice.message.content;
 }
 
 async function callGrok(messages: Message[], systemPrompt: string, files?: UploadedFile[]): Promise<string> {
