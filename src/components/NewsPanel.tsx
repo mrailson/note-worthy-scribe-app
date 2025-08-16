@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ExternalLink, Filter, Clock, MapPin, Tag, RefreshCw } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -90,6 +91,11 @@ const NewsPanel = ({ showFiltersInHeader = false }: { showFiltersInHeader?: bool
   const [filterTag, setFilterTag] = useState<string>('all');
   const [filterSource, setFilterSource] = useState<string>('all');
   const [filterTime, setFilterTime] = useState<string>('all');
+  
+  // News source toggles
+  const [showLocal, setShowLocal] = useState(true);
+  const [showBBCHealth, setShowBBCHealth] = useState(true);
+  const [showPulseNews, setShowPulseNews] = useState(true);
   const fetchNews = async () => {
     try {
       console.log('Fetching news articles...');
@@ -188,6 +194,15 @@ const NewsPanel = ({ showFiltersInHeader = false }: { showFiltersInHeader?: bool
 
   // Filter articles based on selected filters
   const filteredArticles = articles.filter(article => {
+    // Apply news source toggles
+    const isLocal = isLocalArticle(article);
+    const isBBCHealth = article.source.toLowerCase().includes('bbc') && (isHealthRelated(article) || isHealthRelatedByTags(article) || isHealthRelatedByUrl(article));
+    const isPulse = article.source.toLowerCase().includes('pulse');
+    
+    if (isLocal && !showLocal) return false;
+    if (isBBCHealth && !showBBCHealth) return false;
+    if (isPulse && !showPulseNews) return false;
+    
     // Front view should only show articles with images, except allow local Northamptonshire items without images
     if ((!article.image_url || !article.image_url.trim()) && !isLocalArticle(article)) return false;
     if (filterTag !== 'all' && !article.tags.includes(filterTag)) return false;
@@ -355,6 +370,61 @@ const NewsPanel = ({ showFiltersInHeader = false }: { showFiltersInHeader?: bool
 
   return (
     <div>
+      {/* News Source Toggles */}
+      <div className="mb-6 p-4 bg-muted/10 rounded-lg border">
+        <h3 className="text-sm font-medium mb-3 text-muted-foreground">News Sources</h3>
+        <div className="flex flex-wrap gap-4">
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="local-toggle"
+              checked={showLocal}
+              onCheckedChange={setShowLocal}
+            />
+            <label 
+              htmlFor="local-toggle" 
+              className="text-sm font-medium cursor-pointer flex items-center gap-2"
+            >
+              <MapPin className="w-4 h-4 text-blue-500" />
+              Local News
+            </label>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="bbc-health-toggle"
+              checked={showBBCHealth}
+              onCheckedChange={setShowBBCHealth}
+            />
+            <label 
+              htmlFor="bbc-health-toggle" 
+              className="text-sm font-medium cursor-pointer flex items-center gap-2"
+            >
+              <div className="w-4 h-4 bg-red-500 rounded text-white text-[8px] font-bold flex items-center justify-center">
+                B
+              </div>
+              BBC Health
+            </label>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="pulse-toggle"
+              checked={showPulseNews}
+              onCheckedChange={setShowPulseNews}
+            />
+            <label 
+              htmlFor="pulse-toggle" 
+              className="text-sm font-medium cursor-pointer flex items-center gap-2"
+            >
+              <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+              </div>
+              Pulse News
+            </label>
+          </div>
+        </div>
+      </div>
+
       {/* Desktop filters - collapsible */}
       {showFilters && (
         <div className="hidden sm:flex flex-wrap gap-3 p-3 bg-muted/20 rounded-lg mb-4">
