@@ -799,40 +799,12 @@ async function callGPT4Turbo(messages: Message[], systemPrompt: string, files?: 
     throw new Error('OpenAI API key not configured');
   }
 
-  const today = new Date().toLocaleDateString('en-GB', {
-    timeZone: 'Europe/London',
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
+  console.log('Calling GPT-4 Turbo...');
 
-  // Optimized system prompt focused on UK NHS/GP context with clear search directives
-  const optimizedSystemPrompt = `You are "AI 4 GP Service" for UK NHS primary care.
-Today is ${today} (Europe/London).
-
-Search policy:
-- If question may be time-sensitive (BNF/NICE updates, ARRS, vaccination programmes, DHSC/NHS England news, ministerial announcements, policy changes), call web_search first.
-- Prefer GOV.UK, DHSC, NHS England, NHS.UK, NICE/BNF, UKHSA; include exact dates and sources.
-- If no current sources found, say so and explain what you searched.
-
-Clinical style:
-- Evidence-based, NHS/NICE aligned
-- Use UK GP terminology; state uncertainty clearly
-- Provide practical, actionable guidance for UK primary care
-
-${systemPrompt}
-
-CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
-- When analyzing uploaded images with handwritten or printed text, you MUST transcribe ONLY the actual visible text
-- DO NOT generate fictional content, clinical scenarios, or patient information
-- DO NOT hallucinate or invent details not visible in the image
-- Only describe what you can actually see written or printed in the image
-- If text is unclear, state that it's unclear rather than guessing
-- Focus on accurate transcription rather than interpretation`;
+  const enhancedSystemPrompt = systemPrompt + "\n\nCRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:\n- When analyzing uploaded images with handwritten or printed text, you MUST transcribe ONLY the actual visible text\n- DO NOT generate fictional content, clinical scenarios, or patient information\n- DO NOT hallucinate or invent details not visible in the image\n- Only describe what you can actually see written or printed in the image\n- If text is unclear, state that it's unclear rather than guessing";
 
   const gptMessages = [
-    { role: 'system', content: optimizedSystemPrompt }
+    { role: 'system', content: enhancedSystemPrompt }
   ];
 
   messages.forEach(msg => {
@@ -855,38 +827,27 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
     });
   });
 
-  console.log('Calling GPT-4 Turbo with optimized system prompt');
-  
-  try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${openaiApiKey}`
-      },
-      body: JSON.stringify({
-        model: 'gpt-4-turbo-preview',
-        messages: gptMessages,
-        max_tokens: 4000,
-        temperature: 0.2
-      })
-    });
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${openaiApiKey}`
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o',
+      messages: gptMessages,
+      max_tokens: 4000
+    })
+  });
 
-    if (!response.ok) {
-      const error = await response.text();
-      console.error('OpenAI API error:', error);
-      console.error('Response status:', response.status);
-      console.error('Response headers:', Object.fromEntries(response.headers.entries()));
-      throw new Error(`OpenAI API error: ${response.status} - ${error}`);
-    }
-
-    const data = await response.json();
-    console.log('OpenAI response received successfully');
-    return data.choices[0].message.content;
-  } catch (error) {
-    console.error('Error in callGPT4Turbo:', error);
-    throw error;
+  if (!response.ok) {
+    const error = await response.text();
+    console.error('OpenAI API error:', error);
+    throw new Error(`OpenAI API error: ${response.status}`);
   }
+
+  const data = await response.json();
+  return data.choices[0].message.content;
 }
 
 async function callGrok(messages: Message[], systemPrompt: string, files?: UploadedFile[]): Promise<string> {
