@@ -95,25 +95,6 @@ const APITesting = () => {
     );
   }
 
-  if (!hasModuleAccess('api_testing_service')) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <Header onNewMeeting={() => {}} />
-        <div className="max-w-md mx-auto mt-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Access Denied</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground mb-4">
-                You don't have access to the API Testing & Comparison Service. Please contact your system administrator to request access.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
 
   const toggleModel = (modelId: string) => {
     setSelectedModels(prev => 
