@@ -345,57 +345,54 @@ const Index = () => {
 
         {/* Test Button (temporary) */}
         <button
-          onClick={() => {
-            const testPhrases = [
-              {
-                messageId: "demo1",
-                sourceLang: "en",
-                targetLang: "bn",
-                originalText: "Hello, how are you feeling today?",
-                translatedText: "হ্যালো, আজ আপনি কেমন অনুভব করছেন?",
-                isStreaming: false
-              },
-              {
-                messageId: "demo2", 
-                sourceLang: "en",
-                targetLang: "bn",
-                originalText: "Can you describe your symptoms?",
-                translatedText: "আপনি কি আপনার লক্ষণগুলি বর্ণনা করতে পারেন?",
-                isStreaming: false
-              },
-              {
-                messageId: "demo3",
-                sourceLang: "en", 
-                targetLang: "bn",
-                originalText: "Let me examine you now.",
-                translatedText: "এখন আমি আপনাকে পরীক্ষা করব।",
-                isStreaming: false
-              },
-              {
-                messageId: "demo4",
-                sourceLang: "en",
-                targetLang: "bn", 
-                originalText: "Please take this medication twice daily.",
-                translatedText: "অনুগ্রহ করে এই ওষুধটি দিনে দুইবার খান।",
-                isStreaming: false
+          onClick={async () => {
+            // Test translation service first
+            try {
+              console.log('Testing translation service...');
+              const { data, error } = await supabase.functions.invoke('translate-text', {
+                body: {
+                  text: "Hello, how are you?",
+                  targetLanguage: "bn",
+                  sourceLanguage: "en"
+                }
+              });
+              
+              console.log('Translation test result:', { data, error });
+              
+              if (error) {
+                toast.error(`Translation test failed: ${error.message}`);
+                return;
               }
-            ];
+              
+              if (data?.translatedText) {
+                toast.success(`Translation working! Result: ${data.translatedText}`);
+                
+                // Now emit the test phrases
+                const testPhrases = [
+                  {
+                    messageId: "demo1",
+                    sourceLang: "en",
+                    targetLang: "bn",
+                    originalText: "Hello, how are you feeling today?",
+                    translatedText: data.translatedText,
+                    isStreaming: false
+                  }
+                ];
 
-            // Emit phrases quickly to queue them up
-            testPhrases.forEach((phrase, index) => {
-              setTimeout(() => {
-                bus.emit("TRANSLATION_READY", phrase);
-              }, index * 100); // 100ms intervals to queue them
-            });
-
-            // Simulate natural speech pauses to auto-advance
-            setTimeout(() => bus.emit("SPEECH_PAUSE_DETECTED"), 3000);  // First pause
-            setTimeout(() => bus.emit("SPEECH_PAUSE_DETECTED"), 6000);  // Second pause  
-            setTimeout(() => bus.emit("SPEECH_PAUSE_DETECTED"), 9000);  // Third pause
+                testPhrases.forEach((phrase, index) => {
+                  setTimeout(() => {
+                    bus.emit("TRANSLATION_READY", phrase);
+                  }, index * 100);
+                });
+              }
+            } catch (error) {
+              console.error('Translation test error:', error);
+              toast.error('Translation test failed');
+            }
           }}
           className="fixed bottom-4 right-4 px-3 py-2 rounded-lg border bg-card text-card-foreground hover:bg-accent transition-colors"
         >
-          Test Natural Pause Translation
+          Test Translation Service
         </button>
       </div>
     </div>
