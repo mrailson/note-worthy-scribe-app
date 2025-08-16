@@ -163,7 +163,7 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
             ? '🔴 Recording... click mic to stop' 
             : isProcessing 
               ? '⏳ Processing speech...' 
-              : '🎙️ Click mic to record voice'
+              : ''
         }
       </div>
     </div>
