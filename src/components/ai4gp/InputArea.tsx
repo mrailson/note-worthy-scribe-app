@@ -7,6 +7,7 @@ import { UploadedFile } from '@/types/ai4gp';
 import { useFileUpload } from '@/hooks/useFileUpload';
 import { useVoiceRecording } from '@/hooks/useVoiceRecording';
 import { useToast } from '@/hooks/use-toast';
+import { usePasteAsFile } from '@/hooks/usePasteAsFile';
 
 interface InputAreaProps {
   input: string;
@@ -34,6 +35,7 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
   const { processFiles } = useFileUpload();
   const { isRecording, isProcessing, toggleRecording } = useVoiceRecording();
   const { toast } = useToast();
+  const { handlePaste } = usePasteAsFile();
 
   useImperativeHandle(ref, () => ({
     focus: () => {
@@ -69,6 +71,25 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
     }
   };
 
+  const handlePasteEvent = (e: React.ClipboardEvent) => {
+    const pastedText = e.clipboardData.getData('text');
+    
+    if (pastedText.trim()) {
+      const wasHandledAsFile = handlePaste(
+        pastedText,
+        (file) => setUploadedFiles(prev => [...prev, file]),
+        () => {
+          // Clear the input since content is now a file
+          setInput('');
+        }
+      );
+      
+      if (wasHandledAsFile) {
+        e.preventDefault(); // Prevent normal paste behavior
+      }
+    }
+  };
+
   // Show toast when recording starts
   useEffect(() => {
     if (isRecording) {
@@ -94,6 +115,7 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
+            onPaste={handlePasteEvent}
             placeholder="Ask about NHS guidelines, clinical protocols, prescribing, referrals, or practice management..."
             className="min-h-[40px] max-h-32 resize-none pr-20"
             disabled={isLoading}
