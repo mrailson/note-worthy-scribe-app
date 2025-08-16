@@ -1,13 +1,12 @@
 import React, { useRef, forwardRef, useImperativeHandle, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Send, Paperclip, Mic, MicOff, Zap } from 'lucide-react';
+import { Send, Paperclip, Mic, MicOff } from 'lucide-react';
 import { FileUploadArea } from './FileUploadArea';
 import { UploadedFile } from '@/types/ai4gp';
 import { useFileUpload } from '@/hooks/useFileUpload';
 import { useVoiceRecording } from '@/hooks/useVoiceRecording';
 import { useToast } from '@/hooks/use-toast';
-import { usePasteAsFile } from '@/hooks/usePasteAsFile';
 
 interface InputAreaProps {
   input: string;
@@ -16,7 +15,6 @@ interface InputAreaProps {
   setUploadedFiles: React.Dispatch<React.SetStateAction<UploadedFile[]>>;
   onSend: () => void;
   isLoading: boolean;
-  lightningMode?: boolean;
 }
 
 export interface InputAreaRef {
@@ -29,15 +27,13 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
   uploadedFiles,
   setUploadedFiles,
   onSend,
-  isLoading,
-  lightningMode = false
+  isLoading
 }, ref) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { processFiles } = useFileUpload();
   const { isRecording, isProcessing, toggleRecording } = useVoiceRecording();
   const { toast } = useToast();
-  const { handlePaste } = usePasteAsFile();
 
   useImperativeHandle(ref, () => ({
     focus: () => {
@@ -50,29 +46,8 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
     if (!files || files.length === 0) return;
 
     try {
-      const processedFiles = await processFiles(
-        files,
-        (fileIndex, updatedFile) => {
-          setUploadedFiles(prev => {
-            const newFiles = [...prev];
-            // Find the correct position to update (accounting for existing files)
-            const targetIndex = prev.length + fileIndex;
-            if (targetIndex < newFiles.length) {
-              newFiles[targetIndex] = updatedFile;
-            } else {
-              newFiles.push(updatedFile);
-            }
-            return newFiles;
-          });
-        }
-      );
-      
-      // Final update with all processed files
-      setUploadedFiles(prev => {
-        // Remove any loading files and replace with final results
-        const existingCount = prev.filter(f => !f.isLoading).length;
-        return [...prev.slice(0, existingCount), ...processedFiles];
-      });
+      const processedFiles = await processFiles(files);
+      setUploadedFiles(prev => [...prev, ...processedFiles]);
     } catch (error) {
       console.error('Error processing files:', error);
     } finally {
@@ -91,25 +66,6 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       onSend();
-    }
-  };
-
-  const handlePasteEvent = (e: React.ClipboardEvent) => {
-    const pastedText = e.clipboardData.getData('text');
-    
-    if (pastedText.trim()) {
-      const wasHandledAsFile = handlePaste(
-        pastedText,
-        (file) => setUploadedFiles(prev => [...prev, file]),
-        () => {
-          // Clear the input since content is now a file
-          setInput('');
-        }
-      );
-      
-      if (wasHandledAsFile) {
-        e.preventDefault(); // Prevent normal paste behavior
-      }
     }
   };
 
@@ -138,7 +94,6 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            onPaste={handlePasteEvent}
             placeholder="Ask about NHS guidelines, clinical protocols, prescribing, referrals, or practice management..."
             className="min-h-[40px] max-h-32 resize-none pr-20"
             disabled={isLoading}
@@ -148,7 +103,7 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
             ref={fileInputRef}
             type="file"
             multiple
-            accept=".pdf,.doc,.docx,.rtf,.txt,.eml,.msg,.mbox,.ics,.vcs,.ical,.jpg,.jpeg,.png,.wav,.mp3,.m4a,.xls,.xlsx,.csv"
+            accept=".pdf,.doc,.docx,.rtf,.txt,.eml,.msg,.jpg,.jpeg,.png,.wav,.mp3,.m4a,.xls,.xlsx,.csv"
             onChange={handleFileSelect}
             className="hidden"
           />
@@ -203,7 +158,7 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
       </div>
       
       <div className="text-xs text-muted-foreground text-center">
-        Press Ctrl+Enter to send • Upload files: PDF, Word, Excel, text, email, calendar, images, audio • {
+        Press Ctrl+Enter to send • Upload files: PDF, Word, Excel, text, images, audio • {
           isRecording 
             ? '🔴 Recording... click mic to stop' 
             : isProcessing 

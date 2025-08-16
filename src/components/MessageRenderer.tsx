@@ -16,13 +16,10 @@ import {
   Minimize2,
   FileDown,
   Presentation,
-  Clock,
-  Mail
+  Clock
 } from 'lucide-react';
 import { toast } from 'sonner';
 import QuickActionButtons from '@/components/QuickActionButtons';
-import { EmailCompositionModal } from '@/components/EmailCompositionModal';
-import { supabase } from '@/integrations/supabase/client';
 
 interface Message {
   id: string;
@@ -67,22 +64,9 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showFullContent, setShowFullContent] = useState(true);
-  const [showEmailModal, setShowEmailModal] = useState(false);
-  const [userEmail, setUserEmail] = useState('');
   
   // Auto-scroll to bottom when content updates during streaming
   const contentRef = React.useRef<HTMLDivElement>(null);
-
-  // Get user email for email composition
-  React.useEffect(() => {
-    const getUserEmail = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user?.email) {
-        setUserEmail(user.email);
-      }
-    };
-    getUserEmail();
-  }, []);
   
   React.useEffect(() => {
     if (message.isStreaming && contentRef.current) {
@@ -538,18 +522,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                       title="Copy message to clipboard"
                     >
                       <Copy className="h-3 w-3" />
-                     </Button>
-
-                     {/* Email button */}
-                     <Button
-                       variant="ghost"
-                       size="sm"
-                       onClick={() => setShowEmailModal(true)}
-                       className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-muted-foreground hover:text-foreground"
-                       title="Share via email"
-                     >
-                       <Mail className="h-3 w-3" />
-                     </Button>
+                    </Button>
 
                     {/* Modal-specific close button - moved to last position */}
                     {isModal && onCloseModal && (
@@ -596,14 +569,6 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
           )}
         </div>
       </div>
-
-      {/* Email Composition Modal */}
-      <EmailCompositionModal
-        isOpen={showEmailModal}
-        onClose={() => setShowEmailModal(false)}
-        aiContent={message.content}
-        userEmail={userEmail}
-      />
     </div>
   );
 };

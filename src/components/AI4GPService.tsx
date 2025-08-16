@@ -51,8 +51,6 @@ const AI4GPService = () => {
     setShowResponseMetrics,
     selectedModel,
     setSelectedModel,
-    lightningMode,
-    setLightningMode,
     handleSend,
     handleNewSearch,
     handleQuickResponse
@@ -275,16 +273,15 @@ const AI4GPService = () => {
                 {/* Input Area at Bottom */}
                 {!showNews && !showAIChat && !showSettings && (
                   <div className="border-t bg-background">
-        <InputArea
-          ref={inputRef}
-          input={input}
-          setInput={setInput}
-          uploadedFiles={uploadedFiles}
-          setUploadedFiles={setUploadedFiles}
-          onSend={handleSendWithContext}
-          isLoading={isLoading}
-          lightningMode={lightningMode}
-        />
+                    <InputArea
+                      ref={inputRef}
+                      input={input}
+                      setInput={setInput}
+                      uploadedFiles={uploadedFiles}
+                      setUploadedFiles={setUploadedFiles}
+                      onSend={handleSendWithContext}
+                      isLoading={isLoading}
+                    />
                   </div>
                 )}
               </CardContent>
@@ -327,7 +324,7 @@ const AI4GPService = () => {
             <DialogTitle className="text-left">GP News & Local Health News</DialogTitle>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto p-4">
-            <NewsPanel onClose={() => setShowNews(false)} />
+            <NewsPanel />
           </div>
         </DialogContent>
       </Dialog>
@@ -344,8 +341,6 @@ const AI4GPService = () => {
         onModelChange={setSelectedModel}
         showResponseMetrics={showResponseMetrics}
         onShowResponseMetricsChange={setShowResponseMetrics}
-        lightningMode={lightningMode}
-        onLightningModeChange={setLightningMode}
       />
     </>
   );

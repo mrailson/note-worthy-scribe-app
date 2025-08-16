@@ -4,9 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ExternalLink, Filter, Clock, MapPin, Tag, RefreshCw, X } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { ExternalLink, Filter, Clock, MapPin, Tag, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -79,8 +77,7 @@ const isHealthRelatedByUrl = (a: NewsArticle) => {
   return healthKeywords.some(k => u.includes(k)) || u.includes('/health');
 };
 
-const NewsPanel = ({ showFiltersInHeader = false, onClose }: { showFiltersInHeader?: boolean; onClose?: () => void }) => {
-  const isMobile = useIsMobile();
+const NewsPanel = ({ showFiltersInHeader = false }: { showFiltersInHeader?: boolean }) => {
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -93,11 +90,6 @@ const NewsPanel = ({ showFiltersInHeader = false, onClose }: { showFiltersInHead
   const [filterTag, setFilterTag] = useState<string>('all');
   const [filterSource, setFilterSource] = useState<string>('all');
   const [filterTime, setFilterTime] = useState<string>('all');
-  
-  // News source toggles
-  const [showLocal, setShowLocal] = useState(true);
-  const [showBBCHealth, setShowBBCHealth] = useState(true);
-  const [showPulseNews, setShowPulseNews] = useState(true);
   const fetchNews = async () => {
     try {
       console.log('Fetching news articles...');
@@ -196,15 +188,6 @@ const NewsPanel = ({ showFiltersInHeader = false, onClose }: { showFiltersInHead
 
   // Filter articles based on selected filters
   const filteredArticles = articles.filter(article => {
-    // Apply news source toggles
-    const isLocal = isLocalArticle(article);
-    const isBBCHealth = article.source.toLowerCase().includes('bbc') && (isHealthRelated(article) || isHealthRelatedByTags(article) || isHealthRelatedByUrl(article));
-    const isPulse = article.source.toLowerCase().includes('pulse');
-    
-    if (isLocal && !showLocal) return false;
-    if (isBBCHealth && !showBBCHealth) return false;
-    if (isPulse && !showPulseNews) return false;
-    
     // Front view should only show articles with images, except allow local Northamptonshire items without images
     if ((!article.image_url || !article.image_url.trim()) && !isLocalArticle(article)) return false;
     if (filterTag !== 'all' && !article.tags.includes(filterTag)) return false;
@@ -372,74 +355,6 @@ const NewsPanel = ({ showFiltersInHeader = false, onClose }: { showFiltersInHead
 
   return (
     <div>
-      {/* Mobile Close Header */}
-      {isMobile && onClose && (
-        <div className="flex items-center justify-between p-3 border-b bg-background sticky top-0 z-10">
-          <h2 className="text-base font-medium">GP News</h2>
-          <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0">
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-      )}
-      
-      {/* News Source Toggles - Compact */}
-      <div className={`${isMobile ? 'mx-3 mt-3' : ''} mb-4 p-3 bg-muted/10 rounded-lg border`}>
-        <h3 className="text-xs font-medium mb-2 text-muted-foreground">News Sources</h3>
-        <div className={`flex ${isMobile ? 'justify-between' : 'flex-wrap gap-4'}`}>
-          <div className="flex items-center space-x-1.5">
-            <Switch
-              id="local-toggle"
-              checked={showLocal}
-              onCheckedChange={setShowLocal}
-              className="scale-75"
-            />
-            <label 
-              htmlFor="local-toggle" 
-              className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium cursor-pointer flex items-center gap-1.5`}
-            >
-              <MapPin className="w-3 h-3 text-blue-500" />
-              {isMobile ? 'Local' : 'Local News'}
-            </label>
-          </div>
-          
-          <div className="flex items-center space-x-1.5">
-            <Switch
-              id="bbc-health-toggle"
-              checked={showBBCHealth}
-              onCheckedChange={setShowBBCHealth}
-              className="scale-75"
-            />
-            <label 
-              htmlFor="bbc-health-toggle" 
-              className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium cursor-pointer flex items-center gap-1.5`}
-            >
-              <div className="w-3 h-3 bg-red-500 rounded text-white text-[6px] font-bold flex items-center justify-center">
-                B
-              </div>
-              {isMobile ? 'BBC' : 'BBC Health'}
-            </label>
-          </div>
-          
-          <div className="flex items-center space-x-1.5">
-            <Switch
-              id="pulse-toggle"
-              checked={showPulseNews}
-              onCheckedChange={setShowPulseNews}
-              className="scale-75"
-            />
-            <label 
-              htmlFor="pulse-toggle" 
-              className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium cursor-pointer flex items-center gap-1.5`}
-            >
-              <div className="w-3 h-3 bg-green-500 rounded-full flex items-center justify-center">
-                <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
-              </div>
-              {isMobile ? 'Pulse' : 'Pulse News'}
-            </label>
-          </div>
-        </div>
-      </div>
-
       {/* Desktop filters - collapsible */}
       {showFilters && (
         <div className="hidden sm:flex flex-wrap gap-3 p-3 bg-muted/20 rounded-lg mb-4">
@@ -501,7 +416,7 @@ const NewsPanel = ({ showFiltersInHeader = false, onClose }: { showFiltersInHead
           </CardContent>
         </Card>
       ) : (
-        <div className={`grid gap-3 ${isMobile ? 'grid-cols-1 mx-3' : 'md:grid-cols-2 lg:grid-cols-3'}`}>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {prioritizedArticles.map((article) => (
             <Card key={article.id} className="cursor-pointer hover:shadow-lg transition-shadow">
               <CardHeader className="pb-3">

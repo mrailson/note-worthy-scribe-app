@@ -15,15 +15,8 @@ export const useAI4GPService = () => {
   const [includeLatestUpdates, setIncludeLatestUpdates] = useState(true);
   const [showResponseMetrics, setShowResponseMetrics] = useState(false);
   const [selectedModel, setSelectedModel] = useState('gpt-5');
-  const [lightningMode, setLightningMode] = useState(false); // New lightning mode for ultra-fast responses
 
-  const buildSystemPrompt = useCallback((practiceContext: any, uploadedFiles: UploadedFile[], includeLatestUpdates: boolean, useSimpleMode: boolean = false) => {
-    // Use lightweight prompt for simple queries (like API tester)
-    if (useSimpleMode && uploadedFiles.length === 0) {
-      return `You are an expert UK NHS GP assistant. Use only UK primary care sources including NICE guidelines, NHS.uk, BNF, MHRA alerts, the Green Book, and local ICB protocols. Do not use non-UK or non-NHS sources. Present information in concise, GP-friendly bullet points using UK medical terminology.`;
-    }
-
-    // Full system prompt for complex queries
+  const buildSystemPrompt = useCallback((practiceContext: any, uploadedFiles: UploadedFile[], includeLatestUpdates: boolean) => {
     let prompt = `You are "AI 4 GP Service", an AI Assistant built specifically to help General Practitioners (GPs) in the UK NHS.
 
 You understand and can explain:
@@ -81,83 +74,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     return prompt;
   }, []);
 
-
-  // LIGHTNING MODE: Ultra-fast responses matching API tester speed
-  const handleLightningSend = useCallback(async () => {
-    const startTime = Date.now();
-    
-    // Simple system prompt (same as API tester)
-    const lightningSystemPrompt = `You are an expert UK NHS GP assistant. Use only UK primary care sources including NICE guidelines, NHS.uk, BNF, MHRA alerts, the Green Book, and local ICB protocols. Do not use non-UK or non-NHS sources. Present information in concise, GP-friendly bullet points using UK medical terminology.`;
-    
-    // Create user message
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: input,
-      timestamp: new Date()
-    };
-
-    // Create assistant message  
-    const assistantMessage: Message = {
-      id: (Date.now() + 1).toString(),
-      role: 'assistant',
-      content: '',
-      timestamp: new Date(),
-      model: selectedModel,
-      isStreaming: true
-    };
-
-    setMessages([userMessage, assistantMessage]);
-    setInput('');
-    setIsLoading(true);
-
-    try {
-      // Ultra-simple request (matching API tester)
-      const { data, error } = await supabase.functions.invoke('api-testing-service', {
-        body: {
-          prompt: input,
-          model: selectedModel,
-          systemPrompt: lightningSystemPrompt
-        }
-      });
-
-      if (error) throw error;
-
-      const responseTime = Date.now() - startTime;
-      const responseContent = data?.response || 'No response received';
-
-      // Update with final response
-      setMessages([
-        userMessage,
-        {
-          ...assistantMessage,
-          content: responseContent,
-          isStreaming: false,
-          responseTime
-        }
-      ]);
-
-    } catch (error: any) {
-      console.error('Lightning mode error:', error);
-      setMessages([
-        userMessage,
-        {
-          ...assistantMessage,
-          content: `Error: ${error.message || 'Something went wrong. Please try again.'}`,
-          isStreaming: false
-        }
-      ]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [input, selectedModel]);
-
-  // ENHANCED MODE: Full-featured mode with advanced web search
-  const handleEnhancedSend = useCallback(async (practiceContext: any, selectedModel: string = 'gpt-5') => {
-    const startTime = Date.now();
-    
-    // Enhanced system prompt
-    const enhancedSystemPrompt = buildSystemPrompt(practiceContext, uploadedFiles, includeLatestUpdates, false);
+  const handleSend = useCallback(async (practiceContext: any, selectedModel: string = 'gpt-5') => {
+    if (!input.trim() && uploadedFiles.length === 0) return;
     
     // Enhance the message content when files are attached
     let messageContent = input;
@@ -167,7 +85,6 @@ Always provide evidence-based, clinically appropriate advice that follows curren
       messageContent = `Please analyze the uploaded file(s): ${uploadedFiles.map(f => f.name).join(', ')}`;
     }
     
-    // Create user message
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
@@ -176,9 +93,16 @@ Always provide evidence-based, clinically appropriate advice that follows curren
       files: uploadedFiles.length > 0 ? [...uploadedFiles] : undefined
     };
 
-    // Create assistant message  
+    const newMessages = [...messages, userMessage];
+    setMessages(newMessages);
+    setInput('');
+    setUploadedFiles([]);
+    setIsLoading(true);
+
+    // Create assistant message for streaming
+    const assistantMessageId = (Date.now() + 1).toString();
     const assistantMessage: Message = {
-      id: (Date.now() + 1).toString(),
+      id: assistantMessageId,
       role: 'assistant',
       content: '',
       timestamp: new Date(),
@@ -186,18 +110,18 @@ Always provide evidence-based, clinically appropriate advice that follows curren
       isStreaming: true
     };
 
-    const newMessages = [...messages, userMessage];
-    setMessages([...newMessages, assistantMessage]);
-    setInput('');
-    setUploadedFiles([]);
-    setIsLoading(true);
+    const messagesWithStreaming = [...newMessages, assistantMessage];
+    setMessages(messagesWithStreaming);
 
     try {
+      const startTime = Date.now();
+      const systemPrompt = buildSystemPrompt(practiceContext, uploadedFiles, includeLatestUpdates);
+      
       // Prepare messages for API
       const messagesForAPI = newMessages.map(msg => {
         let content = msg.content;
         
-        // Add file contents if files exist
+        // Add file contents to the message if present
         if (msg.files && msg.files.length > 0) {
           const fileContents = msg.files.map(file => 
             `\n\n--- File: ${file.name} ---\n${file.content}\n--- End of ${file.name} ---`
@@ -211,73 +135,110 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         };
       });
 
-      // Enhanced request body
       const requestBody = {
         messages: messagesForAPI,
         model: selectedModel,
-        systemPrompt: enhancedSystemPrompt,
-        enableWebSearch: includeLatestUpdates,
-        searchDepth: 'advanced',
-        files: uploadedFiles.length > 0 ? uploadedFiles : undefined
+        systemPrompt: systemPrompt,
+        files: uploadedFiles.length > 0 ? uploadedFiles : undefined,
+        enableWebSearch: includeLatestUpdates
       };
 
-      console.log('Making enhanced AI request with full web search capabilities');
-
-      // Get response from enhanced edge function
-      const { data, error } = await supabase.functions.invoke('ai-4-gp-enhanced', {
+      // Get response from edge function
+      const { data, error } = await supabase.functions.invoke('ai-4-pm-chat', {
         body: requestBody
       });
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
 
-      const responseTime = Date.now() - startTime;
-      const responseContent = data?.response || 'No response received';
+      const responseContent = data?.response || data?.content || 'No response received';
+      
+      // Capture API response time (when data first comes back)
+      const apiResponseTime = Date.now() - startTime;
+      
+      if (!responseContent || responseContent === 'No response received') {
+        throw new Error('No valid response received from AI service');
+      }
+      
+      // Simulate streaming by chunking the response for better UX
+      const chunks = responseContent.split(' ');
+      const chunkSize = Math.max(1, Math.floor(chunks.length / 20)); // ~20 updates
+      let currentIndex = 0;
+      let accumulatedContent = '';
 
-      // Update with final response
-      const finalMessages = [
-        ...newMessages,
-        {
-          ...assistantMessage,
-          content: responseContent,
-          isStreaming: false,
-          responseTime,
-          searchPerformed: data?.searchPerformed || false
+      let timeToFirstWords: number | undefined;
+
+      const streamChunks = () => {
+        if (currentIndex < chunks.length) {
+          const endIndex = Math.min(currentIndex + chunkSize, chunks.length);
+          const chunkText = chunks.slice(currentIndex, endIndex).join(' ') + ' ';
+          accumulatedContent += chunkText;
+          currentIndex = endIndex;
+
+          // Capture time to first words on first chunk
+          if (currentIndex === chunkSize && !timeToFirstWords) {
+            timeToFirstWords = Date.now() - startTime;
+          }
+
+          setMessages(prev => prev.map(msg => 
+            msg.id === assistantMessageId 
+              ? { ...msg, content: accumulatedContent.trim(), isStreaming: true, timeToFirstWords, apiResponseTime }
+              : msg
+          ));
+
+          if (currentIndex < chunks.length) {
+            // Continue streaming with slight delay for better UX
+            setTimeout(streamChunks, 50 + Math.random() * 50);
+          } else {
+            // Streaming complete
+            const endTime = Date.now();
+            const responseTime = endTime - startTime;
+            
+            setMessages(prev => prev.map(msg => 
+              msg.id === assistantMessageId 
+                ? { ...msg, content: responseContent, isStreaming: false, responseTime, timeToFirstWords, apiResponseTime }
+                : msg
+            ));
+
+            // Auto-save the search
+            setTimeout(async () => {
+              const finalMessages = [...newMessages, {
+                ...assistantMessage,
+                content: responseContent,
+                isStreaming: false,
+                responseTime,
+                timeToFirstWords,
+                apiResponseTime
+              }];
+              await saveSearchAutomatically(finalMessages);
+            }, 100);
+          }
         }
-      ];
+      };
 
-      setMessages(finalMessages);
+      // Start the streaming simulation
+      streamChunks();
 
-      // Save search history in background
-      Promise.resolve().then(() => saveSearchAutomatically(finalMessages));
 
     } catch (error: any) {
-      console.error('Enhanced mode error:', error);
+      console.error('Streaming error:', error);
+      
+      const errorMessage: Message = {
+        id: assistantMessageId,
+        role: 'assistant',
+        content: `Error: ${error.message || 'Something went wrong. Please try again.'}`,
+        timestamp: new Date(),
+        isStreaming: false
+      };
+
       setMessages(prev => prev.map(msg => 
-        msg.id === assistantMessage.id 
-          ? {
-              ...msg,
-              content: `Error: ${error.message || 'Something went wrong. Please try again.'}`,
-              isStreaming: false
-            }
-          : msg
+        msg.id === assistantMessageId ? errorMessage : msg
       ));
     } finally {
       setIsLoading(false);
     }
   }, [input, messages, uploadedFiles, buildSystemPrompt, includeLatestUpdates]);
-
-  // Main send handler that routes to appropriate mode
-  const handleSend = useCallback(async (practiceContext: any, selectedModel: string = 'gpt-5') => {
-    if (!input.trim() && uploadedFiles.length === 0) return;
-    
-    // LIGHTNING MODE: Skip all complex processing for ultra-fast responses
-    if (lightningMode) {
-      return handleLightningSend();
-    }
-
-    // Use enhanced AI function for full featured mode
-    return handleEnhancedSend(practiceContext, selectedModel);
-  }, [input, uploadedFiles, lightningMode, handleLightningSend, handleEnhancedSend]);
 
   const saveSearchAutomatically = async (messagesData: Message[]) => {
     if (!user || messagesData.length === 0) return;
@@ -305,7 +266,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         .single();
 
       if (!error && data) {
-        // Update search history in background without blocking UI
+        // Add the new search to the beginning of the local state instead of reloading everything
         const newSearch: SearchHistory = {
           id: data.id,
           title: data.title,
@@ -318,7 +279,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         setSearchHistory(prev => [newSearch, ...prev.slice(0, 19)]); // Keep only 20 items
       }
     } catch (error) {
-      // Silent failure for auto-save - don't impact user experience
+      // Silent failure for auto-save
       console.error('Error auto-saving search:', error);
     }
   };
@@ -426,8 +387,6 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     setShowResponseMetrics,
     selectedModel,
     setSelectedModel,
-    lightningMode,
-    setLightningMode,
     handleSend,
     handleNewSearch,
     saveSearchAutomatically,

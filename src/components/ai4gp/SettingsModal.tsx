@@ -4,7 +4,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Brain, Search, Bot, Clock, Zap } from 'lucide-react';
+import { Brain, Search, Bot, Clock } from 'lucide-react';
 
 interface SettingsModalProps {
   open: boolean;
@@ -17,8 +17,6 @@ interface SettingsModalProps {
   onModelChange: (model: string) => void;
   showResponseMetrics: boolean;
   onShowResponseMetricsChange: (enabled: boolean) => void;
-  lightningMode: boolean;
-  onLightningModeChange: (enabled: boolean) => void;
 }
 
 const AI_MODELS = [
@@ -26,50 +24,50 @@ const AI_MODELS = [
     id: 'gpt-5',
     name: 'GPT-5',
     provider: 'OpenAI',
-    description: 'Most advanced flagship model with current web access',
+    description: 'Most advanced reasoning and analysis',
     recommended: true
   },
   {
-    id: 'gpt-5-mini',
-    name: 'GPT-5 Mini',
-    provider: 'OpenAI',
-    description: 'Fast and efficient GPT-5 variant'
+    id: 'claude-4-opus',
+    name: 'Claude 4 Opus',
+    provider: 'Anthropic',
+    description: 'Superior reasoning and medical knowledge'
   },
   {
-    id: 'gpt-4.1',
-    name: 'GPT-4.1',
-    provider: 'OpenAI',
-    description: 'Reliable GPT-4 model'
+    id: 'claude-4-sonnet',
+    name: 'Claude 4 Sonnet',
+    provider: 'Anthropic',
+    description: 'High performance with excellent efficiency'
   },
   {
-    id: 'o3',
-    name: 'O3',
-    provider: 'OpenAI',
-    description: 'Advanced reasoning model'
-  },
-  {
-    id: 'o4-mini',
-    name: 'O4 Mini',
-    provider: 'OpenAI',
-    description: 'Fast reasoning model'
-  },
-  {
-    id: 'gpt-4o-mini',
-    name: 'GPT-4o Mini (Legacy)',
-    provider: 'OpenAI',
-    description: 'Legacy fast model'
-  },
-  {
-    id: 'gpt-4o',
-    name: 'GPT-4o (Legacy)',
-    provider: 'OpenAI',
-    description: 'Legacy powerful model'
-  },
-  {
-    id: 'gemini-pro',
-    name: 'Gemini Pro',
+    id: 'gemini-1.5-pro',
+    name: 'Gemini 1.5 Pro',
     provider: 'Google',
-    description: 'Google\'s flagship model'
+    description: 'Advanced multimodal reasoning capabilities'
+  },
+  {
+    id: 'gemini-1.5-flash',
+    name: 'Gemini 1.5 Flash',
+    provider: 'Google',
+    description: 'Fast and efficient for quick responses'
+  },
+  {
+    id: 'grok-beta',
+    name: 'Grok',
+    provider: 'xAI',
+    description: 'Real-time information and conversational AI'
+  },
+  {
+    id: 'gpt-4-turbo',
+    name: 'GPT-4 Turbo',
+    provider: 'OpenAI',
+    description: 'Fast and reliable for clinical tasks'
+  },
+  {
+    id: 'gemini-ultra',
+    name: 'Gemini Ultra',
+    provider: 'Google',
+    description: 'Advanced multimodal capabilities'
   }
 ];
 
@@ -84,9 +82,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   selectedModel,
   onModelChange,
   showResponseMetrics,
-  onShowResponseMetricsChange,
-  lightningMode,
-  onLightningModeChange
+  onShowResponseMetricsChange
 }) => {
   const selectedModelInfo = AI_MODELS.find(model => model.id === selectedModel) || AI_MODELS[0];
 
@@ -137,68 +133,47 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </CardContent>
           </Card>
 
-          {/* Performance Settings */}
+          {/* Session Settings */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <Zap className="h-4 w-4" />
-                Performance Settings
+                <Brain className="h-4 w-4" />
+                Session Settings
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between space-x-2">
                 <div className="space-y-0.5">
-                  <Label htmlFor="lightning-mode" className="text-sm font-medium flex items-center gap-1">
-                    <Zap className="h-3 w-3 text-yellow-500" />
-                    Lightning Mode
+                  <Label htmlFor="session-memory" className="text-sm font-medium">
+                    Session Memory
                   </Label>
                   <p className="text-xs text-muted-foreground">
-                    Ultra-fast responses with basic web search - disables files and memory
+                    Remember conversation context throughout the session
                   </p>
                 </div>
                 <Switch
-                  id="lightning-mode"
-                  checked={lightningMode}
-                  onCheckedChange={onLightningModeChange}
+                  id="session-memory"
+                  checked={sessionMemory}
+                  onCheckedChange={onSessionMemoryChange}
                 />
               </div>
-
-              {!lightningMode && (
-                <>
-                  <div className="flex items-center justify-between space-x-2">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="session-memory" className="text-sm font-medium">
-                        Session Memory
-                      </Label>
-                      <p className="text-xs text-muted-foreground">
-                        Remember conversation context throughout the session
-                      </p>
-                    </div>
-                    <Switch
-                      id="session-memory"
-                      checked={sessionMemory}
-                      onCheckedChange={onSessionMemoryChange}
-                    />
-                  </div>
-                  
-                  <div className="flex items-center justify-between space-x-2">
-                    <div className="space-y-0.5">
-                      <Label htmlFor="web-search" className="text-sm font-medium flex items-center gap-1">
-                        <Search className="h-3 w-3" />
-                        Real-Time Web Search
-                      </Label>
-                      <p className="text-xs text-muted-foreground">
-                        Access current information from NHS, gov.uk, and authoritative sources
-                      </p>
-                    </div>
-                    <Switch
-                      id="web-search"
-                      checked={includeLatestUpdates}
-                      onCheckedChange={onIncludeLatestUpdatesChange}
-                    />
-                  </div>
-                </>
-              )}
+              
+              <div className="flex items-center justify-between space-x-2">
+                <div className="space-y-0.5">
+                  <Label htmlFor="web-search" className="text-sm font-medium flex items-center gap-1">
+                    <Search className="h-3 w-3" />
+                    Web Search
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Include latest medical guidelines and updates
+                  </p>
+                </div>
+                <Switch
+                  id="web-search"
+                  checked={includeLatestUpdates}
+                  onCheckedChange={onIncludeLatestUpdatesChange}
+                />
+              </div>
               
               <div className="flex items-center justify-between space-x-2">
                 <div className="space-y-0.5">
@@ -216,30 +191,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   onCheckedChange={onShowResponseMetricsChange}
                 />
               </div>
-            </CardContent>
-          </Card>
-
-          {lightningMode && (
-            <div className="text-xs text-orange-600 bg-orange-50 dark:bg-orange-950/20 p-3 rounded-lg">
-              <div className="flex items-center gap-1 font-medium">
-                <Zap className="h-3 w-3" />
-                Lightning Mode Active
-              </div>
-              <div className="mt-1">
-                File uploads and session memory are disabled. Basic web search is available for maximum speed.
-              </div>
-            </div>
-          )}
-
-          {/* Session Settings */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <Brain className="h-4 w-4" />
-                Advanced Settings
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
             </CardContent>
           </Card>
 

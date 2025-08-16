@@ -6,101 +6,31 @@ import { FileProcessorManager } from '@/utils/fileProcessors/FileProcessorManage
 export const useFileUpload = () => {
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const processFiles = useCallback(async (
-    files: FileList,
-    onFileUpdate?: (fileIndex: number, file: UploadedFile) => void
-  ): Promise<UploadedFile[]> => {
+  const processFiles = useCallback(async (files: FileList): Promise<UploadedFile[]> => {
     setIsProcessing(true);
     
     try {
-      // Create initial loading state files
-      const initialFiles: UploadedFile[] = Array.from(files).map((file, index) => {
-        // Validate file type first
+      const filePromises = Array.from(files).map(async (file) => {
+        // Validate file type using FileProcessorManager
         if (!FileProcessorManager.isSupported(file.name)) {
-          return {
-            name: file.name,
-            type: file.type,
-            content: '',
-            size: file.size,
-            isLoading: false,
-            error: `Unsupported file type. Supported: Word, Excel, PDF, Text, Email, Calendar, Images`
-          };
+          throw new Error(`Unsupported file type: ${file.name}. Supported: Word, Excel, PDF, Text, Images`);
         }
         
+        // Process file using the appropriate processor
+        const processedFile = await FileProcessorManager.processFile(file);
+        
+        // Convert to UploadedFile format
         return {
-          name: file.name,
-          type: file.type,
-          content: '',
-          size: file.size,
-          isLoading: true
+          name: processedFile.name,
+          type: processedFile.type,
+          content: processedFile.content,
+          size: processedFile.size,
+          isLoading: false
         };
       });
 
-      // Return initial files immediately for UI update
-      if (onFileUpdate) {
-        initialFiles.forEach((file, index) => {
-          onFileUpdate(index, file);
-        });
-      }
-
-      // Process files individually
-      const processedFiles: UploadedFile[] = [];
-      
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        
-        if (initialFiles[i].error) {
-          processedFiles.push(initialFiles[i]);
-          continue;
-        }
-        
-        try {
-          // Process file using the appropriate processor
-          const processedFile = await FileProcessorManager.processFile(file);
-          
-          const finalFile: UploadedFile = {
-            name: processedFile.name,
-            type: processedFile.type,
-            content: processedFile.content,
-            size: processedFile.size,
-            isLoading: false
-          };
-          
-          processedFiles.push(finalFile);
-          
-          // Update individual file status
-          if (onFileUpdate) {
-            onFileUpdate(i, finalFile);
-          }
-          
-        } catch (error) {
-          const errorFile: UploadedFile = {
-            name: file.name,
-            type: file.type,
-            content: '',
-            size: file.size,
-            isLoading: false,
-            error: error instanceof Error ? error.message : 'Failed to process file'
-          };
-          
-          processedFiles.push(errorFile);
-          
-          if (onFileUpdate) {
-            onFileUpdate(i, errorFile);
-          }
-        }
-      }
-
-      const successCount = processedFiles.filter(f => !f.error).length;
-      const errorCount = processedFiles.filter(f => f.error).length;
-      
-      if (successCount > 0) {
-        toast.success(`${successCount} file(s) processed successfully`);
-      }
-      if (errorCount > 0) {
-        toast.error(`${errorCount} file(s) failed to process`);
-      }
-      
+      const processedFiles = await Promise.all(filePromises);
+      toast.success(`${processedFiles.length} file(s) processed successfully`);
       return processedFiles;
       
     } catch (error) {

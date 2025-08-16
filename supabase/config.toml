@@ -1,20 +1,5 @@
 project_id = "dphcnbricafkbtizkoal"
 
-[functions.ai-4-gp-fast]
-verify_jwt = false
-
-[functions.ai-4-gp-enhanced]
-verify_jwt = false
-
-[functions.ai-consultation-assistant]
-verify_jwt = false
-
-[functions.nhs-gp-news]
-verify_jwt = false
-
-[functions.ai-4-pm-chat]
-verify_jwt = false
-
 [functions.assemblyai-transcription]
 verify_jwt = true
 
@@ -44,6 +29,9 @@ verify_jwt = true
 
 [functions.delete-user-admin]
 verify_jwt = true
+
+[functions.nhs-gp-news]
+verify_jwt = false
 
 [functions.clean-transcript-chunk]
 verify_jwt = false

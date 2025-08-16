@@ -80,7 +80,7 @@ export const PracticeUserManagement = () => {
   useEffect(() => {
     if (user) {
       loadPracticeInfo();
-      loadPracticeUsers(); // Load users directly, function will get practice ID itself
+      loadPracticeUsers();
     }
   }, [user]);
 
@@ -122,38 +122,15 @@ export const PracticeUserManagement = () => {
   };
 
   const loadPracticeUsers = async () => {
+    if (!practiceInfo?.id) return;
+    
     try {
       setLoading(true);
-      
-      // Get practice ID first
-      const { data: practiceId, error: practiceError } = await supabase
-        .rpc('get_practice_manager_practice_id', { _user_id: user?.id });
-
-      if (practiceError || !practiceId) {
-        console.error('Could not find practice assignment:', practiceError);
-        toast.error("Could not find practice assignment");
-        return;
-      }
-
-      console.log('Loading users for practice:', practiceId);
-      
       const { data, error } = await supabase
-        .rpc('get_practice_users', { p_practice_id: practiceId });
+        .rpc('get_practice_users', { p_practice_id: practiceInfo.id });
 
-      if (error) {
-        console.error('Error from get_practice_users:', error);
-        throw error;
-      }
-      
-      console.log('Loaded practice users:', data);
-      
-      // CRITICAL: Filter out system administrators from practice management
-      const filteredUsers = (data || []).filter((user: PracticeUser) => {
-        return user.role !== 'system_admin';
-      });
-      
-      console.log('Filtered users (excluding system admins):', filteredUsers);
-      setUsers(filteredUsers);
+      if (error) throw error;
+      setUsers(data || []);
     } catch (error) {
       console.error('Error loading practice users:', error);
       toast.error("Failed to load practice users");
@@ -197,33 +174,20 @@ export const PracticeUserManagement = () => {
   const handleUpdateUser = async () => {
     if (!editingUser) return;
     
-    console.log('Starting user update for:', editingUser.user_id);
-    console.log('Form data:', userFormData);
-    
     try {
       setLoading(true);
       
-      const requestBody = {
-        user_id: editingUser.user_id,
-        full_name: userFormData.full_name,
-        role: userFormData.role,
-        practice_role: userFormData.practice_role,
-        module_access: userFormData.module_access
-      };
-      
-      console.log('Sending request body:', requestBody);
-      
       const { data, error } = await supabase.functions.invoke('update-user-practice-manager', {
-        body: requestBody
+        body: {
+          user_id: editingUser.user_id,
+          full_name: userFormData.full_name,
+          role: userFormData.role,
+          practice_role: userFormData.practice_role,
+          module_access: userFormData.module_access
+        }
       });
 
-      console.log('Response data:', data);
-      console.log('Response error:', error);
-
-      if (error) {
-        console.error('Supabase function error:', error);
-        throw error;
-      }
+      if (error) throw error;
 
       if (data.success) {
         toast.success(data.message);
@@ -232,7 +196,6 @@ export const PracticeUserManagement = () => {
         resetForm();
         setEditingUser(null);
       } else {
-        console.error('Function returned error:', data.error);
         throw new Error(data.error || 'Failed to update user');
       }
     } catch (error: any) {
@@ -244,13 +207,6 @@ export const PracticeUserManagement = () => {
   };
 
   const handleRemoveUser = async (userId: string) => {
-    // Find the user to check if they're a system admin
-    const userToRemove = users.find(u => u.user_id === userId);
-    if (userToRemove?.role === 'system_admin') {
-      toast.error('System administrators cannot be removed through practice management. Contact support if changes are needed.');
-      return;
-    }
-    
     if (!confirm('Are you sure you want to remove this user from your practice?')) {
       return;
     }
@@ -279,12 +235,6 @@ export const PracticeUserManagement = () => {
   };
 
   const openEditModal = (user: PracticeUser) => {
-    // CRITICAL: Never allow editing system administrators
-    if (user.role === 'system_admin') {
-      toast.error('System administrators cannot be edited through practice management. Contact support if changes are needed.');
-      return;
-    }
-    
     setEditingUser(user);
     setUserFormData({
       email: user.email,
@@ -436,7 +386,6 @@ export const PracticeUserManagement = () => {
                             {user.enhanced_access && <Badge variant="outline" className="text-xs">Enhanced</Badge>}
                             {user.cqc_compliance_access && <Badge variant="outline" className="text-xs">CQC</Badge>}
                             {user.shared_drive_access && <Badge variant="outline" className="text-xs">Drive</Badge>}
-                            {user.api_testing_service_access && <Badge variant="outline" className="text-xs">API Testing</Badge>}
                           </div>
                         </TableCell>
                         <TableCell>
@@ -542,7 +491,6 @@ export const PracticeUserManagement = () => {
               </div>
             )}
 
-            {/* Module Access Section */}
             <div className="space-y-3">
               <Label>Module Access</Label>
               <div className="grid grid-cols-2 gap-3">
@@ -563,36 +511,6 @@ export const PracticeUserManagement = () => {
                 </div>
                 <div className="flex items-center space-x-2">
                   <Switch
-                    id="gp_scribe_access"
-                    checked={userFormData.module_access.gp_scribe_access}
-                    onCheckedChange={(checked) => 
-                      setUserFormData(prev => ({
-                        ...prev,
-                        module_access: { ...prev.module_access, gp_scribe_access: checked }
-                      }))
-                    }
-                  />
-                  <Label htmlFor="gp_scribe_access" className="text-sm">
-                    GP Scribe
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="complaints_manager_access"
-                    checked={userFormData.module_access.complaints_manager_access}
-                    onCheckedChange={(checked) => 
-                      setUserFormData(prev => ({
-                        ...prev,
-                        module_access: { ...prev.module_access, complaints_manager_access: checked }
-                      }))
-                    }
-                  />
-                  <Label htmlFor="complaints_manager_access" className="text-sm">
-                    Complaints Manager
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
                     id="ai4gp_access"
                     checked={userFormData.module_access.ai4gp_access}
                     onCheckedChange={(checked) => 
@@ -604,81 +522,6 @@ export const PracticeUserManagement = () => {
                   />
                   <Label htmlFor="ai4gp_access" className="text-sm">
                     AI4GP
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="enhanced_access"
-                    checked={userFormData.module_access.enhanced_access}
-                    onCheckedChange={(checked) => 
-                      setUserFormData(prev => ({
-                        ...prev,
-                        module_access: { ...prev.module_access, enhanced_access: checked }
-                      }))
-                    }
-                  />
-                  <Label htmlFor="enhanced_access" className="text-sm">
-                    Enhanced Access
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="cqc_compliance_access"
-                    checked={userFormData.module_access.cqc_compliance_access}
-                    onCheckedChange={(checked) => 
-                      setUserFormData(prev => ({
-                        ...prev,
-                        module_access: { ...prev.module_access, cqc_compliance_access: checked }
-                      }))
-                    }
-                  />
-                  <Label htmlFor="cqc_compliance_access" className="text-sm">
-                    CQC Compliance
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="shared_drive_access"
-                    checked={userFormData.module_access.shared_drive_access}
-                    onCheckedChange={(checked) => 
-                      setUserFormData(prev => ({
-                        ...prev,
-                        module_access: { ...prev.module_access, shared_drive_access: checked }
-                      }))
-                    }
-                  />
-                  <Label htmlFor="shared_drive_access" className="text-sm">
-                    Shared Drive
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="api_testing_service_access"
-                    checked={userFormData.module_access.api_testing_service_access}
-                    onCheckedChange={(checked) => 
-                      setUserFormData(prev => ({
-                        ...prev,
-                        module_access: { ...prev.module_access, api_testing_service_access: checked }
-                      }))
-                    }
-                  />
-                  <Label htmlFor="api_testing_service_access" className="text-sm">
-                    API Testing Service
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="mic_test_service_access"
-                    checked={userFormData.module_access.mic_test_service_access}
-                    onCheckedChange={(checked) => 
-                      setUserFormData(prev => ({
-                        ...prev,
-                        module_access: { ...prev.module_access, mic_test_service_access: checked }
-                      }))
-                    }
-                  />
-                  <Label htmlFor="mic_test_service_access" className="text-sm">
-                    Mic Test Service
                   </Label>
                 </div>
               </div>
@@ -697,15 +540,7 @@ export const PracticeUserManagement = () => {
               Cancel
             </Button>
             <Button
-              onClick={() => {
-                console.log('Button clicked! editingUser:', editingUser);
-                console.log('handleUpdateUser function exists:', typeof handleUpdateUser);
-                if (editingUser) {
-                  handleUpdateUser();
-                } else {
-                  handleCreateUser();
-                }
-              }}
+              onClick={editingUser ? handleUpdateUser : handleCreateUser}
               disabled={loading || !userFormData.email || !userFormData.full_name || (!editingUser && !userFormData.password)}
             >
               {loading ? 'Processing...' : (editingUser ? 'Update User' : 'Create User')}
