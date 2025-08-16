@@ -24,7 +24,7 @@ interface UploadedFile {
 
 interface RequestBody {
   messages: Message[];
-  model: 'claude' | 'gpt' | 'chatgpt5' | 'grok-beta' | 'claude-4-opus' | 'claude-4-sonnet' | 'gpt-4-turbo' | 'gemini-ultra' | 'gemini-1.5-pro' | 'gemini-1.5-flash' | 'gpt-5';
+  model: 'claude' | 'gpt' | 'grok-beta' | 'claude-4-opus' | 'claude-4-sonnet' | 'gpt-4-turbo' | 'gemini-ultra' | 'gemini-1.5-pro' | 'gemini-1.5-flash';
   systemPrompt: string;
   files?: UploadedFile[];
   enableWebSearch?: boolean;
@@ -793,7 +793,7 @@ async function callGPT(messages: Message[], systemPrompt: string, files?: Upload
   return data.choices[0].message.content;
 }
 
-async function callGPT5(messages: Message[], systemPrompt: string, files?: UploadedFile[]): Promise<string> {
+async function callGPT4Turbo(messages: Message[], systemPrompt: string, files?: UploadedFile[]): Promise<string> {
   const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
   if (!openaiApiKey) {
     throw new Error('OpenAI API key not configured');
@@ -1072,9 +1072,7 @@ serve(async (req) => {
     if (model === 'claude' || model === 'claude-4-opus' || model === 'claude-4-sonnet') {
       response = await callClaude(processedMessages, enhancedSystemPrompt, files);
     } else if (model === 'gpt' || model === 'gpt-4-turbo') {
-      response = await callGPT(processedMessages, enhancedSystemPrompt, files);
-    } else if (model === 'chatgpt5' || model === 'gpt-5') {
-      response = await callGPT5(processedMessages, enhancedSystemPrompt, files);
+      response = await callGPT4Turbo(processedMessages, enhancedSystemPrompt, files);
     } else if (model === 'grok-beta') {
       response = await callGrok(processedMessages, enhancedSystemPrompt, files);
     } else if (model === 'gemini-ultra' || model === 'gemini-1.5-pro') {
