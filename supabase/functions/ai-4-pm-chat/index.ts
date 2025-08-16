@@ -1042,130 +1042,148 @@ serve(async (req) => {
             // Extract key terms from the user's message, limiting to 300 chars for safety
             let query = lastUserMessage.content.replace(/\n--- File:.*?--- End of.*?---/gs, '').trim();
             
-            // If query is still too long, extract key medical/healthcare terms
-            if (query.length > 300) {
-              // Extract key terms (medical conditions, drugs, procedures, etc.)
-              const keyTerms = query.match(/\b(?:[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*|[a-z]+(?:ide|ine|ate|tion|osis|itis|oma|pathy|therapy|treatment|drug|medicine|NHS|NICE|BNF|CQC|GP|prescription|patient|clinical|diagnosis|symptoms?))\b/g);
-              
-              if (keyTerms && keyTerms.length > 0) {
-                query = keyTerms.slice(0, 10).join(' ').slice(0, 300);
-              } else {
-                // Fallback: take first few words
-                query = query.split(' ').slice(0, 20).join(' ').slice(0, 300);
-              }
-            }
+            // OPTIMIZATION: Skip web search for simple queries to improve speed
+            // Check if the query needs current information vs general medical knowledge
+            const needsCurrentInfo = query.toLowerCase().includes('latest') || 
+                                   query.toLowerCase().includes('recent') || 
+                                   query.toLowerCase().includes('current') ||
+                                   query.toLowerCase().includes('new') ||
+                                   query.toLowerCase().includes('update') ||
+                                   query.toLowerCase().includes('2024') ||
+                                   query.toLowerCase().includes('2025') ||
+                                   query.toLowerCase().includes('today') ||
+                                   query.toLowerCase().includes('this year') ||
+                                   query.toLowerCase().includes('changes');
             
-            console.log(`Running Tavily web search for: ${query}\n`);
-            const tavilyResp = await fetch('https://api.tavily.com/search', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                api_key: tavilyKey,
-                query,
-                search_depth: 'advanced',
-                max_results: 8,
-                time_range: 'year',
-                topic: 'news',
-                include_answer: true,
-                include_raw_content: false,
-                include_images: false,
-                include_domains: [
-                  'www.england.nhs.uk',
-                  'www.nhs.uk',
-                  'www.gov.uk',
-                  'www.nice.org.uk',
-                  'www.cqc.org.uk',
-                  'www.bma.org.uk',
-                  'www.parliament.uk',
-                  'www.bbc.co.uk',
-                  'www.bbc.com',
-                  'www.hsj.co.uk',
-                  'www.nhsconfed.org',
-                  'www.theguardian.com',
-                  // Local and regional sources requested (excluding Northants Telegraph)
-                  'www.northamptonchron.co.uk',
-                  'www.itv.com',
-                  'www.nhft.nhs.uk',
-                  'www.northnorthants.gov.uk',
-                  'www.westnorthants.gov.uk',
-                  'www.heart.co.uk',
-                  'planetradio.co.uk',
-                  // GP trade press
-                  'www.pulsetoday.co.uk'
-                ]
-              })
-            });
-            if (tavilyResp.ok) {
-              const data = await tavilyResp.json();
-              const results = Array.isArray(data.results) ? data.results : [];
-              const summary = (data.answer || '').toString().trim();
-
-              // Strict recency filter: keep items within ~120 days when a date is present
-              const cutoff = new Date();
-              cutoff.setDate(cutoff.getDate() - 120);
-              const dated = results.filter((r: any) => {
-                const ds = (r.published_date || r.date || r.published_at || '').toString();
-                const d = ds ? new Date(ds) : null;
-                return d && !isNaN(d.getTime()) && d >= cutoff;
-              });
-              const used = dated.length > 0 ? dated : results;
-
-              const formatted = used.slice(0, 8).map((r: any) => {
-                const url = r.url || r.link || '';
-                let host = '';
-                try { host = new URL(url).host; } catch {}
-                const date = (r.published_date || r.date || r.published_at || '').toString();
-                const snippet = (r.content || r.snippet || r.answer || '').replace(/\s+/g, ' ').slice(0, 220);
-                return `- ${r.title || 'Untitled'} — ${host}${date ? ' — ' + date : ''}\n  ${url}\n  ${snippet}`;
-              }).join('\n');
-
-              enhancedSystemPrompt += `\n\nDIRECTIONS: When RECENT WEB SEARCH RESULTS are present, base your answer ONLY on them. Do not rely on memory for policy/personnel status. If no items are within the last 120 days, explicitly state that and avoid outdated statements. Always cite source URLs with publication dates.\n`;
-
-              if (summary) {
-                enhancedSystemPrompt += `\nRECENT WEB SEARCH SUMMARY:\n${summary}\n`;
-              }
-              if (formatted) {
-                const recencyNote = dated.length === 0 ? "\n[Note: No items with clear dates in the last 120 days were found; verify before asserting 'recent' changes.]\n" : '';
-                enhancedSystemPrompt += `\nRECENT WEB SEARCH RESULTS (authoritative UK health sources, last ~120 days):\n${formatted}${recencyNote}`;
-                console.log(`Tavily results total=${results.length}, recent=${dated.length}`);
-              }
+            // For general medical questions, skip web search for faster response
+            if (!needsCurrentInfo && query.length < 200) {
+              console.log('Skipping web search for general medical query to improve response speed');
             } else {
-              const errorText = await tavilyResp.text();
-              console.log(`Tavily search failed: ${errorText}`);
+              // If query is still too long, extract key medical/healthcare terms
+              if (query.length > 300) {
+                // Extract key terms (medical conditions, drugs, procedures, etc.)
+                const keyTerms = query.match(/\b(?:[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*|[a-z]+(?:ide|ine|ate|tion|osis|itis|oma|pathy|therapy|treatment|drug|medicine|NHS|NICE|BNF|CQC|GP|prescription|patient|clinical|diagnosis|symptoms?))\b/g);
+                
+                if (keyTerms && keyTerms.length > 0) {
+                  query = keyTerms.slice(0, 10).join(' ').slice(0, 300);
+                } else {
+                  // Fallback: take first few words
+                  query = query.split(' ').slice(0, 20).join(' ').slice(0, 300);
+                }
+              }
               
-              // If query too long, try with a shorter version
-              if (errorText.includes('too long')) {
-                console.log('Retrying with shorter query...');
-                const shortQuery = query.split(' ').slice(0, 5).join(' ').slice(0, 100);
-                console.log(`Retry query: ${shortQuery}`);
-                
-                const retryResp = await fetch('https://api.tavily.com/search', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    api_key: tavilyKey,
-                    query: shortQuery,
-                    search_depth: 'basic',
-                    max_results: 5,
-                    include_answer: true,
-                    include_raw_content: false,
-                    include_images: false
-                  })
+              console.log(`Running Tavily web search for: ${query}\n`);
+              const tavilyResp = await fetch('https://api.tavily.com/search', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  api_key: tavilyKey,
+                  query,
+                  search_depth: 'advanced',
+                  max_results: 8,
+                  time_range: 'year',
+                  topic: 'news',
+                  include_answer: true,
+                  include_raw_content: false,
+                  include_images: false,
+                  include_domains: [
+                    'www.england.nhs.uk',
+                    'www.nhs.uk',
+                    'www.gov.uk',
+                    'www.nice.org.uk',
+                    'www.cqc.org.uk',
+                    'www.bma.org.uk',
+                    'www.parliament.uk',
+                    'www.bbc.co.uk',
+                    'www.bbc.com',
+                    'www.hsj.co.uk',
+                    'www.nhsconfed.org',
+                    'www.theguardian.com',
+                    // Local and regional sources requested (excluding Northants Telegraph)
+                    'www.northamptonchron.co.uk',
+                    'www.itv.com',
+                    'www.nhft.nhs.uk',
+                    'www.northnorthants.gov.uk',
+                    'www.westnorthants.gov.uk',
+                    'www.heart.co.uk',
+                    'planetradio.co.uk',
+                    // GP trade press
+                    'www.pulsetoday.co.uk'
+                  ]
+                })
+              });
+              if (tavilyResp.ok) {
+                const data = await tavilyResp.json();
+                const results = Array.isArray(data.results) ? data.results : [];
+                const summary = (data.answer || '').toString().trim();
+
+                // Strict recency filter: keep items within ~120 days when a date is present
+                const cutoff = new Date();
+                cutoff.setDate(cutoff.getDate() - 120);
+                const dated = results.filter((r: any) => {
+                  const ds = (r.published_date || r.date || r.published_at || '').toString();
+                  const d = ds ? new Date(ds) : null;
+                  return d && !isNaN(d.getTime()) && d >= cutoff;
                 });
+                const used = dated.length > 0 ? dated : results;
+
+                const formatted = used.slice(0, 8).map((r: any) => {
+                  const url = r.url || r.link || '';
+                  let host = '';
+                  try { host = new URL(url).host; } catch {}
+                  const date = (r.published_date || r.date || r.published_at || '').toString();
+                  const snippet = (r.content || r.snippet || r.answer || '').replace(/\s+/g, ' ').slice(0, 220);
+                  return `- ${r.title || 'Untitled'} — ${host}${date ? ' — ' + date : ''}\n  ${url}\n  ${snippet}`;
+                }).join('\n');
+
+                enhancedSystemPrompt += `\n\nDIRECTIONS: When RECENT WEB SEARCH RESULTS are present, base your answer ONLY on them. Do not rely on memory for policy/personnel status. If no items are within the last 120 days, explicitly state that and avoid outdated statements. Always cite source URLs with publication dates.\n`;
+
+                if (summary) {
+                  enhancedSystemPrompt += `\nRECENT WEB SEARCH SUMMARY:\n${summary}\n`;
+                }
+                if (formatted) {
+                  const recencyNote = dated.length === 0 ? "\n[Note: No items with clear dates in the last 120 days were found; verify before asserting 'recent' changes.]\n" : '';
+                  enhancedSystemPrompt += `\nRECENT WEB SEARCH RESULTS (authoritative UK health sources, last ~120 days):\n${formatted}${recencyNote}`;
+                  console.log(`Tavily results total=${results.length}, recent=${dated.length}`);
+                }
+              } else {
+                const errorText = await tavilyResp.text();
+                console.log(`Tavily search failed: ${errorText}`);
                 
-                if (retryResp.ok) {
-                  const retryData = await retryResp.json();
-                  const retryResults = Array.isArray(retryData.results) ? retryData.results : [];
-                  if (retryResults.length > 0) {
-                    const retryFormatted = retryResults.slice(0, 3).map((r: any) => {
-                      const url = r.url || r.link || '';
-                      let host = '';
-                      try { host = new URL(url).host; } catch {}
-                      const snippet = (r.content || r.snippet || '').replace(/\s+/g, ' ').slice(0, 150);
-                      return `- ${r.title || 'Untitled'} — ${host}\n  ${snippet}`;
-                    }).join('\n');
-                    
-                    enhancedSystemPrompt += `\n\nLIMITED WEB SEARCH RESULTS:\n${retryFormatted}`;
+                // If query too long, try with a shorter version
+                if (errorText.includes('too long')) {
+                  console.log('Retrying with shorter query...');
+                  const shortQuery = query.split(' ').slice(0, 5).join(' ').slice(0, 100);
+                  console.log(`Retry query: ${shortQuery}`);
+                  
+                  const retryResp = await fetch('https://api.tavily.com/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      api_key: tavilyKey,
+                      query: shortQuery,
+                      search_depth: 'basic',
+                      max_results: 5,
+                      include_answer: true,
+                      include_raw_content: false,
+                      include_images: false
+                    })
+                  });
+                  
+                  if (retryResp.ok) {
+                    const retryData = await retryResp.json();
+                    const retryResults = Array.isArray(retryData.results) ? retryData.results : [];
+                    if (retryResults.length > 0) {
+                      const retryFormatted = retryResults.slice(0, 3).map((r: any) => {
+                        const url = r.url || r.link || '';
+                        let host = '';
+                        try { host = new URL(url).host; } catch {}
+                        const snippet = (r.content || r.snippet || '').replace(/\s+/g, ' ').slice(0, 150);
+                        return `- ${r.title || 'Untitled'} — ${host}\n  ${snippet}`;
+                      }).join('\n');
+                      
+                      enhancedSystemPrompt += `\n\nLIMITED WEB SEARCH RESULTS:\n${retryFormatted}`;
+                    }
                   }
                 }
               }
