@@ -855,17 +855,17 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
     });
   });
 
-  const response = await fetch('https://api.openai.com/v1/responses', {
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${openaiApiKey}`
     },
     body: JSON.stringify({
-      model: 'gpt-4o',
-      tools: [{ type: 'web_search' }],
-      max_output_tokens: 4000,
-      input: gptMessages
+      model: 'gpt-4-turbo',
+      messages: gptMessages,
+      max_tokens: 4000,
+      temperature: 0.2
     })
   });
 
