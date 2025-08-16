@@ -5,7 +5,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Clock, Zap, Brain, TrendingUp, Copy, RotateCcw } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Clock, Zap, Brain, TrendingUp, Copy, RotateCcw, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -39,6 +40,7 @@ const APITesting = () => {
   const [selectedModels, setSelectedModels] = useState<string[]>([
     'claude-4-sonnet', 'gpt-5', 'gpt', 'grok-beta'
   ]);
+  const [isModelSectionOpen, setIsModelSectionOpen] = useState(true);
 
   const availableModels = [
     { id: 'claude-4-sonnet', name: 'Claude 4 Sonnet', color: 'bg-orange-500' },
@@ -272,31 +274,45 @@ const APITesting = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Model Selection */}
-                <div>
-                  <label className="text-sm font-medium mb-3 block">Select Models to Test</label>
-                  <div className="grid grid-cols-1 gap-2">
-                    {availableModels.map(model => (
-                      <div
-                        key={model.id}
-                        className={`flex items-center p-3 rounded-lg border cursor-pointer transition-all ${
-                          selectedModels.includes(model.id)
-                            ? 'border-primary bg-primary/5'
-                            : 'border-border hover:border-primary/50'
+                {/* Model Selection - Collapsible */}
+                <Collapsible open={isModelSectionOpen} onOpenChange={setIsModelSectionOpen}>
+                  <CollapsibleTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-between p-0 h-auto text-sm font-medium"
+                    >
+                      <span>Select Models to Test ({selectedModels.length} selected)</span>
+                      <ChevronDown
+                        className={`h-4 w-4 transition-transform duration-200 ${
+                          isModelSectionOpen ? 'rotate-180' : ''
                         }`}
-                        onClick={() => toggleModel(model.id)}
-                      >
-                        <div className={`w-3 h-3 rounded-full ${model.color} mr-3`} />
-                        <span className="text-sm font-medium">{model.name}</span>
-                        {selectedModels.includes(model.id) && (
-                          <div className="ml-auto w-4 h-4 rounded-full bg-primary flex items-center justify-center">
-                            <div className="w-2 h-2 rounded-full bg-white" />
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                      />
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="space-y-2 mt-3">
+                    <div className="grid grid-cols-1 gap-2">
+                      {availableModels.map(model => (
+                        <div
+                          key={model.id}
+                          className={`flex items-center p-3 rounded-lg border cursor-pointer transition-all ${
+                            selectedModels.includes(model.id)
+                              ? 'border-primary bg-primary/5'
+                              : 'border-border hover:border-primary/50'
+                          }`}
+                          onClick={() => toggleModel(model.id)}
+                        >
+                          <div className={`w-3 h-3 rounded-full ${model.color} mr-3`} />
+                          <span className="text-sm font-medium">{model.name}</span>
+                          {selectedModels.includes(model.id) && (
+                            <div className="ml-auto w-4 h-4 rounded-full bg-primary flex items-center justify-center">
+                              <div className="w-2 h-2 rounded-full bg-white" />
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
 
                 {/* Predefined Prompts */}
                 <div>
