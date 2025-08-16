@@ -855,28 +855,38 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
     });
   });
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${openaiApiKey}`
-    },
-    body: JSON.stringify({
-      model: 'gpt-4-turbo',
-      messages: gptMessages,
-      max_tokens: 4000,
-      temperature: 0.2
-    })
-  });
+  console.log('Calling GPT-4 Turbo with optimized system prompt');
+  
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${openaiApiKey}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4-turbo-preview',
+        messages: gptMessages,
+        max_tokens: 4000,
+        temperature: 0.2
+      })
+    });
 
-  if (!response.ok) {
-    const error = await response.text();
-    console.error('OpenAI API error:', error);
-    throw new Error(`OpenAI API error: ${response.status}`);
+    if (!response.ok) {
+      const error = await response.text();
+      console.error('OpenAI API error:', error);
+      console.error('Response status:', response.status);
+      console.error('Response headers:', Object.fromEntries(response.headers.entries()));
+      throw new Error(`OpenAI API error: ${response.status} - ${error}`);
+    }
+
+    const data = await response.json();
+    console.log('OpenAI response received successfully');
+    return data.choices[0].message.content;
+  } catch (error) {
+    console.error('Error in callGPT4Turbo:', error);
+    throw error;
   }
-
-  const data = await response.json();
-  return data.choices[0].message.content;
 }
 
 async function callGrok(messages: Message[], systemPrompt: string, files?: UploadedFile[]): Promise<string> {
