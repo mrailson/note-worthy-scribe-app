@@ -14,13 +14,14 @@ serve(async (req) => {
 
   try {
     const GOOGLE_TRANSLATE_API_KEY = Deno.env.get('GOOGLE_TRANSLATE_API_KEY');
+    console.log('API Key status:', GOOGLE_TRANSLATE_API_KEY ? 'Found' : 'Not found');
     
     if (!GOOGLE_TRANSLATE_API_KEY) {
-      console.error('Google Translate API key not found');
+      console.error('Google Translate API key not found in environment');
       return new Response(
         JSON.stringify({ error: 'Google Translate API key not configured' }),
         {
-          status: 500,
+          status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       );
@@ -62,11 +63,11 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Google Translate API error:', errorText);
+      console.error('Google Translate API error response:', response.status, errorText);
       return new Response(
         JSON.stringify({ error: `Translation API error: ${errorText}` }),
         {
-          status: response.status,
+          status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       );
@@ -87,11 +88,11 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error('Translation error:', error);
+    console.error('Translation error caught:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error?.message || 'Unknown translation error' }),
       {
-        status: 500,
+        status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
