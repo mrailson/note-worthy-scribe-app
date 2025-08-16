@@ -5,6 +5,7 @@ import { iPhoneWhisperTranscriber, TranscriptData as IPhoneTranscriptData } from
 import { DesktopWhisperTranscriber, TranscriptData as DesktopTranscriptData } from '@/utils/DesktopWhisperTranscriber';
 import { toast } from "sonner";
 import { bus } from "@/lib/bus";
+import { supabase } from "@/integrations/supabase/client";
 
 export const useGPScribeRecording = () => {
   const [isRecording, setIsRecording] = useState(false);
@@ -80,14 +81,55 @@ export const useGPScribeRecording = () => {
           // Create translation request for each final transcript segment
           if (finalText.length > 10) { // Only translate meaningful phrases
             console.log('🔄 Creating translation for:', finalText);
+            
+            // Create initial translation event with placeholder
+            const messageId = `transcript_${Date.now()}`;
             bus.emit("TRANSLATION_READY", {
-              messageId: `transcript_${Date.now()}`,
+              messageId,
               sourceLang: "en",
               targetLang: "bn", // This should come from user settings
               originalText: finalText,
-              translatedText: `[Translating...] ${finalText}`, // Placeholder until real translation
-              isStreaming: false
+              translatedText: "", // Start empty
+              isStreaming: true
             });
+            
+            // Call translation service
+            const translateText = async () => {
+              try {
+                const { data, error } = await supabase.functions.invoke('translate-text', {
+                  body: {
+                    text: finalText,
+                    targetLanguage: 'bn', // Bengali
+                    sourceLanguage: 'en'
+                  }
+                });
+                
+                if (error) throw error;
+                
+                // Emit updated translation
+                bus.emit("TRANSLATION_READY", {
+                  messageId,
+                  sourceLang: "en",
+                  targetLang: "bn",
+                  originalText: finalText,
+                  translatedText: data.translatedText || finalText,
+                  isStreaming: false
+                });
+              } catch (error) {
+                console.error('Translation failed:', error);
+                // Emit with fallback
+                bus.emit("TRANSLATION_READY", {
+                  messageId,
+                  sourceLang: "en",
+                  targetLang: "bn",
+                  originalText: finalText,
+                  translatedText: `[Translation unavailable] ${finalText}`,
+                  isStreaming: false
+                });
+              }
+            };
+            
+            translateText();
           }
           
           return newTranscript;
