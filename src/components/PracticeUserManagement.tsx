@@ -80,7 +80,7 @@ export const PracticeUserManagement = () => {
   useEffect(() => {
     if (user) {
       loadPracticeInfo();
-      loadPracticeUsers();
+      loadPracticeUsers(); // Load users directly, function will get practice ID itself
     }
   }, [user]);
 
@@ -122,14 +122,30 @@ export const PracticeUserManagement = () => {
   };
 
   const loadPracticeUsers = async () => {
-    if (!practiceInfo?.id) return;
-    
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .rpc('get_practice_users', { p_practice_id: practiceInfo.id });
+      
+      // Get practice ID first
+      const { data: practiceId, error: practiceError } = await supabase
+        .rpc('get_practice_manager_practice_id', { _user_id: user?.id });
 
-      if (error) throw error;
+      if (practiceError || !practiceId) {
+        console.error('Could not find practice assignment:', practiceError);
+        toast.error("Could not find practice assignment");
+        return;
+      }
+
+      console.log('Loading users for practice:', practiceId);
+      
+      const { data, error } = await supabase
+        .rpc('get_practice_users', { p_practice_id: practiceId });
+
+      if (error) {
+        console.error('Error from get_practice_users:', error);
+        throw error;
+      }
+      
+      console.log('Loaded practice users:', data);
       setUsers(data || []);
     } catch (error) {
       console.error('Error loading practice users:', error);
