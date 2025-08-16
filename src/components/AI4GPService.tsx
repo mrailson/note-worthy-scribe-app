@@ -51,6 +51,8 @@ const AI4GPService = () => {
     setShowResponseMetrics,
     selectedModel,
     setSelectedModel,
+    lightningMode,
+    setLightningMode,
     handleSend,
     handleNewSearch,
     handleQuickResponse
@@ -273,15 +275,16 @@ const AI4GPService = () => {
                 {/* Input Area at Bottom */}
                 {!showNews && !showAIChat && !showSettings && (
                   <div className="border-t bg-background">
-                    <InputArea
-                      ref={inputRef}
-                      input={input}
-                      setInput={setInput}
-                      uploadedFiles={uploadedFiles}
-                      setUploadedFiles={setUploadedFiles}
-                      onSend={handleSendWithContext}
-                      isLoading={isLoading}
-                    />
+        <InputArea
+          ref={inputRef}
+          input={input}
+          setInput={setInput}
+          uploadedFiles={uploadedFiles}
+          setUploadedFiles={setUploadedFiles}
+          onSend={handleSendWithContext}
+          isLoading={isLoading}
+          lightningMode={lightningMode}
+        />
                   </div>
                 )}
               </CardContent>
@@ -341,6 +344,8 @@ const AI4GPService = () => {
         onModelChange={setSelectedModel}
         showResponseMetrics={showResponseMetrics}
         onShowResponseMetricsChange={setShowResponseMetrics}
+        lightningMode={lightningMode}
+        onLightningModeChange={setLightningMode}
       />
     </>
   );

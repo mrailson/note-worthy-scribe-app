@@ -4,7 +4,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Brain, Search, Bot, Clock } from 'lucide-react';
+import { Brain, Search, Bot, Clock, Zap } from 'lucide-react';
 
 interface SettingsModalProps {
   open: boolean;
@@ -17,6 +17,8 @@ interface SettingsModalProps {
   onModelChange: (model: string) => void;
   showResponseMetrics: boolean;
   onShowResponseMetricsChange: (enabled: boolean) => void;
+  lightningMode: boolean;
+  onLightningModeChange: (enabled: boolean) => void;
 }
 
 const AI_MODELS = [
@@ -82,7 +84,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   selectedModel,
   onModelChange,
   showResponseMetrics,
-  onShowResponseMetricsChange
+  onShowResponseMetricsChange,
+  lightningMode,
+  onLightningModeChange
 }) => {
   const selectedModelInfo = AI_MODELS.find(model => model.id === selectedModel) || AI_MODELS[0];
 
@@ -133,47 +137,68 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </CardContent>
           </Card>
 
-          {/* Session Settings */}
+          {/* Performance Settings */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <Brain className="h-4 w-4" />
-                Session Settings
+                <Zap className="h-4 w-4" />
+                Performance Settings
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between space-x-2">
                 <div className="space-y-0.5">
-                  <Label htmlFor="session-memory" className="text-sm font-medium">
-                    Session Memory
+                  <Label htmlFor="lightning-mode" className="text-sm font-medium flex items-center gap-1">
+                    <Zap className="h-3 w-3 text-yellow-500" />
+                    Lightning Mode
                   </Label>
                   <p className="text-xs text-muted-foreground">
-                    Remember conversation context throughout the session
+                    Ultra-fast responses (3s vs 18s) - disables files, memory, web search
                   </p>
                 </div>
                 <Switch
-                  id="session-memory"
-                  checked={sessionMemory}
-                  onCheckedChange={onSessionMemoryChange}
+                  id="lightning-mode"
+                  checked={lightningMode}
+                  onCheckedChange={onLightningModeChange}
                 />
               </div>
-              
-              <div className="flex items-center justify-between space-x-2">
-                <div className="space-y-0.5">
-                  <Label htmlFor="web-search" className="text-sm font-medium flex items-center gap-1">
-                    <Search className="h-3 w-3" />
-                    Web Search
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    Include latest medical guidelines and updates
-                  </p>
-                </div>
-                <Switch
-                  id="web-search"
-                  checked={includeLatestUpdates}
-                  onCheckedChange={onIncludeLatestUpdatesChange}
-                />
-              </div>
+
+              {!lightningMode && (
+                <>
+                  <div className="flex items-center justify-between space-x-2">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="session-memory" className="text-sm font-medium">
+                        Session Memory
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        Remember conversation context throughout the session
+                      </p>
+                    </div>
+                    <Switch
+                      id="session-memory"
+                      checked={sessionMemory}
+                      onCheckedChange={onSessionMemoryChange}
+                    />
+                  </div>
+                  
+                  <div className="flex items-center justify-between space-x-2">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="web-search" className="text-sm font-medium flex items-center gap-1">
+                        <Search className="h-3 w-3" />
+                        Web Search
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        Include latest medical guidelines and updates
+                      </p>
+                    </div>
+                    <Switch
+                      id="web-search"
+                      checked={includeLatestUpdates}
+                      onCheckedChange={onIncludeLatestUpdatesChange}
+                    />
+                  </div>
+                </>
+              )}
               
               <div className="flex items-center justify-between space-x-2">
                 <div className="space-y-0.5">
@@ -191,6 +216,30 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   onCheckedChange={onShowResponseMetricsChange}
                 />
               </div>
+            </CardContent>
+          </Card>
+
+          {lightningMode && (
+            <div className="text-xs text-orange-600 bg-orange-50 dark:bg-orange-950/20 p-3 rounded-lg">
+              <div className="flex items-center gap-1 font-medium">
+                <Zap className="h-3 w-3" />
+                Lightning Mode Active
+              </div>
+              <div className="mt-1">
+                File uploads, session memory, and web search are disabled for maximum speed.
+              </div>
+            </div>
+          )}
+
+          {/* Session Settings */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Brain className="h-4 w-4" />
+                Advanced Settings
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
             </CardContent>
           </Card>
 

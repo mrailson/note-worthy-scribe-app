@@ -15,6 +15,7 @@ export const useAI4GPService = () => {
   const [includeLatestUpdates, setIncludeLatestUpdates] = useState(true);
   const [showResponseMetrics, setShowResponseMetrics] = useState(false);
   const [selectedModel, setSelectedModel] = useState('gpt-5');
+  const [lightningMode, setLightningMode] = useState(false); // New lightning mode for ultra-fast responses
 
   const buildSystemPrompt = useCallback((practiceContext: any, uploadedFiles: UploadedFile[], includeLatestUpdates: boolean, useSimpleMode: boolean = false) => {
     // Use lightweight prompt for simple queries (like API tester)
@@ -82,6 +83,11 @@ Always provide evidence-based, clinically appropriate advice that follows curren
 
   const handleSend = useCallback(async (practiceContext: any, selectedModel: string = 'gpt-5') => {
     if (!input.trim() && uploadedFiles.length === 0) return;
+    
+    // LIGHTNING MODE: Skip all complex processing for ultra-fast responses
+    if (lightningMode) {
+      return handleLightningSend();
+    }
     
     // Enhance the message content when files are attached
     let messageContent = input;
@@ -220,7 +226,77 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     } finally {
       setIsLoading(false);
     }
-  }, [input, messages, uploadedFiles, buildSystemPrompt, includeLatestUpdates]);
+  }, [input, messages, uploadedFiles, buildSystemPrompt, includeLatestUpdates, lightningMode]);
+
+  // LIGHTNING MODE: Ultra-fast responses matching API tester speed
+  const handleLightningSend = useCallback(async () => {
+    const startTime = Date.now();
+    
+    // Simple system prompt (same as API tester)
+    const lightningSystemPrompt = `You are an expert UK NHS GP assistant. Use only UK primary care sources including NICE guidelines, NHS.uk, BNF, MHRA alerts, the Green Book, and local ICB protocols. Do not use non-UK or non-NHS sources. Present information in concise, GP-friendly bullet points using UK medical terminology.`;
+    
+    // Create user message
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: input,
+      timestamp: new Date()
+    };
+
+    // Create assistant message  
+    const assistantMessage: Message = {
+      id: (Date.now() + 1).toString(),
+      role: 'assistant',
+      content: '',
+      timestamp: new Date(),
+      model: selectedModel,
+      isStreaming: true
+    };
+
+    setMessages([userMessage, assistantMessage]);
+    setInput('');
+    setIsLoading(true);
+
+    try {
+      // Ultra-simple request (matching API tester)
+      const { data, error } = await supabase.functions.invoke('api-testing-service', {
+        body: {
+          prompt: input,
+          model: selectedModel,
+          systemPrompt: lightningSystemPrompt
+        }
+      });
+
+      if (error) throw error;
+
+      const responseTime = Date.now() - startTime;
+      const responseContent = data?.response || 'No response received';
+
+      // Update with final response
+      setMessages([
+        userMessage,
+        {
+          ...assistantMessage,
+          content: responseContent,
+          isStreaming: false,
+          responseTime
+        }
+      ]);
+
+    } catch (error: any) {
+      console.error('Lightning mode error:', error);
+      setMessages([
+        userMessage,
+        {
+          ...assistantMessage,
+          content: `Error: ${error.message || 'Something went wrong. Please try again.'}`,
+          isStreaming: false
+        }
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [input, selectedModel]);
 
   const saveSearchAutomatically = async (messagesData: Message[]) => {
     if (!user || messagesData.length === 0) return;
@@ -369,6 +445,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     setShowResponseMetrics,
     selectedModel,
     setSelectedModel,
+    lightningMode,
+    setLightningMode,
     handleSend,
     handleNewSearch,
     saveSearchAutomatically,

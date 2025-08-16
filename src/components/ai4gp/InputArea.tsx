@@ -1,7 +1,7 @@
 import React, { useRef, forwardRef, useImperativeHandle, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Send, Paperclip, Mic, MicOff } from 'lucide-react';
+import { Send, Paperclip, Mic, MicOff, Zap } from 'lucide-react';
 import { FileUploadArea } from './FileUploadArea';
 import { UploadedFile } from '@/types/ai4gp';
 import { useFileUpload } from '@/hooks/useFileUpload';
@@ -16,6 +16,7 @@ interface InputAreaProps {
   setUploadedFiles: React.Dispatch<React.SetStateAction<UploadedFile[]>>;
   onSend: () => void;
   isLoading: boolean;
+  lightningMode?: boolean;
 }
 
 export interface InputAreaRef {
@@ -28,7 +29,8 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
   uploadedFiles,
   setUploadedFiles,
   onSend,
-  isLoading
+  isLoading,
+  lightningMode = false
 }, ref) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
