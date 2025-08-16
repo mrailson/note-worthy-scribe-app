@@ -1053,11 +1053,23 @@ serve(async (req) => {
                                    query.toLowerCase().includes('2025') ||
                                    query.toLowerCase().includes('today') ||
                                    query.toLowerCase().includes('this year') ||
-                                   query.toLowerCase().includes('changes');
+                                   query.toLowerCase().includes('changes') ||
+                                   query.toLowerCase().includes('guidance') ||
+                                   query.toLowerCase().includes('policy') ||
+                                   query.toLowerCase().includes('news');
             
-            // For general medical questions, skip web search for faster response
-            if (!needsCurrentInfo && query.length < 200) {
-              console.log('Skipping web search for general medical query to improve response speed');
+            // For simple drug queries (just drug name), skip web search for faster response
+            const isDrugQuery = /^[a-zA-Z\s-]{2,30}$/.test(query.trim()) && 
+                               query.split(' ').length <= 3 &&
+                               !query.toLowerCase().includes('when') &&
+                               !query.toLowerCase().includes('how') &&
+                               !query.toLowerCase().includes('what') &&
+                               !query.toLowerCase().includes('why') &&
+                               !query.toLowerCase().includes('should');
+            
+            // Skip web search for general medical questions and simple drug queries
+            if ((!needsCurrentInfo && query.length < 200) || isDrugQuery) {
+              console.log('Skipping web search for general medical/drug query to improve response speed');
             } else {
               // If query is still too long, extract key medical/healthcare terms
               if (query.length > 300) {
