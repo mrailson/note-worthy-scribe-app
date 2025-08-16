@@ -106,6 +106,16 @@ const APITesting = () => {
     );
   };
 
+  const selectAllModels = () => {
+    setSelectedModels(availableModels.map(model => model.id));
+  };
+
+  const unselectAllModels = () => {
+    setSelectedModels([]);
+  };
+
+  const allModelsSelected = selectedModels.length === availableModels.length;
+
   const runTests = async () => {
     if (!prompt.trim() || selectedModels.length === 0) {
       toast.error('Please enter a prompt and select at least one model');
@@ -290,6 +300,28 @@ const APITesting = () => {
                     </Button>
                   </CollapsibleTrigger>
                   <CollapsibleContent className="space-y-2 mt-3">
+                    {/* Select/Unselect All Buttons */}
+                    <div className="flex gap-2 mb-3">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={selectAllModels}
+                        disabled={allModelsSelected}
+                        className="flex-1 text-xs"
+                      >
+                        Select All
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={unselectAllModels}
+                        disabled={selectedModels.length === 0}
+                        className="flex-1 text-xs"
+                      >
+                        Unselect All
+                      </Button>
+                    </div>
+                    
                     <div className="grid grid-cols-1 gap-2">
                       {availableModels.map(model => (
                         <div
