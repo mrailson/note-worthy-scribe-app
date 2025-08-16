@@ -374,64 +374,67 @@ const NewsPanel = ({ showFiltersInHeader = false, onClose }: { showFiltersInHead
     <div>
       {/* Mobile Close Header */}
       {isMobile && onClose && (
-        <div className="flex items-center justify-between p-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-10">
-          <h2 className="text-lg font-semibold">GP News</h2>
-          <Button variant="ghost" size="sm" onClick={onClose}>
+        <div className="flex items-center justify-between p-3 border-b bg-background sticky top-0 z-10">
+          <h2 className="text-base font-medium">GP News</h2>
+          <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0">
             <X className="h-4 w-4" />
           </Button>
         </div>
       )}
       
-      {/* News Source Toggles */}
-      <div className={`${isMobile ? 'mx-4 mt-4' : ''} mb-6 p-4 bg-muted/10 rounded-lg border`}>
-        <h3 className="text-sm font-medium mb-3 text-muted-foreground">News Sources</h3>
-        <div className={`flex ${isMobile ? 'flex-col space-y-3' : 'flex-wrap'} gap-4`}>
-          <div className="flex items-center space-x-2">
+      {/* News Source Toggles - Compact */}
+      <div className={`${isMobile ? 'mx-3 mt-3' : ''} mb-4 p-3 bg-muted/10 rounded-lg border`}>
+        <h3 className="text-xs font-medium mb-2 text-muted-foreground">News Sources</h3>
+        <div className={`flex ${isMobile ? 'justify-between' : 'flex-wrap gap-4'}`}>
+          <div className="flex items-center space-x-1.5">
             <Switch
               id="local-toggle"
               checked={showLocal}
               onCheckedChange={setShowLocal}
+              className="scale-75"
             />
             <label 
               htmlFor="local-toggle" 
-              className="text-sm font-medium cursor-pointer flex items-center gap-2"
+              className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium cursor-pointer flex items-center gap-1.5`}
             >
-              <MapPin className="w-4 h-4 text-blue-500" />
-              Local News
+              <MapPin className="w-3 h-3 text-blue-500" />
+              {isMobile ? 'Local' : 'Local News'}
             </label>
           </div>
           
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1.5">
             <Switch
               id="bbc-health-toggle"
               checked={showBBCHealth}
               onCheckedChange={setShowBBCHealth}
+              className="scale-75"
             />
             <label 
               htmlFor="bbc-health-toggle" 
-              className="text-sm font-medium cursor-pointer flex items-center gap-2"
+              className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium cursor-pointer flex items-center gap-1.5`}
             >
-              <div className="w-4 h-4 bg-red-500 rounded text-white text-[8px] font-bold flex items-center justify-center">
+              <div className="w-3 h-3 bg-red-500 rounded text-white text-[6px] font-bold flex items-center justify-center">
                 B
               </div>
-              BBC Health
+              {isMobile ? 'BBC' : 'BBC Health'}
             </label>
           </div>
           
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1.5">
             <Switch
               id="pulse-toggle"
               checked={showPulseNews}
               onCheckedChange={setShowPulseNews}
+              className="scale-75"
             />
             <label 
               htmlFor="pulse-toggle" 
-              className="text-sm font-medium cursor-pointer flex items-center gap-2"
+              className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium cursor-pointer flex items-center gap-1.5`}
             >
-              <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
-                <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+              <div className="w-3 h-3 bg-green-500 rounded-full flex items-center justify-center">
+                <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
               </div>
-              Pulse News
+              {isMobile ? 'Pulse' : 'Pulse News'}
             </label>
           </div>
         </div>
@@ -498,7 +501,7 @@ const NewsPanel = ({ showFiltersInHeader = false, onClose }: { showFiltersInHead
           </CardContent>
         </Card>
       ) : (
-        <div className={`grid gap-4 ${isMobile ? 'grid-cols-1 mx-4' : 'md:grid-cols-2 lg:grid-cols-3'}`}>
+        <div className={`grid gap-3 ${isMobile ? 'grid-cols-1 mx-3' : 'md:grid-cols-2 lg:grid-cols-3'}`}>
           {prioritizedArticles.map((article) => (
             <Card key={article.id} className="cursor-pointer hover:shadow-lg transition-shadow">
               <CardHeader className="pb-3">
