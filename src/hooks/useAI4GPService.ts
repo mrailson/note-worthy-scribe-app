@@ -88,6 +88,9 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     if (lightningMode) {
       return handleLightningSend();
     }
+
+    // Use enhanced AI function for full featured mode
+    return handleEnhancedSend(practiceContext, selectedModel);
     
     // Enhance the message content when files are attached
     let messageContent = input;
@@ -159,54 +162,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
 
       console.log(`Making fast AI request with ${useSimpleMode ? 'simple' : 'full'} system prompt`);
 
-      // Get response from fast edge function
-      const { data, error } = await supabase.functions.invoke('ai-4-gp-fast', {
-        body: requestBody
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      const responseContent = data?.response || data?.content || 'No response received';
-      
-      // Capture timing metrics
-      const apiResponseTime = Date.now() - startTime;
-      const timeToFirstWords = apiResponseTime; // Since we're not fake streaming anymore
-      
-      if (!responseContent || responseContent === 'No response received') {
-        throw new Error('No valid response received from AI service');
-      }
-      
-      // Display response immediately without fake streaming delays
-      const endTime = Date.now();
-      const responseTime = endTime - startTime;
-      
-      setMessages(prev => prev.map(msg => 
-        msg.id === assistantMessageId 
-          ? { 
-              ...msg, 
-              content: responseContent, 
-              isStreaming: false, 
-              responseTime, 
-              timeToFirstWords, 
-              apiResponseTime 
-            }
-          : msg
-      ));
-
-      // Save search history in background (non-blocking)
-      const finalMessages = [...newMessages, {
-        ...assistantMessage,
-        content: responseContent,
-        isStreaming: false,
-        responseTime,
-        timeToFirstWords,
-        apiResponseTime
-      }];
-      
-      // Use Promise.resolve to make this truly async and non-blocking
-      Promise.resolve().then(() => saveSearchAutomatically(finalMessages));
+      // This is now just the fallback logic, main logic moved to handleEnhancedSend
+      throw new Error('This path should not be reached - using enhanced mode instead');
 
 
     } catch (error: any) {
@@ -297,6 +254,120 @@ Always provide evidence-based, clinically appropriate advice that follows curren
       setIsLoading(false);
     }
   }, [input, selectedModel]);
+
+  // ENHANCED MODE: Full-featured mode with advanced web search
+  const handleEnhancedSend = useCallback(async (practiceContext: any, selectedModel: string = 'gpt-5') => {
+    const startTime = Date.now();
+    
+    // Enhanced system prompt
+    const enhancedSystemPrompt = buildSystemPrompt(practiceContext, uploadedFiles, includeLatestUpdates, false);
+    
+    // Enhance the message content when files are attached
+    let messageContent = input;
+    if (uploadedFiles.length > 0 && input.trim()) {
+      messageContent = `${input}\n\n[Note: I have uploaded ${uploadedFiles.length} file(s): ${uploadedFiles.map(f => f.name).join(', ')}. Please analyze these files in relation to my question above.]`;
+    } else if (uploadedFiles.length > 0 && !input.trim()) {
+      messageContent = `Please analyze the uploaded file(s): ${uploadedFiles.map(f => f.name).join(', ')}`;
+    }
+    
+    // Create user message
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: messageContent,
+      timestamp: new Date(),
+      files: uploadedFiles.length > 0 ? [...uploadedFiles] : undefined
+    };
+
+    // Create assistant message  
+    const assistantMessage: Message = {
+      id: (Date.now() + 1).toString(),
+      role: 'assistant',
+      content: '',
+      timestamp: new Date(),
+      model: selectedModel,
+      isStreaming: true
+    };
+
+    const newMessages = [...messages, userMessage];
+    setMessages([...newMessages, assistantMessage]);
+    setInput('');
+    setUploadedFiles([]);
+    setIsLoading(true);
+
+    try {
+      // Prepare messages for API
+      const messagesForAPI = newMessages.map(msg => {
+        let content = msg.content;
+        
+        // Add file contents if files exist
+        if (msg.files && msg.files.length > 0) {
+          const fileContents = msg.files.map(file => 
+            `\n\n--- File: ${file.name} ---\n${file.content}\n--- End of ${file.name} ---`
+          ).join('');
+          content += fileContents;
+        }
+        
+        return {
+          role: msg.role,
+          content: content
+        };
+      });
+
+      // Enhanced request body
+      const requestBody = {
+        messages: messagesForAPI,
+        model: selectedModel,
+        systemPrompt: enhancedSystemPrompt,
+        enableWebSearch: includeLatestUpdates,
+        searchDepth: 'advanced',
+        files: uploadedFiles.length > 0 ? uploadedFiles : undefined
+      };
+
+      console.log('Making enhanced AI request with full web search capabilities');
+
+      // Get response from enhanced edge function
+      const { data, error } = await supabase.functions.invoke('ai-4-gp-enhanced', {
+        body: requestBody
+      });
+
+      if (error) throw error;
+
+      const responseTime = Date.now() - startTime;
+      const responseContent = data?.response || 'No response received';
+
+      // Update with final response
+      const finalMessages = [
+        ...newMessages,
+        {
+          ...assistantMessage,
+          content: responseContent,
+          isStreaming: false,
+          responseTime,
+          searchPerformed: data?.searchPerformed || false
+        }
+      ];
+
+      setMessages(finalMessages);
+
+      // Save search history in background
+      Promise.resolve().then(() => saveSearchAutomatically(finalMessages));
+
+    } catch (error: any) {
+      console.error('Enhanced mode error:', error);
+      setMessages(prev => prev.map(msg => 
+        msg.id === assistantMessage.id 
+          ? {
+              ...msg,
+              content: `Error: ${error.message || 'Something went wrong. Please try again.'}`,
+              isStreaming: false
+            }
+          : msg
+      ));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [input, messages, uploadedFiles, buildSystemPrompt, includeLatestUpdates]);
 
   const saveSearchAutomatically = async (messagesData: Message[]) => {
     if (!user || messagesData.length === 0) return;

@@ -26,50 +26,50 @@ const AI_MODELS = [
     id: 'gpt-5',
     name: 'GPT-5',
     provider: 'OpenAI',
-    description: 'Most advanced reasoning and analysis',
+    description: 'Most advanced flagship model with current web access',
     recommended: true
   },
   {
-    id: 'claude-4-opus',
-    name: 'Claude 4 Opus',
-    provider: 'Anthropic',
-    description: 'Superior reasoning and medical knowledge'
-  },
-  {
-    id: 'claude-4-sonnet',
-    name: 'Claude 4 Sonnet',
-    provider: 'Anthropic',
-    description: 'High performance with excellent efficiency'
-  },
-  {
-    id: 'gemini-1.5-pro',
-    name: 'Gemini 1.5 Pro',
-    provider: 'Google',
-    description: 'Advanced multimodal reasoning capabilities'
-  },
-  {
-    id: 'gemini-1.5-flash',
-    name: 'Gemini 1.5 Flash',
-    provider: 'Google',
-    description: 'Fast and efficient for quick responses'
-  },
-  {
-    id: 'grok-beta',
-    name: 'Grok',
-    provider: 'xAI',
-    description: 'Real-time information and conversational AI'
-  },
-  {
-    id: 'gpt-4-turbo',
-    name: 'GPT-4 Turbo',
+    id: 'gpt-5-mini',
+    name: 'GPT-5 Mini',
     provider: 'OpenAI',
-    description: 'Fast and reliable for clinical tasks'
+    description: 'Fast and efficient GPT-5 variant'
   },
   {
-    id: 'gemini-ultra',
-    name: 'Gemini Ultra',
+    id: 'gpt-4.1',
+    name: 'GPT-4.1',
+    provider: 'OpenAI',
+    description: 'Reliable GPT-4 model'
+  },
+  {
+    id: 'o3',
+    name: 'O3',
+    provider: 'OpenAI',
+    description: 'Advanced reasoning model'
+  },
+  {
+    id: 'o4-mini',
+    name: 'O4 Mini',
+    provider: 'OpenAI',
+    description: 'Fast reasoning model'
+  },
+  {
+    id: 'gpt-4o-mini',
+    name: 'GPT-4o Mini (Legacy)',
+    provider: 'OpenAI',
+    description: 'Legacy fast model'
+  },
+  {
+    id: 'gpt-4o',
+    name: 'GPT-4o (Legacy)',
+    provider: 'OpenAI',
+    description: 'Legacy powerful model'
+  },
+  {
+    id: 'gemini-pro',
+    name: 'Gemini Pro',
     provider: 'Google',
-    description: 'Advanced multimodal capabilities'
+    description: 'Google\'s flagship model'
   }
 ];
 
@@ -153,7 +153,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     Lightning Mode
                   </Label>
                   <p className="text-xs text-muted-foreground">
-                    Ultra-fast responses (3s vs 18s) - disables files, memory, web search
+                    Ultra-fast responses with basic web search - disables files and memory
                   </p>
                 </div>
                 <Switch
@@ -185,10 +185,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     <div className="space-y-0.5">
                       <Label htmlFor="web-search" className="text-sm font-medium flex items-center gap-1">
                         <Search className="h-3 w-3" />
-                        Web Search
+                        Real-Time Web Search
                       </Label>
                       <p className="text-xs text-muted-foreground">
-                        Include latest medical guidelines and updates
+                        Access current information from NHS, gov.uk, and authoritative sources
                       </p>
                     </div>
                     <Switch
@@ -226,7 +226,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 Lightning Mode Active
               </div>
               <div className="mt-1">
-                File uploads, session memory, and web search are disabled for maximum speed.
+                File uploads and session memory are disabled. Basic web search is available for maximum speed.
               </div>
             </div>
           )}

@@ -18,8 +18,69 @@ interface RequestBody {
   enableWebSearch?: boolean;
 }
 
+async function performQuickWebSearch(query: string): Promise<string> {
+  try {
+    console.log(`🔍 Quick web search for: "${query}"`);
+    
+    const tavilyKey = Deno.env.get('TAVILY_API_KEY');
+    if (!tavilyKey) {
+      console.log('⚠️ Tavily API key not configured');
+      return '';
+    }
+
+    const response = await fetch('https://api.tavily.com/search', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        api_key: tavilyKey,
+        query: query,
+        search_depth: 'basic',
+        include_answer: false,
+        include_domains: ['nhs.uk', 'gov.uk', 'nice.org.uk', 'bbc.co.uk/news'],
+        max_results: 3
+      }),
+    });
+
+    if (!response.ok) {
+      console.log(`⚠️ Tavily search failed: ${response.status}`);
+      return '';
+    }
+
+    const data = await response.json();
+    if (!data.results || data.results.length === 0) {
+      return '';
+    }
+
+    let searchContext = '\n🌐 **QUICK SEARCH RESULTS**:\n';
+    data.results.slice(0, 3).forEach((result: any, index: number) => {
+      searchContext += `${index + 1}. [${result.title}](${result.url})\n`;
+      searchContext += `   ${result.content.substring(0, 100)}...\n\n`;
+    });
+
+    console.log(`✅ Quick search returned ${data.results.length} results`);
+    return searchContext;
+    
+  } catch (error) {
+    console.error('❌ Quick search error:', error);
+    return '';
+  }
+}
+
+function detectWebSearchNeeded(query: string): boolean {
+  const searchTriggers = [
+    'latest', 'recent', 'current', 'new', 'today', 'this week', 'this month',
+    'announce', 'update', 'change', 'news', 'what are', 'what is happening',
+    'status', 'when', 'how much', 'price', 'cost', '2024', '2025'
+  ];
+  
+  const lowerQuery = query.toLowerCase();
+  return searchTriggers.some(trigger => lowerQuery.includes(trigger));
+}
+
 async function callAI(messages: Message[], systemPrompt: string, model: string): Promise<string> {
-  console.log(`Calling ${model} with ${messages.length} messages`);
+  console.log(`🤖 Calling ${model} with ${messages.length} messages`);
   
   // Prepare messages for the AI
   const apiMessages = [
@@ -45,8 +106,21 @@ async function callOpenAI(messages: any[], model: string): Promise<string> {
 
   console.log(`Calling OpenAI API with model: ${model}...`);
 
+  // Map model names to actual OpenAI model names
+  const modelMapping: { [key: string]: string } = {
+    'gpt-5': 'gpt-5-2025-08-07',
+    'gpt-5-mini': 'gpt-5-mini-2025-08-07',
+    'gpt-5-nano': 'gpt-5-nano-2025-08-07',
+    'gpt-4.1': 'gpt-4.1-2025-04-14',
+    'gpt-4.1-mini': 'gpt-4.1-mini-2025-04-14',
+    'o3': 'o3-2025-04-16',
+    'o4-mini': 'o4-mini-2025-04-16'
+  };
+
+  const actualModel = modelMapping[model] || model;
+
   const requestBody: any = {
-    model: model === 'gpt-5' ? 'gpt-5-2025-08-07' : model,
+    model: actualModel,
     messages: messages
   };
 
@@ -140,13 +214,33 @@ serve(async (req) => {
     const requestBody: RequestBody = await req.json();
     const { messages, model, systemPrompt, enableWebSearch } = requestBody;
 
-    console.log(`Processing ${model} request with ${messages.length} messages`);
-    console.log(`Web search enabled: ${enableWebSearch || false}`);
+    console.log(`🚀 Processing fast AI4GP request with model: ${model}`);
+    console.log(`📊 Messages: ${messages.length}, Web search: ${enableWebSearch || 'auto'}`);
 
-    // For fast responses, skip web search and file processing unless specifically needed
+    let enhancedSystemPrompt = systemPrompt;
+    let shouldPerformWebSearch = enableWebSearch;
+
+    // Auto-detect if web search is needed for fast mode
+    if (enableWebSearch !== false && messages.length > 0) {
+      const latestMessage = messages[messages.length - 1];
+      if (!shouldPerformWebSearch && detectWebSearchNeeded(latestMessage.content)) {
+        shouldPerformWebSearch = true;
+        console.log('🎯 Auto-detected need for quick web search');
+      }
+    }
+
+    // Perform quick web search if needed
+    if (shouldPerformWebSearch && messages.length > 0) {
+      const latestMessage = messages[messages.length - 1];
+      const searchResults = await performQuickWebSearch(latestMessage.content);
+      if (searchResults) {
+        enhancedSystemPrompt += searchResults;
+        enhancedSystemPrompt += '\n\n⚠️ **Note**: Quick search results provided. For comprehensive current information, use enhanced mode.';
+      }
+    }
+
     const startTime = Date.now();
-    
-    const response = await callAI(messages, systemPrompt, model);
+    const response = await callAI(messages, enhancedSystemPrompt, model);
     
     const endTime = Date.now();
     const responseTime = endTime - startTime;
@@ -156,7 +250,9 @@ serve(async (req) => {
     return new Response(JSON.stringify({
       response: response,
       success: true,
-      responseTime: responseTime
+      responseTime: responseTime,
+      searchPerformed: shouldPerformWebSearch || false,
+      model: model
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
