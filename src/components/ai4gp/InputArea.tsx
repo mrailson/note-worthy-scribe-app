@@ -95,7 +95,7 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask about NHS guidelines, clinical protocols, prescribing, referrals, or practice management..."
-            className="min-h-[40px] max-h-32 resize-none pr-20"
+            className="min-h-[40px] max-h-32 resize-none pr-20 bg-white border-border"
             disabled={isLoading}
           />
           
