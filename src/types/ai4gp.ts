@@ -18,6 +18,7 @@ export interface UploadedFile {
   size: number;
   isLoading?: boolean;
   source?: 'file' | 'paste';
+  error?: string;
 }
 
 export interface SearchHistory {

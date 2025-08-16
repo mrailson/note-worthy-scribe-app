@@ -48,8 +48,29 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
     if (!files || files.length === 0) return;
 
     try {
-      const processedFiles = await processFiles(files);
-      setUploadedFiles(prev => [...prev, ...processedFiles]);
+      const processedFiles = await processFiles(
+        files,
+        (fileIndex, updatedFile) => {
+          setUploadedFiles(prev => {
+            const newFiles = [...prev];
+            // Find the correct position to update (accounting for existing files)
+            const targetIndex = prev.length + fileIndex;
+            if (targetIndex < newFiles.length) {
+              newFiles[targetIndex] = updatedFile;
+            } else {
+              newFiles.push(updatedFile);
+            }
+            return newFiles;
+          });
+        }
+      );
+      
+      // Final update with all processed files
+      setUploadedFiles(prev => {
+        // Remove any loading files and replace with final results
+        const existingCount = prev.filter(f => !f.isLoading).length;
+        return [...prev.slice(0, existingCount), ...processedFiles];
+      });
     } catch (error) {
       console.error('Error processing files:', error);
     } finally {
