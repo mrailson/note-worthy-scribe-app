@@ -146,7 +146,14 @@ export const PracticeUserManagement = () => {
       }
       
       console.log('Loaded practice users:', data);
-      setUsers(data || []);
+      
+      // CRITICAL: Filter out system administrators from practice management
+      const filteredUsers = (data || []).filter((user: PracticeUser) => {
+        return user.role !== 'system_admin';
+      });
+      
+      console.log('Filtered users (excluding system admins):', filteredUsers);
+      setUsers(filteredUsers);
     } catch (error) {
       console.error('Error loading practice users:', error);
       toast.error("Failed to load practice users");
@@ -237,6 +244,13 @@ export const PracticeUserManagement = () => {
   };
 
   const handleRemoveUser = async (userId: string) => {
+    // Find the user to check if they're a system admin
+    const userToRemove = users.find(u => u.user_id === userId);
+    if (userToRemove?.role === 'system_admin') {
+      toast.error('System administrators cannot be removed through practice management. Contact support if changes are needed.');
+      return;
+    }
+    
     if (!confirm('Are you sure you want to remove this user from your practice?')) {
       return;
     }
@@ -265,6 +279,12 @@ export const PracticeUserManagement = () => {
   };
 
   const openEditModal = (user: PracticeUser) => {
+    // CRITICAL: Never allow editing system administrators
+    if (user.role === 'system_admin') {
+      toast.error('System administrators cannot be edited through practice management. Contact support if changes are needed.');
+      return;
+    }
+    
     setEditingUser(user);
     setUserFormData({
       email: user.email,

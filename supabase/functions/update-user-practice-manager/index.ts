@@ -78,6 +78,23 @@ const handler = async (req: Request): Promise<Response> => {
     // Parse the request body
     const { user_id, full_name, role, practice_role, module_access }: UpdateUserRequest = await req.json();
 
+    // CRITICAL: Check if target user is system admin FIRST
+    const { data: systemAdminCheck, error: systemAdminError } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user_id)
+      .eq('role', 'system_admin');
+
+    if (systemAdminError) {
+      throw new Error(`Failed to verify user permissions: ${systemAdminError.message}`);
+    }
+
+    // NEVER allow practice managers to modify system administrators
+    if (systemAdminCheck && systemAdminCheck.length > 0) {
+      console.log('BLOCKED: Attempt to modify system admin via practice management:', user_id);
+      throw new Error('System administrators cannot be modified through practice management. Contact support if changes are needed.');
+    }
+
     // Verify the user being updated belongs to the practice manager's practice
     const { data: userInPractice, error: verifyError } = await supabase
       .from('user_roles')
@@ -90,28 +107,39 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("User not found in your practice");
     }
 
-    // Validate role is allowed for practice managers
+    // Validate role assignment - NEVER allow system_admin
     if (role) {
+      // ABSOLUTELY NEVER allow assignment of system_admin role through this interface
+      if (role === 'system_admin') {
+        console.log('BLOCKED: Attempt to assign system_admin role via practice management');
+        throw new Error('System admin role cannot be assigned through practice management. Contact support for system admin access.');
+      }
+
       // Get current user's role to check if they're system admin
       const { data: isSystemAdmin, error: adminCheckError } = await supabase
         .rpc('is_system_admin', { _user_id: user.id });
       
+      if (adminCheckError) {
+        throw new Error(`Failed to verify admin status: ${adminCheckError.message}`);
+      }
+      
       // If current user is system admin, allow more flexibility
       if (isSystemAdmin) {
-        // System admins can assign most roles except they can't elevate others to system_admin
-        if (role === 'system_admin' && user_id !== user.id) {
-          throw new Error("Only existing system admins can maintain system admin role");
+        // System admins can assign most roles except system_admin (already blocked above)
+        const allowedSystemAdminRoles = ['user', 'practice_manager'];
+        if (!allowedSystemAdminRoles.includes(role)) {
+          throw new Error(`Even system admins can only assign these roles via practice management: ${allowedSystemAdminRoles.join(', ')}`);
         }
       } else {
-        // Regular practice managers have limited role assignment
+        // Regular practice managers have very limited role assignment
         const allowedRoles = ['user'];
         if (!allowedRoles.includes(role)) {
           throw new Error(`Practice managers can only assign these roles: ${allowedRoles.join(', ')}`);
         }
 
-        // Prevent elevation to higher privileges
-        if (role === 'practice_manager' || role === 'system_admin') {
-          throw new Error("Cannot elevate user to practice manager or system admin role");
+        // Double check - prevent elevation to higher privileges
+        if (role === 'practice_manager') {
+          throw new Error("Only system administrators can assign practice manager role");
         }
       }
     }
@@ -144,7 +172,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`Existing roles for user ${user_id}:`, existingRoles);
 
-    // Update module access for ALL roles of the user, preserving their role types
+    // Update module access for ALL NON-SYSTEM-ADMIN roles of the user
     if (module_access && Object.keys(module_access).length > 0) {
       const moduleUpdate: any = {};
       
@@ -159,27 +187,33 @@ const handler = async (req: Request): Promise<Response> => {
       if (module_access.api_testing_service_access !== undefined) moduleUpdate.api_testing_service_access = module_access.api_testing_service_access;
 
       if (Object.keys(moduleUpdate).length > 0) {
-        // Update module access for ALL roles of this user
+        // Update module access for NON-SYSTEM-ADMIN roles of this user only
         const { error: moduleUpdateError } = await supabase
           .from('user_roles')
           .update(moduleUpdate)
-          .eq('user_id', user_id);
+          .eq('user_id', user_id)
+          .neq('role', 'system_admin'); // NEVER update system_admin module access
 
         if (moduleUpdateError) {
           console.error("Module update error:", moduleUpdateError);
           throw new Error(`Failed to update module access: ${moduleUpdateError.message}`);
         }
 
-        console.log(`Updated module access for user ${user_id}:`, moduleUpdate);
+        console.log(`Updated module access for user ${user_id} (non-system-admin roles only):`, moduleUpdate);
       }
     }
 
-    // Handle role updates only if a specific role is provided
+    // Handle role updates only if a specific role is provided (NEVER touch system_admin)
     if (role) {
       // Find the practice-specific role to update
       const practiceRole = existingRoles?.find(r => r.practice_id === practiceId);
       
       if (practiceRole) {
+        // Double-check we're not touching a system_admin role
+        if (practiceRole.role === 'system_admin') {
+          throw new Error('Cannot modify system administrator roles');
+        }
+
         const { error: roleUpdateError } = await supabase
           .from('user_roles')
           .update({ 
@@ -187,7 +221,8 @@ const handler = async (req: Request): Promise<Response> => {
             practice_role: practice_role !== undefined ? (practice_role || null) : practiceRole.practice_role
           })
           .eq('user_id', user_id)
-          .eq('practice_id', practiceId);
+          .eq('practice_id', practiceId)
+          .neq('role', 'system_admin'); // Extra protection
 
         if (roleUpdateError) {
           throw new Error(`Failed to update practice role: ${roleUpdateError.message}`);
@@ -197,13 +232,14 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    // Update practice_role only if provided (without changing the main role)
+    // Update practice_role only if provided (NEVER touch system_admin)
     if (practice_role !== undefined && !role) {
       const { error: practiceRoleUpdateError } = await supabase
         .from('user_roles')
         .update({ practice_role: practice_role || null })
         .eq('user_id', user_id)
-        .eq('practice_id', practiceId);
+        .eq('practice_id', practiceId)
+        .neq('role', 'system_admin'); // NEVER update system_admin role records
 
       if (practiceRoleUpdateError) {
         throw new Error(`Failed to update practice role: ${practiceRoleUpdateError.message}`);
