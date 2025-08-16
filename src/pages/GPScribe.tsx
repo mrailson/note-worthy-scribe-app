@@ -6,6 +6,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import PatientTranslationModal from "@/components/PatientTranslationModal";
+import { bus } from "@/lib/bus";
 
 // Import extracted hooks
 import { useGPScribeRecording } from "@/hooks/useGPScribeRecording";
@@ -54,6 +56,20 @@ const Index = () => {
     title: "",
     content: ""
   });
+
+  // Translation Modal states
+  const [modalOpen, setModalOpen] = useState(false);
+  const [msg, setMsg] = useState<any | null>(null);
+
+  useEffect(() => {
+    // Open modal when a translation is ready
+    const unsubscribe = bus.on("TRANSLATION_READY", (m: any) => { setMsg(m); setModalOpen(true); });
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  const handleClose = () => setModalOpen(false);
 
   // Clean transcript handler
   const handleCleanTranscript = async () => {
@@ -283,6 +299,42 @@ const Index = () => {
           </TabsContent>
 
         </Tabs>
+
+        {/* Translation Modal */}
+        {msg && (
+          <PatientTranslationModal
+            isOpen={modalOpen}
+            onClose={handleClose}
+            onAck={(id) => bus.emit("TRANSLATION_ACK", { id })}
+            onBack={(id) => bus.emit("TRANSLATION_BACK", { id })}
+            onPlay={(id) => bus.emit("TRANSLATION_PLAY", { id })}
+            onPause={(id) => bus.emit("TRANSLATION_PAUSE", { id })}
+            messageId={msg.messageId}
+            sourceLang={msg.sourceLang}
+            targetLang={msg.targetLang}
+            originalText={msg.originalText}
+            translatedText={msg.translatedText}
+            audioUrl={msg.audioUrl}
+            isStreaming={msg.isStreaming}
+          />
+        )}
+
+        {/* Test Button (temporary) */}
+        <button
+          onClick={() =>
+            bus.emit("TRANSLATION_READY", {
+              messageId: "demo1",
+              sourceLang: "en",
+              targetLang: "bn",
+              originalText: "Hello, how are you feeling today?",
+              translatedText: "হ্যালো, আজ আপনি কেমন অনুভব করছেন?",
+              isStreaming: false
+            })
+          }
+          className="fixed bottom-4 right-4 px-3 py-2 rounded-lg border bg-card text-card-foreground hover:bg-accent transition-colors"
+        >
+          Test Translation Modal
+        </button>
       </div>
     </div>
   );
