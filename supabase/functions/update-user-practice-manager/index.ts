@@ -92,14 +92,27 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Validate role is allowed for practice managers
     if (role) {
-      const allowedRoles = ['user'];
-      if (!allowedRoles.includes(role)) {
-        throw new Error(`Practice managers can only assign these roles: ${allowedRoles.join(', ')}`);
-      }
+      // Get current user's role to check if they're system admin
+      const { data: isSystemAdmin, error: adminCheckError } = await supabase
+        .rpc('is_system_admin', { _user_id: user.id });
+      
+      // If current user is system admin, allow more flexibility
+      if (isSystemAdmin) {
+        // System admins can assign most roles except they can't elevate others to system_admin
+        if (role === 'system_admin' && user_id !== user.id) {
+          throw new Error("Only existing system admins can maintain system admin role");
+        }
+      } else {
+        // Regular practice managers have limited role assignment
+        const allowedRoles = ['user'];
+        if (!allowedRoles.includes(role)) {
+          throw new Error(`Practice managers can only assign these roles: ${allowedRoles.join(', ')}`);
+        }
 
-      // Prevent elevation to higher privileges
-      if (role === 'practice_manager' || role === 'system_admin') {
-        throw new Error("Cannot elevate user to practice manager or system admin role");
+        // Prevent elevation to higher privileges
+        if (role === 'practice_manager' || role === 'system_admin') {
+          throw new Error("Cannot elevate user to practice manager or system admin role");
+        }
       }
     }
 
