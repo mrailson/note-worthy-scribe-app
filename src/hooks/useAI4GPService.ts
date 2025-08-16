@@ -81,109 +81,6 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     return prompt;
   }, []);
 
-  const handleSend = useCallback(async (practiceContext: any, selectedModel: string = 'gpt-5') => {
-    if (!input.trim() && uploadedFiles.length === 0) return;
-    
-    // LIGHTNING MODE: Skip all complex processing for ultra-fast responses
-    if (lightningMode) {
-      return handleLightningSend();
-    }
-
-    // Use enhanced AI function for full featured mode
-    return handleEnhancedSend(practiceContext, selectedModel);
-    
-    // Enhance the message content when files are attached
-    let messageContent = input;
-    if (uploadedFiles.length > 0 && input.trim()) {
-      messageContent = `${input}\n\n[Note: I have uploaded ${uploadedFiles.length} file(s): ${uploadedFiles.map(f => f.name).join(', ')}. Please analyze these files in relation to my question above.]`;
-    } else if (uploadedFiles.length > 0 && !input.trim()) {
-      messageContent = `Please analyze the uploaded file(s): ${uploadedFiles.map(f => f.name).join(', ')}`;
-    }
-    
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: messageContent,
-      timestamp: new Date(),
-      files: uploadedFiles.length > 0 ? [...uploadedFiles] : undefined
-    };
-
-    const newMessages = [...messages, userMessage];
-    setMessages(newMessages);
-    setInput('');
-    setUploadedFiles([]);
-    setIsLoading(true);
-
-    // Create assistant message for streaming
-    const assistantMessageId = (Date.now() + 1).toString();
-    const assistantMessage: Message = {
-      id: assistantMessageId,
-      role: 'assistant',
-      content: '',
-      timestamp: new Date(),
-      model: selectedModel,
-      isStreaming: true
-    };
-
-    const messagesWithStreaming = [...newMessages, assistantMessage];
-    setMessages(messagesWithStreaming);
-
-    try {
-      const startTime = Date.now();
-      
-      // Determine if we should use simple mode for faster responses
-      const useSimpleMode = uploadedFiles.length === 0 && !includeLatestUpdates;
-      const systemPrompt = buildSystemPrompt(practiceContext, uploadedFiles, includeLatestUpdates, useSimpleMode);
-      
-      // Only process files if they exist
-      const messagesForAPI = newMessages.map(msg => {
-        let content = msg.content;
-        
-        // Only add file contents if files exist
-        if (msg.files && msg.files.length > 0) {
-          const fileContents = msg.files.map(file => 
-            `\n\n--- File: ${file.name} ---\n${file.content}\n--- End of ${file.name} ---`
-          ).join('');
-          content += fileContents;
-        }
-        
-        return {
-          role: msg.role,
-          content: content
-        };
-      });
-
-      // Streamlined request body for fast endpoint
-      const requestBody = {
-        messages: messagesForAPI,
-        model: selectedModel,
-        systemPrompt: systemPrompt
-      };
-
-      console.log(`Making fast AI request with ${useSimpleMode ? 'simple' : 'full'} system prompt`);
-
-      // This is now just the fallback logic, main logic moved to handleEnhancedSend
-      throw new Error('This path should not be reached - using enhanced mode instead');
-
-
-    } catch (error: any) {
-      console.error('Streaming error:', error);
-      
-      const errorMessage: Message = {
-        id: assistantMessageId,
-        role: 'assistant',
-        content: `Error: ${error.message || 'Something went wrong. Please try again.'}`,
-        timestamp: new Date(),
-        isStreaming: false
-      };
-
-      setMessages(prev => prev.map(msg => 
-        msg.id === assistantMessageId ? errorMessage : msg
-      ));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [input, messages, uploadedFiles, buildSystemPrompt, includeLatestUpdates, lightningMode]);
 
   // LIGHTNING MODE: Ultra-fast responses matching API tester speed
   const handleLightningSend = useCallback(async () => {
@@ -368,6 +265,19 @@ Always provide evidence-based, clinically appropriate advice that follows curren
       setIsLoading(false);
     }
   }, [input, messages, uploadedFiles, buildSystemPrompt, includeLatestUpdates]);
+
+  // Main send handler that routes to appropriate mode
+  const handleSend = useCallback(async (practiceContext: any, selectedModel: string = 'gpt-5') => {
+    if (!input.trim() && uploadedFiles.length === 0) return;
+    
+    // LIGHTNING MODE: Skip all complex processing for ultra-fast responses
+    if (lightningMode) {
+      return handleLightningSend();
+    }
+
+    // Use enhanced AI function for full featured mode
+    return handleEnhancedSend(practiceContext, selectedModel);
+  }, [input, uploadedFiles, lightningMode, handleLightningSend, handleEnhancedSend]);
 
   const saveSearchAutomatically = async (messagesData: Message[]) => {
     if (!user || messagesData.length === 0) return;
