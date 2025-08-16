@@ -24,8 +24,7 @@ const AI_MODELS = [
     id: 'gpt-5',
     name: 'GPT-5',
     provider: 'OpenAI',
-    description: 'Most advanced reasoning and analysis',
-    recommended: true
+    description: 'Most advanced reasoning and analysis'
   },
   {
     id: 'claude-4-opus',
@@ -59,9 +58,10 @@ const AI_MODELS = [
   },
   {
     id: 'gpt-4-turbo',
-    name: 'GPT-4 Turbo',
+    name: 'Recommended',
     provider: 'OpenAI',
-    description: 'Fast and reliable for clinical tasks'
+    description: 'Fast and reliable for clinical tasks',
+    recommended: true
   },
   {
     id: 'gemini-ultra',
@@ -84,7 +84,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   showResponseMetrics,
   onShowResponseMetricsChange
 }) => {
-  const selectedModelInfo = AI_MODELS.find(model => model.id === selectedModel) || AI_MODELS[0];
+  const selectedModelInfo = AI_MODELS.find(model => model.id === selectedModel) || AI_MODELS.find(model => model.recommended) || AI_MODELS[0];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
