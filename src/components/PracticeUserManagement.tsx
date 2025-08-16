@@ -507,6 +507,7 @@ export const PracticeUserManagement = () => {
               </div>
             )}
 
+            {/* Module Access Section */}
             <div className="space-y-3">
               <Label>Module Access</Label>
               <div className="grid grid-cols-2 gap-3">
@@ -527,6 +528,36 @@ export const PracticeUserManagement = () => {
                 </div>
                 <div className="flex items-center space-x-2">
                   <Switch
+                    id="gp_scribe_access"
+                    checked={userFormData.module_access.gp_scribe_access}
+                    onCheckedChange={(checked) => 
+                      setUserFormData(prev => ({
+                        ...prev,
+                        module_access: { ...prev.module_access, gp_scribe_access: checked }
+                      }))
+                    }
+                  />
+                  <Label htmlFor="gp_scribe_access" className="text-sm">
+                    GP Scribe
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="complaints_manager_access"
+                    checked={userFormData.module_access.complaints_manager_access}
+                    onCheckedChange={(checked) => 
+                      setUserFormData(prev => ({
+                        ...prev,
+                        module_access: { ...prev.module_access, complaints_manager_access: checked }
+                      }))
+                    }
+                  />
+                  <Label htmlFor="complaints_manager_access" className="text-sm">
+                    Complaints Manager
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
                     id="ai4gp_access"
                     checked={userFormData.module_access.ai4gp_access}
                     onCheckedChange={(checked) => 
@@ -538,6 +569,81 @@ export const PracticeUserManagement = () => {
                   />
                   <Label htmlFor="ai4gp_access" className="text-sm">
                     AI4GP
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="enhanced_access"
+                    checked={userFormData.module_access.enhanced_access}
+                    onCheckedChange={(checked) => 
+                      setUserFormData(prev => ({
+                        ...prev,
+                        module_access: { ...prev.module_access, enhanced_access: checked }
+                      }))
+                    }
+                  />
+                  <Label htmlFor="enhanced_access" className="text-sm">
+                    Enhanced Access
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="cqc_compliance_access"
+                    checked={userFormData.module_access.cqc_compliance_access}
+                    onCheckedChange={(checked) => 
+                      setUserFormData(prev => ({
+                        ...prev,
+                        module_access: { ...prev.module_access, cqc_compliance_access: checked }
+                      }))
+                    }
+                  />
+                  <Label htmlFor="cqc_compliance_access" className="text-sm">
+                    CQC Compliance
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="shared_drive_access"
+                    checked={userFormData.module_access.shared_drive_access}
+                    onCheckedChange={(checked) => 
+                      setUserFormData(prev => ({
+                        ...prev,
+                        module_access: { ...prev.module_access, shared_drive_access: checked }
+                      }))
+                    }
+                  />
+                  <Label htmlFor="shared_drive_access" className="text-sm">
+                    Shared Drive
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="mic_test_service_access"
+                    checked={userFormData.module_access.mic_test_service_access}
+                    onCheckedChange={(checked) => 
+                      setUserFormData(prev => ({
+                        ...prev,
+                        module_access: { ...prev.module_access, mic_test_service_access: checked }
+                      }))
+                    }
+                  />
+                  <Label htmlFor="mic_test_service_access" className="text-sm">
+                    Mic Test Service
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="api_testing_service_access"
+                    checked={userFormData.module_access.api_testing_service_access}
+                    onCheckedChange={(checked) => 
+                      setUserFormData(prev => ({
+                        ...prev,
+                        module_access: { ...prev.module_access, api_testing_service_access: checked }
+                      }))
+                    }
+                  />
+                  <Label htmlFor="api_testing_service_access" className="text-sm">
+                    API Testing Service
                   </Label>
                 </div>
               </div>
