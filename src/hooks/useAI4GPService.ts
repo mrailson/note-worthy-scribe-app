@@ -16,7 +16,13 @@ export const useAI4GPService = () => {
   const [showResponseMetrics, setShowResponseMetrics] = useState(false);
   const [selectedModel, setSelectedModel] = useState('gpt-5');
 
-  const buildSystemPrompt = useCallback((practiceContext: any, uploadedFiles: UploadedFile[], includeLatestUpdates: boolean) => {
+  const buildSystemPrompt = useCallback((practiceContext: any, uploadedFiles: UploadedFile[], includeLatestUpdates: boolean, useSimpleMode: boolean = false) => {
+    // Use lightweight prompt for simple queries (like API tester)
+    if (useSimpleMode && uploadedFiles.length === 0) {
+      return `You are an expert UK NHS GP assistant. Use only UK primary care sources including NICE guidelines, NHS.uk, BNF, MHRA alerts, the Green Book, and local ICB protocols. Do not use non-UK or non-NHS sources. Present information in concise, GP-friendly bullet points using UK medical terminology.`;
+    }
+
+    // Full system prompt for complex queries
     let prompt = `You are "AI 4 GP Service", an AI Assistant built specifically to help General Practitioners (GPs) in the UK NHS.
 
 You understand and can explain:
@@ -115,13 +121,16 @@ Always provide evidence-based, clinically appropriate advice that follows curren
 
     try {
       const startTime = Date.now();
-      const systemPrompt = buildSystemPrompt(practiceContext, uploadedFiles, includeLatestUpdates);
       
-      // Prepare messages for API
+      // Determine if we should use simple mode for faster responses
+      const useSimpleMode = uploadedFiles.length === 0 && !includeLatestUpdates;
+      const systemPrompt = buildSystemPrompt(practiceContext, uploadedFiles, includeLatestUpdates, useSimpleMode);
+      
+      // Only process files if they exist
       const messagesForAPI = newMessages.map(msg => {
         let content = msg.content;
         
-        // Add file contents to the message if present
+        // Only add file contents if files exist
         if (msg.files && msg.files.length > 0) {
           const fileContents = msg.files.map(file => 
             `\n\n--- File: ${file.name} ---\n${file.content}\n--- End of ${file.name} ---`
@@ -135,21 +144,17 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         };
       });
 
+      // Streamlined request body for fast endpoint
       const requestBody = {
         messages: messagesForAPI,
         model: selectedModel,
-        systemPrompt: systemPrompt,
-        files: uploadedFiles.length > 0 ? uploadedFiles : undefined,
-        enableWebSearch: includeLatestUpdates
+        systemPrompt: systemPrompt
       };
 
-      // Use fast endpoint for all queries
-      const edgeFunction = 'ai-4-gp-fast';
-      
-      console.log(`Using ${edgeFunction} for fast processing`);
+      console.log(`Making fast AI request with ${useSimpleMode ? 'simple' : 'full'} system prompt`);
 
-      // Get response from edge function
-      const { data, error } = await supabase.functions.invoke(edgeFunction, {
+      // Get response from fast edge function
+      const { data, error } = await supabase.functions.invoke('ai-4-gp-fast', {
         body: requestBody
       });
 
@@ -159,71 +164,43 @@ Always provide evidence-based, clinically appropriate advice that follows curren
 
       const responseContent = data?.response || data?.content || 'No response received';
       
-      // Capture API response time (when data first comes back)
+      // Capture timing metrics
       const apiResponseTime = Date.now() - startTime;
+      const timeToFirstWords = apiResponseTime; // Since we're not fake streaming anymore
       
       if (!responseContent || responseContent === 'No response received') {
         throw new Error('No valid response received from AI service');
       }
       
-      // Simulate streaming by chunking the response for better UX
-      const chunks = responseContent.split(' ');
-      const chunkSize = Math.max(1, Math.floor(chunks.length / 20)); // ~20 updates
-      let currentIndex = 0;
-      let accumulatedContent = '';
+      // Display response immediately without fake streaming delays
+      const endTime = Date.now();
+      const responseTime = endTime - startTime;
+      
+      setMessages(prev => prev.map(msg => 
+        msg.id === assistantMessageId 
+          ? { 
+              ...msg, 
+              content: responseContent, 
+              isStreaming: false, 
+              responseTime, 
+              timeToFirstWords, 
+              apiResponseTime 
+            }
+          : msg
+      ));
 
-      let timeToFirstWords: number | undefined;
-
-      const streamChunks = () => {
-        if (currentIndex < chunks.length) {
-          const endIndex = Math.min(currentIndex + chunkSize, chunks.length);
-          const chunkText = chunks.slice(currentIndex, endIndex).join(' ') + ' ';
-          accumulatedContent += chunkText;
-          currentIndex = endIndex;
-
-          // Capture time to first words on first chunk
-          if (currentIndex === chunkSize && !timeToFirstWords) {
-            timeToFirstWords = Date.now() - startTime;
-          }
-
-          setMessages(prev => prev.map(msg => 
-            msg.id === assistantMessageId 
-              ? { ...msg, content: accumulatedContent.trim(), isStreaming: true, timeToFirstWords, apiResponseTime }
-              : msg
-          ));
-
-          if (currentIndex < chunks.length) {
-            // Continue streaming with slight delay for better UX
-            setTimeout(streamChunks, 50 + Math.random() * 50);
-          } else {
-            // Streaming complete
-            const endTime = Date.now();
-            const responseTime = endTime - startTime;
-            
-            setMessages(prev => prev.map(msg => 
-              msg.id === assistantMessageId 
-                ? { ...msg, content: responseContent, isStreaming: false, responseTime, timeToFirstWords, apiResponseTime }
-                : msg
-            ));
-
-            // Auto-save the search
-            setTimeout(async () => {
-              const finalMessages = [...newMessages, {
-                ...assistantMessage,
-                content: responseContent,
-                isStreaming: false,
-                responseTime,
-                timeToFirstWords,
-                apiResponseTime
-              }];
-              await saveSearchAutomatically(finalMessages);
-            }, 100);
-          }
-        }
-      };
-
-      // Start the streaming simulation
-      streamChunks();
+      // Save search history in background (non-blocking)
+      const finalMessages = [...newMessages, {
+        ...assistantMessage,
+        content: responseContent,
+        isStreaming: false,
+        responseTime,
+        timeToFirstWords,
+        apiResponseTime
+      }];
+      
+      // Use Promise.resolve to make this truly async and non-blocking
+      Promise.resolve().then(() => saveSearchAutomatically(finalMessages));
 
 
     } catch (error: any) {
@@ -271,7 +248,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         .single();
 
       if (!error && data) {
-        // Add the new search to the beginning of the local state instead of reloading everything
+        // Update search history in background without blocking UI
         const newSearch: SearchHistory = {
           id: data.id,
           title: data.title,
@@ -284,7 +261,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         setSearchHistory(prev => [newSearch, ...prev.slice(0, 19)]); // Keep only 20 items
       }
     } catch (error) {
-      // Silent failure for auto-save
+      // Silent failure for auto-save - don't impact user experience
       console.error('Error auto-saving search:', error);
     }
   };
