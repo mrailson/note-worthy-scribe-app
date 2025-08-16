@@ -676,7 +676,15 @@ export const PracticeUserManagement = () => {
               Cancel
             </Button>
             <Button
-              onClick={editingUser ? handleUpdateUser : handleCreateUser}
+              onClick={() => {
+                console.log('Button clicked! editingUser:', editingUser);
+                console.log('handleUpdateUser function exists:', typeof handleUpdateUser);
+                if (editingUser) {
+                  handleUpdateUser();
+                } else {
+                  handleCreateUser();
+                }
+              }}
               disabled={loading || !userFormData.email || !userFormData.full_name || (!editingUser && !userFormData.password)}
             >
               {loading ? 'Processing...' : (editingUser ? 'Update User' : 'Create User')}
