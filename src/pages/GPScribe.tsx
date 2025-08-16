@@ -63,7 +63,10 @@ const Index = () => {
 
   useEffect(() => {
     // Open modal when a translation is ready
-    const unsubscribe = bus.on("TRANSLATION_READY", (m: any) => { setMsg(m); setModalOpen(true); });
+    const unsubscribe = bus.on("TRANSLATION_READY", (m: any) => { 
+      setMsg(m); 
+      setModalOpen(true); 
+    });
     return () => {
       unsubscribe();
     };
@@ -321,19 +324,52 @@ const Index = () => {
 
         {/* Test Button (temporary) */}
         <button
-          onClick={() =>
-            bus.emit("TRANSLATION_READY", {
-              messageId: "demo1",
-              sourceLang: "en",
-              targetLang: "bn",
-              originalText: "Hello, how are you feeling today?",
-              translatedText: "হ্যালো, আজ আপনি কেমন অনুভব করছেন?",
-              isStreaming: false
-            })
-          }
+          onClick={() => {
+            const testPhrases = [
+              {
+                messageId: "demo1",
+                sourceLang: "en",
+                targetLang: "bn",
+                originalText: "Hello, how are you feeling today?",
+                translatedText: "হ্যালো, আজ আপনি কেমন অনুভব করছেন?",
+                isStreaming: false
+              },
+              {
+                messageId: "demo2", 
+                sourceLang: "en",
+                targetLang: "bn",
+                originalText: "Can you describe your symptoms?",
+                translatedText: "আপনি কি আপনার লক্ষণগুলি বর্ণনা করতে পারেন?",
+                isStreaming: false
+              },
+              {
+                messageId: "demo3",
+                sourceLang: "en", 
+                targetLang: "bn",
+                originalText: "Let me examine you now.",
+                translatedText: "এখন আমি আপনাকে পরীক্ষা করব।",
+                isStreaming: false
+              },
+              {
+                messageId: "demo4",
+                sourceLang: "en",
+                targetLang: "bn", 
+                originalText: "Please take this medication twice daily.",
+                translatedText: "অনুগ্রহ করে এই ওষুধটি দিনে দুইবার খান।",
+                isStreaming: false
+              }
+            ];
+
+            // Emit phrases in sequence with delays
+            testPhrases.forEach((phrase, index) => {
+              setTimeout(() => {
+                bus.emit("TRANSLATION_READY", phrase);
+              }, index * 3000); // 3 second intervals
+            });
+          }}
           className="fixed bottom-4 right-4 px-3 py-2 rounded-lg border bg-card text-card-foreground hover:bg-accent transition-colors"
         >
-          Test Translation Modal
+          Test Auto-Advance Translation
         </button>
       </div>
     </div>
