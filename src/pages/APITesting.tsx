@@ -38,14 +38,13 @@ const APITesting = () => {
   const [history, setHistory] = useState<TestHistory[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [selectedModels, setSelectedModels] = useState<string[]>([
-    'claude-4-sonnet', 'gpt-5', 'gpt', 'grok-beta'
+    'claude-4-sonnet', 'gpt', 'grok-beta'
   ]);
   const [isModelSectionOpen, setIsModelSectionOpen] = useState(true);
 
   const availableModels = [
     { id: 'claude-4-sonnet', name: 'Claude 4 Sonnet', color: 'bg-orange-500' },
     { id: 'claude-4-opus', name: 'Claude 4 Opus', color: 'bg-purple-500' },
-    { id: 'gpt-5', name: 'GPT-5', color: 'bg-green-500' },
     { id: 'gpt', name: 'GPT-4o', color: 'bg-blue-500' },
     { id: 'grok-beta', name: 'Grok', color: 'bg-red-500' },
     { id: 'chatgpt5', name: 'ChatGPT-5', color: 'bg-teal-500' },
