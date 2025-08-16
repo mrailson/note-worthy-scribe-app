@@ -1,9 +1,10 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { TranscriptData } from "@/types/gpscribe";
 import { UnifiedAudioCapture } from "@/utils/UnifiedAudioCapture";
 import { iPhoneWhisperTranscriber, TranscriptData as IPhoneTranscriptData } from '@/utils/iPhoneWhisperTranscriber';
 import { DesktopWhisperTranscriber, TranscriptData as DesktopTranscriptData } from '@/utils/DesktopWhisperTranscriber';
 import { toast } from "sonner";
+import { bus } from "@/lib/bus";
 
 export const useGPScribeRecording = () => {
   const [isRecording, setIsRecording] = useState(false);
@@ -18,9 +19,43 @@ export const useGPScribeRecording = () => {
   const [isCleaningTranscript, setIsCleaningTranscript] = useState(false);
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const pauseDetectionRef = useRef<NodeJS.Timeout | null>(null);
+  const lastTranscriptTimeRef = useRef<number>(Date.now());
   const transciberRef = useRef<UnifiedAudioCapture | null>(null);
   const iPhoneTranscriberRef = useRef<iPhoneWhisperTranscriber | null>(null);
   const desktopTranscriberRef = useRef<DesktopWhisperTranscriber | null>(null);
+
+  // Natural pause detection based on transcript activity
+  useEffect(() => {
+    if (isRecording) {
+      const detectNaturalPause = () => {
+        const now = Date.now();
+        const timeSinceLastTranscript = now - lastTranscriptTimeRef.current;
+        
+        // If no new transcript for 3 seconds, consider it a natural pause
+        if (timeSinceLastTranscript > 3000) {
+          console.log('🔄 Natural speech pause detected - emitting SPEECH_PAUSE_DETECTED');
+          bus.emit("SPEECH_PAUSE_DETECTED");
+          lastTranscriptTimeRef.current = now; // Reset to prevent multiple rapid events
+        }
+      };
+
+      // Check for pauses every 500ms
+      pauseDetectionRef.current = setInterval(detectNaturalPause, 500);
+    } else {
+      if (pauseDetectionRef.current) {
+        clearInterval(pauseDetectionRef.current);
+        pauseDetectionRef.current = null;
+      }
+    }
+
+    return () => {
+      if (pauseDetectionRef.current) {
+        clearInterval(pauseDetectionRef.current);
+        pauseDetectionRef.current = null;
+      }
+    };
+  }, [isRecording]);
 
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -29,6 +64,9 @@ export const useGPScribeRecording = () => {
   };
 
   const handleTranscriptUpdate = useCallback((newTranscriptData: TranscriptData) => {
+    // Update timestamp for pause detection
+    lastTranscriptTimeRef.current = Date.now();
+    
     setRealtimeTranscripts(prev => {
       const updated = [...prev, newTranscriptData];
       
@@ -38,6 +76,20 @@ export const useGPScribeRecording = () => {
         setTranscript(prevTranscript => {
           const newTranscript = prevTranscript ? `${prevTranscript} ${finalText}` : finalText;
           setWordCount(newTranscript.split(' ').filter(word => word.trim()).length);
+          
+          // Create translation request for each final transcript segment
+          if (finalText.length > 10) { // Only translate meaningful phrases
+            console.log('🔄 Creating translation for:', finalText);
+            bus.emit("TRANSLATION_READY", {
+              messageId: `transcript_${Date.now()}`,
+              sourceLang: "en",
+              targetLang: "bn", // This should come from user settings
+              originalText: finalText,
+              translatedText: `[Translating...] ${finalText}`, // Placeholder until real translation
+              isStreaming: false
+            });
+          }
+          
           return newTranscript;
         });
       }

@@ -168,31 +168,12 @@ const Index = () => {
     }));
   };
 
-  // Check authentication and set up speech pause detection
+  // Check authentication
   useEffect(() => {
     if (!loading && !user) {
       navigate('/');
     }
-
-    // Monitor transcript changes to detect natural pauses
-    let pauseTimer: NodeJS.Timeout;
-    const detectSpeechPause = () => {
-      clearTimeout(pauseTimer);
-      pauseTimer = setTimeout(() => {
-        // Emit pause event after 2 seconds of no new transcript
-        bus.emit("SPEECH_PAUSE_DETECTED");
-      }, 2000);
-    };
-
-    // Set up listener for transcript changes
-    if (recording.transcript) {
-      detectSpeechPause();
-    }
-
-    return () => {
-      clearTimeout(pauseTimer);
-    };
-  }, [user, loading, navigate, recording.transcript]);
+  }, [user, loading, navigate]);
 
   if (loading) {
     return (
