@@ -365,9 +365,165 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     // Auto-send the quick response - temporarily set input
     const originalInput = input;
     setInput(quickResponse);
-    await handleSend(practiceContext, selectedModel);
+    
+    // Call handleSend with the quick response directly
+    if (!quickResponse.trim() && uploadedFiles.length === 0) return;
+    
+    // Enhance the message content when files are attached
+    let messageContent = quickResponse;
+    if (uploadedFiles.length > 0 && quickResponse.trim()) {
+      messageContent = `${quickResponse}\n\n[Note: I have uploaded ${uploadedFiles.length} file(s): ${uploadedFiles.map(f => f.name).join(', ')}. Please analyze these files in relation to my question above.]`;
+    } else if (uploadedFiles.length > 0 && !quickResponse.trim()) {
+      messageContent = `Please analyze the uploaded file(s): ${uploadedFiles.map(f => f.name).join(', ')}`;
+    }
+    
+    const newMessages = [...messages, userMessage];
+    setMessages(newMessages);
+    setInput('');
+    setUploadedFiles([]);
+    setIsLoading(true);
+
+    // Create assistant message for streaming
+    const assistantMessageId = (Date.now() + 1).toString();
+    const assistantMessage: Message = {
+      id: assistantMessageId,
+      role: 'assistant',
+      content: '',
+      timestamp: new Date(),
+      model: selectedModel,
+      isStreaming: true
+    };
+
+    const messagesWithStreaming = [...newMessages, assistantMessage];
+    setMessages(messagesWithStreaming);
+
+    try {
+      const startTime = Date.now();
+      const systemPrompt = buildSystemPrompt(practiceContext, uploadedFiles, includeLatestUpdates);
+      
+      // Prepare messages for API
+      const messagesForAPI = newMessages.map(msg => {
+        let content = msg.content;
+        
+        // Add file contents to the message if present
+        if (msg.files && msg.files.length > 0) {
+          const fileContents = msg.files.map(file => 
+            `\n\n--- File: ${file.name} ---\n${file.content}\n--- End of ${file.name} ---`
+          ).join('');
+          content += fileContents;
+        }
+        
+        return {
+          role: msg.role,
+          content: content
+        };
+      });
+
+      const requestBody = {
+        messages: messagesForAPI,
+        model: selectedModel,
+        systemPrompt: systemPrompt,
+        files: uploadedFiles.length > 0 ? uploadedFiles : undefined,
+        enableWebSearch: includeLatestUpdates
+      };
+
+      // Get response from edge function
+      const { data, error } = await supabase.functions.invoke('ai-4-pm-chat', {
+        body: requestBody
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      const responseContent = data?.response || data?.content || 'No response received';
+      
+      // Capture API response time (when data first comes back)
+      const apiResponseTime = Date.now() - startTime;
+      
+      if (!responseContent || responseContent === 'No response received') {
+        throw new Error('No valid response received from AI service');
+      }
+      
+      // Simulate streaming by chunking the response for better UX
+      const chunks = responseContent.split(' ');
+      const chunkSize = Math.max(1, Math.floor(chunks.length / 20)); // ~20 updates
+      let currentIndex = 0;
+      let accumulatedContent = '';
+
+      let timeToFirstWords: number | undefined;
+
+      const streamChunks = () => {
+        if (currentIndex < chunks.length) {
+          const endIndex = Math.min(currentIndex + chunkSize, chunks.length);
+          const chunkText = chunks.slice(currentIndex, endIndex).join(' ') + ' ';
+          accumulatedContent += chunkText;
+          currentIndex = endIndex;
+
+          // Capture time to first words on first chunk
+          if (currentIndex === chunkSize && !timeToFirstWords) {
+            timeToFirstWords = Date.now() - startTime;
+          }
+
+          setMessages(prev => prev.map(msg => 
+            msg.id === assistantMessageId 
+              ? { ...msg, content: accumulatedContent.trim(), isStreaming: true, timeToFirstWords, apiResponseTime }
+              : msg
+          ));
+
+          if (currentIndex < chunks.length) {
+            // Continue streaming with slight delay for better UX
+            setTimeout(streamChunks, 50 + Math.random() * 50);
+          } else {
+            // Streaming complete
+            const endTime = Date.now();
+            const responseTime = endTime - startTime;
+            
+            setMessages(prev => prev.map(msg => 
+              msg.id === assistantMessageId 
+                ? { ...msg, content: responseContent, isStreaming: false, responseTime, timeToFirstWords, apiResponseTime }
+                : msg
+            ));
+
+            // Auto-save the search
+            setTimeout(async () => {
+              const finalMessages = [...newMessages, {
+                ...assistantMessage,
+                content: responseContent,
+                isStreaming: false,
+                responseTime,
+                timeToFirstWords,
+                apiResponseTime
+              }];
+              await saveSearchAutomatically(finalMessages);
+            }, 100);
+          }
+        }
+      };
+
+      // Start the streaming simulation
+      streamChunks();
+
+    } catch (error: any) {
+      console.error('Streaming error:', error);
+      
+      const errorMessage: Message = {
+        id: assistantMessageId,
+        role: 'assistant',
+        content: `Error: ${error.message || 'Something went wrong. Please try again.'}`,
+        timestamp: new Date(),
+        isStreaming: false
+      };
+
+      setMessages(prev => prev.map(msg => 
+        msg.id === assistantMessageId ? errorMessage : msg
+      ));
+    } finally {
+      setIsLoading(false);
+    }
+    
     setInput(originalInput);
-  }, [handleSend, input]);
+  }, [input, messages, uploadedFiles, buildSystemPrompt, includeLatestUpdates]);
 
   return {
     messages,
