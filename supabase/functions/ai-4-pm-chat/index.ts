@@ -13,16 +13,19 @@ const grokApiKey = Deno.env.get('GROK_API_KEY');
 const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
 const tavilyApiKey = Deno.env.get('TAVILY_API_KEY');
 
-// Tavily search function
+// Tavily search function with better error handling
 async function runTavilySearch(query: string, recencyDays: number = 180, siteLimit?: string[]): Promise<any> {
+  console.log('Starting Tavily search for query:', query);
+  
   if (!tavilyApiKey) {
+    console.error('Tavily API key not configured');
     throw new Error('Tavily API key not configured');
   }
 
   const searchParams = {
     query,
     search_depth: "advanced",
-    max_results: 10,
+    max_results: 8,
     include_domains: siteLimit || [
       "gov.uk",
       "england.nhs.uk", 
@@ -34,7 +37,7 @@ async function runTavilySearch(query: string, recencyDays: number = 180, siteLim
     days: recencyDays
   };
 
-  console.log('Tavily search params:', searchParams);
+  console.log('Tavily search params:', JSON.stringify(searchParams, null, 2));
 
   try {
     const response = await fetch('https://api.tavily.com/search', {
@@ -46,24 +49,32 @@ async function runTavilySearch(query: string, recencyDays: number = 180, siteLim
       body: JSON.stringify(searchParams)
     });
 
+    console.log('Tavily API response status:', response.status);
+    
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Tavily API error:', response.status, errorText);
-      throw new Error(`Tavily search failed: ${response.status}`);
+      console.error('Tavily API error response:', response.status, errorText);
+      throw new Error(`Tavily search failed: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
-    console.log('Tavily search results:', data);
+    console.log('Tavily search results count:', data.results?.length || 0);
+    console.log('Tavily raw response:', JSON.stringify(data, null, 2));
     
-    return {
+    const formattedResults = {
+      query: query,
       results: data.results?.map((result: any) => ({
         title: result.title,
         url: result.url,
-        snippet: result.content,
+        snippet: result.content || result.snippet,
         publishedDate: result.published_date,
         score: result.score
-      })) || []
+      })) || [],
+      searchDate: new Date().toISOString()
     };
+
+    console.log('Formatted search results:', JSON.stringify(formattedResults, null, 2));
+    return formattedResults;
   } catch (error) {
     console.error('Error in Tavily search:', error);
     throw error;
@@ -72,10 +83,13 @@ async function runTavilySearch(query: string, recencyDays: number = 180, siteLim
 
 interface Message {
   id: string;
-  role: 'user' | 'assistant';
+  role: 'user' | 'assistant' | 'system' | 'tool';
   content: string;
   timestamp: Date;
   files?: UploadedFile[];
+  tool_calls?: any[];
+  tool_call_id?: string;
+  name?: string;
 }
 
 interface UploadedFile {
@@ -964,6 +978,11 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
   const choice = initialData.choices?.[0];
   const toolCalls = choice?.message?.tool_calls ?? [];
 
+  console.log('Initial completion result:', JSON.stringify({
+    choices: initialData.choices?.length,
+    hasToolCalls: !!toolCalls.length,
+    toolCallDetails: toolCalls.map(tc => ({ name: tc.function?.name, args: tc.function?.arguments }))
+  }));
   console.log('Tool calls detected:', toolCalls.length);
 
   if (toolCalls.length > 0) {
