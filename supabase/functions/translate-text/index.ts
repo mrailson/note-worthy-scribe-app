@@ -15,22 +15,34 @@ serve(async (req) => {
   try {
     console.log('=== TRANSLATE-TEXT FUNCTION START ===');
     
-    // Check if we can access environment variables at all
-    const allEnvKeys = Object.keys(Deno.env.toObject()).filter(key => key.includes('GOOGLE'));
-    console.log('Available Google-related env keys:', allEnvKeys);
+    // Try multiple ways to access the API key
+    let GOOGLE_TRANSLATE_API_KEY = Deno.env.get('GOOGLE_TRANSLATE_API_KEY');
     
-    const GOOGLE_TRANSLATE_API_KEY = Deno.env.get('GOOGLE_TRANSLATE_API_KEY');
+    // Also try these alternative names that might be used
+    if (!GOOGLE_TRANSLATE_API_KEY) {
+      GOOGLE_TRANSLATE_API_KEY = Deno.env.get('GOOGLE_API_KEY');
+    }
+    if (!GOOGLE_TRANSLATE_API_KEY) {
+      GOOGLE_TRANSLATE_API_KEY = Deno.env.get('TRANSLATE_API_KEY');
+    }
+    
+    // Check if we can access environment variables at all
+    const allEnvKeys = Object.keys(Deno.env.toObject());
+    console.log('All available env keys:', allEnvKeys);
+    console.log('Google-related keys:', allEnvKeys.filter(key => key.toLowerCase().includes('google')));
+    console.log('Translate-related keys:', allEnvKeys.filter(key => key.toLowerCase().includes('translate')));
+    
     console.log('API Key status:', GOOGLE_TRANSLATE_API_KEY ? `Found (length: ${GOOGLE_TRANSLATE_API_KEY.length})` : 'Not found');
     
     if (!GOOGLE_TRANSLATE_API_KEY) {
       console.error('Google Translate API key not found in environment');
-      console.log('All environment variables:', Object.keys(Deno.env.toObject()));
       return new Response(
         JSON.stringify({ 
-          error: 'Google Translate API key not configured',
+          error: 'Google Translate API key not configured. Please add GOOGLE_TRANSLATE_API_KEY secret.',
           debug: {
-            availableEnvKeys: Object.keys(Deno.env.toObject()),
-            googleKeys: allEnvKeys
+            availableEnvKeys: allEnvKeys,
+            googleKeys: allEnvKeys.filter(key => key.toLowerCase().includes('google')),
+            translateKeys: allEnvKeys.filter(key => key.toLowerCase().includes('translate'))
           }
         }),
         {
