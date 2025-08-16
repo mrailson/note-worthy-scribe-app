@@ -60,19 +60,40 @@ const Index = () => {
   // Translation Modal states
   const [modalOpen, setModalOpen] = useState(false);
   const [msg, setMsg] = useState<any | null>(null);
+  const [translationQueue, setTranslationQueue] = useState<any[]>([]);
+  const [currentTranslationIndex, setCurrentTranslationIndex] = useState(0);
 
+  // Auto-advance translation on natural pauses
   useEffect(() => {
-    // Open modal when a translation is ready
     const unsubscribe = bus.on("TRANSLATION_READY", (m: any) => { 
-      setMsg(m); 
-      setModalOpen(true); 
+      setTranslationQueue(prev => [...prev, m]);
+      if (!modalOpen) {
+        setMsg(m); 
+        setModalOpen(true);
+        setCurrentTranslationIndex(0);
+      }
     });
+
+    // Listen for speech pauses to auto-advance
+    const unsubscribePause = bus.on("SPEECH_PAUSE_DETECTED", () => {
+      if (modalOpen && translationQueue.length > currentTranslationIndex + 1) {
+        const nextIndex = currentTranslationIndex + 1;
+        setCurrentTranslationIndex(nextIndex);
+        setMsg(translationQueue[nextIndex]);
+      }
+    });
+
     return () => {
       unsubscribe();
+      unsubscribePause();
     };
-  }, []);
+  }, [modalOpen, translationQueue, currentTranslationIndex]);
 
-  const handleClose = () => setModalOpen(false);
+  const handleClose = () => {
+    setModalOpen(false);
+    setTranslationQueue([]);
+    setCurrentTranslationIndex(0);
+  };
 
   // Clean transcript handler
   const handleCleanTranscript = async () => {
@@ -147,12 +168,31 @@ const Index = () => {
     }));
   };
 
-  // Check authentication
+  // Check authentication and set up speech pause detection
   useEffect(() => {
     if (!loading && !user) {
       navigate('/');
     }
-  }, [user, loading, navigate]);
+
+    // Monitor transcript changes to detect natural pauses
+    let pauseTimer: NodeJS.Timeout;
+    const detectSpeechPause = () => {
+      clearTimeout(pauseTimer);
+      pauseTimer = setTimeout(() => {
+        // Emit pause event after 2 seconds of no new transcript
+        bus.emit("SPEECH_PAUSE_DETECTED");
+      }, 2000);
+    };
+
+    // Set up listener for transcript changes
+    if (recording.transcript) {
+      detectSpeechPause();
+    }
+
+    return () => {
+      clearTimeout(pauseTimer);
+    };
+  }, [user, loading, navigate, recording.transcript]);
 
   if (loading) {
     return (
@@ -360,16 +400,21 @@ const Index = () => {
               }
             ];
 
-            // Emit phrases in sequence with delays
+            // Emit phrases quickly to queue them up
             testPhrases.forEach((phrase, index) => {
               setTimeout(() => {
                 bus.emit("TRANSLATION_READY", phrase);
-              }, index * 3000); // 3 second intervals
+              }, index * 100); // 100ms intervals to queue them
             });
+
+            // Simulate natural speech pauses to auto-advance
+            setTimeout(() => bus.emit("SPEECH_PAUSE_DETECTED"), 3000);  // First pause
+            setTimeout(() => bus.emit("SPEECH_PAUSE_DETECTED"), 6000);  // Second pause  
+            setTimeout(() => bus.emit("SPEECH_PAUSE_DETECTED"), 9000);  // Third pause
           }}
           className="fixed bottom-4 right-4 px-3 py-2 rounded-lg border bg-card text-card-foreground hover:bg-accent transition-colors"
         >
-          Test Auto-Advance Translation
+          Test Natural Pause Translation
         </button>
       </div>
     </div>
