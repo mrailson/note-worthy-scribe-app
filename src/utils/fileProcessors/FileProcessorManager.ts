@@ -10,7 +10,7 @@ export interface ProcessedFile {
   content: string;
   size: number;
   isLoading: false;
-  processedType: 'text' | 'image' | 'pdf' | 'word' | 'excel' | 'unknown';
+  processedType: 'text' | 'image' | 'pdf' | 'word' | 'excel' | 'email' | 'calendar' | 'unknown';
 }
 
 export class FileProcessorManager {
@@ -18,9 +18,17 @@ export class FileProcessorManager {
     // Text files
     '.txt': 'text',
     '.rtf': 'text',
-    '.eml': 'text',
-    '.msg': 'text',
     '.csv': 'text',
+    
+    // Email files
+    '.eml': 'email',
+    '.msg': 'email',
+    '.mbox': 'email',
+    
+    // Calendar files
+    '.ics': 'calendar',
+    '.vcs': 'calendar',
+    '.ical': 'calendar',
     
     // Word documents
     '.doc': 'word',
@@ -85,6 +93,14 @@ export class FileProcessorManager {
           
         case 'text':
           content = await TextProcessor.extractText(file);
+          break;
+          
+        case 'email':
+          content = await TextProcessor.extractEmailContent(file);
+          break;
+          
+        case 'calendar':
+          content = await TextProcessor.extractCalendarContent(file);
           break;
           
         default:

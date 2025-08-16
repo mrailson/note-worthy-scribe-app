@@ -23,7 +23,7 @@ export const useFileUpload = () => {
             content: '',
             size: file.size,
             isLoading: false,
-            error: `Unsupported file type. Supported: Word, Excel, PDF, Text, Images`
+            error: `Unsupported file type. Supported: Word, Excel, PDF, Text, Email, Calendar, Images`
           };
         }
         
