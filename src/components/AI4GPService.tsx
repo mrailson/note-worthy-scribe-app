@@ -324,7 +324,7 @@ const AI4GPService = () => {
             <DialogTitle className="text-left">GP News & Local Health News</DialogTitle>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto p-4">
-            <NewsPanel />
+            <NewsPanel onClose={() => setShowNews(false)} />
           </div>
         </DialogContent>
       </Dialog>

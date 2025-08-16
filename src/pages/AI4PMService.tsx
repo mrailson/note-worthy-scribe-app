@@ -1535,7 +1535,7 @@ Format your responses clearly with headings and bullet points where appropriate 
           </TabsContent>
 
           <TabsContent value="news">
-            <NewsPanel />
+            <NewsPanel onClose={() => setActiveTab('chat')} />
           </TabsContent>
         </Tabs>
       </div>
