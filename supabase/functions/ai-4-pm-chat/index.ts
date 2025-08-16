@@ -1031,9 +1031,14 @@ serve(async (req) => {
   try {
     const { messages, model, systemPrompt, files, enableWebSearch }: RequestBody = await req.json();
 
-    console.log(`Processing ${model} request with ${messages.length} messages`);
+    console.log(`Processing request with model: ${model || 'undefined'}`);
+    console.log(`Messages count: ${messages?.length || 0}`);
     console.log('SystemPrompt:', systemPrompt ? 'Present' : 'Missing');
-    console.log('Messages content check:', messages.map(m => ({ role: m.role, hasContent: !!m.content })));
+    console.log('Messages content check:', messages?.map(m => ({ role: m.role, hasContent: !!m.content })) || 'No messages');
+
+    // Default to gpt-4-turbo if no model specified
+    const selectedModel = model || 'gpt-4-turbo';
+    console.log(`Using model: ${selectedModel}`);
 
     // Process uploaded files to extract text content
     const processedMessages = await Promise.all(
@@ -1079,18 +1084,18 @@ serve(async (req) => {
     let response: string;
 
     // Model routing with proper mapping
-    if (model === 'claude' || model === 'claude-4-opus' || model === 'claude-4-sonnet') {
+    if (selectedModel === 'claude' || selectedModel === 'claude-4-opus' || selectedModel === 'claude-4-sonnet') {
       response = await callClaude(processedMessages, enhancedSystemPrompt, files);
-    } else if (model === 'gpt' || model === 'gpt-4-turbo') {
+    } else if (selectedModel === 'gpt' || selectedModel === 'gpt-4-turbo') {
       response = await callGPT4Turbo(processedMessages, enhancedSystemPrompt, files);
-    } else if (model === 'grok-beta') {
+    } else if (selectedModel === 'grok-beta') {
       response = await callGrok(processedMessages, enhancedSystemPrompt, files);
-    } else if (model === 'gemini-ultra' || model === 'gemini-1.5-pro') {
+    } else if (selectedModel === 'gemini-ultra' || selectedModel === 'gemini-1.5-pro') {
       response = await callGemini(processedMessages, enhancedSystemPrompt, 'gemini-1.5-pro', files);
-    } else if (model === 'gemini-1.5-flash') {
+    } else if (selectedModel === 'gemini-1.5-flash') {
       response = await callGemini(processedMessages, enhancedSystemPrompt, 'gemini-1.5-flash', files);
     } else {
-      throw new Error(`Unsupported model: ${model}`);
+      throw new Error(`Unsupported model: ${selectedModel}`);
     }
 
     return new Response(
