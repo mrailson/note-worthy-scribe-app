@@ -436,6 +436,7 @@ export const PracticeUserManagement = () => {
                             {user.enhanced_access && <Badge variant="outline" className="text-xs">Enhanced</Badge>}
                             {user.cqc_compliance_access && <Badge variant="outline" className="text-xs">CQC</Badge>}
                             {user.shared_drive_access && <Badge variant="outline" className="text-xs">Drive</Badge>}
+                            {user.api_testing_service_access && <Badge variant="outline" className="text-xs">API Testing</Badge>}
                           </div>
                         </TableCell>
                         <TableCell>
@@ -652,21 +653,6 @@ export const PracticeUserManagement = () => {
                 </div>
                 <div className="flex items-center space-x-2">
                   <Switch
-                    id="mic_test_service_access"
-                    checked={userFormData.module_access.mic_test_service_access}
-                    onCheckedChange={(checked) => 
-                      setUserFormData(prev => ({
-                        ...prev,
-                        module_access: { ...prev.module_access, mic_test_service_access: checked }
-                      }))
-                    }
-                  />
-                  <Label htmlFor="mic_test_service_access" className="text-sm">
-                    Mic Test Service
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
                     id="api_testing_service_access"
                     checked={userFormData.module_access.api_testing_service_access}
                     onCheckedChange={(checked) => 
@@ -678,6 +664,21 @@ export const PracticeUserManagement = () => {
                   />
                   <Label htmlFor="api_testing_service_access" className="text-sm">
                     API Testing Service
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="mic_test_service_access"
+                    checked={userFormData.module_access.mic_test_service_access}
+                    onCheckedChange={(checked) => 
+                      setUserFormData(prev => ({
+                        ...prev,
+                        module_access: { ...prev.module_access, mic_test_service_access: checked }
+                      }))
+                    }
+                  />
+                  <Label htmlFor="mic_test_service_access" className="text-sm">
+                    Mic Test Service
                   </Label>
                 </div>
               </div>
