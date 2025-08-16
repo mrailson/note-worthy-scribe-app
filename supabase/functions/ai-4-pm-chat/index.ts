@@ -1044,10 +1044,11 @@ serve(async (req) => {
 
     let response: string;
 
-    // Model routing with proper mapping
+    // Model routing with proper mapping - default to gpt-4-turbo if unsupported
     if (selectedModel === 'claude' || selectedModel === 'claude-4-opus' || selectedModel === 'claude-4-sonnet') {
       response = await callClaude(processedMessages, enhancedSystemPrompt, files);
-    } else if (selectedModel === 'gpt' || selectedModel === 'gpt-4-turbo') {
+    } else if (selectedModel === 'gpt' || selectedModel === 'gpt-4-turbo' || selectedModel === 'gpt-5' || !selectedModel) {
+      // Default to GPT-4 Turbo for gpt-5 or any unsupported model
       response = await callGPT4Turbo(processedMessages, enhancedSystemPrompt, files);
     } else if (selectedModel === 'grok-beta') {
       response = await callGrok(processedMessages, enhancedSystemPrompt, files);
@@ -1056,7 +1057,9 @@ serve(async (req) => {
     } else if (selectedModel === 'gemini-1.5-flash') {
       response = await callGemini(processedMessages, enhancedSystemPrompt, 'gemini-1.5-flash', files);
     } else {
-      throw new Error(`Unsupported model: ${selectedModel}`);
+      // Fallback to GPT-4 Turbo for any unsupported model
+      console.log(`Unsupported model ${selectedModel}, falling back to GPT-4 Turbo`);
+      response = await callGPT4Turbo(processedMessages, enhancedSystemPrompt, files);
     }
 
     return new Response(
