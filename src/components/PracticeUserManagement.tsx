@@ -190,20 +190,33 @@ export const PracticeUserManagement = () => {
   const handleUpdateUser = async () => {
     if (!editingUser) return;
     
+    console.log('Starting user update for:', editingUser.user_id);
+    console.log('Form data:', userFormData);
+    
     try {
       setLoading(true);
       
+      const requestBody = {
+        user_id: editingUser.user_id,
+        full_name: userFormData.full_name,
+        role: userFormData.role,
+        practice_role: userFormData.practice_role,
+        module_access: userFormData.module_access
+      };
+      
+      console.log('Sending request body:', requestBody);
+      
       const { data, error } = await supabase.functions.invoke('update-user-practice-manager', {
-        body: {
-          user_id: editingUser.user_id,
-          full_name: userFormData.full_name,
-          role: userFormData.role,
-          practice_role: userFormData.practice_role,
-          module_access: userFormData.module_access
-        }
+        body: requestBody
       });
 
-      if (error) throw error;
+      console.log('Response data:', data);
+      console.log('Response error:', error);
+
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw error;
+      }
 
       if (data.success) {
         toast.success(data.message);
@@ -212,6 +225,7 @@ export const PracticeUserManagement = () => {
         resetForm();
         setEditingUser(null);
       } else {
+        console.error('Function returned error:', data.error);
         throw new Error(data.error || 'Failed to update user');
       }
     } catch (error: any) {
