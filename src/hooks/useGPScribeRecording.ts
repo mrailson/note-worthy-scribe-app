@@ -96,6 +96,7 @@ export const useGPScribeRecording = () => {
             // Call translation service
             const translateText = async () => {
               try {
+                console.log('🔄 Calling translation service for:', finalText);
                 const { data, error } = await supabase.functions.invoke('translate-text', {
                   body: {
                     text: finalText,
@@ -104,7 +105,12 @@ export const useGPScribeRecording = () => {
                   }
                 });
                 
-                if (error) throw error;
+                console.log('Translation response:', { data, error });
+                
+                if (error) {
+                  console.error('Translation error:', error);
+                  throw error;
+                }
                 
                 // Emit updated translation
                 bus.emit("TRANSLATION_READY", {
@@ -123,7 +129,7 @@ export const useGPScribeRecording = () => {
                   sourceLang: "en",
                   targetLang: "bn",
                   originalText: finalText,
-                  translatedText: `[Translation unavailable] ${finalText}`,
+                  translatedText: `[Translation failed] ${finalText}`,
                   isStreaming: false
                 });
               }

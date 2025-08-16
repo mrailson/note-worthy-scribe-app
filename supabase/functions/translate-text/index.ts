@@ -16,16 +16,31 @@ serve(async (req) => {
     const GOOGLE_TRANSLATE_API_KEY = Deno.env.get('GOOGLE_TRANSLATE_API_KEY');
     
     if (!GOOGLE_TRANSLATE_API_KEY) {
-      throw new Error('Google Translate API key not configured');
+      console.error('Google Translate API key not found');
+      return new Response(
+        JSON.stringify({ error: 'Google Translate API key not configured' }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     const { text, targetLanguage, sourceLanguage = 'en' } = await req.json();
+    console.log('Translation request:', { text: text?.substring(0, 50), targetLanguage, sourceLanguage });
 
     if (!text || !targetLanguage) {
-      throw new Error('Text and target language are required');
+      return new Response(
+        JSON.stringify({ error: 'Text and target language are required' }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     // Use Google Translate API v2 with neural machine translation
+    console.log('Calling Google Translate API...');
     const response = await fetch(
       `https://translation.googleapis.com/language/translate/v2?key=${GOOGLE_TRANSLATE_API_KEY}`,
       {
@@ -43,12 +58,22 @@ serve(async (req) => {
       }
     );
 
+    console.log('Google Translate API response status:', response.status);
+
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error?.message || 'Translation failed');
+      const errorText = await response.text();
+      console.error('Google Translate API error:', errorText);
+      return new Response(
+        JSON.stringify({ error: `Translation API error: ${errorText}` }),
+        {
+          status: response.status,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     const data = await response.json();
+    console.log('Translation successful');
     const translatedText = data.data.translations[0].translatedText;
 
     return new Response(
