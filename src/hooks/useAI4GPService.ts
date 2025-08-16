@@ -143,8 +143,14 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         enableWebSearch: includeLatestUpdates
       };
 
+      // Choose edge function based on whether advanced features are needed
+      const needsAdvancedFeatures = uploadedFiles.length > 0 || includeLatestUpdates;
+      const edgeFunction = needsAdvancedFeatures ? 'ai-4-pm-chat' : 'ai-4-gp-fast';
+      
+      console.log(`Using ${edgeFunction} for ${needsAdvancedFeatures ? 'advanced' : 'fast'} processing`);
+
       // Get response from edge function
-      const { data, error } = await supabase.functions.invoke('ai-4-pm-chat', {
+      const { data, error } = await supabase.functions.invoke(edgeFunction, {
         body: requestBody
       });
 
