@@ -799,10 +799,40 @@ async function callGPT5(messages: Message[], systemPrompt: string, files?: Uploa
     throw new Error('OpenAI API key not configured');
   }
 
-  const enhancedSystemPrompt = systemPrompt + "\n\nCRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:\n- When analyzing uploaded images with handwritten or printed text, you MUST transcribe ONLY the actual visible text\n- DO NOT generate fictional content, clinical scenarios, or patient information\n- DO NOT hallucinate or invent details not visible in the image\n- Only describe what you can actually see written or printed in the image\n- If text is unclear, state that it's unclear rather than guessing\n- Focus on accurate transcription rather than interpretation";
+  const today = new Date().toLocaleDateString('en-GB', {
+    timeZone: 'Europe/London',
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+
+  // Optimized system prompt focused on UK NHS/GP context with clear search directives
+  const optimizedSystemPrompt = `You are "AI 4 GP Service" for UK NHS primary care.
+Today is ${today} (Europe/London).
+
+Search policy:
+- If question may be time-sensitive (BNF/NICE updates, ARRS, vaccination programmes, DHSC/NHS England news, ministerial announcements, policy changes), call web_search first.
+- Prefer GOV.UK, DHSC, NHS England, NHS.UK, NICE/BNF, UKHSA; include exact dates and sources.
+- If no current sources found, say so and explain what you searched.
+
+Clinical style:
+- Evidence-based, NHS/NICE aligned
+- Use UK GP terminology; state uncertainty clearly
+- Provide practical, actionable guidance for UK primary care
+
+${systemPrompt}
+
+CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
+- When analyzing uploaded images with handwritten or printed text, you MUST transcribe ONLY the actual visible text
+- DO NOT generate fictional content, clinical scenarios, or patient information
+- DO NOT hallucinate or invent details not visible in the image
+- Only describe what you can actually see written or printed in the image
+- If text is unclear, state that it's unclear rather than guessing
+- Focus on accurate transcription rather than interpretation`;
 
   const gptMessages = [
-    { role: 'system', content: enhancedSystemPrompt }
+    { role: 'system', content: optimizedSystemPrompt }
   ];
 
   messages.forEach(msg => {
@@ -833,6 +863,9 @@ async function callGPT5(messages: Message[], systemPrompt: string, files?: Uploa
     },
     body: JSON.stringify({
       model: 'gpt-5-2025-08-07',
+      tools: [{ type: "web_search" }],
+      tool_choice: "auto",
+      temperature: 0.2,
       messages: gptMessages,
       max_completion_tokens: 4000
     })
@@ -1029,185 +1062,11 @@ serve(async (req) => {
       })
     );
 
-    // Add web search context if enabled
-    let enhancedSystemPrompt = systemPrompt;
+    // Optimized system prompt - no more Tavily injection, let OpenAI handle web search
     const today = new Date().toISOString().split('T')[0];
-    enhancedSystemPrompt += `\nCURRENT DATE: ${today}`;
-    if (enableWebSearch) {
-      const lastUserMessage = processedMessages.filter(m => m.role === 'user').pop();
-      if (lastUserMessage) {
-        try {
-          const tavilyKey = Deno.env.get('TAVILY_API_KEY');
-          if (tavilyKey) {
-            // Extract key terms from the user's message, limiting to 300 chars for safety
-            let query = lastUserMessage.content.replace(/\n--- File:.*?--- End of.*?---/gs, '').trim();
-            
-            // OPTIMIZATION: Skip web search for simple queries to improve speed
-            // Check if the query needs current information vs general medical knowledge
-            const needsCurrentInfo = query.toLowerCase().includes('latest') || 
-                                   query.toLowerCase().includes('recent') || 
-                                   query.toLowerCase().includes('current') ||
-                                   query.toLowerCase().includes('new') ||
-                                   query.toLowerCase().includes('update') ||
-                                   query.toLowerCase().includes('2024') ||
-                                   query.toLowerCase().includes('2025') ||
-                                   query.toLowerCase().includes('today') ||
-                                   query.toLowerCase().includes('this year') ||
-                                   query.toLowerCase().includes('changes') ||
-                                   query.toLowerCase().includes('guidance') ||
-                                   query.toLowerCase().includes('policy') ||
-                                   query.toLowerCase().includes('news');
-            
-            // For simple drug queries (just drug name), skip web search for faster response
-            const isDrugQuery = /^[a-zA-Z\s-]{2,30}$/.test(query.trim()) && 
-                               query.split(' ').length <= 3 &&
-                               !query.toLowerCase().includes('when') &&
-                               !query.toLowerCase().includes('how') &&
-                               !query.toLowerCase().includes('what') &&
-                               !query.toLowerCase().includes('why') &&
-                               !query.toLowerCase().includes('should');
-            
-            // Skip web search for general medical questions and simple drug queries
-            if ((!needsCurrentInfo && query.length < 200) || isDrugQuery) {
-              console.log('Skipping web search for general medical/drug query to improve response speed');
-            } else {
-              // If query is still too long, extract key medical/healthcare terms
-              if (query.length > 300) {
-                // Extract key terms (medical conditions, drugs, procedures, etc.)
-                const keyTerms = query.match(/\b(?:[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*|[a-z]+(?:ide|ine|ate|tion|osis|itis|oma|pathy|therapy|treatment|drug|medicine|NHS|NICE|BNF|CQC|GP|prescription|patient|clinical|diagnosis|symptoms?))\b/g);
-                
-                if (keyTerms && keyTerms.length > 0) {
-                  query = keyTerms.slice(0, 10).join(' ').slice(0, 300);
-                } else {
-                  // Fallback: take first few words
-                  query = query.split(' ').slice(0, 20).join(' ').slice(0, 300);
-                }
-              }
-              
-              console.log(`Running Tavily web search for: ${query}\n`);
-              const tavilyResp = await fetch('https://api.tavily.com/search', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  api_key: tavilyKey,
-                  query,
-                  search_depth: 'advanced',
-                  max_results: 8,
-                  time_range: 'year',
-                  topic: 'news',
-                  include_answer: true,
-                  include_raw_content: false,
-                  include_images: false,
-                  include_domains: [
-                    'www.england.nhs.uk',
-                    'www.nhs.uk',
-                    'www.gov.uk',
-                    'www.nice.org.uk',
-                    'www.cqc.org.uk',
-                    'www.bma.org.uk',
-                    'www.parliament.uk',
-                    'www.bbc.co.uk',
-                    'www.bbc.com',
-                    'www.hsj.co.uk',
-                    'www.nhsconfed.org',
-                    'www.theguardian.com',
-                    // Local and regional sources requested (excluding Northants Telegraph)
-                    'www.northamptonchron.co.uk',
-                    'www.itv.com',
-                    'www.nhft.nhs.uk',
-                    'www.northnorthants.gov.uk',
-                    'www.westnorthants.gov.uk',
-                    'www.heart.co.uk',
-                    'planetradio.co.uk',
-                    // GP trade press
-                    'www.pulsetoday.co.uk'
-                  ]
-                })
-              });
-              if (tavilyResp.ok) {
-                const data = await tavilyResp.json();
-                const results = Array.isArray(data.results) ? data.results : [];
-                const summary = (data.answer || '').toString().trim();
-
-                // Strict recency filter: keep items within ~120 days when a date is present
-                const cutoff = new Date();
-                cutoff.setDate(cutoff.getDate() - 120);
-                const dated = results.filter((r: any) => {
-                  const ds = (r.published_date || r.date || r.published_at || '').toString();
-                  const d = ds ? new Date(ds) : null;
-                  return d && !isNaN(d.getTime()) && d >= cutoff;
-                });
-                const used = dated.length > 0 ? dated : results;
-
-                const formatted = used.slice(0, 8).map((r: any) => {
-                  const url = r.url || r.link || '';
-                  let host = '';
-                  try { host = new URL(url).host; } catch {}
-                  const date = (r.published_date || r.date || r.published_at || '').toString();
-                  const snippet = (r.content || r.snippet || r.answer || '').replace(/\s+/g, ' ').slice(0, 220);
-                  return `- ${r.title || 'Untitled'} — ${host}${date ? ' — ' + date : ''}\n  ${url}\n  ${snippet}`;
-                }).join('\n');
-
-                enhancedSystemPrompt += `\n\nDIRECTIONS: When RECENT WEB SEARCH RESULTS are present, base your answer ONLY on them. Do not rely on memory for policy/personnel status. If no items are within the last 120 days, explicitly state that and avoid outdated statements. Always cite source URLs with publication dates.\n`;
-
-                if (summary) {
-                  enhancedSystemPrompt += `\nRECENT WEB SEARCH SUMMARY:\n${summary}\n`;
-                }
-                if (formatted) {
-                  const recencyNote = dated.length === 0 ? "\n[Note: No items with clear dates in the last 120 days were found; verify before asserting 'recent' changes.]\n" : '';
-                  enhancedSystemPrompt += `\nRECENT WEB SEARCH RESULTS (authoritative UK health sources, last ~120 days):\n${formatted}${recencyNote}`;
-                  console.log(`Tavily results total=${results.length}, recent=${dated.length}`);
-                }
-              } else {
-                const errorText = await tavilyResp.text();
-                console.log(`Tavily search failed: ${errorText}`);
-                
-                // If query too long, try with a shorter version
-                if (errorText.includes('too long')) {
-                  console.log('Retrying with shorter query...');
-                  const shortQuery = query.split(' ').slice(0, 5).join(' ').slice(0, 100);
-                  console.log(`Retry query: ${shortQuery}`);
-                  
-                  const retryResp = await fetch('https://api.tavily.com/search', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      api_key: tavilyKey,
-                      query: shortQuery,
-                      search_depth: 'basic',
-                      max_results: 5,
-                      include_answer: true,
-                      include_raw_content: false,
-                      include_images: false
-                    })
-                  });
-                  
-                  if (retryResp.ok) {
-                    const retryData = await retryResp.json();
-                    const retryResults = Array.isArray(retryData.results) ? retryData.results : [];
-                    if (retryResults.length > 0) {
-                      const retryFormatted = retryResults.slice(0, 3).map((r: any) => {
-                        const url = r.url || r.link || '';
-                        let host = '';
-                        try { host = new URL(url).host; } catch {}
-                        const snippet = (r.content || r.snippet || '').replace(/\s+/g, ' ').slice(0, 150);
-                        return `- ${r.title || 'Untitled'} — ${host}\n  ${snippet}`;
-                      }).join('\n');
-                      
-                      enhancedSystemPrompt += `\n\nLIMITED WEB SEARCH RESULTS:\n${retryFormatted}`;
-                    }
-                  }
-                }
-              }
-            }
-          } else {
-            console.log('Tavily API key not configured; proceeding without live web search');
-          }
-        } catch (webSearchError) {
-          console.error('Web search error (continuing without web results):', webSearchError);
-        }
-      }
-    }
+    const enhancedSystemPrompt = systemPrompt + `\nCURRENT DATE: ${today}`;
+    
+    console.log('Using optimized AI4GP with native OpenAI web search capabilities');
 
     let response: string;
 
