@@ -67,7 +67,7 @@ ${uploadedFiles.length > 0 ? `\nIMPORTANT: The user has uploaded ${uploadedFiles
 SPECIAL CAPABILITIES:
 - Clinical Document Generation: When asked to create clinical documents, format your response with clear headings, sections, and structured content appropriate for healthcare settings.
 - File Analysis: When files are uploaded by the user, you have access to their full content and can analyze, summarize, and answer questions about them directly.
-${includeLatestUpdates ? '- Web Search: You have access to current web search capabilities for the latest NHS guidance, policy updates, and clinical developments. Use this when users ask about recent changes, current guidance, or up-to-date information.' : ''}
+${verificationLevel !== 'standard' ? '- Live Source Verification: You have access to real-time trusted source verification from NHS, NICE, BNF, MHRA, and other official sources. Use this for the most current guidance and policy updates.' : ''}
 
 Always provide evidence-based, clinically appropriate advice that follows current NHS guidelines and best practices.`;
 
