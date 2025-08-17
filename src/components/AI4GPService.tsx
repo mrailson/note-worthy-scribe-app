@@ -171,32 +171,6 @@ const AI4GPService = () => {
                         </Button>
                       </DropdownMenuTrigger>
                        <DropdownMenuContent align="end" className="w-48">
-                         <DropdownMenuSub>
-                           <DropdownMenuSubTrigger>
-                             <Cpu className="w-4 h-4 mr-2" />
-                             Model: {selectedModel === 'gpt-4-turbo' ? 'ChatGPT' : selectedModel === 'grok-beta' ? 'Grok' : 'Gemini'}
-                           </DropdownMenuSubTrigger>
-                           <DropdownMenuSubContent>
-                             <DropdownMenuItem 
-                               onClick={() => setSelectedModel('gpt-4-turbo')}
-                               className={selectedModel === 'gpt-4-turbo' ? 'bg-accent' : ''}
-                             >
-                               ChatGPT {selectedModel === 'gpt-4-turbo' && '✓'}
-                             </DropdownMenuItem>
-                             <DropdownMenuItem 
-                               onClick={() => setSelectedModel('grok-beta')}
-                               className={selectedModel === 'grok-beta' ? 'bg-accent' : ''}
-                             >
-                               Grok {selectedModel === 'grok-beta' && '✓'}
-                             </DropdownMenuItem>
-                             <DropdownMenuItem 
-                               onClick={() => setSelectedModel('gemini-pro')}
-                               className={selectedModel === 'gemini-pro' ? 'bg-accent' : ''}
-                             >
-                               Gemini {selectedModel === 'gemini-pro' && '✓'}
-                             </DropdownMenuItem>
-                           </DropdownMenuSubContent>
-                         </DropdownMenuSub>
                          <DropdownMenuItem onClick={() => setShowSettings(true)}>
                            <Settings className="w-4 h-4 mr-2" />
                            Settings
