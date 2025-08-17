@@ -18,7 +18,8 @@ import {
   Presentation,
   Clock,
   Mail,
-  Download
+  Download,
+  Zap
 } from 'lucide-react';
 import { toast } from 'sonner';
 import QuickActionButtons from '@/components/QuickActionButtons';
@@ -200,6 +201,12 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
 
   const handleEmailToOthers = () => {
     setIsEmailModalOpen(true);
+  };
+
+  const handleQuickPickAction = (action: string) => {
+    if (onQuickResponse) {
+      onQuickResponse(action);
+    }
   };
 
   // Simple function to convert URLs to clickable links
@@ -623,6 +630,40 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                     >
                       <Copy className="h-3 w-3" />
                     </Button>
+
+                    {/* Quick Pick (QP) dropdown - only show in regular chat */}
+                    {!isModal && onQuickResponse && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-muted-foreground hover:text-foreground"
+                            title="Quick prompts"
+                          >
+                            <Zap className="h-3 w-3" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-72 bg-background border z-50 shadow-lg">
+                          <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt Reply: Yes")}>
+                            <CheckSquare className="h-4 w-4 mr-2" />
+                            Prompt Reply: Yes
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt Reply: No")}>
+                            <CheckSquare className="h-4 w-4 mr-2" />
+                            Prompt Reply: No
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Expand this with more information")}>
+                            <Expand className="h-4 w-4 mr-2" />
+                            Expand this with more information
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Combine with my practice information")}>
+                            <FileText className="h-4 w-4 mr-2" />
+                            Combine with my practice information
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
 
                     {/* Modal-specific close button - moved to last position */}
                     {isModal && onCloseModal && (
