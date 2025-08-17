@@ -55,6 +55,7 @@ export const SummaryPanel = ({
   onCloseExpandDialog
 }: SummaryPanelProps) => {
   const [activeSubTab, setActiveSubTab] = useState("summary");
+  const [showTranscript, setShowTranscript] = useState(false);
   
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -285,11 +286,28 @@ export const SummaryPanel = ({
                 
                 {/* View Original Transcript button */}
                 <div className="mt-6 pt-4 border-t">
-                  <Button variant="ghost" size="sm" className="text-muted-foreground">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-muted-foreground"
+                    onClick={() => setShowTranscript(!showTranscript)}
+                  >
                     <FileText className="h-4 w-4 mr-2" />
                     View Original Transcript
-                    <span className="ml-auto text-xs">Show</span>
+                    <span className="ml-auto text-xs">{showTranscript ? 'Hide' : 'Show'}</span>
                   </Button>
+                  
+                  {showTranscript && (
+                    <div className="mt-4 p-4 bg-muted/30 rounded-lg">
+                      <h4 className="text-sm font-medium mb-2">Original Transcript</h4>
+                      <Textarea
+                        value={transcript}
+                        readOnly
+                        className="min-h-[200px] resize-none text-sm font-mono"
+                        placeholder="No transcript available"
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             </TabsContent>
@@ -323,11 +341,28 @@ export const SummaryPanel = ({
                 
                 {/* View Original Transcript button */}
                 <div className="mt-6 pt-4 border-t">
-                  <Button variant="ghost" size="sm" className="text-muted-foreground">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-muted-foreground"
+                    onClick={() => setShowTranscript(!showTranscript)}
+                  >
                     <FileText className="h-4 w-4 mr-2" />
                     View Original Transcript
-                    <span className="ml-auto text-xs">Show</span>
+                    <span className="ml-auto text-xs">{showTranscript ? 'Hide' : 'Show'}</span>
                   </Button>
+                  
+                  {showTranscript && (
+                    <div className="mt-4 p-4 bg-muted/30 rounded-lg">
+                      <h4 className="text-sm font-medium mb-2">Original Transcript</h4>
+                      <Textarea
+                        value={transcript}
+                        readOnly
+                        className="min-h-[200px] resize-none text-sm font-mono"
+                        placeholder="No transcript available"
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             </TabsContent>
