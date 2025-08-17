@@ -45,8 +45,8 @@ const AI4GPService = () => {
     setUploadedFiles,
     sessionMemory,
     setSessionMemory,
-    includeLatestUpdates,
-    setIncludeLatestUpdates,
+    verificationLevel,
+    setVerificationLevel,
     showResponseMetrics,
     setShowResponseMetrics,
     selectedModel,
@@ -362,8 +362,8 @@ const AI4GPService = () => {
         onOpenChange={setShowSettings}
         sessionMemory={sessionMemory}
         onSessionMemoryChange={setSessionMemory}
-        includeLatestUpdates={includeLatestUpdates}
-        onIncludeLatestUpdatesChange={setIncludeLatestUpdates}
+        verificationLevel={verificationLevel}
+        onVerificationLevelChange={setVerificationLevel}
         selectedModel={selectedModel}
         onModelChange={setSelectedModel}
         showResponseMetrics={showResponseMetrics}

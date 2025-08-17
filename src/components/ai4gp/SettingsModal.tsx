@@ -4,15 +4,15 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Brain, Search, Bot, Clock } from 'lucide-react';
+import { Brain, Bot, Clock } from 'lucide-react';
 
 interface SettingsModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   sessionMemory: boolean;
   onSessionMemoryChange: (enabled: boolean) => void;
-  includeLatestUpdates: boolean;
-  onIncludeLatestUpdatesChange: (enabled: boolean) => void;
+  verificationLevel: string;
+  onVerificationLevelChange: (level: string) => void;
   selectedModel: string;
   onModelChange: (model: string) => void;
   showResponseMetrics: boolean;
@@ -33,30 +33,6 @@ const AI_MODELS = [
     description: 'Superior reasoning and medical knowledge'
   },
   {
-    id: 'claude-4-sonnet',
-    name: 'Claude 4 Sonnet',
-    provider: 'Anthropic',
-    description: 'High performance with excellent efficiency'
-  },
-  {
-    id: 'gemini-1.5-pro',
-    name: 'Gemini 1.5 Pro',
-    provider: 'Google',
-    description: 'Advanced multimodal reasoning capabilities'
-  },
-  {
-    id: 'gemini-1.5-flash',
-    name: 'Gemini 1.5 Flash',
-    provider: 'Google',
-    description: 'Fast and efficient for quick responses'
-  },
-  {
-    id: 'grok-beta',
-    name: 'Grok',
-    provider: 'xAI',
-    description: 'Real-time information and conversational AI'
-  },
-  {
     id: 'gpt-4-turbo',
     name: 'Recommended',
     provider: 'OpenAI',
@@ -64,21 +40,20 @@ const AI_MODELS = [
     recommended: true
   },
   {
-    id: 'gemini-ultra',
-    name: 'Gemini Ultra',
-    provider: 'Google',
-    description: 'Advanced multimodal capabilities'
+    id: 'grok-beta',
+    name: 'Grok',
+    provider: 'xAI',
+    description: 'Real-time information and conversational AI'
   }
 ];
-
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
   open,
   onOpenChange,
   sessionMemory,
   onSessionMemoryChange,
-  includeLatestUpdates,
-  onIncludeLatestUpdatesChange,
+  verificationLevel,
+  onVerificationLevelChange,
   selectedModel,
   onModelChange,
   showResponseMetrics,
@@ -99,56 +74,67 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         <div className="space-y-6">
           {/* AI Model Selection */}
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
                 <Bot className="h-4 w-4" />
                 AI Model
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <Select value={selectedModel} onValueChange={onModelChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select AI model" />
-                </SelectTrigger>
-                <SelectContent>
-                  {AI_MODELS.map((model) => (
-                    <SelectItem key={model.id} value={model.id}>
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{model.name}</span>
-                        {model.recommended && (
-                          <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">
-                            Recommended
-                          </span>
-                        )}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              
-              <div className="text-xs text-muted-foreground bg-muted/30 p-3 rounded-lg">
-                <div className="font-medium">{selectedModelInfo.name} by {selectedModelInfo.provider}</div>
-                <div className="mt-1">{selectedModelInfo.description}</div>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="model-select" className="text-sm font-medium">
+                  Select AI Model
+                </Label>
+                <Select value={selectedModel} onValueChange={onModelChange}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {AI_MODELS.map((model) => (
+                      <SelectItem key={model.id} value={model.id}>
+                        <div className="flex items-center justify-between w-full">
+                          <div>
+                            <div className="font-medium">
+                              {model.name} {model.recommended && '⭐'}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {model.provider} • {model.description}
+                            </div>
+                          </div>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
+              
+              {selectedModelInfo && (
+                <div className="p-3 bg-muted rounded-lg">
+                  <div className="text-sm font-medium">{selectedModelInfo.name}</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {selectedModelInfo.description}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
           {/* Session Settings */}
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
                 <Brain className="h-4 w-4" />
                 Session Settings
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between space-x-2">
-                <div className="space-y-0.5">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
                   <Label htmlFor="session-memory" className="text-sm font-medium">
                     Session Memory
                   </Label>
                   <p className="text-xs text-muted-foreground">
-                    Remember conversation context throughout the session
+                    Remember conversation context across messages
                   </p>
                 </div>
                 <Switch
@@ -158,31 +144,49 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 />
               </div>
               
-              <div className="flex items-center justify-between space-x-2">
-                <div className="space-y-0.5">
-                  <Label htmlFor="web-search" className="text-sm font-medium flex items-center gap-1">
-                    <Search className="h-3 w-3" />
-                    Web Search
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    Include latest medical guidelines and updates
-                  </p>
-                </div>
-                <Switch
-                  id="web-search"
-                  checked={includeLatestUpdates}
-                  onCheckedChange={onIncludeLatestUpdatesChange}
-                />
+              <div className="space-y-2">
+                <Label htmlFor="verification-level" className="text-sm font-medium">
+                  Data Verification Level
+                </Label>
+                <Select value={verificationLevel} onValueChange={onVerificationLevelChange}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="standard">
+                      <div className="space-y-1">
+                        <div className="font-medium">Standard</div>
+                        <div className="text-xs text-muted-foreground">Cached knowledge + basic search</div>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="latest">
+                      <div className="space-y-1">
+                        <div className="font-medium">Latest Updates</div>
+                        <div className="text-xs text-muted-foreground">Real-time trusted source fetching</div>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="maximum">
+                      <div className="space-y-1">
+                        <div className="font-medium">Maximum Verification</div>
+                        <div className="text-xs text-muted-foreground">Cross-reference multiple live sources</div>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {verificationLevel === 'standard' && 'Fast responses using AI knowledge base with basic web search'}
+                  {verificationLevel === 'latest' && 'Live data from NHS, NICE, BNF, MHRA with verification panels'}
+                  {verificationLevel === 'maximum' && 'Multiple source cross-referencing with confidence scoring'}
+                </p>
               </div>
               
-              <div className="flex items-center justify-between space-x-2">
-                <div className="space-y-0.5">
-                  <Label htmlFor="response-metrics" className="text-sm font-medium flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    Response Metrics
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label htmlFor="response-metrics" className="text-sm font-medium">
+                    Show Response Metrics
                   </Label>
                   <p className="text-xs text-muted-foreground">
-                    Show response time and model used for each AI response
+                    Display response time and token usage
                   </p>
                 </div>
                 <Switch
@@ -193,7 +197,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
             </CardContent>
           </Card>
-
         </div>
       </DialogContent>
     </Dialog>

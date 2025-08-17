@@ -12,11 +12,11 @@ export const useAI4GPService = () => {
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [searchHistory, setSearchHistory] = useState<SearchHistory[]>([]);
   const [sessionMemory, setSessionMemory] = useState(true);
-  const [includeLatestUpdates, setIncludeLatestUpdates] = useState(true);
+  const [verificationLevel, setVerificationLevel] = useState('standard');
   const [showResponseMetrics, setShowResponseMetrics] = useState(false);
   const [selectedModel, setSelectedModel] = useState('grok-beta');
 
-  const buildSystemPrompt = useCallback((practiceContext: any, uploadedFiles: UploadedFile[], includeLatestUpdates: boolean) => {
+  const buildSystemPrompt = useCallback((practiceContext: any, uploadedFiles: UploadedFile[], verificationLevel: string) => {
     let prompt = `You are "AI 4 GP Service", an AI Assistant built specifically to help General Practitioners (GPs) in the UK NHS.
 
 You understand and can explain:
@@ -115,7 +115,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
 
     try {
       const startTime = Date.now();
-      const systemPrompt = buildSystemPrompt(practiceContext, uploadedFiles, includeLatestUpdates);
+      const systemPrompt = buildSystemPrompt(practiceContext, uploadedFiles, verificationLevel);
       
       // Prepare messages for API
       const messagesForAPI = newMessages.map(msg => {
@@ -140,7 +140,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         model: selectedModel,
         systemPrompt: systemPrompt,
         files: uploadedFiles.length > 0 ? uploadedFiles : undefined,
-        enableWebSearch: includeLatestUpdates
+        verificationLevel: verificationLevel
       };
 
       // Get response from edge function
@@ -299,7 +299,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     } finally {
       setIsLoading(false);
     }
-  }, [input, messages, uploadedFiles, buildSystemPrompt, includeLatestUpdates]);
+  }, [input, messages, uploadedFiles, buildSystemPrompt, verificationLevel]);
 
   const saveSearchAutomatically = async (messagesData: Message[]) => {
     if (!user || messagesData.length === 0) return;
@@ -360,7 +360,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         if (data && data.length > 0) {
           const preferences = data[0].setting_value as any;
           setSessionMemory(preferences.sessionMemory ?? true);
-          setIncludeLatestUpdates(preferences.includeLatestUpdates ?? true);
+          setVerificationLevel(preferences.verificationLevel ?? 'standard');
           setShowResponseMetrics(preferences.showResponseMetrics ?? false);
           setSelectedModel(preferences.selectedModel ?? 'grok-beta');
         }
@@ -379,7 +379,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     try {
       const preferences = {
         sessionMemory,
-        includeLatestUpdates,
+        verificationLevel,
         showResponseMetrics,
         selectedModel
       };
@@ -396,14 +396,14 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     } catch (error) {
       console.error('Error saving user settings:', error);
     }
-  }, [user, sessionMemory, includeLatestUpdates, showResponseMetrics, selectedModel]);
+  }, [user, sessionMemory, verificationLevel, showResponseMetrics, selectedModel]);
 
   // Save settings when they change
   useEffect(() => {
     if (user) {
       saveUserSettings();
     }
-  }, [sessionMemory, includeLatestUpdates, showResponseMetrics, selectedModel, saveUserSettings]);
+  }, [sessionMemory, verificationLevel, showResponseMetrics, selectedModel, saveUserSettings]);
 
   const handleNewSearch = useCallback(() => {
     setMessages([]);
@@ -460,7 +460,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
 
     try {
       const startTime = Date.now();
-      const systemPrompt = buildSystemPrompt(practiceContext, uploadedFiles, includeLatestUpdates);
+      const systemPrompt = buildSystemPrompt(practiceContext, uploadedFiles, verificationLevel);
       
       // Prepare messages for API
       const messagesForAPI = newMessages.map(msg => {
@@ -485,7 +485,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         model: selectedModel,
         systemPrompt: systemPrompt,
         files: uploadedFiles.length > 0 ? uploadedFiles : undefined,
-        enableWebSearch: includeLatestUpdates
+        verificationLevel: verificationLevel
       };
 
       // Get response from edge function
@@ -583,7 +583,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     }
     
     setInput(originalInput);
-  }, [input, messages, uploadedFiles, buildSystemPrompt, includeLatestUpdates]);
+  }, [input, messages, uploadedFiles, buildSystemPrompt, verificationLevel]);
 
   return {
     messages,
@@ -597,8 +597,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     setSearchHistory,
     sessionMemory,
     setSessionMemory,
-    includeLatestUpdates,
-    setIncludeLatestUpdates,
+    verificationLevel,
+    setVerificationLevel,
     showResponseMetrics,
     setShowResponseMetrics,
     selectedModel,
