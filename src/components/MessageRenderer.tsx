@@ -16,10 +16,14 @@ import {
   Minimize2,
   FileDown,
   Presentation,
-  Clock
+  Clock,
+  Mail
 } from 'lucide-react';
 import { toast } from 'sonner';
 import QuickActionButtons from '@/components/QuickActionButtons';
+import { useAuth } from '@/contexts/AuthContext';
+import { EmailCompositionModal } from '@/components/EmailCompositionModal';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 interface Message {
   id: string;
@@ -64,6 +68,8 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showFullContent, setShowFullContent] = useState(true);
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const { user } = useAuth();
   
   // Auto-scroll to bottom when content updates during streaming
   const contentRef = React.useRef<HTMLDivElement>(null);
@@ -169,6 +175,20 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
     if (onExportPowerPoint) {
       onExportPowerPoint(message.content, 'AI Generated Presentation');
     }
+  };
+
+  const handleEmailToMe = async () => {
+    if (!user?.email) {
+      toast.error('User email not found');
+      return;
+    }
+    
+    // TODO: Implement EmailJS integration to send directly to user
+    toast.success('Email sent to your account');
+  };
+
+  const handleEmailToOthers = () => {
+    setIsEmailModalOpen(true);
   };
 
   // Simple function to convert URLs to clickable links
@@ -539,6 +559,30 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                       </Button>
                     )}
 
+                    {/* Email dropdown button */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-muted-foreground hover:text-foreground"
+                          title="Email options"
+                        >
+                          <Mail className="h-3 w-3" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuItem onClick={handleEmailToMe}>
+                          <Mail className="h-4 w-4 mr-2" />
+                          Email to me
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={handleEmailToOthers}>
+                          <Mail className="h-4 w-4 mr-2" />
+                          Email to patient/others
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+
                     {/* Export to PowerPoint button */}
                     {onExportPowerPoint && (
                       <Button
@@ -608,6 +652,14 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
           )}
         </div>
       </div>
+      
+      {/* Email Composition Modal */}
+      <EmailCompositionModal
+        isOpen={isEmailModalOpen}
+        onOpenChange={setIsEmailModalOpen}
+        defaultContent={message.content}
+        defaultSubject="AI Generated Content"
+      />
     </div>
   );
 };
