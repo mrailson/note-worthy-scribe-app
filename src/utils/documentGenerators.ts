@@ -499,9 +499,46 @@ export const generatePDF = async (content: string, title: string = 'AI Generated
       }
     };
 
-    // Helper function to process text with formatting
+    // Helper function to process text with formatting and proper wrapping
     const addFormattedText = (text: string, fontSize: number, xPos: number = margin) => {
-      // Split text by formatting markers
+      pdf.setFontSize(fontSize);
+      
+      // First, split the text into words to handle wrapping properly
+      const words = text.split(' ');
+      let currentLine = '';
+      let currentX = xPos;
+      
+      for (let i = 0; i < words.length; i++) {
+        const word = words[i];
+        const testLine = currentLine + (currentLine ? ' ' : '') + word;
+        
+        // Check if this word contains formatting
+        const hasFormatting = /(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/.test(word);
+        
+        // Calculate width of test line
+        pdf.setFont('helvetica', 'normal'); // Reset to measure properly
+        const testWidth = pdf.getTextWidth(testLine);
+        
+        if (testWidth > maxLineWidth && currentLine !== '') {
+          // Current line is full, render it and start new line
+          renderFormattedLine(currentLine, fontSize, currentX);
+          yPosition += lineHeight;
+          addNewPageIfNeeded(lineHeight);
+          currentLine = word;
+          currentX = margin;
+        } else {
+          currentLine = testLine;
+        }
+      }
+      
+      // Render the last line
+      if (currentLine) {
+        renderFormattedLine(currentLine, fontSize, currentX);
+      }
+    };
+    
+    // Helper function to render a line with formatting
+    const renderFormattedLine = (text: string, fontSize: number, xPos: number) => {
       const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/);
       let currentX = xPos;
       
@@ -540,18 +577,9 @@ export const generatePDF = async (content: string, title: string = 'AI Generated
           pdf.setFont('helvetica', 'normal');
         }
         
-        // Calculate text width and handle line wrapping
-        const textWidth = pdf.getTextWidth(displayText);
-        
-        if (currentX + textWidth > pageWidth - margin) {
-          // Need to wrap to next line
-          yPosition += lineHeight;
-          addNewPageIfNeeded(lineHeight);
-          currentX = margin;
-        }
-        
+        // Add text at current position
         pdf.text(displayText, currentX, yPosition);
-        currentX += textWidth;
+        currentX += pdf.getTextWidth(displayText);
       }
       
       // Reset font
@@ -622,10 +650,13 @@ export const generatePDF = async (content: string, title: string = 'AI Generated
               pdf.setFontSize(10);
               pdf.setFont('helvetica', 'normal');
               
-              const cellWidth = maxLineWidth / cells.length;
+              const cellWidth = (maxLineWidth - 10) / cells.length; // Leave some margin
               cells.forEach((cell, index) => {
                 const xPos = margin + (index * cellWidth);
-                addFormattedText(cell, 10, xPos);
+                // Use simple text for table cells to avoid formatting issues
+                const cleanText = cleanMarkdown(cell);
+                const wrappedText = pdf.splitTextToSize(cleanText, cellWidth - 5);
+                pdf.text(wrappedText[0] || '', xPos, yPosition); // Just first line for tables
               });
               yPosition += lineHeight;
             }
