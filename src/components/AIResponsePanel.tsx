@@ -188,7 +188,7 @@ export const AIResponsePanel: React.FC<AIResponsePanelProps> = ({
       <EmailCompositionModal
         isOpen={isEmailModalOpen}
         onOpenChange={setIsEmailModalOpen}
-        defaultContent={response}
+        content={response}
         defaultSubject="Medical Consultation Information"
       />
     </Sheet>

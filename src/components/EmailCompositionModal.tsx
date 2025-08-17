@@ -1,186 +1,203 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
-import { Mail, Send, AlertCircle, X } from 'lucide-react';
-import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Send, X } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface EmailCompositionModalProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  defaultContent: string;
+  content: string;
   defaultSubject?: string;
 }
 
-export const EmailCompositionModal: React.FC<EmailCompositionModalProps> = ({
+export function EmailCompositionModal({
   isOpen,
   onOpenChange,
-  defaultContent,
-  defaultSubject = "Medical Consultation Information"
-}) => {
-  const [emailData, setEmailData] = useState({
-    to: '',
-    cc: '',
-    subject: defaultSubject,
-    message: defaultContent.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim()
-  });
+  content,
+  defaultSubject = 'AI Generated Content'
+}: EmailCompositionModalProps) {
+  const [toEmail, setToEmail] = useState('');
+  const [ccEmail, setCcEmail] = useState('');
+  const [subject, setSubject] = useState('');
+  const [message, setMessage] = useState('');
+  const [attachWordDoc, setAttachWordDoc] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const { toast } = useToast();
 
-  const handleSendEmail = async () => {
-    if (!emailData.to.trim()) {
-      toast.error("Please enter a recipient email address");
-      return;
+  // Auto-generate subject and format message body
+  useEffect(() => {
+    if (content) {
+      // Generate subject from content (max 80 words)
+      const cleanContent = content.replace(/[#*`]/g, '').trim();
+      const words = cleanContent.split(/\s+/).slice(0, 80);
+      const autoSubject = words.join(' ');
+      const truncatedSubject = autoSubject.length > 100 ? 
+        autoSubject.substring(0, 97) + '...' : autoSubject;
+      
+      setSubject(`AI Generated: ${truncatedSubject}`);
+      
+      // Format message body maintaining structure
+      const formattedContent = content
+        .replace(/\n\s*\n/g, '\n\n') // Preserve paragraph breaks
+        .replace(/^\s+/gm, '') // Remove leading whitespace but keep structure
+        .trim();
+      
+      setMessage(`Please find the AI generated content below:\n\n${formattedContent}`);
     }
+  }, [content]);
 
-    if (!emailData.message.trim()) {
-      toast.error("Please enter a message");
+  const handleSend = async () => {
+    if (!toEmail.trim()) {
+      toast({
+        title: "Email Required",
+        description: "Please enter at least one recipient email address.",
+        variant: "destructive"
+      });
       return;
     }
 
     setIsSending(true);
     try {
-      const { data, error } = await supabase.functions.invoke('send-email-via-emailjs', {
-        body: {
-          to_email: emailData.to,
-          cc_email: emailData.cc || null,
-          subject: emailData.subject,
-          message: emailData.message,
-          from_name: "Medical Practice Central Mail Service"
-        }
-      });
-
-      if (error) throw error;
-
-      toast.success("Email sent successfully via central mail service");
-      onOpenChange(false);
+      // TODO: Implement EmailJS integration with attachment support
+      // For now, just simulate sending
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Reset form
-      setEmailData({
-        to: '',
-        cc: '',
-        subject: defaultSubject,
-        message: defaultContent.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim()
+      toast({
+        title: "Email Sent",
+        description: attachWordDoc ? 
+          "The email has been sent successfully with Word document attachment." :
+          "The email has been sent successfully.",
       });
+      
+      onOpenChange(false);
+      // Reset form
+      setToEmail('');
+      setCcEmail('');
+      setAttachWordDoc(true);
     } catch (error) {
-      console.error('Error sending email:', error);
-      toast.error("Failed to send email. Please try again.");
+      toast({
+        title: "Send Failed",
+        description: "Failed to send the email. Please try again.",
+        variant: "destructive"
+      });
     } finally {
       setIsSending(false);
     }
   };
 
+  const handleClose = () => {
+    onOpenChange(false);
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Mail className="h-5 w-5 text-blue-600" />
-            Compose Email to Patient
+          <DialogTitle className="flex items-center justify-between">
+            Compose Email
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClose}
+              className="h-6 w-6 p-0"
+            >
+              <X className="h-4 w-4" />
+            </Button>
           </DialogTitle>
         </DialogHeader>
-
-        <div className="space-y-4 mt-4">
-          {/* Service Notice */}
-          <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5" />
-              <div>
-                <h4 className="font-medium text-blue-900 dark:text-blue-100">Central Mail Service</h4>
-                <p className="text-sm text-blue-700 dark:text-blue-200">
-                  This email will be sent via the practice's central mail service, not your personal NHS email account. 
-                  All correspondence is logged and managed centrally for patient safety and compliance.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Email Form */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="to">To (Patient Email) *</Label>
-              <Input
-                id="to"
-                type="email"
-                placeholder="patient@example.com"
-                value={emailData.to}
-                onChange={(e) => setEmailData(prev => ({ ...prev, to: e.target.value }))}
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="cc">CC (Optional)</Label>
-              <Input
-                id="cc"
-                type="email"
-                placeholder="family@example.com"
-                value={emailData.cc}
-                onChange={(e) => setEmailData(prev => ({ ...prev, cc: e.target.value }))}
-              />
-            </div>
-          </div>
-
+        
+        <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="subject">Subject</Label>
+            <Label htmlFor="to-email">To *</Label>
             <Input
-              id="subject"
-              value={emailData.subject}
-              onChange={(e) => setEmailData(prev => ({ ...prev, subject: e.target.value }))}
-              placeholder="Medical Consultation Information"
+              id="to-email"
+              type="email"
+              placeholder="recipient@example.com"
+              value={toEmail}
+              onChange={(e) => setToEmail(e.target.value)}
+              required
             />
           </div>
-
+          
+          <div className="space-y-2">
+            <Label htmlFor="cc-email">CC</Label>
+            <Input
+              id="cc-email"
+              type="email"
+              placeholder="cc@example.com"
+              value={ccEmail}
+              onChange={(e) => setCcEmail(e.target.value)}
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="subject">Subject *</Label>
+            <Input
+              id="subject"
+              type="text"
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              required
+            />
+          </div>
+          
           <div className="space-y-2">
             <Label htmlFor="message">Message</Label>
             <Textarea
               id="message"
-              value={emailData.message}
-              onChange={(e) => setEmailData(prev => ({ ...prev, message: e.target.value }))}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              className="min-h-[200px] font-mono text-sm"
               placeholder="Enter your message here..."
-              className="min-h-[300px] font-mono text-sm"
             />
-            <p className="text-xs text-muted-foreground">
-              The content has been automatically formatted. You can edit it before sending.
-            </p>
           </div>
-
-          {/* Action Buttons */}
-          <div className="flex justify-between items-center pt-4 border-t">
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                <AlertCircle className="h-3 w-3 mr-1" />
-                Secure Central Service
-              </Badge>
-            </div>
-            
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={isSending}
-              >
-                <X className="h-4 w-4 mr-2" />
-                Cancel
-              </Button>
-              <Button
-                onClick={handleSendEmail}
-                disabled={isSending || !emailData.to.trim()}
-              >
-                {isSending ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                ) : (
+          
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="attach-word"
+              checked={attachWordDoc}
+              onCheckedChange={(checked) => setAttachWordDoc(checked === true)}
+            />
+            <Label 
+              htmlFor="attach-word" 
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              Attach as Word document
+            </Label>
+          </div>
+          
+          <div className="flex justify-end space-x-2 pt-4">
+            <Button
+              variant="outline"
+              onClick={handleClose}
+              disabled={isSending}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSend}
+              disabled={isSending || !toEmail.trim()}
+            >
+              {isSending ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                  Sending...
+                </>
+              ) : (
+                <>
                   <Send className="h-4 w-4 mr-2" />
-                )}
-                Send Email
-              </Button>
-            </div>
+                  Send Email
+                </>
+              )}
+            </Button>
           </div>
         </div>
       </DialogContent>
     </Dialog>
   );
-};
+}

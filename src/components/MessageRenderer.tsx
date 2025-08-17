@@ -657,7 +657,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
       <EmailCompositionModal
         isOpen={isEmailModalOpen}
         onOpenChange={setIsEmailModalOpen}
-        defaultContent={message.content}
+        content={message.content}
         defaultSubject="AI Generated Content"
       />
     </div>
