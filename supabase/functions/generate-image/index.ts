@@ -33,31 +33,103 @@ serve(async (req) => {
     let response;
 
     if (imagePath && mode === 'edit') {
-      console.log('Image editing mode detected. Note: For best results with reference images, describe the changes you want to make.');
+      console.log('Processing image-guided generation with reference image:', imagePath);
       
-      // For now, we'll use DALL-E 3 with an enhanced prompt that references the uploaded image concept
-      // Since DALL-E 2 edit requires masks which are complex to implement properly
-      const enhancedPrompt = `Based on the reference image provided, ${prompt}. Maintain the core composition and subjects while applying the requested changes.`;
-      
-      console.log('Using enhanced prompt for image-to-image generation:', enhancedPrompt);
-      
-      response = await fetch('https://api.openai.com/v1/images/generations', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${openaiApiKey}`
-        },
-        body: JSON.stringify({
-          model: 'dall-e-3',
-          prompt: enhancedPrompt,
-          n: 1,
-          size: size,
-          quality: quality,
-          response_format: 'b64_json'
-        })
-      });
+      try {
+        // Download image from Supabase Storage
+        const supabaseUrl = Deno.env.get('SUPABASE_URL');
+        const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+        
+        if (!supabaseUrl || !supabaseServiceKey) {
+          throw new Error('Supabase configuration missing');
+        }
+        
+        // Fetch the image from storage
+        const imageUrl = `${supabaseUrl}/storage/v1/object/image-processing/${imagePath}`;
+        console.log('Fetching reference image from:', imageUrl);
+        
+        const imageResponse = await fetch(imageUrl, {
+          headers: {
+            'Authorization': `Bearer ${supabaseServiceKey}`
+          }
+        });
+        
+        if (!imageResponse.ok) {
+          console.error('Failed to fetch image from storage:', imageResponse.status, imageResponse.statusText);
+          throw new Error(`Failed to fetch image from storage: ${imageResponse.status}`);
+        }
+        
+        // Convert to base64 for GPT-4 Vision
+        const imageBlob = await imageResponse.blob();
+        const arrayBuffer = await imageBlob.arrayBuffer();
+        const base64Image = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+        const imageDataUrl = `data:image/png;base64,${base64Image}`;
+        
+        console.log('Analyzing reference image with GPT-4 Vision...');
+        
+        // Use GPT-4 Vision to analyze the reference image
+        const visionResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${openaiApiKey}`
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o',
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'text',
+                    text: `Analyze this image in detail. Describe the subjects, composition, colors, lighting, setting, and mood. Then, based on this analysis and the user's request: "${prompt}", create a detailed prompt for DALL-E 3 that will generate a new image incorporating the requested changes while maintaining the essence of the original scene.`
+                  },
+                  {
+                    type: 'image_url',
+                    image_url: {
+                      url: imageDataUrl
+                    }
+                  }
+                ]
+              }
+            ],
+            max_tokens: 500
+          })
+        });
 
-      console.log(`OpenAI generation response status: ${response.status}`);
+        if (!visionResponse.ok) {
+          console.error('GPT-4 Vision analysis failed:', visionResponse.status);
+          throw new Error('Failed to analyze reference image');
+        }
+
+        const visionData = await visionResponse.json();
+        const enhancedPrompt = visionData.choices[0].message.content;
+        
+        console.log('Enhanced prompt from image analysis:', enhancedPrompt);
+        
+        // Now use DALL-E 3 with the enhanced prompt
+        response = await fetch('https://api.openai.com/v1/images/generations', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${openaiApiKey}`
+          },
+          body: JSON.stringify({
+            model: 'dall-e-3',
+            prompt: enhancedPrompt,
+            n: 1,
+            size: size,
+            quality: quality,
+            response_format: 'b64_json'
+          })
+        });
+
+        console.log(`OpenAI generation response status: ${response.status}`);
+        
+      } catch (storageError) {
+        console.error('Image analysis error:', storageError);
+        throw new Error(`Failed to process reference image: ${storageError instanceof Error ? storageError.message : 'Unknown error'}`);
+      }
     } else {
       console.log('Processing standard image generation...');
       
