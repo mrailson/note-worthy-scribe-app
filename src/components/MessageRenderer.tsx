@@ -536,7 +536,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
           )}
 
           {/* Quick Action Buttons - only for assistant messages, not in modal, and only if not streaming */}
-          {message.role === 'assistant' && !isModal && !message.isStreaming && onQuickResponse && (
+          {message.role === 'assistant' && !isModal && onQuickResponse && (
             <QuickActionButtons
               content={message.content}
               onQuickResponse={onQuickResponse}
