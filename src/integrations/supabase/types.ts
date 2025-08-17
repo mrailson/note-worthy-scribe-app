@@ -4075,6 +4075,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      validate_input_security: {
+        Args: { input_text: string }
+        Returns: boolean
+      }
       validate_meeting_access_and_log: {
         Args: { p_content_type?: string; p_meeting_id: string }
         Returns: boolean
