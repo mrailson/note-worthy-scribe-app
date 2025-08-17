@@ -3,9 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EditStates, EditContent, ExpandDialog } from "@/types/gpscribe";
-import { Brain, Copy, Download, Edit, Check, X, Maximize2, Mail } from "lucide-react";
+import { Brain, Copy, Download, Edit, Check, X, Maximize2, Mail, FileText, Clock, MessageSquare, UserCheck, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import { useState } from "react";
 
 interface SummaryPanelProps {
   transcript: string;
@@ -52,6 +54,8 @@ export const SummaryPanel = ({
   onExpandContent,
   onCloseExpandDialog
 }: SummaryPanelProps) => {
+  const [activeSubTab, setActiveSubTab] = useState("summary");
+  
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     toast.success("Copied to clipboard");
@@ -162,36 +166,237 @@ export const SummaryPanel = ({
 
   return (
     <div className="space-y-6">
-      {/* Generate Summary Button */}
-      <div className="flex flex-col sm:flex-row gap-4 justify-center">
-        <Button
-          onClick={onGenerateSummary}
-          disabled={!transcript.trim() || isGenerating}
-          className="bg-gradient-primary hover:bg-primary-hover touch-manipulation min-h-[44px] text-base font-medium px-6"
-          size="lg"
-        >
-          <Brain className="h-4 w-4 mr-2" />
-          {isGenerating ? 'Generating...' : 'Generate Notes'}
-        </Button>
-        
-        <Button
-          onClick={onGenerateReferralLetter}
-          disabled={!transcript.trim() || isGenerating}
-          variant="outline"
-          className="touch-manipulation min-h-[44px]"
-          size="lg"
-        >
-          <Mail className="h-4 w-4 mr-2" />
-          Generate Referral Letter
-        </Button>
+      {/* Header with consultation type and timer */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-primary/10">
+            <Brain className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <h2 className="text-xl font-semibold text-primary">Upper Respiratory Tract Infection</h2>
+            <p className="text-sm text-muted-foreground">Training Example</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Clock className="h-4 w-4" />
+            <span>05:00</span>
+            <span className="text-xs">345 words</span>
+          </div>
+          <Badge variant="secondary" className="bg-primary text-primary-foreground">
+            Acute Illness
+          </Badge>
+        </div>
       </div>
 
-      {/* Generated Content Sections */}
-      {gpSummary && renderContentSection("GP Summary", gpSummary, "gpSummary")}
-      {fullNote && renderContentSection("Full Clinical Note", fullNote, "fullNote")}
-      {patientCopy && renderContentSection("Patient Copy", patientCopy, "patientCopy")}
-      {traineeFeedback && renderContentSection("Trainee Feedback", traineeFeedback, "traineeFeedback")}
-      {referralLetter && renderContentSection("Referral Letter", referralLetter, "referralLetter", true)}
+      {/* Main Content Area with Tabs */}
+      <Card className="bg-card">
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <MessageSquare className="h-5 w-5 text-primary" />
+            <CardTitle className="text-lg">Consultation Notes & Feedback</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-4 mb-6">
+              <TabsTrigger value="summary" className="text-xs">
+                <UserCheck className="h-4 w-4 mr-1" />
+                Consultation Summary
+              </TabsTrigger>
+              <TabsTrigger value="patient" className="text-xs">
+                <FileText className="h-4 w-4 mr-1" />
+                Patient Copy
+              </TabsTrigger>
+              <TabsTrigger value="referral" className="text-xs">
+                <Mail className="h-4 w-4 mr-1" />
+                Referral
+              </TabsTrigger>
+              <TabsTrigger value="review" className="text-xs">
+                <AlertTriangle className="h-4 w-4 mr-1" />
+                Review & Recommendations
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Action buttons below tabs */}
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Detail:</span>
+                <span className="text-sm font-medium">Standard</span>
+                <div className="w-16 h-2 bg-muted rounded-full">
+                  <div className="w-8 h-2 bg-primary rounded-full"></div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={onGenerateSummary}
+                  disabled={!transcript.trim() || isGenerating}
+                  variant="outline"
+                  size="sm"
+                >
+                  <Copy className="h-4 w-4 mr-1" />
+                  Copy
+                </Button>
+                <Button
+                  onClick={() => onExportWord(gpSummary || fullNote, "Consultation Summary")}
+                  variant="outline"
+                  size="sm"
+                >
+                  <Download className="h-4 w-4 mr-1" />
+                  Doc
+                </Button>
+                <Button
+                  onClick={onGenerateSummary}
+                  disabled={!transcript.trim() || isGenerating}
+                  variant="outline"
+                  size="sm"
+                >
+                  <Edit className="h-4 w-4 mr-1" />
+                  Edit
+                </Button>
+                <Button variant="ghost" size="sm" className="text-primary">
+                  <Brain className="h-4 w-4 mr-1" />
+                  Ask AI
+                </Button>
+              </div>
+            </div>
+
+            <TabsContent value="summary" className="space-y-4">
+              <div className="space-y-4">
+                {!gpSummary ? (
+                  <div className="text-center py-8">
+                    <Button
+                      onClick={onGenerateSummary}
+                      disabled={!transcript.trim() || isGenerating}
+                      className="bg-gradient-primary hover:bg-primary-hover"
+                      size="lg"
+                    >
+                      <Brain className="h-4 w-4 mr-2" />
+                      {isGenerating ? 'Generating...' : 'Generate Notes'}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="prose prose-sm max-w-none">
+                    <p className="text-sm leading-relaxed">
+                      {gpSummary}
+                    </p>
+                  </div>
+                )}
+                
+                {/* View Original Transcript button */}
+                <div className="mt-6 pt-4 border-t">
+                  <Button variant="ghost" size="sm" className="text-muted-foreground">
+                    <FileText className="h-4 w-4 mr-2" />
+                    View Original Transcript
+                    <span className="ml-auto text-xs">Show</span>
+                  </Button>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="patient" className="space-y-4">
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <Button variant="outline" className="justify-start">
+                    <MessageSquare className="h-4 w-4 mr-2" />
+                    SMS (50 words)
+                  </Button>
+                  <Button variant="outline" className="justify-start">
+                    <Mail className="h-4 w-4 mr-2" />
+                    Email Format
+                  </Button>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-medium text-primary">SMS Short Summary</h4>
+                    <Button variant="ghost" size="sm">
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Maximum 50 words for text message</p>
+                  <div className="p-3 bg-muted/50 rounded border text-sm">
+                    {patientCopy || "Hi, thank you for your consultation. You have a common cold (viral upper respiratory tract infection). Contact us with any concerns."}
+                  </div>
+                  <p className="text-xs text-muted-foreground">Word count: 21 words</p>
+                </div>
+                
+                {/* View Original Transcript button */}
+                <div className="mt-6 pt-4 border-t">
+                  <Button variant="ghost" size="sm" className="text-muted-foreground">
+                    <FileText className="h-4 w-4 mr-2" />
+                    View Original Transcript
+                    <span className="ml-auto text-xs">Show</span>
+                  </Button>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="referral" className="space-y-4">
+              <div className="text-center py-8">
+                <Button
+                  onClick={onGenerateReferralLetter}
+                  disabled={!transcript.trim() || isGenerating}
+                  className="bg-gradient-primary hover:bg-primary-hover"
+                  size="lg"
+                >
+                  <Mail className="h-4 w-4 mr-2" />
+                  Generate Referral Letter
+                </Button>
+                {referralLetter && (
+                  <div className="mt-6 text-left">
+                    <Textarea
+                      value={referralLetter}
+                      readOnly
+                      className="min-h-[200px] resize-none"
+                    />
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="review" className="space-y-4">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-lg font-medium">Review of Consultation and Recommendations</h4>
+                  <div className="flex gap-2">
+                    <Button variant="ghost" size="sm">
+                      <Download className="h-4 w-4 mr-1" />
+                      Word
+                    </Button>
+                    <Button variant="ghost" size="sm">
+                      <Copy className="h-4 w-4 mr-1" />
+                      Copy
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="prose prose-sm max-w-none space-y-4">
+                  <div>
+                    <h5 className="font-medium">Consultation Review and Analysis</h5>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      The consultation regarding the patient with symptoms of an upper respiratory tract infection (URTI) was generally well-conducted. However, 
+                      there are areas for improvement in history taking, examination, and management plan. Below is a comprehensive analysis of what may have 
+                      been missed, areas for improvement, and recommendations.
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <h5 className="font-medium">1. Areas for Improvement</h5>
+                  </div>
+                  
+                  <div>
+                    <h6 className="font-medium text-sm">History Taking:</h6>
+                    <p className="text-sm text-muted-foreground">
+                      The patient's past medical history was not explored in detail. It would be beneficial to know if the patient has any chronic conditions (e.g.,
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
 
       {/* Expand Dialog */}
       <Dialog open={expandDialog.isOpen} onOpenChange={onCloseExpandDialog}>
