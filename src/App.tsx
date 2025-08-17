@@ -22,6 +22,7 @@ import ComplianceDocumentation from "./pages/ComplianceDocumentation";
 import SecurityCompliance from "./pages/SecurityCompliance";
 import AIAnimationPreview from "./pages/AIAnimationPreview";
 import APITesting from "./pages/APITesting";
+import ImageCreate from "./pages/ImageCreate";
 
 import NotFound from "./pages/NotFound";
 import { ResetPassword } from "./components/ResetPassword";
@@ -63,6 +64,7 @@ const App = () => (
       <Route path="/security-compliance" element={<SecurityCompliance />} />
       <Route path="/ai-animation-preview" element={<AIAnimationPreview />} />
       <Route path="/api-testing" element={<APITesting />} />
+      <Route path="/image-create" element={<ImageCreate />} />
       
       <Route path="/reset-password" element={<ResetPassword />} />
       
