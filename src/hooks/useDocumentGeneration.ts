@@ -153,7 +153,34 @@ export const useDocumentGeneration = () => {
 
   const exportToPowerPoint = useCallback(async (content: string, title: string) => {
     try {
-      await generatePowerPoint(content, title);
+      // Use new edge function approach for better formatting
+      const { parseContentToSlides } = await import('@/utils/contentParser');
+      const structuredData = parseContentToSlides(content, title);
+      
+      const { data, error } = await supabase.functions.invoke('json-to-pptx', {
+        body: { jsonData: JSON.stringify(structuredData) }
+      });
+
+      if (error) {
+        console.error('Edge function error:', error);
+        // Fallback to local generation
+        const { generatePowerPoint } = await import('@/utils/documentGenerators');
+        await generatePowerPoint(content, title);
+      } else {
+        // Handle binary response for download
+        const blob = new Blob([data], { 
+          type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' 
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${title.toLowerCase().replace(/\s+/g, '-')}.pptx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+      
       toast.success("PowerPoint presentation exported successfully");
     } catch (error) {
       console.error('PowerPoint export error:', error);

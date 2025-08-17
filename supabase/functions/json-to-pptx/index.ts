@@ -55,15 +55,34 @@ export async function jsonToPpt(jsonString: string): Promise<ArrayBuffer> {
         zebra: { isZebra: true, color: LIGHT_GREY },
       });
     } else if (slide.bullets?.length) {
-      // Bullet slide
-      const bullets = slide.bullets.map((t: string) => ({ text: t, options: { bullet: true, breakLine: true } }));
-      s.addText(bullets, {
-        x: 0.6, y: 1.25, w: 9.0, h: 4.8,
-        ...bodyText,
-        // These three lines stop overlap:
-        autoFit: true,           // shrink-to-fit
-        lineSpacing: 28,         // ~1.3x
-        margin: 10,
+      // Bullet slide - improved spacing to prevent overlap
+      let yPos = 1.4; // Start below header with more margin
+      const bulletSpacing = 0.6; // Increased spacing between bullets
+      const maxBulletsPerSlide = 6; // Limit bullets to prevent overflow
+      
+      const bulletsToShow = slide.bullets.slice(0, maxBulletsPerSlide);
+      
+      bulletsToShow.forEach((bulletText: string, index: number) => {
+        // Calculate text height based on content length
+        const estimatedLines = Math.ceil(bulletText.length / 80);
+        const textHeight = Math.max(0.4, estimatedLines * 0.3);
+        
+        s.addText(`• ${bulletText}`, {
+          x: 0.6, 
+          y: yPos, 
+          w: 9.0, 
+          h: textHeight,
+          ...bodyText,
+          lineSpacing: 26, // Proper line spacing
+          wrap: true,
+          margin: 8,
+          valign: 'top'
+        });
+        
+        yPos += textHeight + bulletSpacing;
+        
+        // Prevent going off slide
+        if (yPos > 5.8) break;
       });
     }
 
