@@ -348,14 +348,13 @@ export const generatePowerPoint = async (content: string, title: string = 'AI Ge
       });
     };
     
-    // Helper function to get appropriate icon for content
-    const getContentIcon = (text: string): string => {
+    // Helper function to get appropriate icon for section
+    const getIconForSection = (text: string): string => {
       const lowerText = text.toLowerCase();
-      if (lowerText.includes('table') || lowerText.includes('data') || lowerText.includes('comparison')) return '📊 ';
-      if (lowerText.includes('contraindication') || lowerText.includes('warning') || lowerText.includes('caution')) return '⚠️ ';
-      if (lowerText.includes('dos') || lowerText.includes('medication') || lowerText.includes('drug') || lowerText.includes('treatment')) return '💊 ';
-      if (lowerText.includes('reference') || lowerText.includes('study') || lowerText.includes('evidence')) return '📑 ';
-      if (lowerText.includes('symptom') || lowerText.includes('sign') || lowerText.includes('diagnosis')) return '🩺 ';
+      if (lowerText.includes('contraindication') || lowerText.includes('warning') || lowerText.includes('caution')) return '⚠️';
+      if (lowerText.includes('dos') || lowerText.includes('medication') || lowerText.includes('drug') || lowerText.includes('treatment')) return '💊';
+      if (lowerText.includes('reference') || lowerText.includes('study') || lowerText.includes('evidence')) return '📑';
+      if (lowerText.includes('symptom') || lowerText.includes('sign') || lowerText.includes('diagnosis')) return '🩺';
       return '';
     };
     
@@ -417,7 +416,7 @@ export const generatePowerPoint = async (content: string, title: string = 'AI Ge
         slideCount++;
         
         const slideTitle = cleanMarkdown(firstLine.replace(/^#+\s*/, '').replace(/:$/, ''));
-        const titleIcon = getContentIcon(slideTitle);
+        const titleIcon = getIconForSection(slideTitle);
         
         textSlide.addText(titleIcon + slideTitle, {
           x: 0.8,
@@ -430,26 +429,32 @@ export const generatePowerPoint = async (content: string, title: string = 'AI Ge
           fontFace: 'Calibri'
         });
         
-        // Add descriptive text content
-        const textContent = nonTableLines
+        // Convert dashes to bullet points and handle proper spacing
+        const bulletPoints = nonTableLines
           .filter(line => line.trim().length > 0)
-          .map(line => cleanMarkdown(line.trim()))
-          .filter(line => line.length > 0)
-          .join('\n• ');
+          .map(line => {
+            // Remove leading dashes and clean up
+            let cleanLine = cleanMarkdown(line.replace(/^[-•]\s*/, '').trim());
+            return cleanLine;
+          })
+          .filter(line => line.length > 0);
         
-        if (textContent) {
-          textSlide.addText('• ' + textContent, {
+        // Add each bullet point separately for proper spacing
+        bulletPoints.forEach((point, index) => {
+          textSlide.addText(point, {
             x: 1.2,
-            y: 2.0,
+            y: 2.0 + (index * 0.4),
             w: 7.6,
-            h: 4.2,
+            h: 0.35,
             fontSize: 22,
             fontFace: 'Calibri',
-            color: '333333',
-            lineSpacing: 1.3,
-            valign: 'top'
+            bullet: { type: 'bullet' },
+            lineSpacing: 26,
+            wrap: true,
+            autoFit: true,
+            color: '333333'
           });
-        }
+        });
         
         addFooter(textSlide);
         
@@ -569,7 +574,7 @@ export const generatePowerPoint = async (content: string, title: string = 'AI Ge
         slideCount++;
         
         const slideTitle = cleanMarkdown(firstLine.replace(/^#+\s*/, '').replace(/:$/, ''));
-        const titleIcon = getContentIcon(slideTitle);
+        const titleIcon = getIconForSection(slideTitle);
         
         textSlide.addText(titleIcon + slideTitle, {
           x: 0.8,
@@ -582,27 +587,33 @@ export const generatePowerPoint = async (content: string, title: string = 'AI Ge
           fontFace: 'Calibri'
         });
         
-        // Add content as bullet points
+        // Convert dashes to bullet points and handle proper spacing
         if (lines.length > 1) {
-          const contentLines = lines.slice(1).filter(line => line.trim());
-          const bulletText = contentLines
-            .map(line => cleanMarkdown(line.trim()))
-            .filter(line => line.length > 0)
-            .join('\n• ');
+          const bulletPoints = lines.slice(1)
+            .filter(line => line.trim())
+            .map(line => {
+              // Remove leading dashes and clean up
+              let cleanLine = cleanMarkdown(line.replace(/^[-•]\s*/, '').trim());
+              return cleanLine;
+            })
+            .filter(line => line.length > 0);
           
-          if (bulletText) {
-            textSlide.addText('• ' + bulletText, {
+          // Add each bullet point separately for proper spacing
+          bulletPoints.forEach((point, index) => {
+            textSlide.addText(point, {
               x: 1.2,
-              y: 2.0,
+              y: 2.0 + (index * 0.4),
               w: 7.6,
-              h: 4.2,
+              h: 0.35,
               fontSize: 22,
               fontFace: 'Calibri',
-              color: '333333',
-              lineSpacing: 1.3,
-              valign: 'top'
+              bullet: { type: 'bullet' },
+              lineSpacing: 26,
+              wrap: true,
+              autoFit: true,
+              color: '333333'
             });
-          }
+          });
         }
         
         addFooter(textSlide);
