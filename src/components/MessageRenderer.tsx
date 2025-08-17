@@ -20,13 +20,14 @@ import {
   Mail,
   Download,
   Zap,
-  GraduationCap
+  GraduationCap,
+  Settings
 } from 'lucide-react';
 import { toast } from 'sonner';
 import QuickActionButtons from '@/components/QuickActionButtons';
 import { useAuth } from '@/contexts/AuthContext';
 import { EmailCompositionModal } from '@/components/EmailCompositionModal';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from '@/components/ui/dropdown-menu';
 
 interface Message {
   id: string;
@@ -674,6 +675,42 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                             <GraduationCap className="h-4 w-4 mr-2" />
                             Create as detailed training document for staff
                           </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuLabel className="text-xs font-medium text-muted-foreground px-2 py-1.5">
+                            Settings
+                          </DropdownMenuLabel>
+                          <DropdownMenuSub>
+                            <DropdownMenuSubTrigger>
+                              <Settings className="h-4 w-4 mr-2" />
+                              Model selection
+                            </DropdownMenuSubTrigger>
+                            <DropdownMenuSubContent>
+                              <DropdownMenuItem onClick={() => handleQuickPickAction("Change model to GPT-5")}>
+                                GPT-5 (OpenAI)
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleQuickPickAction("Change model to Claude 4 Opus")}>
+                                Claude 4 Opus (Anthropic)
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleQuickPickAction("Change model to Claude 4 Sonnet")}>
+                                Claude 4 Sonnet (Anthropic)
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleQuickPickAction("Change model to Gemini 1.5 Pro")}>
+                                Gemini 1.5 Pro (Google)
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleQuickPickAction("Change model to Gemini 1.5 Flash")}>
+                                Gemini 1.5 Flash (Google)
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleQuickPickAction("Change model to Grok")}>
+                                Grok (xAI)
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleQuickPickAction("Change model to GPT-4 Turbo (Recommended)")}>
+                                GPT-4 Turbo (Recommended)
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleQuickPickAction("Change model to Gemini Ultra")}>
+                                Gemini Ultra (Google)
+                              </DropdownMenuItem>
+                            </DropdownMenuSubContent>
+                          </DropdownMenuSub>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Combine with my practice information")}>
                             <FileText className="h-4 w-4 mr-2" />
