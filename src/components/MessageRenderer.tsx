@@ -102,6 +102,23 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
       }
     }, 300);
   };
+
+  const handleScrollToTop = () => {
+    // Scroll to top of chat area
+    const chatContainer = document.querySelector('[data-radix-scroll-area-viewport]');
+    if (chatContainer) {
+      chatContainer.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    } else {
+      // Fallback to window scroll
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    }
+  };
   
   const maxPreviewLength = 500;
   const isLongMessage = message.content.length > 1000;
@@ -345,9 +362,20 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   return (
     <div className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
       <div className={`flex gap-3 w-full max-w-[95%] sm:max-w-[85%] ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-        {/* Avatar with scroll arrow for assistant messages - hidden in modal */}
+        {/* Avatar with scroll arrows for assistant messages - hidden in modal */}
         {!isModal && (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col items-center gap-1">
+            {/* Scroll to top arrow - above robot icon */}
+            {message.role === 'assistant' && (
+              <button
+                onClick={handleScrollToTop}
+                className="p-1 rounded-full hover:bg-muted transition-colors opacity-60 hover:opacity-100"
+                title="Scroll to top"
+              >
+                <ChevronsUp className="h-3 w-3 text-muted-foreground" />
+              </button>
+            )}
+            
             <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
               message.role === 'user' ? 'bg-primary' : 'bg-muted'
             }`}>
@@ -358,7 +386,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
               )}
             </div>
             
-            {/* Scroll to input arrow - only show for assistant messages, on the right side */}
+            {/* Scroll to input arrow - below robot icon */}
             {message.role === 'assistant' && (
               <button
                 onClick={handleScrollToInput}
