@@ -303,35 +303,6 @@ const Index = () => {
             <ExamplesPanel onLoadExample={handleLoadExample} />
           </TabsContent>
 
-          {/* Guidance Tab */}
-          <TabsContent value="guidance" className="space-y-6 mt-6">
-            <div className="text-center text-muted-foreground">
-              <p>AI guidance features coming soon</p>
-            </div>
-          </TabsContent>
-
-          {/* Settings Tab */}
-          <TabsContent value="settings" className="space-y-6 mt-6">
-            <SettingsPanel
-              consultationType={settings.consultationType}
-              outputLevel={settings.outputLevel}
-              showSnomedCodes={settings.showSnomedCodes}
-              formatForEmis={settings.formatForEmis}
-              formatForSystmOne={settings.formatForSystmOne}
-              tickerEnabled={settings.tickerEnabled}
-              showTranscriptTimestamps={settings.showTranscriptTimestamps}
-              onConsultationTypeChange={settings.setConsultationType}
-              onOutputLevelChange={settings.setOutputLevel}
-              onShowSnomedCodesChange={settings.setShowSnomedCodes}
-              onFormatForEmisChange={settings.setFormatForEmis}
-              onFormatForSystmOneChange={settings.setFormatForSystmOne}
-              onTickerEnabledChange={settings.setTickerEnabled}
-              onShowTranscriptTimestampsChange={settings.setShowTranscriptTimestamps}
-              onSaveSettings={settings.saveUserSettings}
-              onResetSettings={settings.resetSettings}
-            />
-          </TabsContent>
-
           {/* History Tab */}
           <TabsContent value="history" className="space-y-6 mt-6">
             <ConsultationHistory />

@@ -60,4 +60,4 @@ export interface AudioQueueItem {
 }
 
 export type ConsultationType = "face-to-face" | "telephone";
-export type ActiveTab = "consultation" | "translation" | "summary" | "examples" | "guidance" | "settings" | "history" | "chat" | "ai4gp";
+export type ActiveTab = "consultation" | "translation" | "summary" | "examples" | "history" | "chat" | "ai4gp";
