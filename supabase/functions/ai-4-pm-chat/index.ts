@@ -104,7 +104,7 @@ interface RequestBody {
   model: 'claude' | 'gpt' | 'grok-beta' | 'claude-4-opus' | 'claude-4-sonnet' | 'gpt-4-turbo' | 'gemini-ultra' | 'gemini-1.5-pro' | 'gemini-1.5-flash';
   systemPrompt: string;
   files?: UploadedFile[];
-  enableWebSearch?: boolean;
+  verificationLevel?: string;
 }
 
 // Helper function to extract text content from files
@@ -1189,7 +1189,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, model, systemPrompt, files, enableWebSearch }: RequestBody = await req.json();
+    const { messages, model, systemPrompt, files, verificationLevel }: RequestBody = await req.json();
 
     console.log(`Processing request with model: ${model || 'undefined'}`);
     console.log(`Messages count: ${messages?.length || 0}`);
@@ -1239,26 +1239,60 @@ serve(async (req) => {
     const today = new Date().toISOString().split('T')[0];
     const enhancedSystemPrompt = systemPrompt + `\nCURRENT DATE: ${today}`;
     
-    console.log('Using optimized AI4GP with native OpenAI web search capabilities');
+    console.log('Using optimized AI4GP with live source verification capabilities');
+    console.log('Verification level:', verificationLevel);
+
+    // Add live source verification context if enabled
+    let sourceContext = '';
+    if (verificationLevel && verificationLevel !== 'standard') {
+      try {
+        console.log('Fetching live sources via smart router...');
+        const routerResponse = await fetch(`https://dphcnbricafkbtizkoal.supabase.co/functions/v1/smart-source-router`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
+          },
+          body: JSON.stringify({ 
+            query: messages[messages.length - 1]?.content || '',
+            verificationLevel,
+            maxSources: verificationLevel === 'maximum' ? 5 : 3
+          })
+        });
+
+        if (routerResponse.ok) {
+          const routerData = await routerResponse.json();
+          if (routerData.sources && routerData.sources.length > 0) {
+            sourceContext = `\n\nLIVE SOURCE VERIFICATION DATA:\n${routerData.sources.map((s: any) => 
+              `Source: ${s.source} (${s.url})\nConfidence: ${s.confidence}\nContent: ${s.content}\nLast Updated: ${s.lastUpdated || 'Unknown'}\n`
+            ).join('\n')}\n\nVerification Panel: Sources checked - ${routerData.verificationPanel.sourcesChecked.join(', ')}, Confidence Score: ${routerData.verificationPanel.confidenceScore}`;
+            console.log('Live sources integrated successfully');
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching live sources:', error);
+      }
+    }
 
     let response: string;
 
+    const finalSystemPrompt = enhancedSystemPrompt + sourceContext;
     // Model routing with proper mapping - default to gpt-4-turbo if unsupported
     if (selectedModel === 'claude' || selectedModel === 'claude-4-opus' || selectedModel === 'claude-4-sonnet') {
-      response = await callClaude(processedMessages, enhancedSystemPrompt, files);
+      response = await callClaude(processedMessages, finalSystemPrompt, files);
     } else if (selectedModel === 'gpt' || selectedModel === 'gpt-4-turbo' || selectedModel === 'gpt-5' || !selectedModel) {
       // Default to GPT-4 Turbo for gpt-5 or any unsupported model
-      response = await callGPT4Turbo(processedMessages, enhancedSystemPrompt, files);
+      response = await callGPT4Turbo(processedMessages, finalSystemPrompt, files);
     } else if (selectedModel === 'grok-beta') {
-      response = await callGrok(processedMessages, enhancedSystemPrompt, files);
+      response = await callGrok(processedMessages, finalSystemPrompt, files);
     } else if (selectedModel === 'gemini-ultra' || selectedModel === 'gemini-1.5-pro') {
-      response = await callGemini(processedMessages, enhancedSystemPrompt, 'gemini-1.5-pro', files);
+      response = await callGemini(processedMessages, finalSystemPrompt, 'gemini-1.5-pro', files);
     } else if (selectedModel === 'gemini-1.5-flash') {
-      response = await callGemini(processedMessages, enhancedSystemPrompt, 'gemini-1.5-flash', files);
+      response = await callGemini(processedMessages, finalSystemPrompt, 'gemini-1.5-flash', files);
     } else {
       // Fallback to GPT-4 Turbo for any unsupported model
       console.log(`Unsupported model ${selectedModel}, falling back to GPT-4 Turbo`);
-      response = await callGPT4Turbo(processedMessages, enhancedSystemPrompt, files);
+      response = await callGPT4Turbo(processedMessages, finalSystemPrompt, files);
     }
 
     return new Response(
