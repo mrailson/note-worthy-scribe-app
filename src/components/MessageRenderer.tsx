@@ -653,9 +653,9 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                             <CheckSquare className="h-4 w-4 mr-2" />
                             Prompt Reply: No
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Expand this with more information")}>
+                          <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Expand with more detail and examples")}>
                             <Expand className="h-4 w-4 mr-2" />
-                            Expand this with more information
+                            Expand with more detail and examples
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Combine with my practice information")}>
                             <FileText className="h-4 w-4 mr-2" />
