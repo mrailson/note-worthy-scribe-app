@@ -1,6 +1,7 @@
 import { Document, Packer, Paragraph, TextRun, ExternalHyperlink, Table, TableRow, TableCell, WidthType, BorderStyle, UnderlineType } from 'docx';
 import { saveAs } from 'file-saver';
 import PptxGenJS from 'pptxgenjs';
+import jsPDF from 'jspdf';
 
 // Function to clean markdown formatting from text
 const cleanMarkdown = (text: string): string => {
@@ -477,5 +478,141 @@ export const generatePowerPoint = async (content: string, title: string = 'AI Ge
   } catch (error) {
     console.error('Error generating PowerPoint:', error);
     throw new Error('Failed to generate PowerPoint presentation');
+  }
+};
+
+export const generatePDF = async (content: string, title: string = 'AI Generated Document') => {
+  try {
+    const pdf = new jsPDF();
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const margin = 20;
+    const lineHeight = 7;
+    const maxLineWidth = pageWidth - (margin * 2);
+    let yPosition = margin;
+
+    // Helper function to add a new page if needed
+    const addNewPageIfNeeded = (requiredHeight: number) => {
+      if (yPosition + requiredHeight > pageHeight - margin) {
+        pdf.addPage();
+        yPosition = margin;
+      }
+    };
+
+    // Helper function to wrap text
+    const wrapText = (text: string, fontSize: number): string[] => {
+      pdf.setFontSize(fontSize);
+      return pdf.splitTextToSize(text, maxLineWidth);
+    };
+
+    // Add title
+    pdf.setFontSize(20);
+    pdf.setFont('helvetica', 'bold');
+    const titleLines = wrapText(title, 20);
+    titleLines.forEach((line, index) => {
+      pdf.text(line, margin, yPosition);
+      yPosition += lineHeight + 2;
+    });
+
+    yPosition += 10;
+
+    // Add generation date
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(128, 128, 128);
+    pdf.text(`Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`, margin, yPosition);
+    yPosition += lineHeight * 2;
+
+    // Reset text color
+    pdf.setTextColor(0, 0, 0);
+
+    // Process content
+    const sections = content.split('\n\n');
+    
+    for (const section of sections) {
+      const trimmedSection = section.trim();
+      if (!trimmedSection) continue;
+
+      const lines = trimmedSection.split('\n');
+      
+      for (const line of lines) {
+        if (!line.trim()) continue;
+
+        // Check if it's a heading
+        const headingMatch = line.match(/^(#+)\s+(.+)$/);
+        if (headingMatch) {
+          const level = Math.min(headingMatch[1].length, 6);
+          const headingText = cleanMarkdown(headingMatch[2]);
+          
+          // Add space before heading
+          yPosition += 5;
+          addNewPageIfNeeded(lineHeight + 5);
+          
+          // Set heading style
+          const fontSize = 16 - (level * 1);
+          pdf.setFontSize(fontSize);
+          pdf.setFont('helvetica', 'bold');
+          pdf.setTextColor(46, 92, 138); // Blue color
+          
+          const headingLines = wrapText(headingText, fontSize);
+          headingLines.forEach((headingLine) => {
+            addNewPageIfNeeded(lineHeight);
+            pdf.text(headingLine, margin, yPosition);
+            yPosition += lineHeight;
+          });
+          
+          // Reset style
+          pdf.setFont('helvetica', 'normal');
+          pdf.setTextColor(0, 0, 0);
+          yPosition += 3;
+          
+        } else {
+          // Regular text
+          const cleanedLine = cleanMarkdown(line);
+          if (!cleanedLine) continue;
+          
+          // Check if line contains table indicators
+          if (cleanedLine.includes('|') && cleanedLine.split('|').length > 2) {
+            // Simple table handling - split by pipes
+            const cells = cleanedLine.split('|').map(cell => cell.trim()).filter(cell => cell !== '');
+            if (cells.length > 0 && !cells.every(cell => /^[-\s]*$/.test(cell))) {
+              addNewPageIfNeeded(lineHeight);
+              pdf.setFontSize(10);
+              pdf.setFont('helvetica', 'normal');
+              
+              const cellWidth = maxLineWidth / cells.length;
+              cells.forEach((cell, index) => {
+                const xPos = margin + (index * cellWidth);
+                const cellText = cleanMarkdown(cell);
+                pdf.text(cellText, xPos, yPosition);
+              });
+              yPosition += lineHeight;
+            }
+          } else {
+            // Regular paragraph
+            pdf.setFontSize(11);
+            pdf.setFont('helvetica', 'normal');
+            
+            const textLines = wrapText(cleanedLine, 11);
+            textLines.forEach((textLine) => {
+              addNewPageIfNeeded(lineHeight);
+              pdf.text(textLine, margin, yPosition);
+              yPosition += lineHeight;
+            });
+          }
+        }
+      }
+      
+      // Add space between sections
+      yPosition += 5;
+    }
+
+    // Save the PDF
+    const fileName = `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`;
+    pdf.save(fileName);
+    
+  } catch (error: any) {
+    console.error('Error generating PDF:', error);
+    throw new Error(`Failed to generate PDF: ${error.message}`);
   }
 };

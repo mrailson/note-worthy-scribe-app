@@ -179,8 +179,13 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   };
 
   const handleExportPDF = () => {
-    // TODO: Implement PDF export functionality
-    toast.success('PDF export functionality will be implemented soon');
+    import('@/utils/documentGenerators').then(({ generatePDF }) => {
+      generatePDF(message.content, 'AI Generated Document');
+      toast.success('PDF download started');
+    }).catch((error) => {
+      console.error('Failed to generate PDF:', error);
+      toast.error('Failed to generate PDF');
+    });
   };
 
   const handleEmailToMe = async () => {
