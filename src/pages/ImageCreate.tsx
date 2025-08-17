@@ -8,7 +8,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { LoginForm } from "@/components/LoginForm";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Download, Sparkles } from "lucide-react";
+import { Loader2, Download, Sparkles, Upload, X } from "lucide-react";
+import { useFileUpload } from "@/hooks/useFileUpload";
+import { UploadedFile } from "@/types/ai4gp";
 
 const ImageCreate = () => {
   const { user, loading } = useAuth();
@@ -16,6 +18,30 @@ const ImageCreate = () => {
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [revisedPrompt, setRevisedPrompt] = useState<string | null>(null);
+  const [uploadedImage, setUploadedImage] = useState<UploadedFile | null>(null);
+  const { processFiles, isProcessing } = useFileUpload();
+
+  const handleImageUpload = async (files: FileList) => {
+    try {
+      const processedFiles = await processFiles(files);
+      if (processedFiles.length > 0) {
+        // Only take the first image if multiple are uploaded
+        const imageFile = processedFiles.find(file => file.type.startsWith('image/'));
+        if (imageFile) {
+          setUploadedImage(imageFile);
+          toast.success("Image uploaded successfully!");
+        } else {
+          toast.error("Please upload an image file");
+        }
+      }
+    } catch (error) {
+      console.error("Error uploading image:", error);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setUploadedImage(null);
+  };
 
   const handleGenerateImage = async () => {
     if (!prompt.trim()) {
@@ -28,12 +54,20 @@ const ImageCreate = () => {
     setRevisedPrompt(null);
 
     try {
+      const requestBody: any = { 
+        prompt: prompt.trim(),
+        size: "1024x1024",
+        quality: "standard"
+      };
+
+      // If there's an uploaded image, include it in the request
+      if (uploadedImage) {
+        requestBody.referenceImage = uploadedImage.content;
+        requestBody.mode = "edit"; // Use edit mode for image-to-image
+      }
+
       const { data, error } = await supabase.functions.invoke('generate-image', {
-        body: { 
-          prompt: prompt.trim(),
-          size: "1024x1024",
-          quality: "standard"
-        }
+        body: requestBody
       });
 
       if (error) throw error;
@@ -116,37 +150,92 @@ const ImageCreate = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Reference Image Upload */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  Reference Image (Optional)
+                </label>
+                {uploadedImage ? (
+                  <div className="relative">
+                    <div className="aspect-video bg-muted/50 rounded-lg overflow-hidden">
+                      <img 
+                        src={uploadedImage.content.startsWith('IMAGE_DATA_URL:') 
+                          ? uploadedImage.content.replace('IMAGE_DATA_URL:', '') 
+                          : uploadedImage.content} 
+                        alt="Reference image"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="absolute top-2 right-2"
+                      onClick={handleRemoveImage}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div 
+                    className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center cursor-pointer hover:border-muted-foreground/50 transition-colors"
+                    onClick={() => document.getElementById('image-upload')?.click()}
+                  >
+                    <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">
+                      Click to upload a reference image
+                    </p>
+                    <p className="text-xs text-muted-foreground/70 mt-1">
+                      PNG, JPG, WEBP up to 10MB
+                    </p>
+                  </div>
+                )}
+                <input
+                  id="image-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => e.target.files && handleImageUpload(e.target.files)}
+                  className="hidden"
+                  disabled={isProcessing}
+                />
+              </div>
+
               <div className="space-y-2">
                 <label htmlFor="prompt" className="text-sm font-medium">
-                  Image Description
+                  {uploadedImage ? "Describe what to change or add" : "Image Description"}
                 </label>
                 <Textarea
                   id="prompt"
-                  placeholder="e.g., A serene mountain landscape at sunset with snow-capped peaks, warm orange and pink sky, reflected in a crystal clear lake..."
+                  placeholder={uploadedImage 
+                    ? "e.g., Change the sky to a dramatic sunset, add more trees in the foreground..."
+                    : "e.g., A serene mountain landscape at sunset with snow-capped peaks, warm orange and pink sky, reflected in a crystal clear lake..."
+                  }
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   rows={4}
                   className="resize-none"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Be descriptive for better results. Mention style, colors, mood, and details.
+                  {uploadedImage 
+                    ? "Describe modifications to make to the reference image."
+                    : "Be descriptive for better results. Mention style, colors, mood, and details."
+                  }
                 </p>
               </div>
 
               <Button 
                 onClick={handleGenerateImage}
-                disabled={isGenerating || !prompt.trim()}
+                disabled={isGenerating || !prompt.trim() || isProcessing}
                 className="w-full"
               >
                 {isGenerating ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generating Image...
+                    {uploadedImage ? "Editing Image..." : "Generating Image..."}
                   </>
                 ) : (
                   <>
                     <Sparkles className="mr-2 h-4 w-4" />
-                    Generate Image
+                    {uploadedImage ? "Edit Image" : "Generate Image"}
                   </>
                 )}
               </Button>
