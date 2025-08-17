@@ -26,20 +26,42 @@ const ImageCreate = () => {
   const { toast: useToastHook } = useToast();
 
   const handleImageUpload = async (files: FileList) => {
+    if (!files || files.length === 0) return;
+
     try {
+      const file = files[0]; // Only process the first file
+      
+      // Basic validation before processing
+      if (!file.type.startsWith('image/')) {
+        toast.error("Please upload an image file (PNG, JPG, or WEBP)");
+        return;
+      }
+
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error("Image too large. Please use an image smaller than 10MB");
+        return;
+      }
+
+      if (file.size === 0) {
+        toast.error("File appears to be empty. Please try another image");
+        return;
+      }
+
       const processedFiles = await processFiles(files);
       if (processedFiles.length > 0) {
-        // Only take the first image if multiple are uploaded
-        const imageFile = processedFiles.find(file => file.type.startsWith('image/'));
-        if (imageFile) {
-          setUploadedImage(imageFile);
-          toast.success("Image uploaded successfully!");
-        } else {
-          toast.error("Please upload an image file");
-        }
+        const imageFile = processedFiles[0];
+        setUploadedImage(imageFile);
+        
+        // Show helpful info about file size
+        const sizeInMB = (file.size / 1024 / 1024).toFixed(1);
+        const isLarge = file.size > 4 * 1024 * 1024;
+        
+        toast.success(`Image uploaded successfully! (${sizeInMB}MB)${isLarge ? ' - Large files may take longer to process' : ''}`);
       }
     } catch (error) {
       console.error("Error uploading image:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to upload image";
+      toast.error(errorMessage);
     }
   };
 
@@ -67,25 +89,52 @@ const ImageCreate = () => {
       // If there's an uploaded image, include it in the request
       if (uploadedImage) {
         requestBody.referenceImage = uploadedImage.content;
-        requestBody.mode = "edit"; // Use edit mode for image-to-image
+        requestBody.mode = "edit";
+        console.log("Sending image edit request with uploaded image");
+      } else {
+        console.log("Sending standard image generation request");
       }
 
       const { data, error } = await supabase.functions.invoke('generate-image', {
         body: requestBody
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase function error:", error);
+        throw new Error(`Request failed: ${error.message || 'Unknown error'}`);
+      }
 
-      if (data.success) {
+      if (data?.success) {
         setGeneratedImage(data.imageData);
         setRevisedPrompt(data.revisedPrompt);
-        toast.success("Image generated successfully!");
+        const mode = uploadedImage ? "edited" : "generated";
+        toast.success(`Image ${mode} successfully!`);
       } else {
-        throw new Error(data.error || "Failed to generate image");
+        const errorMsg = data?.error || "Unknown error occurred";
+        console.error("Generation failed:", errorMsg);
+        throw new Error(errorMsg);
       }
     } catch (error: any) {
       console.error("Error generating image:", error);
-      toast.error(error.message || "Failed to generate image");
+      
+      // Provide user-friendly error messages
+      let userMessage = "Failed to generate image";
+      
+      if (error.message) {
+        if (error.message.includes("too large")) {
+          userMessage = "Image file is too large. Please use a smaller image (under 4MB)";
+        } else if (error.message.includes("Invalid image")) {
+          userMessage = "Invalid image format. Please try uploading a different image";
+        } else if (error.message.includes("temporarily unavailable")) {
+          userMessage = "Image generation service is temporarily unavailable. Please try again in a moment";
+        } else if (error.message.includes("API key")) {
+          userMessage = "Service configuration error. Please contact support";
+        } else {
+          userMessage = error.message;
+        }
+      }
+      
+      toast.error(userMessage);
     } finally {
       setIsGenerating(false);
     }
