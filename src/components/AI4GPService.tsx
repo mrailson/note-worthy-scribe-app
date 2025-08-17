@@ -6,8 +6,8 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Sparkles, History, Plus, Settings, Sparkles as GenieIcon, Newspaper, MoreVertical, Building2 } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from '@/components/ui/dropdown-menu';
+import { Sparkles, History, Plus, Settings, Sparkles as GenieIcon, Newspaper, MoreVertical, Building2, Cpu } from 'lucide-react';
 import { LoginForm } from '@/components/LoginForm';
 import { MessagesList } from '@/components/ai4gp/MessagesList';
 import { InputArea, InputAreaRef } from '@/components/ai4gp/InputArea';
@@ -169,11 +169,37 @@ const AI4GPService = () => {
                           <span className="hidden sm:inline text-xs ml-1">Quick Pick</span>
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48">
-                        <DropdownMenuItem onClick={() => setShowSettings(true)}>
-                          <Settings className="w-4 h-4 mr-2" />
-                          Settings
-                        </DropdownMenuItem>
+                       <DropdownMenuContent align="end" className="w-48">
+                         <DropdownMenuSub>
+                           <DropdownMenuSubTrigger>
+                             <Cpu className="w-4 h-4 mr-2" />
+                             Model: {selectedModel === 'gpt-4-turbo' ? 'ChatGPT' : selectedModel === 'grok-beta' ? 'Grok' : 'Gemini'}
+                           </DropdownMenuSubTrigger>
+                           <DropdownMenuSubContent>
+                             <DropdownMenuItem 
+                               onClick={() => setSelectedModel('gpt-4-turbo')}
+                               className={selectedModel === 'gpt-4-turbo' ? 'bg-accent' : ''}
+                             >
+                               ChatGPT {selectedModel === 'gpt-4-turbo' && '✓'}
+                             </DropdownMenuItem>
+                             <DropdownMenuItem 
+                               onClick={() => setSelectedModel('grok-beta')}
+                               className={selectedModel === 'grok-beta' ? 'bg-accent' : ''}
+                             >
+                               Grok {selectedModel === 'grok-beta' && '✓'}
+                             </DropdownMenuItem>
+                             <DropdownMenuItem 
+                               onClick={() => setSelectedModel('gemini-pro')}
+                               className={selectedModel === 'gemini-pro' ? 'bg-accent' : ''}
+                             >
+                               Gemini {selectedModel === 'gemini-pro' && '✓'}
+                             </DropdownMenuItem>
+                           </DropdownMenuSubContent>
+                         </DropdownMenuSub>
+                         <DropdownMenuItem onClick={() => setShowSettings(true)}>
+                           <Settings className="w-4 h-4 mr-2" />
+                           Settings
+                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setShowAIChat(!showAIChat)}>
                           <GenieIcon className="w-4 h-4 mr-2" />
                           GP Genie
