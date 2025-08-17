@@ -64,7 +64,6 @@ export function EmailCompositionModal({
   defaultSubject = 'AI Generated Content'
 }: EmailCompositionModalProps) {
   const [toEmail, setToEmail] = useState('');
-  const [ccEmail, setCcEmail] = useState('');
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [selectedQuickPick, setSelectedQuickPick] = useState('consultation');
@@ -190,7 +189,6 @@ export function EmailCompositionModal({
         to_email: toEmail.trim(),
         subject: subject.trim(),
         message: cleanMessage,
-        cc_email: ccEmail.trim() || undefined,
         template_type: 'ai_generated_content',
         from_name: 'AI4GP Service',
         reply_to: 'noreply@gp-tools.nhs.uk',
@@ -214,13 +212,12 @@ export function EmailCompositionModal({
 
       toast({
         title: "Email Sent Successfully",
-        description: `Email sent to ${toEmail}${ccEmail ? ` and CC to ${ccEmail}` : ''}`,
+        description: `Email sent to ${toEmail}`,
       });
       
       onOpenChange(false);
       // Reset form
       setToEmail('');
-      setCcEmail('');
       setSubject('');
       setMessage('');
       setSelectedQuickPick('consultation');
@@ -273,18 +270,6 @@ export function EmailCompositionModal({
             />
           </div>
           
-          <div className="space-y-2">
-            <Label htmlFor="cc-email">CC</Label>
-            <Input
-              id="cc-email"
-              name="cc-email"
-              type="email"
-              placeholder="cc@example.com"
-              value={ccEmail}
-              onChange={(e) => setCcEmail(e.target.value)}
-              autoComplete="off"
-            />
-          </div>
           
           <div className="space-y-2">
             <Label htmlFor="subject">Subject *</Label>
