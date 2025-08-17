@@ -59,10 +59,21 @@ serve(async (req) => {
           throw new Error(`Failed to fetch image from storage: ${imageResponse.status}`);
         }
         
-        // Convert to base64 for GPT-4 Vision
+        // Convert to base64 for GPT-4 Vision using ArrayBuffer chunking
         const imageBlob = await imageResponse.blob();
         const arrayBuffer = await imageBlob.arrayBuffer();
-        const base64Image = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+        
+        // Convert ArrayBuffer to base64 in chunks to avoid stack overflow
+        const uint8Array = new Uint8Array(arrayBuffer);
+        let binaryString = '';
+        const chunkSize = 8192; // Process in 8KB chunks
+        
+        for (let i = 0; i < uint8Array.length; i += chunkSize) {
+          const chunk = uint8Array.subarray(i, i + chunkSize);
+          binaryString += String.fromCharCode.apply(null, Array.from(chunk));
+        }
+        
+        const base64Image = btoa(binaryString);
         const imageDataUrl = `data:image/png;base64,${base64Image}`;
         
         console.log('Analyzing reference image with GPT-4 Vision...');
