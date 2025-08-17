@@ -19,13 +19,14 @@ import {
   Clock,
   Mail,
   Download,
-  Zap
+  Zap,
+  GraduationCap
 } from 'lucide-react';
 import { toast } from 'sonner';
 import QuickActionButtons from '@/components/QuickActionButtons';
 import { useAuth } from '@/contexts/AuthContext';
 import { EmailCompositionModal } from '@/components/EmailCompositionModal';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from '@/components/ui/dropdown-menu';
 
 interface Message {
   id: string;
@@ -653,10 +654,27 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                             <CheckSquare className="h-4 w-4 mr-2" />
                             Prompt Reply: No
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Expand with more detail and examples")}>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuLabel className="text-xs font-medium text-muted-foreground px-2 py-1.5">
+                            Expand
+                          </DropdownMenuLabel>
+                          <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Expand with more detail")}>
                             <Expand className="h-4 w-4 mr-2" />
-                            Expand with more detail and examples
+                            Expand with more detail
                           </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Expand with more details and examples")}>
+                            <Expand className="h-4 w-4 mr-2" />
+                            Expand with more details and examples
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Expand and create as a patient leaflet")}>
+                            <FileText className="h-4 w-4 mr-2" />
+                            Expand and create as a patient leaflet
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Create as a detailed training document for our staff, covering off any areas that are expected to be known")}>
+                            <GraduationCap className="h-4 w-4 mr-2" />
+                            Create as detailed training document for staff
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Combine with my practice information")}>
                             <FileText className="h-4 w-4 mr-2" />
                             Combine with my practice information
