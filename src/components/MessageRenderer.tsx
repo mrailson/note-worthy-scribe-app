@@ -659,10 +659,6 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                           <DropdownMenuLabel className="text-xs font-medium text-muted-foreground px-2 py-1.5">
                             Expand
                           </DropdownMenuLabel>
-                          <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Expand with more detail")}>
-                            <Expand className="h-4 w-4 mr-2" />
-                            Expand with more detail
-                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Expand with more details and examples")}>
                             <Expand className="h-4 w-4 mr-2" />
                             Expand with more details and examples
