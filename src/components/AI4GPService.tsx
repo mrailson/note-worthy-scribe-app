@@ -101,10 +101,10 @@ const AI4GPService = () => {
   return (
     <>
       <div 
-        className="h-full flex flex-col bg-background relative" 
+        className="flex-1 flex flex-col bg-background relative max-h-screen overflow-hidden" 
         data-component="ai4gp-service"
       >
-        <div className="flex h-full">
+        <div className="flex flex-1 min-h-0">
           {/* Search History Sidebar */}
           {showSearchHistory && (
           <SearchHistorySidebar
@@ -117,8 +117,8 @@ const AI4GPService = () => {
           )}
 
           {/* Main Chat Area */}
-          <div className="flex-1 flex flex-col min-w-0 h-full">
-            <Card className="flex-1 flex flex-col h-full">
+          <div className="flex-1 flex flex-col min-w-0 min-h-0">
+            <Card className="flex-1 flex flex-col min-h-0">
               <CardHeader className="border-b px-3 py-2 sm:px-6 sm:py-4 flex-shrink-0">
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center text-sm sm:text-base">

@@ -117,11 +117,13 @@ const AI4GP = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Header onNewMeeting={() => {}} />
       
-      <main className="container mx-auto px-4 py-6">
-        <AI4GPService />
+      <main className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 container mx-auto px-4 py-6 flex flex-col">
+          <AI4GPService />
+        </div>
       </main>
     </div>
   );
