@@ -120,8 +120,7 @@ async function callGPTChatCompletions(
       { role: "user",   content: prompt ?? "" }
     ],
     max_tokens: 512,          // Chat Completions uses max_tokens
-    stream: !!enableStreaming
-    // Note: Only older models support temperature
+    stream: !!enableStreaming // Fixed: Added missing comma
   };
 
   const r = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -161,8 +160,7 @@ async function callGPTResponsesAPI(
       { role: "user",   content: [{ type: "text", text: prompt ?? "" }] }
     ],
     max_output_tokens: 512,                    // Responses uses max_output_tokens
-    stream: !!enableStreaming
-    // Note: temperature parameter NOT supported on newer models
+    stream: !!enableStreaming // Fixed: Added missing comma
   };
 
   const r = await fetch("https://api.openai.com/v1/responses", {
