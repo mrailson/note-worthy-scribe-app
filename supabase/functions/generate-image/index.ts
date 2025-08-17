@@ -87,9 +87,20 @@ serve(async (req) => {
     }
 
     if (!response.ok) {
-      const error = await response.text();
-      console.error('OpenAI API error:', error);
-      throw new Error(`OpenAI API error: ${response.status}`);
+      const errorText = await response.text();
+      console.error('OpenAI API error:', errorText);
+      
+      // Parse the error to provide better user feedback
+      try {
+        const errorData = JSON.parse(errorText);
+        if (errorData.error?.code === 'content_policy_violation') {
+          throw new Error('Your prompt was rejected by OpenAI\'s safety system. Try rephrasing your request with different words or focusing on non-medical content.');
+        }
+      } catch (parseError) {
+        // If we can't parse the error, fall through to generic error
+      }
+      
+      throw new Error(`Failed to generate image. Please try a different prompt or try again later.`);
     }
 
     const data = await response.json();
