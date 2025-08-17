@@ -12,7 +12,7 @@ export const quickActions = [
   { 
     label: 'BNF Drug Lookup', 
     icon: Shield, 
-    prompt: `${nhsSafetyPreamble} Provide a concise BNF summary for [insert drug name] including: adult dosing range, titration guidance, renal/hepatic adjustments, major interactions, contraindications, and common adverse effects.`,
+    prompt: `${nhsSafetyPreamble} Provide a concise BNF summary including: adult dosing range, titration guidance, renal/hepatic adjustments, major interactions, contraindications, and common adverse effects. Insert Drug name`,
     requiresFile: false 
   },
   { 
