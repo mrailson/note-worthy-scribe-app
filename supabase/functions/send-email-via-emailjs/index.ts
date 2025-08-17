@@ -135,12 +135,20 @@ const handler = async (req: Request): Promise<Response> => {
     // Prepare the EmailJS API request
     const emailjsUrl = "https://api.emailjs.com/api/v1.0/email/send";
     
+    // If there's a Word attachment, we need to include it in the template params
+    const templateParams = { ...enhancedEmailData };
+    if (emailData.word_attachment) {
+      templateParams.attachment_name = emailData.word_attachment.filename;
+      templateParams.attachment_content = emailData.word_attachment.content;
+      templateParams.attachment_type = emailData.word_attachment.type;
+    }
+    
     const payload = {
       service_id: serviceId,
       template_id: templateId,
       user_id: publicKey,
       accessToken: privateKey,
-      template_params: enhancedEmailData
+      template_params: templateParams
     };
 
     console.log("Sending email via EmailJS:", { 
