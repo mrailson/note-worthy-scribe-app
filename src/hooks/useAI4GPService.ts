@@ -14,7 +14,7 @@ export const useAI4GPService = () => {
   const [sessionMemory, setSessionMemory] = useState(true);
   const [includeLatestUpdates, setIncludeLatestUpdates] = useState(true);
   const [showResponseMetrics, setShowResponseMetrics] = useState(false);
-  const [selectedModel, setSelectedModel] = useState('gpt-4-turbo');
+  const [selectedModel, setSelectedModel] = useState('grok-beta');
 
   const buildSystemPrompt = useCallback((practiceContext: any, uploadedFiles: UploadedFile[], includeLatestUpdates: boolean) => {
     let prompt = `You are "AI 4 GP Service", an AI Assistant built specifically to help General Practitioners (GPs) in the UK NHS.
@@ -362,7 +362,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           setSessionMemory(preferences.sessionMemory ?? true);
           setIncludeLatestUpdates(preferences.includeLatestUpdates ?? true);
           setShowResponseMetrics(preferences.showResponseMetrics ?? false);
-          setSelectedModel(preferences.selectedModel ?? 'gpt-4-turbo');
+          setSelectedModel(preferences.selectedModel ?? 'grok-beta');
         }
       } catch (error) {
         console.error('Error loading user settings:', error);
