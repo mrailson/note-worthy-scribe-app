@@ -47,17 +47,35 @@ const ImageCreate = () => {
         return;
       }
 
-      const processedFiles = await processFiles(files);
-      if (processedFiles.length > 0) {
-        const imageFile = processedFiles[0];
-        setUploadedImage(imageFile);
-        
-        // Show helpful info about file size
-        const sizeInMB = (file.size / 1024 / 1024).toFixed(1);
-        const isLarge = file.size > 4 * 1024 * 1024;
-        
-        toast.success(`Image uploaded successfully! (${sizeInMB}MB)${isLarge ? ' - Large files may take longer to process' : ''}`);
+      // Upload to Supabase Storage instead of processing locally
+      const timestamp = Date.now();
+      const fileExtension = file.name.split('.').pop();
+      const fileName = `${user?.id}/${timestamp}.${fileExtension}`;
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('image-processing')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) {
+        console.error("Upload error:", uploadError);
+        throw new Error(`Failed to upload image: ${uploadError.message}`);
       }
+
+      // Set the uploaded file with storage path
+      setUploadedImage({
+        name: file.name,
+        type: file.type,
+        content: uploadData.path, // Store the storage path instead of base64
+        size: file.size,
+        isLoading: false
+      });
+      
+      const sizeInMB = (file.size / 1024 / 1024).toFixed(1);
+      toast.success(`Image uploaded successfully! (${sizeInMB}MB)`);
+      
     } catch (error) {
       console.error("Error uploading image:", error);
       const errorMessage = error instanceof Error ? error.message : "Failed to upload image";
@@ -65,7 +83,21 @@ const ImageCreate = () => {
     }
   };
 
-  const handleRemoveImage = () => {
+  const handleRemoveImage = async () => {
+    if (uploadedImage && uploadedImage.content) {
+      try {
+        // Delete from storage
+        const { error } = await supabase.storage
+          .from('image-processing')
+          .remove([uploadedImage.content]);
+        
+        if (error) {
+          console.warn("Failed to delete image from storage:", error);
+        }
+      } catch (error) {
+        console.warn("Error deleting image:", error);
+      }
+    }
     setUploadedImage(null);
   };
 
@@ -86,11 +118,11 @@ const ImageCreate = () => {
         quality: "standard"
       };
 
-      // If there's an uploaded image, include it in the request
+      // If there's an uploaded image, include the storage path
       if (uploadedImage) {
-        requestBody.referenceImage = uploadedImage.content;
+        requestBody.imagePath = uploadedImage.content; // Storage path instead of base64
         requestBody.mode = "edit";
-        console.log("Sending image edit request with uploaded image");
+        console.log("Sending image edit request with storage path:", uploadedImage.content);
       } else {
         console.log("Sending standard image generation request");
       }
@@ -208,17 +240,15 @@ const ImageCreate = () => {
                 <label className="text-sm font-medium">
                   Reference Image (Optional)
                 </label>
-                {uploadedImage ? (
-                  <div className="relative">
-                    <div className="aspect-video bg-muted/50 rounded-lg overflow-hidden">
-                      <img 
-                        src={uploadedImage.content.startsWith('IMAGE_DATA_URL:') 
-                          ? uploadedImage.content.replace('IMAGE_DATA_URL:', '') 
-                          : uploadedImage.content} 
-                        alt="Reference image"
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
+                  {uploadedImage ? (
+                    <div className="relative">
+                      <div className="aspect-video bg-muted/50 rounded-lg overflow-hidden">
+                        <img 
+                          src={`https://dphcnbricafkbtizkoal.supabase.co/storage/v1/object/public/image-processing/${uploadedImage.content}`}
+                          alt="Reference image"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
                     <Button
                       variant="destructive"
                       size="sm"

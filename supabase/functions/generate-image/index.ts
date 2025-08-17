@@ -10,7 +10,7 @@ interface ImageRequest {
   prompt: string;
   size?: string;
   quality?: string;
-  referenceImage?: string;
+  imagePath?: string; // Storage path instead of base64
   mode?: string;
 }
 
@@ -26,66 +26,53 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured');
     }
 
-    const { prompt, size = "1024x1024", quality = "standard", referenceImage, mode }: ImageRequest = await req.json();
+    const { prompt, size = "1024x1024", quality = "standard", imagePath, mode }: ImageRequest = await req.json();
 
-    console.log(`Processing image request - Prompt: "${prompt.substring(0, 100)}...", Mode: ${mode || 'generation'}, Has reference: ${!!referenceImage}`);
+    console.log(`Processing image request - Prompt: "${prompt.substring(0, 100)}...", Mode: ${mode || 'generation'}, Has image: ${!!imagePath}`);
 
     let response;
 
-    if (referenceImage && mode === 'edit') {
-      console.log('Processing image edit request...');
+    if (imagePath && mode === 'edit') {
+      console.log('Processing image edit request with storage path:', imagePath);
       
-      // Validate and extract base64 data
-      let base64Data = referenceImage;
-      
-      // Handle IMAGE_DATA_URL prefix
-      if (base64Data.startsWith('IMAGE_DATA_URL:')) {
-        base64Data = base64Data.replace('IMAGE_DATA_URL:', '');
-      }
-      
-      // Handle data URL format (data:image/type;base64,...)
-      if (base64Data.startsWith('data:')) {
-        const commaIndex = base64Data.indexOf(',');
-        if (commaIndex === -1) {
-          throw new Error('Invalid image data format. Missing comma separator.');
-        }
-        base64Data = base64Data.substring(commaIndex + 1);
-      }
-
-      // Validate base64 string
-      if (!base64Data || base64Data.length === 0) {
-        throw new Error('Empty image data provided.');
-      }
-
       try {
-        // Test base64 validity before proceeding
-        const testDecode = atob(base64Data.substring(0, 100));
-        console.log(`Base64 validation successful. Data length: ${base64Data.length}`);
+        // Download image from Supabase Storage
+        const supabaseUrl = Deno.env.get('SUPABASE_URL');
+        const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
         
-        // Convert base64 to Uint8Array
-        const byteCharacters = atob(base64Data);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        if (!supabaseUrl || !supabaseServiceKey) {
+          throw new Error('Supabase configuration missing');
         }
-        const byteArray = new Uint8Array(byteNumbers);
-
-        console.log(`Image processed. Size: ${byteArray.length} bytes`);
-
+        
+        // Fetch the image from storage
+        const imageUrl = `${supabaseUrl}/storage/v1/object/image-processing/${imagePath}`;
+        console.log('Fetching image from:', imageUrl);
+        
+        const imageResponse = await fetch(imageUrl, {
+          headers: {
+            'Authorization': `Bearer ${supabaseServiceKey}`
+          }
+        });
+        
+        if (!imageResponse.ok) {
+          console.error('Failed to fetch image from storage:', imageResponse.status, imageResponse.statusText);
+          throw new Error(`Failed to fetch image from storage: ${imageResponse.status}`);
+        }
+        
+        // Convert to blob for OpenAI
+        const imageBlob = await imageResponse.blob();
+        console.log(`Downloaded image blob. Size: ${imageBlob.size} bytes`);
+        
         // Check file size (4MB limit for OpenAI)
-        if (byteArray.length > 4 * 1024 * 1024) {
+        if (imageBlob.size > 4 * 1024 * 1024) {
           throw new Error('Image is too large. Please use an image smaller than 4MB.');
         }
-
+        
         // Validate minimum file size (avoid empty files)
-        if (byteArray.length < 100) {
+        if (imageBlob.size < 100) {
           throw new Error('Image file appears to be empty or corrupted.');
         }
-
-        // Create PNG blob for OpenAI API (required for edits)
-        const imageBlob = new Blob([byteArray], { type: 'image/png' });
-        console.log(`Created blob with size: ${imageBlob.size} bytes`);
-
+        
         // Prepare form data for DALL-E 2 image editing
         const formData = new FormData();
         formData.append('image', imageBlob, 'image.png');
@@ -106,12 +93,9 @@ serve(async (req) => {
 
         console.log(`OpenAI edit response status: ${response.status}`);
         
-      } catch (decodeError) {
-        console.error('Base64 decode error:', decodeError);
-        if (decodeError instanceof Error && decodeError.message.includes('Invalid character')) {
-          throw new Error('Invalid image data. Please ensure the uploaded file is a valid image.');
-        }
-        throw new Error(`Failed to process image data: ${decodeError instanceof Error ? decodeError.message : 'Unknown error'}`);
+      } catch (storageError) {
+        console.error('Storage processing error:', storageError);
+        throw new Error(`Failed to process image from storage: ${storageError instanceof Error ? storageError.message : 'Unknown error'}`);
       }
     } else {
       console.log('Processing standard image generation...');
