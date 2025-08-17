@@ -75,13 +75,17 @@ export function EmailCompositionModal({
   // Function to strip markdown formatting from text
   const stripMarkdown = (text: string): string => {
     return text
-      .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold **text**
-      .replace(/\*(.*?)\*/g, '$1') // Remove italic *text*
-      .replace(/`(.*?)`/g, '$1') // Remove inline code `text`
-      .replace(/#{1,6}\s/g, '') // Remove headers
-      .replace(/^\s*[-*+]\s/gm, '• ') // Convert markdown lists to bullet points
-      .replace(/^\s*\d+\.\s/gm, '') // Remove numbered list markers
+      .replace(/^---+$/gm, '') // Remove horizontal rules (lines with just dashes)
+      .replace(/\*\*\*(.*?)\*\*\*/g, '*$1*') // Convert bold+italic to just italic
+      .replace(/\*\*(.*?)\*\*/g, '$1') // Keep bold text as-is (remove markdown but keep emphasis)
+      .replace(/\*([^*]+)\*/g, '$1') // Remove italic formatting
+      .replace(/`(.*?)`/g, '"$1"') // Convert inline code to quotes
+      .replace(/#{1,6}\s+/g, '') // Remove headers but keep the text
+      .replace(/^\s*[-*+]\s+/gm, '• ') // Convert markdown lists to bullet points
+      .replace(/^\s*\d+\.\s+/gm, '') // Remove numbered list markers but keep the text
       .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Convert links to just text
+      .replace(/\n\s*\n\s*\n+/g, '\n\n') // Clean up multiple empty lines
+      .replace(/^\s*\n/gm, '') // Remove empty lines at start
       .trim();
   };
 
