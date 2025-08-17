@@ -11,7 +11,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning, Sparkles, Mail, Users, Clock, FolderOpen, Wrench, BookOpen, Menu, ChevronsDown, Stars } from "lucide-react";
+import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning, Sparkles, Mail, Users, Clock, FolderOpen, Wrench, BookOpen, Menu, ChevronsDown, Stars, ImageIcon } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -146,14 +146,21 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                    >
                      <Sparkles className="h-4 w-4 mr-2" />
                      AI4GP Service
-                     </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => navigate('/api-testing')}
-                        className="cursor-pointer py-3"
-                      >
-                        <Wrench className="h-4 w-4 mr-2" />
-                        API Testing & Comparison
                       </DropdownMenuItem>
+                       <DropdownMenuItem 
+                         onClick={() => navigate('/image-create')}
+                         className="cursor-pointer py-3"
+                       >
+                         <ImageIcon className="h-4 w-4 mr-2" />
+                         Image Create
+                       </DropdownMenuItem>
+                       <DropdownMenuItem 
+                         onClick={() => navigate('/api-testing')}
+                         className="cursor-pointer py-3"
+                       >
+                         <Wrench className="h-4 w-4 mr-2" />
+                         API Testing & Comparison
+                       </DropdownMenuItem>
                     {hasModuleAccess('enhanced_access') && (
                       <DropdownMenuItem 
                         onClick={() => navigate('/enhanced-access')}
@@ -363,7 +370,13 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                             <Sparkles className="h-4 w-4 mr-2" />
                             AI4GP Service
                           </Button>
-                         </DrawerClose>
+                          </DrawerClose>
+                          <DrawerClose asChild>
+                            <Button variant="ghost" className="justify-start" onClick={() => navigate('/image-create')}>
+                              <ImageIcon className="h-4 w-4 mr-2" />
+                              Image Create
+                            </Button>
+                          </DrawerClose>
                           <DrawerClose asChild>
                             <Button variant="ghost" className="justify-start" onClick={() => navigate('/api-testing')}>
                               <Wrench className="h-4 w-4 mr-2" />
