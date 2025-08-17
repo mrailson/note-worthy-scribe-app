@@ -171,10 +171,6 @@ const AI4GPService = () => {
                         </Button>
                       </DropdownMenuTrigger>
                        <DropdownMenuContent align="end" className="w-48">
-                         <DropdownMenuItem onClick={() => setShowSettings(true)}>
-                           <Settings className="w-4 h-4 mr-2" />
-                           Settings
-                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setShowAIChat(!showAIChat)}>
                           <GenieIcon className="w-4 h-4 mr-2" />
                           GP Genie
