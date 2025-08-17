@@ -21,6 +21,9 @@ interface APITestResult {
   status: 'running' | 'completed' | 'error';
   error?: string;
   startTime?: number;
+  apiUsed?: string;
+  streamingEnabled?: boolean;
+  responsesAPIUsed?: boolean;
 }
 
 interface TestHistory {
@@ -40,6 +43,8 @@ const APITesting = () => {
   const [selectedModels, setSelectedModels] = useState<string[]>([
     'claude-4-sonnet', 'gpt', 'grok-beta'
   ]);
+  const [useResponsesAPI, setUseResponsesAPI] = useState(false);
+  const [enableStreaming, setEnableStreaming] = useState(false);
   const [isModelSectionOpen, setIsModelSectionOpen] = useState(true);
 
   const availableModels = [
@@ -141,7 +146,9 @@ const APITesting = () => {
           body: {
             prompt,
             model,
-            systemPrompt: "You are a helpful AI assistant. Provide clear, accurate responses."
+            systemPrompt: "You are a helpful AI assistant. Provide clear, accurate responses.",
+            useResponsesAPI,
+            enableStreaming
           }
         });
 
@@ -157,6 +164,9 @@ const APITesting = () => {
             response: data.response,
             responseTime,
             tokensPerSecond: data.tokensPerSecond,
+            apiUsed: data.apiUsed,
+            streamingEnabled: data.streamingEnabled,
+            responsesAPIUsed: data.responsesAPIUsed,
             status: 'completed' as const
           } : result
         ));
@@ -345,6 +355,51 @@ const APITesting = () => {
                   </CollapsibleContent>
                 </Collapsible>
 
+                {/* API Configuration */}
+                <div className="space-y-4">
+                  <label className="text-sm font-medium block">API Configuration</label>
+                  
+                  <div className="space-y-3 p-4 border rounded-lg bg-muted/20">
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id="useResponsesAPI"
+                        checked={useResponsesAPI}
+                        onChange={(e) => setUseResponsesAPI(e.target.checked)}
+                        className="w-4 h-4 rounded border-border"
+                      />
+                      <label htmlFor="useResponsesAPI" className="text-sm font-medium">
+                        Use OpenAI Responses API
+                      </label>
+                      <Badge variant="secondary" className="text-xs">
+                        New
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground ml-6">
+                      Uses OpenAI's new /v1/responses endpoint instead of /v1/chat/completions for better performance
+                    </p>
+
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id="enableStreaming"
+                        checked={enableStreaming}
+                        onChange={(e) => setEnableStreaming(e.target.checked)}
+                        className="w-4 h-4 rounded border-border"
+                      />
+                      <label htmlFor="enableStreaming" className="text-sm font-medium">
+                        Enable Streaming
+                      </label>
+                      <Badge variant="secondary" className="text-xs">
+                        Faster
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground ml-6">
+                      Stream responses as they're generated to reduce perceived latency
+                    </p>
+                  </div>
+                </div>
+
                 {/* Predefined Prompts */}
                 <div>
                   <label className="text-sm font-medium mb-3 block">Quick Start Prompts</label>
@@ -447,27 +502,37 @@ const APITesting = () => {
                       {results.map((result, index) => {
                         const modelInfo = getModelInfo(result.model);
                         return (
-                          <div key={index} className="p-4 border rounded-lg">
-                            <div className="flex items-center justify-between mb-3">
-                              <div className="flex items-center gap-3">
-                                <div className={`w-3 h-3 rounded-full ${modelInfo.color}`} />
-                                <span className="font-medium">{modelInfo.name}</span>
-                                <Badge variant={
-                                  result.status === 'completed' ? 'default' :
-                                  result.status === 'error' ? 'destructive' : 'secondary'
-                                }>
-                                  {result.status}
-                                </Badge>
-                              </div>
-                              <div className="text-right">
-                                {result.status === 'completed' && (
-                                  <div className="text-sm">
-                                    <Clock className="w-4 h-4 inline mr-1" />
-                                    {formatTime(result.responseTime)}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
+                           <div key={index} className="p-4 border rounded-lg">
+                             <div className="flex items-center justify-between mb-3">
+                               <div className="flex items-center gap-3">
+                                 <div className={`w-3 h-3 rounded-full ${modelInfo.color}`} />
+                                 <span className="font-medium">{modelInfo.name}</span>
+                                 <Badge variant={
+                                   result.status === 'completed' ? 'default' :
+                                   result.status === 'error' ? 'destructive' : 'secondary'
+                                 }>
+                                   {result.status}
+                                 </Badge>
+                                 {result.status === 'completed' && result.apiUsed && (
+                                   <Badge variant="outline" className="text-xs">
+                                     {result.apiUsed}
+                                   </Badge>
+                                 )}
+                                 {result.status === 'completed' && result.streamingEnabled && (
+                                   <Badge variant="secondary" className="text-xs">
+                                     Streaming
+                                   </Badge>
+                                 )}
+                               </div>
+                               <div className="text-right">
+                                 {result.status === 'completed' && (
+                                   <div className="text-sm">
+                                     <Clock className="w-4 h-4 inline mr-1" />
+                                     {formatTime(result.responseTime)}
+                                   </div>
+                                 )}
+                               </div>
+                             </div>
 
                             {result.status === 'running' && (
                               <div className="space-y-2">
@@ -496,25 +561,35 @@ const APITesting = () => {
                       {results.filter(r => r.status === 'completed').map((result, index) => {
                         const modelInfo = getModelInfo(result.model);
                         return (
-                          <Card key={index}>
-                            <CardHeader className="pb-3">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                  <div className={`w-3 h-3 rounded-full ${modelInfo.color}`} />
-                                  <span className="font-medium">{modelInfo.name}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <Badge variant="outline">{formatTime(result.responseTime)}</Badge>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => copyToClipboard(result.response)}
-                                  >
-                                    <Copy className="w-4 h-4" />
-                                  </Button>
-                                </div>
-                              </div>
-                            </CardHeader>
+                           <Card key={index}>
+                             <CardHeader className="pb-3">
+                               <div className="flex items-center justify-between">
+                                 <div className="flex items-center gap-2">
+                                   <div className={`w-3 h-3 rounded-full ${modelInfo.color}`} />
+                                   <span className="font-medium">{modelInfo.name}</span>
+                                   {result.apiUsed && (
+                                     <Badge variant="outline" className="text-xs">
+                                       {result.apiUsed}
+                                     </Badge>
+                                   )}
+                                   {result.streamingEnabled && (
+                                     <Badge variant="secondary" className="text-xs">
+                                       Streaming
+                                     </Badge>
+                                   )}
+                                 </div>
+                                 <div className="flex items-center gap-2">
+                                   <Badge variant="outline">{formatTime(result.responseTime)}</Badge>
+                                   <Button
+                                     variant="ghost"
+                                     size="sm"
+                                     onClick={() => copyToClipboard(result.response)}
+                                   >
+                                     <Copy className="w-4 h-4" />
+                                   </Button>
+                                 </div>
+                               </div>
+                             </CardHeader>
                             <CardContent>
                               <div className="text-sm space-y-1">
                                 {formatMarkdown(result.response)}
