@@ -310,9 +310,9 @@ serve(async (req) => {
         apiUsed = 'Anthropic';
         break;
       case 'gpt-5':
-        // Use actual GPT-5 if available, otherwise fallback to GPT-4o
-        response = await callGPT(prompt, systemPrompt, 'gpt-5', useResponsesAPI, enableStreaming);
-        modelName = useResponsesAPI ? 'GPT-5 (Responses API)' : 'GPT-5 (Chat Completions)';
+        // GPT-5 isn't available yet, use GPT-4o as fallback
+        response = await callGPT(prompt, systemPrompt, 'gpt-4o', useResponsesAPI, enableStreaming);
+        modelName = useResponsesAPI ? 'GPT-4o (Responses API)' : 'GPT-4o (Chat Completions)';
         apiUsed = useResponsesAPI ? 'OpenAI Responses API' : 'OpenAI Chat Completions';
         break;
       case 'gpt':
@@ -369,9 +369,18 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in API testing service:', error);
+    
+    // Enhanced error logging
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
+    
     return new Response(JSON.stringify({
       error: error.message || 'Unknown error occurred',
-      success: false
+      success: false,
+      errorType: error.name || 'UnknownError'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
