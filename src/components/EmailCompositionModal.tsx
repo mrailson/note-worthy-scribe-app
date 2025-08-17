@@ -180,10 +180,12 @@ export function EmailCompositionModal({
             <Label htmlFor="to-email">To *</Label>
             <Input
               id="to-email"
+              name="to-email"
               type="email"
               placeholder="recipient@example.com"
               value={toEmail}
               onChange={(e) => setToEmail(e.target.value)}
+              autoComplete="email"
               required
             />
           </div>
@@ -192,10 +194,12 @@ export function EmailCompositionModal({
             <Label htmlFor="cc-email">CC</Label>
             <Input
               id="cc-email"
+              name="cc-email"
               type="email"
               placeholder="cc@example.com"
               value={ccEmail}
               onChange={(e) => setCcEmail(e.target.value)}
+              autoComplete="off"
             />
           </div>
           
