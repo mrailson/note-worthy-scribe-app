@@ -676,42 +676,6 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                             Create as detailed training document for staff
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuLabel className="text-xs font-medium text-muted-foreground px-2 py-1.5">
-                            Settings
-                          </DropdownMenuLabel>
-                          <DropdownMenuSub>
-                            <DropdownMenuSubTrigger>
-                              <Settings className="h-4 w-4 mr-2" />
-                              Model selection
-                            </DropdownMenuSubTrigger>
-                            <DropdownMenuSubContent>
-                              <DropdownMenuItem onClick={() => handleQuickPickAction("Change model to GPT-5")}>
-                                GPT-5 (OpenAI)
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleQuickPickAction("Change model to Claude 4 Opus")}>
-                                Claude 4 Opus (Anthropic)
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleQuickPickAction("Change model to Claude 4 Sonnet")}>
-                                Claude 4 Sonnet (Anthropic)
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleQuickPickAction("Change model to Gemini 1.5 Pro")}>
-                                Gemini 1.5 Pro (Google)
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleQuickPickAction("Change model to Gemini 1.5 Flash")}>
-                                Gemini 1.5 Flash (Google)
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleQuickPickAction("Change model to Grok")}>
-                                Grok (xAI)
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleQuickPickAction("Change model to GPT-4 Turbo (Recommended)")}>
-                                GPT-4 Turbo (Recommended)
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleQuickPickAction("Change model to Gemini Ultra")}>
-                                Gemini Ultra (Google)
-                              </DropdownMenuItem>
-                            </DropdownMenuSubContent>
-                          </DropdownMenuSub>
-                          <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt: Combine with my practice information")}>
                             <FileText className="h-4 w-4 mr-2" />
                             Combine with my practice information
