@@ -84,9 +84,14 @@ async function callGPTChatCompletions(prompt: string, systemPrompt: string, mode
   });
 
   if (!response.ok) {
-    const error = await response.text();
-    console.error('OpenAI Chat Completions API error:', error);
-    throw new Error(`OpenAI Chat Completions API error: ${response.status}`);
+    const errorText = await response.text();
+    const requestId = response.headers.get("x-request-id");
+    console.error('OpenAI Chat Completions API error:', {
+      status: response.status,
+      requestId: requestId,
+      error: errorText
+    });
+    throw new Error(`OpenAI Chat Completions API error: ${response.status} (${requestId}) - ${errorText}`);
   }
 
   if (enableStreaming) {
@@ -100,14 +105,14 @@ async function callGPTChatCompletions(prompt: string, systemPrompt: string, mode
 async function callGPTResponsesAPI(prompt: string, systemPrompt: string, model: string, enableStreaming: boolean): Promise<string> {
   const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
   
-  // Combine system prompt and user prompt for Responses API
-  const combinedInput = `${systemPrompt}\n\n${prompt}`;
-
+  // Correct input format for Responses API
   const requestBody: any = {
     model: model,
-    input: combinedInput,
-    max_output_tokens: 4000, // Use max_output_tokens for Responses API
-    temperature: 0.3, // Lower temperature for faster responses
+    input: [
+      { role: "system", content: [{ type: "text", text: systemPrompt || "" }] },
+      { role: "user", content: [{ type: "text", text: prompt || "" }] }
+    ],
+    max_output_tokens: 512, // Use appropriate limit for responses
     stream: enableStreaming
   };
 
@@ -121,16 +126,26 @@ async function callGPTResponsesAPI(prompt: string, systemPrompt: string, model: 
   });
 
   if (!response.ok) {
-    const error = await response.text();
-    console.error('OpenAI Responses API error:', error);
-    throw new Error(`OpenAI Responses API error: ${response.status}`);
+    const errorText = await response.text();
+    const requestId = response.headers.get("x-request-id");
+    console.error('OpenAI Responses API error:', {
+      status: response.status,
+      requestId: requestId,
+      error: errorText
+    });
+    throw new Error(`OpenAI Responses API error: ${response.status} (${requestId}) - ${errorText}`);
   }
 
   if (enableStreaming) {
     return await handleResponsesAPIStreaming(response);
   } else {
     const data = await response.json();
-    return data.output_text || data.choices?.[0]?.message?.content || 'No response generated';
+    // Correct way to read output_text from Responses API
+    const text = data.output_text || 
+      (Array.isArray(data.output) ? 
+        data.output.flatMap((m: any) => m.content?.map((c: any) => c.text || "") || []).join("") : 
+        "No response generated");
+    return text;
   }
 }
 
@@ -189,7 +204,8 @@ async function handleResponsesAPIStreaming(response: Response): Promise<string> 
         if (line.startsWith('data: ') && line !== 'data: [DONE]') {
           try {
             const data = JSON.parse(line.slice(6));
-            const content = data.output_text?.delta;
+            // Correct field for Responses API streaming
+            const content = data.output_text?.delta || data.delta;
             if (content) {
               fullResponse += content;
             }
