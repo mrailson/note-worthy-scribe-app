@@ -299,6 +299,20 @@ Please fetch these and retry. No corrections made."`;
       } else {
         onQuickResponse(action);
       }
+      
+      // Auto-scroll to bottom after sending prompt, especially for long prompts
+      setTimeout(() => {
+        window.scrollTo({
+          top: document.documentElement.scrollHeight,
+          behavior: 'smooth'
+        });
+        
+        // Also try to focus the input area for next interaction
+        const inputArea = document.querySelector('textarea[placeholder*="Ask about NHS guidelines"]') as HTMLTextAreaElement;
+        if (inputArea) {
+          inputArea.focus();
+        }
+      }, 100);
     }
   };
 
