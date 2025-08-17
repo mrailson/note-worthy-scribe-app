@@ -34,92 +34,51 @@ serve(async (req) => {
 
     if (referenceImage && mode === 'edit') {
       // Extract base64 data from the data URL
-      const base64Data = referenceImage.startsWith('IMAGE_DATA_URL:') 
+      let base64Data = referenceImage.startsWith('IMAGE_DATA_URL:') 
         ? referenceImage.replace('IMAGE_DATA_URL:', '') 
         : referenceImage;
       
-      const imageBase64 = base64Data.split(',')[1] || base64Data;
-
-      // Convert base64 to blob and ensure it's PNG format
-      const byteCharacters = atob(imageBase64);
-      const byteNumbers = new Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
-      }
-      const byteArray = new Uint8Array(byteNumbers);
-
-      // Check if the image is too large (4MB limit for OpenAI)
-      if (byteArray.length > 4 * 1024 * 1024) {
-        throw new Error('Image is too large. Please use an image smaller than 4MB.');
+      // Remove data URL prefix if present
+      if (base64Data.includes(',')) {
+        base64Data = base64Data.split(',')[1];
       }
 
-      // Convert to PNG if it's not already
-      let imageBlob: Blob;
-      const originalMimeType = base64Data.match(/data:([^;]+);/)?.[1] || 'image/png';
-      
-      if (originalMimeType !== 'image/png') {
-        // Convert image to PNG using Canvas API
-        const canvas = new OffscreenCanvas(1024, 1024);
-        const ctx = canvas.getContext('2d');
-        
-        if (!ctx) {
-          throw new Error('Could not create canvas context for image conversion');
+      try {
+        // Convert base64 to Uint8Array
+        const byteCharacters = atob(base64Data);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+
+        // Check file size (4MB limit)
+        if (byteArray.length > 4 * 1024 * 1024) {
+          throw new Error('Image is too large. Please use an image smaller than 4MB.');
         }
 
-        // Create image from blob
-        const img = new Image();
-        const imgBlob = new Blob([byteArray], { type: originalMimeType });
-        const imgUrl = URL.createObjectURL(imgBlob);
-        
-        try {
-          await new Promise((resolve, reject) => {
-            img.onload = resolve;
-            img.onerror = reject;
-            img.src = imgUrl;
-          });
+        // Create PNG blob (OpenAI requires PNG for edits)
+        const imageBlob = new Blob([byteArray], { type: 'image/png' });
 
-          // Draw and resize image to fit canvas
-          const aspectRatio = img.width / img.height;
-          let drawWidth = 1024;
-          let drawHeight = 1024;
-          
-          if (aspectRatio > 1) {
-            drawHeight = 1024 / aspectRatio;
-          } else {
-            drawWidth = 1024 * aspectRatio;
-          }
-          
-          const offsetX = (1024 - drawWidth) / 2;
-          const offsetY = (1024 - drawHeight) / 2;
-          
-          ctx.fillStyle = 'white';
-          ctx.fillRect(0, 0, 1024, 1024);
-          ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+        // Use DALL-E 2 for image editing (DALL-E 3 doesn't support edits)
+        const formData = new FormData();
+        formData.append('image', imageBlob, 'image.png');
+        formData.append('prompt', prompt);
+        formData.append('n', '1');
+        formData.append('size', '1024x1024');
+        formData.append('response_format', 'b64_json');
 
-          // Convert to PNG blob
-          imageBlob = await canvas.convertToBlob({ type: 'image/png' });
-        } finally {
-          URL.revokeObjectURL(imgUrl);
-        }
-      } else {
-        imageBlob = new Blob([byteArray], { type: 'image/png' });
+        response = await fetch('https://api.openai.com/v1/images/edits', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openaiApiKey}`
+          },
+          body: formData
+        });
+      } catch (decodeError) {
+        console.error('Error decoding image:', decodeError);
+        throw new Error('Invalid image format. Please upload a valid PNG, JPG, or WEBP image.');
       }
-
-      // Use DALL-E 2 for image editing (DALL-E 3 doesn't support edits)
-      const formData = new FormData();
-      formData.append('image', imageBlob, 'image.png');
-      formData.append('prompt', prompt);
-      formData.append('n', '1');
-      formData.append('size', '1024x1024');
-      formData.append('response_format', 'b64_json');
-
-      response = await fetch('https://api.openai.com/v1/images/edits', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openaiApiKey}`
-        },
-        body: formData
-      });
     } else {
       // Standard image generation with DALL-E 3
       response = await fetch('https://api.openai.com/v1/images/generations', {
