@@ -8,9 +8,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { LoginForm } from "@/components/LoginForm";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Download, Sparkles, Upload, X } from "lucide-react";
+import { Loader2, Download, Sparkles, Upload, X, Mic, MicOff } from "lucide-react";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { UploadedFile } from "@/types/ai4gp";
+import { useVoiceRecording } from "@/hooks/useVoiceRecording";
+import { useToast } from "@/hooks/use-toast";
 
 const ImageCreate = () => {
   const { user, loading } = useAuth();
@@ -20,6 +22,8 @@ const ImageCreate = () => {
   const [revisedPrompt, setRevisedPrompt] = useState<string | null>(null);
   const [uploadedImage, setUploadedImage] = useState<UploadedFile | null>(null);
   const { processFiles, isProcessing } = useFileUpload();
+  const { isRecording, isProcessing: isVoiceProcessing, toggleRecording } = useVoiceRecording();
+  const { toast: useToastHook } = useToast();
 
   const handleImageUpload = async (files: FileList) => {
     try {
@@ -203,22 +207,53 @@ const ImageCreate = () => {
                 <label htmlFor="prompt" className="text-sm font-medium">
                   {uploadedImage ? "Describe what to change or add" : "Image Description"}
                 </label>
-                <Textarea
-                  id="prompt"
-                  placeholder={uploadedImage 
-                    ? "e.g., Change the sky to a dramatic sunset, add more trees in the foreground..."
-                    : "e.g., A serene mountain landscape at sunset with snow-capped peaks, warm orange and pink sky, reflected in a crystal clear lake..."
-                  }
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  rows={4}
-                  className="resize-none"
-                />
+                <div className="relative">
+                  <Textarea
+                    id="prompt"
+                    placeholder={uploadedImage 
+                      ? "e.g., Change the sky to a dramatic sunset, add more trees in the foreground..."
+                      : "e.g., A serene mountain landscape at sunset with snow-capped peaks, warm orange and pink sky, reflected in a crystal clear lake..."
+                    }
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    rows={4}
+                    className="resize-none pr-12"
+                  />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`absolute right-2 top-2 h-8 w-8 p-0 transition-all duration-200 ${
+                      isRecording 
+                        ? 'bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/30' 
+                        : isVoiceProcessing 
+                          ? 'bg-amber-500 hover:bg-amber-600 text-white' 
+                          : 'hover:bg-accent'
+                    }`}
+                    onClick={async () => {
+                      try {
+                        const text = await toggleRecording();
+                        if (text) {
+                          setPrompt(prompt + (prompt ? ' ' : '') + text);
+                        }
+                      } catch (error) {
+                        toast.error("Failed to record audio");
+                      }
+                    }}
+                    disabled={isGenerating || isProcessing}
+                    title={isRecording ? 'Click to stop recording' : isVoiceProcessing ? 'Processing speech...' : 'Click to start recording'}
+                  >
+                    {isRecording ? (
+                      <MicOff className="w-4 h-4" />
+                    ) : (
+                      <Mic className="w-4 h-4" />
+                    )}
+                  </Button>
+                </div>
                 <p className="text-xs text-muted-foreground">
                   {uploadedImage 
                     ? "Describe modifications to make to the reference image."
                     : "Be descriptive for better results. Mention style, colors, mood, and details."
-                  }
+                  } {isRecording ? '🔴 Recording... click mic to stop' : isVoiceProcessing ? '⏳ Processing speech...' : ''}
                 </p>
               </div>
 
