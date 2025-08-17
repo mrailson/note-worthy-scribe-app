@@ -160,7 +160,7 @@ export function EmailCompositionModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto resize min-w-[400px] min-h-[500px] w-[600px] h-[700px]">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
             Compose Email
