@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Check, X, ArrowRight } from 'lucide-react';
+import { Check, X, ArrowRight, ShieldCheck } from 'lucide-react';
 
 interface QuickActionButtonsProps {
   content: string;
@@ -113,6 +113,51 @@ const QuickActionButtons: React.FC<QuickActionButtonsProps> = ({
             >
               <X className="h-3 w-3 mr-1" />
               No
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => handleQuickResponse(`You are being asked to validate your previous reply.
+Do not generate new advice or speculate. Instead:
+
+**Confirm Sources**
+Identify the exact primary sources you used.
+Prioritise:
+• NICE guidelines
+• NHS.uk
+• BNF (Medicines Complete/NICE)
+• MHRA alerts
+• Green Book (immunisations)
+• UKHSA
+• ICB / NHS England official documents
+Provide direct URLs to the relevant guidance/documents.
+
+**Evidence & Reasoning**
+Show the logic you followed step-by-step.
+Explicitly link each conclusion to a cited source.
+If no source exists, state clearly: "No NHS or NICE source available – this part is uncertain/speculative."
+
+**Confidence Level**
+Rate overall confidence in your previous reply:
+• High – directly supported by explicit NHS/NICE wording.
+• Medium – some interpretation required, but evidence reasonably strong.
+• Low – no direct NHS/NICE guidance, answer inferred from indirect or outdated evidence.
+
+**Corrections (if needed)**
+If your original reply was inaccurate or incomplete, correct it now using cited evidence.
+Mark clearly: "Correction:" followed by the updated evidence-based reply.
+
+Output should be structured like this:
+**Validation Report**
+-----------------
+**Sources:** [list with URLs]
+**Evidence & Reasoning:** [step-by-step explanation]
+**Confidence Level:** [High / Medium / Low]
+**Corrections:** [if any]`)}
+              className="h-7 px-3 text-xs ml-2"
+            >
+              <ShieldCheck className="h-3 w-3 mr-1" />
+              I need proof this is right
             </Button>
           </>
         )}
