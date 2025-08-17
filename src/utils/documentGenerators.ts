@@ -499,22 +499,70 @@ export const generatePDF = async (content: string, title: string = 'AI Generated
       }
     };
 
-    // Helper function to wrap text
-    const wrapText = (text: string, fontSize: number): string[] => {
+    // Helper function to process text with formatting
+    const addFormattedText = (text: string, fontSize: number, xPos: number = margin) => {
+      // Split text by formatting markers
+      const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/);
+      let currentX = xPos;
+      
       pdf.setFontSize(fontSize);
-      return pdf.splitTextToSize(text, maxLineWidth);
+      
+      for (const part of parts) {
+        if (!part) continue;
+        
+        let displayText = part;
+        let isBold = false;
+        let isItalic = false;
+        let isCode = false;
+        
+        // Check formatting
+        if (part.startsWith('**') && part.endsWith('**')) {
+          displayText = part.slice(2, -2);
+          isBold = true;
+        } else if (part.startsWith('*') && part.endsWith('*')) {
+          displayText = part.slice(1, -1);
+          isItalic = true;
+        } else if (part.startsWith('`') && part.endsWith('`')) {
+          displayText = part.slice(1, -1);
+          isCode = true;
+        }
+        
+        // Set font style
+        if (isBold && isItalic) {
+          pdf.setFont('helvetica', 'bolditalic');
+        } else if (isBold) {
+          pdf.setFont('helvetica', 'bold');
+        } else if (isItalic) {
+          pdf.setFont('helvetica', 'italic');
+        } else if (isCode) {
+          pdf.setFont('courier', 'normal');
+        } else {
+          pdf.setFont('helvetica', 'normal');
+        }
+        
+        // Calculate text width and handle line wrapping
+        const textWidth = pdf.getTextWidth(displayText);
+        
+        if (currentX + textWidth > pageWidth - margin) {
+          // Need to wrap to next line
+          yPosition += lineHeight;
+          addNewPageIfNeeded(lineHeight);
+          currentX = margin;
+        }
+        
+        pdf.text(displayText, currentX, yPosition);
+        currentX += textWidth;
+      }
+      
+      // Reset font
+      pdf.setFont('helvetica', 'normal');
     };
 
     // Add title
     pdf.setFontSize(20);
     pdf.setFont('helvetica', 'bold');
-    const titleLines = wrapText(title, 20);
-    titleLines.forEach((line, index) => {
-      pdf.text(line, margin, yPosition);
-      yPosition += lineHeight + 2;
-    });
-
-    yPosition += 10;
+    pdf.text(title, margin, yPosition);
+    yPosition += lineHeight + 5;
 
     // Add generation date
     pdf.setFontSize(10);
@@ -542,7 +590,7 @@ export const generatePDF = async (content: string, title: string = 'AI Generated
         const headingMatch = line.match(/^(#+)\s+(.+)$/);
         if (headingMatch) {
           const level = Math.min(headingMatch[1].length, 6);
-          const headingText = cleanMarkdown(headingMatch[2]);
+          const headingText = headingMatch[2];
           
           // Add space before heading
           yPosition += 5;
@@ -554,27 +602,21 @@ export const generatePDF = async (content: string, title: string = 'AI Generated
           pdf.setFont('helvetica', 'bold');
           pdf.setTextColor(46, 92, 138); // Blue color
           
-          const headingLines = wrapText(headingText, fontSize);
-          headingLines.forEach((headingLine) => {
-            addNewPageIfNeeded(lineHeight);
-            pdf.text(headingLine, margin, yPosition);
-            yPosition += lineHeight;
-          });
+          addFormattedText(headingText, fontSize);
+          yPosition += lineHeight + 3;
           
           // Reset style
           pdf.setFont('helvetica', 'normal');
           pdf.setTextColor(0, 0, 0);
-          yPosition += 3;
           
         } else {
-          // Regular text
-          const cleanedLine = cleanMarkdown(line);
-          if (!cleanedLine) continue;
+          // Regular text - preserve formatting
+          if (!line.trim()) continue;
           
           // Check if line contains table indicators
-          if (cleanedLine.includes('|') && cleanedLine.split('|').length > 2) {
+          if (line.includes('|') && line.split('|').length > 2) {
             // Simple table handling - split by pipes
-            const cells = cleanedLine.split('|').map(cell => cell.trim()).filter(cell => cell !== '');
+            const cells = line.split('|').map(cell => cell.trim()).filter(cell => cell !== '');
             if (cells.length > 0 && !cells.every(cell => /^[-\s]*$/.test(cell))) {
               addNewPageIfNeeded(lineHeight);
               pdf.setFontSize(10);
@@ -583,22 +625,15 @@ export const generatePDF = async (content: string, title: string = 'AI Generated
               const cellWidth = maxLineWidth / cells.length;
               cells.forEach((cell, index) => {
                 const xPos = margin + (index * cellWidth);
-                const cellText = cleanMarkdown(cell);
-                pdf.text(cellText, xPos, yPosition);
+                addFormattedText(cell, 10, xPos);
               });
               yPosition += lineHeight;
             }
           } else {
-            // Regular paragraph
-            pdf.setFontSize(11);
-            pdf.setFont('helvetica', 'normal');
-            
-            const textLines = wrapText(cleanedLine, 11);
-            textLines.forEach((textLine) => {
-              addNewPageIfNeeded(lineHeight);
-              pdf.text(textLine, margin, yPosition);
-              yPosition += lineHeight;
-            });
+            // Regular paragraph with formatting
+            addNewPageIfNeeded(lineHeight);
+            addFormattedText(line, 11);
+            yPosition += lineHeight;
           }
         }
       }
