@@ -23,6 +23,7 @@ import { TranscriptPanel } from "@/components/gpscribe/TranscriptPanel";
 import { SummaryPanel } from "@/components/gpscribe/SummaryPanel";
 import { TabNavigation } from "@/components/gpscribe/TabNavigation";
 import { SettingsPanel } from "@/components/gpscribe/SettingsPanel";
+import { ExamplesPanel } from "@/components/gpscribe/ExamplesPanel";
 
 // Import existing components
 import { TranslationInterface } from "@/components/TranslationInterface";
@@ -33,6 +34,7 @@ import AI4GPService from "@/components/AI4GPService";
 import GPGenieVoiceAgent from "@/components/GPGenieVoiceAgent";
 
 import { ActiveTab, ExpandDialog } from "@/types/gpscribe";
+import { ConsultationExample } from "@/data/consultationExamples";
 
 const Index = () => {
   const { user, loading } = useAuth();
@@ -168,6 +170,19 @@ const Index = () => {
     }));
   };
 
+  // Load example handler
+  const handleLoadExample = (example: ConsultationExample) => {
+    recording.setTranscript(example.transcript);
+    documents.setGpSummary(example.summary);
+    documents.setPatientCopy(example.patientCopy);
+    documents.setTraineeFeedback(example.aiReview);
+    if (example.referralLetter) {
+      documents.setReferralLetter(example.referralLetter);
+    }
+    toast.success(`Loaded example: ${example.title}`);
+    setActiveTab("summary");
+  };
+
   // Check authentication
   useEffect(() => {
     if (!loading && !user) {
@@ -281,6 +296,11 @@ const Index = () => {
               onExpandContent={handleExpandContent}
               onCloseExpandDialog={handleCloseExpandDialog}
             />
+          </TabsContent>
+
+          {/* Examples Tab */}
+          <TabsContent value="examples" className="space-y-6 mt-6">
+            <ExamplesPanel onLoadExample={handleLoadExample} />
           </TabsContent>
 
           {/* Guidance Tab */}
