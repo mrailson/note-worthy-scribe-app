@@ -1975,48 +1975,6 @@ export type Database = {
           },
         ]
       }
-      image_processing_requests: {
-        Row: {
-          created_at: string | null
-          error_message: string | null
-          id: string
-          mode: string
-          openai_revised_prompt: string | null
-          original_image_path: string
-          processed_image_path: string | null
-          prompt: string
-          status: string
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          error_message?: string | null
-          id?: string
-          mode?: string
-          openai_revised_prompt?: string | null
-          original_image_path: string
-          processed_image_path?: string | null
-          prompt: string
-          status?: string
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          error_message?: string | null
-          id?: string
-          mode?: string
-          openai_revised_prompt?: string | null
-          original_image_path?: string
-          processed_image_path?: string | null
-          prompt?: string
-          status?: string
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
       medical_term_corrections: {
         Row: {
           context_phrase: string | null

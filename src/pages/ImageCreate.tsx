@@ -25,122 +25,25 @@ const ImageCreate = () => {
   const { isRecording, isProcessing: isVoiceProcessing, toggleRecording } = useVoiceRecording();
   const { toast: useToastHook } = useToast();
 
-  const convertImageToPNG = (file: File): Promise<File> => {
-    return new Promise((resolve, reject) => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      const img = new Image();
-
-      img.onload = () => {
-        // Set canvas size to image size (max 1024x1024 for OpenAI)
-        const maxSize = 1024;
-        let { width, height } = img;
-        
-        if (width > maxSize || height > maxSize) {
-          const ratio = Math.min(maxSize / width, maxSize / height);
-          width = width * ratio;
-          height = height * ratio;
-        }
-        
-        canvas.width = width;
-        canvas.height = height;
-        
-        // Draw image to canvas
-        ctx?.drawImage(img, 0, 0, width, height);
-        
-        // Convert to PNG blob
-        canvas.toBlob((blob) => {
-          if (blob) {
-            const pngFile = new File([blob], file.name.replace(/\.[^/.]+$/, '.png'), {
-              type: 'image/png'
-            });
-            resolve(pngFile);
-          } else {
-            reject(new Error('Failed to convert image to PNG'));
-          }
-        }, 'image/png');
-      };
-
-      img.onerror = () => reject(new Error('Failed to load image'));
-      img.src = URL.createObjectURL(file);
-    });
-  };
-
   const handleImageUpload = async (files: FileList) => {
-    if (!files || files.length === 0) return;
-
     try {
-      const file = files[0]; // Only process the first file
-      
-      // Basic validation before processing
-      if (!file.type.startsWith('image/')) {
-        toast.error("Please upload an image file (PNG, JPG, or WEBP)");
-        return;
+      const processedFiles = await processFiles(files);
+      if (processedFiles.length > 0) {
+        // Only take the first image if multiple are uploaded
+        const imageFile = processedFiles.find(file => file.type.startsWith('image/'));
+        if (imageFile) {
+          setUploadedImage(imageFile);
+          toast.success("Image uploaded successfully!");
+        } else {
+          toast.error("Please upload an image file");
+        }
       }
-
-      if (file.size > 10 * 1024 * 1024) {
-        toast.error("Image too large. Please use an image smaller than 10MB");
-        return;
-      }
-
-      if (file.size === 0) {
-        toast.error("File appears to be empty. Please try another image");
-        return;
-      }
-
-      // Convert to PNG format for OpenAI compatibility
-      const pngFile = await convertImageToPNG(file);
-
-      // Upload to Supabase Storage
-      const timestamp = Date.now();
-      const fileName = `${user?.id}/${timestamp}.png`;
-
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('image-processing')
-        .upload(fileName, pngFile, {
-          cacheControl: '3600',
-          upsert: false
-        });
-
-      if (uploadError) {
-        console.error("Upload error:", uploadError);
-        throw new Error(`Failed to upload image: ${uploadError.message}`);
-      }
-
-      // Set the uploaded file with storage path
-      setUploadedImage({
-        name: pngFile.name,
-        type: pngFile.type,
-        content: uploadData.path, // Store the storage path instead of base64
-        size: pngFile.size,
-        isLoading: false
-      });
-      
-      const sizeInMB = (pngFile.size / 1024 / 1024).toFixed(1);
-      toast.success(`Image converted to PNG and uploaded successfully! (${sizeInMB}MB)`);
-      
     } catch (error) {
       console.error("Error uploading image:", error);
-      const errorMessage = error instanceof Error ? error.message : "Failed to upload image";
-      toast.error(errorMessage);
     }
   };
 
-  const handleRemoveImage = async () => {
-    if (uploadedImage && uploadedImage.content) {
-      try {
-        // Delete from storage
-        const { error } = await supabase.storage
-          .from('image-processing')
-          .remove([uploadedImage.content]);
-        
-        if (error) {
-          console.warn("Failed to delete image from storage:", error);
-        }
-      } catch (error) {
-        console.warn("Error deleting image:", error);
-      }
-    }
+  const handleRemoveImage = () => {
     setUploadedImage(null);
   };
 
@@ -161,55 +64,28 @@ const ImageCreate = () => {
         quality: "standard"
       };
 
-      // If there's an uploaded image, include the storage path
+      // If there's an uploaded image, include it in the request
       if (uploadedImage) {
-        requestBody.imagePath = uploadedImage.content; // Storage path instead of base64
-        requestBody.mode = "edit";
-        console.log("Sending image edit request with storage path:", uploadedImage.content);
-      } else {
-        console.log("Sending standard image generation request");
+        requestBody.referenceImage = uploadedImage.content;
+        requestBody.mode = "edit"; // Use edit mode for image-to-image
       }
 
       const { data, error } = await supabase.functions.invoke('generate-image', {
         body: requestBody
       });
 
-      if (error) {
-        console.error("Supabase function error:", error);
-        throw new Error(`Request failed: ${error.message || 'Unknown error'}`);
-      }
+      if (error) throw error;
 
-      if (data?.success) {
+      if (data.success) {
         setGeneratedImage(data.imageData);
         setRevisedPrompt(data.revisedPrompt);
-        const mode = uploadedImage ? "edited" : "generated";
-        toast.success(`Image ${mode} successfully!`);
+        toast.success("Image generated successfully!");
       } else {
-        const errorMsg = data?.error || "Unknown error occurred";
-        console.error("Generation failed:", errorMsg);
-        throw new Error(errorMsg);
+        throw new Error(data.error || "Failed to generate image");
       }
     } catch (error: any) {
       console.error("Error generating image:", error);
-      
-      // Provide user-friendly error messages
-      let userMessage = "Failed to generate image";
-      
-      if (error.message) {
-        if (error.message.includes("too large")) {
-          userMessage = "Image file is too large. Please use a smaller image (under 4MB)";
-        } else if (error.message.includes("Invalid image")) {
-          userMessage = "Invalid image format. Please try uploading a different image";
-        } else if (error.message.includes("temporarily unavailable")) {
-          userMessage = "Image generation service is temporarily unavailable. Please try again in a moment";
-        } else if (error.message.includes("API key")) {
-          userMessage = "Service configuration error. Please contact support";
-        } else {
-          userMessage = error.message;
-        }
-      }
-      
-      toast.error(userMessage);
+      toast.error(error.message || "Failed to generate image");
     } finally {
       setIsGenerating(false);
     }
@@ -283,15 +159,17 @@ const ImageCreate = () => {
                 <label className="text-sm font-medium">
                   Reference Image (Optional)
                 </label>
-                  {uploadedImage ? (
-                    <div className="relative">
-                      <div className="aspect-video bg-muted/50 rounded-lg overflow-hidden">
-                        <img 
-                          src={`https://dphcnbricafkbtizkoal.supabase.co/storage/v1/object/public/image-processing/${uploadedImage.content}`}
-                          alt="Reference image"
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
+                {uploadedImage ? (
+                  <div className="relative">
+                    <div className="aspect-video bg-muted/50 rounded-lg overflow-hidden">
+                      <img 
+                        src={uploadedImage.content.startsWith('IMAGE_DATA_URL:') 
+                          ? uploadedImage.content.replace('IMAGE_DATA_URL:', '') 
+                          : uploadedImage.content} 
+                        alt="Reference image"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
                     <Button
                       variant="destructive"
                       size="sm"

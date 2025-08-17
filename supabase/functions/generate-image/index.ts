@@ -10,7 +10,7 @@ interface ImageRequest {
   prompt: string;
   size?: string;
   quality?: string;
-  imagePath?: string; // Storage path instead of base64
+  referenceImage?: string;
   mode?: string;
 }
 
@@ -26,124 +26,48 @@ serve(async (req) => {
       throw new Error('OpenAI API key not configured');
     }
 
-    const { prompt, size = "1024x1024", quality = "standard", imagePath, mode }: ImageRequest = await req.json();
+    const { prompt, size = "1024x1024", quality = "standard", referenceImage, mode }: ImageRequest = await req.json();
 
-    console.log(`Processing image request - Prompt: "${prompt.substring(0, 100)}...", Mode: ${mode || 'generation'}, Has image: ${!!imagePath}`);
+    console.log(`Generating image with prompt: ${prompt}, mode: ${mode || 'generation'}`);
 
     let response;
 
-    if (imagePath && mode === 'edit') {
-      console.log('Processing image-guided generation with reference image:', imagePath);
+    if (referenceImage && mode === 'edit') {
+      // Extract base64 data from the data URL
+      const base64Data = referenceImage.startsWith('IMAGE_DATA_URL:') 
+        ? referenceImage.replace('IMAGE_DATA_URL:', '') 
+        : referenceImage;
       
-      try {
-        // Download image from Supabase Storage
-        const supabaseUrl = Deno.env.get('SUPABASE_URL');
-        const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-        
-        if (!supabaseUrl || !supabaseServiceKey) {
-          throw new Error('Supabase configuration missing');
-        }
-        
-        // Fetch the image from storage
-        const imageUrl = `${supabaseUrl}/storage/v1/object/image-processing/${imagePath}`;
-        console.log('Fetching reference image from:', imageUrl);
-        
-        const imageResponse = await fetch(imageUrl, {
-          headers: {
-            'Authorization': `Bearer ${supabaseServiceKey}`
+      const imageBase64 = base64Data.split(',')[1] || base64Data;
+
+      // Use DALL-E 2 for image editing (DALL-E 3 doesn't support edits)
+      response = await fetch('https://api.openai.com/v1/images/edits', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openaiApiKey}`
+        },
+        body: (() => {
+          const formData = new FormData();
+          
+          // Convert base64 to blob
+          const byteCharacters = atob(imageBase64);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
           }
-        });
-        
-        if (!imageResponse.ok) {
-          console.error('Failed to fetch image from storage:', imageResponse.status, imageResponse.statusText);
-          throw new Error(`Failed to fetch image from storage: ${imageResponse.status}`);
-        }
-        
-        // Convert to base64 for GPT-4 Vision using ArrayBuffer chunking
-        const imageBlob = await imageResponse.blob();
-        const arrayBuffer = await imageBlob.arrayBuffer();
-        
-        // Convert ArrayBuffer to base64 in chunks to avoid stack overflow
-        const uint8Array = new Uint8Array(arrayBuffer);
-        let binaryString = '';
-        const chunkSize = 8192; // Process in 8KB chunks
-        
-        for (let i = 0; i < uint8Array.length; i += chunkSize) {
-          const chunk = uint8Array.subarray(i, i + chunkSize);
-          binaryString += String.fromCharCode.apply(null, Array.from(chunk));
-        }
-        
-        const base64Image = btoa(binaryString);
-        const imageDataUrl = `data:image/png;base64,${base64Image}`;
-        
-        console.log('Analyzing reference image with GPT-4 Vision...');
-        
-        // Use GPT-4 Vision to analyze the reference image
-        const visionResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${openaiApiKey}`
-          },
-          body: JSON.stringify({
-            model: 'gpt-4o',
-            messages: [
-              {
-                role: 'user',
-                content: [
-                  {
-                    type: 'text',
-                    text: `Analyze this image in detail. Describe the subjects, composition, colors, lighting, setting, and mood. Then, based on this analysis and the user's request: "${prompt}", create a detailed prompt for DALL-E 3 that will generate a new image incorporating the requested changes while maintaining the essence of the original scene.`
-                  },
-                  {
-                    type: 'image_url',
-                    image_url: {
-                      url: imageDataUrl
-                    }
-                  }
-                ]
-              }
-            ],
-            max_tokens: 500
-          })
-        });
-
-        if (!visionResponse.ok) {
-          console.error('GPT-4 Vision analysis failed:', visionResponse.status);
-          throw new Error('Failed to analyze reference image');
-        }
-
-        const visionData = await visionResponse.json();
-        const enhancedPrompt = visionData.choices[0].message.content;
-        
-        console.log('Enhanced prompt from image analysis:', enhancedPrompt);
-        
-        // Now use DALL-E 3 with the enhanced prompt
-        response = await fetch('https://api.openai.com/v1/images/generations', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${openaiApiKey}`
-          },
-          body: JSON.stringify({
-            model: 'dall-e-3',
-            prompt: enhancedPrompt,
-            n: 1,
-            size: size,
-            quality: quality,
-            response_format: 'b64_json'
-          })
-        });
-
-        console.log(`OpenAI generation response status: ${response.status}`);
-        
-      } catch (storageError) {
-        console.error('Image analysis error:', storageError);
-        throw new Error(`Failed to process reference image: ${storageError instanceof Error ? storageError.message : 'Unknown error'}`);
-      }
+          const byteArray = new Uint8Array(byteNumbers);
+          const blob = new Blob([byteArray], { type: 'image/png' });
+          
+          formData.append('image', blob, 'image.png');
+          formData.append('prompt', prompt);
+          formData.append('n', '1');
+          formData.append('size', '1024x1024');
+          formData.append('response_format', 'b64_json');
+          
+          return formData;
+        })()
+      });
     } else {
-      console.log('Processing standard image generation...');
-      
       // Standard image generation with DALL-E 3
       response = await fetch('https://api.openai.com/v1/images/generations', {
         method: 'POST',
@@ -160,42 +84,22 @@ serve(async (req) => {
           response_format: 'b64_json'
         })
       });
-
-      console.log(`OpenAI generation response status: ${response.status}`);
     }
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('OpenAI API error response:', errorText);
-      
-      let errorMessage = `OpenAI API error (${response.status})`;
-      try {
-        const errorJson = JSON.parse(errorText);
-        if (errorJson.error && errorJson.error.message) {
-          errorMessage = errorJson.error.message;
-        }
-      } catch (parseError) {
-        console.error('Failed to parse error response:', parseError);
-      }
-      
-      throw new Error(errorMessage);
+      const error = await response.text();
+      console.error('OpenAI API error:', error);
+      throw new Error(`OpenAI API error: ${response.status}`);
     }
 
     const data = await response.json();
-    
-    if (!data.data || !data.data[0] || !data.data[0].b64_json) {
-      console.error('Invalid response structure:', data);
-      throw new Error('Invalid response from OpenAI API. Missing image data.');
-    }
-    
     const imageData = data.data[0].b64_json;
-    console.log(`Successfully generated image. Response data length: ${imageData.length}`);
 
     return new Response(
       JSON.stringify({ 
         success: true,
         imageData: `data:image/png;base64,${imageData}`,
-        revisedPrompt: data.data[0].revised_prompt || null
+        revisedPrompt: data.data[0].revised_prompt
       }),
       { 
         headers: { 
@@ -209,33 +113,14 @@ serve(async (req) => {
     console.error('Error in generate-image function:', error);
     
     let errorMessage = 'An unexpected error occurred';
-    let statusCode = 500;
-    
     if (error instanceof Error) {
       errorMessage = error.message;
-      
-      // Provide more specific error handling
-      if (errorMessage.includes('API key not configured')) {
-        statusCode = 500;
-        errorMessage = 'Server configuration error. Please contact support.';
-      } else if (errorMessage.includes('too large')) {
-        statusCode = 413;
-      } else if (errorMessage.includes('Invalid image') || errorMessage.includes('Invalid character')) {
-        statusCode = 400;
-      } else if (errorMessage.includes('OpenAI API error')) {
-        statusCode = 502;
-        errorMessage = 'Image generation service temporarily unavailable. Please try again.';
-      }
     }
 
     return new Response(
-      JSON.stringify({ 
-        success: false,
-        error: errorMessage,
-        timestamp: new Date().toISOString()
-      }),
+      JSON.stringify({ error: errorMessage }),
       {
-        status: statusCode,
+        status: 500,
         headers: { 
           ...corsHeaders, 
           'Content-Type': 'application/json' 
