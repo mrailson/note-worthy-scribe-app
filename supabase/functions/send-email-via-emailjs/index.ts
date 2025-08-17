@@ -19,6 +19,15 @@ interface EmailRequest {
   transcript?: string;
   from_name?: string;
   reply_to?: string;
+  // AI-generated content email fields
+  subject?: string;
+  message?: string;
+  cc_email?: string;
+  word_attachment?: {
+    content: string;
+    filename: string;
+    type: string;
+  };
   
   // Welcome email fields
   user_name?: string;
@@ -28,11 +37,6 @@ interface EmailRequest {
   template_type?: string;
   login_url?: string;
   support_email?: string;
-  
-  // AI-generated content email fields
-  subject?: string;
-  message?: string;
-  cc_email?: string;
   
   // Module access fields
   meeting_notes_access?: boolean;
@@ -143,10 +147,14 @@ const handler = async (req: Request): Promise<Response> => {
       service_id: serviceId, 
       template_id: templateId,
       to_email: emailData.to_email,
+      cc_email: emailData.cc_email,
       template_type: emailData.template_type || 'meeting',
       user_name: emailData.user_name,
       temporary_password: emailData.temporary_password,
-      meeting_title: emailData.meeting_title 
+      meeting_title: emailData.meeting_title,
+      subject: emailData.subject,
+      has_attachment: !!emailData.word_attachment,
+      attachment_filename: emailData.word_attachment?.filename
     });
 
     // Send email via EmailJS API

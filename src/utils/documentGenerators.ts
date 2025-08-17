@@ -16,7 +16,7 @@ const cleanMarkdown = (text: string): string => {
     .trim();
 };
 
-export const generateWordDocument = async (content: string, title: string = 'AI Generated Document') => {
+export const generateWordDocument = async (content: string, title: string = 'AI Generated Document', saveFile: boolean = true): Promise<Blob> => {
   try {
     // Function to process text with inline formatting (bold, italic, code, links)
     const processFormattedText = (text: string) => {
@@ -301,10 +301,15 @@ export const generateWordDocument = async (content: string, title: string = 'AI 
       }]
     });
 
-    // Generate and save the document
+    // Generate and optionally save the document
     const fileName = `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.docx`;
     const blob = await Packer.toBlob(doc);
-    saveAs(blob, fileName);
+    
+    if (saveFile) {
+      saveAs(blob, fileName);
+    }
+    
+    return blob;
     
   } catch (error: any) {
     console.error('Error generating Word document:', error);

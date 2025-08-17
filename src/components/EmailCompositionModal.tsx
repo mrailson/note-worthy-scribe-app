@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Send, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { generateWordDocument } from '@/utils/documentGenerators';
 
 // Predefined starting messages for clinicians
 const QUICK_PICK_MESSAGES = [
@@ -70,6 +71,19 @@ export function EmailCompositionModal({
   const [attachWordDoc, setAttachWordDoc] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const { toast } = useToast();
+
+  // Function to strip markdown formatting from text
+  const stripMarkdown = (text: string): string => {
+    return text
+      .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold **text**
+      .replace(/\*(.*?)\*/g, '$1') // Remove italic *text*
+      .replace(/`(.*?)`/g, '$1') // Remove inline code `text`
+      .replace(/#{1,6}\s/g, '') // Remove headers
+      .replace(/^\s*[-*+]\s/gm, '• ') // Convert markdown lists to bullet points
+      .replace(/^\s*\d+\.\s/gm, '') // Remove numbered list markers
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Convert links to just text
+      .trim();
+  };
 
   // Function to update message based on selected quick pick
   const updateMessageWithQuickPick = (quickPickId: string, formattedContent: string) => {
@@ -137,15 +151,45 @@ export function EmailCompositionModal({
 
     setIsSending(true);
     try {
+      // Strip markdown from message content
+      const cleanMessage = stripMarkdown(message.trim());
+      
+      // Generate Word attachment if requested
+      let wordAttachment = null;
+      if (attachWordDoc && content) {
+        try {
+          const blob = await generateWordDocument(content, subject.trim() || 'AI Generated Content', false);
+          // Convert blob to base64 for EmailJS
+          const reader = new FileReader();
+          const base64Promise = new Promise<string>((resolve) => {
+            reader.onloadend = () => {
+              const base64 = (reader.result as string).split(',')[1];
+              resolve(base64);
+            };
+          });
+          reader.readAsDataURL(blob);
+          const base64Content = await base64Promise;
+          
+          wordAttachment = {
+            content: base64Content,
+            filename: `${subject.trim().replace(/[^a-zA-Z0-9]/g, '_') || 'AI_Content'}.docx`,
+            type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+          };
+        } catch (docError) {
+          console.warn('Word document generation failed:', docError);
+        }
+      }
+
       // Prepare email data for EmailJS service
       const emailData = {
         to_email: toEmail.trim(),
         subject: subject.trim(),
-        message: message.trim(),
+        message: cleanMessage,
         cc_email: ccEmail.trim() || undefined,
         template_type: 'ai_generated_content',
         from_name: 'AI4GP Service',
-        reply_to: 'noreply@gp-tools.nhs.uk'
+        reply_to: 'noreply@gp-tools.nhs.uk',
+        word_attachment: wordAttachment
       };
 
       // Send email via Supabase edge function
