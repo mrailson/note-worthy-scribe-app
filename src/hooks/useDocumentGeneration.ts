@@ -235,6 +235,11 @@ export const useDocumentGeneration = () => {
 
     // Actions
     setEditContent,
+    setGpSummary,
+    setFullNote,
+    setPatientCopy,
+    setTraineeFeedback,
+    setReferralLetter,
     generateSummary,
     generateReferralLetter,
     exportToPDF,

@@ -2,1620 +2,800 @@ export interface ConsultationExample {
   id: string;
   title: string;
   type: string;
-  description: string;
+  duration: string;
   transcript: string;
-  expectedNotes: {
-    gpSummary: string;
-    fullNote: string;
-    patientCopy: string;
-    snomedCodes: string[];
-  };
-  traineeFeedback: string;
+  summary: string;
+  patientCopy: string;
+  aiReview: string;
+  referralNeeded: boolean;
+  referralLetter?: string;
 }
 
 export const consultationExamples: ConsultationExample[] = [
   {
-    id: "urti",
+    id: "urti-example",
     title: "Upper Respiratory Tract Infection",
     type: "Acute Illness",
-    description: "Common cold with 3-day history",
-    transcript: `Doctor: Good morning, how can I help you today?
+    duration: "8:30",
+    transcript: `Doctor: Good morning, Mrs. Johnson. Please have a seat. What brings you in today?
 
-Patient: Hi doctor, I've been feeling quite unwell for the past 3 days. I've got a really bad cough and my throat is sore.
+Patient: Good morning, Doctor. I've been feeling quite unwell for the past three days. I have a terrible sore throat, blocked nose, and I've been coughing quite a bit.
 
-Doctor: I'm sorry to hear that. Can you tell me more about the cough - is it a dry cough or are you bringing anything up?
+Doctor: I'm sorry to hear you're feeling unwell. Can you tell me more about the sore throat? Is it painful when you swallow?
 
-Patient: It's mostly dry, but sometimes I get a bit of clear phlegm. It's been keeping me awake at night.
+Patient: Yes, very painful. It feels quite raw, especially when I try to drink anything. The pain is worse in the morning when I wake up.
 
-Doctor: And the sore throat - when did that start?
+Doctor: And the cough - is it a dry cough or are you bringing anything up?
 
-Patient: That started about the same time, maybe 3 days ago. It's quite painful when I swallow.
+Patient: It started as a dry cough, but now I'm bringing up some clear phlegm. Nothing colored though.
 
-Doctor: Have you had any fever?
+Doctor: That's good. Have you had a fever at all?
 
-Patient: Yes, I felt quite hot yesterday and the day before. I didn't take my temperature though.
+Patient: I felt hot and cold yesterday, but I didn't take my temperature. I was quite shivery.
 
-Doctor: Any headache or body aches?
+Doctor: Any other symptoms? Headache, body aches, changes to your voice?
 
-Patient: A bit of a headache, and I'm feeling quite tired and run down.
+Patient: Yes, I do have a bit of a headache, and my voice sounds different - a bit hoarse. I've also been quite tired.
 
-Doctor: Have you tried any treatments so far?
+Doctor: How long have you been experiencing these symptoms now?
 
-Patient: Just some throat lozenges from the pharmacy, but they're not helping much.
+Patient: They started on Monday morning, so about three days ago. The sore throat came first, then the blocked nose and cough followed.
 
-Doctor: Any difficulty breathing or chest pain?
+Doctor: Have you taken anything for the symptoms?
 
-Patient: No, nothing like that.
+Patient: Just some paracetamol for the headache and sore throat. It helps a bit but doesn't last long.
 
-Doctor: Have you been around anyone else who's been unwell?
+Doctor: That's fine. Now, let me examine you. Could you open your mouth and say 'ahh' for me? I can see your throat is quite red and inflamed, but I don't see any white spots or pus, which is good news. Let me check your lymph nodes... Yes, they're a bit swollen on both sides of your neck. Let me listen to your chest... Your breathing sounds clear, no wheeze or crackles.
 
-Patient: My colleague at work had something similar last week.
+Patient: That's reassuring about my chest.
 
-Doctor: Right, let me just have a look at your throat and chest. *examines patient* Your throat is red and inflamed, but I can't see any white patches or pus. Your chest sounds clear. Your temperature is 37.8 degrees.
+Doctor: Yes, your chest sounds fine. Based on your symptoms and examination, this appears to be a viral upper respiratory tract infection - essentially the common cold. These are very common, especially at this time of year.
 
-Doctor: This looks like a viral upper respiratory tract infection - essentially a common cold. These usually resolve on their own within 7-10 days.
+Patient: Is there anything I can do to get better faster?
 
-Patient: Do I need antibiotics?
+Doctor: Unfortunately, antibiotics won't help as this is viral, not bacterial. The best treatment is rest, plenty of fluids, and continuing with paracetamol for comfort. You could also try throat lozenges and perhaps some honey and lemon drinks for the sore throat.
 
-Doctor: No, antibiotics won't help with a viral infection. I'd recommend paracetamol or ibuprofen for the aches and fever, plenty of fluids, and rest.
+Patient: How long will it take to get better?
 
-Doctor: You should start feeling better in a few days. If your symptoms worsen, if you develop difficulty breathing, or if you're not improving after 2 weeks, please come back to see us.
+Doctor: Most people feel significantly better within 7-10 days, though the cough can sometimes linger for a couple of weeks. You should start feeling better in the next few days.
 
-Patient: Thank you doctor. Should I stay off work?
+Patient: Should I stay off work?
 
-Doctor: If you're feeling very unwell, it's fine to take a day or two off. Make sure you're well enough to work safely and try not to spread it to colleagues.`,
-    expectedNotes: {
-      gpSummary: "URTI, 3/7 history, viral, safety-netted, paracetamol/ibuprofen advised, self-limiting",
-      fullNote: `History of Presenting Complaint:
-3-day history of dry cough with occasional clear sputum, sore throat, subjective fever, headache, and fatigue. Symptoms started simultaneously. Contact with unwell colleague 1 week prior.
+Doctor: If you're feeling quite unwell and tired, it's worth taking a day or two off to rest. Also, you'll be less likely to pass it on to colleagues if you stay home while you're symptomatic.
 
-Examination:
-Temperature 37.8°C
-Throat: erythematous, no exudate
-Chest: clear to auscultation
-No respiratory distress
+Patient: Okay, that makes sense. When should I come back if I'm not getting better?
 
-Assessment:
+Doctor: If you develop a high fever, if your symptoms worsen rather than improve after a few days, or if you develop chest pain or difficulty breathing, then please contact us. Also, if you're not feeling better after 10 days, it would be worth reviewing.
+
+Patient: Thank you, Doctor. That's very helpful.
+
+Doctor: You're welcome. Take care, and I hope you feel better soon.`,
+    summary: `**Chief Complaint:** Upper respiratory tract symptoms for 3 days
+
+**History of Presenting Complaint:**
+- 3-day history of sore throat (severe, worse on swallowing, worse in mornings)
+- Blocked nose
+- Cough (initially dry, now productive of clear sputum)
+- Subjective fever with chills yesterday
+- Headache
+- Hoarse voice
+- Fatigue
+- Taking paracetamol with partial relief
+
+**Examination:**
+- Erythematous throat without exudate
+- Bilateral tender cervical lymphadenopathy
+- Clear chest on auscultation
+- No fever recorded during consultation
+
+**Assessment:**
 Viral upper respiratory tract infection (common cold)
 
-Management:
-- Symptomatic treatment with paracetamol/ibuprofen for fever and aches
-- Adequate fluid intake and rest
-- No antibiotics indicated (viral aetiology)
+**Plan:**
+- Conservative management with rest and fluids
+- Continue paracetamol as needed for symptomatic relief
+- Throat lozenges and honey/lemon drinks for throat symptoms
+- Advised to stay off work for 1-2 days
+- Safety netting: Return if symptoms worsen, high fever develops, chest symptoms, or no improvement after 10 days
 
-Safety Netting:
-Return if symptoms worsen, difficulty breathing develops, or no improvement after 2 weeks
+**No antibiotics prescribed** - viral etiology explained to patient`,
+    patientCopy: `Hi Mrs. Johnson, you have a viral upper respiratory tract infection (common cold). Rest, fluids, and paracetamol will help. Contact us if symptoms worsen or persist beyond 10 days.`,
+    aiReview: `**Consultation Review and Analysis**
 
-Advice:
-Can return to work when feeling well enough, avoid spreading to colleagues`,
-      patientCopy: `You have a common cold (viral upper respiratory tract infection).
+The consultation regarding the patient with symptoms of an upper respiratory tract infection (URTI) was generally well-conducted. However, there are areas for improvement in history taking, examination, and management plan.
 
-What this means:
-- Your symptoms are caused by a virus, not bacteria
-- This is very common and will get better on its own
+**Areas of Strength:**
+1. **Systematic History Taking:** Good progression through key symptoms including timeline, character of cough, and associated symptoms
+2. **Appropriate Examination:** Focused examination of throat, lymph nodes, and chest auscultation
+3. **Clear Explanation:** Well-explained diagnosis and rationale for viral vs bacterial infection
+4. **Appropriate Management:** Correct advice about antibiotics not being indicated
+5. **Safety Netting:** Good advice about when to return if symptoms worsen
 
-Treatment:
-- Take paracetamol or ibuprofen for aches, pains and fever
-- Drink plenty of fluids
-- Get plenty of rest
-- Throat lozenges may help soothe your throat
+**Areas for Improvement:**
 
-When to return:
-- If you have difficulty breathing
-- If your symptoms get much worse
-- If you're not feeling better after 2 weeks
+**History Taking:**
+1. **Past Medical History:** No exploration of relevant PMH (asthma, COPD, immunocompromise)
+2. **Drug History:** Only asked about current medications for symptoms, not regular medications or allergies
+3. **Social History:** No inquiry about smoking status, alcohol, or occupational factors
+4. **Fever Assessment:** Should have taken temperature reading rather than relying on subjective report
 
-Work:
-- You can return to work when you feel well enough
-- Try to avoid spreading the infection to colleagues
+**Examination:**
+1. **Vital Signs:** Temperature, blood pressure, pulse, and respiratory rate not documented
+2. **ENT Examination:** Could have examined ears (otoscopy) as part of URTI assessment
 
-Most people feel better within 7-10 days.`,
-      snomedCodes: [
-        "82272006 - Common cold",
-        "54150009 - Upper respiratory tract infection",
-        "422400008 - Vomiting",
-        "386661006 - Fever"
-      ]
-    },
-    traineeFeedback: `**GP Trainee Supervisor Feedback - Upper Respiratory Tract Infection**
-
-**Excellent Practice Demonstrated:**
-- Clear, systematic history-taking covering all key areas (onset, characteristics, associated symptoms)
-- Appropriate red flag screening (breathing difficulties, chest pain)
-- Good rapport building with empathetic opening
-- Excellent explanation of viral vs bacterial infection to patient
-- Appropriate antibiotic stewardship - well explained why not indicated
-- Comprehensive safety netting advice provided
-
-**Clinical Management:**
-- Correct diagnosis of viral URTI with appropriate examination findings documented
-- Evidence-based symptomatic treatment recommendations (paracetamol/ibuprofen)
-- Appropriate advice regarding work and infection control
-
-**Areas for Development:**
-- Consider quantifying fever (asked about it but could have been more specific about duration and pattern)
-- Could have briefly explored patient's understanding of their symptoms before examination
-- Consider asking about immunization status (especially if elderly or at-risk patient)
-
-**Patient Communication:**
-- Excellent - patient clearly understood diagnosis, treatment plan, and when to return
-- Good balance of reassurance while maintaining appropriate vigilance
+**Management:**
+1. **Symptom Relief:** Could have suggested nasal decongestants for blocked nose
+2. **Sick Note:** Patient asked about work - should have offered sick note documentation
 
 **Learning Points:**
-- This demonstrates good management of a common presentation
-- Shows appropriate use of clinical time for straightforward conditions
-- Excellent example of patient-centered care with clear communication
+1. Always document vital signs, especially temperature in febrile illness
+2. Complete medication and allergy history is essential
+3. Consider wider differential diagnosis (streptococcal pharyngitis screening)
+4. More structured approach to safety netting with specific timeframes
 
-**Overall Assessment:** Very good consultation demonstrating safe, effective primary care practice. Ready for independent practice in managing similar presentations.
-
-**Grade: Good** (would be suitable for CSA/OSCE pass)`
+**Overall Assessment:** Competent management of a common condition with room for more comprehensive assessment and documentation.`,
+    referralNeeded: false
   },
   {
-    id: "hypertension",
-    title: "Hypertension Follow-up",
-    type: "Chronic Disease Management", 
-    description: "Routine blood pressure check with medication review",
-    transcript: `Doctor: Good afternoon, Mr. Johnson. How have you been since your last visit?
-
-Patient: Pretty good overall, doctor. I've been taking my blood pressure tablets as you prescribed.
-
-Doctor: Excellent. Have you been monitoring your blood pressure at home?
-
-Patient: Yes, I've been checking it most mornings. It's been around 140/85 most days.
-
-Doctor: That's improved from last time. Any side effects from the amlodipine?
-
-Patient: I noticed my ankles were a bit swollen for the first week or two, but that's settled down now.
-
-Doctor: Good, that's a common side effect that often improves. How's your diet been?
-
-Patient: I've been trying to cut down on salt like you suggested. My wife's been cooking differently.
-
-Doctor: And exercise?
-
-Patient: I've started walking for 20 minutes most days. Finding it easier now.
-
-Doctor: Excellent. Any chest pain, shortness of breath, or dizziness?
-
-Patient: No, nothing like that.
-
-Doctor: Let me check your blood pressure today. *takes BP* That's 138/82, which is much better than the 165/95 we had last time.
-
-Doctor: Your blood tests from last month showed everything was normal - kidney function, cholesterol levels all fine.
-
-Patient: That's good to hear.
-
-Doctor: I think we should continue with the amlodipine 5mg daily. The lifestyle changes you've made are really helping too.
-
-Doctor: I'll see you again in 3 months for another check. Keep monitoring at home and if it goes consistently above 150/90, give us a call.
-
-Patient: Should I be worried about anything?
-
-Doctor: Your blood pressure is much better controlled now. The most important thing is to keep taking your medication regularly and maintain the healthy lifestyle changes.
-
-Patient: Thank you doctor.`,
-    expectedNotes: {
-      gpSummary: "HTN f/u, BP 138/82 (improved), amlodipine 5mg continued, lifestyle advice reinforced, 3/12 review",
-      fullNote: `Follow-up Consultation: Hypertension
-
-History:
-Patient reports good compliance with amlodipine 5mg daily. Home BP monitoring showing readings around 140/85. Initial ankle swelling resolved. Improved diet (reduced salt intake) and regular exercise (20 minutes walking daily). No symptoms of chest pain, SOB, or dizziness.
-
-Examination:
-BP: 138/82 (previous 165/95)
-No peripheral oedema noted today
-
-Review of Investigations:
-Recent blood tests normal - U&Es, lipids within normal range
-
-Assessment:
-Essential hypertension - well controlled on current treatment
-
-Plan:
-- Continue amlodipine 5mg daily
-- Continue lifestyle modifications (diet and exercise)
-- Home BP monitoring
-- Routine follow-up in 3 months
-
-Safety Netting:
-Contact surgery if home BP readings consistently >150/90`,
-      patientCopy: `Your blood pressure check went well today.
-
-Your blood pressure today: 138/82 (much improved from 165/95)
-
-Current treatment:
-- Continue taking amlodipine 5mg once daily
-- Keep up the excellent work with diet changes (less salt)
-- Continue your daily 20-minute walks
-
-Home monitoring:
-- Keep checking your blood pressure at home
-- Contact us if readings are consistently above 150/90
-
-Next appointment: 3 months
-
-Your blood pressure is now much better controlled thanks to the medication and the lifestyle changes you've made. Keep up the good work!`,
-      snomedCodes: [
-        "38341003 - Essential hypertension", 
-        "182836005 - Review of medication",
-        "386536003 - Arterial pressure taking",
-        "428119001 - Procedure involving blood pressure monitoring"
-      ]
-    },
-    traineeFeedback: `**GP Trainee Supervisor Feedback - Hypertension Follow-up**
-
-**Excellent Practice Demonstrated:**
-- Well-structured chronic disease review with systematic approach
-- Good medication compliance assessment and side effect monitoring
-- Excellent lifestyle counseling reinforcement (diet, exercise)
-- Appropriate use of home monitoring data to guide management
-- Clear documentation of improvement and continued plan
-
-**Clinical Management:**
-- Correct decision to continue current therapy given excellent response
-- Good safety netting with specific BP thresholds for patient contact
-- Appropriate review interval (3 months) for stable hypertension
-
-**Areas for Development:**
-- Could have been more specific about ankle swelling assessment (examination findings not documented)
-- Consider discussing cardiovascular risk reduction benefits in more detail
-- Brief mention of blood test results but could expand on significance of normal kidney function
-
-**Patient Communication:**
-- Good reassurance about improvement while emphasizing importance of continued treatment
-- Patient clearly understood ongoing management plan
-
-**Learning Points:**
-- Demonstrates good chronic disease management principles
-- Shows appropriate shared decision making
-- Good example of holistic care including lifestyle factors
-
-**Overall Assessment:** Good systematic approach to chronic disease follow-up. Shows competency in ongoing management of stable hypertension.
-
-**Grade: Good** (demonstrates safe independent practice)`
-  },
-  {
-    id: "depression",
-    title: "Depression Screening",
-    type: "Mental Health",
-    description: "Initial assessment for suspected depression",
-    transcript: `Doctor: Hello Sarah, thank you for coming in today. I understand you wanted to discuss how you've been feeling recently?
-
-Patient: Yes, I... I've been struggling quite a bit lately. I just don't feel like myself.
-
-Doctor: I'm sorry to hear you're having a difficult time. Can you tell me more about how you've been feeling?
-
-Patient: I just feel so low all the time. I wake up and I don't want to get out of bed. Everything feels like such an effort.
-
-Doctor: How long have you been feeling like this?
-
-Patient: It's been getting worse over the past couple of months, but I think it started after I lost my job about 4 months ago.
-
-Doctor: That must have been a very stressful time for you. Are you sleeping alright?
-
-Patient: Not really. I either can't get to sleep, or I wake up really early - like 4 or 5am - and then I can't get back to sleep.
-
-Doctor: And how's your appetite been?
-
-Patient: I'm just not interested in food anymore. I've probably lost about half a stone without trying.
-
-Doctor: Are you still able to enjoy things that you used to enjoy?
-
-Patient: No, not really. I used to love reading and going out with friends, but I just can't be bothered anymore. I've been canceling plans.
-
-Doctor: Have you had any thoughts about harming yourself?
-
-Patient: *pauses* Sometimes I think everyone would be better off without me, but I wouldn't actually do anything. I've got my children to think about.
-
-Doctor: I'm glad you feel able to talk about this. Have you noticed any problems with concentration or memory?
-
-Patient: Yes, I can't focus on anything. At work interviews, I just can't think clearly.
-
-Doctor: Have you used alcohol or drugs to help cope?
-
-Patient: I've been drinking a bit more wine in the evenings, but nothing excessive.
-
-Doctor: Have you experienced anything like this before?
-
-Patient: I had a difficult time after my mum died 5 years ago, but nothing quite like this.
-
-Doctor: Based on what you've told me, it sounds like you're experiencing depression. This is a real medical condition and there are effective treatments available.
-
-Patient: What happens now?
-
-Doctor: I'd like to start you on some medication called sertraline, and I'm going to refer you to our counseling service. We'll also do some blood tests to rule out other causes.
-
-Doctor: Most importantly, if you ever feel like you might harm yourself, please contact us immediately or go to A&E.`,
-    expectedNotes: {
-      gpSummary: "Depression 1st presentation, 2/12 duration, PHQ-9 likely severe, started sertraline 50mg, counseling referral, safety plan discussed",
-      fullNote: `Presenting Complaint:
-2-month history of low mood, anhedonia, early morning wakening, weight loss, poor concentration, social withdrawal.
-
-History:
-Onset 4 months ago following job loss, progressively worsening over past 2 months. Sleep disturbance (early morning wakening at 4-5am), reduced appetite with unintentional weight loss (~3.5kg), anhedonia, social isolation, poor concentration affecting job search. Passive suicidal ideation but protective factors (children). Increased alcohol consumption. Previous episode of low mood following bereavement 5 years ago.
-
-Mental State Examination:
-Appearance: kempt, appropriate
-Mood: subjectively low, objectively depressed
-Speech: reduced volume and pace
-Thought: no formal thought disorder, passive suicidal ideation, no active plans
-Perception: no abnormalities
-Cognition: poor concentration, memory difficulties
-
-Risk Assessment:
-Low immediate suicide risk - passive ideation, strong protective factors (children)
-
-Assessment:
-Moderate to severe depressive episode
-
-Plan:
-- Sertraline 50mg daily
-- Counseling referral
-- Blood tests: FBC, U&E, LFTs, TFTs, B12, folate
-- Safety netting: contact if suicidal thoughts worsen
-- Review in 2 weeks
-
-Education provided regarding depression and treatment options`,
-      patientCopy: `You are experiencing depression, which is a common and treatable medical condition.
-
-What we discussed:
-- You have been feeling low, tired, and unable to enjoy activities for about 2 months
-- This started after the stress of losing your job
-- These feelings are not your fault
-
-Treatment plan:
-- Starting medication: Sertraline 50mg once daily (antidepressant)
-- Referral for counseling/talking therapy
-- Blood tests to check for other causes
-
-Important safety information:
-- If you ever feel like you might harm yourself, contact us immediately or go to A&E
-- The medication may take 4-6 weeks to show full benefits
-- Some people feel worse initially before feeling better
-
-Follow-up:
-- Appointment in 2 weeks to see how you're getting on
-- Please contact us sooner if you're worried about anything
-
-Remember: Depression is treatable and you can get better with the right support.`,
-      snomedCodes: [
-        "35489007 - Depressive disorder",
-        "73867007 - Severe major depression",
-        "44054006 - Type 2 diabetes mellitus",
-        "182832007 - Sertraline therapy"
-      ]
-    },
-    traineeFeedback: `**GP Trainee Supervisor Feedback - Depression Screening & Management**
-
-**Outstanding Practice Demonstrated:**
-- Excellent rapport building and empathetic approach to sensitive topic
-- Systematic depression screening covering all key domains (mood, sleep, appetite, anhedonia, cognition)
-- Thorough risk assessment including suicidal ideation and protective factors
-- Comprehensive history including triggers, previous episodes, substance use
-- Clear explanation of diagnosis and treatment options
-
-**Clinical Management:**
-- Appropriate diagnosis of moderate-severe depression
-- Evidence-based treatment plan: SSRI + counseling + holistic approach
-- Good safety netting with clear crisis plan
-- Appropriate investigation plan to exclude organic causes
-
-**Areas for Development:**
-- Could have used formal screening tool (PHQ-9) to quantify severity
-- Consider exploring patient's understanding of depression and treatment preferences more
-- Alcohol consumption could have been quantified more specifically
-- Consider discussing side effects of sertraline in more detail
-
-**Risk Management:**
-- Excellent assessment of suicidal risk with protective factors identified
-- Clear safety plan provided
-- Appropriate follow-up interval (2 weeks)
-
-**Patient Communication:**
-- Outstanding - patient felt heard and understood
-- Clear explanation that depression is a medical condition, not patient's fault
-- Realistic expectations about treatment timeline
-
-**Learning Points:**
-- Demonstrates excellent skills in mental health consultation
-- Shows appropriate balance of empathy and clinical assessment
-- Good example of holistic bio-psycho-social approach
-
-**Overall Assessment:** Excellent consultation demonstrating advanced communication skills and comprehensive mental health assessment. Ready for independent practice with complex mental health presentations.
-
-**Grade: Excellent** (demonstrates skills above expected level for stage of training)`
-  },
-  {
-    id: "chest-pain",
-    title: "Acute Chest Pain",
-    type: "Emergency Assessment",
-    description: "Urgent assessment of chest pain with cardiac risk stratification",
-    transcript: `Doctor: Hello Mr. Thompson, I understand you've been having chest pain. Can you tell me about it?
-
-Patient: Yes doctor, it started about an hour ago. It's a tight feeling across my chest.
-
-Doctor: Can you show me exactly where the pain is?
-
-Patient: *points to central chest* It's right here, and it goes into my left arm and up into my jaw.
-
-Doctor: How would you describe the pain - sharp, crushing, burning?
-
-Patient: It's like a heavy weight on my chest, really tight and crushing.
-
-Doctor: On a scale of 1 to 10, how severe is the pain?
-
-Patient: About 7 or 8 out of 10.
-
-Doctor: Does anything make it better or worse?
-
-Patient: It doesn't seem to change when I move or breathe. It's just constant.
-
-Doctor: Have you had any shortness of breath?
-
-Patient: Yes, I feel quite breathless and a bit lightheaded.
-
-Doctor: Any nausea or sweating?
-
-Patient: I did feel sick earlier, and I've been quite sweaty.
-
-Doctor: Have you ever had chest pain like this before?
-
-Patient: Never anything like this. I've had a bit of heartburn before, but this is completely different.
-
-Doctor: Do you have any medical conditions or take any medications?
-
-Patient: I've got high blood pressure and high cholesterol. I take amlodipine and atorvastatin.
-
-Doctor: Do you smoke?
-
-Patient: I used to smoke 20 a day for about 30 years, but I stopped 2 years ago.
-
-Doctor: Any family history of heart problems?
-
-Patient: My dad had a heart attack when he was 55.
-
-Doctor: What were you doing when the pain started?
-
-Patient: I was just walking up the stairs at home.
-
-Doctor: *takes observations* Your pulse is 95 and slightly irregular, blood pressure is 150/95, oxygen levels are fine.
-
-Doctor: Mr. Thompson, I'm concerned this could be a heart attack. I need to do an ECG immediately and I'm going to call an ambulance to take you to hospital.
-
-Patient: A heart attack? Are you sure?
-
-Doctor: Your symptoms and risk factors are very concerning for a heart problem. The hospital can do tests to confirm and start treatment if needed.
-
-Doctor: I'm giving you some aspirin to chew now, and I want you to sit quietly while we wait for the ambulance.`,
-    expectedNotes: {
-      gpSummary: "Acute central chest pain, 1/24, crushing, radiating L arm/jaw, SOB, sweating, CV risk factors, ?STEMI, 999 ambulance, aspirin given",
-      fullNote: `URGENT CONSULTATION - ACUTE CHEST PAIN
-
-Presenting Complaint:
-1-hour history of severe central chest pain (7-8/10), crushing in nature, radiating to left arm and jaw. Associated shortness of breath, nausea, diaphoresis.
-
-History:
-Onset at rest while climbing stairs. No relieving or aggravating factors. No previous episodes of similar pain. 
-
-Past Medical History:
-- Hypertension (on amlodipine)
-- Hypercholesterolemia (on atorvastatin)
-- Ex-smoker (40 pack-year history, stopped 2 years ago)
-
-Family History:
-Paternal myocardial infarction age 55
-
-Examination:
-Appears distressed, diaphoretic
-Pulse: 95 bpm, slightly irregular
-BP: 150/95
-O2 Sats: 98% RA
-Cardiovascular examination limited by patient distress
-
-Assessment:
-ACUTE CORONARY SYNDROME - high suspicion of STEMI
-High-risk presentation with classical symptoms and multiple cardiovascular risk factors
-
-Immediate Management:
-- Aspirin 300mg chewed
-- 999 ambulance requested for immediate transfer
-- ECG requested
-- Patient advised to remain at rest
-
-URGENT HOSPITAL REFERRAL FOR SUSPECTED MYOCARDIAL INFARCTION`,
-      patientCopy: `URGENT MEDICAL SITUATION
-
-What happened today:
-You came to see me with severe chest pain that started 1 hour ago. Based on your symptoms and medical history, I am concerned this could be a heart attack.
-
-Immediate action taken:
-- Given you aspirin to chew
-- Called an ambulance to take you to hospital urgently
-- The hospital will do tests (blood tests, heart tracing) to confirm the diagnosis
-
-What happens next:
-- You will be taken to the emergency department immediately  
-- If this is a heart attack, they have excellent treatments available
-- Time is critical - the sooner treatment starts, the better the outcome
-
-Important:
-- This is being treated as an emergency
-- Stay calm and rest while waiting for the ambulance
-- The hospital team are experts in treating heart problems
-
-The symptoms you described (crushing chest pain going to your arm and jaw, along with breathlessness and sweating) need urgent investigation and treatment.`,
-      snomedCodes: [
-        "57054005 - Acute myocardial infarction",
-        "194828000 - Angina pectoris", 
-        "29857009 - Chest pain",
-        "267038008 - Aspirin therapy"
-      ]
-    },
-    traineeFeedback: `**GP Trainee Supervisor Feedback - Acute Chest Pain Emergency**
-
-**Excellent Emergency Management:**
-- Immediate recognition of high-risk presentation 
-- Systematic pain assessment with all key characteristics documented
-- Comprehensive cardiovascular risk factor assessment
-- Rapid clinical decision-making under pressure
-- Appropriate immediate interventions (aspirin, 999 call)
-
-**Clinical Excellence:**
-- Perfect identification of classical ACS symptoms (crushing chest pain, radiation, associated symptoms)
-- Thorough past medical history and risk factor evaluation
-- Correct interpretation of high-risk combination: symptoms + risk factors + family history
-- Appropriate vital signs assessment and documentation
-
-**Emergency Protocols:**
-- Immediate aspirin administration - evidence-based acute care
-- Urgent ambulance activation with appropriate justification
-- Clear communication of suspicion and urgency to patient
-- Appropriate monitoring while waiting for transfer
-
-**Patient Communication:**
-- Honest but reassuring explanation of concerns
-- Clear rationale for urgent action without causing panic
-- Appropriate emphasis on hospital expertise and treatment availability
-
-**Time-Critical Decision Making:**
-- Excellent prioritization of urgent assessment and management
-- No unnecessary delays in recognition and action
-- Appropriate limitation of examination given clinical urgency
-
-**Areas for Development:**
-- Could have mentioned ECG timing more specifically
-- Consider noting any medication allergies before aspirin
-
-**Learning Points:**
-- Exemplary emergency medicine practice in primary care
-- Demonstrates excellent clinical reasoning under pressure
-- Shows appropriate balance of thoroughness with urgency
-- Perfect example of when immediate action saves lives
-
-**Overall Assessment:** Outstanding emergency consultation. Textbook recognition and management of suspected STEMI. Demonstrates advanced clinical skills and decision-making appropriate for senior level practice.
-
-**Grade: Excellent** (demonstrates advanced emergency medicine skills)`
-  },
-  {
-    id: "diabetes-review",
-    title: "Type 2 Diabetes Annual Review", 
-    type: "Chronic Disease Management",
-    description: "Comprehensive diabetes review with complication screening",
-    transcript: `Doctor: Good morning Mrs. Patel. You're here for your annual diabetes check today.
-
-Patient: Yes, that's right. Time flies - can't believe it's been a year already.
-
-Doctor: How have you been managing with your diabetes recently?
-
-Patient: Generally quite well. I've been taking my metformin every day and trying to watch what I eat.
-
-Doctor: Excellent. Have you been monitoring your blood sugars at home?
-
-Patient: Yes, I check them most mornings before breakfast. They're usually between 6 and 8.
-
-Doctor: That sounds reasonable. Any episodes of very low blood sugars?
-
-Patient: No, nothing like that. Occasionally they might be a bit higher if I've had a treat, but nothing too concerning.
-
-Doctor: How's your weight been?
-
-Patient: I've lost about 2 kilos since last year. I've been trying to follow the diet advice from the nurse.
-
-Doctor: That's fantastic. And exercise?
-
-Patient: I go swimming twice a week and walk most days. My knees are much better since losing weight.
-
-Doctor: Any problems with your feet? Any cuts, sores, or numbness?
-
-Patient: No, nothing like that. I check them regularly like you told me to.
-
-Doctor: Good. How's your vision?
-
-Patient: Fine, no problems. I had my eye test last month.
-
-Doctor: Excellent. Any excessive thirst or passing lots of urine?
-
-Patient: No, all normal.
-
-Doctor: I've got your blood test results from last week. Your HbA1c is 52, which is excellent - it was 58 last year.
-
-Patient: Is that good?
-
-Doctor: Yes, very good. It shows your diabetes is well controlled. Your kidney function is normal, and your cholesterol is also improved.
-
-Doctor: Let me check your blood pressure and examine your feet. *examines patient* Blood pressure is 128/78, which is perfect. Your feet look healthy with good pulses.
-
-Doctor: I think we should continue with the metformin 1000mg twice daily. Your diabetes is very well controlled.
-
-Patient: Do I need any other medications?
-
-Doctor: Not for diabetes at the moment. I am going to start you on a low dose aspirin for heart protection, and continue your atorvastatin.
-
-Doctor: Keep up the excellent work with diet and exercise. I'll see you again in a year, but the nurse will see you in 6 months for a check-up.`,
-    expectedNotes: {
-      gpSummary: "T2DM annual review, HbA1c 52 (improved), BP 128/78, feet healthy, continue metformin, aspirin started, excellent control",
-      fullNote: `Annual Diabetes Review - Type 2 Diabetes Mellitus
-
-Current Management:
-Metformin 1000mg BD - good compliance
-Home glucose monitoring: fasting levels 6-8 mmol/L
-No hypoglycemic episodes
-
-Lifestyle:
-- Weight loss 2kg over past year  
-- Regular exercise: swimming 2x/week, daily walking
-- Good dietary compliance with dietitian advice
-
-Symptoms Review:
-No polyuria, polydipsia, visual disturbance, foot problems, or hypoglycemic symptoms
-
-Examination:
-- Weight: decreased 2kg from previous year
-- BP: 128/78 (target <140/80)
-- Feet: intact, good pulses, no neuropathy, good self-care
-
-Investigations (current):
-- HbA1c: 52 mmol/mol (improved from 58 mmol/mol)
-- eGFR: >60 (normal)
-- ACR: <3 (normal)
-- Total cholesterol: 3.8 mmol/L
-
-Screening:
-- Retinal screening: up to date (last month)
-- Foot examination: normal
-
-Assessment:
-Type 2 diabetes mellitus - excellent glycemic control
-
-Plan:
-- Continue metformin 1000mg BD
-- Start aspirin 75mg daily for cardiovascular protection
-- Continue atorvastatin
-- Annual review in 12 months
-- Diabetes nurse review in 6 months
-- Continue current lifestyle modifications
-
-Patient education reinforced regarding foot care and hypoglycemia awareness`,
-      patientCopy: `Your diabetes annual review went very well today.
-
-Blood sugar control:
-- Your HbA1c is 52 - this is excellent control (target is under 58)
-- This has improved from 58 last year
-- Your home monitoring shows good control
-
-Overall health:
-- Blood pressure: 128/78 (excellent)
-- Weight: lost 2kg this year (well done!)
-- Kidney function: normal
-- Cholesterol: improved
-- Eye test: up to date
-- Feet: healthy
-
-Current medications:
-- Continue metformin 1000mg twice daily
-- Continue atorvastatin for cholesterol
-- Starting aspirin 75mg daily for heart protection
-
-Lifestyle:
-- Keep up the excellent work with swimming and walking
-- Continue with healthy diet choices
-- Weight loss is really helping your diabetes and knees
-
-Next appointments:
-- Diabetes nurse check in 6 months  
-- Annual review with doctor in 12 months
-
-You're doing extremely well managing your diabetes - keep up the great work!`,
-      snomedCodes: [
-        "44054006 - Type 2 diabetes mellitus",
-        "182840001 - Metformin therapy", 
-        "302497006 - Hemoglobin A1c level",
-        "9436005 - Diabetic education"
-      ]
-    },
-    traineeFeedback: `**GP Trainee Supervisor Feedback - Type 2 Diabetes Annual Review**
-
-**Excellent Chronic Disease Management:**
-- Systematic annual review covering all essential diabetes domains
-- Comprehensive symptom review (polyuria, polydipsia, visual changes, neuropathy)
-- Thorough lifestyle assessment including diet, exercise, and weight management
-- Good medication compliance review and safety assessment
-- Appropriate investigation interpretation and explanation
-
-**Clinical Excellence:**
-- Perfect understanding of HbA1c targets and significance of improvement
-- Comprehensive diabetic complication screening (feet, eyes, kidneys)
-- Appropriate cardiovascular risk assessment and management
-- Good integration of lifestyle factors with medical management
-
-**Patient Communication:**
-- Excellent positive reinforcement for patient's self-management efforts
-- Clear explanation of test results and their significance
-- Appropriate encouragement while maintaining ongoing vigilance
-- Good shared decision making regarding treatment continuation
-
-**Preventive Care:**
-- Appropriate addition of aspirin for cardiovascular protection
-- Good coordination of care with diabetes nurse and optometrist
-- Excellent patient education reinforcement
-
-**Areas for Development:**
-- Could have briefly addressed flu vaccination status
-- Consider asking about erectile dysfunction/sexual health (common diabetes complication)
-- Might have mentioned importance of maintaining good dental care
-
-**Long-term Management:**
-- Appropriate follow-up schedule with nurse at 6 months
-- Good continuity planning for ongoing care
-- Excellent documentation of patient's progress and plan
-
-**Learning Points:**
-- Demonstrates excellent chronic disease management skills
-- Shows good understanding of diabetes complications and prevention
-- Perfect example of patient-centered annual review
-- Good balance of celebrating success while maintaining vigilance
-
-**Overall Assessment:** Outstanding diabetes review consultation. Demonstrates comprehensive understanding of diabetes management and excellent patient engagement. Shows advanced competency in chronic disease care.
-
-**Grade: Excellent** (demonstrates advanced chronic disease management skills suitable for independent practice)`
-  },
-  {
-    id: "chestpain",
+    id: "chest-pain-example",
     title: "Chest Pain Assessment",
-    type: "Acute Presentation",
-    description: "54-year-old male with central chest pain - urgent assessment required",
-    transcript: `Doctor: Mr. Williams, I understand you're experiencing chest pain. Can you tell me exactly what happened?
+    type: "Acute Assessment",
+    duration: "12:45",
+    transcript: `Doctor: Good afternoon, Mr. Smith. I understand you've come in with chest pain. Can you tell me about it?
 
-Patient: Doctor, I was mowing the lawn about an hour ago and suddenly got this crushing pain in the middle of my chest. It was really frightening.
+Patient: Yes, Doctor. I started getting this chest pain about two hours ago. It came on quite suddenly while I was walking to the shops.
 
-Doctor: Where exactly is the pain now?
+Doctor: Can you describe the pain for me? What does it feel like?
 
-Patient: *points to center of chest* Right here, across the middle. It feels like someone's sitting on my chest.
+Patient: It's a heavy, crushing feeling right in the center of my chest. It feels like someone's sitting on my chest.
+
+Doctor: That sounds concerning. Does the pain go anywhere else?
+
+Patient: Yes, it seems to go up into my neck and down my left arm. My jaw feels a bit uncomfortable too.
 
 Doctor: On a scale of 1 to 10, how would you rate the pain?
 
-Patient: It's probably about a 7 or 8. It's definitely the worst pain I've ever had in my chest.
-
-Doctor: Does the pain go anywhere else?
-
-Patient: Yes, it goes up into my jaw and down my left arm. That's what really scared me.
-
-Doctor: How long did the pain last when you were mowing?
-
-Patient: About 15 minutes. I had to stop and sit down. It's much better now but still there.
-
-Doctor: Any nausea, sweating, or feeling short of breath?
-
-Patient: I did feel a bit sick and was sweating quite a lot, but I thought that was just from the heat.
+Patient: I'd say it's about a 7 out of 10. It's quite bad.
 
 Doctor: Have you had chest pain like this before?
 
-Patient: Never anything this bad. Sometimes I get a bit tight when climbing stairs, but nothing like this.
+Patient: Never like this. I've had some mild chest discomfort when I've been rushing around, but nothing this severe.
 
-Doctor: Do you smoke, Mr. Williams?
+Doctor: Tell me about that previous discomfort. When did that happen?
 
-Patient: I quit 5 years ago, but I smoked for about 20 years before that.
+Patient: Well, maybe in the last month or two, if I'm walking quickly or going upstairs, I sometimes get a bit of tightness across my chest. But it goes away when I rest.
+
+Doctor: How long does it take to go away when you rest?
+
+Patient: Usually just a minute or two. But this pain today hasn't gone away at all, even though I'm sitting here.
+
+Doctor: Are you getting any other symptoms with the chest pain? Shortness of breath, nausea, sweating?
+
+Patient: Yes, I do feel a bit sick, and I noticed I was sweating when the pain started. I'm not really short of breath though.
+
+Doctor: Do you have any medical conditions that I should know about?
+
+Patient: I have high blood pressure, and my cholesterol was a bit high last time it was checked. I take ramipril for the blood pressure.
+
+Doctor: Do you smoke?
+
+Patient: I used to smoke heavily - about 20 a day for 30 years. I stopped about 5 years ago.
 
 Doctor: Any family history of heart problems?
 
-Patient: My dad had a heart attack when he was 60. My brother had bypass surgery last year.
+Patient: My father had a heart attack when he was 55. My brother had heart bypass surgery a few years back.
 
-Doctor: Are you on any medications?
+Doctor: I need to examine you now. Let me check your pulse and blood pressure first... Your pulse is regular but a bit fast at 95. Your blood pressure is 150 over 90, which is a bit high. Let me listen to your heart and lungs... I can hear your heart clearly, and your lungs sound clear.
 
-Patient: Just something for my blood pressure - ramipril I think. And I take a statin.
+Patient: What do you think it could be, Doctor?
 
-Doctor: Let me examine you. *takes observations* Your blood pressure is 160/95, pulse is 95 and regular. Let me listen to your heart and lungs. *examines* I'm going to do an ECG right now.
+Doctor: Given your symptoms, your risk factors, and the nature of this pain, I'm concerned this could be related to your heart. We need to take this very seriously and get some tests done urgently.
 
-Doctor: Mr. Williams, your ECG shows some changes that suggest your heart muscle isn't getting enough oxygen. I need to call an ambulance to take you to hospital immediately.
+Patient: Do you think I'm having a heart attack?
 
-Patient: Is it a heart attack?
+Doctor: It's possible, and we can't rule it out based on the examination alone. The good news is that we can do tests to find out exactly what's happening. I'm going to arrange for you to go to the hospital immediately for an ECG and some blood tests.
 
-Doctor: It's looking like it could be what we call acute coronary syndrome. The hospital team need to see you urgently to do more tests and start treatment.
+Patient: Should I be worried?
 
-Doctor: I'm going to give you an aspirin to chew now, and some spray under your tongue for the pain. The paramedics will be here shortly.`,
-    expectedNotes: {
-      gpSummary: "ACS - central crushing chest pain with radiation, ECG changes, 999 called, aspirin given, GTN administered",
-      fullNote: `URGENT - Acute Coronary Syndrome
+Doctor: I want you to take this seriously, but please don't panic. We're going to get you the right care. I'm calling an ambulance now to take you to the emergency department. They'll be able to do all the necessary tests and provide the appropriate treatment.
 
-Presenting Complaint:
-Central crushing chest pain (7-8/10 severity) with radiation to jaw and left arm, onset during physical exertion (lawn mowing), duration 15 minutes, associated with nausea and diaphoresis.
+Doctor: While we're waiting for the ambulance, I'm going to give you an aspirin to chew. This can help if this is heart-related. Are you allergic to aspirin?
 
-History:
-54-year-old male with crushing central chest pain onset 1 hour ago during lawn mowing. Classic cardiac pain radiation to jaw and left arm. Associated symptoms: nausea, sweating. Previous history of exertional chest tightness. No previous episodes of this severity.
+Patient: No, I don't think so.
 
-Risk Factors:
-- Ex-smoker (20 pack years, quit 5 years ago)
-- Hypertension (on ramipril)
-- Hyperlipidemia (on statin therapy)
-- Strong family history (father MI age 60, brother CABG)
-- Male, age 54
+Doctor: Good. Here's a 300mg aspirin. Please chew it and swallow it. The ambulance should be here within 10 minutes. Try to stay calm, and don't exert yourself.
 
-Examination:
-BP: 160/95, HR: 95 regular
-Heart sounds: normal S1, S2, no murmurs
-Chest: clear
-ECG: T-wave inversion leads V2-V4, consistent with anterior ischemia
+Patient: Thank you, Doctor. I'm glad I came in when I did.
 
-Immediate Management:
-- 300mg aspirin chewed
-- GTN spray sublingual
-- 999 emergency ambulance called
-- Hospital pre-alert given
+Doctor: You absolutely did the right thing. Chest pain like this should always be checked urgently.`,
+    summary: `**Chief Complaint:** Acute onset chest pain, 2 hours duration
 
-Diagnosis:
-Acute Coronary Syndrome - STEMI/NSTEMI to be determined by hospital team
+**History of Presenting Complaint:**
+- Sudden onset central chest pain 2 hours ago while walking
+- Heavy, crushing sensation with radiation to neck, left arm, and jaw
+- Severity: 7/10
+- Associated nausea and sweating
+- No relief with rest
+- Recent history of exertional chest tightness (1-2 months) relieving with rest in 1-2 minutes
 
-Outcome:
-Patient transferred to Emergency Department under Category 1 ambulance for urgent cardiology assessment and primary PCI if indicated.`,
-      patientCopy: `URGENT MEDICAL CONDITION
+**Risk Factors:**
+- Male, Hypertension (on ramipril), Hypercholesterolemia
+- Ex-smoker (20/day for 30 years, stopped 5 years ago)
+- Strong family history (father MI at 55, brother CABG)
 
-You have been diagnosed with a heart condition called Acute Coronary Syndrome.
+**Examination:**
+- Pulse: 95 bpm, regular, BP: 150/90 mmHg
+- Heart sounds: Normal, Lung fields: Clear
 
-What this means:
-- One of the arteries supplying your heart muscle may be blocked
-- This requires immediate hospital treatment
-- This is a serious condition but treatments are very effective
+**Assessment:**
+Acute coronary syndrome - possible STEMI/NSTEMI
+High clinical suspicion based on typical symptoms, risk factors, and presentation
 
-What we've done:
-- Given you aspirin to help prevent further clots
-- Given you a spray to help with the pain
-- Called an ambulance to take you to hospital immediately
+**Immediate Management:**
+- Aspirin 300mg chewed and swallowed
+- Urgent ambulance transfer to Emergency Department
+- ECG and troponin levels required`,
+    patientCopy: `Mr. Smith, you have chest pain that needs urgent hospital assessment. We've given you aspirin and called an ambulance. This is precautionary to rule out heart problems.`,
+    aiReview: `**Consultation Review: Acute Chest Pain Assessment**
 
-At the hospital they will:
-- Do more detailed heart tests (blood tests, scans)
-- Possibly open the blocked artery with a procedure
-- Start you on medications to protect your heart
+**Summary:** This consultation demonstrates excellent recognition and management of potential acute coronary syndrome. The GP appropriately identified high-risk features and initiated urgent care pathways.
 
-This condition is treatable and many people make full recoveries with proper treatment.
+**Areas of Excellence:**
+1. **History Taking:** Systematic assessment of pain characteristics, appropriate exploration of timeline and precipitating factors, good assessment of associated symptoms
+2. **Clinical Decision Making:** Excellent risk stratification based on presentation, appropriate level of concern for symptoms and risk factors
+3. **Emergency Management:** Prompt administration of aspirin 300mg, immediate ambulance request, appropriate advice about activity restriction
 
-IMPORTANT: If you have similar symptoms again, call 999 immediately.`,
-      snomedCodes: [
-        "394659003 - Acute coronary syndrome",
-        "29857009 - Chest pain",
-        "22298006 - Myocardial infarction",
-        "164947007 - Abnormal ECG"
-      ]
-    },
-    traineeFeedback: `**GP Trainee Supervisor Feedback - Acute Chest Pain**
+**Areas for Enhancement:**
+1. **Additional History:** Could have asked about duration of previous exertional symptoms more specifically, medication adherence and current cholesterol levels
+2. **Examination:** Could have documented respiratory rate and oxygen saturation, assessment for signs of heart failure
 
-**Outstanding Practice Demonstrated:**
-- Immediate recognition of high-risk chest pain presentation
-- Systematic history covering all cardinal features (site, radiation, character, timing)
-- Thorough risk factor assessment (smoking, family history, medications)
-- Appropriate examination with vital signs and ECG
-- Rapid, decisive management with immediate treatment and hospital transfer
+**Clinical Reasoning Analysis:**
+✓ Acute coronary syndrome (primary concern) - Given the risk factors and classical presentation
+✓ Typical cardiac pain radiation pattern identified
+✓ Associated autonomic symptoms (nausea, sweating)
+✓ Multiple cardiovascular risk factors
+✓ Pain not relieved by rest
 
-**Clinical Management:**
-- Excellent clinical reasoning leading to correct diagnosis
-- Appropriate immediate treatment (aspirin, GTN)
-- Correct decision for Category 1 ambulance transfer
-- Good pre-hospital management of acute coronary syndrome
+**Management Excellence:**
+1. **Immediate Care:** Appropriate aspirin administration
+2. **Referral Pathway:** Correct use of emergency services
+3. **Communication:** Clear explanation without causing panic
 
-**Emergency Care Skills:**
-- Calm, efficient approach to acute medical emergency
-- Clear communication with patient during stressful situation
-- Appropriate use of investigation (ECG) to guide management
-- Excellent prioritization of immediate vs routine care
+**Overall Assessment:** Excellent management of a high-risk presentation with appropriate urgency and clinical decision-making.`,
+    referralNeeded: true,
+    referralLetter: `Dear Emergency Medicine Colleague,
 
-**Patient Communication:**
-- Clear explanation of serious nature without causing panic
-- Appropriate level of information during acute situation
-- Good balance of honesty and reassurance
+Re: Mr. James Smith, DOB: [DOB], NHS: [NHS Number]
 
-**Areas for Development:**
-- Document exact ECG changes in more detail for hospital team
-- Consider pain score monitoring after GTN
-- Brief mention of time to hospital/expected journey
+I am referring this 58-year-old gentleman with acute onset chest pain for urgent assessment.
 
-**Learning Points:**
-- Perfect example of acute care in primary care setting
-- Demonstrates importance of pattern recognition in chest pain
-- Shows excellent emergency response and handover skills
-- Good example of when not to "wait and see"
+Mr. Smith presented with sudden onset central crushing chest pain occurring 2 hours ago while walking. The pain radiates to neck, left arm and jaw, rated 7/10 severity, with associated nausea and sweating. Significantly, the pain has not resolved with rest.
 
-**Overall Assessment:** Exemplary management of acute chest pain. Shows advanced clinical decision-making and emergency care skills. Patient's life potentially saved by rapid recognition and treatment.
+Relevant risk factors include:
+- Hypertension (on ramipril), Hypercholesterolemia  
+- Ex-smoker (20/day × 30 years, ceased 5 years ago)
+- Strong family history (father MI age 55, brother previous CABG)
 
-**Grade: Outstanding** (demonstrates expert emergency management skills)`
+Examination: BP 150/90, pulse 95 regular, heart sounds normal, clear lung fields.
+
+I have administered aspirin 300mg and arranged emergency ambulance transfer. Given the clinical presentation and risk factor profile, I have high suspicion for acute coronary syndrome requiring urgent ECG and troponin assessment.
+
+Thank you for your urgent assessment.
+
+Yours sincerely,
+Dr. [Name]`
   },
   {
-    id: "contraception",
-    title: "Contraception Consultation",
-    type: "Sexual Health",
-    description: "22-year-old female requesting contraceptive advice",
-    transcript: `Doctor: Hello Emma, how can I help you today?
+    id: "depression-review",
+    title: "Depression Follow-up Review",
+    type: "Mental Health",
+    duration: "15:20",
+    transcript: `Doctor: Good morning, Sarah. How have you been since we last spoke?
 
-Patient: Hi doctor, I'd like to discuss contraception options. I'm currently on the pill but I keep forgetting to take it.
+Patient: Hi Doctor. I've been... well, some days are better than others. I think the medication is helping a bit, but I still have really difficult days.
 
-Doctor: I see. Which pill are you taking at the moment?
+Doctor: You've been on the sertraline for about 6 weeks now, is that right?
 
-Patient: It's called Microgynon, I think. I've been on it for about 2 years.
+Patient: Yes, that's right. I started on the 50mg dose you prescribed.
 
-Doctor: How often would you say you miss pills?
+Doctor: And how are you finding it? Any side effects?
 
-Patient: Probably 2 or 3 times a month. Sometimes I remember the next day, sometimes not until I see the packet.
+Patient: The first couple of weeks were quite hard. I felt quite sick, especially in the mornings, and I had some headaches. But that's mostly settled down now.
 
-Doctor: Have you had any pregnancy scares or used emergency contraception recently?
+Doctor: That's good - those early side effects are quite common and usually do settle. How's your mood been overall?
 
-Patient: I had to get the morning after pill about 3 months ago when I missed two pills in a row.
+Patient: I think it's a bit better. I'm not crying every day like I was before. But I still feel quite low most of the time, and I'm struggling to enjoy things I used to like.
 
-Doctor: That must have been stressful. Are you in a relationship at the moment?
+Doctor: Are you still having trouble with sleep?
 
-Patient: Yes, I've been with my boyfriend for about 6 months. We're not using condoms because we've both been tested for STIs.
+Patient: Yes, that's still a big problem. I find it really hard to get to sleep, and then I wake up at about 4 AM and can't get back to sleep. I feel exhausted all the time.
 
-Doctor: That's good that you've both been tested. Are you planning a pregnancy in the near future?
+Doctor: How's your appetite been?
 
-Patient: Definitely not for the next few years. I'm still at university and we're nowhere near ready for that.
+Patient: Still not great. I have to force myself to eat most of the time. I've probably lost a bit more weight.
 
-Doctor: What's most important to you in contraception - effectiveness, convenience, or perhaps having periods?
+Doctor: And your energy levels?
 
-Patient: Definitely convenience. I travel a lot with uni and I just can't keep track of daily pills. And I wouldn't mind not having periods actually.
+Patient: Very low. Everything feels like such an effort. Even getting dressed in the morning feels overwhelming some days.
 
-Doctor: Have you heard about long-acting contraceptive methods like the coil or implant?
+Doctor: How are you managing with work?
 
-Patient: I've heard of them but don't really know much. Are they safe?
+Patient: I'm still signed off. I know I need to think about going back, but I just don't feel ready. The thought of facing everyone and trying to concentrate for a whole day feels impossible right now.
 
-Doctor: Yes, they're very safe and highly effective. The contraceptive implant goes in your arm and lasts 3 years. The coil sits in your womb and can last 5-10 years depending on the type.
+Doctor: That's understandable. There's no rush - we need to make sure you're feeling stronger before you think about returning. Are you still having those negative thoughts about yourself?
 
-Patient: Do they hurt to have fitted?
+Patient: Yes, quite a lot. I keep thinking that I'm useless, that I'm letting everyone down. Sometimes I think my family would be better off without me.
 
-Doctor: The implant is inserted with local anesthetic, so just a small scratch. The coil insertion can be uncomfortable but it's over quickly. Both are done as outpatient procedures.
+Doctor: When you say better off without you, what do you mean by that?
 
-Doctor: With the implant, you might have irregular bleeding initially, but many women stop having periods altogether after a year. The hormonal coil often makes periods much lighter or stop completely.
+Patient: I just feel like such a burden. My husband is doing everything - looking after the kids, all the housework. I feel like I'm not contributing anything.
 
-Patient: That sounds quite appealing actually. What about side effects?
+Doctor: Have you had any thoughts about hurting yourself or ending your life?
 
-Doctor: With the implant, some women experience mood changes, weight gain, or skin changes, but most tolerate it well. If you don't get on with it, it can be removed at any time.
+Patient: I... sometimes I think about it. Not about actually doing anything, but just that it would be easier if I wasn't here. But I wouldn't do anything because of the children.
 
-Patient: I think I'd like to try the implant. When could I have it done?
+Doctor: I'm glad you feel you can tell me about these thoughts, and it's good that the children are a protective factor for you. How often are you having these thoughts?
 
-Doctor: We can arrange it for next week. You'll need to use additional contraception for the first 7 days if it's not fitted in the first 5 days of your cycle.
+Patient: Maybe a few times a week. Usually when I'm lying awake at night feeling really low.
 
-Doctor: I'll also give you some information leaflets to read before you decide. Do you have any other questions about sexual health while you're here?`,
-    expectedNotes: {
-      gpSummary: "Contraception review, poor pill compliance, counseled re LARC options, patient requesting contraceptive implant",
-      fullNote: `Contraception Consultation
+Doctor: Are you still seeing the counselor we arranged?
 
-Presenting Issue:
-22-year-old female requesting contraceptive review due to poor compliance with combined oral contraceptive pill (Microgynon).
+Patient: Yes, I see Emma every two weeks. She's really nice and it does help to talk to someone, but I still feel like I'm not making much progress.
 
-Current Contraception:
-Microgynon 30 for 2 years, missing 2-3 pills monthly, required emergency contraception 3 months ago following missed pills.
+Doctor: These things do take time, Sarah. You've been through a very difficult period. How's your support at home?
 
-Contraceptive History:
-No previous LARC methods. Partner relationship 6 months, both STI tested.
+Patient: My husband is amazing, really patient. But I worry I'm wearing him down. My mum comes over quite a bit to help with the kids, which is good.
 
-Requirements:
-- High effectiveness
-- Convenience (frequent travel with studies)
-- Not planning pregnancy for several years
-- Acceptable to have amenorrhea
+Doctor: That sounds like you have good support around you. Now, in terms of the medication, since you're still having significant symptoms after 6 weeks, I think we should consider increasing the dose of sertraline.
 
-Discussion:
-Counseled regarding LARC options including contraceptive implant and intrauterine devices. Discussed effectiveness, insertion procedure, side effects, and bleeding patterns.
+Patient: Is that safe? I was worried about increasing it.
 
-Decision:
-Patient opted for contraceptive implant (Nexplanon) after full counseling.
+Doctor: Yes, it's quite safe. We can increase it to 100mg daily. You might get some mild side effects again for a few days, but they should settle quickly since you've already adjusted to the medication.
 
-Plan:
-- Arrange implant insertion appointment next week
-- Patient information leaflets provided
-- Advised regarding 7-day additional contraception requirement
-- Continue current pill until implant fitted
+Patient: Okay, if you think it will help.
 
-Consent: Full informed consent obtained for contraceptive implant`,
-      patientCopy: `Contraception Consultation Summary
+Doctor: I do think it's worth trying. We should give it another 4-6 weeks at the higher dose to see how you respond. I'd also like to see you again in two weeks to check how you're getting on.
 
-We discussed your contraception needs today because you're having trouble remembering to take your pill every day.
+Patient: Yes, that would be good.
 
-Your choice: Contraceptive Implant (Nexplanon)
-- Small rod inserted under skin in upper arm
-- Works for 3 years
-- Over 99% effective at preventing pregnancy
-- Can be removed at any time if you want to get pregnant or don't like it
+Doctor: In the meantime, are you managing to do any of the things we discussed before - going for walks, trying to maintain some routine?
 
-What to expect:
-- Inserted with local anesthetic (small scratch)
-- Takes about 2 minutes
-- Use extra contraception (condoms) for first 7 days
-- Periods may become irregular or stop completely
+Patient: I am trying. I manage a short walk most days, usually just to the local shop. And I'm trying to get up at the same time each day, even though I feel awful.
 
-Possible side effects:
-- Irregular bleeding (especially first 6 months)
-- Some women experience mood changes or weight gain
-- Most women have no problems
+Doctor: That's really good. Those small steps are important. Is there anything else that's worrying you or that you'd like to discuss today?
 
-Next steps:
-- Appointment arranged for next week
-- Read the information leaflets provided
-- Continue your pill until the implant is fitted
-- Call if you have any questions
+Patient: I just want to know when I might start feeling normal again. It's been three months now since this all started.
 
-Remember: This is a very effective and convenient method of contraception. You can always have it removed if you change your mind.`,
-      snomedCodes: [
-        "13197004 - Contraception",
-        "268463003 - Contraceptive implant",
-        "182836005 - Review of contraception",
-        "432102000 - Administration of contraceptive"
-      ]
-    },
-    traineeFeedback: `**GP Trainee Supervisor Feedback - Contraception Consultation**
+Doctor: I understand that's frustrating. Depression can take time to resolve, but you are making progress, even if it doesn't always feel like it. With the medication increase and continued counseling, I'm hopeful you'll start to feel more like yourself over the coming weeks.
 
-**Excellent Practice Demonstrated:**
-- Sensitive, non-judgmental approach to sexual health consultation
-- Thorough assessment of current contraceptive failure and needs
-- Comprehensive discussion of LARC options with advantages/disadvantages
-- Patient-centered approach focusing on individual requirements
-- Good relationship and STI risk assessment
+Patient: Thank you, Doctor. I appreciate you being so patient with me.
 
-**Clinical Knowledge:**
-- Accurate information about contraceptive methods and effectiveness
-- Appropriate counseling about side effects and bleeding patterns
-- Correct advice about timing and additional contraception requirements
-- Good understanding of contraceptive failure rates and mechanisms
+Doctor: That's what I'm here for. Remember, if you're having more frequent thoughts about harming yourself, or if you feel you can't keep yourself safe, please don't hesitate to contact us immediately, okay?
+
+Patient: Yes, I will. Thank you.`,
+    summary: `**Follow-up Review: Major Depression**
+
+**Current Treatment:**
+- Sertraline 50mg daily for 6 weeks
+- Fortnightly counseling sessions
+
+**Progress Assessment:**
+- Partial response to sertraline
+- Initial side effects (nausea, headaches) resolved
+- Reduced frequency of crying episodes
+- Sleep disturbance persists (initial and middle insomnia)
+- Poor appetite with continued weight loss
+- Low energy and motivation
+- Still signed off work
+
+**Mental State Examination:**
+- Mood: Low but stable
+- Anhedonia present
+- Negative cognitions about self-worth
+- Passive suicidal ideation (few times per week, protective factors present)
+- No active plans or intent to self-harm
+- Insight maintained
+
+**Support Systems:**
+- Good family support (husband and mother)
+- Engaging with counseling
+- Maintaining some daily activities
+
+**Management Plan:**
+- Increase sertraline to 100mg daily
+- Continue counseling
+- Review in 2 weeks
+- Safety netting regarding suicidal thoughts
+- Continue gradual behavioral activation
+- Maintain daily routine
+- Work return planning deferred
+
+**Risk Assessment:** Moderate risk - passive suicidal ideation with protective factors, good insight, engaged with treatment`,
+    patientCopy: `Sarah, we're increasing your antidepressant to 100mg as you're showing some improvement. Continue counseling and daily walks. Contact us immediately if you feel unsafe.`,
+    aiReview: `**Mental Health Consultation Review: Depression Follow-up**
+
+**Overall Assessment:** This consultation demonstrates good practice in depression management with appropriate follow-up, risk assessment, and treatment adjustment.
+
+**Strengths Demonstrated:**
+1. **Systematic Review:** Comprehensive assessment of medication response and side effects, detailed exploration of mood symptoms and functional impact
+2. **Risk Assessment:** Appropriate screening for suicidal ideation, good follow-up questions about passive thoughts, identification of protective factors
+3. **Treatment Management:** Evidence-based decision to increase sertraline dose, appropriate timing for dose adjustment (6 weeks)
+4. **Psychosocial Assessment:** Good exploration of support systems, assessment of counseling engagement
+
+**Areas for Enhancement:**
+1. **Structured Assessment Tools:** Could have used PHQ-9 or GAD-7 scores for objective measurement
+2. **Safety Planning:** While risk assessment was good, could have developed more detailed safety plan
+3. **Medication Counseling:** Could have discussed expected timeline for improvement at higher dose
+
+**Clinical Decision Making Analysis:**
+✓ Sertraline dose increase after 6 weeks partial response
+✓ Continued psychological therapy
+✓ Regular follow-up scheduling
+✓ Deferring work return until more stable
+
+**Evidence-Based Practice:**
+- Follows NICE guidelines for depression management
+- Appropriate use of combination therapy (medication + psychological)
+- Correct timing for treatment review and adjustment
 
 **Communication Skills:**
-- Created safe space for sexual health discussion
-- Used appropriate language level for young adult
-- Checked understanding and provided written information
-- Respected patient autonomy in decision-making
+- Empathetic and non-judgmental approach
+- Good use of open questions
+- Appropriate normalization of patient concerns
 
-**Areas for Development:**
-- Could have explored weight/BMI (relevant for some contraceptive choices)
-- Consider asking about previous mental health (relevant for hormonal methods)
-- Brief discussion about future fertility reassurance could be helpful
-- Consider mentioning STI prevention despite current relationship status
-
-**Consultation Management:**
-- Efficient consultation covering all key areas
-- Appropriate follow-up arrangements
-- Good documentation of informed consent process
-
-**Learning Points:**
-- Excellent example of patient-centered contraceptive counseling
-- Shows good understanding of LARC promotion
-- Demonstrates importance of discussing contraceptive failure
-- Good balance of information provision without overwhelming patient
-
-**Overall Assessment:** Very good contraception consultation showing competent sexual health skills. Patient's needs well assessed and appropriate method chosen.
-
-**Grade: Good** (demonstrates safe sexual health practice with good patient engagement)`
+**Overall Grade:** Well-conducted consultation with good clinical reasoning and patient care.`,
+    referralNeeded: false
   },
   {
-    id: "copd",
-    title: "COPD Exacerbation",
-    type: "Respiratory",
-    description: "68-year-old with worsening breathlessness and productive cough",
-    transcript: `Doctor: Good morning Mr. Thompson. I see from the notes that you called yesterday about your breathing. How are you feeling today?
+    id: "diabetes-review",
+    title: "Type 2 Diabetes Annual Review",
+    type: "Chronic Disease Management",
+    duration: "18:30",
+    transcript: `Doctor: Good morning, Mr. Patel. Come in and have a seat. How have you been getting on since your last diabetes review?
 
-Patient: Not good at all, doctor. I can barely walk to the bathroom without getting completely out of breath.
+Patient: Good morning, Doctor. I think I've been doing quite well, actually. I've been trying hard to follow all the advice you gave me last time.
 
-Doctor: That does sound concerning. Tell me about your breathing over the past few days.
+Doctor: That's great to hear. Let's go through your results from the blood tests we did last week. Your HbA1c has come down to 58 mmol/mol, which is a really good improvement from 68 six months ago.
 
-Patient: It's been getting worse since Monday. Usually I can walk to the shops, but now I'm struggling to get dressed.
+Patient: Oh, that's good news! I was worried about that.
 
-Doctor: And how's your cough been?
+Doctor: Yes, it shows that the changes you've made are really working. How have you been getting on with your diet?
 
-Patient: Much worse. I'm bringing up thick green stuff, quite a lot of it. Usually it's just clear or a bit white.
+Patient: I've been much more careful. My wife has been helping me a lot with meal planning. We've cut down on rice and bread, and I'm eating more vegetables and salad with every meal.
 
-Doctor: Any fever or feeling generally unwell?
+Doctor: Excellent. And how about your weight? Have you noticed any changes?
 
-Patient: I've felt hot and cold, and I'm just so tired. My wife said I look terrible.
+Patient: Yes, I've lost about 8 kilograms since we last met. I feel much better for it, actually. My clothes are looser and I have more energy.
 
-Doctor: Have you been taking your inhalers as usual?
+Doctor: That's fantastic - 8kg is a significant achievement. How have you managed to lose the weight?
 
-Patient: Yes, but they don't seem to be helping much. I've been using the blue one much more often.
+Patient: Mainly the diet changes, and I've been walking every morning before work. About 30 minutes, sometimes longer at weekends.
 
-Doctor: How often are you using the salbutamol?
+Doctor: That's wonderful. Regular exercise is so important for diabetes control. How are you finding the metformin? Any problems with side effects?
 
-Patient: Probably every couple of hours. It used to last me much longer.
+Patient: The stomach upset I had when I first started has completely gone away. I take it with food like you suggested, and I have no problems now.
 
-Doctor: Any chest pain or leg swelling?
+Doctor: Good. Your kidney function tests are normal, so you're tolerating the metformin well. How are you getting on with testing your blood sugars?
 
-Patient: No chest pain, but my legs do look a bit more swollen than usual.
+Patient: I've been testing every morning before breakfast, and sometimes before dinner if I remember. The morning readings are usually between 6 and 8, which I think is okay?
 
-Doctor: When were you last in hospital with your chest?
+Patient: Sometimes I get worried when it's higher than 8. Is that bad?
 
-Patient: About 8 months ago. They gave me antibiotics and steroids and I felt much better.
+Doctor: Those levels sound reasonable. Ideally, we like to see morning readings between 4 and 7, but 6 to 8 is not concerning. What matters most is the overall pattern and your HbA1c, which as we discussed, has improved significantly.
 
-Doctor: Let me examine you. *takes observations* Your oxygen saturation is 88% on room air, temperature 37.9°C, heart rate 110. *listens to chest* I can hear wheeze and some coarse crackles at both bases.
+Doctor: Let me check your blood pressure and examine your feet today. Your blood pressure is 135 over 82, which is a bit high. Have you been taking your ramipril regularly?
 
-Doctor: Mr. Thompson, this looks like another flare-up of your COPD. Your oxygen levels are lower than they should be and you have signs of infection.
+Patient: Yes, every morning with breakfast. I haven't missed any doses.
 
-Patient: Do I need to go to hospital?
+Doctor: We might need to increase that slightly. Let me examine your feet now. Are you checking your feet regularly at home?
 
-Doctor: I think we can treat you at home this time, but you'll need antibiotics and steroid tablets. I'm also going to arrange for you to have oxygen at home.
+Patient: My wife helps me check them. We look for any cuts or sores like you told us.
 
-Doctor: I'm starting you on amoxicillin for the infection and prednisolone tablets. The oxygen will help your breathing until the treatment kicks in.
+Doctor: Good. I can see you're taking good care of them - no problems that I can see. Your circulation looks good and the sensation is normal. Have you had your eyes checked this year?
 
-Doctor: It's very important that you don't smoke while you have oxygen in the house. I'll arrange for the respiratory nurse to visit you tomorrow.
+Patient: Yes, I went to the optician about 3 months ago. They said everything was fine and to come back next year.
 
-Patient: How long before I feel better?
+Doctor: Excellent. Now, I see from your notes that your cholesterol was a bit high last time. The results this time show your total cholesterol is 4.8, which is much better than the 6.2 it was before.
 
-Doctor: You should start feeling better in 2-3 days, but it may take a week or two to get back to your normal. If you get worse, or can't cope at home, call us immediately.
+Patient: I've been taking the statin tablets you prescribed. I was a bit worried about side effects, but I haven't had any problems.
 
-Doctor: I'll see you again in a few days to check how you're getting on.`,
-    expectedNotes: {
-      gpSummary: "COPD exacerbation with infection, pyrexial, O2 sats 88%, started amoxicillin and prednisolone, home oxygen arranged",
-      fullNote: `COPD Exacerbation - Moderate Severity
+Doctor: That's good. The statin is helping to protect your heart and blood vessels. Given your diabetes, it's important to keep your cholesterol well controlled.
 
-Presenting Complaint:
-4-day history of worsening dyspnea, increased sputum production (green), systemic symptoms.
+Patient: Doctor, I've been reading about diabetes online, and I'm worried about complications. Will I definitely get problems with my eyes or kidneys?
 
-History:
-Known COPD patient with deteriorating functional capacity over 4 days. Increased sputum volume and purulence, fever, fatigue. Increased salbutamol usage (every 2 hours). Some peripheral edema noted. Last hospital admission 8 months ago for similar episode.
+Doctor: I understand your concern - it's natural to worry. The good news is that you're doing everything right to prevent complications. With good blood sugar control, regular check-ups, and healthy lifestyle choices, many people with diabetes live long, healthy lives without serious complications.
 
-Examination:
-Obs: T 37.9°C, O2 sats 88% (RA), HR 110 bpm
-Chest: bilateral wheeze, coarse crackles both bases
-Peripheral edema present
-No signs of respiratory distress at rest
+Patient: That's reassuring. Is there anything else I should be doing?
 
-Assessment:
-COPD exacerbation - moderate severity with infective component
-No criteria for hospital admission
+Doctor: You're doing brilliantly. I'd like to increase your ramipril slightly to help with your blood pressure - from 5mg to 7.5mg daily. We'll also book you for your annual flu vaccination, and you should have the COVID vaccination when offered.
 
-Management:
-- Amoxicillin 500mg TDS x 5 days
-- Prednisolone 30mg daily x 5 days
-- Home oxygen therapy arranged
-- Continue current inhalers
-- Respiratory nurse visit arranged for tomorrow
+Patient: Okay, I'm happy to do that.
 
-Safety Netting:
-Return/contact surgery if increased breathlessness, unable to cope at home, or systemic deterioration
+Doctor: I'd also like to refer you to see the diabetes specialist nurse. She can provide additional education and support, and might be able to help you with more advanced blood sugar monitoring techniques.
 
-Follow-up: Review in 3-4 days`,
-      patientCopy: `Your COPD (lung condition) has flared up with an infection.
+Patient: That sounds helpful.
 
-What this means:
-- Your airways are more inflamed than usual
-- You have a chest infection that needs treating
-- This is treatable at home with medication
+Doctor: Let's arrange to see you again in 6 months for another review. In the meantime, keep doing what you're doing - the diet, exercise, and medication compliance. If you have any concerns, particularly if you're unwell or your blood sugars are consistently high, please don't hesitate to contact us.
 
-Your treatment:
-- Antibiotics: Amoxicillin 500mg, three times daily for 5 days
-- Steroid tablets: Prednisolone 30mg once daily for 5 days
-- Continue your usual inhalers
-- Home oxygen has been arranged to help your breathing
+Patient: Thank you, Doctor. I feel much more positive about managing my diabetes now.
 
-Important safety information:
-- Do NOT smoke while you have oxygen in the house (fire risk)
-- Take all antibiotics even if you feel better
-- The steroid tablets should be taken with food
+Doctor: You should feel positive - you've made excellent progress. Keep up the good work.`,
+    summary: `**Type 2 Diabetes Annual Review**
 
-When to contact us urgently:
-- If your breathing gets much worse
-- If you feel you cannot cope at home
-- If you become confused or very unwell
+**Current Medications:**
+- Metformin (well tolerated)
+- Ramipril 5mg daily (to be increased to 7.5mg)
+- Statin therapy (well tolerated)
 
-Follow-up:
-- Respiratory nurse will visit you tomorrow
-- Doctor will see you again in 3-4 days
-- You should start feeling better in 2-3 days
+**Glycemic Control:**
+- HbA1c: 58 mmol/mol (improved from 68 mmol/mol 6 months ago) - Target <58 achieved
+- Self-monitoring: Morning glucose 6-8 mmol/L (mostly within acceptable range)
+- Good understanding of targets and monitoring
 
-Remember: This type of flare-up is common with COPD and usually responds well to treatment.`,
-      snomedCodes: [
-        "13645005 - COPD",
-        "195951007 - Acute exacerbation of COPD",
-        "9014002 - Sputum purulent",
-        "182836005 - Medication review"
-      ]
-    },
-    traineeFeedback: `**GP Trainee Supervisor Feedback - COPD Exacerbation**
+**Lifestyle Modifications:**
+- Weight loss: 8kg over 6 months
+- Diet: Reduced carbohydrates, increased vegetables
+- Exercise: Daily 30-minute walks
+- Excellent medication adherence
 
-**Excellent Practice Demonstrated:**
-- Rapid recognition of COPD exacerbation with systematic assessment
-- Good differentiation between baseline and acute deterioration
-- Thorough examination with appropriate vital signs monitoring
-- Correct severity assessment and treatment decision
-- Excellent safety netting and follow-up arrangements
+**Annual Screening Completed:**
+- Foot examination: Normal circulation and sensation, no ulcers or deformities
+- Blood pressure: 135/82 mmHg (slightly elevated)
+- Renal function: Normal
+- Lipid profile: Total cholesterol 4.8 mmol/L (improved from 6.2)
+- Eye screening: Completed 3 months ago - normal
 
-**Clinical Management:**
-- Appropriate antibiotic choice for COPD exacerbation
-- Correct steroid dosing and duration
-- Good decision-making regarding home vs hospital treatment
-- Appropriate oxygen therapy arrangement with safety advice
+**Assessment:**
+Well-controlled Type 2 diabetes with excellent patient engagement and significant improvement in all parameters
 
-**Respiratory Medicine:**
-- Good understanding of COPD exacerbation triggers and management
-- Appropriate assessment of functional decline
-- Good recognition of infective vs non-infective exacerbation
-- Correct use of oxygen saturation monitoring
+**Management Plan:**
+- Increase ramipril to 7.5mg daily for BP optimization
+- Continue current diabetes management
+- Diabetes specialist nurse referral for enhanced education
+- Annual vaccinations (flu, COVID)
+- 6-month follow-up review
+- Continue current lifestyle modifications
 
-**Areas for Development:**
-- Could have documented peak flow or assessed for pneumonia more specifically
-- Consider arterial blood gas if concerned about CO2 retention
-- Brief mention of smoking cessation advice (if still smoking)
-- Consider reviewing inhaler technique during recovery
+**Targets Met:**
+✓ HbA1c <58 mmol/mol
+✓ Weight reduction achieved
+✓ Annual screening completed
+- BP requires optimization (<130/80)`,
+    patientCopy: `Mr. Patel, excellent diabetes control! HbA1c improved to 58. Continue current diet and exercise. Increase blood pressure tablet slightly. See diabetes nurse for extra support.`,
+    aiReview: `**Diabetes Annual Review - Consultation Analysis**
 
-**Patient Education:**
-- Good explanation of condition and treatment rationale
-- Excellent safety advice regarding oxygen and smoking
-- Clear instructions about when to seek help
-- Appropriate expectations about recovery timeline
+**Overall Assessment:** Exemplary diabetes consultation demonstrating comprehensive annual review with excellent patient engagement and clinical outcomes.
 
-**Learning Points:**
-- Demonstrates good acute respiratory medicine skills
-- Shows appropriate use of community resources (respiratory nurse)
-- Good example of avoiding unnecessary hospital admission
-- Shows understanding of COPD management pathways
+**Outstanding Practice Areas:**
+1. **Structured Annual Review:** Systematic review of all diabetes-related parameters, comprehensive screening completion, assessment of medication tolerance
+2. **Patient-Centered Communication:** Celebrated patient achievements, addressed patient concerns about complications, provided reassurance based on current good control
+3. **Evidence-Based Management:** Appropriate HbA1c target achievement, correct blood pressure management, appropriate statin therapy for cardiovascular protection
+4. **Preventive Care Integration:** Vaccination planning, specialist nurse referral for enhanced education, appropriate screening intervals maintained
 
-**Overall Assessment:** Very good management of COPD exacerbation. Shows competent respiratory medicine skills with appropriate treatment decisions and safety planning.
+**Areas of Excellence:**
+**Clinical Skills:** Thorough physical examination, appropriate interpretation of investigations, risk stratification and management
+**Consultation Skills:** Motivational interviewing techniques, positive reinforcement of behavior change, collaborative care planning
 
-**Grade: Good** (demonstrates safe independent management of acute respiratory conditions)`
+**Clinical Decision Making Analysis:**
+✓ HbA1c target appropriately individualized
+✓ ACE inhibitor dose increase for BP optimization
+✓ Specialist nurse referral for enhanced support
+✓ Appropriate follow-up interval (6 months)
+
+**Risk Management:** Good assessment of cardiovascular risk factors, appropriate screening for complications, medication safety monitoring
+
+**Quality Indicators Met:**
+✓ Annual HbA1c monitoring ✓ Annual foot screening ✓ Annual eye screening ✓ Annual renal function monitoring ✓ Lipid management ✓ Blood pressure monitoring ✓ Medication review
+
+**Overall Grade:** Exceptional diabetes care demonstrating comprehensive clinical knowledge, excellent communication skills, and patient-centered approach.`,
+    referralNeeded: true,
+    referralLetter: `Dear Diabetes Specialist Nurse,
+
+Re: Mr. Rajesh Patel, DOB: [DOB], NHS: [NHS Number]
+
+I would like to refer this 52-year-old gentleman with Type 2 diabetes for additional education and support.
+
+Mr. Patel has made excellent progress with his diabetes management over the past 6 months, achieving significant improvements in glycemic control (HbA1c decreased from 68 to 58 mmol/mol) and substantial weight loss (8kg).
+
+Current management:
+- Metformin (well tolerated)
+- Ramipril (increasing to 7.5mg for BP optimization)
+- Statin therapy
+- Self-monitoring blood glucose
+
+He would benefit from:
+- Enhanced education about diabetes self-management
+- Advanced blood glucose monitoring techniques
+- Continued lifestyle support and goal setting
+- Sick day management guidance
+
+Mr. Patel is highly motivated and engaged with his care. His wife is very supportive of his management plan.
+
+Thank you for seeing this gentleman who exemplifies successful diabetes self-management.
+
+Yours sincerely,
+Dr. [Name]`
   },
   {
-    id: "dementia",
-    title: "Memory Problems Assessment",
-    type: "Cognitive Assessment",
-    description: "75-year-old brought by daughter with concerns about memory loss",
-    transcript: `Doctor: Good morning Mrs. Patterson, and thank you for coming in with your daughter. I understand there are some concerns about your memory?
+    id: "child-fever",
+    title: "Child with Fever - Parent Consultation",
+    type: "Pediatric Assessment",
+    duration: "10:45",
+    transcript: `Doctor: Good afternoon. Please come in and have a seat. You've brought Emily in today - what's been concerning you?
 
-Patient: I don't know what all the fuss is about. My memory's fine.
+Mother: Hello Doctor. Emily has had a fever since yesterday morning, and I'm quite worried about her. She's normally such a lively little girl, but she's been very clingy and not her usual self.
 
-Daughter: Doctor, I'm really worried about mum. She's been forgetting things that just happened, and yesterday she got lost coming back from the shops she's been going to for 20 years.
+Doctor: I can understand your concern. How old is Emily now?
 
-Doctor: Mrs. Patterson, do you remember getting lost yesterday?
+Mother: She's 18 months old.
 
-Patient: I wasn't lost. I just took a different route home. Sarah worries too much.
+Doctor: And when did you first notice she was unwell?
 
-Daughter: Mum, you were gone for 3 hours. The shopkeeper called me because you seemed confused.
+Mother: Yesterday morning when I went to get her up from her cot, she felt quite hot. I took her temperature and it was 38.5 degrees.
 
-Doctor: Mrs. Patterson, can you tell me what day it is today?
+Doctor: Have you been monitoring her temperature since then?
 
-Patient: It's... Thursday? No, maybe Wednesday. What does it matter anyway?
+Mother: Yes, I've been checking it regularly. It's been up and down - sometimes as high as 39.2, but when I give her Calpol it comes down to about 37.8.
 
-Doctor: It's Tuesday today. Can you tell me who's the Prime Minister?
+Doctor: That's good that you're monitoring it and that it's responding to the paracetamol. How has she been eating and drinking?
 
-Patient: Oh, that's Tony Blair, isn't it?
+Mother: She's not eaten much at all - just picked at some toast this morning. But she is still taking her milk and some water, which I know is important.
 
-Daughter: Mum, Tony Blair hasn't been Prime Minister for years.
+Doctor: You're absolutely right about the fluids being important. How many wet nappies has she had?
 
-Doctor: Sarah, can you tell me what changes you've noticed at home?
+Mother: About the same as usual, I think. Maybe slightly fewer, but she's still weeing regularly.
 
-Daughter: She's left the gas on twice in the past month. She keeps asking me the same questions over and over. She's forgotten how to use the washing machine she's had for 5 years.
+Doctor: That's reassuring. Has she been vomiting at all?
 
-Doctor: Has she been managing her finances okay?
+Mother: No, no vomiting. She did have quite loose stools yesterday, but nothing today.
 
-Daughter: She gave the same charity £50 three times last week because she forgot she'd already donated. And she's been buying groceries and forgetting she's bought them.
+Doctor: Any rash that you've noticed?
 
-Doctor: Mrs. Patterson, are you managing okay with cooking and cleaning?
+Mother: No rash that I can see.
 
-Patient: Of course I am. I've been looking after myself for years since Harold died.
+Doctor: How has her breathing been? Any coughing or difficulty breathing?
 
-Daughter: Doctor, she's not eating properly. I found moldy food in her fridge, and she's lost quite a bit of weight.
+Mother: No cough, and her breathing seems normal to me.
 
-Doctor: How long has Harold been gone, Mrs. Patterson?
+Doctor: Any ear pulling or signs that her ears might be bothering her?
 
-Patient: He died... last year? Or was it the year before? Time goes so quickly.
+Mother: She has been touching her ears a bit, actually. More than usual.
 
-Daughter: Dad died 8 years ago, mum.
+Doctor: I see. And how has she been sleeping?
 
-Doctor: Mrs. Patterson, I'm going to do a few simple tests with you. Can you tell me what year it is?
+Mother: Last night was quite restless. She woke up several times, which isn't like her. She usually sleeps through the night.
 
-Patient: 2018? 2019? I get confused with all these numbers.
+Doctor: How has her mood been when the fever comes down with the paracetamol?
 
-Doctor: Can you remember three words for me: apple, penny, table?
+Mother: She perks up quite a bit, actually. Still not completely herself, but much more interactive. She'll play for a little while and smile.
 
-Patient: Apple, penny... what was the third one?
+Doctor: That's a very good sign. Now, let me examine Emily. How is she with strangers usually?
 
-Doctor: *after cognitive testing* I'd like to do some blood tests to check for other causes of memory problems, and I'm going to refer you to the memory clinic.
+Mother: She can be a bit shy, but she's generally okay.
 
-Daughter: Is it dementia, doctor?
+Doctor: Hello Emily. Let me have a little look at you. She does look a bit under the weather but she's alert and watching what I'm doing. Let me check her temperature first... 38.1 degrees, so mild fever at the moment. Let me look in her ears... Yes, I can see her right ear is quite red and bulging slightly. The left ear looks fine. Let me listen to her chest... Her breathing sounds clear, no wheeze or crackles. Let me check her throat... Throat looks fine, not red or inflamed.
 
-Doctor: There are signs that Mrs. Patterson's memory and thinking skills have declined significantly. The memory clinic will do more detailed tests to work out exactly what's causing this.
+Mother: So it's her ear that's the problem?
 
-Doctor: In the meantime, I'll put you in touch with social services to discuss support at home, and there are some safety things we need to think about like driving.`,
-    expectedNotes: {
-      gpSummary: "Cognitive impairment assessment, MMSE 18/30, functional decline, daughter concerns, memory clinic referral, driving discussed",
-      fullNote: `Cognitive Assessment - Referred by Family
+Doctor: Yes, Emily has an ear infection in her right ear. This is very common in children her age and would explain all her symptoms - the fever, being unsettled, poor appetite, and the ear touching.
 
-History:
-Progressive memory loss over several months, brought by daughter. Recent incident of getting lost in familiar area. Significant functional decline: leaving gas on, repetitive questioning, unable to operate familiar appliances, financial mismanagement. Poor nutritional status and self-care.
+Mother: Is it serious? Do I need to worry?
 
-Cognitive Assessment:
-Disoriented to time (thinks Tuesday is Thursday/Wednesday)
-Disoriented to chronology (thinks Tony Blair current PM, confused about husband's death 8 years ago)
-Poor short-term memory (unable to recall 3 words after 5 minutes)
-MMSE: 18/30 (moderate cognitive impairment)
+Doctor: Ear infections in children are usually not serious, but they can be quite uncomfortable, which is why she's been unsettled. The good news is that she's still drinking well, she's alert when her fever is down, and there are no signs of serious illness.
 
-Functional Assessment:
-- Safety concerns: gas left on, poor food hygiene
-- Financial vulnerability: repeat donations, duplicate shopping
-- ADL difficulties: washing machine, cooking
-- Weight loss noted
-- Living alone since husband died 8 years ago
+Mother: Does she need antibiotics?
 
-Assessment:
-Moderate cognitive impairment consistent with dementia
-Differential diagnosis: Alzheimer's disease, vascular dementia, mixed dementia
+Doctor: Let me explain the options. Many ear infections actually get better on their own within a few days. However, because Emily is under 2 years old and seems quite uncomfortable, I think antibiotics would be helpful in this case.
 
-Investigations Planned:
-- Blood tests: FBC, U&E, LFTs, TFTs, B12, folate, glucose
-- Memory clinic referral for formal cognitive assessment
+Mother: Okay, if you think that's best.
 
-Management:
-- Social services referral for care assessment
-- DVLA notification advised (driving assessment)
-- Family support discussed
-- Safety assessment needed
+Doctor: I'm going to prescribe amoxicillin liquid for her. It's a 5-day course. Make sure you give her the full course even if she seems better before it's finished.
 
-Follow-up:
-Review after memory clinic assessment`,
-      patientCopy: `Memory Assessment Summary
+Mother: How much should I give her and how often?
 
-We have assessed your memory and thinking today because your daughter has noticed some changes.
+Doctor: The pharmacy will give you clear instructions, but it's usually 2.5ml three times a day. Give it with food if possible as it can sometimes cause a bit of stomach upset.
 
-What we found:
-- Some difficulties with memory and thinking
-- You may need some extra support at home
-- We need to do some tests to understand this better
+Mother: What about the paracetamol? Should I continue with that?
 
-Next steps:
-- Blood tests to check for treatable causes
-- Referral to memory clinic for detailed assessment
-- Social services will contact you about support at home
+Doctor: Yes, definitely continue with the paracetamol for the fever and pain. You can give her the children's paracetamol every 4-6 hours as needed. If she seems very uncomfortable, you can also give ibuprofen, but alternate it with the paracetamol rather than giving both at the same time.
 
-Important considerations:
-- Driving: We may need to inform DVLA about your memory problems
-- Safety at home: Your daughter can help with things like cooking
-- Managing money: Consider having help with finances
+Mother: When should she start feeling better?
 
-Support available:
-- Memory clinic specialists will help with diagnosis and treatment
-- Social services can arrange help at home
-- Your family are very caring and want to help
+Doctor: You should see some improvement within 24-48 hours of starting the antibiotics. The fever should start to settle, and she should become more comfortable.
 
-This appointment was to make sure you get the right help and support. The memory clinic will explain everything in more detail and discuss what help is available.
+Mother: When should I be worried and bring her back?
 
-Follow-up appointment will be arranged after your memory clinic visit.`,
-      snomedCodes: [
-        "52448006 - Dementia",
-        "386806002 - Impaired cognition",
-        "419284004 - Altered mental status",
-        "3616003 - Cognition test"
-      ]
-    },
-    traineeFeedback: `**GP Trainee Supervisor Feedback - Dementia Assessment**
+Doctor: You should bring her back if her fever gets worse or doesn't start to improve within 48 hours of starting antibiotics, if she becomes very drowsy or difficult to wake, if she develops a rash, or if she stops drinking fluids. Also, if you're just worried about how she seems, don't hesitate to bring her back.
 
-**Outstanding Practice Demonstrated:**
-- Sensitive handling of cognitive assessment with family present
-- Excellent collateral history taking from daughter
-- Systematic cognitive testing with appropriate screening tools
-- Comprehensive functional assessment covering safety and ADLs
-- Appropriate investigation and referral pathway initiated
+Mother: Can she go to nursery?
 
-**Clinical Skills:**
-- Good recognition of moderate cognitive impairment
-- Appropriate differential diagnosis consideration
-- Excellent safety assessment (driving, gas, finances)
-- Good understanding of when to involve external services
+Doctor: Keep her at home while she has a fever and for at least 24 hours after the fever has settled. Once she's feeling better and the fever has gone, she can return to nursery.
 
-**Communication Excellence:**
-- Maintained patient dignity while acknowledging daughter's concerns
-- Balanced approach to patient who lacks insight
-- Clear explanation of next steps without premature diagnostic labeling
-- Sensitive discussion of difficult topics (driving, independence)
+Mother: Thank you, Doctor. I feel much more reassured now.
 
-**Areas for Development:**
-- Could have used formal MMSE scoring tool more explicitly
-- Consider medication review (may contribute to confusion)
-- Brief discussion of advance care planning could be introduced
-- Consider asking about mood/depression symptoms
+Doctor: You did exactly the right thing bringing her in. You know Emily best, and you could tell she wasn't herself. Keep monitoring her, give the antibiotics as prescribed, and she should be back to her normal self soon.`,
+    summary: `**Pediatric Consultation: 18-month-old with fever**
 
-**Family-Centered Care:**
-- Excellent recognition of carer burden and concerns
-- Good involvement of daughter as advocate and historian
-- Appropriate discussion of support services
-- Clear explanation of referral process and timeline
+**Presenting Complaint:**
+- 24-hour history of fever in 18-month-old girl
+- Parent concerned about change in behavior and appetite
+
+**History:**
+- Fever onset yesterday morning
+- Temperature range: 37.8-39.2°C, responsive to paracetamol
+- Reduced oral intake (solids) but maintaining fluids
+- Normal urine output
+- One episode loose stool (resolved)
+- Increased ear touching
+- Disturbed sleep pattern
+- Improvement in mood when fever controlled
+
+**Examination:**
+- Alert, responsive child
+- Temperature: 38.1°C
+- Right tympanic membrane: erythematous and bulging
+- Left ear: normal
+- Chest: clear to auscultation
+- Throat: not inflamed
+- No rash visible
+- Good hydration status
+
+**Assessment:**
+Acute otitis media (right ear) in 18-month-old
+
+**Management:**
+- Amoxicillin suspension 5-day course (2.5ml TDS)
+- Continue paracetamol PRN for fever/pain
+- Ibuprofen as alternative/additional analgesia
+- Safety netting provided
+- Return to nursery when fever-free for 24 hours
+
+**Follow-up:**
+Return if no improvement within 48 hours, worsening symptoms, or parental concern
+
+**Prognosis:** Excellent with appropriate treatment`,
+    patientCopy: `Emily has an ear infection causing her fever. Give prescribed antibiotics for 5 days and continue paracetamol. She should improve within 1-2 days. Contact us if concerned.`,
+    aiReview: `**Pediatric Consultation Review: Child with Fever**
+
+**Overall Assessment:** Excellent pediatric consultation demonstrating appropriate clinical assessment, parent communication, and evidence-based management of acute otitis media.
+
+**Areas of Excellence:**
+1. **History Taking with Parent:** Systematic exploration of fever pattern and parental concerns, appropriate focus on fluid intake and output, good assessment of behavioral changes
+2. **Clinical Examination:** Efficient but thorough examination approach, appropriate interaction with anxious toddler, systematic examination revealing clear diagnosis
+3. **Parent Communication:** Acknowledged parental concerns and validated their decision to seek care, clear explanation of diagnosis in understandable terms
+4. **Evidence-Based Management:** Appropriate antibiotic prescribing for <2-year-old with AOM, correct choice of first-line antibiotic
+
+**Strengths in Pediatric Practice:**
+**Safety Netting:** Comprehensive advice about when to return, specific timeframes for expected improvement, clear red flag symptoms identified
+**Family-Centered Care:** Involved parent as expert on child's normal behavior, provided practical advice for home management
+**Clinical Decision Making:** Appropriate use of antibiotics based on age and presentation, good balance between watchful waiting and active treatment
+
+**Evidence-Based Practice Analysis:**
+✓ Antibiotic use in <2-year-old with diagnosed AOM
+✓ First-line antibiotic choice (amoxicillin)
+✓ Appropriate analgesic recommendations
+✓ Suitable follow-up advice
+
+**NICE Guideline Compliance:**
+- Follows guidelines for antibiotic prescribing in pediatric AOM
+- Appropriate safety netting
+- Correct advice about symptom duration and improvement
 
 **Learning Points:**
-- Perfect example of challenging cognitive assessment
-- Shows excellent clinical reasoning about safety and capacity
-- Demonstrates good understanding of dementia care pathway
-- Good balance of hope and realism in difficult situation
+1. Demonstrates importance of taking parental concerns seriously
+2. Shows appropriate antibiotic stewardship in pediatrics
+3. Excellent example of safety netting in vulnerable population
+4. Good balance between examination efficiency and thoroughness
 
-**Overall Assessment:** Exemplary handling of complex cognitive assessment. Shows advanced skills in dementia recognition and appropriate intervention. Excellent family communication in difficult circumstances.
-
-**Grade: Outstanding** (demonstrates expert skills in cognitive assessment and dementia care)`
-  },
-  {
-    id: "backpain",
-    title: "Acute Lower Back Pain",
-    type: "Musculoskeletal",
-    description: "35-year-old tradesman with sudden onset severe back pain",
-    transcript: `Doctor: Good morning Paul. I can see you're struggling to sit comfortably. Tell me what's happened to your back.
-
-Patient: Doctor, I was lifting some heavy tiles at work yesterday morning and felt something go in my lower back. The pain was instant and now I can barely move.
-
-Doctor: Where exactly is the pain?
-
-Patient: Right here *points to lower back* across the bottom of my back, mainly on the right side. It's absolutely killing me.
-
-Doctor: Does the pain go anywhere else?
-
-Patient: It shoots down my right leg, especially when I cough or sneeze. Sometimes it goes all the way to my foot.
-
-Doctor: What does the pain feel like in your leg?
-
-Patient: It's like electric shocks, quite sharp. And my right foot feels a bit numb and tingly.
-
-Doctor: Can you walk normally?
-
-Patient: Barely. I had to call in sick today which I never do. I'm sort of shuffling around bent forward.
-
-Doctor: Have you had any problems with your bladder or bowels?
-
-Patient: No, nothing like that.
-
-Doctor: Any weakness in your legs?
-
-Patient: The right leg feels weak, especially when I try to lift my foot up.
-
-Doctor: Have you had back problems before?
-
-Patient: I've had the odd twinge over the years - I'm a tiler so it's occupational hazard - but nothing like this.
-
-Doctor: What pain relief have you tried?
-
-Patient: I took some ibuprofen last night and this morning, but it's barely touched it. I couldn't sleep at all.
-
-Doctor: Let me examine your back. Can you stand up for me? *observes posture and gait* I can see you're listing to one side. Let me check your reflexes and do some movement tests.
-
-Doctor: *after examination* Your right knee reflex is reduced and you have weakness lifting your right foot. The straight leg raising test is very positive on the right.
-
-Doctor: Paul, this looks like you've prolapsed a disc in your lower back which is pressing on the nerve going to your right leg. This is what's causing the shooting pain and numbness.
-
-Patient: That sounds serious. Do I need surgery?
-
-Doctor: Most disc problems get better without surgery, even when they're severe like yours. However, I am going to refer you for an urgent MRI scan because of the nerve symptoms.
-
-Doctor: For now, I'm going to give you stronger painkillers - some naproxen and codeine. Keep as active as you can, but listen to your body.
-
-Patient: Should I be off work?
-
-Doctor: Yes, definitely for at least a week, possibly longer. I'll give you a sick note. Your back needs time to heal.
-
-Doctor: If you develop any bladder problems, loss of feeling around your back passage, or severe weakness in both legs, you must go to A&E immediately.
-
-Patient: How long before I'm better?
-
-Doctor: Most people see significant improvement in 6-8 weeks, but it can take longer. We'll review you in a week to see how you're getting on.`,
-    expectedNotes: {
-      gpSummary: "Acute disc prolapse L5/S1, severe sciatica with neurological signs, MRI requested, strong analgesia, sick leave",
-      fullNote: `Acute Lower Back Pain with Sciatica
-
-Presenting Complaint:
-Sudden onset severe lower back pain following lifting heavy tiles at work. 24-hour history.
-
-History:
-Acute onset lumbar pain with immediate right-sided sciatica extending to foot. Neuropathic pain description (electric shocks). Associated numbness and tingling in right foot. Functional impairment - unable to work, disturbed sleep. Failed response to NSAIDs.
-
-Red Flag Assessment:
-No cauda equina symptoms (bladder/bowel function normal, no saddle anesthesia)
-
-Examination:
-Antalgic gait, reduced lumbar lordosis, listing to left
-Right knee reflex diminished
-Weakness of right foot dorsiflexion (4/5 power)
-Positive straight leg raise test right side (30 degrees)
-Sensory loss lateral aspect right foot
-
-Assessment:
-Acute lumbar disc prolapse (likely L5/S1) with nerve root compression
-
-Investigations:
-Urgent MRI lumbar spine requested due to neurological signs
-
-Management:
-- Naproxen 500mg BD
-- Codeine 30mg QDS PRN
-- Sick certification for 1 week initially
-- Advice re: graduated activity as tolerated
-
-Red Flag Safety Netting:
-Immediate A&E if cauda equina symptoms develop (bladder/bowel dysfunction, bilateral leg weakness, saddle anesthesia)
-
-Follow-up: Review in 1 week`,
-      patientCopy: `Back Pain Information
-
-What's wrong:
-You have a prolapsed disc in your lower back which is pressing on a nerve going to your right leg. This is why you have pain shooting down your leg and numbness in your foot.
-
-Treatment:
-- Stronger painkillers: Naproxen twice daily, Codeine up to 4 times daily as needed
-- Stay as active as possible within your pain limits
-- Avoid bed rest - gentle movement helps recovery
-- Heat pads may help muscle spasm
-
-Work:
-- You are signed off work for 1 week initially
-- We'll review this as your pain improves
-- No heavy lifting for several weeks
-
-When to seek emergency help (go to A&E immediately):
-- Loss of bladder or bowel control
-- Numbness around your back passage
-- Severe weakness in both legs
-
-What to expect:
-- This type of injury usually improves significantly in 6-8 weeks
-- The leg pain often improves before the back pain
-- Most people recover without needing surgery
-
-Follow-up:
-- Appointment in 1 week to check progress
-- MRI scan has been arranged
-- Call if symptoms worsen or red flag symptoms develop
-
-Remember: This is a common injury that usually heals well with time and appropriate treatment.`,
-      snomedCodes: [
-        "202794004 - Prolapsed lumbar intervertebral disc",
-        "23056005 - Sciatica",
-        "279039007 - Low back pain",
-        "57676002 - Nerve root pain"
-      ]
-    },
-    traineeFeedback: `**GP Trainee Supervisor Feedback - Acute Back Pain with Sciatica**
-
-**Excellent Practice Demonstrated:**
-- Systematic assessment of acute back pain with appropriate red flag screening
-- Thorough neurological examination with relevant clinical tests
-- Good recognition of disc prolapse with nerve root compression
-- Appropriate investigation request (urgent MRI) based on neurological findings
-- Excellent safety netting for cauda equina syndrome
-
-**Clinical Skills:**
-- Good occupational history and mechanism of injury
-- Appropriate pain assessment and previous treatment review
-- Comprehensive examination including reflexes, power, and straight leg raise
-- Correct clinical reasoning leading to accurate diagnosis
-
-**Pain Management:**
-- Appropriate escalation of analgesia with combination therapy
-- Good advice about activity levels and avoiding bed rest
-- Realistic expectations about recovery timeline
-- Consideration of work capacity and certification
-
-**Areas for Development:**
-- Could have asked more specifically about previous episodes and triggers
-- Consider brief discussion of weight/lifestyle factors if relevant
-- Might mention physiotherapy referral for recovery phase
-- Consider discussing sleeping position and posture advice
-
-**Emergency Care:**
-- Outstanding red flag education and safety netting
-- Clear, specific instructions about when to seek emergency care
-- Good balance of reassurance while maintaining vigilance
-
-**Learning Points:**
-- Excellent example of systematic approach to acute back pain
-- Shows good understanding of when to investigate neurological back pain
-- Demonstrates appropriate use of imaging in presence of neurological signs
-- Good balance of conservative management with appropriate investigation
-
-**Overall Assessment:** Very good management of acute back pain with complications. Shows competent musculoskeletal assessment skills and appropriate clinical decision-making.
-
-**Grade: Good** (demonstrates safe independent management of complex back pain presentations)`
+**Overall Grade:** Exemplary pediatric consultation demonstrating competent clinical skills, excellent communication, and appropriate management of common childhood illness.`,
+    referralNeeded: false
   }
 ];
+
+export const getExampleById = (id: string): ConsultationExample | undefined => {
+  return consultationExamples.find(example => example.id === id);
+};
+
+export const getExamplesByType = (type: string): ConsultationExample[] => {
+  return consultationExamples.filter(example => example.type === type);
+};
