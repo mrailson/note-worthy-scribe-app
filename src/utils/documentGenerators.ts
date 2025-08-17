@@ -329,14 +329,7 @@ export const generatePowerPoint = async (content: string, title: string = 'AI Ge
     // Helper function to add NHS-style background
     const addNHSBackground = (slide: any) => {
       slide.background = { 
-        fill: { 
-          type: 'gradient', 
-          path: 'toBottom', 
-          colors: [
-            { color: 'FFFFFF', position: 0 },
-            { color: lightBlue.replace('#', ''), position: 100 }
-          ]
-        }
+        fill: 'FFFFFF'
       };
     };
     
@@ -378,7 +371,7 @@ export const generatePowerPoint = async (content: string, title: string = 'AI Ge
       h: 1.5,
       fontSize: 36,
       bold: true,
-      color: nhsBlue,
+      color: '005EB8',
       fontFace: 'Calibri',
       align: 'center'
     });
@@ -390,7 +383,7 @@ export const generatePowerPoint = async (content: string, title: string = 'AI Ge
       w: 8,
       h: 0.8,
       fontSize: 24,
-      color: darkGrey,
+      color: '666666',
       fontFace: 'Calibri',
       align: 'center'
     });
@@ -433,7 +426,7 @@ export const generatePowerPoint = async (content: string, title: string = 'AI Ge
           h: 0.8,
           fontSize: 36,
           bold: true,
-          color: nhsBlue,
+          color: '005EB8',
           fontFace: 'Calibri'
         });
         
@@ -472,7 +465,7 @@ export const generatePowerPoint = async (content: string, title: string = 'AI Ge
           h: 0.8,
           fontSize: 36,
           bold: true,
-          color: nhsBlue,
+          color: '005EB8',
           fontFace: 'Calibri'
         });
 
@@ -496,7 +489,7 @@ export const generatePowerPoint = async (content: string, title: string = 'AI Ge
                 fontFace: 'Calibri',
                 color: rowIndex === 0 ? 'FFFFFF' : '333333',
                 bold: rowIndex === 0,
-                fill: { color: rowIndex === 0 ? nhsBlue.replace('#', '') : (rowIndex % 2 === 1 ? lightGrey.replace('#', '') : 'FFFFFF') }
+                fill: { color: rowIndex === 0 ? '005EB8' : (rowIndex % 2 === 1 ? 'F5F5F5' : 'FFFFFF') }
               } 
             }))
           );
@@ -506,7 +499,7 @@ export const generatePowerPoint = async (content: string, title: string = 'AI Ge
             y: 2.0,
             w: 8.4,
             h: 4.2,
-            border: { pt: 1, color: nhsBlue.replace('#', '') },
+            border: { pt: 1, color: '005EB8' },
             rowH: 0.6,
             margin: 0.1
           });
@@ -528,7 +521,7 @@ export const generatePowerPoint = async (content: string, title: string = 'AI Ge
           h: 0.8,
           fontSize: 36,
           bold: true,
-          color: nhsBlue,
+          color: '005EB8',
           fontFace: 'Calibri'
         });
 
@@ -551,7 +544,7 @@ export const generatePowerPoint = async (content: string, title: string = 'AI Ge
                 fontFace: 'Calibri',
                 color: rowIndex === 0 ? 'FFFFFF' : '333333',
                 bold: rowIndex === 0,
-                fill: { color: rowIndex === 0 ? nhsBlue.replace('#', '') : (rowIndex % 2 === 1 ? lightGrey.replace('#', '') : 'FFFFFF') }
+                fill: { color: rowIndex === 0 ? '005EB8' : (rowIndex % 2 === 1 ? 'F5F5F5' : 'FFFFFF') }
               } 
             }))
           );
@@ -561,7 +554,7 @@ export const generatePowerPoint = async (content: string, title: string = 'AI Ge
             y: 2.0,
             w: 8.4,
             h: 4.2,
-            border: { pt: 1, color: nhsBlue.replace('#', '') },
+            border: { pt: 1, color: '005EB8' },
             rowH: 0.6,
             margin: 0.1
           });
@@ -585,7 +578,7 @@ export const generatePowerPoint = async (content: string, title: string = 'AI Ge
           h: 0.8,
           fontSize: 36,
           bold: true,
-          color: nhsBlue,
+          color: '005EB8',
           fontFace: 'Calibri'
         });
         
@@ -631,7 +624,7 @@ export const generatePowerPoint = async (content: string, title: string = 'AI Ge
         h: 0.8,
         fontSize: 36,
         bold: true,
-        color: nhsBlue,
+        color: '005EB8',
         fontFace: 'Calibri'
       });
       
