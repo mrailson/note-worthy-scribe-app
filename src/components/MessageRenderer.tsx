@@ -17,7 +17,8 @@ import {
   FileDown,
   Presentation,
   Clock,
-  Mail
+  Mail,
+  Download
 } from 'lucide-react';
 import { toast } from 'sonner';
 import QuickActionButtons from '@/components/QuickActionButtons';
@@ -175,6 +176,11 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
     if (onExportPowerPoint) {
       onExportPowerPoint(message.content, 'AI Generated Presentation');
     }
+  };
+
+  const handleExportPDF = () => {
+    // TODO: Implement PDF export functionality
+    toast.success('PDF export functionality will be implemented soon');
   };
 
   const handleEmailToMe = async () => {
@@ -546,17 +552,34 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                       <ChevronsUp className="h-3 w-3" />
                     </Button>
 
-                    {/* Export to Word button */}
+                    {/* Export dropdown button */}
                     {onExportWord && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleExportWord}
-                        className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-muted-foreground hover:text-foreground"
-                        title="Export as Word document"
-                      >
-                        <FileDown className="h-3 w-3" />
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-muted-foreground hover:text-foreground"
+                            title="Download options"
+                          >
+                            <Download className="h-3 w-3" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-56">
+                          <DropdownMenuItem onClick={handleExportWord}>
+                            <FileText className="h-4 w-4 mr-2" />
+                            Download as Word Document
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={handleExportPDF}>
+                            <FileDown className="h-4 w-4 mr-2" />
+                            Download as PDF
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={handleExportPowerPoint}>
+                            <Presentation className="h-4 w-4 mr-2" />
+                            Download as PowerPoint Presentation
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     )}
 
                     {/* Email dropdown button */}
@@ -583,18 +606,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                       </DropdownMenuContent>
                     </DropdownMenu>
 
-                    {/* Export to PowerPoint button */}
-                    {onExportPowerPoint && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleExportPowerPoint}
-                        className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-muted-foreground hover:text-foreground"
-                        title="Export as PowerPoint presentation"
-                      >
-                        <Presentation className="h-3 w-3" />
-                      </Button>
-                    )}
+                    {/* Export to PowerPoint button - removed since it's now in download dropdown */}
 
                     {/* Copy button */}
                     <Button
