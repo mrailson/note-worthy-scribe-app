@@ -51,8 +51,9 @@ const APITesting = () => {
     { id: 'claude-4-sonnet', name: 'Claude 4 Sonnet', color: 'bg-orange-500' },
     { id: 'claude-4-opus', name: 'Claude 4 Opus', color: 'bg-purple-500' },
     { id: 'gpt', name: 'GPT-4o', color: 'bg-blue-500' },
+    { id: 'gpt-5', name: 'GPT-5', color: 'bg-emerald-500' },
+    { id: 'chatgpt5', name: 'GPT-4o Mini', color: 'bg-teal-500' },
     { id: 'grok-beta', name: 'Grok', color: 'bg-red-500' },
-    { id: 'chatgpt5', name: 'ChatGPT-5', color: 'bg-teal-500' },
     { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', color: 'bg-indigo-500' },
     { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', color: 'bg-pink-500' }
   ];
