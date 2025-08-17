@@ -12,6 +12,9 @@ interface RequestBody {
   systemPrompt: string;
   useResponsesAPI?: boolean;
   enableStreaming?: boolean;
+  testMode?: 'fast' | 'quality';
+  maxTokens?: number;
+  temperature?: number;
 }
 
 async function callClaude(prompt: string, systemPrompt: string, model: string = 'claude-3-5-sonnet-20241022'): Promise<string> {
@@ -345,7 +348,7 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, model, systemPrompt, useResponsesAPI = false, enableStreaming = false }: RequestBody = await req.json();
+    const { prompt, model, systemPrompt, useResponsesAPI = false, enableStreaming = false, testMode = 'fast', maxTokens = 256, temperature = 0.2 }: RequestBody = await req.json();
 
     console.log(`Testing ${model} with prompt length: ${prompt.length}, Responses API: ${useResponsesAPI}, Streaming: ${enableStreaming}`);
 

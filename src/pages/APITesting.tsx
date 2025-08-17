@@ -46,6 +46,11 @@ const APITesting = () => {
   const [useResponsesAPI, setUseResponsesAPI] = useState(false);
   const [enableStreaming, setEnableStreaming] = useState(false);
   const [isModelSectionOpen, setIsModelSectionOpen] = useState(true);
+  const [testMode, setTestMode] = useState<'fast' | 'quality'>('fast');
+  const [nhsVerificationResults, setNhsVerificationResults] = useState<any[]>([]);
+  const [challengeResults, setChallengeResults] = useState<any[]>([]);
+  const [showRawJSON, setShowRawJSON] = useState(false);
+  const [rawResponses, setRawResponses] = useState<any[]>([]);
 
   const availableModels = [
     { id: 'claude-4-sonnet', name: 'Claude 4 Sonnet', color: 'bg-orange-500' },
@@ -66,6 +71,14 @@ const APITesting = () => {
     {
       category: "Quick Facts",
       prompt: "What are the current NHS England guidelines for GP practice opening hours?"
+    },
+    {
+      category: "NHS Verification Test",
+      prompt: "Is a healthy 70-year-old eligible for flu vaccination under NHS England AW 2025/26 programme?"
+    },
+    {
+      category: "Challenge & Verify",
+      prompt: "Reply with PONG."
     },
     {
       category: "Complex Analysis",
@@ -128,6 +141,8 @@ const APITesting = () => {
     }
 
     setIsRunning(true);
+    setRawResponses([]); // Clear previous raw responses
+    
     const initialResults: APITestResult[] = selectedModels.map(model => ({
       model,
       response: '',
@@ -138,6 +153,21 @@ const APITesting = () => {
     
     setResults(initialResults);
 
+    // Configure test parameters based on mode
+    const testConfig = testMode === 'fast' 
+      ? { 
+          model: 'gpt-4o-mini', 
+          maxTokens: 256, 
+          temperature: 0.2,
+          systemPrompt: "You are a helpful AI assistant. Provide clear, concise responses." 
+        }
+      : { 
+          model: 'gpt-4o', 
+          maxTokens: 1024, 
+          temperature: 0.2,
+          systemPrompt: "You are a helpful AI assistant. Provide clear, detailed, and accurate responses." 
+        };
+
     // Run tests in parallel for all selected models
     const testPromises = selectedModels.map(async (model, index) => {
       try {
@@ -146,10 +176,13 @@ const APITesting = () => {
         const { data, error } = await supabase.functions.invoke('api-testing-service', {
           body: {
             prompt,
-            model,
-            systemPrompt: "You are a helpful AI assistant. Provide clear, accurate responses.",
+            model: testMode === 'fast' ? 'chatgpt5' : model, // Use fast model in FAST mode
+            systemPrompt: testConfig.systemPrompt,
             useResponsesAPI,
-            enableStreaming
+            enableStreaming,
+            testMode,
+            maxTokens: testConfig.maxTokens,
+            temperature: testConfig.temperature
           }
         });
 
@@ -157,6 +190,9 @@ const APITesting = () => {
         const responseTime = endTime - startTime;
 
         if (error) throw error;
+
+        // Store raw response for debugging
+        setRawResponses(prev => [...prev, { model, data, timestamp: Date.now() }]);
 
         // Update results immediately when each test completes
         setResults(prev => prev.map((result, i) => 
@@ -187,6 +223,16 @@ const APITesting = () => {
 
     await Promise.all(testPromises);
     
+    // Run NHS verification if relevant
+    if (prompt.toLowerCase().includes('nhs') || prompt.toLowerCase().includes('vaccination') || prompt.toLowerCase().includes('eligible')) {
+      await runNHSVerification();
+    }
+
+    // Run Challenge & Verify if it's the PONG test
+    if (prompt.toLowerCase().includes('pong')) {
+      await runChallengeVerify();
+    }
+    
     // Save to history
     const historyEntry: TestHistory = {
       id: Date.now().toString(),
@@ -198,6 +244,48 @@ const APITesting = () => {
     setHistory(prev => [historyEntry, ...prev]);
     
     setIsRunning(false);
+  };
+
+  const runNHSVerification = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('nhs-verification-service', {
+        body: {
+          originalPrompt: prompt,
+          responses: results.filter(r => r.status === 'completed').map(r => ({
+            model: r.model,
+            response: r.response
+          }))
+        }
+      });
+
+      if (error) throw error;
+      setNhsVerificationResults([data]);
+    } catch (error) {
+      console.error('NHS verification error:', error);
+    }
+  };
+
+  const runChallengeVerify = async () => {
+    try {
+      const completedResults = results.filter(r => r.status === 'completed');
+      const challengePromises = completedResults.map(async (result) => {
+        const { data, error } = await supabase.functions.invoke('challenge-verify-service', {
+          body: {
+            originalPrompt: prompt,
+            previousAnswer: result.response,
+            model: result.model
+          }
+        });
+
+        if (error) throw error;
+        return { model: result.model, verification: data };
+      });
+
+      const verificationResults = await Promise.all(challengePromises);
+      setChallengeResults(verificationResults);
+    } catch (error) {
+      console.error('Challenge & Verify error:', error);
+    }
   };
 
   const clearResults = () => {
@@ -356,6 +444,46 @@ const APITesting = () => {
                   </CollapsibleContent>
                 </Collapsible>
 
+                {/* Test Mode Selection */}
+                <div className="space-y-4">
+                  <label className="text-sm font-medium block">Test Mode</label>
+                  
+                  <div className="flex gap-2">
+                    <Button
+                      variant={testMode === 'fast' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setTestMode('fast')}
+                      className="flex-1"
+                    >
+                      <Zap className="w-4 h-4 mr-2" />
+                      FAST
+                    </Button>
+                    <Button
+                      variant={testMode === 'quality' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setTestMode('quality')}
+                      className="flex-1"
+                    >
+                      <Brain className="w-4 h-4 mr-2" />
+                      QUALITY
+                    </Button>
+                  </div>
+                  
+                  <div className="text-xs text-muted-foreground bg-muted/50 p-3 rounded-lg">
+                    {testMode === 'fast' ? (
+                      <div>
+                        <strong>FAST Mode:</strong> gpt-4o-mini, 256 tokens max, temperature 0.2
+                        <br />Optimized for speed and quick responses
+                      </div>
+                    ) : (
+                      <div>
+                        <strong>QUALITY Mode:</strong> gpt-4o, 512-1024 tokens max, temperature 0.2
+                        <br />Optimized for detailed, high-quality responses
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 {/* API Configuration */}
                 <div className="space-y-4">
                   <label className="text-sm font-medium block">API Configuration</label>
@@ -461,10 +589,20 @@ const APITesting = () => {
                   </Button>
 
                   {results.length > 0 && (
-                    <Button variant="outline" onClick={clearResults} className="w-full">
-                      <RotateCcw className="w-4 h-4 mr-2" />
-                      Clear Results
-                    </Button>
+                    <>
+                      <Button variant="outline" onClick={clearResults} className="w-full">
+                        <RotateCcw className="w-4 h-4 mr-2" />
+                        Clear Results
+                      </Button>
+                      
+                      <Button 
+                        variant="ghost" 
+                        onClick={() => setShowRawJSON(!showRawJSON)} 
+                        className="w-full text-xs"
+                      >
+                        {showRawJSON ? 'Hide' : 'Show'} Raw JSON Panel
+                      </Button>
+                    </>
                   )}
                 </div>
               </CardContent>
@@ -492,10 +630,12 @@ const APITesting = () => {
                 </CardHeader>
                 <CardContent>
                   <Tabs defaultValue="overview" className="w-full">
-                    <TabsList className="grid w-full grid-cols-4">
+                    <TabsList className="grid w-full grid-cols-6">
                       <TabsTrigger value="overview">Overview</TabsTrigger>
                       <TabsTrigger value="responses">Responses</TabsTrigger>
                       <TabsTrigger value="analysis">Analysis</TabsTrigger>
+                      <TabsTrigger value="nhs-verify">NHS Verify</TabsTrigger>
+                      <TabsTrigger value="challenge">Challenge</TabsTrigger>
                       <TabsTrigger value="history">History</TabsTrigger>
                     </TabsList>
 
@@ -599,6 +739,131 @@ const APITesting = () => {
                           </Card>
                         );
                       })}
+                    </TabsContent>
+
+                    <TabsContent value="nhs-verify" className="space-y-4">
+                      {nhsVerificationResults.length > 0 ? (
+                        <div className="space-y-4">
+                          {nhsVerificationResults.map((result, index) => (
+                            <Card key={index}>
+                              <CardHeader>
+                                <CardTitle className="text-sm flex items-center gap-2">
+                                  🏥 NHS England Verification Panel
+                                  <Badge variant="outline">Source: NHS England</Badge>
+                                </CardTitle>
+                              </CardHeader>
+                              <CardContent className="space-y-4">
+                                <div>
+                                  <h4 className="font-medium mb-2">Eligibility Criteria (Verbatim):</h4>
+                                  <div className="bg-muted/50 p-3 rounded-lg text-sm">
+                                    {result.eligibilityCriteria}
+                                  </div>
+                                </div>
+                                
+                                <div>
+                                  <h4 className="font-medium mb-2">Programme Dates:</h4>
+                                  <div className="bg-muted/50 p-3 rounded-lg text-sm">
+                                    {result.programmeDates}
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <h4 className="font-medium mb-2">Verification:</h4>
+                                  <div className={`p-3 rounded-lg text-sm ${
+                                    result.verdict === 'correct' ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
+                                  }`}>
+                                    <strong>Verdict:</strong> {result.verdict}
+                                    <br />
+                                    <strong>Explanation:</strong> {result.explanation}
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <h4 className="font-medium mb-2">References:</h4>
+                                  <div className="space-y-1">
+                                    {result.references?.map((ref: string, i: number) => (
+                                      <div key={i} className="text-xs text-blue-600 underline">
+                                        {ref}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      ) : (
+                        <Card>
+                          <CardContent className="py-12 text-center">
+                            <h3 className="text-lg font-medium mb-2">NHS Verification Panel</h3>
+                            <p className="text-muted-foreground">
+                              Run a test with NHS-related queries to see source-of-truth verification from NHS England.
+                            </p>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </TabsContent>
+
+                    <TabsContent value="challenge" className="space-y-4">
+                      {challengeResults.length > 0 ? (
+                        <div className="space-y-4">
+                          {challengeResults.map((result, index) => (
+                            <Card key={index}>
+                              <CardHeader>
+                                <CardTitle className="text-sm flex items-center gap-2">
+                                  ⚡ Challenge & Verify - {result.model}
+                                  <Badge variant="outline">Accuracy Check</Badge>
+                                </CardTitle>
+                              </CardHeader>
+                              <CardContent className="space-y-4">
+                                <div>
+                                  <h4 className="font-medium mb-2">Original Response:</h4>
+                                  <div className="bg-muted/50 p-3 rounded-lg text-sm">
+                                    {result.verification.originalResponse}
+                                  </div>
+                                </div>
+                                
+                                <div>
+                                  <h4 className="font-medium mb-2">Verification Analysis:</h4>
+                                  <div className={`p-3 rounded-lg text-sm ${
+                                    result.verification.isCorrect ? 'bg-green-50 border border-green-200' : 'bg-yellow-50 border border-yellow-200'
+                                  }`}>
+                                    <strong>Status:</strong> {result.verification.isCorrect ? 'Correct' : 'Needs Correction'}
+                                    <br />
+                                    <strong>Analysis:</strong> {result.verification.analysis}
+                                  </div>
+                                </div>
+
+                                {result.verification.correctedAnswer && (
+                                  <div>
+                                    <h4 className="font-medium mb-2">Corrected Response:</h4>
+                                    <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg text-sm">
+                                      {result.verification.correctedAnswer}
+                                    </div>
+                                  </div>
+                                )}
+
+                                <div>
+                                  <h4 className="font-medium mb-2">Confidence Score:</h4>
+                                  <div className="flex items-center gap-2">
+                                    <Progress value={result.verification.confidence * 100} className="flex-1" />
+                                    <span className="text-sm font-mono">{(result.verification.confidence * 100).toFixed(1)}%</span>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      ) : (
+                        <Card>
+                          <CardContent className="py-12 text-center">
+                            <h3 className="text-lg font-medium mb-2">Challenge & Verify</h3>
+                            <p className="text-muted-foreground">
+                              Use the "Reply with PONG" test to see AI response verification and correction.
+                            </p>
+                          </CardContent>
+                        </Card>
+                      )}
                     </TabsContent>
 
                     <TabsContent value="analysis" className="space-y-4">
@@ -804,6 +1069,41 @@ const APITesting = () => {
                   <p className="text-muted-foreground">
                     Configure your test settings and run your first API comparison test.
                   </p>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Raw JSON Panel */}
+            {showRawJSON && rawResponses.length > 0 && (
+              <Card className="mt-4">
+                <CardHeader>
+                  <CardTitle className="text-sm">Raw JSON Responses</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Collapsible>
+                    <CollapsibleTrigger asChild>
+                      <Button variant="ghost" className="text-xs">
+                        View Raw API Responses ({rawResponses.length})
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="space-y-4 mt-4">
+                        {rawResponses.map((response, index) => (
+                          <div key={index} className="border rounded-lg p-3">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-sm font-medium">{response.model}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {new Date(response.timestamp).toLocaleTimeString()}
+                              </span>
+                            </div>
+                            <pre className="text-xs bg-muted/50 p-2 rounded overflow-auto max-h-40">
+                              {JSON.stringify(response.data, null, 2)}
+                            </pre>
+                          </div>
+                        ))}
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
                 </CardContent>
               </Card>
             )}
