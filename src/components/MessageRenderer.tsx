@@ -104,19 +104,30 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   };
 
   const handleScrollToTop = () => {
-    // Scroll to top of chat area
-    const chatContainer = document.querySelector('[data-radix-scroll-area-viewport]');
-    if (chatContainer) {
-      chatContainer.scrollTo({
+    // Try to find the scroll area viewport (the actual scrollable container)
+    const scrollViewport = document.querySelector('[data-radix-scroll-area-viewport]');
+    if (scrollViewport) {
+      scrollViewport.scrollTo({
         top: 0,
         behavior: 'smooth'
       });
     } else {
-      // Fallback to window scroll
-      window.scrollTo({
-        top: 0,
-        behavior: 'smooth'
-      });
+      // Try alternative selectors for the chat container
+      const chatContainer = document.querySelector('.space-y-4') || 
+                          document.querySelector('[class*="scroll"]') ||
+                          document.querySelector('.flex-1');
+      if (chatContainer && chatContainer.scrollTo) {
+        chatContainer.scrollTo({
+          top: 0,
+          behavior: 'smooth'
+        });
+      } else {
+        // Last fallback to window scroll
+        window.scrollTo({
+          top: 0,
+          behavior: 'smooth'
+        });
+      }
     }
   };
   
