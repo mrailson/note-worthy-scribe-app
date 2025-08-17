@@ -8,6 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Send, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 // Predefined starting messages for clinicians
 const QUICK_PICK_MESSAGES = [
@@ -125,28 +126,61 @@ export function EmailCompositionModal({
       return;
     }
 
+    if (!subject.trim()) {
+      toast({
+        title: "Subject Required",
+        description: "Please enter a subject for the email.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsSending(true);
     try {
-      // TODO: Implement EmailJS integration with attachment support
-      // For now, just simulate sending
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      // Prepare email data for EmailJS service
+      const emailData = {
+        to_email: toEmail.trim(),
+        subject: subject.trim(),
+        message: message.trim(),
+        cc_email: ccEmail.trim() || undefined,
+        template_type: 'ai_generated_content',
+        from_name: 'AI4GP Service',
+        reply_to: 'noreply@gp-tools.nhs.uk'
+      };
+
+      // Send email via Supabase edge function
+      const { data, error } = await supabase.functions.invoke('send-email-via-emailjs', {
+        body: emailData
+      });
+
+      if (error) {
+        console.error('Email sending error:', error);
+        throw new Error(error.message || 'Failed to send email');
+      }
+
+      if (!data?.success) {
+        console.error('EmailJS error:', data);
+        throw new Error(data?.error || 'Failed to send email via EmailJS');
+      }
+
       toast({
-        title: "Email Sent",
-        description: attachWordDoc ? 
-          "The email has been sent successfully with Word document attachment." :
-          "The email has been sent successfully.",
+        title: "Email Sent Successfully",
+        description: `Email sent to ${toEmail}${ccEmail ? ` and CC to ${ccEmail}` : ''}`,
       });
       
       onOpenChange(false);
       // Reset form
       setToEmail('');
       setCcEmail('');
+      setSubject('');
+      setMessage('');
+      setSelectedQuickPick('consultation');
       setAttachWordDoc(true);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Error sending email:', error);
       toast({
         title: "Send Failed",
-        description: "Failed to send the email. Please try again.",
+        description: error.message || "Failed to send the email. Please try again.",
         variant: "destructive"
       });
     } finally {

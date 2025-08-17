@@ -29,6 +29,11 @@ interface EmailRequest {
   login_url?: string;
   support_email?: string;
   
+  // AI-generated content email fields
+  subject?: string;
+  message?: string;
+  cc_email?: string;
+  
   // Module access fields
   meeting_notes_access?: boolean;
   gp_scribe_access?: boolean;
@@ -53,6 +58,8 @@ const handler = async (req: Request): Promise<Response> => {
     const serviceId = Deno.env.get("EMAILJS_SERVICE_ID");
     const templateId = emailData.template_type === 'welcome' 
       ? "template_00jzuhg"  // Welcome email template
+      : emailData.template_type === 'ai_generated_content'
+      ? "template_n236grs"  // Generic content template (reusing the meeting template)
       : Deno.env.get("EMAILJS_TEMPLATE_ID"); // Default meeting template
     const publicKey = Deno.env.get("EMAILJS_PUBLIC_KEY");
     const privateKey = Deno.env.get("EMAILJS_PRIVATE_KEY");
