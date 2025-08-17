@@ -101,8 +101,9 @@ const AI4GPService = () => {
   return (
     <>
       <div 
-        className="flex-1 flex flex-col bg-background relative max-h-screen overflow-hidden" 
+        className="flex-1 flex flex-col bg-background relative h-full overflow-hidden" 
         data-component="ai4gp-service"
+        style={{ WebkitOverflowScrolling: 'touch' }}
       >
         <div className="flex flex-1 min-h-0">
           {/* Search History Sidebar */}
@@ -240,7 +241,7 @@ const AI4GPService = () => {
               <CardContent className="flex-1 flex flex-col p-0 relative min-h-0 overflow-hidden">
                 {messages.length === 0 ? (
                   /* Welcome Screen - Compact, mobile-optimized */
-                  <div className="flex-1 p-3 sm:p-6 space-y-3 sm:space-y-4 overflow-y-auto">
+                  <div className="flex-1 p-3 sm:p-6 space-y-3 sm:space-y-4 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
                     <div className="w-full max-w-2xl mx-auto">
                       <p className="text-center text-muted-foreground text-xs sm:text-sm mb-3">
                         Get started with these common queries:
@@ -282,7 +283,7 @@ const AI4GPService = () => {
                   </div>
                 ) : (
                   /* Messages Area */
-                  <div className="flex-1 overflow-y-auto">
+                  <div className="flex-1 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
                     <MessagesList
                       messages={messages}
                       isLoading={isLoading}
