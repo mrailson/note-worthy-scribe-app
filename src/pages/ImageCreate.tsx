@@ -25,6 +25,47 @@ const ImageCreate = () => {
   const { isRecording, isProcessing: isVoiceProcessing, toggleRecording } = useVoiceRecording();
   const { toast: useToastHook } = useToast();
 
+  const convertImageToPNG = (file: File): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+
+      img.onload = () => {
+        // Set canvas size to image size (max 1024x1024 for OpenAI)
+        const maxSize = 1024;
+        let { width, height } = img;
+        
+        if (width > maxSize || height > maxSize) {
+          const ratio = Math.min(maxSize / width, maxSize / height);
+          width = width * ratio;
+          height = height * ratio;
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Draw image to canvas
+        ctx?.drawImage(img, 0, 0, width, height);
+        
+        // Convert to PNG blob
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const pngFile = new File([blob], file.name.replace(/\.[^/.]+$/, '.png'), {
+              type: 'image/png'
+            });
+            resolve(pngFile);
+          } else {
+            reject(new Error('Failed to convert image to PNG'));
+          }
+        }, 'image/png');
+      };
+
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
   const handleImageUpload = async (files: FileList) => {
     if (!files || files.length === 0) return;
 
@@ -47,14 +88,16 @@ const ImageCreate = () => {
         return;
       }
 
-      // Upload to Supabase Storage instead of processing locally
+      // Convert to PNG format for OpenAI compatibility
+      const pngFile = await convertImageToPNG(file);
+
+      // Upload to Supabase Storage
       const timestamp = Date.now();
-      const fileExtension = file.name.split('.').pop();
-      const fileName = `${user?.id}/${timestamp}.${fileExtension}`;
+      const fileName = `${user?.id}/${timestamp}.png`;
 
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('image-processing')
-        .upload(fileName, file, {
+        .upload(fileName, pngFile, {
           cacheControl: '3600',
           upsert: false
         });
@@ -66,15 +109,15 @@ const ImageCreate = () => {
 
       // Set the uploaded file with storage path
       setUploadedImage({
-        name: file.name,
-        type: file.type,
+        name: pngFile.name,
+        type: pngFile.type,
         content: uploadData.path, // Store the storage path instead of base64
-        size: file.size,
+        size: pngFile.size,
         isLoading: false
       });
       
-      const sizeInMB = (file.size / 1024 / 1024).toFixed(1);
-      toast.success(`Image uploaded successfully! (${sizeInMB}MB)`);
+      const sizeInMB = (pngFile.size / 1024 / 1024).toFixed(1);
+      toast.success(`Image converted to PNG and uploaded successfully! (${sizeInMB}MB)`);
       
     } catch (error) {
       console.error("Error uploading image:", error);

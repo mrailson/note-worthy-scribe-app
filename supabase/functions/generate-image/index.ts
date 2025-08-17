@@ -72,6 +72,9 @@ serve(async (req) => {
         if (imageBlob.size < 100) {
           throw new Error('Image file appears to be empty or corrupted.');
         }
+
+        // Image should already be in PNG format from frontend conversion
+        console.log(`Image received. Size: ${imageBlob.size} bytes, Type: ${imageBlob.type}`);
         
         // Prepare form data for DALL-E 2 image editing
         const formData = new FormData();
