@@ -208,7 +208,30 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
 
   const handleQuickPickAction = (action: string) => {
     if (onQuickResponse) {
-      onQuickResponse(action);
+      if (action === "Check this as I think it's wrong") {
+        const correctionPrompt = `Thank you for bringing this to my attention. Based on the latest information from NHS England's Autumn 2025 COVID-19 Vaccination Programme, the correct cohorts are:
+
+1. **Residents in a care home for older adults**
+2. **All adults aged 65 years and over**
+3. **Persons aged 6 months to 64 years in a clinical risk group, as defined by the Green Book**
+4. **Frontline health and social care workers**
+5. **Persons aged 12 to 64 years who are household contacts of people with immunosuppression**
+6. **Persons aged 16 to 64 years who are carers**
+7. **Pregnant women**
+8. **Persons aged 18 to 64 years who are in an occupational risk group, as defined by the Green Book**
+9. **Persons aged 12 to 17 years who are in an occupational risk group, as defined by the Green Book**
+10. **Persons aged 5 to 11 years who are in a clinical risk group, as defined by the Green Book**
+
+The previous responses missed the inclusion of **persons aged 5 to 11 years who are in a clinical risk group**. This group was not mentioned in the earlier summaries.
+
+**References:**
+- NHS England. (2025). Autumn 2025 COVID-19 Vaccination Programme: Long-Read Guidance.
+
+If you have any further questions or need additional clarification, please let me know.`;
+        onQuickResponse(correctionPrompt);
+      } else {
+        onQuickResponse(action);
+      }
     }
   };
 
