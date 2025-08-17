@@ -94,7 +94,7 @@ function resolveModel(requested: string): { api: "responses" | "chat"; name: str
   }
 }
 
-async function callGPT(prompt: string, systemPrompt: string, model: string = 'gpt-4o', useResponsesAPI: boolean = false, enableStreaming: boolean = false): Promise<Response> {
+async function callGPT(prompt: string, systemPrompt: string, model: string = 'gpt-4o', useResponsesAPI: boolean = false, enableStreaming: boolean = false): Promise<string> {
   const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
   if (!openaiApiKey) {
     throw new Error('OpenAI API key not configured');
@@ -111,7 +111,7 @@ async function callGPT(prompt: string, systemPrompt: string, model: string = 'gp
 
 async function callGPTChatCompletions(
   prompt: string, systemPrompt: string, model: string, enableStreaming: boolean
-): Promise<Response> {
+): Promise<string> {
 
   const body = {
     model,
@@ -137,23 +137,22 @@ async function callGPTChatCompletions(
   if (!r.ok) {
     const err = await r.text();
     console.error("OpenAI Chat error", r.status, r.headers.get("x-request-id"), err.slice(0, 1000));
-    return new Response(JSON.stringify({ error: true, provider: "openai-chat", status: r.status, requestId: r.headers.get("x-request-id"), raw: err }), { status: 502 });
+    throw new Error(`OpenAI Chat error: ${r.status} (${r.headers.get("x-request-id")}) - ${err}`);
   }
 
   if (enableStreaming) {
-    // Pass SSE straight through to the client/UI
-    return new Response(r.body, { headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache" } });
+    return await handleOpenAIStreaming(r);
   }
 
   const json = await r.json();
   const text = extractTextFromChat(json);
   if (!text) console.warn("Empty Chat text; first 500 chars:", JSON.stringify(json).slice(0, 500));
-  return new Response(JSON.stringify({ text, raw: json }), { headers: { "Content-Type": "application/json" } });
+  return text;
 }
 
 async function callGPTResponsesAPI(
   prompt: string, systemPrompt: string, model: string, enableStreaming: boolean
-): Promise<Response> {
+): Promise<string> {
 
   const body = {
     model,                                     // e.g., "gpt-4o-mini" | "gpt-4o" | "gpt-5" (if entitled)
@@ -179,18 +178,17 @@ async function callGPTResponsesAPI(
   if (!r.ok) {
     const err = await r.text();
     console.error("OpenAI Responses error", r.status, r.headers.get("x-request-id"), err.slice(0, 1000));
-    return new Response(JSON.stringify({ error: true, provider: "openai-responses", status: r.status, requestId: r.headers.get("x-request-id"), raw: err }), { status: 502 });
+    throw new Error(`OpenAI Responses error: ${r.status} (${r.headers.get("x-request-id")}) - ${err}`);
   }
 
   if (enableStreaming) {
-    // Proxy SSE to the client/UI (Lovable's "Enable Streaming")
-    return new Response(r.body, { headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache" } });
+    return await handleResponsesAPIStreaming(r);
   }
 
   const json = await r.json();
   const text = extractTextFromResponses(json);
   if (!text) console.warn("Empty Responses text; first 500 chars:", JSON.stringify(json).slice(0, 500));
-  return new Response(JSON.stringify({ text, raw: json }), { headers: { "Content-Type": "application/json" } });
+  return text;
 }
 
 async function handleOpenAIStreaming(response: Response): Promise<string> {
@@ -354,55 +352,50 @@ serve(async (req) => {
     console.log(`Testing ${model} with prompt length: ${prompt.length}, Responses API: ${useResponsesAPI}, Streaming: ${enableStreaming}`);
 
     const startTime = Date.now();
-    let apiResponse: Response;
+    let response: string;
     let modelName: string;
     let apiUsed = 'Unknown';
 
     switch (model) {
       case 'claude-4-sonnet':
-        const claudeSonnetResponse = await callClaude(prompt, systemPrompt, 'claude-3-5-sonnet-20241022');
+        response = await callClaude(prompt, systemPrompt, 'claude-3-5-sonnet-20241022');
         modelName = 'Claude 3.5 Sonnet';
         apiUsed = 'Anthropic';
-        apiResponse = new Response(JSON.stringify({ text: claudeSonnetResponse }), { headers: { 'Content-Type': 'application/json' } });
         break;
       case 'claude-4-opus':
-        const claudeOpusResponse = await callClaude(prompt, systemPrompt, 'claude-3-opus-20240229');
+        response = await callClaude(prompt, systemPrompt, 'claude-3-opus-20240229');
         modelName = 'Claude 3 Opus';
         apiUsed = 'Anthropic';
-        apiResponse = new Response(JSON.stringify({ text: claudeOpusResponse }), { headers: { 'Content-Type': 'application/json' } });
         break;
       case 'gpt-5':
-        apiResponse = await callGPT(prompt, systemPrompt, 'gpt-5', useResponsesAPI, enableStreaming);
+        response = await callGPT(prompt, systemPrompt, 'gpt-5', useResponsesAPI, enableStreaming);
         modelName = useResponsesAPI ? 'GPT-5 (Responses API)' : 'GPT-5 (Chat Completions)';
         apiUsed = useResponsesAPI ? 'OpenAI Responses API' : 'OpenAI Chat Completions';
         break;
       case 'gpt':
-        apiResponse = await callGPT(prompt, systemPrompt, 'gpt-4o', useResponsesAPI, enableStreaming);
+        response = await callGPT(prompt, systemPrompt, 'gpt-4o', useResponsesAPI, enableStreaming);
         modelName = useResponsesAPI ? 'GPT-4o (Responses API)' : 'GPT-4o (Chat Completions)';
         apiUsed = useResponsesAPI ? 'OpenAI Responses API' : 'OpenAI Chat Completions';
         break;
       case 'chatgpt5':
-        apiResponse = await callGPT(prompt, systemPrompt, 'gpt-4o-mini', useResponsesAPI, enableStreaming);
+        response = await callGPT(prompt, systemPrompt, 'gpt-4o-mini', useResponsesAPI, enableStreaming);
         modelName = useResponsesAPI ? 'GPT-4o Mini (Responses API)' : 'GPT-4o Mini (Chat Completions)';
         apiUsed = useResponsesAPI ? 'OpenAI Responses API' : 'OpenAI Chat Completions';
         break;
       case 'grok-beta':
-        const grokResponse = await callGrok(prompt, systemPrompt);
+        response = await callGrok(prompt, systemPrompt);
         modelName = 'Grok';
         apiUsed = 'xAI';
-        apiResponse = new Response(JSON.stringify({ text: grokResponse }), { headers: { 'Content-Type': 'application/json' } });
         break;
       case 'gemini-1.5-pro':
-        const geminiProResponse = await callGemini(prompt, systemPrompt, 'gemini-1.5-pro');
+        response = await callGemini(prompt, systemPrompt, 'gemini-1.5-pro');
         modelName = 'Gemini 1.5 Pro';
         apiUsed = 'Google';
-        apiResponse = new Response(JSON.stringify({ text: geminiProResponse }), { headers: { 'Content-Type': 'application/json' } });
         break;
       case 'gemini-1.5-flash':
-        const geminiFlashResponse = await callGemini(prompt, systemPrompt, 'gemini-1.5-flash');
+        response = await callGemini(prompt, systemPrompt, 'gemini-1.5-flash');
         modelName = 'Gemini 1.5 Flash';
         apiUsed = 'Google';
-        apiResponse = new Response(JSON.stringify({ text: geminiFlashResponse }), { headers: { 'Content-Type': 'application/json' } });
         break;
       default:
         throw new Error(`Unsupported model: ${model}`);
@@ -410,25 +403,16 @@ serve(async (req) => {
 
     const endTime = Date.now();
     const responseTime = endTime - startTime;
-
-    // If streaming, return the response directly
-    if (enableStreaming && apiResponse.headers.get('content-type')?.includes('text/event-stream')) {
-      return apiResponse;
-    }
-
-    // For non-streaming, extract text and build response
-    const responseData = await apiResponse.json();
-    const responseText = responseData.text || responseData.response || '';
     
     // Calculate approximate tokens per second (rough estimate)
-    const wordCount = responseText.split(' ').length;
+    const wordCount = response.split(' ').length;
     const estimatedTokens = Math.floor(wordCount * 1.3); // Rough token estimation
     const tokensPerSecond = responseTime > 0 ? Math.round((estimatedTokens / responseTime) * 1000) : 0;
     
-    console.log(`${modelName} completed successfully. Response length: ${responseText.length} chars, Response time: ${responseTime}ms, API: ${apiUsed}`);
+    console.log(`${modelName} completed successfully. Response length: ${response.length} chars, Response time: ${responseTime}ms, API: ${apiUsed}`);
 
     return new Response(JSON.stringify({
-      response: responseText,
+      response,
       model: modelName,
       tokensPerSecond: tokensPerSecond,
       responseTimeMs: responseTime,
