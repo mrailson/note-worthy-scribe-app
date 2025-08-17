@@ -21,7 +21,8 @@ import {
   Download,
   Zap,
   GraduationCap,
-  Settings
+  Settings,
+  AlertTriangle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import QuickActionButtons from '@/components/QuickActionButtons';
@@ -654,6 +655,10 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                           <DropdownMenuItem onClick={() => handleQuickPickAction("Prompt Reply: No")}>
                             <CheckSquare className="h-4 w-4 mr-2" />
                             Prompt Reply: No
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleQuickPickAction("Check this as I think it's wrong")}>
+                            <AlertTriangle className="h-4 w-4 mr-2" />
+                            Check this as I think it's wrong
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuLabel className="text-xs font-medium text-muted-foreground px-2 py-1.5">
