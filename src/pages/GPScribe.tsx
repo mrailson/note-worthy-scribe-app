@@ -303,6 +303,7 @@ const Index = () => {
               onPauseRecording={recording.pauseRecording}
               onResumeRecording={recording.resumeRecording}
               onResetConsultation={() => {
+                console.log("Starting new consultation - clearing all data");
                 recording.clearTranscript();
                 documents.clearAllContent();
                 guidance.clearGuidance();

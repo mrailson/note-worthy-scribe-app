@@ -228,6 +228,7 @@ export const useDocumentGeneration = () => {
   }, [editContent]);
 
   const clearAllContent = useCallback(() => {
+    console.log("useDocumentGeneration: Clearing all content");
     setGpSummary("");
     setGpShorthand("");
     setStandardDetail("");
@@ -249,6 +250,7 @@ export const useDocumentGeneration = () => {
       traineeFeedback: "",
       referralLetter: ""
     });
+    console.log("useDocumentGeneration: All content cleared");
   }, []);
 
   return {
