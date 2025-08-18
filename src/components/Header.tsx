@@ -11,12 +11,13 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning, Sparkles, Mail, Users, Clock, FolderOpen, Wrench, BookOpen, Menu, ChevronsDown, Stars, ImageIcon } from "lucide-react";
+import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning, Sparkles, Mail, Users, Clock, FolderOpen, Wrench, BookOpen, Menu, ChevronsDown, Stars, ImageIcon, User } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerTrigger, DrawerClose, DrawerFooter } from "@/components/ui/drawer";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { UserProfileModal } from "@/components/UserProfileModal";
 interface HeaderProps {
   onNewMeeting: () => void;
 }
@@ -26,6 +27,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [sharedDriveVisible, setSharedDriveVisible] = useState(true);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   
   const isHomePage = location.pathname === '/';
   const isGPScribePage = location.pathname === '/gp-scribe';
@@ -259,25 +261,39 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
             )}
             
             {user && (
-              <TooltipProvider delayDuration={150}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      onClick={signOut}
-                      variant="secondary"
-                      size="sm"
-                      title={user?.email ?? undefined}
-                      className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs sm:text-sm px-2 sm:px-4"
-                    >
-                      <LogOut className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
-                      <span className="hidden sm:inline">Logout</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">
-                    {user?.email}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs sm:text-sm px-2 sm:px-4"
+                  >
+                    <User className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">{user?.email?.split('@')[0] || 'Profile'}</span>
+                    <ChevronDown className="h-3 w-3 ml-1" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent 
+                  align="end" 
+                  className="bg-background border border-border shadow-lg w-48"
+                >
+                  <DropdownMenuItem 
+                    onClick={() => setShowProfileModal(true)}
+                    className="cursor-pointer py-3"
+                  >
+                    <User className="h-4 w-4 mr-2" />
+                    My Profile
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    onClick={signOut}
+                    className="cursor-pointer py-3 text-destructive focus:text-destructive"
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </div>
 
@@ -440,9 +456,16 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                               </Button>
                             </DrawerClose>
                           </>
-                        )}
+                         )}
 
-                        <DrawerClose asChild>
+                         <DrawerClose asChild>
+                           <Button variant="ghost" className="justify-start" onClick={() => setShowProfileModal(true)}>
+                             <User className="h-4 w-4 mr-2" />
+                             My Profile
+                           </Button>
+                         </DrawerClose>
+
+                         <DrawerClose asChild>
                           <Button variant="destructive" className="justify-start" onClick={signOut}>
                             <LogOut className="h-4 w-4 mr-2" />
                             Logout
@@ -460,6 +483,12 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
           </div>
         </div>
       </div>
+      
+      {/* User Profile Modal */}
+      <UserProfileModal 
+        open={showProfileModal} 
+        onOpenChange={setShowProfileModal} 
+      />
     </header>
   );
 };
