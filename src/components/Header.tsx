@@ -124,6 +124,13 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                        GP Scribe
                      </DropdownMenuItem>
                    )}
+                   <DropdownMenuItem 
+                     onClick={() => navigate('/consultation/summary')}
+                     className="cursor-pointer py-3"
+                   >
+                     <FileText className="h-4 w-4 mr-2" />
+                     Consultation Summary
+                   </DropdownMenuItem>
                    {hasModuleAccess('complaints_system') && (
                      <DropdownMenuItem 
                        onClick={() => navigate('/complaints')}
@@ -350,14 +357,20 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                             </Button>
                           </DrawerClose>
                         )}
-                        {hasModuleAccess('gp_scribe') && (
-                          <DrawerClose asChild>
-                            <Button variant="ghost" className="justify-start" onClick={() => navigate('/gp-scribe')}>
-                              <Stethoscope className="h-4 w-4 mr-2" />
-                              GP Scribe
-                            </Button>
-                          </DrawerClose>
-                        )}
+                         {hasModuleAccess('gp_scribe') && (
+                           <DrawerClose asChild>
+                             <Button variant="ghost" className="justify-start" onClick={() => navigate('/gp-scribe')}>
+                               <Stethoscope className="h-4 w-4 mr-2" />
+                               GP Scribe
+                             </Button>
+                           </DrawerClose>
+                         )}
+                         <DrawerClose asChild>
+                           <Button variant="ghost" className="justify-start" onClick={() => navigate('/consultation/summary')}>
+                             <FileText className="h-4 w-4 mr-2" />
+                             Consultation Summary
+                           </Button>
+                         </DrawerClose>
                         {hasModuleAccess('complaints_system') && (
                           <DrawerClose asChild>
                             <Button variant="ghost" className="justify-start" onClick={() => navigate('/complaints')}>
