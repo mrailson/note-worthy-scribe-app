@@ -343,7 +343,7 @@ const AI4GPService = () => {
       <Dialog open={showImageCreate} onOpenChange={setShowImageCreate}>
         <DialogContent className="max-w-[100vw] w-[100vw] max-h-[100vh] h-[100vh] overflow-y-auto p-0 m-0">
           <DialogHeader className="p-4 border-b">
-            <DialogTitle className="text-left">NHS Infographic Creator</DialogTitle>
+            <DialogTitle className="text-left">Image Creation Service</DialogTitle>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto">
             <ImageCreate />
