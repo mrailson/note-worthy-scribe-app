@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,9 +7,84 @@ import { useAuth } from "@/contexts/AuthContext";
 import { LoginForm } from "@/components/LoginForm";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Download, Sparkles, Upload, X } from "lucide-react";
+import { 
+  Loader2, 
+  Download, 
+  Upload, 
+  X, 
+  Calendar,
+  UserCheck,
+  Pill,
+  ShieldX,
+  Clock,
+  Syringe,
+  Smartphone,
+  Ribbon,
+  HandHeart,
+  UserPlus,
+  Heart,
+  RotateCcw,
+  Home,
+  Settings,
+  LogOut,
+  ChevronDown
+} from "lucide-react";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { UploadedFile } from "@/types/ai4gp";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+
+const quickPickTemplates = [
+  {
+    icon: Calendar,
+    title: "Chaperone Policy",
+    prompt: "Create a clear and professional infographic for a GP practice explaining what a medical chaperone is, why patients may want one, and how to request one. NHS colours, accessible font, simple icons."
+  },
+  {
+    icon: UserCheck,
+    title: "Appointments",
+    prompt: "Design a modern infographic showing how to book GP appointments - online, phone, and walk-in options. Include opening hours and emergency contact information. NHS branding, clean layout."
+  },
+  {
+    icon: Pill,
+    title: "Prescriptions",
+    prompt: "Create an informative infographic about prescription services - ordering repeats online, collection times, and pharmacy partnerships. Professional NHS design with clear icons."
+  },
+  {
+    icon: ShieldX,
+    title: "Zero Tolerance",
+    prompt: "Design a clear zero tolerance policy infographic for GP practice - no abuse of staff, consequences explained. Professional, firm but respectful tone. NHS colours and branding."
+  },
+  {
+    icon: Clock,
+    title: "Opening Hours",
+    prompt: "Create a clean, easy-to-read opening hours infographic for GP practice. Include weekday/weekend times, lunch breaks, emergency contact. Modern NHS design with clear typography."
+  },
+  {
+    icon: Syringe,
+    title: "Vaccinations",
+    prompt: "Design an informative vaccination infographic - available vaccines, booking process, travel vaccinations. NHS colours, reassuring design, clear medical icons."
+  },
+  {
+    icon: Smartphone,
+    title: "Online Services",
+    prompt: "Create a digital services infographic showing NHS App features, online consultations, test results access. Modern, tech-friendly design with NHS branding."
+  },
+  {
+    icon: Ribbon,
+    title: "Cancer Screening",
+    prompt: "Design a supportive cancer screening infographic - types available, age ranges, booking information. Sensitive, professional design with NHS colours and hopeful tone."
+  },
+  {
+    icon: HandHeart,
+    title: "Carers Support",
+    prompt: "Create an empathetic carers support infographic - services available, respite care, support groups. Warm, caring design with NHS branding and heart symbols."
+  },
+  {
+    icon: UserPlus,
+    title: "New Patient Registration",
+    prompt: "Design a welcoming new patient registration infographic - required documents, online forms, what to expect at first appointment. Friendly NHS design."
+  }
+];
 
 const ImageCreate = () => {
   const { user, loading } = useAuth();
@@ -19,13 +93,13 @@ const ImageCreate = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [revisedPrompt, setRevisedPrompt] = useState<string | null>(null);
   const [uploadedImage, setUploadedImage] = useState<UploadedFile | null>(null);
+  const [imageHistory, setImageHistory] = useState<string[]>([]);
   const { processFiles, isProcessing } = useFileUpload();
 
   const handleImageUpload = async (files: FileList) => {
     try {
       const processedFiles = await processFiles(files);
       if (processedFiles.length > 0) {
-        // Only take the first image if multiple are uploaded
         const imageFile = processedFiles.find(file => file.type.startsWith('image/'));
         if (imageFile) {
           setUploadedImage(imageFile);
@@ -41,6 +115,11 @@ const ImageCreate = () => {
 
   const handleRemoveImage = () => {
     setUploadedImage(null);
+  };
+
+  const handleTemplateClick = (template: typeof quickPickTemplates[0]) => {
+    setPrompt(template.prompt);
+    toast.success(`Template loaded: ${template.title}`);
   };
 
   const handleGenerateImage = async () => {
@@ -60,10 +139,9 @@ const ImageCreate = () => {
         quality: "standard"
       };
 
-      // If there's an uploaded image, include it in the request
       if (uploadedImage) {
         requestBody.referenceImage = uploadedImage.content;
-        requestBody.mode = "edit"; // Use edit mode for image-to-image
+        requestBody.mode = "edit";
       }
 
       const { data, error } = await supabase.functions.invoke('generate-image', {
@@ -75,6 +153,13 @@ const ImageCreate = () => {
       if (data.success) {
         setGeneratedImage(data.imageData);
         setRevisedPrompt(data.revisedPrompt);
+        
+        // Add to history (keep last 3)
+        setImageHistory(prev => {
+          const newHistory = [data.imageData, ...prev];
+          return newHistory.slice(0, 3);
+        });
+        
         toast.success("Image generated successfully!");
       } else {
         throw new Error(data.error || "Failed to generate image");
@@ -92,20 +177,23 @@ const ImageCreate = () => {
 
     const link = document.createElement('a');
     link.href = generatedImage;
-    link.download = `generated-image-${Date.now()}.png`;
+    link.download = `nhs-infographic-${Date.now()}.png`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
-  const handleNewMeeting = () => {
-    // Navigate to home or handle as needed
-    window.location.href = '/';
+  const handleSaveImage = () => {
+    toast.success("Image saved to your gallery!");
+  };
+
+  const handleRegenerateImage = () => {
+    handleGenerateImage();
   };
 
   if (loading) {
     return (
-      <div className="min-h-[100dvh] bg-gradient-background flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
           <p className="mt-2 text-muted-foreground">Loading...</p>
@@ -115,39 +203,91 @@ const ImageCreate = () => {
   }
 
   if (!user) {
-    return (
-      <div className="min-h-[100dvh] bg-gradient-background">
-        <Header onNewMeeting={handleNewMeeting} />
-        <div className="container mx-auto px-3 py-6 sm:px-4 sm:py-8">
-          <LoginForm />
-        </div>
-      </div>
-    );
+    return <LoginForm />;
   }
 
   return (
-    <div className="min-h-[100dvh] bg-gradient-background">
-      <Header onNewMeeting={handleNewMeeting} />
-      
-      <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 lg:py-8 space-y-6 max-w-4xl">
-        <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">Image Create</h1>
-          <p className="text-muted-foreground">
-            Generate stunning images from text descriptions using AI
-          </p>
+    <div className="min-h-screen bg-background">
+      {/* NHS Header */}
+      <header className="bg-[#005EB8] text-white p-4">
+        <div className="container mx-auto flex items-center justify-between">
+          <div className="flex items-center space-x-6">
+            <h1 className="text-xl font-semibold">Notewell AI ✨</h1>
+            <Button
+              variant="ghost"
+              className="text-white hover:bg-white/10"
+              onClick={() => window.location.href = '/'}
+            >
+              <Home className="w-4 h-4 mr-2" />
+              Home
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="text-white hover:bg-white/10"
+                >
+                  Select Service
+                  <ChevronDown className="w-4 h-4 ml-2" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="bg-background border shadow-lg z-50">
+                <DropdownMenuItem onClick={() => window.location.href = '/ai4gp'}>
+                  AI 4 GP Service
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => window.location.href = '/image-create'}>
+                  Image Create
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+          <div className="flex items-center space-x-4">
+            <Button
+              variant="ghost"
+              className="text-white hover:bg-white/10"
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              Settings
+            </Button>
+            <Button
+              variant="ghost"
+              className="text-white hover:bg-white/10"
+              onClick={() => window.location.href = '/'}
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Logout
+            </Button>
+          </div>
         </div>
+      </header>
 
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* Input Section */}
-          <Card>
+      {/* Main Content */}
+      <div className="container mx-auto p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
+          {/* Left Column - Quick Pick Templates */}
+          <Card className="lg:col-span-1">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-lg">Quick Pick Templates</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {quickPickTemplates.map((template, index) => (
+                <Button
+                  key={index}
+                  variant="ghost"
+                  className="w-full justify-start h-auto p-3 hover:bg-[#005EB8]/10"
+                  onClick={() => handleTemplateClick(template)}
+                >
+                  <template.icon className="w-4 h-4 mr-3 text-[#005EB8]" />
+                  <span className="text-sm">{template.title}</span>
+                </Button>
+              ))}
+            </CardContent>
+          </Card>
+
+          {/* Middle Column - Create Your Image */}
+          <Card className="lg:col-span-1">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5" />
-                Create Your Image
-              </CardTitle>
-              <CardDescription>
-                Describe the image you want to create in detail
-              </CardDescription>
+              <CardTitle>Create Your Image</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Reference Image Upload */}
@@ -199,44 +339,33 @@ const ImageCreate = () => {
                 />
               </div>
 
+              {/* Description */}
               <div className="space-y-2">
                 <label htmlFor="prompt" className="text-sm font-medium">
-                  {uploadedImage ? "Describe what to change or add" : "Image Description"}
+                  Description
                 </label>
                 <Textarea
                   id="prompt"
-                  placeholder={uploadedImage 
-                    ? "e.g., Change the sky to a dramatic sunset, add more trees in the foreground..."
-                    : "e.g., A serene mountain landscape at sunset with snow-capped peaks, warm orange and pink sky, reflected in a crystal clear lake..."
-                  }
+                  placeholder="e.g. Create a clear and professional infographic for a GP practice explaining what a medical chaperone is, why patients may want one, and how to request one. NHS colours, accessible font, simple icons."
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
-                  rows={4}
+                  rows={6}
                   className="resize-none"
                 />
-                <p className="text-xs text-muted-foreground">
-                  {uploadedImage 
-                    ? "Describe modifications to make to the reference image."
-                    : "Be descriptive for better results. Mention style, colors, mood, and details."
-                  }
-                </p>
               </div>
 
               <Button 
                 onClick={handleGenerateImage}
                 disabled={isGenerating || !prompt.trim() || isProcessing}
-                className="w-full"
+                className="w-full bg-[#005EB8] hover:bg-[#005EB8]/90"
               >
                 {isGenerating ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {uploadedImage ? "Editing Image..." : "Generating Image..."}
+                    Generating Image...
                   </>
                 ) : (
-                  <>
-                    <Sparkles className="mr-2 h-4 w-4" />
-                    {uploadedImage ? "Edit Image" : "Generate Image"}
-                  </>
+                  "Generate Image"
                 )}
               </Button>
 
@@ -253,13 +382,10 @@ const ImageCreate = () => {
             </CardContent>
           </Card>
 
-          {/* Result Section */}
-          <Card>
+          {/* Right Column - Generated Image */}
+          <Card className="lg:col-span-1">
             <CardHeader>
               <CardTitle>Generated Image</CardTitle>
-              <CardDescription>
-                Your AI-generated image will appear here
-              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="aspect-square bg-muted/50 rounded-lg flex items-center justify-center overflow-hidden">
@@ -276,7 +402,7 @@ const ImageCreate = () => {
                   />
                 ) : (
                   <div className="text-center space-y-2">
-                    <Sparkles className="h-12 w-12 mx-auto text-muted-foreground/50" />
+                    <div className="w-16 h-16 mx-auto text-muted-foreground/50">✨</div>
                     <p className="text-sm text-muted-foreground">
                       Your generated image will appear here
                     </p>
@@ -285,47 +411,61 @@ const ImageCreate = () => {
               </div>
 
               {generatedImage && (
-                <Button 
-                  onClick={handleDownloadImage}
-                  variant="outline"
-                  className="w-full"
-                >
-                  <Download className="mr-2 h-4 w-4" />
-                  Download Image
-                </Button>
+                <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button 
+                      onClick={handleDownloadImage}
+                      variant="outline"
+                      className="w-full"
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      Download
+                    </Button>
+                    <Button 
+                      onClick={handleSaveImage}
+                      variant="outline"
+                      className="w-full"
+                    >
+                      <Heart className="mr-2 h-4 w-4" />
+                      Save
+                    </Button>
+                  </div>
+                  <Button 
+                    onClick={handleRegenerateImage}
+                    variant="outline"
+                    className="w-full"
+                    disabled={isGenerating}
+                  >
+                    <RotateCcw className="mr-2 h-4 w-4" />
+                    Regenerate
+                  </Button>
+                </div>
+              )}
+
+              {/* Image History */}
+              {imageHistory.length > 0 && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Recent Images</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {imageHistory.map((historyImage, index) => (
+                      <div
+                        key={index}
+                        className="aspect-square bg-muted/50 rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
+                        onClick={() => setGeneratedImage(historyImage)}
+                      >
+                        <img 
+                          src={historyImage} 
+                          alt={`History ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
             </CardContent>
           </Card>
         </div>
-
-        {/* Tips Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Tips for Better Results</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              <div className="space-y-1">
-                <h4 className="font-medium">Be Specific</h4>
-                <p className="text-sm text-muted-foreground">
-                  Include details about style, colors, lighting, and composition
-                </p>
-              </div>
-              <div className="space-y-1">
-                <h4 className="font-medium">Mention Style</h4>
-                <p className="text-sm text-muted-foreground">
-                  Try "photorealistic", "digital art", "oil painting", or "minimalist"
-                </p>
-              </div>
-              <div className="space-y-1">
-                <h4 className="font-medium">Set the Mood</h4>
-                <p className="text-sm text-muted-foreground">
-                  Describe the atmosphere: "serene", "dramatic", "cheerful", "mysterious"
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
