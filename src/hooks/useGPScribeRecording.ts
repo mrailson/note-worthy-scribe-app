@@ -179,8 +179,18 @@ export const useGPScribeRecording = () => {
         isChromium, 
         isMobile, 
         useChromiumMicPipeline,
+        envVar: import.meta.env.VITE_USE_CHROMIUM_MIC_PIPELINE,
         userAgent: navigator.userAgent.substring(0, 100)
       });
+
+      // Show user which pipeline is being used
+      if (useChromiumMicPipeline) {
+        toast.info("Using optimized Chromium microphone pipeline");
+      } else if (isIOS) {
+        toast.info("Using iPhone Whisper pipeline");
+      } else {
+        toast.info("Using desktop Whisper pipeline");
+      }
 
       if (isIOS) {
         console.log('📱 Starting iPhone Whisper transcription for GP Scribe...');
