@@ -400,6 +400,7 @@ const Index = () => {
               editStates={documents.editStates}
               editContent={documents.editContent}
               expandDialog={expandDialog}
+              recordingDuration={recording.formatDuration(recording.duration)}
               onGenerateSummary={handleGenerateSummary}
               onGenerateReferralLetter={handleGenerateReferralLetter}
               onStartEdit={documents.startEdit}

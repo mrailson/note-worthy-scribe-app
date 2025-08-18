@@ -31,6 +31,7 @@ interface SummaryPanelProps {
   editStates: EditStates;
   editContent: EditContent;
   expandDialog: ExpandDialog;
+  recordingDuration?: string;
   onGenerateSummary: () => void;
   onGenerateReferralLetter: () => void;
   onStartEdit: (field: keyof EditStates) => void;
@@ -58,6 +59,7 @@ export const SummaryPanel = ({
   editStates,
   editContent,
   expandDialog,
+  recordingDuration,
   onGenerateSummary,
   onGenerateReferralLetter,
   onStartEdit,
@@ -336,19 +338,25 @@ export const SummaryPanel = ({
             <Brain className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h2 className="text-xl font-semibold text-primary">Upper Respiratory Tract Infection</h2>
-            <p className="text-sm text-muted-foreground">Training Example</p>
+            <h2 className="text-xl font-semibold text-primary">
+              {gpSummary ? "Consultation Summary" : "Ready for New Consultation"}
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {gpSummary ? "Generated Notes" : "Click Start Recording to begin"}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Clock className="h-4 w-4" />
-            <span>05:00</span>
-            <span className="text-xs">345 words</span>
+            <span>{recordingDuration || "00:00"}</span>
+            <span className="text-xs">{transcript ? transcript.split(' ').length : 0} words</span>
           </div>
-          <Badge variant="secondary" className="bg-primary text-primary-foreground">
-            Acute Illness
-          </Badge>
+          {gpSummary && (
+            <Badge variant="secondary" className="bg-primary text-primary-foreground">
+              Complete
+            </Badge>
+          )}
         </div>
       </div>
 
