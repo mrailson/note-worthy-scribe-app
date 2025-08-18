@@ -302,7 +302,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
   }, [input, messages, uploadedFiles, buildSystemPrompt, verificationLevel]);
 
   const saveSearchAutomatically = async (messagesData: Message[]) => {
-    if (!user || messagesData.length === 0) return;
+    if (!user || messagesData.length < 2) return; // Need at least user + assistant message
 
     try {
       // Generate title from first user message
