@@ -48,12 +48,20 @@ serve(async (req) => {
     console.log('🔧 Creating Supabase client...');
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
     );
 
+    // Set the auth session manually from the JWT token
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    
     console.log('👤 Getting current user...');
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {
       console.error('❌ Auth error:', userError);
       console.error('❌ User:', user);
