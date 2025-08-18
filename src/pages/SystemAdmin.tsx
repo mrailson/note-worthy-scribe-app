@@ -654,12 +654,200 @@ const handlePasswordUpdate = async () => {
   }
 };
 
-const handleUserSubmit = async (e: React.FormEvent) => {
+// Auto-save function for module access changes
+const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
+  if (!editingUser) return;
+  
+  try {
+    console.log(`Auto-saving ${moduleKey} to ${checked} for user ${editingUser.user_id}`);
+    
+    // Check if user_roles record exists first
+    const { data: existingRoles, error: fetchError } = await supabase
+      .from('user_roles')
+      .select('*')
+      .eq('user_id', editingUser.user_id);
+      
+    if (fetchError) {
+      console.error('Auto-save fetch error:', fetchError);
+      toast.error(`Failed to auto-save ${moduleKey}`);
+      return;
+    }
+    
+    console.log('Existing roles found for auto-save:', existingRoles);
+    
+    if (existingRoles && existingRoles.length > 0) {
+      // Update existing user_roles record
+      const updateData = {
+        [moduleKey]: checked
+      };
+      
+      console.log('Auto-saving with data:', updateData);
+      
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .update(updateData)
+        .eq('user_id', editingUser.user_id);
+        
+      if (roleError) {
+        console.error('Auto-save update error:', roleError);
+        toast.error(`Failed to auto-save ${moduleKey}`);
+        return;
+      }
+    } else {
+      // Create new user_roles record
+      const insertData = {
+        user_id: editingUser.user_id,
+        role: userFormData.role || 'user',
+        practice_id: userFormData.practice_id !== 'none' ? userFormData.practice_id : null,
+        assigned_by: user?.id,
+        meeting_notes_access: moduleKey === 'meeting_notes_access' ? checked : userFormData.module_access.meeting_notes_access,
+        gp_scribe_access: moduleKey === 'gp_scribe_access' ? checked : userFormData.module_access.gp_scribe_access,
+        complaints_manager_access: moduleKey === 'complaints_manager_access' ? checked : userFormData.module_access.complaints_manager_access,
+        enhanced_access: moduleKey === 'enhanced_access' ? checked : userFormData.module_access.enhanced_access,
+        cqc_compliance_access: moduleKey === 'cqc_compliance_access' ? checked : userFormData.module_access.cqc_compliance_access,
+        shared_drive_access: moduleKey === 'shared_drive_access' ? checked : userFormData.module_access.shared_drive_access,
+        mic_test_service_access: moduleKey === 'mic_test_service_access' ? checked : userFormData.module_access.mic_test_service_access,
+        api_testing_service_access: moduleKey === 'api_testing_service_access' ? checked : userFormData.module_access.api_testing_service_access
+      };
+      
+      console.log('Auto-saving by inserting new role with data:', insertData);
+      
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .insert(insertData);
+      
+      if (roleError) {
+        console.error('Auto-save insert error:', roleError);
+        toast.error(`Failed to auto-save ${moduleKey}`);
+        return;
+      }
+    }
+    
+    // Handle AI4GP access separately as it's stored in profiles table
+    if (moduleKey === 'ai4gp_access') {
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ ai4gp_access: checked })
+        .eq('user_id', editingUser.user_id);
+        
+      if (profileError) {
+        console.error('Auto-save profile error:', profileError);
+        toast.error(`Failed to auto-save ${moduleKey}`);
+        return;
+      }
+    }
+    
+    // Show success message
+    toast.success(`${moduleKey.replace(/_/g, ' ').replace(/access/g, '').trim()} ${checked ? 'enabled' : 'disabled'}`);
+    
+    // Refresh user list to show updated permissions
+    fetchUsers();
+    
+  } catch (error) {
+    console.error('Auto-save error:', error);
+    toast.error(`Failed to auto-save ${moduleKey}`);
+  }
+};
     e.preventDefault();
     console.log('=== FORM SUBMIT START ===');
     console.log('Submitting user form with data:', userFormData);
     console.log('Module access being saved:', userFormData.module_access);
     console.log('Editing user:', editingUser?.user_id);
+    
+    // Auto-save function for module access changes
+    const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
+      if (!editingUser) return;
+      
+      try {
+        console.log(`Auto-saving ${moduleKey} to ${checked} for user ${editingUser.user_id}`);
+        
+        // Check if user_roles record exists first
+        const { data: existingRoles, error: fetchError } = await supabase
+          .from('user_roles')
+          .select('*')
+          .eq('user_id', editingUser.user_id);
+          
+        if (fetchError) {
+          console.error('Auto-save fetch error:', fetchError);
+          toast.error(`Failed to auto-save ${moduleKey}`);
+          return;
+        }
+        
+        console.log('Existing roles found for auto-save:', existingRoles);
+        
+        if (existingRoles && existingRoles.length > 0) {
+          // Update existing user_roles record
+          const updateData = {
+            [moduleKey]: checked
+          };
+          
+          console.log('Auto-saving with data:', updateData);
+          
+          const { error: roleError } = await supabase
+            .from('user_roles')
+            .update(updateData)
+            .eq('user_id', editingUser.user_id);
+            
+          if (roleError) {
+            console.error('Auto-save update error:', roleError);
+            toast.error(`Failed to auto-save ${moduleKey}`);
+            return;
+          }
+        } else {
+          // Create new user_roles record
+          const insertData = {
+            user_id: editingUser.user_id,
+            role: userFormData.role || 'user',
+            practice_id: userFormData.practice_id !== 'none' ? userFormData.practice_id : null,
+            assigned_by: user?.id,
+            meeting_notes_access: moduleKey === 'meeting_notes_access' ? checked : userFormData.module_access.meeting_notes_access,
+            gp_scribe_access: moduleKey === 'gp_scribe_access' ? checked : userFormData.module_access.gp_scribe_access,
+            complaints_manager_access: moduleKey === 'complaints_manager_access' ? checked : userFormData.module_access.complaints_manager_access,
+            enhanced_access: moduleKey === 'enhanced_access' ? checked : userFormData.module_access.enhanced_access,
+            cqc_compliance_access: moduleKey === 'cqc_compliance_access' ? checked : userFormData.module_access.cqc_compliance_access,
+            shared_drive_access: moduleKey === 'shared_drive_access' ? checked : userFormData.module_access.shared_drive_access,
+            mic_test_service_access: moduleKey === 'mic_test_service_access' ? checked : userFormData.module_access.mic_test_service_access,
+            api_testing_service_access: moduleKey === 'api_testing_service_access' ? checked : userFormData.module_access.api_testing_service_access
+          };
+          
+          console.log('Auto-saving by inserting new role with data:', insertData);
+          
+          const { error: roleError } = await supabase
+            .from('user_roles')
+            .insert(insertData);
+          
+          if (roleError) {
+            console.error('Auto-save insert error:', roleError);
+            toast.error(`Failed to auto-save ${moduleKey}`);
+            return;
+          }
+        }
+        
+        // Handle AI4GP access separately as it's stored in profiles table
+        if (moduleKey === 'ai4gp_access') {
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .update({ ai4gp_access: checked })
+            .eq('user_id', editingUser.user_id);
+            
+          if (profileError) {
+            console.error('Auto-save profile error:', profileError);
+            toast.error(`Failed to auto-save ${moduleKey}`);
+            return;
+          }
+        }
+        
+        // Show success message
+        toast.success(`${moduleKey.replace(/_/g, ' ').replace(/access/g, '').trim()} ${checked ? 'enabled' : 'disabled'}`);
+        
+        // Refresh user list to show updated permissions
+        fetchUsers();
+        
+      } catch (error) {
+        console.error('Auto-save error:', error);
+        toast.error(`Failed to auto-save ${moduleKey}`);
+      }
+    };
     
     try {
       if (editingUser) {
@@ -1959,17 +2147,20 @@ const handleUserSubmit = async (e: React.FormEvent) => {
                         <Label htmlFor="meeting_notes_access">Meeting Notes</Label>
                         <p className="text-xs text-muted-foreground">Access to meeting recording and note-taking features</p>
                       </div>
-                      <Switch
-                        id="meeting_notes_access"
-                        checked={userFormData.module_access.meeting_notes_access}
-                        onCheckedChange={(checked) => {
-                          console.log('Meeting notes access changed to:', checked);
-                          setUserFormData(prevData => ({
-                            ...prevData, 
-                            module_access: {...prevData.module_access, meeting_notes_access: checked}
-                          }));
-                        }}
-                      />
+                       <Switch
+                         id="meeting_notes_access"
+                         checked={userFormData.module_access.meeting_notes_access}
+                         onCheckedChange={async (checked) => {
+                           console.log('Meeting notes access changed to:', checked);
+                           setUserFormData(prevData => ({
+                             ...prevData, 
+                             module_access: {...prevData.module_access, meeting_notes_access: checked}
+                           }));
+                           if (editingUser) {
+                             await autoSaveModuleAccess('meeting_notes_access', checked);
+                           }
+                         }}
+                       />
                     </div>
 
                      <div className="flex items-center justify-between">
@@ -1977,17 +2168,20 @@ const handleUserSubmit = async (e: React.FormEvent) => {
                         <Label htmlFor="gp_scribe_access">GP Scribe</Label>
                         <p className="text-xs text-muted-foreground">Access to consultation transcription and note generation</p>
                       </div>
-                      <Switch
-                        id="gp_scribe_access"
-                        checked={userFormData.module_access.gp_scribe_access}
-                        onCheckedChange={(checked) => {
-                          console.log('GP Scribe access changed to:', checked);
-                          setUserFormData(prevData => ({
-                            ...prevData, 
-                            module_access: {...prevData.module_access, gp_scribe_access: checked}
-                          }));
-                        }}
-                      />
+                       <Switch
+                         id="gp_scribe_access"
+                         checked={userFormData.module_access.gp_scribe_access}
+                         onCheckedChange={async (checked) => {
+                           console.log('GP Scribe access changed to:', checked);
+                           setUserFormData(prevData => ({
+                             ...prevData, 
+                             module_access: {...prevData.module_access, gp_scribe_access: checked}
+                           }));
+                           if (editingUser) {
+                             await autoSaveModuleAccess('gp_scribe_access', checked);
+                           }
+                         }}
+                       />
                     </div>
 
                      <div className="flex items-center justify-between">
@@ -1995,17 +2189,20 @@ const handleUserSubmit = async (e: React.FormEvent) => {
                         <Label htmlFor="complaints_manager_access">Complaints Manager</Label>
                         <p className="text-xs text-muted-foreground">Access to view and manage complaints</p>
                       </div>
-                      <Switch
-                        id="complaints_manager_access"
-                        checked={userFormData.module_access.complaints_manager_access}
-                        onCheckedChange={(checked) => {
-                          console.log('Complaints Manager access changed to:', checked);
-                          setUserFormData(prevData => ({
-                            ...prevData, 
-                            module_access: {...prevData.module_access, complaints_manager_access: checked}
-                          }));
-                        }}
-                      />
+                       <Switch
+                         id="complaints_manager_access"
+                         checked={userFormData.module_access.complaints_manager_access}
+                         onCheckedChange={async (checked) => {
+                           console.log('Complaints Manager access changed to:', checked);
+                           setUserFormData(prevData => ({
+                             ...prevData, 
+                             module_access: {...prevData.module_access, complaints_manager_access: checked}
+                           }));
+                           if (editingUser) {
+                             await autoSaveModuleAccess('complaints_manager_access', checked);
+                           }
+                         }}
+                       />
                     </div>
 
 
@@ -2015,17 +2212,20 @@ const handleUserSubmit = async (e: React.FormEvent) => {
                         <Label htmlFor="ai4gp_access">AI4GP Service</Label>
                         <p className="text-xs text-muted-foreground">Access to AI4GP service for enhanced GP practice support</p>
                       </div>
-                      <Switch
-                        id="ai4gp_access"
-                        checked={userFormData.module_access.ai4gp_access}
-                        onCheckedChange={(checked) => {
-                          console.log('AI4GP access changed to:', checked);
-                          setUserFormData(prevData => ({
-                            ...prevData, 
-                            module_access: {...prevData.module_access, ai4gp_access: checked}
-                          }));
-                        }}
-                      />
+                       <Switch
+                         id="ai4gp_access"
+                         checked={userFormData.module_access.ai4gp_access}
+                         onCheckedChange={async (checked) => {
+                           console.log('AI4GP access changed to:', checked);
+                           setUserFormData(prevData => ({
+                             ...prevData, 
+                             module_access: {...prevData.module_access, ai4gp_access: checked}
+                           }));
+                           if (editingUser) {
+                             await autoSaveModuleAccess('ai4gp_access', checked);
+                           }
+                         }}
+                       />
                     </div>
 
                      <div className="flex items-center justify-between">
@@ -2033,17 +2233,20 @@ const handleUserSubmit = async (e: React.FormEvent) => {
                         <Label htmlFor="enhanced_access">Enhanced Access</Label>
                         <p className="text-xs text-muted-foreground">Access to enhanced appointment booking and patient services</p>
                       </div>
-                      <Switch
-                        id="enhanced_access"
-                        checked={userFormData.module_access.enhanced_access}
-                        onCheckedChange={(checked) => {
-                          console.log('Enhanced access changed to:', checked);
-                          setUserFormData(prevData => ({
-                            ...prevData, 
-                            module_access: {...prevData.module_access, enhanced_access: checked}
-                          }));
-                        }}
-                      />
+                       <Switch
+                         id="enhanced_access"
+                         checked={userFormData.module_access.enhanced_access}
+                         onCheckedChange={async (checked) => {
+                           console.log('Enhanced access changed to:', checked);
+                           setUserFormData(prevData => ({
+                             ...prevData, 
+                             module_access: {...prevData.module_access, enhanced_access: checked}
+                           }));
+                           if (editingUser) {
+                             await autoSaveModuleAccess('enhanced_access', checked);
+                           }
+                         }}
+                       />
                     </div>
 
                      <div className="flex items-center justify-between">
@@ -2051,17 +2254,20 @@ const handleUserSubmit = async (e: React.FormEvent) => {
                         <Label htmlFor="cqc_compliance_access">CQC Compliance</Label>
                         <p className="text-xs text-muted-foreground">Access to CQC compliance monitoring and assessment tools</p>
                       </div>
-                      <Switch
-                        id="cqc_compliance_access"
-                        checked={userFormData.module_access.cqc_compliance_access}
-                        onCheckedChange={(checked) => {
-                          console.log('CQC Compliance access changed to:', checked);
-                          setUserFormData(prevData => ({
-                            ...prevData, 
-                            module_access: {...prevData.module_access, cqc_compliance_access: checked}
-                          }));
-                        }}
-                      />
+                       <Switch
+                         id="cqc_compliance_access"
+                         checked={userFormData.module_access.cqc_compliance_access}
+                         onCheckedChange={async (checked) => {
+                           console.log('CQC Compliance access changed to:', checked);
+                           setUserFormData(prevData => ({
+                             ...prevData, 
+                             module_access: {...prevData.module_access, cqc_compliance_access: checked}
+                           }));
+                           if (editingUser) {
+                             await autoSaveModuleAccess('cqc_compliance_access', checked);
+                           }
+                         }}
+                       />
                     </div>
 
                      <div className="flex items-center justify-between">
@@ -2069,17 +2275,20 @@ const handleUserSubmit = async (e: React.FormEvent) => {
                         <Label htmlFor="shared_drive_access">Shared Drive Access</Label>
                         <p className="text-xs text-muted-foreground">Access to shared file storage and collaboration features</p>
                       </div>
-                      <Switch
-                        id="shared_drive_access"
-                        checked={userFormData.module_access.shared_drive_access}
-                        onCheckedChange={(checked) => {
-                          console.log('Shared Drive access changed to:', checked);
-                          setUserFormData(prevData => ({
-                            ...prevData, 
-                            module_access: {...prevData.module_access, shared_drive_access: checked}
-                          }));
-                        }}
-                      />
+                       <Switch
+                         id="shared_drive_access"
+                         checked={userFormData.module_access.shared_drive_access}
+                         onCheckedChange={async (checked) => {
+                           console.log('Shared Drive access changed to:', checked);
+                           setUserFormData(prevData => ({
+                             ...prevData, 
+                             module_access: {...prevData.module_access, shared_drive_access: checked}
+                           }));
+                           if (editingUser) {
+                             await autoSaveModuleAccess('shared_drive_access', checked);
+                           }
+                         }}
+                       />
                     </div>
 
                      <div className="flex items-center justify-between">
@@ -2087,17 +2296,20 @@ const handleUserSubmit = async (e: React.FormEvent) => {
                         <Label htmlFor="mic_test_service_access">Mic Test Service</Label>
                         <p className="text-xs text-muted-foreground">Access to microphone testing and recording playback features</p>
                       </div>
-                      <Switch
-                        id="mic_test_service_access"
-                        checked={userFormData.module_access.mic_test_service_access}
-                        onCheckedChange={(checked) => {
-                          console.log('Mic Test Service access changed to:', checked);
-                          setUserFormData(prevData => ({
-                            ...prevData, 
-                            module_access: {...prevData.module_access, mic_test_service_access: checked}
-                          }));
-                        }}
-                      />
+                       <Switch
+                         id="mic_test_service_access"
+                         checked={userFormData.module_access.mic_test_service_access}
+                         onCheckedChange={async (checked) => {
+                           console.log('Mic Test Service access changed to:', checked);
+                           setUserFormData(prevData => ({
+                             ...prevData, 
+                             module_access: {...prevData.module_access, mic_test_service_access: checked}
+                           }));
+                           if (editingUser) {
+                             await autoSaveModuleAccess('mic_test_service_access', checked);
+                           }
+                         }}
+                       />
                     </div>
 
                      <div className="flex items-center justify-between">
@@ -2105,17 +2317,20 @@ const handleUserSubmit = async (e: React.FormEvent) => {
                         <Label htmlFor="api_testing_service_access">API Testing Service</Label>
                         <p className="text-xs text-muted-foreground">Access to AI model comparison and API testing features</p>
                       </div>
-                      <Switch
-                        id="api_testing_service_access"
-                        checked={userFormData.module_access.api_testing_service_access}
-                        onCheckedChange={(checked) => {
-                          console.log('API Testing Service access changed to:', checked);
-                          setUserFormData(prevData => ({
-                            ...prevData, 
-                            module_access: {...prevData.module_access, api_testing_service_access: checked}
-                          }));
-                        }}
-                      />
+                       <Switch
+                         id="api_testing_service_access"
+                         checked={userFormData.module_access.api_testing_service_access}
+                         onCheckedChange={async (checked) => {
+                           console.log('API Testing Service access changed to:', checked);
+                           setUserFormData(prevData => ({
+                             ...prevData, 
+                             module_access: {...prevData.module_access, api_testing_service_access: checked}
+                           }));
+                           if (editingUser) {
+                             await autoSaveModuleAccess('api_testing_service_access', checked);
+                           }
+                         }}
+                       />
                     </div>
                   </div>
                 </div>
