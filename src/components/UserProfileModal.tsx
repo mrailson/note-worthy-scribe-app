@@ -82,7 +82,7 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
       if (data) {
         setUserProfile({
           id: data.id,
-          title: data.title || '', // Use title field from profiles table
+          title: (data as any).title || '', // Use title field from profiles table (type will be updated)
           first_name: data.full_name?.split(' ')[0] || '', // Extract from full_name
           last_name: data.full_name?.split(' ').slice(1).join(' ') || '', // Extract from full_name
           email: user.email || '',
@@ -184,6 +184,7 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
         const { error } = await supabase
           .from('profiles')
           .update({
+            title: userProfile.title, // Save title field
             full_name: fullName,
             department: userProfile.role, // Save role to department field
             updated_at: new Date().toISOString()
@@ -197,6 +198,7 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
           .from('profiles')
           .insert({
             user_id: user.id,
+            title: userProfile.title, // Save title field
             full_name: fullName,
             department: userProfile.role, // Save role to department field
             email: user.email

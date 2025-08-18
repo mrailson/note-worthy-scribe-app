@@ -2761,6 +2761,7 @@ export type Database = {
           nhs_trust: string | null
           role: string | null
           shared_drive_visible: boolean
+          title: string | null
           updated_at: string
           user_id: string
         }
@@ -2777,6 +2778,7 @@ export type Database = {
           nhs_trust?: string | null
           role?: string | null
           shared_drive_visible?: boolean
+          title?: string | null
           updated_at?: string
           user_id: string
         }
@@ -2793,6 +2795,7 @@ export type Database = {
           nhs_trust?: string | null
           role?: string | null
           shared_drive_visible?: boolean
+          title?: string | null
           updated_at?: string
           user_id?: string
         }
