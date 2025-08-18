@@ -58,7 +58,7 @@ export const RecordingControls = ({
     <Card className="w-full">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-lg">
-          GP Consultation
+          Clinical Consultation
         </CardTitle>
         <Button variant="outline" size="sm" onClick={handleReset}>
           <RotateCcw className="h-4 w-4 mr-1" />
