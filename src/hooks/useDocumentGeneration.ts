@@ -8,6 +8,8 @@ import { generateWordDocument, generatePowerPoint } from "@/utils/documentGenera
 export const useDocumentGeneration = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [gpSummary, setGpSummary] = useState("");
+  const [gpShorthand, setGpShorthand] = useState("");
+  const [standardDetail, setStandardDetail] = useState("");
   const [fullNote, setFullNote] = useState("");
   const [patientCopy, setPatientCopy] = useState("");
   const [traineeFeedback, setTraineeFeedback] = useState("");
@@ -45,21 +47,19 @@ export const useDocumentGeneration = () => {
     try {
       setIsGenerating(true);
       
-      const { data, error } = await supabase.functions.invoke('generate-gp-consultation-notes', {
+      const { data, error } = await supabase.functions.invoke('generate-dual-consultation-summary', {
         body: { 
           transcript: transcript.trim(),
-          outputLevel,
-          showSnomedCodes,
-          formatForEmis,
-          formatForSystmOne,
           consultationType 
         }
       });
 
       if (error) throw error;
 
-      setGpSummary(data.gpSummary || "");
-      setFullNote(data.fullNote || "");
+      setGpShorthand(data.gpShorthand || "");
+      setStandardDetail(data.standardDetail || "");
+      setGpSummary(data.fullContent || "");
+      setFullNote(data.fullContent || "");
       setPatientCopy(data.patientCopy || "");
       setTraineeFeedback(data.traineeFeedback || "");
 
@@ -229,6 +229,8 @@ export const useDocumentGeneration = () => {
 
   const clearAllContent = useCallback(() => {
     setGpSummary("");
+    setGpShorthand("");
+    setStandardDetail("");
     setFullNote("");
     setPatientCopy("");
     setTraineeFeedback("");
@@ -253,6 +255,8 @@ export const useDocumentGeneration = () => {
     // States
     isGenerating,
     gpSummary,
+    gpShorthand,
+    standardDetail,
     fullNote,
     patientCopy,
     traineeFeedback,
@@ -263,6 +267,8 @@ export const useDocumentGeneration = () => {
     // Actions
     setEditContent,
     setGpSummary,
+    setGpShorthand,
+    setStandardDetail,
     setFullNote,
     setPatientCopy,
     setTraineeFeedback,

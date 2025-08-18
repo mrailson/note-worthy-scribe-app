@@ -332,6 +332,8 @@ const Index = () => {
               transcript={recording.transcript}
               isGenerating={documents.isGenerating}
               gpSummary={documents.gpSummary}
+              gpShorthand={documents.gpShorthand}
+              standardDetail={documents.standardDetail}
               fullNote={documents.fullNote}
               patientCopy={documents.patientCopy}
               traineeFeedback={documents.traineeFeedback}

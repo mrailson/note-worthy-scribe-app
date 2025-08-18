@@ -1,9 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Label } from "@/components/ui/label";
 import { EditStates, EditContent, ExpandDialog } from "@/types/gpscribe";
 import { Brain, Copy, Download, Edit, Check, X, Maximize2, Mail, FileText, Clock, MessageSquare, UserCheck, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
@@ -13,6 +15,8 @@ interface SummaryPanelProps {
   transcript: string;
   isGenerating: boolean;
   gpSummary: string;
+  gpShorthand: string;
+  standardDetail: string;
   fullNote: string;
   patientCopy: string;
   traineeFeedback: string;
@@ -36,6 +40,8 @@ export const SummaryPanel = ({
   transcript,
   isGenerating,
   gpSummary,
+  gpShorthand,
+  standardDetail,
   fullNote,
   patientCopy,
   traineeFeedback,
@@ -56,6 +62,7 @@ export const SummaryPanel = ({
 }: SummaryPanelProps) => {
   const [activeSubTab, setActiveSubTab] = useState("summary");
   const [showTranscript, setShowTranscript] = useState(false);
+  const [isStandardDetail, setIsStandardDetail] = useState(false);
   
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -221,17 +228,33 @@ export const SummaryPanel = ({
 
             {/* Action buttons below tabs */}
             <div className="flex justify-between items-center mb-4">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Detail:</span>
-                <span className="text-sm font-medium">Standard</span>
-                <div className="w-16 h-2 bg-muted rounded-full">
-                  <div className="w-8 h-2 bg-primary rounded-full"></div>
+              <div className="flex items-center gap-3">
+                <Label className="text-sm font-medium">Format:</Label>
+                <div className="flex items-center gap-3">
+                  <Label 
+                    htmlFor="summary-format" 
+                    className={`text-sm transition-colors ${!isStandardDetail ? 'text-primary font-medium' : 'text-muted-foreground'}`}
+                  >
+                    GP Shorthand
+                  </Label>
+                  <Switch
+                    id="summary-format"
+                    checked={isStandardDetail}
+                    onCheckedChange={setIsStandardDetail}
+                    className="data-[state=checked]:bg-primary"
+                  />
+                  <Label 
+                    htmlFor="summary-format" 
+                    className={`text-sm transition-colors ${isStandardDetail ? 'text-primary font-medium' : 'text-muted-foreground'}`}
+                  >
+                    Standard Detail
+                  </Label>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <Button
-                  onClick={onGenerateSummary}
-                  disabled={!transcript.trim() || isGenerating}
+                  onClick={() => copyToClipboard(isStandardDetail ? standardDetail : gpShorthand)}
+                  disabled={!(isStandardDetail ? standardDetail : gpShorthand)}
                   variant="outline"
                   size="sm"
                 >
@@ -239,7 +262,8 @@ export const SummaryPanel = ({
                   Copy
                 </Button>
                 <Button
-                  onClick={() => onExportWord(gpSummary || fullNote, "Consultation Summary")}
+                  onClick={() => onExportWord(isStandardDetail ? standardDetail : gpShorthand, "Consultation Summary")}
+                  disabled={!(isStandardDetail ? standardDetail : gpShorthand)}
                   variant="outline"
                   size="sm"
                 >
@@ -264,7 +288,7 @@ export const SummaryPanel = ({
 
             <TabsContent value="summary" className="space-y-4">
               <div className="space-y-4">
-                {!gpSummary ? (
+                {!gpShorthand && !standardDetail ? (
                   <div className="text-center py-8">
                     <Button
                       onClick={onGenerateSummary}
@@ -278,9 +302,11 @@ export const SummaryPanel = ({
                   </div>
                 ) : (
                   <div className="prose prose-sm max-w-none">
-                    <p className="text-sm leading-relaxed">
-                      {gpSummary}
-                    </p>
+                    <div className="p-4 bg-card rounded-lg border">
+                      <pre className="text-sm leading-relaxed whitespace-pre-wrap font-sans">
+                        {isStandardDetail ? standardDetail : gpShorthand}
+                      </pre>
+                    </div>
                   </div>
                 )}
                 
