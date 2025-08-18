@@ -135,14 +135,14 @@ const AI4GPService = () => {
                               setUploadedFiles([]);
                               setShowAIChat(false);
                             }}
-                            className="flex flex-col items-start hover:opacity-80 transition-opacity cursor-pointer"
+                            className="flex items-center hover:opacity-80 transition-opacity cursor-pointer group relative"
                           >
-                            <div className="flex items-center">
-                              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-primary" />
+                            <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-primary" />
+                            <div className="flex flex-col">
                               <span className="hidden sm:inline">AI 4 GP Service</span>
                               <span className="sm:hidden">AI4GP</span>
+                              <span className="text-[10px] text-muted-foreground/60 -mt-1 hidden sm:block">Click for New Search</span>
                             </div>
-                            <span className="text-xs text-muted-foreground ml-6 sm:ml-7">Click for New Search</span>
                           </button>
                         </TooltipTrigger>
                         <TooltipContent>
