@@ -220,81 +220,99 @@ const AI4GPService = () => {
                 </div>
               )}
 
+              {/* Image Creation Service Display */}
+              {showImageCreate && (
+                <div className="flex-1 overflow-y-auto p-4 bg-background">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="font-medium text-lg">Image Creation Service</h4>
+                    <button
+                      onClick={() => setShowImageCreate(false)}
+                      className="text-muted-foreground hover:text-foreground text-sm px-2 py-1 rounded hover:bg-muted/50"
+                    >
+                      ✕ Close
+                    </button>
+                  </div>
+                  <ImageCreate />
+                </div>
+              )}
 
-              <CardContent className="flex-1 flex flex-col p-0 relative min-h-0 overflow-hidden">
-                {messages.length === 0 ? (
-                  /* Welcome Screen - Compact, mobile-optimized */
-                  <div className="flex-1 p-3 sm:p-6 space-y-3 sm:space-y-4 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
-                    <div className="w-full max-w-2xl mx-auto">
-                      <p className="text-center text-muted-foreground text-xs sm:text-sm mb-3">
-                        Get started with these common queries:
-                      </p>
-                      
-                      {/* Role Selection */}
-                      <div className="flex justify-center mb-4">
-                        <div className="flex bg-muted rounded-lg p-1">
-                          <button
-                            onClick={() => setSelectedRole('gp')}
-                            className={`px-3 py-1.5 text-xs sm:text-sm rounded-md transition-all ${
-                              selectedRole === 'gp'
-                                ? 'bg-background text-foreground shadow-sm font-bold'
-                                : 'text-muted-foreground/60 hover:text-muted-foreground hover:font-medium'
-                            }`}
-                          >
-                            For GP/Clinical
-                          </button>
-                          <button
-                            onClick={() => setSelectedRole('practice-manager')}
-                            className={`px-3 py-1.5 text-xs sm:text-sm rounded-md transition-all ${
-                              selectedRole === 'practice-manager'
-                                ? 'bg-background text-foreground shadow-sm font-bold'
-                                : 'text-muted-foreground/60 hover:text-muted-foreground hover:font-medium'
-                            }`}
-                          >
-                            For Practice Managers
-                          </button>
+              {/* Main Chat Content - Only show when Image Creation is not active */}
+              {!showImageCreate && (
+                <CardContent className="flex-1 flex flex-col p-0 relative min-h-0 overflow-hidden">
+                  {messages.length === 0 ? (
+                    /* Welcome Screen - Compact, mobile-optimized */
+                    <div className="flex-1 p-3 sm:p-6 space-y-3 sm:space-y-4 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+                      <div className="w-full max-w-2xl mx-auto">
+                        <p className="text-center text-muted-foreground text-xs sm:text-sm mb-3">
+                          Get started with these common queries:
+                        </p>
+                        
+                        {/* Role Selection */}
+                        <div className="flex justify-center mb-4">
+                          <div className="flex bg-muted rounded-lg p-1">
+                            <button
+                              onClick={() => setSelectedRole('gp')}
+                              className={`px-3 py-1.5 text-xs sm:text-sm rounded-md transition-all ${
+                                selectedRole === 'gp'
+                                  ? 'bg-background text-foreground shadow-sm font-bold'
+                                  : 'text-muted-foreground/60 hover:text-muted-foreground hover:font-medium'
+                              }`}
+                            >
+                              For GP/Clinical
+                            </button>
+                            <button
+                              onClick={() => setSelectedRole('practice-manager')}
+                              className={`px-3 py-1.5 text-xs sm:text-sm rounded-md transition-all ${
+                                selectedRole === 'practice-manager'
+                                  ? 'bg-background text-foreground shadow-sm font-bold'
+                                  : 'text-muted-foreground/60 hover:text-muted-foreground hover:font-medium'
+                              }`}
+                            >
+                              For Practice Managers
+                            </button>
+                          </div>
                         </div>
+                        
+                        <QuickActionsPanel
+                          showAllQuickActions={showAllQuickActions}
+                          setShowAllQuickActions={setShowAllQuickActions}
+                          setInput={setInput}
+                          selectedRole={selectedRole}
+                        />
                       </div>
-                      
-                      <QuickActionsPanel
-                        showAllQuickActions={showAllQuickActions}
-                        setShowAllQuickActions={setShowAllQuickActions}
-                        setInput={setInput}
-                        selectedRole={selectedRole}
+                    </div>
+                  ) : (
+                    /* Messages Area */
+                    <div className="flex-1 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+                      <MessagesList
+                        messages={messages}
+                        isLoading={isLoading}
+                        expandedMessage={expandedMessage}
+                        setExpandedMessage={setExpandedMessage}
+                        onExportWord={generateWordDocument}
+                        onExportPowerPoint={generatePowerPoint}
+                        showResponseMetrics={showResponseMetrics}
+                        onQuickResponse={(response) => handleQuickResponse(response, practiceContext, selectedModel)}
                       />
                     </div>
-                  </div>
-                ) : (
-                  /* Messages Area */
-                  <div className="flex-1 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
-                    <MessagesList
-                      messages={messages}
-                      isLoading={isLoading}
-                      expandedMessage={expandedMessage}
-                      setExpandedMessage={setExpandedMessage}
-                      onExportWord={generateWordDocument}
-                      onExportPowerPoint={generatePowerPoint}
-                      showResponseMetrics={showResponseMetrics}
-                      onQuickResponse={(response) => handleQuickResponse(response, practiceContext, selectedModel)}
-                    />
-                  </div>
-                )}
-                
-                {/* Input Area at Bottom */}
-                {!showNews && !showAIChat && !showSettings && (
-                  <div className="border-t bg-background">
-                    <InputArea
-                      ref={inputRef}
-                      input={input}
-                      setInput={setInput}
-                      uploadedFiles={uploadedFiles}
-                      setUploadedFiles={setUploadedFiles}
-                      onSend={handleSendWithContext}
-                      isLoading={isLoading}
-                    />
-                  </div>
-                )}
-              </CardContent>
+                  )}
+                  
+                  {/* Input Area at Bottom */}
+                  {!showNews && !showAIChat && !showSettings && (
+                    <div className="border-t bg-background">
+                      <InputArea
+                        ref={inputRef}
+                        input={input}
+                        setInput={setInput}
+                        uploadedFiles={uploadedFiles}
+                        setUploadedFiles={setUploadedFiles}
+                        onSend={handleSendWithContext}
+                        isLoading={isLoading}
+                      />
+                    </div>
+                  )}
+                </CardContent>
+              )}
             </Card>
           </div>
         </div>
@@ -339,17 +357,6 @@ const AI4GPService = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Image Create Modal */}
-      <Dialog open={showImageCreate} onOpenChange={setShowImageCreate}>
-        <DialogContent className="max-w-[100vw] w-[100vw] max-h-[100vh] h-[100vh] overflow-y-auto p-0 m-0">
-          <DialogHeader className="p-4 border-b">
-            <DialogTitle className="text-left">Image Creation Service</DialogTitle>
-          </DialogHeader>
-          <div className="flex-1 overflow-y-auto">
-            <ImageCreate />
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Settings Modal */}
       <SettingsModal
