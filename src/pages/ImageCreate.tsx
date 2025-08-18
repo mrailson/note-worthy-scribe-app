@@ -208,59 +208,6 @@ const ImageCreate = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* NHS Header */}
-      <header className="bg-[#005EB8] text-white p-4">
-        <div className="container mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-6">
-            <h1 className="text-xl font-semibold">Notewell AI ✨</h1>
-            <Button
-              variant="ghost"
-              className="text-white hover:bg-white/10"
-              onClick={() => window.location.href = '/'}
-            >
-              <Home className="w-4 h-4 mr-2" />
-              Home
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="text-white hover:bg-white/10"
-                >
-                  Select Service
-                  <ChevronDown className="w-4 h-4 ml-2" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="bg-background border shadow-lg z-50">
-                <DropdownMenuItem onClick={() => window.location.href = '/ai4gp'}>
-                  AI 4 GP Service
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => window.location.href = '/image-create'}>
-                  Image Create
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-          <div className="flex items-center space-x-4">
-            <Button
-              variant="ghost"
-              className="text-white hover:bg-white/10"
-            >
-              <Settings className="w-4 h-4 mr-2" />
-              Settings
-            </Button>
-            <Button
-              variant="ghost"
-              className="text-white hover:bg-white/10"
-              onClick={() => window.location.href = '/'}
-            >
-              <LogOut className="w-4 h-4 mr-2" />
-              Logout
-            </Button>
-          </div>
-        </div>
-      </header>
-
       {/* Main Content */}
       <div className="container mx-auto p-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
