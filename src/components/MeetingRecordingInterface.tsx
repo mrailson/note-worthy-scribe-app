@@ -130,9 +130,14 @@ export const MeetingRecordingInterface: React.FC<MeetingRecordingInterfaceProps>
     if (!currentMeetingId) return;
 
     try {
+      console.log('Processing recording for meeting:', currentMeetingId);
+      console.log('Audio blob size:', audioBlob.size);
+
       // Convert audio to base64
       const arrayBuffer = await audioBlob.arrayBuffer();
       const base64Audio = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+
+      console.log('Audio converted to base64, length:', base64Audio.length);
 
       // Upload and transcribe audio
       const { data: transcriptionData, error: transcriptionError } = await supabase.functions.invoke(
@@ -145,24 +150,36 @@ export const MeetingRecordingInterface: React.FC<MeetingRecordingInterfaceProps>
         }
       );
 
-      if (transcriptionError) throw transcriptionError;
+      console.log('Transcription response:', { transcriptionData, transcriptionError });
+
+      if (transcriptionError) {
+        console.error('Transcription error:', transcriptionError);
+        toast.error('Failed to transcribe audio: ' + transcriptionError.message);
+        setProcessingStatus('idle');
+        return;
+      }
 
       if (transcriptionData?.text) {
+        console.log('Transcript received:', transcriptionData.text);
         setTranscript(transcriptionData.text);
         
         // Store transcript in meeting_transcripts table
-        await supabase
+        const { error: transcriptError } = await supabase
           .from('meeting_transcripts')
           .insert({
             meeting_id: currentMeetingId,
             content: transcriptionData.text,
-            speaker_name: 'Unknown',
+            speaker_name: 'Recording',
             timestamp_seconds: 0,
             confidence_score: transcriptionData.confidence || 0.95
           });
 
+        if (transcriptError) {
+          console.error('Error storing transcript:', transcriptError);
+        }
+
         // Update meeting status
-        await supabase
+        const { error: meetingUpdateError } = await supabase
           .from('meetings')
           .update({
             end_time: new Date().toISOString(),
@@ -170,17 +187,26 @@ export const MeetingRecordingInterface: React.FC<MeetingRecordingInterfaceProps>
           })
           .eq('id', currentMeetingId);
 
+        if (meetingUpdateError) {
+          console.error('Error updating meeting:', meetingUpdateError);
+        }
+
         // Auto-summarize if enabled
         if (autoSummarize) {
           await generateMeetingSummary(transcriptionData.text);
         }
+
+        setProcessingStatus('completed');
+        toast.success('Meeting processed successfully');
+      } else {
+        console.warn('No transcript received from transcription service');
+        toast.error('No transcript was generated. The audio may be too short or unclear.');
+        setProcessingStatus('idle');
       }
 
-      setProcessingStatus('completed');
-      toast.success('Meeting processed successfully');
     } catch (error) {
       console.error('Error processing recording:', error);
-      toast.error('Failed to process recording');
+      toast.error('Failed to process recording: ' + (error as Error).message);
       setProcessingStatus('idle');
     }
   };
@@ -189,6 +215,8 @@ export const MeetingRecordingInterface: React.FC<MeetingRecordingInterfaceProps>
     if (!currentMeetingId) return;
 
     try {
+      console.log('Generating summary for meeting:', currentMeetingId);
+      
       const { data: summaryData, error: summaryError } = await supabase.functions.invoke(
         'generate-meeting-minutes',
         {
@@ -199,10 +227,16 @@ export const MeetingRecordingInterface: React.FC<MeetingRecordingInterfaceProps>
         }
       );
 
-      if (summaryError) throw summaryError;
+      console.log('Summary response:', { summaryData, summaryError });
+
+      if (summaryError) {
+        console.error('Summary generation error:', summaryError);
+        toast.error('Failed to generate summary: ' + summaryError.message);
+        return;
+      }
 
       if (summaryData?.summary) {
-        await supabase
+        const { error: summaryInsertError } = await supabase
           .from('meeting_summaries')
           .insert({
             meeting_id: currentMeetingId,
@@ -214,11 +248,19 @@ export const MeetingRecordingInterface: React.FC<MeetingRecordingInterfaceProps>
             ai_generated: true
           });
 
-        toast.success('Meeting summary generated');
+        if (summaryInsertError) {
+          console.error('Error storing summary:', summaryInsertError);
+          toast.error('Failed to store summary');
+        } else {
+          toast.success('Meeting summary generated');
+        }
+      } else {
+        console.warn('No summary received from summary service');
+        toast.error('Summary generation failed - no content returned');
       }
     } catch (error) {
       console.error('Error generating summary:', error);
-      toast.error('Failed to generate meeting summary');
+      toast.error('Failed to generate meeting summary: ' + (error as Error).message);
     }
   };
 
@@ -226,6 +268,10 @@ export const MeetingRecordingInterface: React.FC<MeetingRecordingInterfaceProps>
     if (currentMeetingId) {
       navigate(`/meeting-summary/${currentMeetingId}`);
     }
+  };
+
+  const viewMeetingHistory = () => {
+    navigate('/meeting-history');
   };
 
   const formatTime = (seconds: number) => {
@@ -358,7 +404,11 @@ export const MeetingRecordingInterface: React.FC<MeetingRecordingInterfaceProps>
         )}
 
         {/* Close Button */}
-        <div className="flex justify-end pt-4 border-t">
+        <div className="flex justify-between pt-4 border-t">
+          <Button variant="outline" onClick={viewMeetingHistory}>
+            <FileText className="h-4 w-4 mr-2" />
+            View All Recordings
+          </Button>
           <Button variant="outline" onClick={onClose}>
             Close
           </Button>
