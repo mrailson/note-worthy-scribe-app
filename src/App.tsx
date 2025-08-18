@@ -40,7 +40,7 @@ const App = () => (
       <Route path="/meetings" element={<MeetingHistory />} />
       <Route path="/meeting-history" element={<MeetingHistory />} />
       <Route path="/meeting-summary" element={<MeetingSummary />} />
-      <Route path="/consultation-summary" element={<ConsultationSummary />} />
+      <Route path="/consultation-summary" element={<GPSoapUI />} />
       <Route path="/consultation/summary" element={<GPSoapUI />} />
       <Route path="/settings" element={<Settings />} />
       <Route path="/admin" element={<SystemAdmin />} />
