@@ -133,22 +133,39 @@ const ImageCreate = () => {
     setRevisedPrompt(null);
 
     try {
-      const requestBody: any = { 
-        prompt: prompt.trim(),
-        size: "1024x1024",
-        quality: "standard"
-      };
+      // Create FormData for the request
+      const formData = new FormData();
+      formData.append('prompt', prompt.trim());
+      formData.append('size', '1024x1024');
+      formData.append('quality', 'high');
 
+      // Add reference image if uploaded
       if (uploadedImage) {
-        requestBody.referenceImage = uploadedImage.content;
-        requestBody.mode = "edit";
+        // Convert base64 to blob if needed
+        let imageBlob: Blob;
+        if (uploadedImage.content.startsWith('data:')) {
+          const response = await fetch(uploadedImage.content);
+          imageBlob = await response.blob();
+        } else {
+          // If it's already a blob or file
+          imageBlob = uploadedImage as any;
+        }
+        formData.append('image', imageBlob, uploadedImage.name || 'reference.png');
+        formData.append('mode', 'generation'); // Use 'edit' for editing mode
+      } else {
+        formData.append('mode', 'generation');
       }
 
-      const { data, error } = await supabase.functions.invoke('generate-image', {
-        body: requestBody
+      console.log('Sending request to advanced-image-generation...');
+
+      const { data, error } = await supabase.functions.invoke('advanced-image-generation', {
+        body: formData
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw new Error(error.message || 'Failed to generate image');
+      }
 
       if (data.success) {
         setGeneratedImage(data.imageData);
