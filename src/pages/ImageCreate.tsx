@@ -184,7 +184,7 @@ const ImageCreate = () => {
                 </label>
                 <Textarea
                   id="prompt"
-                  placeholder="e.g. draw a horse standing on its hind legs, wearing a red dress smoking a cigar"
+                  placeholder="e.g. A professional infographic showing flu vaccination statistics with NHS branding, or a diagram explaining appointment booking process for patients"
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   rows={6}
