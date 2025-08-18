@@ -4,6 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/contexts/AuthContext";
 import { LoginForm } from "@/components/LoginForm";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,7 +16,8 @@ import {
   X, 
   Heart,
   RotateCcw,
-  ChevronDown
+  ChevronDown,
+  AlertTriangle
 } from "lucide-react";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { UploadedFile } from "@/types/ai4gp";
@@ -160,6 +162,14 @@ const ImageCreate = () => {
     <div className="min-h-screen bg-background">
       {/* Main Content */}
       <div className="container mx-auto p-6">
+        {/* Warning Message */}
+        <Alert className="mb-6 border-destructive/50 bg-destructive/10">
+          <AlertTriangle className="h-4 w-4 text-destructive" />
+          <AlertDescription className="text-destructive">
+            This service is very basic and will often not produce what you need. Please use the ChatGPT service or similar directly for the latest image creation facilities.
+          </AlertDescription>
+        </Alert>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
           {/* Create Your Image */}
           <Card className="lg:col-span-1">
