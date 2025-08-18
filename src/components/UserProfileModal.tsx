@@ -332,8 +332,9 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
                 <Input
                   id="practice_name"
                   value={practiceDetails.practice_name}
-                  onChange={(e) => setPracticeDetails(prev => ({ ...prev, practice_name: e.target.value }))}
-                  placeholder="Enter practice name"
+                  disabled
+                  className="bg-muted"
+                  placeholder="Practice name is defined in system settings"
                 />
               </div>
 
