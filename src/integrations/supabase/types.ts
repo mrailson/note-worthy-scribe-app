@@ -2683,8 +2683,10 @@ export type Database = {
           logo_url: string | null
           pcn_code: string | null
           phone: string | null
+          practice_logo_url: string | null
           practice_name: string
           show_page_numbers: boolean | null
+          signature_url: string | null
           updated_at: string
           use_for_all_meetings: boolean | null
           user_id: string
@@ -2700,8 +2702,10 @@ export type Database = {
           logo_url?: string | null
           pcn_code?: string | null
           phone?: string | null
+          practice_logo_url?: string | null
           practice_name: string
           show_page_numbers?: boolean | null
+          signature_url?: string | null
           updated_at?: string
           use_for_all_meetings?: boolean | null
           user_id: string
@@ -2717,8 +2721,10 @@ export type Database = {
           logo_url?: string | null
           pcn_code?: string | null
           phone?: string | null
+          practice_logo_url?: string | null
           practice_name?: string
           show_page_numbers?: boolean | null
+          signature_url?: string | null
           updated_at?: string
           use_for_all_meetings?: boolean | null
           user_id?: string

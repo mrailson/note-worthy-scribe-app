@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, User, Building2, KeyRound } from 'lucide-react';
+import { Loader2, User, Building2, KeyRound, Upload, X, FileImage, PenTool, Image as ImageIcon } from 'lucide-react';
 
 interface UserProfileModalProps {
   open: boolean;
@@ -34,6 +34,8 @@ interface PracticeDetails {
   website: string;
   phone: string;
   direct_dial?: string;
+  signature_url?: string;
+  practice_logo_url?: string;
 }
 
 export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) => {
@@ -41,6 +43,8 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
   const [loading, setLoading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
+  const [signatureUploading, setSignatureUploading] = useState(false);
+  const [logoUploading, setLogoUploading] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile>({
     title: '',
     first_name: '',
@@ -123,7 +127,9 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
           email: data.email || '',
           website: data.website || '',
           phone: data.phone || '',
-          direct_dial: '' // This field doesn't exist in the table, so we'll keep it as empty
+          direct_dial: '', // This field doesn't exist in the table, so we'll keep it as empty
+          signature_url: (data as any).signature_url || '',
+          practice_logo_url: (data as any).practice_logo_url || ''
         });
       }
     } catch (error) {
@@ -143,6 +149,8 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
         email: practiceDetails.email,
         website: practiceDetails.website,
         phone: practiceDetails.phone,
+        signature_url: practiceDetails.signature_url,
+        practice_logo_url: practiceDetails.practice_logo_url,
         updated_at: new Date().toISOString()
       };
 
@@ -235,6 +243,120 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
     } finally {
       setResetLoading(false);
     }
+  };
+
+  const handleSignatureUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File size must be less than 5MB');
+      return;
+    }
+
+    setSignatureUploading(true);
+    try {
+      const fileName = `${user.id}/signature-${Date.now()}.${file.type.split('/')[1]}`;
+      
+      // Delete existing signature if present
+      if (practiceDetails.signature_url) {
+        const oldPath = practiceDetails.signature_url.split('/').pop();
+        if (oldPath) {
+          await supabase.storage
+            .from('signatures')
+            .remove([`${user.id}/${oldPath}`]);
+        }
+      }
+
+      // Upload new signature
+      const { error: uploadError } = await supabase.storage
+        .from('signatures')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('signatures')
+        .getPublicUrl(fileName);
+
+      // Update practice details
+      setPracticeDetails(prev => ({ ...prev, signature_url: publicUrl }));
+      toast.success('Signature uploaded successfully');
+    } catch (error: any) {
+      console.error('Error uploading signature:', error);
+      toast.error('Failed to upload signature: ' + error.message);
+    } finally {
+      setSignatureUploading(false);
+    }
+  };
+
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    // Validate file size (10MB max)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('File size must be less than 10MB');
+      return;
+    }
+
+    setLogoUploading(true);
+    try {
+      const fileName = `${user.id}/logo-${Date.now()}.${file.type.split('/')[1]}`;
+      
+      // Delete existing logo if present
+      if (practiceDetails.practice_logo_url) {
+        const oldPath = practiceDetails.practice_logo_url.split('/').pop();
+        if (oldPath) {
+          await supabase.storage
+            .from('practice-logos')
+            .remove([`${user.id}/${oldPath}`]);
+        }
+      }
+
+      // Upload new logo
+      const { error: uploadError } = await supabase.storage
+        .from('practice-logos')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('practice-logos')
+        .getPublicUrl(fileName);
+
+      // Update practice details
+      setPracticeDetails(prev => ({ ...prev, practice_logo_url: publicUrl }));
+      toast.success('Logo uploaded successfully');
+    } catch (error: any) {
+      console.error('Error uploading logo:', error);
+      toast.error('Failed to upload logo: ' + error.message);
+    } finally {
+      setLogoUploading(false);
+    }
+  };
+
+  const handleRemoveSignature = () => {
+    setPracticeDetails(prev => ({ ...prev, signature_url: '' }));
+  };
+
+  const handleRemoveLogo = () => {
+    setPracticeDetails(prev => ({ ...prev, practice_logo_url: '' }));
   };
 
   return (
@@ -444,6 +566,128 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
                   'Save Practice Details'
                 )}
               </Button>
+            </CardContent>
+          </Card>
+
+          {/* My Signature */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <PenTool className="h-5 w-5" />
+                My Signature
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {practiceDetails.signature_url ? (
+                <div className="space-y-4">
+                  <div className="relative border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 bg-muted/10">
+                    <img 
+                      src={practiceDetails.signature_url} 
+                      alt="Digital signature"
+                      className="max-h-20 mx-auto object-contain"
+                    />
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="absolute top-2 right-2"
+                      onClick={handleRemoveSignature}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <p className="text-sm text-muted-foreground text-center">
+                    Your current signature
+                  </p>
+                </div>
+              ) : (
+                <div 
+                  className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center cursor-pointer hover:border-muted-foreground/50 transition-colors"
+                  onClick={() => document.getElementById('signature-upload')?.click()}
+                >
+                  <PenTool className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">
+                    Click to upload your signature
+                  </p>
+                  <p className="text-xs text-muted-foreground/70 mt-1">
+                    PNG, JPG, WEBP up to 5MB
+                  </p>
+                </div>
+              )}
+              <input
+                id="signature-upload"
+                type="file"
+                accept="image/*"
+                onChange={handleSignatureUpload}
+                className="hidden"
+                disabled={signatureUploading}
+              />
+              {signatureUploading && (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                  <span className="text-sm">Uploading signature...</span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Practice Logo */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ImageIcon className="h-5 w-5" />
+                Practice Logo
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {practiceDetails.practice_logo_url ? (
+                <div className="space-y-4">
+                  <div className="relative border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 bg-muted/10">
+                    <img 
+                      src={practiceDetails.practice_logo_url} 
+                      alt="Practice logo"
+                      className="max-h-32 mx-auto object-contain"
+                    />
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="absolute top-2 right-2"
+                      onClick={handleRemoveLogo}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <p className="text-sm text-muted-foreground text-center">
+                    Your current practice logo
+                  </p>
+                </div>
+              ) : (
+                <div 
+                  className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center cursor-pointer hover:border-muted-foreground/50 transition-colors"
+                  onClick={() => document.getElementById('logo-upload')?.click()}
+                >
+                  <ImageIcon className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">
+                    Click to upload practice logo
+                  </p>
+                  <p className="text-xs text-muted-foreground/70 mt-1">
+                    PNG, JPG, WEBP up to 10MB
+                  </p>
+                </div>
+              )}
+              <input
+                id="logo-upload"
+                type="file"
+                accept="image/*"
+                onChange={handleLogoUpload}
+                className="hidden"
+                disabled={logoUploading}
+              />
+              {logoUploading && (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                  <span className="text-sm">Uploading logo...</span>
+                </div>
+              )}
             </CardContent>
           </Card>
 
