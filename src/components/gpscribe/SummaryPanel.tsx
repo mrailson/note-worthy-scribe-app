@@ -263,24 +263,6 @@ export const SummaryPanel = ({
             {/* Action buttons below tabs */}
             <div className="flex justify-end items-center mb-4">
               <div className="flex items-center gap-2">
-                <Button
-                  onClick={() => onExportWord(isStandardDetail ? standardDetail : gpShorthand, "Consultation Summary")}
-                  disabled={!(isStandardDetail ? standardDetail : gpShorthand)}
-                  variant="outline"
-                  size="sm"
-                >
-                  <Download className="h-4 w-4 mr-1" />
-                  Doc
-                </Button>
-                <Button
-                  onClick={onGenerateSummary}
-                  disabled={!transcript.trim() || isGenerating}
-                  variant="outline"
-                  size="sm"
-                >
-                  <Edit className="h-4 w-4 mr-1" />
-                  Edit
-                </Button>
                 <Collapsible open={isAskAIOpen} onOpenChange={setIsAskAIOpen}>
                   <CollapsibleTrigger asChild>
                     <Button variant="ghost" size="sm" className="text-primary">
@@ -389,14 +371,31 @@ export const SummaryPanel = ({
                 ) : (
                   <div className="prose prose-sm max-w-none">
                     <div className="p-4 bg-card rounded-lg border relative group">
-                      <Button
-                        onClick={() => copyToClipboard(isStandardDetail ? standardDetail : gpShorthand)}
-                        variant="outline"
-                        size="sm"
-                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
+                      <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                        <Button
+                          onClick={() => copyToClipboard(isStandardDetail ? standardDetail : gpShorthand)}
+                          variant="outline"
+                          size="sm"
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          onClick={onGenerateSummary}
+                          disabled={!transcript.trim() || isGenerating}
+                          variant="outline"
+                          size="sm"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          onClick={() => onExportWord(isStandardDetail ? standardDetail : gpShorthand, "Consultation Summary")}
+                          disabled={!(isStandardDetail ? standardDetail : gpShorthand)}
+                          variant="outline"
+                          size="sm"
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      </div>
                       <div 
                         className="text-sm leading-relaxed whitespace-pre-wrap font-sans"
                         dangerouslySetInnerHTML={{
