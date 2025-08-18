@@ -199,15 +199,15 @@ export default function GPScribeSoapMock() {
     { t: "00:25", speaker: "Clinician", text: "Thanks. I'll summarize what I've heard and explain the plan." },
   ];
 
-  const tpl = useMemo(() => TEMPLATES.find((t) => t.id === selectedId)!, [selectedId]);
-  const soap = mode === "shorthand" ? tpl.shorthand : tpl.standard;
+  const activeTemplate = useMemo(() => TEMPLATES.find((t) => t.id === selectedId)!, [selectedId]);
+  const soap = mode === "shorthand" ? activeTemplate.shorthand : activeTemplate.standard;
 
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
   const [q, setQ] = useState("");
 
   useEffect(() => {
     const specific = SPECIFIC_TRANSCRIPTS[selectedId];
-    setTranscript(specific ?? autoTranscript(tpl.name));
+    setTranscript(specific ?? autoTranscript(activeTemplate.name));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId]);
 
@@ -226,12 +226,12 @@ export default function GPScribeSoapMock() {
       <div className="sticky top-0 z-10 border-b bg-white/80 backdrop-blur">
         <div className="mx-auto max-w-5xl px-4 py-3 flex items-center gap-4">
           <div className="flex-1">
-            <h1 className="text-xl font-semibold tracking-tight">{tpl.name}</h1>
-            <p className="text-xs text-slate-500">{tpl.category || "Consultation"} • demo transcript</p>
+            <h1 className="text-xl font-semibold tracking-tight">{activeTemplate.name}</h1>
+            <p className="text-xs text-slate-500">{activeTemplate.category || "Consultation"} • demo transcript</p>
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => copy(tpl.summaryLine)}
+              onClick={() => copy(activeTemplate.summaryLine)}
               className="rounded-full border px-3 py-1.5 text-xs hover:bg-slate-100"
               title="Copy Summary Line"
             >
@@ -307,9 +307,9 @@ export default function GPScribeSoapMock() {
         <div className="rounded-2xl border bg-white p-3 shadow-sm">
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm">
-              <span className="font-semibold">Summary Line:</span> {tpl.summaryLine}
+              <span className="font-semibold">Summary Line:</span> {activeTemplate.summaryLine}
             </p>
-            <button onClick={() => copy(tpl.summaryLine)} className="rounded-lg border px-2 py-1 text-xs hover:bg-slate-100">
+            <button onClick={() => copy(activeTemplate.summaryLine)} className="rounded-lg border px-2 py-1 text-xs hover:bg-slate-100">
               Copy
             </button>
           </div>
@@ -325,10 +325,10 @@ export default function GPScribeSoapMock() {
           </div>
         )}
 
-        {tab === "patient" && <PlainCard title="Patient Copy" body={tpl.patientCopy || "Patient-friendly summary will appear here."} />}
-        {tab === "referral" && <PlainCard title="Referral" body={tpl.referral || "Referral text/criteria will appear here."} />}
+        {tab === "patient" && <PlainCard title="Patient Copy" body={activeTemplate.patientCopy || "Patient-friendly summary will appear here."} />}
+        {tab === "referral" && <PlainCard title="Referral" body={activeTemplate.referral || "Referral text/criteria will appear here."} />}
         {tab === "review" && (
-          <PlainCard title="Review & Recommendations" body={tpl.review || "Follow-up plan, safety-netting and recommendations go here."} />
+          <PlainCard title="Review & Recommendations" body={activeTemplate.review || "Follow-up plan, safety-netting and recommendations go here."} />
         )}
 
         {tab === "transcript" && (
@@ -488,7 +488,7 @@ export default function GPScribeSoapMock() {
             <button onClick={() => copy(renderSoap(soap))} className="rounded-lg border px-3 py-2 text-sm hover:bg-slate-100">
               Copy SOAP
             </button>
-            <button onClick={() => copy(tpl.patientCopy || "")} className="rounded-lg border px-3 py-2 text-sm hover:bg-slate-100">
+            <button onClick={() => copy(activeTemplate.patientCopy || "")} className="rounded-lg border px-3 py-2 text-sm hover:bg-slate-100">
               Copy Patient Copy
             </button>
             <button onClick={() => window.print()} className="rounded-lg border px-3 py-2 text-sm hover:bg-slate-100">
