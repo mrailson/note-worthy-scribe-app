@@ -39,9 +39,11 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    // Get the current user
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    // Get the current user from the auth header
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
     if (userError || !user) {
+      console.error('Auth error:', userError);
       throw new Error('User not authenticated');
     }
 
