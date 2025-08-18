@@ -31,7 +31,7 @@ import { MP3TranscriptionTest } from "@/components/MP3TranscriptionTest";
 import { ConsultationHistory } from "@/components/ConsultationHistory";
 import { PatientTranslationView } from "@/components/PatientTranslationView";
 import AI4GPService from "@/components/AI4GPService";
-import GPSoapUI from "@/components/GPSoapUI";
+import GPScribeSoapMock from "@/components/GPSoapUI";
 import GPGenieVoiceAgent from "@/components/GPGenieVoiceAgent";
 
 import { ActiveTab, ExpandDialog } from "@/types/gpscribe";
@@ -336,7 +336,7 @@ const Index = () => {
 
           {/* Summary Tab */}
           <TabsContent value="summary" className="space-y-6 mt-6">
-            <GPSoapUI exampleData={exampleData} />
+            <GPScribeSoapMock />
           </TabsContent>
 
           {/* Examples Tab */}
