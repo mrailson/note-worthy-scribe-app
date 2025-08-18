@@ -299,7 +299,7 @@ export const useGPScribeRecording = () => {
     }
   }, [handleTranscriptUpdate]);
 
-  const stopRecording = useCallback(async () => {
+  const stopRecording = useCallback(async (navigate?: (path: string, options?: any) => void) => {
     try {
       setIsRecording(false);
       setIsPaused(false);
@@ -331,11 +331,27 @@ export const useGPScribeRecording = () => {
       }
 
       toast.success("Recording stopped");
+
+      // Auto-navigate to meeting summary if transcript exists and navigate function provided
+      if (navigate && transcript.trim() && wordCount > 10) {
+        const meetingData = {
+          title: "GP Consultation",
+          duration,
+          wordCount,
+          transcript: transcript.trim(),
+          speakerCount: 1,
+          startTime: new Date().toISOString(),
+          meetingFormat: 'consultation'
+        };
+
+        toast.info("Generating meeting notes...");
+        navigate('/meeting-summary', { state: meetingData });
+      }
     } catch (error) {
       console.error("Failed to stop recording:", error);
       toast.error("Failed to stop recording");
     }
-  }, []);
+  }, [transcript, duration, wordCount]);
 
   const pauseRecording = useCallback(() => {
     if (intervalRef.current) {

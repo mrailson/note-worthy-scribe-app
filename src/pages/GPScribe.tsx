@@ -290,7 +290,7 @@ const Index = () => {
               transcript={recording.transcript}
               realtimeTranscripts={recording.realtimeTranscripts}
               onStartRecording={recording.startRecording}
-              onStopRecording={recording.stopRecording}
+              onStopRecording={() => recording.stopRecording(navigate)}
               onPauseRecording={recording.pauseRecording}
               onResumeRecording={recording.resumeRecording}
             />
