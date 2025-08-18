@@ -29,6 +29,7 @@ interface RecordingControlsProps {
   onStopRecording: () => void;
   onPauseRecording: () => void;
   onResumeRecording: () => void;
+  onResetConsultation?: () => void;
 }
 
 export const RecordingControls = ({
@@ -44,7 +45,8 @@ export const RecordingControls = ({
   onStartRecording,
   onStopRecording,
   onPauseRecording,
-  onResumeRecording
+  onResumeRecording,
+  onResetConsultation
 }: RecordingControlsProps) => {
   const [isTelephone, setIsTelephone] = useState(false);
   const [isTranscriptExpanded, setIsTranscriptExpanded] = useState(false);
@@ -70,7 +72,10 @@ export const RecordingControls = ({
     if (isRecording) {
       onStopRecording();
     }
-    // Additional reset logic can be added here
+    // Call the reset function passed from parent to clear all state
+    if (onResetConsultation) {
+      onResetConsultation();
+    }
     setShowResetDialog(false);
   };
 

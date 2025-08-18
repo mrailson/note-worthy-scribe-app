@@ -302,6 +302,13 @@ const Index = () => {
               onStopRecording={() => recording.stopRecording(navigate)}
               onPauseRecording={recording.pauseRecording}
               onResumeRecording={recording.resumeRecording}
+              onResetConsultation={() => {
+                recording.clearTranscript();
+                documents.clearAllContent();
+                guidance.clearGuidance();
+                history.clearConsultation();
+                toast.success("New consultation started");
+              }}
             />
           </TabsContent>
 
