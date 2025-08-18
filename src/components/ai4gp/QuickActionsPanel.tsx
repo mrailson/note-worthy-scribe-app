@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus, Minus } from 'lucide-react';
-import { quickActions, practiceManagerQuickActions } from '@/constants/quickActions';
+import { quickActions, practiceManagerQuickActions, QuickAction } from '@/constants/quickActions';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
 
 interface QuickActionsPanelProps {
@@ -9,13 +9,15 @@ interface QuickActionsPanelProps {
   setShowAllQuickActions: (show: boolean) => void;
   setInput: (input: string) => void;
   selectedRole?: 'gp' | 'practice-manager';
+  onMeetingRecordingClick?: () => void;
 }
 
 export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
   showAllQuickActions,
   setShowAllQuickActions,
   setInput,
-  selectedRole = 'gp'
+  selectedRole = 'gp',
+  onMeetingRecordingClick
 }) => {
   const { practiceContext, practiceDetails } = usePracticeContext();
   
@@ -91,13 +93,22 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {visibleActions.map((action, index) => {
           const IconComponent = action.icon;
+          
+          const handleClick = () => {
+            if ('action' in action && action.action === 'meeting-recording' && onMeetingRecordingClick) {
+              onMeetingRecordingClick();
+            } else {
+              setInput(enhancePromptWithPracticeInfo(action.prompt));
+            }
+          };
+
           return (
             <Button
               key={index}
               variant="outline"
               size="sm"
               className="justify-start text-left h-auto py-2 px-3"
-              onClick={() => setInput(enhancePromptWithPracticeInfo(action.prompt))}
+              onClick={handleClick}
             >
               <IconComponent className="w-4 h-4 mr-2 flex-shrink-0" />
               <span className="truncate">{action.label}</span>
