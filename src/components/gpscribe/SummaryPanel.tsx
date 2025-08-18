@@ -12,7 +12,7 @@ import {
   CollapsibleTrigger 
 } from "@/components/ui/collapsible";
 import { EditStates, EditContent, ExpandDialog } from "@/types/gpscribe";
-import { Brain, Copy, Download, Edit, Check, X, Maximize2, Mail, FileText, Clock, MessageSquare, UserCheck, AlertTriangle, ChevronUp, ChevronDown, Mic, Send, Loader2 } from "lucide-react";
+import { Brain, Copy, Download, Edit, Check, X, Maximize2, Mail, FileText, Clock, MessageSquare, UserCheck, AlertTriangle, ChevronUp, ChevronDown, Mic, Send, Loader2, Bold, Italic, Underline } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
 import { useVoiceRecording } from "@/hooks/useVoiceRecording";
@@ -123,6 +123,41 @@ export const SummaryPanel = ({
   const handleCancelMainEdit = () => {
     setIsEditingMainSummary(false);
     setEditedSummaryContent("");
+  };
+
+  const applyFormat = (formatType: 'bold' | 'italic' | 'underline') => {
+    const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = editedSummaryContent.substring(start, end);
+
+    let formattedText = '';
+    switch (formatType) {
+      case 'bold':
+        formattedText = `**${selectedText}**`;
+        break;
+      case 'italic':
+        formattedText = `*${selectedText}*`;
+        break;
+      case 'underline':
+        formattedText = `<u>${selectedText}</u>`;
+        break;
+    }
+
+    const newContent = 
+      editedSummaryContent.substring(0, start) + 
+      formattedText + 
+      editedSummaryContent.substring(end);
+
+    setEditedSummaryContent(newContent);
+    
+    // Restore focus and selection
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + formattedText.length, start + formattedText.length);
+    }, 0);
   };
 
   const renderContentSection = (
@@ -423,6 +458,34 @@ export const SummaryPanel = ({
                       
                       {isEditingMainSummary ? (
                         <div className="space-y-3">
+                          {/* Formatting Toolbar */}
+                          <div className="flex items-center gap-1 p-2 bg-muted/30 rounded-lg border">
+                            <span className="text-xs text-muted-foreground mr-2">Format:</span>
+                            <Button
+                              onClick={() => applyFormat('bold')}
+                              variant="outline"
+                              size="sm"
+                              className="h-8 px-2"
+                            >
+                              <Bold className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              onClick={() => applyFormat('italic')}
+                              variant="outline"
+                              size="sm"
+                              className="h-8 px-2"
+                            >
+                              <Italic className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              onClick={() => applyFormat('underline')}
+                              variant="outline"
+                              size="sm"
+                              className="h-8 px-2"
+                            >
+                              <Underline className="h-3 w-3" />
+                            </Button>
+                          </div>
                           <Textarea
                             value={editedSummaryContent}
                             onChange={(e) => setEditedSummaryContent(e.target.value)}
