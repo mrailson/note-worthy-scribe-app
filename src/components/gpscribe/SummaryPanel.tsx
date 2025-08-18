@@ -6,10 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { EditStates, EditContent, ExpandDialog } from "@/types/gpscribe";
-import { Brain, Copy, Download, Edit, Check, X, Maximize2, Mail, FileText, Clock, MessageSquare, UserCheck, AlertTriangle } from "lucide-react";
+import { Brain, Copy, Download, Edit, Check, X, Maximize2, Mail, FileText, Clock, MessageSquare, UserCheck, AlertTriangle, ChevronUp, ChevronDown, Mic, Send, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
+import { useVoiceRecording } from "@/hooks/useVoiceRecording";
 
 interface SummaryPanelProps {
   transcript: string;
@@ -63,6 +65,34 @@ export const SummaryPanel = ({
   const [activeSubTab, setActiveSubTab] = useState("summary");
   const [showTranscript, setShowTranscript] = useState(false);
   const [isStandardDetail, setIsStandardDetail] = useState(false);
+  
+  // Ask AI state
+  const [isAskAIOpen, setIsAskAIOpen] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [isAILoading, setIsAILoading] = useState(false);
+  
+  // Voice recording
+  const { isRecording, toggleRecording } = useVoiceRecording();
+  
+  const handleAskAI = async () => {
+    if (!aiPrompt.trim()) {
+      toast.error("Please enter a question or request");
+      return;
+    }
+    
+    setIsAILoading(true);
+    try {
+      // Here you would call your AI service
+      // For now, just show a success message
+      toast.success("AI request submitted");
+      setAiPrompt("");
+      setIsAskAIOpen(false);
+    } catch (error) {
+      toast.error("Failed to process AI request");
+    } finally {
+      setIsAILoading(false);
+    }
+  };
   
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -256,10 +286,67 @@ export const SummaryPanel = ({
                   <Edit className="h-4 w-4 mr-1" />
                   Edit
                 </Button>
-                <Button variant="ghost" size="sm" className="text-primary">
-                  <Brain className="h-4 w-4 mr-1" />
-                  Ask AI
-                </Button>
+                <Collapsible open={isAskAIOpen} onOpenChange={setIsAskAIOpen}>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" size="sm" className="text-primary">
+                      <Brain className="h-4 w-4 mr-1" />
+                      Ask AI
+                      {isAskAIOpen ? <ChevronUp className="h-3 w-3 ml-2" /> : <ChevronDown className="h-3 w-3 ml-2" />}
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="absolute z-10 mt-2 w-80 lg:w-96 bg-background border border-border rounded-lg shadow-lg p-4 right-0">
+                    <div className="space-y-3">
+                      <p className="text-sm text-muted-foreground">
+                        Ask the AI to analyze your consultation, create referral letters, suggest improvements, or check for missing information.
+                      </p>
+                      
+                      <div className="flex gap-2">
+                        <div className="flex-1">
+                          <Textarea
+                            value={aiPrompt}
+                            onChange={(e) => setAiPrompt(e.target.value)}
+                            placeholder="Type your question or request..."
+                            className="min-h-[80px] resize-none"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={toggleRecording}
+                            className={`p-2 ${isRecording ? 'bg-red-500 text-white' : ''}`}
+                          >
+                            <Mic className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      {isRecording && (
+                        <div className="text-sm text-red-500 animate-pulse">
+                          Recording... Speak now
+                        </div>
+                      )}
+                      
+                      <div className="flex gap-2 justify-end">
+                        <Button variant="outline" size="sm" onClick={() => setIsAskAIOpen(false)}>
+                          Cancel
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          onClick={handleAskAI}
+                          disabled={!aiPrompt.trim() || isAILoading}
+                        >
+                          {isAILoading ? (
+                            <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                          ) : (
+                            <Send className="h-4 w-4 mr-1" />
+                          )}
+                          Send
+                        </Button>
+                      </div>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
               </div>
             </div>
 
