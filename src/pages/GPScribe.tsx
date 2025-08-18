@@ -325,27 +325,23 @@ const Index = () => {
               onPauseRecording={recording.pauseRecording}
               onResumeRecording={recording.resumeRecording}
               onImportTranscript={async (transcript) => {
-                console.log("Importing transcript for testing:", transcript.substring(0, 100) + "...");
+                console.log("🔄 Importing transcript for testing:", transcript.substring(0, 100) + "...");
+                console.log("📝 Full transcript length:", transcript.length);
                 
                 // Clear any existing demo content first
+                console.log("🧹 Clearing all existing content...");
                 documents.clearAllContent();
                 
                 // Set the imported transcript
+                console.log("📂 Setting imported transcript...");
                 recording.setTranscript(transcript);
                 
                 // Auto-navigate to summary tab to see generated notes
+                console.log("🔄 Switching to summary tab...");
                 setActiveTab("summary");
-                toast.success("Transcript imported! Generating consultation notes...");
+                toast.success("Transcript imported! Click 'Generate Consultation Notes' below.");
                 
-                // Small delay to ensure transcript is set
-                setTimeout(async () => {
-                  try {
-                    await handleGenerateSummary();
-                  } catch (error) {
-                    console.error("Auto-generation failed:", error);
-                    toast.error("Import successful but notes generation failed. Please try manually.");
-                  }
-                }, 100);
+                console.log("✅ Import process completed. Current transcript length:", transcript.length);
               }}
               onResetConsultation={() => {
                 console.log("Starting new consultation - clearing all data");

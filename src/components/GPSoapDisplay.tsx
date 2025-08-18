@@ -25,6 +25,13 @@ export const GPSoapDisplay = ({ transcript }: GPSoapDisplayProps) => {
 
   // Check if we have generated content
   const hasGeneratedContent = documents.gpShorthand || documents.standardDetail || documents.patientCopy;
+  
+  console.log("🔍 GPSoapDisplay render:", {
+    hasGeneratedContent,
+    gpShorthand: documents.gpShorthand?.substring(0, 50) + "...",
+    standardDetail: documents.standardDetail?.substring(0, 50) + "...",
+    transcriptLength: transcript?.length || 0
+  });
 
   if (!hasGeneratedContent) {
     return (

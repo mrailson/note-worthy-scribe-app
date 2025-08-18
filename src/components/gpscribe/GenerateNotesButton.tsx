@@ -59,7 +59,15 @@ export const GenerateNotesButton = ({
       console.log("Generated notes:", data);
       
       if (data && onNotesGenerated) {
+        console.log("🔄 Calling onNotesGenerated with data:", {
+          hasShorthand: !!data.shorthand,
+          hasStandard: !!data.standard,
+          hasSummaryLine: !!data.summaryLine,
+          hasPatientCopy: !!data.patientCopy
+        });
         onNotesGenerated(data);
+      } else {
+        console.warn("⚠️ No data received or no callback provided");
       }
       
       toast.success("Consultation notes generated successfully!");
