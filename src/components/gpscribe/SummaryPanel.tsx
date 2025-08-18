@@ -40,6 +40,7 @@ interface SummaryPanelProps {
   onExportWord: (content: string, title: string) => void;
   onExpandContent: (title: string, content: string) => void;
   onCloseExpandDialog: () => void;
+  onUpdateMainSummary?: (content: string, isStandardDetail: boolean) => void;
 }
 
 export const SummaryPanel = ({
@@ -64,7 +65,8 @@ export const SummaryPanel = ({
   onExportPDF,
   onExportWord,
   onExpandContent,
-  onCloseExpandDialog
+  onCloseExpandDialog,
+  onUpdateMainSummary
 }: SummaryPanelProps) => {
   const [activeSubTab, setActiveSubTab] = useState("summary");
   const [showTranscript, setShowTranscript] = useState(false);
@@ -115,8 +117,9 @@ export const SummaryPanel = ({
   };
 
   const handleSaveMainEdit = () => {
-    // Here you would typically call a prop function to save the edited content
-    // For now, we'll show a toast
+    if (onUpdateMainSummary) {
+      onUpdateMainSummary(editedSummaryContent, isStandardDetail);
+    }
     toast.success("Summary updated successfully");
     setIsEditingMainSummary(false);
   };

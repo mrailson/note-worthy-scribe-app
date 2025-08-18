@@ -170,6 +170,15 @@ const Index = () => {
     }));
   };
 
+  // Handle updating main summary content
+  const handleUpdateMainSummary = (content: string, isStandardDetail: boolean) => {
+    if (isStandardDetail) {
+      documents.setStandardDetail(content);
+    } else {
+      documents.setGpShorthand(content);
+    }
+  };
+
   // Load example handler
   const handleLoadExample = (example: ConsultationExample) => {
     recording.setTranscript(example.transcript);
@@ -393,6 +402,7 @@ const Index = () => {
               onExportWord={documents.exportToWord}
               onExpandContent={handleExpandContent}
               onCloseExpandDialog={handleCloseExpandDialog}
+              onUpdateMainSummary={handleUpdateMainSummary}
             />
           </TabsContent>
 
