@@ -177,10 +177,6 @@ const AI4GPService = () => {
                           <Plus className="w-4 h-4 mr-2" />
                           New Search
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setShowImageCreate(!showImageCreate)}>
-                          <ImageIcon className="w-4 h-4 mr-2" />
-                          Images
-                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setShowAIChat(!showAIChat)}>
                           <GenieIcon className="w-4 h-4 mr-2" />
                           GP Genie
@@ -188,6 +184,10 @@ const AI4GPService = () => {
                         <DropdownMenuItem onClick={() => setShowNews(!showNews)}>
                           <Newspaper className="w-4 h-4 mr-2" />
                           GP News
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setShowImageCreate(!showImageCreate)}>
+                          <ImageIcon className="w-4 h-4 mr-2" />
+                          Images
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
