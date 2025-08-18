@@ -1100,6 +1100,78 @@ export type Database = {
         }
         Relationships: []
       }
+      consultation_history: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          overview: string
+          start_time: string
+          status: string
+          template: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id: string
+          overview: string
+          start_time: string
+          status?: string
+          template: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          overview?: string
+          start_time?: string
+          status?: string
+          template?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      consultation_notes: {
+        Row: {
+          confidence_score: number | null
+          consultation_type: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          notes: Json
+          template_id: string | null
+          transcript: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          confidence_score?: number | null
+          consultation_type?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          notes: Json
+          template_id?: string | null
+          transcript?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          confidence_score?: number | null
+          consultation_type?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          notes?: Json
+          template_id?: string | null
+          transcript?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       contractor_competencies: {
         Row: {
           competency_type: string
