@@ -366,7 +366,27 @@ const Index = () => {
                 <GenerateNotesButton 
                   transcript={recording.transcript}
                   onNotesGenerated={(notes) => {
-                    console.log("Notes generated:", notes);
+                    console.log("Notes generated, updating document state:", notes);
+                    
+                    // Update the document generation state with generated notes
+                    if (notes.soapNotes) {
+                      const soap = notes.soapNotes;
+                      documents.setGpShorthand(`S: ${soap.subjective || ''}\nO: ${soap.objective || ''}\nA: ${soap.assessment || ''}\nP: ${soap.plan || ''}`);
+                      documents.setStandardDetail(`**Subjective:** ${soap.subjective || ''}\n\n**Objective:** ${soap.objective || ''}\n\n**Assessment:** ${soap.assessment || ''}\n\n**Plan:** ${soap.plan || ''}`);
+                    }
+                    
+                    if (notes.summaryLine) {
+                      documents.setGpSummary(notes.summaryLine);
+                    }
+                    
+                    if (notes.patientCopy) {
+                      documents.setPatientCopy(notes.patientCopy);
+                    }
+                    
+                    if (notes.referralLetter) {
+                      documents.setReferralLetter(notes.referralLetter);
+                    }
+                    
                     toast.success("Consultation notes generated! View below.");
                   }}
                 />
