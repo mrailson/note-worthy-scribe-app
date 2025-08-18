@@ -163,9 +163,9 @@ const ImageCreate = () => {
       {/* Main Content */}
       <div className="container mx-auto p-6">
         {/* Warning Message */}
-        <Alert className="mb-6 border-destructive/50 bg-destructive/10">
-          <AlertTriangle className="h-4 w-4 text-destructive" />
-          <AlertDescription className="text-destructive">
+        <Alert className="mb-6 border-primary/50 bg-primary/10">
+          <AlertTriangle className="h-4 w-4 text-primary" />
+          <AlertDescription className="text-primary">
             This service is very basic and will often not produce what you need. Please use the ChatGPT service or similar directly for the latest image creation facilities.
           </AlertDescription>
         </Alert>
