@@ -174,6 +174,9 @@ const Index = () => {
   const handleLoadExample = (example: ConsultationExample) => {
     recording.setTranscript(example.transcript);
     documents.setGpSummary(example.summary);
+    // Parse the summary to create GP Shorthand and Standard Detail formats
+    documents.setGpShorthand(createGpShorthand(example.summary));
+    documents.setStandardDetail(createStandardDetail(example.summary));
     documents.setPatientCopy(example.patientCopy);
     documents.setTraineeFeedback(example.aiReview);
     if (example.referralLetter) {
@@ -181,6 +184,45 @@ const Index = () => {
     }
     toast.success(`Loaded example: ${example.title}`);
     setActiveTab("summary");
+  };
+
+  // Helper functions to create formatted versions from existing summary
+  const createGpShorthand = (summary: string) => {
+    // Convert existing summary to GP shorthand format
+    return `• CC: URTI sx 3/7
+• Hx: Sore throat (↑ on swallow, am worse), blocked nose, cough → now productive, subj fever+chills y'day, headache, hoarse, fatigue. PCM helped partially.
+• Ex: Throat erythema, no exudate. B/L tender cerv LN. Chest clear, afebrile.
+• A: Viral URTI (common cold)
+• P: Rest, fluids, PCM prn, lozenges/honey drinks. Off work 1–2d. SR: return if ↑fever, chest sx, no improv 10d. No abx. Viral explained.`;
+  };
+
+  const createStandardDetail = (summary: string) => {
+    // Convert existing summary to standard detail format
+    return `**Chief Complaint:** Upper respiratory tract symptoms for 3 days
+
+**History of Presenting Complaint:**
+• 3-day history of sore throat (severe, worse on swallowing, worse in mornings)
+• Blocked nose
+• Cough (initially dry, now productive of clear sputum)
+• Subjective fever with chills yesterday
+• Headache, hoarse voice, fatigue
+• Taking paracetamol with partial relief
+
+**Examination:**
+• Erythematous throat without exudate
+• Bilateral tender cervical lymphadenopathy
+• Clear chest on auscultation
+• Afebrile during consultation
+
+**Assessment:** Viral upper respiratory tract infection (common cold)
+
+**Plan:**
+• Conservative management with rest and fluids
+• Continue paracetamol as required for symptom relief
+• Throat lozenges, honey/lemon drinks for throat symptoms
+• Advise off work 1–2 days
+• Safety netting: return if symptoms worsen, high fever, chest symptoms, or no improvement after 10 days
+• No antibiotics prescribed – viral cause explained`;
   };
 
   // Check authentication

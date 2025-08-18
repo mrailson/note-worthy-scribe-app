@@ -227,30 +227,7 @@ export const SummaryPanel = ({
             </TabsList>
 
             {/* Action buttons below tabs */}
-            <div className="flex justify-between items-center mb-4">
-              <div className="flex items-center gap-3">
-                <Label className="text-sm font-medium">Format:</Label>
-                <div className="flex items-center gap-3">
-                  <Label 
-                    htmlFor="summary-format" 
-                    className={`text-sm transition-colors ${!isStandardDetail ? 'text-primary font-medium' : 'text-muted-foreground'}`}
-                  >
-                    GP Shorthand
-                  </Label>
-                  <Switch
-                    id="summary-format"
-                    checked={isStandardDetail}
-                    onCheckedChange={setIsStandardDetail}
-                    className="data-[state=checked]:bg-primary"
-                  />
-                  <Label 
-                    htmlFor="summary-format" 
-                    className={`text-sm transition-colors ${isStandardDetail ? 'text-primary font-medium' : 'text-muted-foreground'}`}
-                  >
-                    Standard Detail
-                  </Label>
-                </div>
-              </div>
+            <div className="flex justify-end items-center mb-4">
               <div className="flex items-center gap-2">
                 <Button
                   onClick={() => copyToClipboard(isStandardDetail ? standardDetail : gpShorthand)}
@@ -288,6 +265,53 @@ export const SummaryPanel = ({
 
             <TabsContent value="summary" className="space-y-4">
               <div className="space-y-4">
+                {/* Format Toggle - Only in Summary Tab */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Label className="text-sm font-medium">Format:</Label>
+                    <div className="flex items-center gap-3">
+                      <Label 
+                        htmlFor="summary-format" 
+                        className={`text-sm transition-colors ${!isStandardDetail ? 'text-primary font-medium' : 'text-muted-foreground'}`}
+                      >
+                        GP Shorthand
+                      </Label>
+                      <Switch
+                        id="summary-format"
+                        checked={isStandardDetail}
+                        onCheckedChange={setIsStandardDetail}
+                        className="data-[state=checked]:bg-primary"
+                      />
+                      <Label 
+                        htmlFor="summary-format" 
+                        className={`text-sm transition-colors ${isStandardDetail ? 'text-primary font-medium' : 'text-muted-foreground'}`}
+                      >
+                        Standard Detail
+                      </Label>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      onClick={() => copyToClipboard(isStandardDetail ? standardDetail : gpShorthand)}
+                      disabled={!(isStandardDetail ? standardDetail : gpShorthand)}
+                      variant="outline"
+                      size="sm"
+                    >
+                      <Copy className="h-4 w-4 mr-1" />
+                      Copy
+                    </Button>
+                    <Button
+                      onClick={() => onExportWord(isStandardDetail ? standardDetail : gpShorthand, "Consultation Summary")}
+                      disabled={!(isStandardDetail ? standardDetail : gpShorthand)}
+                      variant="outline"
+                      size="sm"
+                    >
+                      <Download className="h-4 w-4 mr-1" />
+                      Doc
+                    </Button>
+                  </div>
+                </div>
+
                 {!gpShorthand && !standardDetail ? (
                   <div className="text-center py-8">
                     <Button
