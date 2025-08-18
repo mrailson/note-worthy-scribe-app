@@ -82,7 +82,7 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
       if (data) {
         setUserProfile({
           id: data.id,
-          title: '', // This field doesn't exist in profiles table yet
+          title: data.title || '', // Use title field from profiles table
           first_name: data.full_name?.split(' ')[0] || '', // Extract from full_name
           last_name: data.full_name?.split(' ').slice(1).join(' ') || '', // Extract from full_name
           email: user.email || '',
