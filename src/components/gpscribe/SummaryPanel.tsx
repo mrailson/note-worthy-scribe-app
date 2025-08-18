@@ -264,15 +264,6 @@ export const SummaryPanel = ({
             <div className="flex justify-end items-center mb-4">
               <div className="flex items-center gap-2">
                 <Button
-                  onClick={() => copyToClipboard(isStandardDetail ? standardDetail : gpShorthand)}
-                  disabled={!(isStandardDetail ? standardDetail : gpShorthand)}
-                  variant="outline"
-                  size="sm"
-                >
-                  <Copy className="h-4 w-4 mr-1" />
-                  Copy
-                </Button>
-                <Button
                   onClick={() => onExportWord(isStandardDetail ? standardDetail : gpShorthand, "Consultation Summary")}
                   disabled={!(isStandardDetail ? standardDetail : gpShorthand)}
                   variant="outline"
