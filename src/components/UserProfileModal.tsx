@@ -47,6 +47,7 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
   const [resetLoading, setResetLoading] = useState(false);
   const [signatureUploading, setSignatureUploading] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
+  const [logoSaved, setLogoSaved] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile>({
     title: '',
     first_name: '',
@@ -178,6 +179,8 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
         if (error) throw error;
       }
 
+      setLogoSaved(true);
+      setTimeout(() => setLogoSaved(false), 2000);
       toast.success('Practice details updated successfully');
     } catch (error: any) {
       console.error('Error saving practice details:', error);
@@ -628,6 +631,11 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Saving...
+                  </>
+                ) : logoSaved ? (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Saved
                   </>
                 ) : (
                   <>
