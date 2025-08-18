@@ -75,26 +75,27 @@ serve(async (req) => {
     }
 
     // Create a comprehensive prompt for the patient email
-    const prompt = `You are a GP creating a patient summary email. Based on the consultation transcript below, create a well-formatted email that includes:
+    const prompt = `You are a GP creating a patient summary email. Based on the consultation transcript below, create ONLY the email body content (do not include subject line, signature, or contact details as these will be added separately).
 
-1. A professional email subject line
-2. A warm, professional greeting
-3. A clear summary of the consultation in simple, non-medical language
-4. What was discussed and any findings
-5. The agreed treatment plan or next steps
-6. Any follow-up instructions or when to contact the practice
-7. A professional closing
+Create a well-formatted email body that includes:
+1. A warm, professional greeting to "Dear Patient"
+2. A clear summary of the consultation in simple, non-medical language
+3. What was discussed and any findings
+4. The agreed treatment plan or next steps
+5. Any follow-up instructions or when to contact the practice
+6. A simple closing like "I hope this helps clarify our discussion today."
 
 The email should be:
 - Written in clear, patient-friendly language
-- Well-spaced and formatted for email
 - Professional but warm in tone
-- Include appropriate line breaks and sections
+- Do NOT include any placeholder names, signatures, or contact details
+- Do NOT include "Kind regards" or signature sections
+- End with a simple statement like "I hope this summary is helpful"
 
 Consultation Transcript:
 ${transcript}
 
-Please format this as a complete email that can be sent directly to the patient.`;
+Please provide only the email body content without any signatures or contact information.`;
 
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -133,11 +134,19 @@ Please format this as a complete email that can be sent directly to the patient.
       year: 'numeric'
     });
 
+    // Clean up any residual signature content from AI response
+    let cleanedContent = generatedContent
+      .replace(/Kind regards,[\s\S]*$/i, '') // Remove any "Kind regards" and everything after
+      .replace(/Best regards,[\s\S]*$/i, '') // Remove any "Best regards" and everything after
+      .replace(/Sincerely,[\s\S]*$/i, '') // Remove any "Sincerely" and everything after
+      .replace(/\[Your Name\]/g, '') // Remove placeholder names
+      .replace(/\[Your Position\]/g, '') // Remove placeholder positions
+      .replace(/Mrs\. Johnson|Mr\. Smith|Dear [A-Z][a-z]+ [A-Z][a-z]+/g, 'Dear Patient') // Replace specific names with "Dear Patient"
+      .trim();
+
     const emailContent = `Subject: Your Recent Consultation - ${consultationType}
 
-Dear Patient,
-
-${generatedContent}
+${cleanedContent}
 
 If you have any questions or concerns, please don't hesitate to contact our practice.
 
