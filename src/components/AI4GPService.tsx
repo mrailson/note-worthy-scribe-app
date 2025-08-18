@@ -23,7 +23,7 @@ import { Message } from '@/types/ai4gp';
 import GPGenieVoiceAgent from '@/components/GPGenieVoiceAgent';
 import NewsPanel from '@/components/NewsPanel';
 import ImageCreate from '@/pages/ImageCreate';
-import { MeetingRecordingInterface } from '@/components/MeetingRecordingInterface';
+
 
 const AI4GPService = () => {
   const inputRef = useRef<InputAreaRef>(null);
@@ -36,7 +36,7 @@ const AI4GPService = () => {
   
   const [showNews, setShowNews] = useState(false);
   const [showImageCreate, setShowImageCreate] = useState(false);
-  const [showMeetingRecording, setShowMeetingRecording] = useState(false);
+  
   const [selectedRole, setSelectedRole] = useState<'gp' | 'practice-manager'>('gp');
 
   const {
@@ -276,7 +276,6 @@ const AI4GPService = () => {
                           setShowAllQuickActions={setShowAllQuickActions}
                           setInput={setInput}
                           selectedRole={selectedRole}
-                          onMeetingRecordingClick={() => setShowMeetingRecording(true)}
                         />
                       </div>
                     </div>
@@ -357,17 +356,6 @@ const AI4GPService = () => {
       </Dialog>
 
 
-      {/* Meeting Recording Modal */}
-      <Dialog open={showMeetingRecording} onOpenChange={setShowMeetingRecording}>
-        <DialogContent className="max-w-[95vw] w-[95vw] max-h-[95vh] h-auto overflow-y-auto p-0 m-0">
-          <DialogHeader className="p-4 border-b">
-            <DialogTitle className="text-left">Meeting Recording Service</DialogTitle>
-          </DialogHeader>
-          <div className="flex-1 overflow-y-auto p-4">
-            <MeetingRecordingInterface onClose={() => setShowMeetingRecording(false)} />
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Settings Modal */}
       <SettingsModal

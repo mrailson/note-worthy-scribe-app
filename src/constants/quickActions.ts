@@ -96,13 +96,6 @@ STYLE: Plain English, culturally sensitive, trauma-informed, non-defensive. Use 
     prompt: `${nhsSafetyPreamble} Provide referral criteria and process for [insert specialty/condition] in [insert local area or ICB], including NHS eRS form links, local service inclusion/exclusion criteria, and relevant NICE guidance.`,
     requiresFile: false 
   },
-  {
-    label: 'Meeting Recording Service',
-    icon: Mic,
-    prompt: 'start-meeting-recording',
-    requiresFile: false,
-    action: 'meeting-recording'
-  },
 ];
 
 const pmSafetyPreamble = "You are an expert UK NHS Practice Manager assistant. Use current NHS England guidance, PCN DES specifications, CQC standards, and UK GDPR/IG requirements. Present information clearly for practice management use.";

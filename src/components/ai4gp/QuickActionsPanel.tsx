@@ -9,15 +9,13 @@ interface QuickActionsPanelProps {
   setShowAllQuickActions: (show: boolean) => void;
   setInput: (input: string) => void;
   selectedRole?: 'gp' | 'practice-manager';
-  onMeetingRecordingClick?: () => void;
 }
 
 export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
   showAllQuickActions,
   setShowAllQuickActions,
   setInput,
-  selectedRole = 'gp',
-  onMeetingRecordingClick
+  selectedRole = 'gp'
 }) => {
   const { practiceContext, practiceDetails } = usePracticeContext();
   
@@ -95,11 +93,7 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
           const IconComponent = action.icon;
           
           const handleClick = () => {
-            if ('action' in action && action.action === 'meeting-recording' && onMeetingRecordingClick) {
-              onMeetingRecordingClick();
-            } else {
-              setInput(enhancePromptWithPracticeInfo(action.prompt));
-            }
+            setInput(enhancePromptWithPracticeInfo(action.prompt));
           };
 
           return (
