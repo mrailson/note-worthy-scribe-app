@@ -67,32 +67,8 @@ export const RecordingControls = ({
       </CardHeader>
       
       <CardContent className="space-y-6">
-        {/* Consultation Type */}
-        <div className="space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <FileText className="h-4 w-4 text-primary" />
-              <Label className="text-sm font-medium">Consultation Type</Label>
-            </div>
-            <RadioGroup 
-              value={consultationType} 
-              onValueChange={setConsultationType}
-              className="flex gap-6"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="face-to-face" id="face-to-face" />
-                <Label htmlFor="face-to-face" className="cursor-pointer text-sm">Face to Face</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="telephone" id="telephone" />
-                <Label htmlFor="telephone" className="cursor-pointer text-sm">Telephone</Label>
-              </div>
-            </RadioGroup>
-          </div>
-        </div>
-
-        {/* Duration and Words Counter */}
-        <div className="flex justify-center gap-12">
+        {/* Duration, Words Counter, and Consultation Type */}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-12">
           <div className="text-center">
             <div className="text-2xl font-bold text-primary">{formatDuration(duration)}</div>
             <div className="text-sm text-muted-foreground">Duration</div>
@@ -100,6 +76,26 @@ export const RecordingControls = ({
           <div className="text-center">
             <div className="text-2xl font-bold text-primary">{wordCount}</div>
             <div className="text-sm text-muted-foreground">Words</div>
+          </div>
+          <div className="flex flex-col items-center gap-2">
+            <div className="flex items-center gap-2 mb-1">
+              <FileText className="h-4 w-4 text-primary" />
+              <Label className="text-sm font-medium">Type</Label>
+            </div>
+            <RadioGroup 
+              value={consultationType} 
+              onValueChange={setConsultationType}
+              className="flex gap-4"
+            >
+              <div className="flex items-center space-x-1">
+                <RadioGroupItem value="face-to-face" id="face-to-face" />
+                <Label htmlFor="face-to-face" className="cursor-pointer text-xs">Face to Face</Label>
+              </div>
+              <div className="flex items-center space-x-1">
+                <RadioGroupItem value="telephone" id="telephone" />
+                <Label htmlFor="telephone" className="cursor-pointer text-xs">Telephone</Label>
+              </div>
+            </RadioGroup>
           </div>
         </div>
 
