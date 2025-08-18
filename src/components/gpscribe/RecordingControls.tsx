@@ -4,8 +4,10 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Mic, RotateCcw, FileText, ChevronDown, ChevronRight } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface RecordingControlsProps {
   isRecording: boolean;
@@ -46,12 +48,39 @@ export const RecordingControls = ({
 }: RecordingControlsProps) => {
   const [isTelephone, setIsTelephone] = useState(false);
   const [isTranscriptExpanded, setIsTranscriptExpanded] = useState(false);
+  const [showResetDialog, setShowResetDialog] = useState(false);
+  const [dontShowAgain, setDontShowAgain] = useState(false);
+  const [hideResetConfirmation, setHideResetConfirmation] = useState(false);
+
+  // Load the "don't show again" preference from localStorage
+  useEffect(() => {
+    const hideConfirmation = localStorage.getItem('hideResetConfirmation') === 'true';
+    setHideResetConfirmation(hideConfirmation);
+  }, []);
+
+  const handleResetClick = () => {
+    if (hideResetConfirmation) {
+      handleReset();
+    } else {
+      setShowResetDialog(true);
+    }
+  };
 
   const handleReset = () => {
     if (isRecording) {
       onStopRecording();
     }
     // Additional reset logic can be added here
+    setShowResetDialog(false);
+  };
+
+  const handleConfirmReset = () => {
+    if (dontShowAgain) {
+      localStorage.setItem('hideResetConfirmation', 'true');
+      setHideResetConfirmation(true);
+    }
+    handleReset();
+    setDontShowAgain(false);
   };
 
   return (
@@ -60,9 +89,9 @@ export const RecordingControls = ({
         <CardTitle className="text-lg">
           Clinical Consultation
         </CardTitle>
-        <Button variant="outline" size="sm" onClick={handleReset}>
+        <Button variant="outline" size="sm" onClick={handleResetClick}>
           <RotateCcw className="h-4 w-4 mr-1" />
-          Reset
+          Start New Consultation
         </Button>
       </CardHeader>
       
@@ -189,6 +218,39 @@ export const RecordingControls = ({
           </CollapsibleContent>
         </Collapsible>
       </CardContent>
+
+      {/* Reset Confirmation Dialog */}
+      <AlertDialog open={showResetDialog} onOpenChange={setShowResetDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Start New Consultation?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to start a new consultation? This will clear all current transcript data and reset the session.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex items-center space-x-2 my-4">
+            <Checkbox
+              id="dont-show-again"
+              checked={dontShowAgain}
+              onCheckedChange={(checked) => setDontShowAgain(checked === true)}
+            />
+            <Label htmlFor="dont-show-again" className="text-sm">
+              Don't show this message again
+            </Label>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setShowResetDialog(false);
+              setDontShowAgain(false);
+            }}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmReset}>
+              Start New Consultation
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 };
