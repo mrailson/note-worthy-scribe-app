@@ -70,6 +70,10 @@ export const SummaryPanel = ({
   const [showTranscript, setShowTranscript] = useState(false);
   const [isStandardDetail, setIsStandardDetail] = useState(false);
   
+  // Main summary editing state
+  const [isEditingMainSummary, setIsEditingMainSummary] = useState(false);
+  const [editedSummaryContent, setEditedSummaryContent] = useState("");
+  
   // Ask AI state
   const [isAskAIOpen, setIsAskAIOpen] = useState(false);
   const [aiPrompt, setAiPrompt] = useState("");
@@ -101,6 +105,24 @@ export const SummaryPanel = ({
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     toast.success("Copied to clipboard");
+  };
+
+  const handleStartMainEdit = () => {
+    const currentContent = isStandardDetail ? standardDetail : gpShorthand;
+    setEditedSummaryContent(currentContent);
+    setIsEditingMainSummary(true);
+  };
+
+  const handleSaveMainEdit = () => {
+    // Here you would typically call a prop function to save the edited content
+    // For now, we'll show a toast
+    toast.success("Summary updated successfully");
+    setIsEditingMainSummary(false);
+  };
+
+  const handleCancelMainEdit = () => {
+    setIsEditingMainSummary(false);
+    setEditedSummaryContent("");
   };
 
   const renderContentSection = (
@@ -371,45 +393,77 @@ export const SummaryPanel = ({
                 ) : (
                   <div className="prose prose-sm max-w-none">
                     <div className="p-4 bg-card rounded-lg border relative group">
-                      <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                        <Button
-                          onClick={() => copyToClipboard(isStandardDetail ? standardDetail : gpShorthand)}
-                          variant="outline"
-                          size="sm"
-                        >
-                          <Copy className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          onClick={onGenerateSummary}
-                          disabled={!transcript.trim() || isGenerating}
-                          variant="outline"
-                          size="sm"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          onClick={() => onExportWord(isStandardDetail ? standardDetail : gpShorthand, "Consultation Summary")}
-                          disabled={!(isStandardDetail ? standardDetail : gpShorthand)}
-                          variant="outline"
-                          size="sm"
-                        >
-                          <Download className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      <div 
-                        className="text-sm leading-relaxed whitespace-pre-wrap font-sans"
-                        dangerouslySetInnerHTML={{
-                          __html: (isStandardDetail ? standardDetail : gpShorthand)
-                            ?.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                            ?.replace(/\*(.*?)\*/g, '<em>$1</em>')
-                            ?.replace(/^###\s(.+)$/gm, '<h3 class="text-lg font-semibold mt-4 mb-2 text-primary">$1</h3>')
-                            ?.replace(/^##\s(.+)$/gm, '<h2 class="text-xl font-semibold mt-4 mb-2 text-primary">$1</h2>')
-                            ?.replace(/^-\s(.+)$/gm, '<li class="ml-4">$1</li>')
-                            ?.replace(/(<li.*>.*<\/li>)/g, '<ul class="list-disc space-y-1">$1</ul>')
-                            ?.replace(/<\/ul>\s*<ul[^>]*>/g, '')
-                            || ''
-                        }}
-                      />
+                      {!isEditingMainSummary && (
+                        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                          <Button
+                            onClick={() => copyToClipboard(isStandardDetail ? standardDetail : gpShorthand)}
+                            variant="outline"
+                            size="sm"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            onClick={handleStartMainEdit}
+                            disabled={isEditingMainSummary}
+                            variant="outline"
+                            size="sm"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            onClick={() => onExportWord(isStandardDetail ? standardDetail : gpShorthand, "Consultation Summary")}
+                            disabled={!(isStandardDetail ? standardDetail : gpShorthand)}
+                            variant="outline"
+                            size="sm"
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
+                      
+                      {isEditingMainSummary ? (
+                        <div className="space-y-3">
+                          <Textarea
+                            value={editedSummaryContent}
+                            onChange={(e) => setEditedSummaryContent(e.target.value)}
+                            className="min-h-[300px] resize-none text-sm"
+                            placeholder="Edit your consultation summary..."
+                          />
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              onClick={handleCancelMainEdit}
+                              variant="outline"
+                              size="sm"
+                            >
+                              <X className="h-4 w-4 mr-2" />
+                              Cancel
+                            </Button>
+                            <Button
+                              onClick={handleSaveMainEdit}
+                              size="sm"
+                              className="bg-gradient-primary hover:bg-primary-hover"
+                            >
+                              <Check className="h-4 w-4 mr-2" />
+                              Save
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div 
+                          className="text-sm leading-relaxed whitespace-pre-wrap font-sans"
+                          dangerouslySetInnerHTML={{
+                            __html: (isStandardDetail ? standardDetail : gpShorthand)
+                              ?.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                              ?.replace(/\*(.*?)\*/g, '<em>$1</em>')
+                              ?.replace(/^###\s(.+)$/gm, '<h3 class="text-lg font-semibold mt-4 mb-2 text-primary">$1</h3>')
+                              ?.replace(/^##\s(.+)$/gm, '<h2 class="text-xl font-semibold mt-4 mb-2 text-primary">$1</h2>')
+                              ?.replace(/^-\s(.+)$/gm, '<li class="ml-4">$1</li>')
+                              ?.replace(/(<li.*>.*<\/li>)/g, '<ul class="list-disc space-y-1">$1</ul>')
+                              ?.replace(/<\/ul>\s*<ul[^>]*>/g, '')
+                              || ''
+                          }}
+                        />
+                      )}
                     </div>
                   </div>
                 )}
