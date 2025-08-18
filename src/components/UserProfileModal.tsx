@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -14,6 +15,14 @@ import { Loader2, User, Building2, KeyRound } from 'lucide-react';
 interface UserProfileModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+}
+
+interface UserProfile {
+  id?: string;
+  title: string;
+  first_name: string;
+  last_name: string;
+  email: string;
 }
 
 interface PracticeDetails {
@@ -29,7 +38,14 @@ interface PracticeDetails {
 export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) => {
   const { user, resetPassword } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
+  const [userProfile, setUserProfile] = useState<UserProfile>({
+    title: '',
+    first_name: '',
+    last_name: '',
+    email: ''
+  });
   const [practiceDetails, setPracticeDetails] = useState<PracticeDetails>({
     practice_name: '',
     address: '',
@@ -41,9 +57,45 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
 
   useEffect(() => {
     if (open && user) {
+      fetchUserProfile();
       fetchPracticeDetails();
     }
   }, [open, user]);
+
+  const fetchUserProfile = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching user profile:', error);
+        return;
+      }
+
+      if (data) {
+        setUserProfile({
+          id: data.id,
+          title: '', // This field doesn't exist in profiles table yet
+          first_name: data.full_name?.split(' ')[0] || '', // Extract from full_name
+          last_name: data.full_name?.split(' ').slice(1).join(' ') || '', // Extract from full_name
+          email: user.email || ''
+        });
+      } else {
+        // No profile found, use email from auth
+        setUserProfile(prev => ({
+          ...prev,
+          email: user.email || ''
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+    }
+  };
 
   const fetchPracticeDetails = async () => {
     if (!user) return;
@@ -117,6 +169,47 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
     }
   };
 
+  const handleSaveUserProfile = async () => {
+    if (!user) return;
+
+    setProfileLoading(true);
+    try {
+      const fullName = `${userProfile.first_name} ${userProfile.last_name}`.trim();
+      
+      if (userProfile.id) {
+        // Update existing profile
+        const { error } = await supabase
+          .from('profiles')
+          .update({
+            full_name: fullName,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', userProfile.id);
+
+        if (error) throw error;
+      } else {
+        // Create new profile
+        const { error } = await supabase
+          .from('profiles')
+          .insert({
+            user_id: user.id,
+            full_name: fullName,
+            email: user.email
+          });
+
+        if (error) throw error;
+      }
+
+      toast.success('Personal information updated successfully');
+    } catch (error: any) {
+      console.error('Error saving user profile:', error);
+      toast.error('Failed to update personal information: ' + error.message);
+    } finally {
+      setProfileLoading(false);
+    }
+
+  };
+
   const handleResetPassword = async () => {
     if (!user?.email) return;
 
@@ -148,10 +241,10 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* User Information */}
+          {/* Personal Information */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">User Information</CardTitle>
+              <CardTitle className="text-lg">Personal Information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
@@ -162,14 +255,66 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
                   className="bg-muted"
                 />
               </div>
+
               <div>
-                <Label>User ID</Label>
-                <Input
-                  value={user?.id || ''}
-                  disabled
-                  className="bg-muted text-xs"
-                />
+                <Label htmlFor="title">Title</Label>
+                <Select
+                  value={userProfile.title}
+                  onValueChange={(value) => setUserProfile(prev => ({ ...prev, title: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select title" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Mr">Mr</SelectItem>
+                    <SelectItem value="Ms">Ms</SelectItem>
+                    <SelectItem value="Miss">Miss</SelectItem>
+                    <SelectItem value="Mrs">Mrs</SelectItem>
+                    <SelectItem value="Dr">Dr</SelectItem>
+                    <SelectItem value="Prof">Prof</SelectItem>
+                    <SelectItem value="Rev">Rev</SelectItem>
+                    <SelectItem value="Sir">Sir</SelectItem>
+                    <SelectItem value="Dame">Dame</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="first_name">First Name</Label>
+                  <Input
+                    id="first_name"
+                    value={userProfile.first_name}
+                    onChange={(e) => setUserProfile(prev => ({ ...prev, first_name: e.target.value }))}
+                    placeholder="Enter first name"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="last_name">Last Name</Label>
+                  <Input
+                    id="last_name"
+                    value={userProfile.last_name}
+                    onChange={(e) => setUserProfile(prev => ({ ...prev, last_name: e.target.value }))}
+                    placeholder="Enter last name"
+                  />
+                </div>
+              </div>
+
+              <Button 
+                onClick={handleSaveUserProfile}
+                disabled={profileLoading}
+                className="w-full"
+              >
+                {profileLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save Personal Information'
+                )}
+              </Button>
             </CardContent>
           </Card>
 
