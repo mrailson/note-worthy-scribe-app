@@ -14,6 +14,19 @@ export const usePracticeContext = () => {
     try {
       console.log('Loading practice context for user:', user.id);
       
+      // Get user profile information
+      const { data: userProfile } = await supabase
+        .from('profiles')
+        .select('full_name, email')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      // Get user roles
+      const { data: userRoles } = await supabase
+        .from('user_roles')
+        .select('role, practice_id')
+        .eq('user_id', user.id);
+      
       // First, try to get the user's own practice details directly
       const { data: userPracticeDetails, error: userPracticeError } = await supabase
         .from('practice_details')
@@ -60,7 +73,19 @@ export const usePracticeContext = () => {
           pcnName: pcnData?.pcn_name,
           neighbourhoodName: neighbourhoodData?.[0]?.name,
           otherPracticesInPCN: otherPractices?.map(p => p.practice_name) || [],
-          logoUrl: userPracticeDetails.logo_url
+          logoUrl: userPracticeDetails.logo_url,
+          // Enhanced practice details
+          practiceAddress: userPracticeDetails.address,
+          practicePhone: userPracticeDetails.phone,
+          practiceEmail: userPracticeDetails.email,
+          practiceWebsite: userPracticeDetails.website,
+          // User details
+          userFullName: userProfile?.full_name,
+          userEmail: userProfile?.email || user.email,
+          userRole: userRoles?.[0]?.role,
+          userRoles: userRoles?.map(r => r.role) || [],
+          emailSignature: userPracticeDetails.email_signature,
+          letterSignature: userPracticeDetails.letter_signature
         });
 
         console.log('Practice context loaded from user practice details:', {
@@ -131,7 +156,19 @@ export const usePracticeContext = () => {
           pcnName: pcnData?.pcn_name,
           neighbourhoodName: neighbourhoodData?.[0]?.name,
           otherPracticesInPCN: otherPractices?.map(p => p.practice_name) || [],
-          logoUrl: practiceDetails.logo_url
+          logoUrl: practiceDetails.logo_url,
+          // Enhanced practice details
+          practiceAddress: practiceDetails.address,
+          practicePhone: practiceDetails.phone,
+          practiceEmail: practiceDetails.email,
+          practiceWebsite: practiceDetails.website,
+          // User details
+          userFullName: userProfile?.full_name,
+          userEmail: userProfile?.email || user.email,
+          userRole: userRoles?.[0]?.role,
+          userRoles: userRoles?.map(r => r.role) || [],
+          emailSignature: practiceDetails.email_signature,
+          letterSignature: practiceDetails.letter_signature
         });
 
         console.log('Practice context loaded from user_roles:', {

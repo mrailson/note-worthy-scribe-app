@@ -34,8 +34,40 @@ ${uploadedFiles.length > 0 ? `\nIMPORTANT: The user has uploaded ${uploadedFiles
 
     // Add practice context if available
     if (practiceContext.practiceName) {
-      prompt += `\n\nCONTEXT ABOUT THE USER'S PRACTICE:
+      prompt += `\n\nCONTEXT ABOUT THE USER AND PRACTICE:
 - Practice Name: ${practiceContext.practiceName}`;
+      
+      if (practiceContext.practiceAddress) {
+        prompt += `\n- Practice Address: ${practiceContext.practiceAddress}`;
+      }
+      
+      if (practiceContext.practicePhone) {
+        prompt += `\n- Practice Phone: ${practiceContext.practicePhone}`;
+      }
+      
+      if (practiceContext.practiceEmail) {
+        prompt += `\n- Practice Email: ${practiceContext.practiceEmail}`;
+      }
+      
+      if (practiceContext.practiceWebsite) {
+        prompt += `\n- Practice Website: ${practiceContext.practiceWebsite}`;
+      }
+      
+      if (practiceContext.userFullName) {
+        prompt += `\n- User Name: ${practiceContext.userFullName}`;
+      }
+      
+      if (practiceContext.userEmail) {
+        prompt += `\n- User Email: ${practiceContext.userEmail}`;
+      }
+      
+      if (practiceContext.userRole) {
+        prompt += `\n- User Role: ${practiceContext.userRole}`;
+      }
+      
+      if (practiceContext.userRoles && practiceContext.userRoles.length > 1) {
+        prompt += `\n- All User Roles: ${practiceContext.userRoles.join(', ')}`;
+      }
       
       if (practiceContext.practiceManagerName) {
         prompt += `\n- Practice Manager: ${practiceContext.practiceManagerName}`;
@@ -53,7 +85,19 @@ ${uploadedFiles.length > 0 ? `\nIMPORTANT: The user has uploaded ${uploadedFiles
         prompt += `\n- Other practices in the same PCN: ${practiceContext.otherPracticesInPCN.join(', ')}`;
       }
       
-      prompt += `\n\nWhen relevant to queries, you can reference this practice information to provide more personalized and contextual responses.`;
+      if (practiceContext.emailSignature) {
+        prompt += `\n- Email Signature Available: Yes (can be used in email drafts when appropriate)`;
+      }
+      
+      if (practiceContext.letterSignature) {
+        prompt += `\n- Letter Signature Available: Yes (can be used in formal letters when appropriate)`;
+      }
+      
+      prompt += `\n\nWhen relevant to queries, you can reference this practice and user information to provide more personalized and contextual responses. For example:
+- Use the practice name and address when creating letters or referrals
+- Reference the user's role when providing role-specific guidance
+- Include contact details when generating practice communications
+- Use available signatures when creating formal documents`;
     }
 
     prompt += `\n\nKnowledge domains you should reference:

@@ -35,6 +35,18 @@ export interface PracticeContext {
   neighbourhoodName?: string;
   otherPracticesInPCN?: string[];
   logoUrl?: string;
+  // Enhanced practice details
+  practiceAddress?: string;
+  practicePhone?: string;
+  practiceEmail?: string;
+  practiceWebsite?: string;
+  // User details
+  userFullName?: string;
+  userEmail?: string;
+  userRole?: string;
+  userRoles?: string[];
+  emailSignature?: string;
+  letterSignature?: string;
 }
 
 export const SUPPORTED_VOICES = ["alloy","ash","ballad","coral","echo","sage","shimmer","verse"] as const;
