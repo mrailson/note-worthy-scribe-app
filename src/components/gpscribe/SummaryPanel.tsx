@@ -327,9 +327,20 @@ export const SummaryPanel = ({
                 ) : (
                   <div className="prose prose-sm max-w-none">
                     <div className="p-4 bg-card rounded-lg border">
-                      <pre className="text-sm leading-relaxed whitespace-pre-wrap font-sans">
-                        {isStandardDetail ? standardDetail : gpShorthand}
-                      </pre>
+                      <div 
+                        className="text-sm leading-relaxed whitespace-pre-wrap font-sans"
+                        dangerouslySetInnerHTML={{
+                          __html: (isStandardDetail ? standardDetail : gpShorthand)
+                            ?.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                            ?.replace(/\*(.*?)\*/g, '<em>$1</em>')
+                            ?.replace(/^###\s(.+)$/gm, '<h3 class="text-lg font-semibold mt-4 mb-2 text-primary">$1</h3>')
+                            ?.replace(/^##\s(.+)$/gm, '<h2 class="text-xl font-semibold mt-4 mb-2 text-primary">$1</h2>')
+                            ?.replace(/^-\s(.+)$/gm, '<li class="ml-4">$1</li>')
+                            ?.replace(/(<li.*>.*<\/li>)/g, '<ul class="list-disc space-y-1">$1</ul>')
+                            ?.replace(/<\/ul>\s*<ul[^>]*>/g, '')
+                            || ''
+                        }}
+                      />
                     </div>
                   </div>
                 )}
