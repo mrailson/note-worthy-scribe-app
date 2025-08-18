@@ -153,7 +153,7 @@ serve(async (req) => {
         model: 'dall-e-3',
         prompt: enhancedPrompt,
         size,
-        quality,
+        quality: quality === 'high' ? 'hd' : 'standard',
         n: 1
       };
 
