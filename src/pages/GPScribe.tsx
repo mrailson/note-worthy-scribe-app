@@ -326,18 +326,26 @@ const Index = () => {
               onResumeRecording={recording.resumeRecording}
               onImportTranscript={async (transcript) => {
                 console.log("Importing transcript for testing:", transcript.substring(0, 100) + "...");
+                
+                // Clear any existing demo content first
+                documents.clearAllContent();
+                
+                // Set the imported transcript
                 recording.setTranscript(transcript);
+                
                 // Auto-navigate to summary tab to see generated notes
                 setActiveTab("summary");
                 toast.success("Transcript imported! Generating consultation notes...");
                 
-                // Automatically generate consultation notes
-                try {
-                  await handleGenerateSummary();
-                } catch (error) {
-                  console.error("Auto-generation failed:", error);
-                  toast.error("Import successful but notes generation failed. Please try manually.");
-                }
+                // Small delay to ensure transcript is set
+                setTimeout(async () => {
+                  try {
+                    await handleGenerateSummary();
+                  } catch (error) {
+                    console.error("Auto-generation failed:", error);
+                    toast.error("Import successful but notes generation failed. Please try manually.");
+                  }
+                }, 100);
               }}
               onResetConsultation={() => {
                 console.log("Starting new consultation - clearing all data");
