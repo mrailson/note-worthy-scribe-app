@@ -369,10 +369,16 @@ const Index = () => {
                     console.log("Notes generated, updating document state:", notes);
                     
                     // Update the document generation state with generated notes
-                    if (notes.soapNotes) {
-                      const soap = notes.soapNotes;
-                      documents.setGpShorthand(`S: ${soap.subjective || ''}\nO: ${soap.objective || ''}\nA: ${soap.assessment || ''}\nP: ${soap.plan || ''}`);
-                      documents.setStandardDetail(`**Subjective:** ${soap.subjective || ''}\n\n**Objective:** ${soap.objective || ''}\n\n**Assessment:** ${soap.assessment || ''}\n\n**Plan:** ${soap.plan || ''}`);
+                    if (notes.shorthand) {
+                      const soap = notes.shorthand;
+                      const shorthandText = `S: ${soap.S || ''}\nO: ${soap.O || ''}\nA: ${soap.A || ''}\nP: ${soap.P || ''}`;
+                      documents.setGpShorthand(shorthandText);
+                    }
+                    
+                    if (notes.standard) {
+                      const soap = notes.standard;
+                      const standardText = `**Subjective:** ${soap.S || ''}\n\n**Objective:** ${soap.O || ''}\n\n**Assessment:** ${soap.A || ''}\n\n**Plan:** ${soap.P || ''}`;
+                      documents.setStandardDetail(standardText);
                     }
                     
                     if (notes.summaryLine) {
@@ -383,8 +389,12 @@ const Index = () => {
                       documents.setPatientCopy(notes.patientCopy);
                     }
                     
-                    if (notes.referralLetter) {
-                      documents.setReferralLetter(notes.referralLetter);
+                    if (notes.referral) {
+                      documents.setReferralLetter(notes.referral);
+                    }
+
+                    if (notes.review) {
+                      documents.setTraineeFeedback(notes.review);
                     }
                     
                     toast.success("Consultation notes generated! View below.");
