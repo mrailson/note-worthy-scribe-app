@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { LoginForm } from "@/components/LoginForm";
@@ -13,7 +14,8 @@ import {
   Upload, 
   X, 
   Heart,
-  RotateCcw
+  RotateCcw,
+  ChevronDown
 } from "lucide-react";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { UploadedFile } from "@/types/ai4gp";
@@ -28,6 +30,7 @@ const ImageCreate = () => {
   const [revisedPrompt, setRevisedPrompt] = useState<string | null>(null);
   const [uploadedImage, setUploadedImage] = useState<UploadedFile | null>(null);
   const [imageHistory, setImageHistory] = useState<string[]>([]);
+  const [isImageUploadOpen, setIsImageUploadOpen] = useState(false);
   const { processFiles, isProcessing } = useFileUpload();
 
   const handleImageUpload = async (files: FileList) => {
@@ -164,55 +167,6 @@ const ImageCreate = () => {
               <CardTitle>Create Your Image</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Reference Image Upload */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium">
-                  Reference Image (Optional)
-                </label>
-                {uploadedImage ? (
-                  <div className="relative">
-                    <div className="aspect-video bg-muted/50 rounded-lg overflow-hidden">
-                      <img 
-                        src={uploadedImage.content.startsWith('IMAGE_DATA_URL:') 
-                          ? uploadedImage.content.replace('IMAGE_DATA_URL:', '') 
-                          : uploadedImage.content} 
-                        alt="Reference image"
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      className="absolute top-2 right-2"
-                      onClick={handleRemoveImage}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ) : (
-                  <div 
-                    className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center cursor-pointer hover:border-muted-foreground/50 transition-colors"
-                    onClick={() => document.getElementById('image-upload')?.click()}
-                  >
-                    <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">
-                      Click to upload a reference image
-                    </p>
-                    <p className="text-xs text-muted-foreground/70 mt-1">
-                      PNG, JPG, WEBP up to 10MB
-                    </p>
-                  </div>
-                )}
-                <input
-                  id="image-upload"
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => e.target.files && handleImageUpload(e.target.files)}
-                  className="hidden"
-                  disabled={isProcessing}
-                />
-              </div>
-
               {/* Description */}
               <div className="space-y-2">
                 <label htmlFor="prompt" className="text-sm font-medium">
@@ -220,13 +174,67 @@ const ImageCreate = () => {
                 </label>
                 <Textarea
                   id="prompt"
-                  placeholder="e.g. Create a clear and professional infographic for a GP practice explaining what a medical chaperone is, why patients may want one, and how to request one. NHS colours, accessible font, simple icons."
+                  placeholder="e.g. draw a horse standing on its hind legs, wearing a red dress smoking a cigar"
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   rows={6}
                   className="resize-none"
                 />
               </div>
+
+              {/* Reference Image Upload - Collapsible */}
+              <Collapsible open={isImageUploadOpen} onOpenChange={setIsImageUploadOpen}>
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" className="w-full justify-between p-0 h-auto">
+                    <span className="text-sm font-medium">Reference Image (Optional)</span>
+                    <ChevronDown className={`h-4 w-4 transition-transform ${isImageUploadOpen ? 'rotate-180' : ''}`} />
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="space-y-2 mt-2">
+                  {uploadedImage ? (
+                    <div className="relative">
+                      <div className="aspect-video bg-muted/50 rounded-lg overflow-hidden">
+                        <img 
+                          src={uploadedImage.content.startsWith('IMAGE_DATA_URL:') 
+                            ? uploadedImage.content.replace('IMAGE_DATA_URL:', '') 
+                            : uploadedImage.content} 
+                          alt="Reference image"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="absolute top-2 right-2"
+                        onClick={handleRemoveImage}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div 
+                      className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center cursor-pointer hover:border-muted-foreground/50 transition-colors"
+                      onClick={() => document.getElementById('image-upload')?.click()}
+                    >
+                      <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">
+                        Click to upload a reference image
+                      </p>
+                      <p className="text-xs text-muted-foreground/70 mt-1">
+                        PNG, JPG, WEBP up to 10MB
+                      </p>
+                    </div>
+                  )}
+                  <input
+                    id="image-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => e.target.files && handleImageUpload(e.target.files)}
+                    className="hidden"
+                    disabled={isProcessing}
+                  />
+                </CollapsibleContent>
+              </Collapsible>
 
               <Button 
                 onClick={handleGenerateImage}
