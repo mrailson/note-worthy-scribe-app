@@ -22,6 +22,7 @@ import { generateWordDocument, generatePowerPoint } from '@/utils/documentGenera
 import { Message } from '@/types/ai4gp';
 import GPGenieVoiceAgent from '@/components/GPGenieVoiceAgent';
 import NewsPanel from '@/components/NewsPanel';
+import ImageCreate from '@/pages/ImageCreate';
 
 const AI4GPService = () => {
   const inputRef = useRef<InputAreaRef>(null);
@@ -33,6 +34,7 @@ const AI4GPService = () => {
   const [showAIChat, setShowAIChat] = useState(false);
   
   const [showNews, setShowNews] = useState(false);
+  const [showImageCreate, setShowImageCreate] = useState(false);
   const [selectedRole, setSelectedRole] = useState<'gp' | 'practice-manager'>('gp');
 
   const {
@@ -161,7 +163,7 @@ const AI4GPService = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => window.location.href = '/image-create'}
+                      onClick={() => setShowImageCreate(!showImageCreate)}
                       className="ml-1 px-2 sm:px-3"
                     >
                       <ImageIcon className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-1" />
@@ -333,6 +335,18 @@ const AI4GPService = () => {
           </DialogHeader>
           <div className="flex-1 overflow-y-auto p-4">
             <NewsPanel />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Image Create Modal */}
+      <Dialog open={showImageCreate} onOpenChange={setShowImageCreate}>
+        <DialogContent className="max-w-[100vw] w-[100vw] max-h-[100vh] h-[100vh] overflow-y-auto p-0 m-0">
+          <DialogHeader className="p-4 border-b">
+            <DialogTitle className="text-left">NHS Infographic Creator</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto">
+            <ImageCreate />
           </div>
         </DialogContent>
       </Dialog>
