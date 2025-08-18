@@ -2677,9 +2677,11 @@ export type Database = {
           address: string | null
           created_at: string
           email: string | null
+          email_signature: string | null
           footer_text: string | null
           id: string
           is_default: boolean | null
+          letter_signature: string | null
           logo_url: string | null
           pcn_code: string | null
           phone: string | null
@@ -2696,9 +2698,11 @@ export type Database = {
           address?: string | null
           created_at?: string
           email?: string | null
+          email_signature?: string | null
           footer_text?: string | null
           id?: string
           is_default?: boolean | null
+          letter_signature?: string | null
           logo_url?: string | null
           pcn_code?: string | null
           phone?: string | null
@@ -2715,9 +2719,11 @@ export type Database = {
           address?: string | null
           created_at?: string
           email?: string | null
+          email_signature?: string | null
           footer_text?: string | null
           id?: string
           is_default?: boolean | null
+          letter_signature?: string | null
           logo_url?: string | null
           pcn_code?: string | null
           phone?: string | null
