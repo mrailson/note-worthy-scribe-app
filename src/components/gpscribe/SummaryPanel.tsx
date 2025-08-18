@@ -16,6 +16,7 @@ import { Brain, Copy, Download, Edit, Check, X, Maximize2, Mail, FileText, Clock
 import { toast } from "sonner";
 import { useState } from "react";
 import { useVoiceRecording } from "@/hooks/useVoiceRecording";
+import { supabase } from "@/integrations/supabase/client";
 
 interface SummaryPanelProps {
   transcript: string;
@@ -41,6 +42,7 @@ interface SummaryPanelProps {
   onExpandContent: (title: string, content: string) => void;
   onCloseExpandDialog: () => void;
   onUpdateMainSummary?: (content: string, isStandardDetail: boolean) => void;
+  onGeneratePatientEmail?: () => void;
 }
 
 export const SummaryPanel = ({
@@ -76,6 +78,10 @@ export const SummaryPanel = ({
   const [isEditingMainSummary, setIsEditingMainSummary] = useState(false);
   const [editedSummaryContent, setEditedSummaryContent] = useState("");
   const [textareaRef, setTextareaRef] = useState<HTMLTextAreaElement | null>(null);
+  
+  // Patient email state
+  const [patientEmail, setPatientEmail] = useState("");
+  const [isGeneratingPatientEmail, setIsGeneratingPatientEmail] = useState(false);
   
   // Ask AI state
   const [isAskAIOpen, setIsAskAIOpen] = useState(false);
@@ -170,6 +176,41 @@ export const SummaryPanel = ({
       const newCursorPos = start + formattedText.length;
       textareaRef.setSelectionRange(newCursorPos, newCursorPos);
     }, 0);
+  };
+
+  const generatePatientEmail = async () => {
+    if (!transcript.trim()) {
+      toast.error("No transcript available to generate patient email");
+      return;
+    }
+
+    setIsGeneratingPatientEmail(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-patient-email', {
+        body: {
+          transcript: transcript,
+          consultationType: "General Consultation"
+        }
+      });
+
+      if (error) {
+        console.error('Error generating patient email:', error);
+        toast.error("Failed to generate patient email");
+        return;
+      }
+
+      if (data?.emailContent) {
+        setPatientEmail(data.emailContent);
+        toast.success("Patient email generated successfully");
+      } else {
+        toast.error("No email content received");
+      }
+    } catch (error) {
+      console.error('Error calling patient email function:', error);
+      toast.error("Failed to generate patient email");
+    } finally {
+      setIsGeneratingPatientEmail(false);
+    }
   };
 
   const renderContentSection = (
@@ -582,16 +623,25 @@ export const SummaryPanel = ({
                     <MessageSquare className="h-4 w-4 mr-2" />
                     SMS (50 words)
                   </Button>
-                  <Button variant="outline" className="justify-start">
+                  <Button 
+                    variant="outline" 
+                    className="justify-start"
+                    onClick={generatePatientEmail}
+                    disabled={isGeneratingPatientEmail || !transcript.trim()}
+                  >
                     <Mail className="h-4 w-4 mr-2" />
-                    Email Format
+                    {isGeneratingPatientEmail ? "Generating..." : "Email Format"}
                   </Button>
                 </div>
                 
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <h4 className="text-sm font-medium text-primary">SMS Short Summary</h4>
-                    <Button variant="ghost" size="sm">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => copyToClipboard(patientCopy || "Hi, thank you for your consultation. You have a common cold (viral upper respiratory tract infection). Contact us with any concerns.")}
+                    >
                       <Copy className="h-4 w-4" />
                     </Button>
                   </div>
@@ -601,6 +651,44 @@ export const SummaryPanel = ({
                   </div>
                   <p className="text-xs text-muted-foreground">Word count: 21 words</p>
                 </div>
+
+                {/* Patient Email Format */}
+                {patientEmail && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-medium text-primary">Patient Email Format</h4>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => copyToClipboard(patientEmail)}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => onExpandContent("Patient Email", patientEmail)}
+                        >
+                          <Maximize2 className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => onExportWord(patientEmail, "Patient Email")}
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Complete email ready to send to patient</p>
+                    <div className="p-4 bg-muted/30 rounded-lg border max-h-96 overflow-y-auto">
+                      <pre className="text-sm whitespace-pre-wrap font-sans leading-relaxed">
+                        {patientEmail}
+                      </pre>
+                    </div>
+                  </div>
+                )}
                 
                 {/* View Original Transcript button */}
                 <div className="mt-6 pt-4 border-t">
