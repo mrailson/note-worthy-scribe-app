@@ -32,16 +32,19 @@ serve(async (req) => {
   try {
     const { transcript, consultationType = "General Consultation" }: PatientEmailRequest = await req.json();
 
-    const authHeader = req.headers.get('Authorization')!;
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('No authorization header provided');
+    }
+
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    // Get the current user from the auth header
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    // Get the current user from the session
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {
       console.error('Auth error:', userError);
       throw new Error('User not authenticated');
