@@ -748,106 +748,13 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
     toast.error(`Failed to auto-save ${moduleKey}`);
   }
 };
+
+  const handleUserSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log('=== FORM SUBMIT START ===');
     console.log('Submitting user form with data:', userFormData);
     console.log('Module access being saved:', userFormData.module_access);
     console.log('Editing user:', editingUser?.user_id);
-    
-    // Auto-save function for module access changes
-    const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
-      if (!editingUser) return;
-      
-      try {
-        console.log(`Auto-saving ${moduleKey} to ${checked} for user ${editingUser.user_id}`);
-        
-        // Check if user_roles record exists first
-        const { data: existingRoles, error: fetchError } = await supabase
-          .from('user_roles')
-          .select('*')
-          .eq('user_id', editingUser.user_id);
-          
-        if (fetchError) {
-          console.error('Auto-save fetch error:', fetchError);
-          toast.error(`Failed to auto-save ${moduleKey}`);
-          return;
-        }
-        
-        console.log('Existing roles found for auto-save:', existingRoles);
-        
-        if (existingRoles && existingRoles.length > 0) {
-          // Update existing user_roles record
-          const updateData = {
-            [moduleKey]: checked
-          };
-          
-          console.log('Auto-saving with data:', updateData);
-          
-          const { error: roleError } = await supabase
-            .from('user_roles')
-            .update(updateData)
-            .eq('user_id', editingUser.user_id);
-            
-          if (roleError) {
-            console.error('Auto-save update error:', roleError);
-            toast.error(`Failed to auto-save ${moduleKey}`);
-            return;
-          }
-        } else {
-          // Create new user_roles record
-          const insertData = {
-            user_id: editingUser.user_id,
-            role: userFormData.role || 'user',
-            practice_id: userFormData.practice_id !== 'none' ? userFormData.practice_id : null,
-            assigned_by: user?.id,
-            meeting_notes_access: moduleKey === 'meeting_notes_access' ? checked : userFormData.module_access.meeting_notes_access,
-            gp_scribe_access: moduleKey === 'gp_scribe_access' ? checked : userFormData.module_access.gp_scribe_access,
-            complaints_manager_access: moduleKey === 'complaints_manager_access' ? checked : userFormData.module_access.complaints_manager_access,
-            enhanced_access: moduleKey === 'enhanced_access' ? checked : userFormData.module_access.enhanced_access,
-            cqc_compliance_access: moduleKey === 'cqc_compliance_access' ? checked : userFormData.module_access.cqc_compliance_access,
-            shared_drive_access: moduleKey === 'shared_drive_access' ? checked : userFormData.module_access.shared_drive_access,
-            mic_test_service_access: moduleKey === 'mic_test_service_access' ? checked : userFormData.module_access.mic_test_service_access,
-            api_testing_service_access: moduleKey === 'api_testing_service_access' ? checked : userFormData.module_access.api_testing_service_access
-          };
-          
-          console.log('Auto-saving by inserting new role with data:', insertData);
-          
-          const { error: roleError } = await supabase
-            .from('user_roles')
-            .insert(insertData);
-          
-          if (roleError) {
-            console.error('Auto-save insert error:', roleError);
-            toast.error(`Failed to auto-save ${moduleKey}`);
-            return;
-          }
-        }
-        
-        // Handle AI4GP access separately as it's stored in profiles table
-        if (moduleKey === 'ai4gp_access') {
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .update({ ai4gp_access: checked })
-            .eq('user_id', editingUser.user_id);
-            
-          if (profileError) {
-            console.error('Auto-save profile error:', profileError);
-            toast.error(`Failed to auto-save ${moduleKey}`);
-            return;
-          }
-        }
-        
-        // Show success message
-        toast.success(`${moduleKey.replace(/_/g, ' ').replace(/access/g, '').trim()} ${checked ? 'enabled' : 'disabled'}`);
-        
-        // Refresh user list to show updated permissions
-        fetchUsers();
-        
-      } catch (error) {
-        console.error('Auto-save error:', error);
-        toast.error(`Failed to auto-save ${moduleKey}`);
-      }
-    };
     
     try {
       if (editingUser) {
