@@ -397,7 +397,15 @@ export const SummaryPanel = ({
                   </div>
                 ) : (
                   <div className="prose prose-sm max-w-none">
-                    <div className="p-4 bg-card rounded-lg border">
+                    <div className="p-4 bg-card rounded-lg border relative group">
+                      <Button
+                        onClick={() => copyToClipboard(isStandardDetail ? standardDetail : gpShorthand)}
+                        variant="outline"
+                        size="sm"
+                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
                       <div 
                         className="text-sm leading-relaxed whitespace-pre-wrap font-sans"
                         dangerouslySetInnerHTML={{
