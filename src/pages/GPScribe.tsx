@@ -31,6 +31,7 @@ import { MP3TranscriptionTest } from "@/components/MP3TranscriptionTest";
 import { ConsultationHistory } from "@/components/ConsultationHistory";
 import { PatientTranslationView } from "@/components/PatientTranslationView";
 import AI4GPService from "@/components/AI4GPService";
+import GPSoapUI from "@/components/GPSoapUI";
 import GPGenieVoiceAgent from "@/components/GPGenieVoiceAgent";
 
 import { ActiveTab, ExpandDialog } from "@/types/gpscribe";
@@ -387,32 +388,7 @@ const Index = () => {
 
           {/* Summary Tab */}
           <TabsContent value="summary" className="space-y-6 mt-6">
-            <SummaryPanel
-              transcript={recording.transcript}
-              isGenerating={documents.isGenerating}
-              gpSummary={documents.gpSummary}
-              gpShorthand={documents.gpShorthand}
-              standardDetail={documents.standardDetail}
-              fullNote={documents.fullNote}
-              patientCopy={documents.patientCopy}
-              traineeFeedback={documents.traineeFeedback}
-              referralLetter={documents.referralLetter}
-              editStates={documents.editStates}
-              editContent={documents.editContent}
-              expandDialog={expandDialog}
-              recordingDuration={recording.formatDuration(recording.duration)}
-              onGenerateSummary={handleGenerateSummary}
-              onGenerateReferralLetter={handleGenerateReferralLetter}
-              onStartEdit={documents.startEdit}
-              onCancelEdit={documents.cancelEdit}
-              onSaveEdit={documents.saveEdit}
-              onEditContentChange={handleEditContentChange}
-              onExportPDF={documents.exportToPDF}
-              onExportWord={documents.exportToWord}
-              onExpandContent={handleExpandContent}
-              onCloseExpandDialog={handleCloseExpandDialog}
-              onUpdateMainSummary={handleUpdateMainSummary}
-            />
+            <GPSoapUI />
           </TabsContent>
 
           {/* Examples Tab */}
