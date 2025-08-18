@@ -32,6 +32,7 @@ import { ConsultationHistory } from "@/components/ConsultationHistory";
 import { PatientTranslationView } from "@/components/PatientTranslationView";
 import AI4GPService from "@/components/AI4GPService";
 import GPScribeSoapMock from "@/components/GPSoapUI";
+import { GenerateNotesButton } from "@/components/gpscribe/GenerateNotesButton";
 import GPGenieVoiceAgent from "@/components/GPGenieVoiceAgent";
 
 import { ActiveTab, ExpandDialog } from "@/types/gpscribe";
@@ -323,6 +324,13 @@ const Index = () => {
               onStopRecording={() => recording.stopRecording(navigate)}
               onPauseRecording={recording.pauseRecording}
               onResumeRecording={recording.resumeRecording}
+              onImportTranscript={(transcript) => {
+                console.log("Importing transcript for testing:", transcript.substring(0, 100) + "...");
+                recording.setTranscript(transcript);
+                // Auto-navigate to summary tab to see generated notes
+                setActiveTab("summary");
+                toast.success("Transcript imported! Check the Summary tab for generated notes.");
+              }}
               onResetConsultation={() => {
                 console.log("Starting new consultation - clearing all data");
                 recording.clearTranscript();
@@ -336,6 +344,18 @@ const Index = () => {
 
           {/* Summary Tab */}
           <TabsContent value="summary" className="space-y-6 mt-6">
+            {/* Show generate button if transcript exists but no generated notes */}
+            {recording.transcript && (
+              <div className="space-y-4">
+                <GenerateNotesButton 
+                  transcript={recording.transcript}
+                  onNotesGenerated={(notes) => {
+                    console.log("Notes generated:", notes);
+                    toast.success("Consultation notes generated! View below.");
+                  }}
+                />
+              </div>
+            )}
             <GPScribeSoapMock />
           </TabsContent>
 

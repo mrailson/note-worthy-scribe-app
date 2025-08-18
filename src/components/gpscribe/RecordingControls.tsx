@@ -6,8 +6,9 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Mic, RotateCcw, FileText, ChevronDown, ChevronRight } from "lucide-react";
+import { Mic, RotateCcw, FileText, ChevronDown, ChevronRight, Upload } from "lucide-react";
 import { useState, useEffect } from "react";
+import { TranscriptImport } from "./TranscriptImport";
 
 interface RecordingControlsProps {
   isRecording: boolean;
@@ -30,6 +31,7 @@ interface RecordingControlsProps {
   onPauseRecording: () => void;
   onResumeRecording: () => void;
   onResetConsultation?: () => void;
+  onImportTranscript?: (transcript: string) => void;
 }
 
 export const RecordingControls = ({
@@ -46,10 +48,12 @@ export const RecordingControls = ({
   onStopRecording,
   onPauseRecording,
   onResumeRecording,
-  onResetConsultation
+  onResetConsultation,
+  onImportTranscript
 }: RecordingControlsProps) => {
   const [isTelephone, setIsTelephone] = useState(false);
   const [isTranscriptExpanded, setIsTranscriptExpanded] = useState(false);
+  const [isImportExpanded, setIsImportExpanded] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [dontShowAgain, setDontShowAgain] = useState(false);
   const [hideResetConfirmation, setHideResetConfirmation] = useState(false);
@@ -222,6 +226,32 @@ export const RecordingControls = ({
             </div>
           </CollapsibleContent>
         </Collapsible>
+
+        {/* Transcript Import - Collapsible */}
+        {onImportTranscript && (
+          <Collapsible open={isImportExpanded} onOpenChange={setIsImportExpanded}>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" className="w-full justify-between p-2">
+                <span className="flex items-center gap-2">
+                  <Upload className="h-4 w-4" />
+                  Import Test Transcript
+                </span>
+                {isImportExpanded ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+              </Button>
+            </CollapsibleTrigger>
+            
+            <CollapsibleContent className="space-y-3">
+              <TranscriptImport 
+                onImportTranscript={onImportTranscript} 
+                disabled={isRecording}
+              />
+            </CollapsibleContent>
+          </Collapsible>
+        )}
       </CardContent>
 
       {/* Reset Confirmation Dialog */}
