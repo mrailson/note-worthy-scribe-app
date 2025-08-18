@@ -150,7 +150,7 @@ serve(async (req) => {
         : `${systemStyle}\n\nINSTRUCTION: ${prompt}\n\nGenerate a professional NHS-style infographic with clean typography, proper spacing, and medical iconography. Ensure text is clearly readable and layout is well-organized.`;
 
       requestBody = {
-        model: 'gpt-image-1',
+        model: 'dall-e-3',
         prompt: enhancedPrompt,
         size,
         quality,
