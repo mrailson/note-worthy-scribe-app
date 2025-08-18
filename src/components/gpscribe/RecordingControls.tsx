@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -44,7 +44,7 @@ export const RecordingControls = ({
   onPauseRecording,
   onResumeRecording
 }: RecordingControlsProps) => {
-  const [consultationType, setConsultationType] = useState("face-to-face");
+  const [isTelephone, setIsTelephone] = useState(false);
   const [isTranscriptExpanded, setIsTranscriptExpanded] = useState(false);
 
   const handleReset = () => {
@@ -73,20 +73,26 @@ export const RecordingControls = ({
             <FileText className="h-4 w-4 text-primary" />
             <Label className="text-sm font-medium">Consultation Type</Label>
           </div>
-          <RadioGroup 
-            value={consultationType} 
-            onValueChange={setConsultationType}
-            className="flex gap-6"
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="face-to-face" id="face-to-face" />
-              <Label htmlFor="face-to-face" className="cursor-pointer text-sm">Face to Face</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="telephone" id="telephone" />
-              <Label htmlFor="telephone" className="cursor-pointer text-sm">Telephone</Label>
-            </div>
-          </RadioGroup>
+          <div className="flex items-center gap-4">
+            <Label 
+              htmlFor="consultation-type" 
+              className={`text-sm font-medium transition-colors ${!isTelephone ? 'text-primary' : 'text-muted-foreground'}`}
+            >
+              Face to Face
+            </Label>
+            <Switch
+              id="consultation-type"
+              checked={isTelephone}
+              onCheckedChange={setIsTelephone}
+              className="data-[state=checked]:bg-primary"
+            />
+            <Label 
+              htmlFor="consultation-type" 
+              className={`text-sm font-medium transition-colors ${isTelephone ? 'text-primary' : 'text-muted-foreground'}`}
+            >
+              Telephone
+            </Label>
+          </div>
         </div>
 
         {/* Duration and Words Counter */}
