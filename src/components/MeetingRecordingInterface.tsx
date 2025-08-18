@@ -133,42 +133,41 @@ export const MeetingRecordingInterface: React.FC<MeetingRecordingInterfaceProps>
       console.log('Processing recording for meeting:', currentMeetingId);
       console.log('Audio blob size:', audioBlob.size);
 
-      // Convert audio to base64
-      const arrayBuffer = await audioBlob.arrayBuffer();
-      const base64Audio = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      // Create FormData for the audio file
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'recording.webm');
 
-      console.log('Audio converted to base64, length:', base64Audio.length);
+      console.log('Sending audio to transcription service...');
 
-      // Upload and transcribe audio
-      const { data: transcriptionData, error: transcriptionError } = await supabase.functions.invoke(
-        'audio-transcription',
-        {
-          body: { 
-            audio: base64Audio,
-            meetingId: currentMeetingId
-          }
-        }
-      );
+      // Upload and transcribe audio using FormData
+      const transcriptionResponse = await fetch(`https://dphcnbricafkbtizkoal.supabase.co/functions/v1/audio-transcription`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwaGNuYnJpY2Fma2J0aXprb2FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MzIyMzIsImV4cCI6MjA2ODMwODIzMn0.U3bJI6P1yzgRBz_k2s0zlJGu1GWiVRTHjYgv9QQggPs`,
+        },
+        body: formData,
+      });
 
-      console.log('Transcription response:', { transcriptionData, transcriptionError });
+      const transcriptionData = await transcriptionResponse.json();
+      console.log('Transcription response:', transcriptionData);
 
-      if (transcriptionError) {
-        console.error('Transcription error:', transcriptionError);
-        toast.error('Failed to transcribe audio: ' + transcriptionError.message);
+      if (!transcriptionResponse.ok || !transcriptionData.success) {
+        console.error('Transcription error:', transcriptionData);
+        toast.error('Failed to transcribe audio: ' + (transcriptionData.error || 'Unknown error'));
         setProcessingStatus('idle');
         return;
       }
 
-      if (transcriptionData?.text) {
-        console.log('Transcript received:', transcriptionData.text);
-        setTranscript(transcriptionData.text);
+      if (transcriptionData?.transcript) {
+        console.log('Transcript received:', transcriptionData.transcript);
+        setTranscript(transcriptionData.transcript);
         
         // Store transcript in meeting_transcripts table
         const { error: transcriptError } = await supabase
           .from('meeting_transcripts')
           .insert({
             meeting_id: currentMeetingId,
-            content: transcriptionData.text,
+            content: transcriptionData.transcript,
             speaker_name: 'Recording',
             timestamp_seconds: 0,
             confidence_score: transcriptionData.confidence || 0.95
