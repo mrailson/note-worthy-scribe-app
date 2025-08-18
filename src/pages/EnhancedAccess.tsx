@@ -455,13 +455,13 @@ const EnhancedAccess = () => {
                           return (
                             <div 
                               key={day.toISOString()} 
-                              className={`p-2 sm:p-3 border rounded-lg ${
-                                allAssigned 
-                                  ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20" 
-                                  : hasAssignments
-                                  ? "border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-900/20"
-                                  : "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20"
-                              }`}
+              className={`p-2 sm:p-3 border rounded-lg ${
+                allAssigned 
+                  ? "border-success/30 bg-success/10" 
+                  : hasAssignments
+                  ? "border-warning/30 bg-warning/10"
+                  : "border-destructive/30 bg-destructive/10"
+              }`}
                             >
                               <div className="text-center sm:text-left">
                                 <h3 className="font-medium text-sm">
