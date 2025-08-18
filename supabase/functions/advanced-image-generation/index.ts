@@ -154,8 +154,7 @@ serve(async (req) => {
         prompt: enhancedPrompt,
         size,
         quality,
-        n: 1,
-        response_format: 'b64_json'
+        n: 1
       };
 
       // If we have a reference image URL, we could include it in the prompt context
