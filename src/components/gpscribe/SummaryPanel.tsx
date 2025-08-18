@@ -73,6 +73,7 @@ export const SummaryPanel = ({
   // Main summary editing state
   const [isEditingMainSummary, setIsEditingMainSummary] = useState(false);
   const [editedSummaryContent, setEditedSummaryContent] = useState("");
+  const [textareaRef, setTextareaRef] = useState<HTMLTextAreaElement | null>(null);
   
   // Ask AI state
   const [isAskAIOpen, setIsAskAIOpen] = useState(false);
@@ -126,12 +127,19 @@ export const SummaryPanel = ({
   };
 
   const applyFormat = (formatType: 'bold' | 'italic' | 'underline') => {
-    const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
-    if (!textarea) return;
+    if (!textareaRef) {
+      toast.error("Please click in the text area first");
+      return;
+    }
 
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
+    const start = textareaRef.selectionStart;
+    const end = textareaRef.selectionEnd;
     const selectedText = editedSummaryContent.substring(start, end);
+
+    if (selectedText.trim() === '') {
+      toast.error("Please select some text to format");
+      return;
+    }
 
     let formattedText = '';
     switch (formatType) {
@@ -155,8 +163,9 @@ export const SummaryPanel = ({
     
     // Restore focus and selection
     setTimeout(() => {
-      textarea.focus();
-      textarea.setSelectionRange(start + formattedText.length, start + formattedText.length);
+      textareaRef.focus();
+      const newCursorPos = start + formattedText.length;
+      textareaRef.setSelectionRange(newCursorPos, newCursorPos);
     }, 0);
   };
 
@@ -487,6 +496,7 @@ export const SummaryPanel = ({
                             </Button>
                           </div>
                           <Textarea
+                            ref={(ref) => setTextareaRef(ref)}
                             value={editedSummaryContent}
                             onChange={(e) => setEditedSummaryContent(e.target.value)}
                             className="min-h-[300px] resize-none text-sm"
