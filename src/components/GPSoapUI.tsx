@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useEffect } from "react";
+import { Clock, Calendar, FileText, Play, Square, Timer } from "lucide-react";
 
 // GP Scribe – SOAP Notes UI with Transcript Demo
 // - Dropdown of 15 common templates
@@ -331,64 +332,151 @@ export default function GPScribeSoapMock() {
         )}
 
         {tab === "transcript" && (
-          <div className="rounded-2xl border bg-white p-4 shadow-sm space-y-3">
-            <div className="flex items-center gap-2">
-              <input
-                className="flex-1 rounded-lg border px-3 py-2 text-sm"
-                placeholder="Search transcript (e.g. cough, chest, fever)"
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-              />
-              <button
-                onClick={() => copy(JSON.stringify(transcript, null, 2))}
-                className="rounded-lg border px-3 py-2 text-sm hover:bg-slate-100"
-              >
-                Copy JSON
-              </button>
-              <button onClick={() => window.print()} className="rounded-lg border px-3 py-2 text-sm hover:bg-slate-100">
-                Export PDF
-              </button>
-            </div>
-            <div className="space-y-2 max-h-[60vh] overflow-auto pr-1">
-              {transcript
-                .filter((e) => !q || e.text.toLowerCase().includes(q.toLowerCase()))
-                .map((e, i) => (
-                  <div key={i} className="flex gap-3 rounded-xl border p-3">
-                    <div className="w-16 shrink-0 text-xs text-slate-500">{e.t}</div>
-                    <div className="flex-1">
-                      <div className="mb-1 flex items-center gap-2">
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-xs ${
-                            e.speaker === "Clinician"
-                              ? "bg-sky-100 text-sky-700"
-                              : e.speaker === "Patient"
-                              ? "bg-emerald-100 text-emerald-700"
-                              : "bg-slate-100 text-slate-700"
-                          }`}
-                        >
-                          {e.speaker}
-                        </span>
-                        <div className="ml-auto flex items-center gap-1">
-                          <button
-                            onClick={() => copy(`S: ${e.text}`)}
-                            className="rounded border px-2 py-1 text-xs hover:bg-slate-50"
-                            title="Copy to Subjective"
-                          >
-                            → S
-                          </button>
-                          <button
-                            onClick={() => copy(`O: ${e.text}`)}
-                            className="rounded border px-2 py-1 text-xs hover:bg-slate-50"
-                            title="Copy to Objective"
-                          >
-                            → O
-                          </button>
-                        </div>
-                      </div>
-                      <p className="text-sm">{e.text}</p>
+          <div className="space-y-4">
+            {/* Recording Summary */}
+            <div className="rounded-2xl border bg-gradient-to-r from-blue-50 to-sky-50 p-4 shadow-sm">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-center w-10 h-10 rounded-full bg-green-100">
+                    <Play className="h-5 w-5 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-slate-600">Started</p>
+                    <div className="flex items-center gap-1">
+                      <Calendar className="h-3 w-3 text-slate-500" />
+                      <p className="text-sm font-semibold">18 Aug 2025</p>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Clock className="h-3 w-3 text-slate-500" />
+                      <p className="text-sm font-semibold">14:32:15</p>
                     </div>
                   </div>
-                ))}
+                </div>
+                
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-center w-10 h-10 rounded-full bg-red-100">
+                    <Square className="h-5 w-5 text-red-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-slate-600">Stopped</p>
+                    <div className="flex items-center gap-1">
+                      <Calendar className="h-3 w-3 text-slate-500" />
+                      <p className="text-sm font-semibold">18 Aug 2025</p>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Clock className="h-3 w-3 text-slate-500" />
+                      <p className="text-sm font-semibold">{
+                        transcript.length > 0 
+                          ? (() => {
+                              const lastTime = transcript[transcript.length - 1]?.t || "00:00";
+                              const [minutes, seconds] = lastTime.split(':').map(Number);
+                              const totalMinutes = minutes + Math.floor(seconds / 60);
+                              const remainingSeconds = seconds % 60;
+                              const endTime = new Date();
+                              endTime.setHours(14, 32 + totalMinutes, 15 + remainingSeconds);
+                              return endTime.toTimeString().slice(0, 8);
+                            })()
+                          : "14:32:15"
+                      }</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-center w-10 h-10 rounded-full bg-orange-100">
+                    <Timer className="h-5 w-5 text-orange-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-slate-600">Duration</p>
+                    <p className="text-lg font-bold text-slate-800">
+                      {transcript.length > 0 ? transcript[transcript.length - 1]?.t || "00:00" : "00:00"}
+                    </p>
+                    <p className="text-xs text-slate-500">mm:ss</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-center w-10 h-10 rounded-full bg-purple-100">
+                    <FileText className="h-5 w-5 text-purple-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-slate-600">Words Recorded</p>
+                    <p className="text-lg font-bold text-slate-800">
+                      {transcript.reduce((total, entry) => total + entry.text.split(' ').length, 0)}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {transcript.length > 0 
+                        ? `${Math.round(transcript.reduce((total, entry) => total + entry.text.split(' ').length, 0) / 
+                            (parseInt(transcript[transcript.length - 1]?.t.split(':')[0] || "1") * 60 + 
+                             parseInt(transcript[transcript.length - 1]?.t.split(':')[1] || "0")) * 60)} words/min`
+                        : "0 words/min"
+                      }
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Transcript Controls */}
+            <div className="rounded-2xl border bg-white p-4 shadow-sm space-y-3">
+              <div className="flex items-center gap-2">
+                <input
+                  className="flex-1 rounded-lg border px-3 py-2 text-sm"
+                  placeholder="Search transcript (e.g. cough, chest, fever)"
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                />
+                <button
+                  onClick={() => copy(JSON.stringify(transcript, null, 2))}
+                  className="rounded-lg border px-3 py-2 text-sm hover:bg-slate-100"
+                >
+                  Copy JSON
+                </button>
+                <button onClick={() => window.print()} className="rounded-lg border px-3 py-2 text-sm hover:bg-slate-100">
+                  Export PDF
+                </button>
+              </div>
+              <div className="space-y-2 max-h-[60vh] overflow-auto pr-1">
+                {transcript
+                  .filter((e) => !q || e.text.toLowerCase().includes(q.toLowerCase()))
+                  .map((e, i) => (
+                    <div key={i} className="flex gap-3 rounded-xl border p-3">
+                      <div className="w-16 shrink-0 text-xs text-slate-500">{e.t}</div>
+                      <div className="flex-1">
+                        <div className="mb-1 flex items-center gap-2">
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-xs ${
+                              e.speaker === "Clinician"
+                                ? "bg-sky-100 text-sky-700"
+                                : e.speaker === "Patient"
+                                ? "bg-emerald-100 text-emerald-700"
+                                : "bg-slate-100 text-slate-700"
+                            }`}
+                          >
+                            {e.speaker}
+                          </span>
+                          <div className="ml-auto flex items-center gap-1">
+                            <button
+                              onClick={() => copy(`S: ${e.text}`)}
+                              className="rounded border px-2 py-1 text-xs hover:bg-slate-50"
+                              title="Copy to Subjective"
+                            >
+                              → S
+                            </button>
+                            <button
+                              onClick={() => copy(`O: ${e.text}`)}
+                              className="rounded border px-2 py-1 text-xs hover:bg-slate-50"
+                              title="Copy to Objective"
+                            >
+                              → O
+                            </button>
+                          </div>
+                        </div>
+                        <p className="text-sm">{e.text}</p>
+                      </div>
+                    </div>
+                  ))}
+              </div>
             </div>
           </div>
         )}
