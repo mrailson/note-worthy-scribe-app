@@ -69,24 +69,26 @@ export const RecordingControls = ({
       <CardContent className="space-y-6">
         {/* Consultation Type */}
         <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <FileText className="h-4 w-4 text-primary" />
-            <Label className="text-sm font-medium">Consultation Type</Label>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <FileText className="h-4 w-4 text-primary" />
+              <Label className="text-sm font-medium">Consultation Type</Label>
+            </div>
+            <RadioGroup 
+              value={consultationType} 
+              onValueChange={setConsultationType}
+              className="flex gap-6"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="face-to-face" id="face-to-face" />
+                <Label htmlFor="face-to-face" className="cursor-pointer text-sm">Face to Face</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="telephone" id="telephone" />
+                <Label htmlFor="telephone" className="cursor-pointer text-sm">Telephone</Label>
+              </div>
+            </RadioGroup>
           </div>
-          <RadioGroup 
-            value={consultationType} 
-            onValueChange={setConsultationType}
-            className="flex gap-6"
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="face-to-face" id="face-to-face" />
-              <Label htmlFor="face-to-face" className="cursor-pointer">Face to Face</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="telephone" id="telephone" />
-              <Label htmlFor="telephone" className="cursor-pointer">Telephone</Label>
-            </div>
-          </RadioGroup>
         </div>
 
         {/* Duration and Words Counter */}
