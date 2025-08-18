@@ -31,7 +31,7 @@ import { MP3TranscriptionTest } from "@/components/MP3TranscriptionTest";
 import { ConsultationHistory } from "@/components/ConsultationHistory";
 import { PatientTranslationView } from "@/components/PatientTranslationView";
 import AI4GPService from "@/components/AI4GPService";
-import GPScribeSoapMock from "@/components/GPSoapUI";
+import { GPSoapDisplay } from "@/components/GPSoapDisplay";
 import { GenerateNotesButton } from "@/components/gpscribe/GenerateNotesButton";
 import GPGenieVoiceAgent from "@/components/GPGenieVoiceAgent";
 
@@ -392,7 +392,7 @@ const Index = () => {
                 />
               </div>
             )}
-            <GPScribeSoapMock />
+            <GPSoapDisplay transcript={recording.transcript} />
           </TabsContent>
 
           {/* Examples Tab */}
