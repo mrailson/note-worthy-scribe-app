@@ -142,12 +142,8 @@ serve(async (req) => {
       );
 
     } else {
-      // Use generation endpoint with style reference
-      const systemStyle = `Follow NHS visual style guidelines: Use primary blue #005EB8, white backgrounds, clean sans-serif fonts (Arial/Helvetica), high contrast for accessibility, professional medical appearance. Create clean, minimal layouts with clear sections and appropriate medical icons.`;
-      
-      const enhancedPrompt = imageUrl 
-        ? `${systemStyle}\n\nUSE THE REFERENCE IMAGE FOR STYLE AND LAYOUT INSPIRATION.\n\nINSTRUCTION: ${prompt}\n\nGenerate a professional NHS-style infographic with clean typography, proper spacing, and medical iconography. Ensure text is clearly readable and layout is well-organized.`
-        : `${systemStyle}\n\nINSTRUCTION: ${prompt}\n\nGenerate a professional NHS-style infographic with clean typography, proper spacing, and medical iconography. Ensure text is clearly readable and layout is well-organized.`;
+      // Use generation endpoint - just use the user's prompt directly
+      const enhancedPrompt = prompt;
 
       requestBody = {
         model: 'dall-e-3',
