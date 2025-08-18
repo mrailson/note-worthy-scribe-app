@@ -305,7 +305,7 @@ export const SummaryPanel = ({
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5 text-primary" />
-            <CardTitle className="text-lg">Consultation Notes & Feedback</CardTitle>
+            <CardTitle className="text-lg">Consultation Notes</CardTitle>
           </div>
         </CardHeader>
         <CardContent>
