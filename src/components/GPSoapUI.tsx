@@ -202,8 +202,35 @@ export default function GPScribeSoapMock() {
   const activeTemplate = useMemo(() => TEMPLATES.find((t) => t.id === selectedId)!, [selectedId]);
   const soap = mode === "shorthand" ? activeTemplate.shorthand : activeTemplate.standard;
 
+  // Autosave to History whenever transcript/template/tab changes
+  useEffect(() => {
+    const dt = new Date(startedAt);
+    const date = dt.toISOString().slice(0, 10);
+    const startTime = dt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const firstLine = transcript.find(e => e.speaker === "Patient")?.text || transcript[0]?.text || "";
+    const overview = (activeTemplate.summaryLine || firstLine).slice(0, 120);
+    const status: ConsultationRecord["status"] = tab === "summary" ? "Generated" : "Recording";
+    const rec: ConsultationRecord = { id: consultId, date, startTime, template: activeTemplate.name, overview, status };
+
+    setHistory(prev => {
+      const others = prev.filter(r => r.id !== consultId);
+      const updated = [rec, ...others].slice(0, 200);
+      try { localStorage.setItem("gp_history", JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+  }, [transcript, selectedId, tab, consultId, startedAt, activeTemplate.summaryLine, activeTemplate.name]);
+
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
   const [q, setQ] = useState("");
+
+  // simple persistent history (swap to Supabase later)
+  const [history, setHistory] = useState<ConsultationRecord[]>(() => {
+    try { return JSON.parse(localStorage.getItem("gp_history") || "[]"); }
+    catch { return []; }
+  });
+
+  const [consultId] = useState<string>(() => `CONS-${Date.now()}`);
+  const [startedAt] = useState<string>(() => new Date().toISOString());
 
   useEffect(() => {
     const specific = SPECIFIC_TRANSCRIPTS[selectedId];
