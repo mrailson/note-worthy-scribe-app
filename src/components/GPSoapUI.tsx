@@ -9,7 +9,19 @@ import React, { useMemo, useState } from "react";
 // - SOAP rendered as card blocks with clear visual hierarchy
 // - Copy-to-clipboard helpers (work in preview)
 
-export default function GPSoapUI() {
+interface GPSoapUIProps {
+  exampleData?: {
+    title?: string;
+    type?: string;
+    duration?: string;
+    summary?: string;
+    patientCopy?: string;
+    referralLetter?: string;
+    aiReview?: string;
+  };
+}
+
+export default function GPSoapUI({ exampleData }: GPSoapUIProps) {
   type Soap = { S: string; O: string; A: string; P: string };
   type Template = {
     id: string;
@@ -165,11 +177,72 @@ export default function GPSoapUI() {
     })
   ];
 
-  const [selectedId, setSelectedId] = useState<string>(TEMPLATES[0].id);
+  // Helper function to parse example summary into SOAP format
+  const parseExampleToSOAP = (summary: string): Soap => {
+    // Try to extract SOAP sections from the structured summary
+    const lines = summary.split('\n');
+    let subjective = '';
+    let objective = '';
+    let assessment = '';
+    let plan = '';
+    
+    let currentSection = '';
+    
+    for (const line of lines) {
+      if (line.includes('History of Presenting Complaint') || line.includes('Chief Complaint')) {
+        currentSection = 'S';
+      } else if (line.includes('Examination')) {
+        currentSection = 'O';
+      } else if (line.includes('Assessment')) {
+        currentSection = 'A';
+      } else if (line.includes('Plan')) {
+        currentSection = 'P';
+      } else if (line.trim() && !line.startsWith('**') && !line.startsWith('#')) {
+        switch (currentSection) {
+          case 'S':
+            subjective += line.replace(/^[-•]\s*/, '') + ' ';
+            break;
+          case 'O':
+            objective += line.replace(/^[-•]\s*/, '') + ' ';
+            break;
+          case 'A':
+            assessment += line.replace(/^[-•]\s*/, '') + ' ';
+            break;
+          case 'P':
+            plan += line.replace(/^[-•]\s*/, '') + ' ';
+            break;
+        }
+      }
+    }
+    
+    return {
+      S: subjective.trim() || 'Patient presents with symptoms as described in consultation',
+      O: objective.trim() || 'Physical examination findings as documented',
+      A: assessment.trim() || 'Clinical assessment and diagnosis',
+      P: plan.trim() || 'Management plan and follow-up arrangements'
+    };
+  };
+
+  // Create example template if exampleData is provided
+  const exampleTemplate: Template | null = exampleData ? {
+    id: "example-loaded",
+    name: exampleData.title || "Loaded Example",
+    category: exampleData.type || "Example",
+    summaryLine: `${exampleData.title || 'Example consultation'} - ${exampleData.duration || 'duration unknown'}`,
+    shorthand: parseExampleToSOAP(exampleData.summary || ''),
+    standard: parseExampleToSOAP(exampleData.summary || ''),
+    patientCopy: exampleData.patientCopy || "Patient copy will appear here",
+    referral: exampleData.referralLetter || "No referral needed",
+    review: exampleData.aiReview || "Review and recommendations will appear here"
+  } : null;
+
+  // Use example template if available, otherwise use default
+  const availableTemplates = exampleTemplate ? [exampleTemplate, ...TEMPLATES] : TEMPLATES;
+  const [selectedId, setSelectedId] = useState<string>(exampleTemplate?.id || TEMPLATES[0].id);
   const [mode, setMode] = useState<"shorthand" | "standard">("shorthand");
   const [tab, setTab] = useState<"summary" | "patient" | "referral" | "review">("summary");
 
-  const tpl = useMemo(() => TEMPLATES.find(t => t.id === selectedId)!, [selectedId]);
+  const tpl = useMemo(() => availableTemplates.find(t => t.id === selectedId)!, [selectedId, availableTemplates]);
   const soap = mode === "shorthand" ? tpl.shorthand : tpl.standard;
 
   const copy = async (text: string) => {
@@ -187,8 +260,8 @@ export default function GPSoapUI() {
       <div className="sticky top-0 z-10 border-b bg-white/80 backdrop-blur">
         <div className="mx-auto max-w-5xl px-4 py-3 flex items-center gap-4">
           <div className="flex-1">
-            <h1 className="text-xl font-semibold tracking-tight">Upper Respiratory Tract Infection</h1>
-            <p className="text-xs text-slate-500">Acute Illness • 05:00 • 345 words</p>
+            <h1 className="text-xl font-semibold tracking-tight">{tpl.name}</h1>
+            <p className="text-xs text-slate-500">{tpl.category} • {exampleData?.duration || '05:00'} • {exampleData?.summary ? Math.round(exampleData.summary.split(' ').length / 2) : 345} words</p>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -219,7 +292,7 @@ export default function GPSoapUI() {
               onChange={(e) => setSelectedId(e.target.value)}
               className="w-full rounded-xl border bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
             >
-              {TEMPLATES.map(t => (
+              {availableTemplates.map(t => (
                 <option key={t.id} value={t.id}>{t.name}</option>
               ))}
             </select>

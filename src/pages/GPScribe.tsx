@@ -54,6 +54,15 @@ const Index = () => {
   // UI states
   const [activeTab, setActiveTab] = useState<ActiveTab>("consultation");
   const [showAIChat, setShowAIChat] = useState(false);
+  const [exampleData, setExampleData] = useState<{
+    title?: string;
+    type?: string;
+    duration?: string;
+    summary?: string;
+    patientCopy?: string;
+    referralLetter?: string;
+    aiReview?: string;
+  } | null>(null);
   const [expandDialog, setExpandDialog] = useState<ExpandDialog>({
     isOpen: false,
     title: "",
@@ -182,9 +191,20 @@ const Index = () => {
 
   // Load example handler
   const handleLoadExample = (example: ConsultationExample) => {
+    // Set example data for the SOAP UI
+    setExampleData({
+      title: example.title,
+      type: example.type,
+      duration: example.duration,
+      summary: example.summary,
+      patientCopy: example.patientCopy,
+      referralLetter: example.referralLetter,
+      aiReview: example.aiReview
+    });
+    
+    // Keep existing functionality for backward compatibility
     recording.setTranscript(example.transcript);
     documents.setGpSummary(example.summary);
-    // Parse the summary to create GP Shorthand and Standard Detail formats
     documents.setGpShorthand(createGpShorthand(example.summary));
     documents.setStandardDetail(createStandardDetail(example.summary));
     documents.setPatientCopy(example.patientCopy);
@@ -388,7 +408,7 @@ const Index = () => {
 
           {/* Summary Tab */}
           <TabsContent value="summary" className="space-y-6 mt-6">
-            <GPSoapUI />
+            <GPSoapUI exampleData={exampleData} />
           </TabsContent>
 
           {/* Examples Tab */}
