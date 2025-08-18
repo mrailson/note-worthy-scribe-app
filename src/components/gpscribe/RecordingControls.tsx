@@ -136,7 +136,7 @@ export const RecordingControls = ({
             <Button variant="ghost" className="w-full justify-between p-2">
               <span className="flex items-center gap-2">
                 <FileText className="h-4 w-4" />
-                Transcript Service
+                Transcript
               </span>
               {isTranscriptExpanded ? (
                 <ChevronDown className="h-4 w-4" />
