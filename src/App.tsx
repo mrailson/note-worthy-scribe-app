@@ -27,6 +27,7 @@ import ImageCreate from "./pages/ImageCreate";
 import NotFound from "./pages/NotFound";
 import { ResetPassword } from "./components/ResetPassword";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import GPSoapUI from "./components/GPSoapUI";
 
 
 const App = () => (
@@ -40,6 +41,7 @@ const App = () => (
       <Route path="/meeting-history" element={<MeetingHistory />} />
       <Route path="/meeting-summary" element={<MeetingSummary />} />
       <Route path="/consultation-summary" element={<ConsultationSummary />} />
+      <Route path="/consultation/summary" element={<GPSoapUI />} />
       <Route path="/settings" element={<Settings />} />
       <Route path="/admin" element={<SystemAdmin />} />
       <Route path="/practice-admin" element={<PracticeAdmin />} />
