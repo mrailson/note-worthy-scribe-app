@@ -10,7 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, User, Building2, KeyRound, Upload, X, FileImage, PenTool, Image as ImageIcon } from 'lucide-react';
+import { Loader2, User, Building2, KeyRound, Upload, X, FileImage, PenTool, Image as ImageIcon, Mail, FileText, Save } from 'lucide-react';
+import SignatureEditor from '@/components/SignatureEditor';
 
 interface UserProfileModalProps {
   open: boolean;
@@ -34,8 +35,9 @@ interface PracticeDetails {
   website: string;
   phone: string;
   direct_dial?: string;
-  signature_url?: string;
   practice_logo_url?: string;
+  email_signature?: string;
+  letter_signature?: string;
 }
 
 export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) => {
@@ -58,7 +60,10 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
     email: '',
     website: '',
     phone: '',
-    direct_dial: ''
+    direct_dial: '',
+    practice_logo_url: '',
+    email_signature: '',
+    letter_signature: ''
   });
 
   useEffect(() => {
@@ -128,8 +133,9 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
           website: data.website || '',
           phone: data.phone || '',
           direct_dial: '', // This field doesn't exist in the table, so we'll keep it as empty
-          signature_url: (data as any).signature_url || '',
-          practice_logo_url: (data as any).practice_logo_url || ''
+          practice_logo_url: (data as any).practice_logo_url || '',
+          email_signature: (data as any).email_signature || '',
+          letter_signature: (data as any).letter_signature || ''
         });
       }
     } catch (error) {
@@ -149,8 +155,9 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
         email: practiceDetails.email,
         website: practiceDetails.website,
         phone: practiceDetails.phone,
-        signature_url: practiceDetails.signature_url,
         practice_logo_url: practiceDetails.practice_logo_url,
+        email_signature: practiceDetails.email_signature,
+        letter_signature: practiceDetails.letter_signature,
         updated_at: new Date().toISOString()
       };
 
@@ -245,59 +252,6 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
     }
   };
 
-  const handleSignatureUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || !user) return;
-
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file');
-      return;
-    }
-
-    // Validate file size (5MB max)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('File size must be less than 5MB');
-      return;
-    }
-
-    setSignatureUploading(true);
-    try {
-      const fileName = `${user.id}/signature-${Date.now()}.${file.type.split('/')[1]}`;
-      
-      // Delete existing signature if present
-      if (practiceDetails.signature_url) {
-        const oldPath = practiceDetails.signature_url.split('/').pop();
-        if (oldPath) {
-          await supabase.storage
-            .from('signatures')
-            .remove([`${user.id}/${oldPath}`]);
-        }
-      }
-
-      // Upload new signature
-      const { error: uploadError } = await supabase.storage
-        .from('signatures')
-        .upload(fileName, file);
-
-      if (uploadError) throw uploadError;
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('signatures')
-        .getPublicUrl(fileName);
-
-      // Update practice details
-      setPracticeDetails(prev => ({ ...prev, signature_url: publicUrl }));
-      toast.success('Signature uploaded successfully');
-    } catch (error: any) {
-      console.error('Error uploading signature:', error);
-      toast.error('Failed to upload signature: ' + error.message);
-    } finally {
-      setSignatureUploading(false);
-    }
-  };
-
   const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || !user) return;
@@ -349,10 +303,6 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
     } finally {
       setLogoUploading(false);
     }
-  };
-
-  const handleRemoveSignature = () => {
-    setPracticeDetails(prev => ({ ...prev, signature_url: '' }));
   };
 
   const handleRemoveLogo = () => {
@@ -569,64 +519,42 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
             </CardContent>
           </Card>
 
-          {/* My Signature */}
+          {/* Email & Letter Signatures */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <PenTool className="h-5 w-5" />
-                My Signature
+                Digital Signatures
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {practiceDetails.signature_url ? (
-                <div className="space-y-4">
-                  <div className="relative border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 bg-muted/10">
-                    <img 
-                      src={practiceDetails.signature_url} 
-                      alt="Digital signature"
-                      className="max-h-20 mx-auto object-contain"
-                    />
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      className="absolute top-2 right-2"
-                      onClick={handleRemoveSignature}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <p className="text-sm text-muted-foreground text-center">
-                    Your current signature
-                  </p>
-                </div>
-              ) : (
-                <div 
-                  className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center cursor-pointer hover:border-muted-foreground/50 transition-colors"
-                  onClick={() => document.getElementById('signature-upload')?.click()}
-                >
-                  <PenTool className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">
-                    Click to upload your signature
-                  </p>
-                  <p className="text-xs text-muted-foreground/70 mt-1">
-                    PNG, JPG, WEBP up to 5MB
-                  </p>
-                </div>
-              )}
-              <input
-                id="signature-upload"
-                type="file"
-                accept="image/*"
-                onChange={handleSignatureUpload}
-                className="hidden"
-                disabled={signatureUploading}
-              />
-              {signatureUploading && (
-                <div className="flex items-center justify-center py-4">
-                  <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                  <span className="text-sm">Uploading signature...</span>
-                </div>
-              )}
+            <CardContent className="space-y-6">
+              {/* Email Signature */}
+              <div>
+                <Label className="flex items-center gap-2 mb-3">
+                  <Mail className="h-4 w-4" />
+                  Email Signature
+                </Label>
+                <SignatureEditor
+                  content={practiceDetails.email_signature || ''}
+                  onChange={(content) => setPracticeDetails(prev => ({ ...prev, email_signature: content }))}
+                  placeholder="Create your professional email signature..."
+                />
+              </div>
+
+              <Separator />
+
+              {/* Letter Signature */}
+              <div>
+                <Label className="flex items-center gap-2 mb-3">
+                  <FileText className="h-4 w-4" />
+                  Letter Signature
+                </Label>
+                <SignatureEditor
+                  content={practiceDetails.letter_signature || ''}
+                  onChange={(content) => setPracticeDetails(prev => ({ ...prev, letter_signature: content }))}
+                  placeholder="Create your professional letter signature..."
+                />
+              </div>
             </CardContent>
           </Card>
 
@@ -688,6 +616,26 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
                   <span className="text-sm">Uploading logo...</span>
                 </div>
               )}
+              
+              {/* Save Button for Practice Logo */}
+              <Button 
+                onClick={handleSavePracticeDetails}
+                disabled={loading || logoUploading}
+                variant="outline"
+                className="w-full"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Save Practice Logo
+                  </>
+                )}
+              </Button>
             </CardContent>
           </Card>
 
