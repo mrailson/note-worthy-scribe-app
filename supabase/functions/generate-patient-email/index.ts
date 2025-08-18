@@ -75,27 +75,27 @@ serve(async (req) => {
     }
 
     // Create a comprehensive prompt for the patient email
-    const prompt = `You are a GP creating a patient summary email. Based on the consultation transcript below, create ONLY the email body content (do not include subject line, signature, or contact details as these will be added separately).
+    const prompt = `You are a GP creating a patient summary email. Based on the consultation transcript below, create ONLY the main email body content.
 
-Create a well-formatted email body that includes:
-1. A warm, professional greeting to "Dear Patient"
-2. A clear summary of the consultation in simple, non-medical language
-3. What was discussed and any findings
-4. The agreed treatment plan or next steps
-5. Any follow-up instructions or when to contact the practice
-6. A simple closing like "I hope this helps clarify our discussion today."
+Do NOT include:
+- Subject lines
+- Greetings like "Dear Patient" or "Dear Mrs/Mr [Name]" 
+- Any signatures or closing statements
+- Contact details
 
-The email should be:
-- Written in clear, patient-friendly language
-- Professional but warm in tone
-- Do NOT include any placeholder names, signatures, or contact details
-- Do NOT include "Kind regards" or signature sections
-- End with a simple statement like "I hope this summary is helpful"
+Start directly with the consultation summary content. Write in clear, patient-friendly language and include:
+1. A summary of what was discussed during the consultation
+2. Any findings or diagnoses in simple terms
+3. The agreed treatment plan or recommendations
+4. Any follow-up instructions
+5. When to contact the practice if needed
+
+Keep the tone professional but warm and reassuring.
 
 Consultation Transcript:
 ${transcript}
 
-Please provide only the email body content without any signatures or contact information.`;
+Provide only the main body content without any headers, greetings, or signatures.`;
 
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -134,17 +134,22 @@ Please provide only the email body content without any signatures or contact inf
       year: 'numeric'
     });
 
-    // Clean up any residual signature content from AI response
+    // Clean up any residual content from AI response
     let cleanedContent = generatedContent
+      .replace(/^Subject:.*$/gm, '') // Remove any subject lines
+      .replace(/^Dear (Patient|Mrs\.?|Mr\.?|Ms\.?).*$/gm, '') // Remove any greetings
       .replace(/Kind regards,[\s\S]*$/i, '') // Remove any "Kind regards" and everything after
       .replace(/Best regards,[\s\S]*$/i, '') // Remove any "Best regards" and everything after
       .replace(/Sincerely,[\s\S]*$/i, '') // Remove any "Sincerely" and everything after
       .replace(/\[Your Name\]/g, '') // Remove placeholder names
       .replace(/\[Your Position\]/g, '') // Remove placeholder positions
-      .replace(/Mrs\. Johnson|Mr\. Smith|Dear [A-Z][a-z]+ [A-Z][a-z]+/g, 'Dear Patient') // Replace specific names with "Dear Patient"
+      .replace(/I hope this email finds you.*?\./g, '') // Remove generic opening statements
+      .replace(/^[\s\n]*/, '') // Remove leading whitespace/newlines
       .trim();
 
     const emailContent = `Subject: Your Recent Consultation - ${consultationType}
+
+Dear Patient,
 
 ${cleanedContent}
 
@@ -156,9 +161,9 @@ ${profile?.full_name || 'Dr. [Name]'}
 ${practiceDetails?.practice_name || '[Practice Name]'}
 
 Practice Contact Details:
-📧 Email: ${practiceDetails?.email || '[practice@email.com]'}
-📞 Phone: ${practiceDetails?.phone || '[Practice Phone]'}
-🏥 Address: ${practiceDetails?.address || '[Practice Address]'}
+Email: ${practiceDetails?.email || '[practice@email.com]'}
+Phone: ${practiceDetails?.phone || '[Practice Phone]'}
+Address: ${practiceDetails?.address || '[Practice Address]'}
 
 This email was generated on ${currentDate}
 
