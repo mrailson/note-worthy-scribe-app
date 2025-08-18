@@ -6,7 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { 
+  Collapsible, 
+  CollapsibleContent, 
+  CollapsibleTrigger 
+} from "@/components/ui/collapsible";
 import { EditStates, EditContent, ExpandDialog } from "@/types/gpscribe";
 import { Brain, Copy, Download, Edit, Check, X, Maximize2, Mail, FileText, Clock, MessageSquare, UserCheck, AlertTriangle, ChevronUp, ChevronDown, Mic, Send, Loader2 } from "lucide-react";
 import { toast } from "sonner";
