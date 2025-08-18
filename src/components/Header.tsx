@@ -146,15 +146,8 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                    >
                      <Sparkles className="h-4 w-4 mr-2" />
                      AI4GP Service
-                      </DropdownMenuItem>
-                       <DropdownMenuItem 
-                         onClick={() => navigate('/image-create')}
-                         className="cursor-pointer py-3"
-                       >
-                         <ImageIcon className="h-4 w-4 mr-2" />
-                         Image Create
                        </DropdownMenuItem>
-                       <DropdownMenuItem 
+                        <DropdownMenuItem
                          onClick={() => navigate('/api-testing')}
                          className="cursor-pointer py-3"
                        >
@@ -370,12 +363,6 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                             <Sparkles className="h-4 w-4 mr-2" />
                             AI4GP Service
                           </Button>
-                          </DrawerClose>
-                          <DrawerClose asChild>
-                            <Button variant="ghost" className="justify-start" onClick={() => navigate('/image-create')}>
-                              <ImageIcon className="h-4 w-4 mr-2" />
-                              Image Create
-                            </Button>
                           </DrawerClose>
                           <DrawerClose asChild>
                             <Button variant="ghost" className="justify-start" onClick={() => navigate('/api-testing')}>
