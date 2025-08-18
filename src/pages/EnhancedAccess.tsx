@@ -43,36 +43,37 @@ const EnhancedAccess = () => {
     const monthEnd = endOfMonth(date);
     const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
     
-    // Count weekdays and Saturdays
+    // Count weekdays only (Monday to Friday, excluding bank holidays)
     const dayCounts = {
       monday: 0,
       tuesday: 0,
       wednesday: 0,
       thursday: 0,
-      friday: 0,
-      saturday: 0
+      friday: 0
     };
     
     daysInMonth.forEach(day => {
       const dayOfWeek = getDay(day);
-      switch (dayOfWeek) {
-        case 1: dayCounts.monday++; break;    // Monday: 2 hours
-        case 2: dayCounts.tuesday++; break;   // Tuesday: 4 hours
-        case 3: dayCounts.wednesday++; break; // Wednesday: 2 hours
-        case 4: dayCounts.thursday++; break;  // Thursday: 2 hours
-        case 5: dayCounts.friday++; break;    // Friday: 4 hours
-        case 6: dayCounts.saturday++; break;  // Saturday: 16 hours
+      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6; // Sunday or Saturday
+      
+      if (!isWeekend) {
+        switch (dayOfWeek) {
+          case 1: dayCounts.monday++; break;    // Monday: 2 hours
+          case 2: dayCounts.tuesday++; break;   // Tuesday: 4 hours
+          case 3: dayCounts.wednesday++; break; // Wednesday: 2 hours
+          case 4: dayCounts.thursday++; break;  // Thursday: 2 hours
+          case 5: dayCounts.friday++; break;    // Friday: 4 hours
+        }
       }
     });
     
-    // Calculate Hub delivery
+    // Calculate Hub delivery (weekdays only)
     let hubHours = (
       dayCounts.monday * 2 +
       dayCounts.tuesday * 4 +
       dayCounts.wednesday * 2 +
       dayCounts.thursday * 2 +
-      dayCounts.friday * 4 +
-      dayCounts.saturday * 16
+      dayCounts.friday * 4
     );
     
     // Add extra 60 hours for October 2025 (Covid Clinics)
@@ -171,7 +172,7 @@ const EnhancedAccess = () => {
       if (assignmentsError) throw assignmentsError;
 
       // Calculate stats
-      const totalSlots = (templates || []).length * 6; // 6 working days (Mon-Sat)
+      const totalSlots = (templates || []).length * 5; // 5 working days (Mon-Fri)
       const assignedSlots = (assignments || []).length;
       const percentage = totalSlots > 0 ? Math.round((assignedSlots / totalSlots) * 100) : 0;
 
@@ -416,9 +417,9 @@ const EnhancedAccess = () => {
                           const dayOfWeek = getDay(day);
                           const adjustedDayOfWeek = dayOfWeek === 0 ? 7 : dayOfWeek;
                           const shifts = getShiftsForDay(adjustedDayOfWeek);
-                          const isSunday = dayOfWeek === 0;
+                          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6; // Sunday or Saturday
                           const isBankHoliday = bankHolidays.has(format(day, 'yyyy-MM-dd'));
-                          const isClosedDay = isSunday || isBankHoliday;
+                          const isClosedDay = isWeekend || isBankHoliday;
                           
                           const hasAssignments = !isClosedDay && shifts.some(shift => {
                             const shiftAssignments = weeklyAssignments.filter(a => 
@@ -444,9 +445,9 @@ const EnhancedAccess = () => {
                                     <span className="sm:hidden">{format(day, "EEE, d MMM")}</span>
                                     <span className="hidden sm:inline">{format(day, "d")}</span>
                                   </h3>
-                                  <p className="text-xs text-muted-foreground mt-1">
-                                    {isBankHoliday ? 'Bank Holiday' : 'No service'}
-                                  </p>
+                                   <p className="text-xs text-muted-foreground mt-1">
+                                     {isBankHoliday ? 'Bank Holiday' : dayOfWeek === 0 ? 'Sunday' : dayOfWeek === 6 ? 'Saturday' : 'No service'}
+                                   </p>
                                 </div>
                               </div>
                             );
@@ -831,7 +832,7 @@ const EnhancedAccess = () => {
                         <div>Wed: {spokeData.dayCounts.wednesday} days × 2hrs = {spokeData.dayCounts.wednesday * 2}hrs</div>
                         <div>Thu: {spokeData.dayCounts.thursday} days × 2hrs = {spokeData.dayCounts.thursday * 2}hrs</div>
                         <div>Fri: {spokeData.dayCounts.friday} days × 4hrs = {spokeData.dayCounts.friday * 4}hrs</div>
-                        <div>Sat: {spokeData.dayCounts.saturday} days × 16hrs = {spokeData.dayCounts.saturday * 16}hrs</div>
+                        
                       </div>
                       <div className="mt-2 pt-2 border-t border-blue-200">
                         <strong>Hub Total: {spokeData.hubHours} hours | Spoke Balance: {spokeData.spokeBalance} hours</strong>
