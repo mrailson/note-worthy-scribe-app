@@ -179,13 +179,19 @@ export const SummaryPanel = ({
   };
 
   const generatePatientEmail = async () => {
+    console.log('🔧 Starting patient email generation...');
+    
     if (!transcript.trim()) {
+      console.log('❌ No transcript available');
       toast.error("No transcript available to generate patient email");
       return;
     }
 
+    console.log('✅ Transcript available, length:', transcript.length);
     setIsGeneratingPatientEmail(true);
+    
     try {
+      console.log('📤 Calling supabase function...');
       const { data, error } = await supabase.functions.invoke('generate-patient-email', {
         body: {
           transcript: transcript,
@@ -193,22 +199,27 @@ export const SummaryPanel = ({
         }
       });
 
+      console.log('📥 Function response:', { data, error });
+
       if (error) {
-        console.error('Error generating patient email:', error);
-        toast.error("Failed to generate patient email");
+        console.error('❌ Supabase function error:', error);
+        toast.error(`Failed to generate patient email: ${error.message}`);
         return;
       }
 
       if (data?.emailContent) {
+        console.log('✅ Email content received, length:', data.emailContent.length);
         setPatientEmail(data.emailContent);
         toast.success("Patient email generated successfully");
       } else {
+        console.log('❌ No email content in response:', data);
         toast.error("No email content received");
       }
     } catch (error) {
-      console.error('Error calling patient email function:', error);
-      toast.error("Failed to generate patient email");
+      console.error('❌ Exception calling patient email function:', error);
+      toast.error(`Failed to generate patient email: ${error.message}`);
     } finally {
+      console.log('🏁 Email generation complete');
       setIsGeneratingPatientEmail(false);
     }
   };

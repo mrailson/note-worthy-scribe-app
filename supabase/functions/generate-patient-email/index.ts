@@ -24,40 +24,53 @@ interface PracticeDetails {
 }
 
 serve(async (req) => {
+  console.log('🚀 Generate patient email function called');
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log('✅ CORS preflight request handled');
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    console.log('📥 Parsing request body...');
     const { transcript, consultationType = "General Consultation" }: PatientEmailRequest = await req.json();
+    console.log('✅ Request parsed:', { transcriptLength: transcript?.length, consultationType });
 
+    console.log('🔐 Checking authorization header...');
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
+      console.error('❌ No authorization header provided');
       throw new Error('No authorization header provided');
     }
+    console.log('✅ Authorization header found:', authHeader.substring(0, 20) + '...');
 
+    console.log('🔧 Creating Supabase client...');
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    // Get the current user from the session
+    console.log('👤 Getting current user...');
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {
-      console.error('Auth error:', userError);
+      console.error('❌ Auth error:', userError);
+      console.error('❌ User:', user);
       throw new Error('User not authenticated');
     }
+    console.log('✅ User authenticated:', user.id);
 
-    // Get GP profile details
+    console.log('📋 Getting GP profile...');
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('full_name, email')
       .eq('user_id', user.id)
       .single();
+    
+    console.log('Profile result:', { profile, profileError });
 
-    // Get practice details
+    console.log('🏥 Getting practice details...');
     const { data: practiceDetails, error: practiceError } = await supabase
       .from('practice_details')
       .select('practice_name, email, phone, address')
@@ -66,13 +79,14 @@ serve(async (req) => {
       .limit(1)
       .single();
 
-    console.log('Profile:', profile);
-    console.log('Practice Details:', practiceDetails);
+    console.log('Practice details result:', { practiceDetails, practiceError });
 
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openaiApiKey) {
+      console.error('❌ OpenAI API key not found');
       throw new Error('OpenAI API key not found');
     }
+    console.log('✅ OpenAI API key found');
 
     // Create a comprehensive prompt for the patient email
     const prompt = `You are a GP creating a patient summary email. Based on the consultation transcript below, create ONLY the main email body content.
@@ -97,6 +111,7 @@ ${transcript}
 
 Provide only the main body content without any headers, greetings, or signatures.`;
 
+    console.log('🤖 Calling OpenAI API...');
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -121,10 +136,12 @@ Provide only the main body content without any headers, greetings, or signatures
     });
 
     if (!openaiResponse.ok) {
+      console.error('❌ OpenAI API error:', openaiResponse.status, openaiResponse.statusText);
       throw new Error(`OpenAI API error: ${openaiResponse.statusText}`);
     }
 
     const openaiData = await openaiResponse.json();
+    console.log('✅ OpenAI response received');
     const generatedContent = openaiData.choices[0]?.message?.content || '';
 
     // Format the complete email with GP and practice details
@@ -170,6 +187,8 @@ This email was generated on ${currentDate}
 ---
 Please note: This email contains confidential medical information. If you have received this email in error, please contact our practice immediately and delete this message.`;
 
+    console.log('✅ Email content generated, length:', emailContent.length);
+    
     return new Response(
       JSON.stringify({ 
         emailContent,
@@ -185,7 +204,7 @@ Please note: This email contains confidential medical information. If you have r
     );
 
   } catch (error) {
-    console.error('Error generating patient email:', error);
+    console.error('❌ Error generating patient email:', error);
     return new Response(
       JSON.stringify({ 
         error: error.message,
