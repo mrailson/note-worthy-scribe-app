@@ -23,6 +23,7 @@ interface UserProfile {
   first_name: string;
   last_name: string;
   email: string;
+  role: string;
 }
 
 interface PracticeDetails {
@@ -44,7 +45,8 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
     title: '',
     first_name: '',
     last_name: '',
-    email: ''
+    email: '',
+    role: ''
   });
   const [practiceDetails, setPracticeDetails] = useState<PracticeDetails>({
     practice_name: '',
@@ -83,7 +85,8 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
           title: '', // This field doesn't exist in profiles table yet
           first_name: data.full_name?.split(' ')[0] || '', // Extract from full_name
           last_name: data.full_name?.split(' ').slice(1).join(' ') || '', // Extract from full_name
-          email: user.email || ''
+          email: user.email || '',
+          role: data.department || '' // Use department field from profiles table for role
         });
       } else {
         // No profile found, use email from auth
@@ -182,6 +185,7 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
           .from('profiles')
           .update({
             full_name: fullName,
+            department: userProfile.role, // Save role to department field
             updated_at: new Date().toISOString()
           })
           .eq('id', userProfile.id);
@@ -194,6 +198,7 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
           .insert({
             user_id: user.id,
             full_name: fullName,
+            department: userProfile.role, // Save role to department field
             email: user.email
           });
 
@@ -301,7 +306,38 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
                 </div>
               </div>
 
-              <Button 
+              <div>
+                <Label htmlFor="role">Role</Label>
+                <Select
+                  value={userProfile.role}
+                  onValueChange={(value) => setUserProfile(prev => ({ ...prev, role: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select your role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="GP Partner">GP Partner</SelectItem>
+                    <SelectItem value="Practice Manager">Practice Manager</SelectItem>
+                    <SelectItem value="Salaried GP">Salaried GP</SelectItem>
+                    <SelectItem value="Locum GP">Locum GP</SelectItem>
+                    <SelectItem value="Advanced Nurse Practitioner">Advanced Nurse Practitioner</SelectItem>
+                    <SelectItem value="Practice Nurse">Practice Nurse</SelectItem>
+                    <SelectItem value="Clinical Pharmacist">Clinical Pharmacist</SelectItem>
+                    <SelectItem value="First Contact Practitioner">First Contact Practitioner</SelectItem>
+                    <SelectItem value="Physician Associate">Physician Associate</SelectItem>
+                    <SelectItem value="Healthcare Assistant">Healthcare Assistant</SelectItem>
+                    <SelectItem value="Mental Health Practitioner">Mental Health Practitioner</SelectItem>
+                    <SelectItem value="Social Prescriber">Social Prescriber</SelectItem>
+                    <SelectItem value="Care Coordinator">Care Coordinator</SelectItem>
+                    <SelectItem value="Administrative Staff">Administrative Staff</SelectItem>
+                    <SelectItem value="Receptionist">Receptionist</SelectItem>
+                    <SelectItem value="Secretary">Secretary</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Button
                 onClick={handleSaveUserProfile}
                 disabled={profileLoading}
                 className="w-full"
