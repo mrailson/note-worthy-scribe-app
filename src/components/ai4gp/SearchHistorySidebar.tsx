@@ -28,17 +28,45 @@ export const SearchHistorySidebar: React.FC<SearchHistorySidebarProps> = ({
       return search.brief_overview;
     }
     
-    // Generate overview from first user message
-    const firstUserMessage = search.messages.find(msg => msg.role === 'user');
-    if (firstUserMessage) {
-      const content = firstUserMessage.content.trim();
-      if (content.length > 100) {
-        return content.substring(0, 100) + '...';
+    // Analyze multiple messages to create a better overview
+    const userMessages = search.messages.filter(msg => msg.role === 'user');
+    const assistantMessages = search.messages.filter(msg => msg.role === 'assistant');
+    
+    if (userMessages.length === 0) {
+      return 'No messages available';
+    }
+    
+    // Try to find key topics from user messages
+    const allUserContent = userMessages.map(msg => msg.content).join(' ').toLowerCase();
+    
+    // Look for key medical/healthcare terms and topics
+    const topics = [];
+    if (allUserContent.includes('patient') || allUserContent.includes('diagnosis')) topics.push('Patient Care');
+    if (allUserContent.includes('prescription') || allUserContent.includes('medication')) topics.push('Medication');
+    if (allUserContent.includes('referral') || allUserContent.includes('specialist')) topics.push('Referral');
+    if (allUserContent.includes('letter') || allUserContent.includes('report')) topics.push('Documentation');
+    if (allUserContent.includes('guideline') || allUserContent.includes('protocol')) topics.push('Guidelines');
+    if (allUserContent.includes('symptom') || allUserContent.includes('condition')) topics.push('Clinical');
+    
+    // If we found topics, use them
+    if (topics.length > 0) {
+      const topicSummary = topics.slice(0, 2).join(' & ');
+      const lastMessage = userMessages[userMessages.length - 1]?.content || '';
+      const preview = lastMessage.length > 60 ? lastMessage.substring(0, 60) + '...' : lastMessage;
+      return `${topicSummary}: ${preview}`;
+    }
+    
+    // Fall back to showing the most recent user message for context
+    const lastUserMessage = userMessages[userMessages.length - 1];
+    if (lastUserMessage) {
+      const content = lastUserMessage.content.trim();
+      if (content.length > 80) {
+        return content.substring(0, 80) + '...';
       }
       return content;
     }
     
-    return 'No overview available';
+    return 'Conversation available';
   };
 
   const formatDateTime = (dateString: string) => {
