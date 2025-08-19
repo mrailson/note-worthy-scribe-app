@@ -1170,9 +1170,11 @@ export default function GPScribeSoapMock() {
               <button onClick={() => copy(renderSoap(soap))} className="rounded-lg border px-3 py-2 text-sm hover:bg-slate-100">
                 Copy SOAP
               </button>
-              <button onClick={() => copy(buildEmisNote(activeTemplate, soap))} className="rounded-lg border px-3 py-2 text-sm hover:bg-slate-100">
-                Copy EMIS Note
-              </button>
+              {outputStyle === 'emis' && (
+                <button onClick={() => copy(buildEmisNote(activeTemplate, soap))} className="rounded-lg border px-3 py-2 text-sm hover:bg-slate-100">
+                  Copy EMIS Note
+                </button>
+              )}
               <button onClick={() => copy(activeTemplate.patientCopy || "")} className="rounded-lg border px-3 py-2 text-sm hover:bg-slate-100">
                 Copy Patient Copy
               </button>
