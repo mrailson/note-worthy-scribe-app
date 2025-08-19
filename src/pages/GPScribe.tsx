@@ -1,6 +1,16 @@
 import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { 
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
+import { Button } from "@/components/ui/button";
+import { Menu, X, ChevronUp } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -55,6 +65,7 @@ const Index = () => {
   // UI states
   const [activeTab, setActiveTab] = useState<ActiveTab>("consultation");
   const [showAIChat, setShowAIChat] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [exampleData, setExampleData] = useState<{
     title?: string;
     type?: string;
@@ -279,21 +290,97 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-background overflow-x-hidden">
+    <div className="min-h-screen bg-gradient-background overflow-x-hidden relative">
       <Header onNewMeeting={() => {}} />
       
-      <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 lg:py-8 space-y-4 sm:space-y-6 max-w-6xl pb-28 sm:pb-6 mobile-container" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 96px)' }}>
+      <div className="container mx-auto px-2 py-2 sm:px-4 sm:py-6 lg:py-8 space-y-3 sm:space-y-6 max-w-6xl">
+        {/* Mobile Quick Actions Drawer */}
+        {isMobile && (
+          <Drawer open={showMobileMenu} onOpenChange={setShowMobileMenu}>
+            <DrawerTrigger asChild>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="fixed top-20 right-4 z-50 bg-background/95 backdrop-blur-sm border-primary/20"
+              >
+                <Menu className="h-4 w-4" />
+              </Button>
+            </DrawerTrigger>
+            <DrawerContent className="max-h-[80vh]">
+              <DrawerHeader>
+                <DrawerTitle>Quick Actions</DrawerTitle>
+                <DrawerDescription>Access GP Scribe features</DrawerDescription>
+              </DrawerHeader>
+              <div className="p-4 space-y-3">
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start"
+                  onClick={() => {
+                    setActiveTab("consultation");
+                    setShowMobileMenu(false);
+                  }}
+                >
+                  Start Recording
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start"
+                  onClick={() => {
+                    setActiveTab("summary");
+                    setShowMobileMenu(false);
+                  }}
+                >
+                  View Summary
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start"
+                  onClick={() => {
+                    setActiveTab("examples");
+                    setShowMobileMenu(false);
+                  }}
+                >
+                  Load Examples
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start"
+                  onClick={() => {
+                    setShowAIChat(true);
+                    setShowMobileMenu(false);
+                  }}
+                >
+                  GP Genie AI
+                </Button>
+              </div>
+            </DrawerContent>
+          </Drawer>
+        )}
         
-        {/* Tab Navigation */}
+        {/* Tab Navigation - Sticky on Mobile */}
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as ActiveTab)} className="w-full">
-          <TabNavigation 
-            activeTab={activeTab} 
-            onTabChange={setActiveTab} 
-            isMobile={isMobile}
-          />
+          <div className={`${isMobile ? 'sticky top-16 z-40 bg-background/95 backdrop-blur-sm border-b pb-2 mb-4' : ''}`}>
+            <TabNavigation 
+              activeTab={activeTab} 
+              onTabChange={setActiveTab} 
+              isMobile={isMobile}
+            />
+          </div>
 
-          {/* AI Chat Display in White Box */}
-          {showAIChat && (
+          {/* AI Chat Display - Drawer on Mobile */}
+          {showAIChat && isMobile ? (
+            <Drawer open={showAIChat} onOpenChange={setShowAIChat}>
+              <DrawerContent className="max-h-[90vh]">
+                <DrawerHeader>
+                  <DrawerTitle>GP Genie AI Assistant</DrawerTitle>
+                  <DrawerDescription>Your AI consultation assistant</DrawerDescription>
+                </DrawerHeader>
+                <div className="p-4 overflow-y-auto">
+                  <GPGenieVoiceAgent />
+                </div>
+              </DrawerContent>
+            </Drawer>
+          ) : showAIChat && !isMobile ? (
             <div className="mt-6 bg-card rounded-lg border shadow-sm p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold">GP Genie</h3>
@@ -301,15 +388,15 @@ const Index = () => {
                   onClick={() => setShowAIChat(false)}
                   className="text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  ✕
+                  <X className="h-4 w-4" />
                 </button>
               </div>
               <GPGenieVoiceAgent />
             </div>
-          )}
+          ) : null}
 
           {/* Consultation Tab */}
-          <TabsContent value="consultation" className="space-y-6 mt-6">
+          <TabsContent value="consultation" className={`space-y-4 sm:space-y-6 ${isMobile ? 'mt-2' : 'mt-6'}`}>
             <RecordingControls
               isRecording={recording.isRecording}
               isPaused={recording.isPaused}
@@ -343,26 +430,37 @@ const Index = () => {
           </TabsContent>
 
           {/* Summary Tab */}
-          <TabsContent value="summary" className="space-y-6 mt-6">
-            <GPScribeSoapMock />
+          <TabsContent value="summary" className={`space-y-4 sm:space-y-6 ${isMobile ? 'mt-2' : 'mt-6'} ${isMobile ? 'pb-20' : ''}`}>
+            <div className={`${isMobile ? 'h-[calc(100vh-200px)] overflow-y-auto' : ''}`}>
+              <GPScribeSoapMock />
+            </div>
           </TabsContent>
 
           {/* Examples Tab */}
-          <TabsContent value="examples" className="space-y-6 mt-6">
-            <ExamplesPanel onLoadExample={handleLoadExample} />
+          <TabsContent value="examples" className={`space-y-4 sm:space-y-6 ${isMobile ? 'mt-2' : 'mt-6'} ${isMobile ? 'pb-20' : ''}`}>
+            <div className={`${isMobile ? 'h-[calc(100vh-200px)] overflow-y-auto' : ''}`}>
+              <ExamplesPanel onLoadExample={handleLoadExample} />
+            </div>
           </TabsContent>
 
           {/* History Tab */}
-          <TabsContent value="history" className="space-y-6 mt-6">
-            <ConsultationHistory />
+          <TabsContent value="history" className={`space-y-4 sm:space-y-6 ${isMobile ? 'mt-2' : 'mt-6'} ${isMobile ? 'pb-20' : ''}`}>
+            <div className={`${isMobile ? 'h-[calc(100vh-200px)] overflow-y-auto' : ''}`}>
+              <ConsultationHistory />
+            </div>
           </TabsContent>
 
           {/* Chat Tab */}
-          <TabsContent value="chat" className="space-y-6 mt-6">
-            <GPGenieVoiceAgent />
+          <TabsContent value="chat" className={`space-y-4 sm:space-y-6 ${isMobile ? 'mt-2' : 'mt-6'} ${isMobile ? 'pb-20' : ''}`}>
+            <div className={`${isMobile ? 'h-[calc(100vh-200px)] overflow-y-auto' : ''}`}>
+              <GPGenieVoiceAgent />
+            </div>
           </TabsContent>
 
         </Tabs>
+
+        {/* Mobile Bottom Safe Area */}
+        {isMobile && <div className="h-20" />}
 
         {/* Translation Modal */}
         {msg && (

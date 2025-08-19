@@ -6,9 +6,10 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Mic, RotateCcw, FileText, ChevronDown, ChevronRight, Upload } from "lucide-react";
+import { Mic, RotateCcw, FileText, ChevronDown, ChevronRight, Upload, Settings } from "lucide-react";
 import { useState, useEffect } from "react";
 import { TranscriptImport } from "./TranscriptImport";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface RecordingControlsProps {
   isRecording: boolean;
@@ -51,12 +52,14 @@ export const RecordingControls = ({
   onResetConsultation,
   onImportTranscript
 }: RecordingControlsProps) => {
+  const isMobile = useIsMobile();
   const [isTelephone, setIsTelephone] = useState(false);
   const [isTranscriptExpanded, setIsTranscriptExpanded] = useState(false);
   const [isImportExpanded, setIsImportExpanded] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [dontShowAgain, setDontShowAgain] = useState(false);
   const [hideResetConfirmation, setHideResetConfirmation] = useState(false);
+  const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
 
   // Load the "don't show again" preference from localStorage
   useEffect(() => {
@@ -94,79 +97,136 @@ export const RecordingControls = ({
 
   return (
     <Card className="w-full">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-lg">
+      <CardHeader className={`${isMobile ? 'flex flex-col space-y-3 pb-3' : 'flex flex-row items-center justify-between space-y-0 pb-2'}`}>
+        <CardTitle className={`${isMobile ? 'text-base text-center' : 'text-lg'}`}>
           Clinical Consultation
         </CardTitle>
-        <Button variant="outline" size="sm" onClick={handleResetClick}>
+        <Button 
+          variant="outline" 
+          size={isMobile ? "sm" : "sm"} 
+          onClick={handleResetClick}
+          className={`${isMobile ? 'w-full' : ''}`}
+        >
           <RotateCcw className="h-4 w-4 mr-1" />
-          Start New Consultation
+          {isMobile ? "New Consultation" : "Start New Consultation"}
         </Button>
       </CardHeader>
       
-      <CardContent className="space-y-6">
-        {/* Consultation Type */}
-        <div className="flex flex-col items-center gap-3">
-          <div className="flex items-center gap-2">
-            <FileText className="h-4 w-4 text-primary" />
-            <Label className="text-sm font-medium">Consultation Type</Label>
+      <CardContent className={`${isMobile ? 'space-y-4' : 'space-y-6'}`}>
+        {/* Main Recording Controls */}
+        <div className="space-y-4">
+          {/* Start Transcribing Button */}
+          <div className="flex justify-center">
+            {!isRecording ? (
+              <Button
+                onClick={onStartRecording}
+                size="lg"
+                className={`bg-primary hover:bg-primary/90 text-white font-medium min-h-[48px] ${isMobile ? 'w-full py-4 text-lg' : 'px-8 py-3 text-base'}`}
+              >
+                <Mic className="h-5 w-5 mr-2" />
+                Start Transcribing
+              </Button>
+            ) : (
+              <Button
+                onClick={onStopRecording}
+                variant="destructive"
+                size="lg"
+                className={`font-medium min-h-[48px] ${isMobile ? 'w-full py-4 text-lg' : 'px-8 py-3 text-base'}`}
+              >
+                Stop Transcribing
+              </Button>
+            )}
           </div>
-          <div className="flex items-center gap-4">
-            <Label 
-              htmlFor="consultation-type" 
-              className={`text-sm font-medium transition-colors ${!isTelephone ? 'text-primary' : 'text-muted-foreground'}`}
-            >
-              Face to Face
-            </Label>
-            <Switch
-              id="consultation-type"
-              checked={isTelephone}
-              onCheckedChange={setIsTelephone}
-              className="data-[state=checked]:bg-primary"
-            />
-            <Label 
-              htmlFor="consultation-type" 
-              className={`text-sm font-medium transition-colors ${isTelephone ? 'text-primary' : 'text-muted-foreground'}`}
-            >
-              Telephone
-            </Label>
+
+          {/* Duration and Words Counter */}
+          <div className={`flex justify-center ${isMobile ? 'gap-8' : 'gap-12'}`}>
+            <div className="text-center">
+              <div className={`font-bold text-primary ${isMobile ? 'text-xl' : 'text-2xl'}`}>{formatDuration(duration)}</div>
+              <div className="text-sm text-muted-foreground">Duration</div>
+            </div>
+            <div className="text-center">
+              <div className={`font-bold text-primary ${isMobile ? 'text-xl' : 'text-2xl'}`}>{wordCount}</div>
+              <div className="text-sm text-muted-foreground">Words</div>
+            </div>
           </div>
         </div>
 
-        {/* Duration and Words Counter */}
-        <div className="flex justify-center gap-12">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-primary">{formatDuration(duration)}</div>
-            <div className="text-sm text-muted-foreground">Duration</div>
+        {/* Advanced Settings - Collapsible on Mobile */}
+        {isMobile ? (
+          <Collapsible open={showAdvancedSettings} onOpenChange={setShowAdvancedSettings}>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" className="w-full justify-between p-2">
+                <span className="flex items-center gap-2">
+                  <Settings className="h-4 w-4" />
+                  Advanced Settings
+                </span>
+                {showAdvancedSettings ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-4">
+              {/* Consultation Type */}
+              <div className="flex flex-col items-center gap-3 pt-2">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-primary" />
+                  <Label className="text-sm font-medium">Consultation Type</Label>
+                </div>
+                <div className="flex items-center gap-4">
+                  <Label 
+                    htmlFor="consultation-type" 
+                    className={`text-sm font-medium transition-colors ${!isTelephone ? 'text-primary' : 'text-muted-foreground'}`}
+                  >
+                    Face to Face
+                  </Label>
+                  <Switch
+                    id="consultation-type"
+                    checked={isTelephone}
+                    onCheckedChange={setIsTelephone}
+                    className="data-[state=checked]:bg-primary"
+                  />
+                  <Label 
+                    htmlFor="consultation-type" 
+                    className={`text-sm font-medium transition-colors ${isTelephone ? 'text-primary' : 'text-muted-foreground'}`}
+                  >
+                    Telephone
+                  </Label>
+                </div>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        ) : (
+          /* Desktop: Show consultation type normally */
+          <div className="flex flex-col items-center gap-3">
+            <div className="flex items-center gap-2">
+              <FileText className="h-4 w-4 text-primary" />
+              <Label className="text-sm font-medium">Consultation Type</Label>
+            </div>
+            <div className="flex items-center gap-4">
+              <Label 
+                htmlFor="consultation-type" 
+                className={`text-sm font-medium transition-colors ${!isTelephone ? 'text-primary' : 'text-muted-foreground'}`}
+              >
+                Face to Face
+              </Label>
+              <Switch
+                id="consultation-type"
+                checked={isTelephone}
+                onCheckedChange={setIsTelephone}
+                className="data-[state=checked]:bg-primary"
+              />
+              <Label 
+                htmlFor="consultation-type" 
+                className={`text-sm font-medium transition-colors ${isTelephone ? 'text-primary' : 'text-muted-foreground'}`}
+              >
+                Telephone
+              </Label>
+            </div>
           </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-primary">{wordCount}</div>
-            <div className="text-sm text-muted-foreground">Words</div>
-          </div>
-        </div>
+        )}
 
-        {/* Start Transcribing Button */}
-        <div className="flex justify-center">
-          {!isRecording ? (
-            <Button
-              onClick={onStartRecording}
-              size="lg"
-              className="bg-primary hover:bg-primary/90 text-white px-8 py-3 text-base font-medium min-h-[48px]"
-            >
-              <Mic className="h-5 w-5 mr-2" />
-              Start Transcribing
-            </Button>
-          ) : (
-            <Button
-              onClick={onStopRecording}
-              variant="destructive"
-              size="lg"
-              className="px-8 py-3 text-base font-medium min-h-[48px]"
-            >
-              Stop Transcribing
-            </Button>
-          )}
-        </div>
 
         {/* Transcript Service - Collapsible */}
         <Collapsible open={isTranscriptExpanded} onOpenChange={setIsTranscriptExpanded}>
@@ -198,7 +258,7 @@ export const RecordingControls = ({
                 )}
               </div>
               
-              <ScrollArea className="h-32 w-full">
+              <ScrollArea className={`w-full ${isMobile ? 'h-24' : 'h-32'}`}>
                 <div className="space-y-2 text-sm">
                   {/* Real-time transcripts */}
                   {realtimeTranscripts.length > 0 ? (

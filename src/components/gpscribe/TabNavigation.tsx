@@ -26,7 +26,7 @@ export const TabNavigation = ({ activeTab, onTabChange, isMobile }: TabNavigatio
 
   return (
     <div className="w-full">
-      <TabsList className={`grid w-full ${isMobile ? 'grid-cols-2' : 'grid-cols-4'} gap-1`}>
+      <TabsList className={`grid w-full ${isMobile ? 'grid-cols-2' : 'grid-cols-4'} gap-1 ${isMobile ? 'h-auto' : ''}`}>
         {tabs.map((tab) => {
           const Icon = tab.icon;
           return (
@@ -35,14 +35,18 @@ export const TabNavigation = ({ activeTab, onTabChange, isMobile }: TabNavigatio
               value={tab.id}
               onClick={() => onTabChange(tab.id)}
               className={`
-                flex items-center gap-2 px-2 py-2 text-xs font-medium
-                ${isMobile ? 'flex-col min-h-[44px]' : 'flex-row'}
-                touch-manipulation
+                flex items-center gap-2 font-medium transition-all
+                ${isMobile 
+                  ? 'flex-col min-h-[52px] px-3 py-3 text-xs' 
+                  : 'flex-row px-4 py-2 text-sm'
+                }
+                touch-manipulation active:scale-95
+                hover:bg-blue-100/80 dark:hover:bg-blue-900/80
               `}
             >
-              <Icon className="h-4 w-4" />
+              <Icon className={`${isMobile ? 'h-5 w-5' : 'h-4 w-4'}`} />
               {isMobile ? (
-                <span className="text-[10px] leading-none">{tab.label}</span>
+                <span className="text-[11px] leading-none font-medium">{tab.label}</span>
               ) : (
                 <span>{tab.label}</span>
               )}
