@@ -16,90 +16,166 @@ export const consultationExamples: ConsultationExample[] = [
     id: "urti-example",
     title: "Upper Respiratory Tract Infection",
     type: "Acute Illness",
-    duration: "8:30",
-    transcript: `Doctor: Good morning, Mrs. Johnson. Please have a seat. What brings you in today?
+    duration: "9:50",
+    transcript: `00:00 Clinician: Hello, I'm Dr Patel. Before we start, can I quickly confirm your full name and date of birth?
+00:06 Patient: Yes, Alex Jones, born 12th March 1989.
+00:10 Clinician: Thanks Alex. Is it okay if I use a digital scribe to generate a summary of today's consultation?
+00:16 Patient: Yes, I'm happy with that.
+00:18 Clinician: Great. What's brought you in today and what would you like us to focus on?
+00:23 Patient: I've had a sore throat and a blocked nose for about three days. The cough started dry but today I'm coughing up a bit of clear stuff.
+00:33 Clinician: Any fever or chills? Ear pain, sinus pressure or tooth pain?
+00:38 Patient: I felt shivery yesterday evening and a bit sweaty overnight, but no earache or tooth pain. My face feels heavy.
+00:46 Clinician: Any shortness of breath, chest pain, wheeze, or coughing up blood?
+00:50 Patient: No to all of those. Breathing's fine, just the annoying cough.
+00:54 Clinician: How's your throat—any difficulty swallowing, drooling, voice changes or severe one‑sided pain?
+01:00 Patient: It's sore when I swallow but manageable. No drooling or voice problems.
+01:05 Clinician: Have you lost your sense of taste or smell? Any sickness or diarrhoea?
+01:10 Patient: Taste and smell are okay. No sickness or diarrhoea.
+01:14 Clinician: What have you tried for it so far?
+01:16 Patient: Paracetamol every 6 hours and honey with lemon. Helps a bit.
+01:21 Clinician: Any allergies to medicines?
+01:23 Patient: No allergies.
+01:25 Clinician: Any medical problems or regular medicines? Inhalers, tablets, anything like that?
+01:30 Patient: Mild asthma—blue inhaler a few times a year, not used it this week. Otherwise healthy.
+01:36 Clinician: Anyone around you unwell—work or home? Have you travelled recently?
+01:40 Patient: My son had a cold last week. I'm a teacher so lots of colds around. No recent travel.
+01:46 Clinician: Do you smoke or vape? Alcohol in a typical week?
+01:49 Patient: Non‑smoker. I might have a glass of wine once or twice a week.
+01:53 Clinician: What are your main concerns today—anything you're worried we might miss, and what were you hoping for from the appointment?
+02:00 Patient: I'm worried it could be strep throat or even pneumonia. I was wondering if I need antibiotics because I'm back in the classroom tomorrow.
+02:09 Clinician: Thanks—that's helpful. We'll check you over, talk about when antibiotics help, and make a plan for school. I'll examine your ears, throat, glands and chest. Is that okay?
+02:18 Patient: Yes, that's fine.
+02:20 Clinician: Before I examine you—any history of rheumatic fever, immune problems, or recent contact with scarlet fever?
+02:26 Patient: No.
+02:28 Clinician: Alright, I'll take your observations first.
+02:30 Other: [Hands washed, PPE used. Taking temperature, pulse, blood pressure and oxygen saturation.]
+02:46 Clinician: Temperature 37.7°C, pulse 88 and regular, blood pressure 128 over 78, oxygen saturations 98% on room air, respiratory rate 14.
+02:58 Clinician: I'll examine your throat, ears and neck now.
+03:00 Other: [Oropharyngeal exam and otoscopy performed.]
+03:10 Clinician: Throat looks red, tonsils mildly swollen with no pus or white spots. Uvula central. A few small tender glands at the front of the neck.
+03:20 Clinician: I'll listen to your chest.
+03:22 Other: [Chest examined—inspection, percussion and auscultation.]
+03:30 Clinician: Chest is clear—no wheeze or crackles. No signs of pneumonia.
+03:35 Patient: Okay, that's good.
+03:37 Clinician: I'll also check your nose and sinuses.
+03:39 Other: [Anterior rhinoscopy and sinus palpation.]
+03:46 Clinician: Nasal lining is swollen and a bit pale with clear discharge; mild tenderness over the cheeks—common with a cold.
+03:54 Clinician: Let me summarise: three days of sore throat, blocked nose and cough; low‑grade fever yesterday; your observations are reassuring and chest is clear. Overall this fits a **viral upper respiratory infection**.
+04:09 Patient: So not strep then?
+04:11 Clinician: Strep throat usually has higher fever, no cough, and pus on the tonsils. We can score it—on the Centor/FeverPAIN system your score is low, so antibiotics wouldn't help and could cause side effects.
+04:25 Patient: That makes sense. What can I do to get better quicker?
+04:28 Clinician: Best evidence is supportive care: regular paracetamol or ibuprofen if you can take it, fluids, rest, warm drinks with honey, and saline or menthol steam for the nose. A decongestant spray can help for up to 3–5 days—avoid longer to prevent rebound congestion.
+04:48 Patient: Can I use throat lozenges?
+04:50 Clinician: Yes. Salt‑water gargles or anaesthetic lozenges can ease the soreness briefly.
+04:55 Patient: Do I need a COVID test?
+04:57 Clinician: Not routinely if you're otherwise well and symptoms are consistent with a cold. If you later develop high fever or new loss of taste/smell you could test, but it isn't necessary now.
+05:09 Clinician: I'll give you a short information leaflet with self‑care and warning signs. Would you like a work note or are you okay to work if you feel up to it?
+05:17 Patient: If I'm fever‑free I'll go in tomorrow. Hand‑washing and tissues, I know the drill.
+05:24 Clinician: Perfect. Keep hydrated and rest when you can.
+05:27 Clinician: Any history of sinus problems, hay fever, or reflux that flares with colds?
+05:32 Patient: I get hay fever in summer but nothing at the moment.
+05:36 Clinician: Thanks. I'll just check your asthma—the blue inhaler hasn't been needed? Any wheeze with this illness?
+05:42 Patient: No wheeze and I haven't used it.
+05:45 Clinician: Great. If the cough becomes tight or wheezy, you can use it as needed.
+05:50 Clinician: I'll run through safety‑netting now so you know when to seek help:
+05:53 Clinician: — If breathing becomes difficult, chest pain develops, you cough blood, you feel confused, or the fever persists beyond five days, seek urgent care.
+06:07 Clinician: — If you're not improving after about a week to ten days, or symptoms worsen, contact us for review.
+06:16 Patient: Okay, I'll keep an eye on those.
+06:19 Clinician: How are symptoms affecting sleep and eating? Any dehydration—dry mouth, passing less urine?
+06:25 Patient: Sleep was rough last night. I'm drinking okay and peeing normally.
+06:30 Clinician: Good. Try to keep sipping fluids—warm drinks can soothe the throat. You can alternate paracetamol and ibuprofen if needed and tolerated.
+06:40 Patient: What about antibiotics just in case, for work?
+06:43 Clinician: Understandable, but antibiotics don't reduce the duration of viral colds, and they can cause side effects and resistance. If you developed features of bacterial tonsillitis we'd reassess.
+06:55 Patient: Fair enough.
+06:57 Clinician: Do you have any upcoming travel or anyone vulnerable at home—pregnant, elderly, or immunocompromised?
+07:03 Patient: My dad has COPD but I won't see him until I'm better.
+07:07 Clinician: That's sensible—hand hygiene and tissues reduce spread.
+07:10 Clinician: I'll note your scores: FeverPAIN 1/5 (fever yesterday only), Centor 0–1 (cough present, no pus, tender nodes mild). That supports no antibiotics.
+07:23 Patient: Good to know. How long will the cough last?
+07:26 Clinician: The sore throat often settles in 3–5 days; the cough and congestion can linger up to 2–3 weeks but should gradually improve. Clear phlegm is common; seek help if it turns dark with breathlessness or chest pain.
+07:41 Patient: If my nose stays blocked, can I use a nasal steroid?
+07:44 Clinician: You can use saline irrigation first; if congestion persists beyond 10–14 days we can consider a steroid spray, but most colds resolve without it.
+07:54 Patient: Got it.
+07:56 Clinician: Any questions about ibuprofen—stomach ulcers, kidney problems, or other reasons you shouldn't take it?
+08:02 Patient: No, I'm fine with ibuprofen.
+08:05 Clinician: Okay—take with food. For dosing: paracetamol up to 1 gram four‑times‑daily; ibuprofen 200–400 mg three‑times‑daily if needed, maximum as per the box. Don't take cold remedies that duplicate paracetamol.
+08:22 Patient: I'll check the labels.
+08:24 Clinician: I'll send the information and your summary to the patient app now.
+08:27 Other: [Summary and self‑care leaflet sent via patient app; printed copy offered.]
+08:34 Clinician: Let me re‑check your throat comfort after a sip of water.
+08:36 Other: [Patient drinks water.]
+08:39 Patient: Still scratchy but okay.
+08:41 Clinician: Try warm liquids and avoid smoking or vaping; steam from a shower can help loosen mucus.
+08:49 Patient: I don't smoke, so that's easy.
+08:52 Clinician: Great. I'll document that we've discussed return to work when you feel well enough and fever‑free for 24 hours.
+08:59 Patient: Thanks.
+09:01 Clinician: If you need a brief fit note, let me know via the app; for now self‑certification should be fine.
+09:07 Patient: Okay.
+09:09 Clinician: Just to confirm—no rash, no severe ear pain, and you're keeping fluids down?
+09:13 Patient: Yes to all of that.
+09:16 Clinician: Excellent.
+09:18 Clinician: I'll quickly check your oxygen again after talking.
+09:21 Other: [Pulse oximetry re‑checked.]
+09:24 Clinician: Still 98% on air, which is normal.
+09:27 Patient: Good to hear.
+09:29 Clinician: I'll wrap up: today's findings fit a viral upper respiratory tract infection; no signs of pneumonia or severe tonsillitis. Self‑care and safety‑net discussed; no antibiotics indicated.
+09:43 Patient: Okay, I'm reassured.
+09:45 Clinician: Any other questions before we finish?
+09:47 Patient: No, that's everything. Thank you.
+09:50 Clinician: You're very welcome. I'll be here if things change—send a message if you're not improving by day 7 to 10 or sooner if you're worried.`,
+    summary: `**Patient:** Alex Jones, DOB: 12/03/1989
 
-Patient: Good morning, Doctor. I've been feeling quite unwell for the past three days. I have a terrible sore throat, blocked nose, and I've been coughing quite a bit.
-
-Doctor: I'm sorry to hear you're feeling unwell. Can you tell me more about the sore throat? Is it painful when you swallow?
-
-Patient: Yes, very painful. It feels quite raw, especially when I try to drink anything. The pain is worse in the morning when I wake up.
-
-Doctor: And the cough - is it a dry cough or are you bringing anything up?
-
-Patient: It started as a dry cough, but now I'm bringing up some clear phlegm. Nothing colored though.
-
-Doctor: That's good. Have you had a fever at all?
-
-Patient: I felt hot and cold yesterday, but I didn't take my temperature. I was quite shivery.
-
-Doctor: Any other symptoms? Headache, body aches, changes to your voice?
-
-Patient: Yes, I do have a bit of a headache, and my voice sounds different - a bit hoarse. I've also been quite tired.
-
-Doctor: How long have you been experiencing these symptoms now?
-
-Patient: They started on Monday morning, so about three days ago. The sore throat came first, then the blocked nose and cough followed.
-
-Doctor: Have you taken anything for the symptoms?
-
-Patient: Just some paracetamol for the headache and sore throat. It helps a bit but doesn't last long.
-
-Doctor: That's fine. Now, let me examine you. Could you open your mouth and say 'ahh' for me? I can see your throat is quite red and inflamed, but I don't see any white spots or pus, which is good news. Let me check your lymph nodes... Yes, they're a bit swollen on both sides of your neck. Let me listen to your chest... Your breathing sounds clear, no wheeze or crackles.
-
-Patient: That's reassuring about my chest.
-
-Doctor: Yes, your chest sounds fine. Based on your symptoms and examination, this appears to be a viral upper respiratory tract infection - essentially the common cold. These are very common, especially at this time of year.
-
-Patient: Is there anything I can do to get better faster?
-
-Doctor: Unfortunately, antibiotics won't help as this is viral, not bacterial. The best treatment is rest, plenty of fluids, and continuing with paracetamol for comfort. You could also try throat lozenges and perhaps some honey and lemon drinks for the sore throat.
-
-Patient: How long will it take to get better?
-
-Doctor: Most people feel significantly better within 7-10 days, though the cough can sometimes linger for a couple of weeks. You should start feeling better in the next few days.
-
-Patient: Should I stay off work?
-
-Doctor: If you're feeling quite unwell and tired, it's worth taking a day or two off to rest. Also, you'll be less likely to pass it on to colleagues if you stay home while you're symptomatic.
-
-Patient: Okay, that makes sense. When should I come back if I'm not getting better?
-
-Doctor: If you develop a high fever, if your symptoms worsen rather than improve after a few days, or if you develop chest pain or difficulty breathing, then please contact us. Also, if you're not feeling better after 10 days, it would be worth reviewing.
-
-Patient: Thank you, Doctor. That's very helpful.
-
-Doctor: You're welcome. Take care, and I hope you feel better soon.`,
-    summary: `**Chief Complaint:** Upper respiratory tract symptoms for 3 days
+**Chief Complaint:** Upper respiratory tract symptoms for 3 days
 
 **History of Presenting Complaint:**
-- 3-day history of sore throat (severe, worse on swallowing, worse in mornings)
-- Blocked nose
-- Cough (initially dry, now productive of clear sputum)
-- Subjective fever with chills yesterday
-- Headache
-- Hoarse voice
-- Fatigue
-- Taking paracetamol with partial relief
+- 3-day history of sore throat, blocked nose, and cough
+- Cough initially dry, now productive of clear sputum
+- Subjective fever and chills yesterday evening with night sweats
+- Facial heaviness (sinus symptoms)
+- Sore throat manageable, no dysphagia or voice changes
+- No loss of taste/smell, no GI symptoms
+- Current treatment: Paracetamol 6-hourly, honey with lemon
+
+**Past Medical History:**
+- Mild asthma (salbutamol inhaler PRN, not used recently)
+- NKDA
+
+**Social History:**
+- Teacher, non-smoker, minimal alcohol (1-2 glasses wine/week)
+- Recent exposure: Son had cold last week, work environment
+
+**Patient Concerns:**
+- Worried about strep throat or pneumonia
+- Needs to return to work (teaching)
 
 **Examination:**
-- Erythematous throat without exudate
-- Bilateral tender cervical lymphadenopathy
-- Clear chest on auscultation
-- No fever recorded during consultation
+- Observations: T 37.7°C, HR 88 reg, BP 128/78, O2 sats 98% RA, RR 14
+- Throat: Erythematous, tonsils mildly swollen, no exudate, uvula central
+- Neck: Small tender anterior cervical lymph nodes
+- Chest: Clear to auscultation, no wheeze or crackles
+- ENT: Swollen pale nasal mucosa with clear discharge, mild sinus tenderness
+
+**Clinical Scores:**
+- FeverPAIN: 1/5 (fever yesterday only)
+- Centor: 0-1 (cough present, no exudate, mild lymphadenopathy)
 
 **Assessment:**
 Viral upper respiratory tract infection (common cold)
+Low probability of streptococcal pharyngitis
 
-**Plan:**
-- Conservative management with rest and fluids
-- Continue paracetamol as needed for symptomatic relief
-- Throat lozenges and honey/lemon drinks for throat symptoms
-- Advised to stay off work for 1-2 days
-- Safety netting: Return if symptoms worsen, high fever develops, chest symptoms, or no improvement after 10 days
+**Management:**
+- Symptomatic treatment: Paracetamol/ibuprofen (with food)
+- Supportive care: Rest, fluids, warm drinks with honey
+- Nasal decongestant spray (maximum 3-5 days)
+- Throat lozenges/salt water gargles
+- Return to work when fever-free for 24 hours
+- No antibiotics indicated
 
-**No antibiotics prescribed** - viral etiology explained to patient`,
-    patientCopy: `Hi Mrs. Johnson, you have a viral upper respiratory tract infection (common cold). Rest, fluids, and paracetamol will help. Contact us if symptoms worsen or persist beyond 10 days.`,
+**Safety Netting:**
+- Seek urgent care if: breathing difficulties, chest pain, haemoptysis, confusion, persistent fever >5 days
+- Review if not improving by 7-10 days or symptoms worsen
+- Information leaflet and patient app summary provided`,
+    patientCopy: `Hi Alex, you have a viral upper respiratory tract infection (common cold). Take paracetamol or ibuprofen, rest, drink fluids, and use throat lozenges. Return to work when fever-free for 24 hours. Contact us if symptoms worsen or persist beyond 7-10 days, or if you develop breathing difficulties.`,
     aiReview: `**Consultation Review and Analysis**
 
 The consultation regarding the patient with symptoms of an upper respiratory tract infection (URTI) was generally well-conducted. However, there are areas for improvement in history taking, examination, and management plan.
