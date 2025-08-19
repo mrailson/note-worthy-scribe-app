@@ -137,6 +137,29 @@ const handler = async (req: Request): Promise<Response> => {
     
     // If there's a Word attachment, we need to include it in the template params
     const templateParams = { ...enhancedEmailData };
+    
+    // For AI-generated content, ensure proper HTML formatting
+    if (emailData.template_type === 'ai_generated_content' && emailData.message) {
+      // Create properly structured HTML email content
+      const htmlContent = emailData.message
+        .replace(/\n/g, '<br>')
+        .replace(/<br><br>/g, '</p><p>')
+        .replace(/^/, '<p>')
+        .replace(/$/, '</p>')
+        .replace(/<p><\/p>/g, '');
+      
+      templateParams.message = htmlContent;
+      templateParams.html_message = `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+                    font-size: 14px; 
+                    line-height: 1.6; 
+                    color: #333333; 
+                    max-width: 600px;">
+          ${htmlContent}
+        </div>
+      `;
+    }
+    
     if (emailData.word_attachment) {
       templateParams.attachment_name = emailData.word_attachment.filename;
       templateParams.attachment_content = emailData.word_attachment.content;
