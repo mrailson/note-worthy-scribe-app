@@ -23,6 +23,24 @@ export const SearchHistorySidebar: React.FC<SearchHistorySidebarProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
+  const getSearchOverview = (search: SearchHistory) => {
+    if (search.brief_overview) {
+      return search.brief_overview;
+    }
+    
+    // Generate overview from first user message
+    const firstUserMessage = search.messages.find(msg => msg.role === 'user');
+    if (firstUserMessage) {
+      const content = firstUserMessage.content.trim();
+      if (content.length > 100) {
+        return content.substring(0, 100) + '...';
+      }
+      return content;
+    }
+    
+    return 'No overview available';
+  };
+
   const formatDateTime = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleString('en-GB', {
@@ -121,11 +139,9 @@ export const SearchHistorySidebar: React.FC<SearchHistorySidebarProps> = ({
                   <div className="font-medium text-sm truncate w-full">
                     {search.title}
                   </div>
-                  {search.brief_overview && (
-                    <div className="text-xs text-muted-foreground line-clamp-2 w-full">
-                      {search.brief_overview}
-                    </div>
-                  )}
+                  <div className="text-xs text-muted-foreground line-clamp-2 w-full">
+                    {getSearchOverview(search)}
+                  </div>
                   <div className="text-xs text-muted-foreground">
                     {formatDateTime(search.created_at)}
                   </div>
