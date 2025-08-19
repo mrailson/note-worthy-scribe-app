@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Clock, Trash2, Eye, X } from 'lucide-react';
+import { Clock, Trash2, X, Search } from 'lucide-react';
 import { SearchHistory, Message } from '@/types/ai4gp';
 
 interface SearchHistorySidebarProps {
@@ -20,6 +21,8 @@ export const SearchHistorySidebar: React.FC<SearchHistorySidebarProps> = ({
   onClearAllHistory,
   onClose
 }) => {
+  const [searchQuery, setSearchQuery] = useState('');
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-GB', {
       day: '2-digit',
@@ -28,9 +31,22 @@ export const SearchHistorySidebar: React.FC<SearchHistorySidebarProps> = ({
     });
   };
 
+  const filteredHistory = useMemo(() => {
+    if (!searchQuery.trim()) return searchHistory;
+    
+    const query = searchQuery.toLowerCase();
+    return searchHistory.filter(search => 
+      search.title.toLowerCase().includes(query) ||
+      search.brief_overview?.toLowerCase().includes(query) ||
+      search.messages.some(message => 
+        message.content.toLowerCase().includes(query)
+      )
+    );
+  }, [searchHistory, searchQuery]);
+
   return (
     <div className="w-80 border-r bg-muted/30 flex flex-col">
-      <div className="p-4 border-b">
+      <div className="p-4 border-b space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="font-medium flex items-center">
             <Clock className="w-4 h-4 mr-2" />
@@ -65,6 +81,18 @@ export const SearchHistorySidebar: React.FC<SearchHistorySidebarProps> = ({
             </Button>
           </div>
         </div>
+        
+        {searchHistory.length > 0 && (
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search conversations..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 h-8 text-sm"
+            />
+          </div>
+        )}
       </div>
       
       <ScrollArea className="flex-1">
@@ -73,8 +101,12 @@ export const SearchHistorySidebar: React.FC<SearchHistorySidebarProps> = ({
             <p className="text-sm text-muted-foreground p-4 text-center">
               No search history yet. Start a conversation to see it here.
             </p>
+          ) : filteredHistory.length === 0 ? (
+            <p className="text-sm text-muted-foreground p-4 text-center">
+              No conversations match your search.
+            </p>
           ) : (
-            searchHistory.map((search) => (
+            filteredHistory.map((search) => (
               <div key={search.id} className="group relative">
                 <Button
                   variant="ghost"
