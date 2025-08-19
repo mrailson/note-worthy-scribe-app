@@ -123,7 +123,7 @@ export const ExamplesPanel = ({ onLoadExample }: ExamplesPanelProps) => {
               <Textarea
                 value={selectedExample.transcript}
                 readOnly
-                className="min-h-[300px] resize-none text-sm font-mono"
+                className="min-h-[300px] max-h-[600px] overflow-y-auto resize-none text-sm font-mono"
               />
             </div>
 

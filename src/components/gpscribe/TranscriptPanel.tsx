@@ -141,7 +141,7 @@ export const TranscriptPanel = ({
                 value={editValue}
                 onChange={(e) => setEditValue(e.target.value)}
                 placeholder="Edit transcript..."
-                className="min-h-[200px] resize-none"
+                className="min-h-[300px] max-h-[600px] overflow-y-auto resize-none"
               />
               <div className="flex justify-end gap-2">
                 <Button
@@ -168,7 +168,7 @@ export const TranscriptPanel = ({
               value={transcript}
               onChange={(e) => onTranscriptChange(e.target.value)}
               placeholder={isRecording ? "Listening..." : "No transcript yet. Start recording to begin."}
-              className="min-h-[200px] resize-none"
+              className="min-h-[300px] max-h-[600px] overflow-y-auto resize-none"
               readOnly={isRecording}
             />
           )}
@@ -195,7 +195,7 @@ export const TranscriptPanel = ({
             <Textarea
               value={cleanedTranscript}
               readOnly
-              className="min-h-[200px] resize-none"
+              className="min-h-[300px] max-h-[600px] overflow-y-auto resize-none"
             />
           </CardContent>
         </Card>
