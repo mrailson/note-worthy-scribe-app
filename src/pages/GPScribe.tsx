@@ -344,18 +344,6 @@ const Index = () => {
 
           {/* Summary Tab */}
           <TabsContent value="summary" className="space-y-6 mt-6">
-            {/* Show generate button if transcript exists but no generated notes */}
-            {recording.transcript && (
-              <div className="space-y-4">
-                <GenerateNotesButton 
-                  transcript={recording.transcript}
-                  onNotesGenerated={(notes) => {
-                    console.log("Notes generated:", notes);
-                    toast.success("Consultation notes generated! View below.");
-                  }}
-                />
-              </div>
-            )}
             <GPScribeSoapMock />
           </TabsContent>
 
