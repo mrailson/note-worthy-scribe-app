@@ -164,13 +164,9 @@ export const TranscriptPanel = ({
               </div>
             </div>
           ) : (
-            <Textarea
-              value={transcript}
-              onChange={(e) => onTranscriptChange(e.target.value)}
-              placeholder={isRecording ? "Listening..." : "No transcript yet. Start recording to begin."}
-              className="min-h-[300px] max-h-[600px] overflow-y-auto resize-none"
-              readOnly={isRecording}
-            />
+            <div className="min-h-[300px] max-h-[600px] overflow-y-auto p-3 border rounded-md bg-background text-sm font-mono whitespace-pre-wrap break-words">
+              {transcript || (isRecording ? "Listening..." : "No transcript yet. Start recording to begin.")}
+            </div>
           )}
         </CardContent>
       </Card>
