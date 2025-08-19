@@ -1140,11 +1140,33 @@ export default function GPScribeSoapMock() {
               
               // Parse the letter text for structured display
               const lines = letter.split('\n');
-              const sections: { type: 'paragraph' | 'list'; content: string; items?: string[] }[] = [];
+              const sections: { type: 'paragraph' | 'list' | 'signature'; content: string; items?: string[] }[] = [];
               let currentSection: string[] = [];
               let inList = false;
+              let inSignature = false;
               
-              for (const line of lines) {
+              for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                
+                // Detect signature section (starts after "Kind regards,")
+                if (line.trim() === 'Kind regards,') {
+                  if (currentSection.length > 0) {
+                    sections.push({ type: 'paragraph', content: currentSection.join(' ') });
+                    currentSection = [];
+                  }
+                  // Add "Kind regards," as paragraph
+                  sections.push({ type: 'paragraph', content: 'Kind regards,' });
+                  inSignature = true;
+                  inList = false;
+                  
+                  // Collect remaining lines as signature
+                  const signatureLines = lines.slice(i + 1).filter(l => l.trim());
+                  if (signatureLines.length > 0) {
+                    sections.push({ type: 'signature', content: signatureLines.join('\n') });
+                  }
+                  break;
+                }
+                
                 if (line.trim() === '') {
                   if (currentSection.length > 0) {
                     sections.push({ type: 'paragraph', content: currentSection.join(' ') });
@@ -1180,7 +1202,7 @@ export default function GPScribeSoapMock() {
                 }
               }
               
-              if (currentSection.length > 0) {
+              if (currentSection.length > 0 && !inSignature) {
                 sections.push({ type: 'paragraph', content: currentSection.join(' ') });
               }
               
@@ -1198,6 +1220,13 @@ export default function GPScribeSoapMock() {
                         <div key={idx}>
                           {section.type === 'paragraph' && section.content && (
                             <p className="mb-3">{section.content}</p>
+                          )}
+                          {section.type === 'signature' && (
+                            <div className="pt-2">
+                              <div className="whitespace-pre-line font-medium">
+                                {section.content}
+                              </div>
+                            </div>
                           )}
                           {section.type === 'list' && (
                             <div>
