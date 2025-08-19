@@ -71,21 +71,26 @@ export function EmailCompositionModal({
   const [isSending, setIsSending] = useState(false);
   const { toast } = useToast();
 
-  // Function to strip markdown formatting from text
-  const stripMarkdown = (text: string): string => {
+  // Function to convert markdown formatting to HTML
+  const convertMarkdownToHTML = (text: string): string => {
     return text
-      .replace(/^---+$/gm, '\n') // Replace horizontal rules with a line break for section spacing
-      .replace(/\*\*\*(.*?)\*\*\*/g, '$1') // Convert bold+italic to plain text
-      .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold markdown but keep text
-      .replace(/\*([^*]+)\*/g, '$1') // Remove italic formatting
-      .replace(/`(.*?)`/g, '"$1"') // Convert inline code to quotes
-      .replace(/#{1,6}\s+/g, '') // Remove header markers but keep text
-      .replace(/^\s*[-*+]\s+/gm, '• ') // Convert markdown lists to bullet points
-      .replace(/^\s*\d+\.\s+/gm, '') // Remove numbered list markers but keep text
-      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Convert links to just text
-      .replace(/\n\s*\n\s*\n+/g, '\n\n') // Clean up excessive empty lines (3+ becomes 2)
-      .replace(/^\n+/, '') // Remove leading empty lines
-      .replace(/\n+$/, '') // Remove trailing empty lines
+      .replace(/^---+$/gm, '<hr>') // Replace horizontal rules with HTML hr
+      .replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>') // Convert bold+italic to HTML
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Convert bold markdown to HTML
+      .replace(/\*([^*]+)\*/g, '<em>$1</em>') // Convert italic formatting to HTML
+      .replace(/`(.*?)`/g, '<code>$1</code>') // Convert inline code to HTML
+      .replace(/#{6}\s+(.*?)$/gm, '<h6>$1</h6>') // Convert h6 headers
+      .replace(/#{5}\s+(.*?)$/gm, '<h5>$1</h5>') // Convert h5 headers
+      .replace(/#{4}\s+(.*?)$/gm, '<h4>$1</h4>') // Convert h4 headers
+      .replace(/#{3}\s+(.*?)$/gm, '<h3>$1</h3>') // Convert h3 headers
+      .replace(/#{2}\s+(.*?)$/gm, '<h2>$1</h2>') // Convert h2 headers
+      .replace(/#{1}\s+(.*?)$/gm, '<h1>$1</h1>') // Convert h1 headers
+      .replace(/^\s*[-*+]\s+(.*?)$/gm, '<li>$1</li>') // Convert markdown lists to HTML li
+      .replace(/^\s*(\d+)\.\s+(.*?)$/gm, '<li>$1. $2</li>') // Convert numbered lists to HTML
+      .replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>') // Wrap list items in ul tags
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>') // Convert links to HTML
+      .replace(/\n/g, '<br>') // Convert line breaks to HTML br tags
+      .replace(/<ul><\/ul>/g, '') // Remove empty ul tags
       .trim();
   };
 
@@ -188,7 +193,7 @@ export function EmailCompositionModal({
       const emailData = {
         to_email: toEmail.trim(),
         subject: subject.trim(),
-        message: cleanMessage,
+        message: convertMarkdownToHTML(cleanMessage),
         template_type: 'ai_generated_content',
         from_name: 'AI4GP Service',
         reply_to: 'noreply@gp-tools.nhs.uk',
