@@ -259,7 +259,7 @@ const handler = async (req: Request): Promise<Response> => {
       };
     }
 
-    // Professional HTML email template
+    // Professional HTML email template with table-based bullets (Outlook-safe)
     function generateProfessionalEmailHTML(data: any): string {
       return `<!doctype html>
 <html lang="en">
@@ -268,116 +268,103 @@ const handler = async (req: Request): Promise<Response> => {
     <meta name="viewport" content="width=device-width">
     <meta charset="utf-8">
     <title>${data.title}</title>
-    <style>
-      /* Reset Outlook default margins */
-      p, ul, ol, li {
-        margin:0 !important;
-        padding:0 !important;
-      }
-      ul, ol {
-        margin-left:18px !important;
-      }
-      li {
-        margin-bottom:4px !important;
-        line-height:1.4 !important;
-      }
-    </style>
   </head>
   <body style="margin:0; padding:0; background:#f5f8ff;">
-    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background:#f0f6ff;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f0f6ff;">
       <tr>
         <td align="center" style="padding:24px 12px;">
-          <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="680" style="max-width:680px; background:#ffffff; border-radius:10px; overflow:hidden; box-shadow:0 1px 3px rgba(11,31,53,0.07);">
+          <table role="presentation" width="680" cellspacing="0" cellpadding="0" border="0" style="max-width:680px;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 1px 3px rgba(11,31,53,.07);">
+            <!-- Header -->
             <tr>
-              <td style="background:#eaf2ff; padding:18px 24px; font-family:Segoe UI, Roboto, Arial, sans-serif; line-height:1.35;">
-                <div style="font-size:18px; font-weight:700; color:#0b2545; margin:0;">
-                  ${data.title}
-                </div>
-                ${data.date ? `<div style="font-size:13px; color:#335; margin-top:6px;">
-                  Date: <strong>${data.date}</strong>
-                </div>` : ''}
+              <td style="background:#eaf2ff;padding:18px 24px;font-family:Segoe UI,Roboto,Arial,sans-serif;line-height:1.35;">
+                <div style="font-size:18px;font-weight:700;color:#0b2545">${data.title}</div>
+                ${data.date ? `<div style="font-size:13px;color:#335;margin-top:6px">Date: <strong>${data.date}</strong></div>` : ''}
               </td>
             </tr>
 
-            ${data.time || data.location || data.attendees ? `<tr>
-              <td style="padding:20px 24px 8px; font-family:Segoe UI, Roboto, Arial, sans-serif; color:#0b2545;">
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
-                  <tr>
-                    <td style="font-size:14px; line-height:1.6;">
-                      ${data.time ? `<div style="margin:0 0 6px;">⏰ <strong>Time:</strong> ${data.time}</div>` : ''}
-                      ${data.location ? `<div style="margin:0 0 6px;">📍 <strong>Location:</strong> ${data.location}</div>` : ''}
-                      ${data.attendees ? `<div style="margin:0 0 6px;">👥 <strong>Attendees:</strong> ${data.attendees}</div>` : ''}
-                    </td>
-                  </tr>
+            ${data.time || data.location || data.attendees ? `<!-- Meta -->
+            <tr>
+              <td style="padding:18px 24px 8px;font-family:Segoe UI,Roboto,Arial,sans-serif;color:#0b2545;font-size:14px;line-height:1.45">
+                ${data.time ? `⏰ <strong>Time:</strong> ${data.time}<br>` : ''}
+                ${data.location ? `📍 <strong>Location:</strong> ${data.location}<br>` : ''}
+                ${data.attendees ? `👥 <strong>Attendees:</strong> ${data.attendees}` : ''}
+              </td>
+            </tr>` : ''}
+
+            ${data.agenda.length > 0 || data.discussion_points.length > 0 ? `<tr><td style="padding:0 24px"><hr style="border:none;border-top:1px solid #e6eefc;margin:8px 0 12px"></td></tr>` : ''}
+
+            ${data.agenda.length > 0 ? `<!-- Agenda (table bullets) -->
+            <tr>
+              <td style="padding:0 24px 6px;font-family:Segoe UI,Roboto,Arial,sans-serif;">
+                <div style="font-size:15px;font-weight:700;color:#0b2545;margin:0 0 6px">Agenda</div>
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="font-size:14px;color:#1a2a44;">
+                  ${data.agenda.map((item: string, index: number) => `<tr>
+                    <td width="18" valign="top" style="font-weight:700;padding:0 8px 4px 0">${index + 1}.</td>
+                    <td valign="top" style="line-height:1.4;padding:0 0 4px 0">${item}</td>
+                  </tr>`).join('')}
                 </table>
               </td>
             </tr>` : ''}
 
-            ${data.agenda.length > 0 || data.discussion_points.length > 0 ? `<tr>
-              <td style="padding:0 24px;">
-                <hr style="border:none; border-top:1px solid #e6eefc; margin:8px 0 14px;">
-              </td>
-            </tr>` : ''}
-
-            ${data.agenda.length > 0 ? `<tr>
-              <td style="padding:0 24px 6px; font-family:Segoe UI, Roboto, Arial, sans-serif;">
-                <div style="font-size:15px; font-weight:700; color:#0b2545; margin:0 0 6px;">Agenda</div>
-                <ol style="margin:0 0 6px 18px; padding:0; font-size:14px; color:#1a2a44; line-height:1.4;">
-                  ${data.agenda.map((item: string) => `<li>${item}</li>`).join('')}
-                </ol>
-              </td>
-            </tr>` : ''}
-
-            ${data.discussion_points.length > 0 ? `<tr>
-              <td style="padding:0 24px 2px; font-family:Segoe UI, Roboto, Arial, sans-serif;">
-                <div style="font-size:15px; font-weight:700; color:#0b2545; margin:0 0 6px;">Discussion Points</div>
+            ${data.discussion_points.length > 0 ? `<!-- Discussion Points -->
+            <tr>
+              <td style="padding:6px 24px 0;font-family:Segoe UI,Roboto,Arial,sans-serif;">
+                <div style="font-size:15px;font-weight:700;color:#0b2545;margin:0 0 6px">Discussion Points</div>
                 ${data.discussion_points.map((point: any) => `
-                <div style="margin:0 0 14px 0;">
-                  <div style="font-size:14px; font-weight:700; color:#0b2545; margin:0 0 4px;">${point.heading}</div>
-                  <ul style="margin:0 0 6px 18px; padding:0; font-size:14px; color:#1a2a44; line-height:1.4;">
-                    ${point.items.map((item: string) => `<li>${item}</li>`).join('')}
-                  </ul>
-                </div>`).join('')}
+                <div style="font-size:14px;font-weight:700;color:#0b2545;margin:8px 0 4px">${point.heading}</div>
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="font-size:14px;color:#1a2a44;">
+                  ${point.items.map((item: string) => `<tr>
+                    <td width="16" valign="top" style="font-size:16px;line-height:1;padding:0 6px 4px 0">•</td>
+                    <td valign="top" style="line-height:1.4;padding:0 0 4px 0">${item}</td>
+                  </tr>`).join('')}
+                </table>`).join('')}
               </td>
             </tr>` : ''}
 
-            ${data.risks.length > 0 ? `<tr>
-              <td style="padding:0 24px 2px; font-family:Segoe UI, Roboto, Arial, sans-serif;">
-                <div style="font-size:15px; font-weight:700; color:#0b2545; margin:2px 0 6px;">Risks &amp; Mitigations</div>
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border:1px solid #e6eefc; border-radius:8px;">
-                  <tr>
-                    <td style="padding:12px 16px;">
-                      <ol style="margin:0 0 0 18px; padding:0; font-size:14px; color:#1a2a44; line-height:1.4;">
-                        ${data.risks.map((risk: any) => `
-                        <li style="margin:0 0 10px 0;">
-                          <div><strong>${risk.title}:</strong> ${risk.risk}</div>
-                          ${risk.mitigation ? `<div style="margin-top:4px;"><em>Mitigation:</em> ${risk.mitigation}</div>` : ''}
-                        </li>`).join('')}
-                      </ol>
-                    </td>
-                  </tr>
+            ${data.risks.length > 0 ? `<!-- Risks & Mitigations -->
+            <tr>
+              <td style="padding:10px 24px 0;font-family:Segoe UI,Roboto,Arial,sans-serif;">
+                <div style="font-size:15px;font-weight:700;color:#0b2545;margin:0 0 6px">Risks &amp; Mitigations</div>
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border:1px solid #e6eefc;border-radius:8px;font-size:14px;color:#1a2a44;">
+                  <tr><td style="padding:12px 16px">
+                    ${data.risks.map((risk: any, index: number) => `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 8px 0">
+                      <tr>
+                        <td width="18" valign="top" style="font-weight:700;padding:0 8px 0 0">${index + 1}.</td>
+                        <td valign="top" style="line-height:1.4">
+                          <strong>${risk.title}:</strong> ${risk.risk}<br>
+                          ${risk.mitigation ? `<em>Mitigation:</em> ${risk.mitigation}` : ''}
+                        </td>
+                      </tr>
+                    </table>`).join('')}
+                  </td></tr>
                 </table>
               </td>
             </tr>` : ''}
 
-            ${data.next_steps.length > 0 ? `<tr>
-              <td style="padding:10px 24px 2px; font-family:Segoe UI, Roboto, Arial, sans-serif;">
-                <div style="font-size:15px; font-weight:700; color:#0b2545; margin:0 0 6px;">Next Steps</div>
-                <ul style="margin:0 0 10px 18px; padding:0; font-size:14px; color:#1a2a44; line-height:1.4;">
-                  ${data.next_steps.map((step: string) => `<li>${step}</li>`).join('')}
-                </ul>
+            ${data.next_steps.length > 0 ? `<!-- Next Steps -->
+            <tr>
+              <td style="padding:10px 24px 2px;font-family:Segoe UI,Roboto,Arial,sans-serif;">
+                <div style="font-size:15px;font-weight:700;color:#0b2545;margin:0 0 6px">Next Steps</div>
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="font-size:14px;color:#1a2a44;">
+                  ${data.next_steps.map((step: string) => `<tr>
+                    <td width="16" valign="top" style="font-size:16px;line-height:1;padding:0 6px 4px 0">•</td>
+                    <td valign="top" style="line-height:1.4;padding:0 0 4px 0">${step}</td>
+                  </tr>`).join('')}
+                </table>
               </td>
             </tr>` : ''}
 
-            ${data.adjourned_time || data.prepared_by ? `<tr>
-              <td style="padding:8px 24px 20px; font-family:Segoe UI, Roboto, Arial, sans-serif; color:#4a5a7a; font-size:12px;">
-                <hr style="border:none; border-top:1px solid #e6eefc; margin:10px 0 12px;">
-                <div style="line-height:1.4;">
+            ${data.adjourned_time || data.prepared_by ? `<!-- Footer -->
+            <tr>
+              <td style="padding:8px 24px 20px;font-family:Segoe UI,Roboto,Arial,sans-serif;color:#4a5a7a;font-size:12px;">
+                <hr style="border:none;border-top:1px solid #e6eefc;margin:10px 0 12px">
+                <div style="line-height:1.35">
                   ${data.adjourned_time ? `<strong>Meeting adjourned:</strong> ${data.adjourned_time}<br>` : ''}
                   ${data.prepared_by ? `<strong>Prepared by:</strong> ${data.prepared_by}` : ''}
                 </div>
               </td>
             </tr>` : ''}
+
           </table>
         </td>
       </tr>
