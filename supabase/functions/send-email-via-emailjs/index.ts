@@ -140,19 +140,20 @@ const handler = async (req: Request): Promise<Response> => {
     
     // For AI-generated content, ensure proper HTML formatting
     if (emailData.template_type === 'ai_generated_content' && emailData.message) {
-      // Create properly structured HTML email content
+      // Create properly structured HTML email content while preserving original spacing
       const htmlContent = emailData.message
-        .replace(/\n/g, '<br>')
-        .replace(/<br><br>/g, '</p><p>')
-        .replace(/^/, '<p>')
-        .replace(/$/, '</p>')
-        .replace(/<p><\/p>/g, '');
+        .replace(/\n\n/g, '</p><p>') // Convert double line breaks to paragraph breaks
+        .replace(/\n/g, '<br>') // Convert single line breaks to <br>
+        .replace(/^/, '<p>') // Add opening paragraph tag
+        .replace(/$/, '</p>') // Add closing paragraph tag
+        .replace(/<p><\/p>/g, '') // Remove empty paragraphs
+        .replace(/<p><br>/g, '<p>'); // Clean up paragraph starts
       
       templateParams.message = htmlContent;
       templateParams.html_message = `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
                     font-size: 14px; 
-                    line-height: 1.6; 
+                    line-height: 1.4; 
                     color: #333333; 
                     max-width: 600px;">
           ${htmlContent}
