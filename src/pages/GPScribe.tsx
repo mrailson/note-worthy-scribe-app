@@ -193,6 +193,7 @@ const Index = () => {
 
   // Load example handler
   const handleLoadExample = (example: ConsultationExample) => {
+    console.log("🔄 Loading example:", example.title);
     // Set example data for the SOAP UI
     setExampleData({
       title: example.title,
@@ -203,6 +204,9 @@ const Index = () => {
       referralLetter: example.referralLetter,
       aiReview: example.aiReview
     });
+    
+    // Navigate to the example summary tab
+    setActiveTab('example-summary');
     
     // Keep existing functionality for backward compatibility
     recording.setTranscript(example.transcript);
