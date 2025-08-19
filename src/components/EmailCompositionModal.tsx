@@ -10,6 +10,7 @@ import { Send, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { generateWordDocument } from '@/utils/documentGenerators';
+import { useUserProfile } from '@/hooks/useUserProfile';
 
 // Predefined starting messages for clinicians
 const QUICK_PICK_MESSAGES = [
@@ -70,6 +71,7 @@ export function EmailCompositionModal({
   const [attachWordDoc, setAttachWordDoc] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const { toast } = useToast();
+  const { profile } = useUserProfile();
 
   // Function to convert markdown formatting to HTML
   const convertMarkdownToHTML = (text: string): string => {
@@ -104,6 +106,13 @@ export function EmailCompositionModal({
       setMessage(formattedContent);
     }
   };
+
+  // Auto-populate email from user profile
+  useEffect(() => {
+    if (isOpen && profile?.email) {
+      setToEmail(profile.email);
+    }
+  }, [isOpen, profile?.email]);
 
   // Auto-generate subject and format message body
   useEffect(() => {
@@ -221,8 +230,7 @@ export function EmailCompositionModal({
       });
       
       onOpenChange(false);
-      // Reset form
-      setToEmail('');
+      // Reset form (keep email from profile)
       setSubject('');
       setMessage('');
       setSelectedQuickPick('consultation');
