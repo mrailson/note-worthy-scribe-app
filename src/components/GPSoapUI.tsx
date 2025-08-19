@@ -389,7 +389,7 @@ export default function GPScribeSoapMock() {
     return [planLines, safetyLines] as const;
   };
 
-  // Build the patient letter text
+  // Build the patient letter (structured for HTML display)
   function buildPatientLetter(opts: {
     tplName: string;
     summaryLine: string;
@@ -401,32 +401,53 @@ export default function GPScribeSoapMock() {
     const { tplName, summaryLine, soap, patientName, signature, links = [] } = opts;
     const [planLines, safetyLines] = splitSafetyFromPlan(soap.P);
     const hi = patientName?.trim() ? `Dear ${patientName},` : 'Dear patient,';
-
     const toSentence = (txt: string) => txt.replace(/\s+/g, ' ').trim().replace(/\s*;\s*/g, '; ');
 
-    const body = [
-      `${hi}`,
-      '',
-      `Thank you for seeing us today about ${tplName}.`,
-      '',
-      `**Reason for visit:** ${toSentence(soap.S)}`,
-      `**What we found:** ${toSentence(soap.O)}`,
-      `**What it means:** ${toSentence(soap.A)}`,
-      '',
-      `**What to do now**`,
-      ...planLines.map(l => `- ${l}`),
-      '',
-      (safetyLines.length ? `**When to seek help**\n` + safetyLines.map(l => `- ${l}`).join('\n') : ''),
-      (links.length ? `\n**Helpful NHS information**\n` + links.map(l => `- ${l.title}: ${l.url}`).join('\n') : ''),
-      '',
-      'If anything changes or you are worried at any point, please get in touch.',
-      '',
-      'Kind regards,',
-      signature
-    ].filter(Boolean);
+    return {
+      greeting: hi,
+      intro: `Thank you for seeing us today about ${tplName}.`,
+      sections: [
+        { title: 'Reason for visit', content: toSentence(soap.S) },
+        { title: 'What we found', content: toSentence(soap.O) },
+        { title: 'What it means', content: toSentence(soap.A) }
+      ],
+      plan: { title: 'What to do now', items: planLines },
+      safety: safetyLines.length ? { title: 'When to seek help', items: safetyLines } : null,
+      links: links.length ? { title: 'Helpful NHS information', items: links } : null,
+      closing: 'If anything changes or you are worried at any point, please get in touch.',
+      signature: signature
+    };
+  }
 
-    // ASCII-safe
-    return body.join('\n').replace(/[""]/g,'"').replace(/[']/g,"'");
+  // Build plain text version for copying
+  function buildPatientLetterText(letterData: ReturnType<typeof buildPatientLetter>) {
+    const parts = [
+      letterData.greeting,
+      '',
+      letterData.intro,
+      '',
+      ...letterData.sections.map(s => `${s.title}: ${s.content}`),
+      '',
+      letterData.plan.title,
+      ...letterData.plan.items.map(item => `- ${item}`),
+      ''
+    ];
+    
+    if (letterData.safety) {
+      parts.push(letterData.safety.title);
+      parts.push(...letterData.safety.items.map(item => `- ${item}`));
+      parts.push('');
+    }
+    
+    if (letterData.links) {
+      parts.push(letterData.links.title);
+      parts.push(...letterData.links.items.map(link => `- ${link.title}: ${link.url}`));
+      parts.push('');
+    }
+    
+    parts.push(letterData.closing, '', 'Kind regards,', letterData.signature);
+    
+    return parts.filter(Boolean).join('\n');
   }
 
   const DEMO_TRANSCRIPT: TranscriptEntry[] = [
@@ -1103,7 +1124,7 @@ export default function GPScribeSoapMock() {
 
             {/* Letter version */}
             {pcView === 'letter' && (() => {
-              const letter = buildPatientLetter({
+              const letterData = buildPatientLetter({
                 tplName: activeTemplate.name,
                 summaryLine: activeTemplate.summaryLine,
                 soap,
@@ -1111,11 +1132,87 @@ export default function GPScribeSoapMock() {
                 signature: emailSignature,
                 links: NHS_LINKS[activeTemplate.id] || []
               });
+              const letterText = buildPatientLetterText(letterData);
+              
               return (
                 <>
-                  <PlainCard title="Patient Letter (Preview)" body={letter} />
+                  <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
+                    <div className="mb-4 flex items-center justify-between">
+                      <h3 className="text-lg font-semibold">Patient Letter (Preview)</h3>
+                      <button onClick={() => copy(letterText)} className="rounded border px-3 py-1 text-sm hover:bg-slate-100">
+                        Copy
+                      </button>
+                    </div>
+                    <div className="space-y-6 text-sm leading-relaxed text-slate-700">
+                      {/* Greeting */}
+                      <p>{letterData.greeting}</p>
+                      
+                      {/* Introduction */}
+                      <p>{letterData.intro}</p>
+                      
+                      {/* Visit details */}
+                      <div className="space-y-3">
+                        {letterData.sections.map((section, idx) => (
+                          <p key={idx}>
+                            <span className="font-semibold">{section.title}:</span> {section.content}
+                          </p>
+                        ))}
+                      </div>
+                      
+                      {/* Plan */}
+                      <div>
+                        <p className="font-semibold mb-2">{letterData.plan.title}</p>
+                        <ul className="space-y-1 ml-4">
+                          {letterData.plan.items.map((item, idx) => (
+                            <li key={idx} className="list-disc">{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                      
+                      {/* Safety net */}
+                      {letterData.safety && (
+                        <div>
+                          <p className="font-semibold mb-2">{letterData.safety.title}</p>
+                          <ul className="space-y-1 ml-4">
+                            {letterData.safety.items.map((item, idx) => (
+                              <li key={idx} className="list-disc">{item}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      
+                      {/* NHS Links */}
+                      {letterData.links && (
+                        <div>
+                          <p className="font-semibold mb-2">{letterData.links.title}</p>
+                          <ul className="space-y-1 ml-4">
+                            {letterData.links.items.map((link, idx) => (
+                              <li key={idx} className="list-disc">
+                                <span>{link.title}:</span>{' '}
+                                <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                                  {link.url}
+                                </a>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      
+                      {/* Closing */}
+                      <p>{letterData.closing}</p>
+                      
+                      {/* Signature */}
+                      <div className="pt-4">
+                        <p className="mb-2">Kind regards,</p>
+                        <div className="whitespace-pre-line font-medium">
+                          {letterData.signature}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
                   <div className="flex gap-2">
-                    <button className="px-3 py-2 rounded border hover:bg-slate-100" onClick={() => copy(letter)}>Copy Letter</button>
+                    <button className="px-3 py-2 rounded border hover:bg-slate-100" onClick={() => copy(letterText)}>Copy Letter</button>
                     <button className="px-3 py-2 rounded border hover:bg-slate-100" onClick={() => copy(activeTemplate.patientCopy || '')}>Copy Short</button>
                     <button onClick={() => window.print()} className="rounded border px-3 py-2 text-sm hover:bg-slate-100">
                       Export PDF
