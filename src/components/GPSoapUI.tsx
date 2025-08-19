@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { Clock, Calendar, FileText, Play, Square, Timer, Download } from "lucide-react";
+import { format } from "date-fns";
 
 // GP Scribe – SOAP Notes UI with Transcript Demo
 // - Dropdown of 15 common templates
@@ -452,7 +453,7 @@ export default function GPScribeSoapMock() {
   // Autosave to History whenever transcript/template/tab changes
   useEffect(() => {
     const dt = new Date(startedAt);
-    const date = dt.toISOString().slice(0, 10);
+    const date = format(dt, 'dd MMM yyyy');
     const startTime = dt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     const firstLine = transcript.find(e => e.speaker === "Patient")?.text || transcript[0]?.text || "";
     const overview = (activeTemplate.summaryLine || firstLine).slice(0, 120);
