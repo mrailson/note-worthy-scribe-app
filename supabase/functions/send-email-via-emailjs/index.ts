@@ -58,6 +58,18 @@ const handler = async (req: Request): Promise<Response> => {
     
     console.log("Received email data:", JSON.stringify(emailData, null, 2));
 
+    // Validate required fields
+    if (!emailData.to_email && !emailData.all_emails) {
+      console.error("Missing recipient email");
+      return new Response(JSON.stringify({ 
+        error: "Missing recipient email address",
+        success: false 
+      }), {
+        status: 400,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
     // Get EmailJS credentials from Supabase secrets
     const serviceId = Deno.env.get("EMAILJS_SERVICE_ID");
     const templateId = emailData.template_type === 'welcome' 
@@ -68,7 +80,10 @@ const handler = async (req: Request): Promise<Response> => {
     const publicKey = Deno.env.get("EMAILJS_PUBLIC_KEY");
     const privateKey = Deno.env.get("EMAILJS_PRIVATE_KEY");
 
+    console.log("Using EmailJS config:", { serviceId, templateId: templateId ? "present" : "missing", publicKey: publicKey ? "present" : "missing" });
+
     if (!serviceId || !templateId || !publicKey) {
+      console.error("Missing EmailJS credentials:", { serviceId: !!serviceId, templateId: !!templateId, publicKey: !!publicKey });
       throw new Error("EmailJS credentials not configured");
     }
 

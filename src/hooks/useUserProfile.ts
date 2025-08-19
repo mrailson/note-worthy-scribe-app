@@ -42,6 +42,33 @@ export function useUserProfile() {
 
       if (error) {
         console.error('Error fetching profile:', error);
+        // If profile doesn't exist, try to create one with basic user data
+        if (error.code === 'PGRST116') { // No rows found
+          try {
+            const { data: newProfile, error: createError } = await supabase
+              .from('profiles')
+              .insert({
+                user_id: session.user.id,
+                email: session.user.email,
+                full_name: session.user.user_metadata?.full_name || session.user.email
+              })
+              .select()
+              .single();
+              
+            if (createError) {
+              console.error('Error creating profile:', createError);
+              setError(createError.message);
+              return;
+            }
+            
+            setProfile(newProfile);
+            return;
+          } catch (createErr: any) {
+            console.error('Profile creation failed:', createErr);
+            setError(createErr.message);
+            return;
+          }
+        }
         setError(error.message);
         return;
       }
