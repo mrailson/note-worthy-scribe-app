@@ -69,16 +69,6 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
     }
   };
 
-  // Show toast when recording starts
-  useEffect(() => {
-    if (isRecording) {
-      toast({
-        title: "🎙️ Recording",
-        description: "Click the mic again to stop recording",
-        duration: 3000,
-      });
-    }
-  }, [isRecording, toast]);
 
   return (
     <div className="p-4 space-y-3">{/* Removed bg and border styling since it's handled by parent */}
