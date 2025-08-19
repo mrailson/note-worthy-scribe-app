@@ -10,6 +10,7 @@ import { Clock, Calendar, FileText, Play, Square, Timer, Download } from "lucide
 // - Copy helpers for SOAP and transcript lines
 
 type Soap = { S: string; O: string; A: string; P: string };
+type OutputStyle = 'systmone' | 'emis';
 type Template = {
   id: string;
   name: string;
@@ -331,6 +332,18 @@ export default function GPScribeSoapMock() {
   const [mode, setMode] = useState<"shorthand" | "standard">("shorthand");
   const [tab, setTab] = useState<"summary" | "patient" | "referral" | "review" | "transcript" | "history">("summary");
 
+  // Output style state (persist)
+  const [outputStyle, setOutputStyle] = useState<OutputStyle>(() =>
+    (localStorage.getItem('outputStyle') as OutputStyle) || 'systmone'
+  );
+  
+  useEffect(() => { 
+    localStorage.setItem('outputStyle', outputStyle); 
+  }, [outputStyle]);
+
+  // SNOMED suggestions state
+  const [selectedSnomed, setSelectedSnomed] = useState<string[]>([]);
+
   // simple persistent history (swap to Supabase later)
   const [history, setHistory] = useState<ConsultationRecord[]>(() => {
     try { return JSON.parse(localStorage.getItem("gp_history") || "[]"); }
@@ -467,6 +480,62 @@ export default function GPScribeSoapMock() {
     } catch (err) {
       console.error("Copy failed:", err);
     }
+  };
+
+  // EMIS helper functions
+  const ascii = (s: string) => s.replace(/[""]/g, '"').replace(/[']/g, "'"); // EMIS-safe
+  
+  const splitSafety = (p: string) => {
+    const lines = p.split(/[\n•-]/).map(s => s.trim()).filter(Boolean);
+    const plan: string[] = [], safety: string[] = [];
+    for (const ln of lines) {
+      if (/safety|seek|return|urgent|worse|> ?\d/.test(ln.toLowerCase())) safety.push(ln);
+      else plan.push(ln);
+    }
+    return [plan.join('\n• '), safety.join('\n• ')] as const;
+  };
+
+  const buildEmisNote = (tpl: Template, soap: Soap) => {
+    const now = new Date();
+    const dt = now.toLocaleDateString();
+    const tm = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    const toLines = (txt: string) =>
+      ascii(txt).split(/\n|[•;-]/).map(s => s.trim()).filter(Boolean).map(s => `- ${s}`);
+
+    const [planBody, safetyBody] = splitSafety(soap.P);
+    const planLines = toLines(planBody);
+    const safetyLines = safetyBody ? toLines(safetyBody) : [];
+
+    const header = [
+      `CONSULTATION: Face to face | ${dt} ${tm}`,
+      `REASON: ${tpl.summaryLine}`,
+      ''
+    ];
+    const body = [
+      'History',
+      ...toLines(soap.S),
+      '',
+      'Examination / Observations',
+      ...toLines(soap.O),
+      '',
+      'Impression',
+      ...toLines(soap.A),
+      '',
+      'Plan / Management',
+      ...planLines,
+    ];
+    if (safetyLines.length) body.push('', 'Safety-net', ...safetyLines);
+
+    // Add antibiotics note if mentioned
+    if (/no antibiotics|antibiotics.*not|not.*antibiotics/i.test(soap.P)) {
+      const antibioticsIndex = body.findIndex(line => line === 'Plan / Management');
+      if (antibioticsIndex > -1) {
+        body.splice(antibioticsIndex + 2, 0, '- Antibiotics not indicated; rationale discussed');
+      }
+    }
+
+    return header.concat(body).join('\n');
   };
 
   const downloadConsultationReview = async () => {
@@ -773,6 +842,23 @@ export default function GPScribeSoapMock() {
               </button>
             </div>
           </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-600">Output style:</span>
+            <div className="inline-flex rounded-lg border overflow-hidden">
+              <button
+                className={`px-3 py-1 text-sm ${outputStyle === 'systmone' ? 'bg-sky-600 text-white' : 'bg-white hover:bg-slate-100'}`}
+                onClick={() => setOutputStyle('systmone')}
+              >
+                TPP/S1
+              </button>
+              <button
+                className={`px-3 py-1 text-sm ${outputStyle === 'emis' ? 'bg-sky-600 text-white' : 'bg-white hover:bg-slate-100'}`}
+                onClick={() => setOutputStyle('emis')}
+              >
+                EMIS
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Tab navigation */}
@@ -809,11 +895,81 @@ export default function GPScribeSoapMock() {
 
         {/* Panels */}
         {tab === "summary" && (
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
-            <SoapCard title="S – Subjective" icon="💬" text={soap.S} tone="blue" mono={mode === "shorthand"} />
-            <SoapCard title="O – Objective" icon="🩺" text={soap.O} tone="emerald" mono={mode === "shorthand"} />
-            <SoapCard title="A – Assessment" icon="🔎" text={soap.A} tone="amber" mono={false} />
-            <SoapCard title="P – Plan" icon="✅" text={soap.P} tone="violet" mono={false} />
+          outputStyle === 'systmone' ? (
+            <div className="mt-6 grid gap-4 md:grid-cols-2">
+              <SoapCard title="S – Subjective" icon="💬" text={soap.S} tone="blue" mono={mode === "shorthand"} />
+              <SoapCard title="O – Objective" icon="🩺" text={soap.O} tone="emerald" mono={mode === "shorthand"} />
+              <SoapCard title="A – Assessment" icon="🔎" text={soap.A} tone="amber" mono={false} />
+              <SoapCard title="P – Plan" icon="✅" text={soap.P} tone="violet" mono={false} />
+            </div>
+          ) : (
+            (() => {
+              const [planBody, safetyBody] = splitSafety(soap.P);
+              const emisSections = {
+                history: ascii(soap.S),
+                exam: ascii(soap.O),
+                impression: ascii(soap.A),
+                plan: ascii(planBody),
+                safety: ascii(safetyBody),
+              };
+              return (
+                <div className="mt-6 grid gap-4 md:grid-cols-2">
+                  <SoapCard title="History" icon="📝" text={emisSections.history} tone="blue" mono={mode === "shorthand"} />
+                  <SoapCard title="Examination / Observations" icon="🩺" text={emisSections.exam} tone="emerald" mono={mode === "shorthand"} />
+                  <SoapCard title="Impression" icon="🧠" text={emisSections.impression} tone="amber" mono={false} />
+                  <SoapCard title="Plan / Management" icon="📋" text={emisSections.plan || soap.P} tone="violet" mono={false} />
+                  {emisSections.safety && (
+                    <div className="md:col-span-2">
+                      <SoapCard title="Safety-net" icon="⚠️" text={emisSections.safety} tone="amber" mono={false} />
+                    </div>
+                  )}
+                </div>
+              );
+            })()
+          )
+        )}
+
+        {/* SNOMED Suggestions - shown on summary tab */}
+        {tab === "summary" && (
+          <div className="mt-6 rounded-2xl border bg-gradient-to-br from-slate-50 to-gray-50 border-slate-200 p-4 shadow-sm">
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="flex items-center gap-2 font-semibold">
+                <span>🏷️</span>
+                SNOMED Suggestions
+              </h3>
+              <button 
+                onClick={() => copy(selectedSnomed.join('\n'))}
+                className="rounded border px-2 py-1 text-xs hover:bg-white/50"
+                disabled={selectedSnomed.length === 0}
+              >
+                Copy Codes
+              </button>
+            </div>
+            <div className="space-y-2">
+              {[
+                'Viral upper respiratory tract infection',
+                'Safety-netting advice given',
+                'Self-care advice given',
+                'Oxygen saturation measured',
+                'No antibiotic therapy prescribed today'
+              ].map((code) => (
+                <label key={code} className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedSnomed.includes(code)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedSnomed(prev => [...prev, code]);
+                      } else {
+                        setSelectedSnomed(prev => prev.filter(c => c !== code));
+                      }
+                    }}
+                    className="rounded border-slate-300"
+                  />
+                  <span className={selectedSnomed.includes(code) ? 'font-medium' : ''}>{code}</span>
+                </label>
+              ))}
+            </div>
           </div>
         )}
 
@@ -994,6 +1150,9 @@ export default function GPScribeSoapMock() {
             <div className="flex items-center gap-2">
               <button onClick={() => copy(renderSoap(soap))} className="rounded-lg border px-3 py-2 text-sm hover:bg-slate-100">
                 Copy SOAP
+              </button>
+              <button onClick={() => copy(buildEmisNote(activeTemplate, soap))} className="rounded-lg border px-3 py-2 text-sm hover:bg-slate-100">
+                Copy EMIS Note
               </button>
               <button onClick={() => copy(activeTemplate.patientCopy || "")} className="rounded-lg border px-3 py-2 text-sm hover:bg-slate-100">
                 Copy Patient Copy
