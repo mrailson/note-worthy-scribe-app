@@ -1088,7 +1088,7 @@ export default function GPScribeSoapMock() {
                   className="border rounded px-2 py-1 text-sm"
                   value={emailSignature}
                   onChange={e => setEmailSignature(e.target.value)}
-                  rows={2}
+                  rows={1}
                   style={{minWidth: 260}}
                 />
               </div>
