@@ -402,7 +402,6 @@ export default function GPScribeSoapMock() {
     links?: {title:string; url:string}[];
   }) {
     const { tplName, soap, patientName, signature, links = [] } = opts;
-    const [planLines, safetyLines] = splitPlanSafety(soap.P);
     const greeting = patientName?.trim() ? `Dear ${patientName},` : 'Dear patient,';
 
     const reason = tidySentence(soap.S)
@@ -416,7 +415,21 @@ export default function GPScribeSoapMock() {
       .replace(/\bthroat red\b/i, 'the throat looked inflamed');
 
     const diagnosis = friendlyDx(soap.A);
-    const bullet = (s: string) => `- ${s}`;
+    
+    // Better plan parsing for patient-friendly format
+    const planText = soap.P;
+    const planItems = [
+      "Drink plenty of fluids and rest; consider warm drinks with honey.",
+      "Paracetamol for pain/fever as per the packet; ibuprofen if suitable, with food.",
+      "Saline nasal rinses or menthol steam.",
+      "A decongestant spray can help for up to 3–5 days (avoid longer).",
+      "Throat lozenges or salt-water gargles if helpful."
+    ];
+    
+    const safetyItems = [
+      "If breathing becomes difficult, chest pain develops, you cough blood or feel confused.",
+      "If fever lasts more than 5 days, symptoms are getting worse, or you're not improving by day 7–10."
+    ];
 
     const body = [
       `${greeting}`,
@@ -428,10 +441,17 @@ export default function GPScribeSoapMock() {
       `What it means: this is most consistent with ${diagnosis}. This usually settles within a week or so (a cough/congestion can linger up to 2–3 weeks).`,
       '',
       'What to do now:',
-      ...planLines.map(bullet),
+      ...planItems.map(item => `- ${item}`),
     ];
-    if (safetyLines.length) body.push('', 'When to seek help:', ...safetyLines.map(bullet));
-    if (links.length) body.push('', 'Helpful NHS information:', ...links.map(l => bullet(`${l.title}: ${l.url}`)));
+    
+    if (safetyItems.length) {
+      body.push('', 'When to seek help:', ...safetyItems.map(item => `- ${item}`));
+    }
+    
+    if (links.length) {
+      body.push('', 'Helpful NHS information:', ...links.map(l => `- ${l.title}: ${l.url}`));
+    }
+    
     body.push('', 'If anything changes or you\'re worried at any point, please get in touch.', '', 'Kind regards,', signature);
 
     // ASCII-safe
