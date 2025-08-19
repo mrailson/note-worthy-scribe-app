@@ -28,45 +28,58 @@ export const SearchHistorySidebar: React.FC<SearchHistorySidebarProps> = ({
       return search.brief_overview;
     }
     
-    // Analyze multiple messages to create a better overview
-    const userMessages = search.messages.filter(msg => msg.role === 'user');
-    const assistantMessages = search.messages.filter(msg => msg.role === 'assistant');
+    // Skip common generic starting messages
+    const skipPhrases = [
+      'you are an expert uk nhs',
+      'please specify the nice guideline',
+      'to proceed with your request',
+      'i need more information',
+      'could you please provide',
+      'what specific information'
+    ];
     
-    if (userMessages.length === 0) {
-      return 'No messages available';
-    }
+    // Find meaningful user messages by skipping generic ones
+    const meaningfulMessages = search.messages.filter(msg => {
+      if (msg.role !== 'user') return false;
+      const content = msg.content.toLowerCase().trim();
+      return !skipPhrases.some(phrase => content.startsWith(phrase)) && content.length > 10;
+    });
     
-    // Try to find key topics from user messages
-    const allUserContent = userMessages.map(msg => msg.content).join(' ').toLowerCase();
-    
-    // Look for key medical/healthcare terms and topics
-    const topics = [];
-    if (allUserContent.includes('patient') || allUserContent.includes('diagnosis')) topics.push('Patient Care');
-    if (allUserContent.includes('prescription') || allUserContent.includes('medication')) topics.push('Medication');
-    if (allUserContent.includes('referral') || allUserContent.includes('specialist')) topics.push('Referral');
-    if (allUserContent.includes('letter') || allUserContent.includes('report')) topics.push('Documentation');
-    if (allUserContent.includes('guideline') || allUserContent.includes('protocol')) topics.push('Guidelines');
-    if (allUserContent.includes('symptom') || allUserContent.includes('condition')) topics.push('Clinical');
-    
-    // If we found topics, use them
-    if (topics.length > 0) {
-      const topicSummary = topics.slice(0, 2).join(' & ');
-      const lastMessage = userMessages[userMessages.length - 1]?.content || '';
-      const preview = lastMessage.length > 60 ? lastMessage.substring(0, 60) + '...' : lastMessage;
-      return `${topicSummary}: ${preview}`;
-    }
-    
-    // Fall back to showing the most recent user message for context
-    const lastUserMessage = userMessages[userMessages.length - 1];
-    if (lastUserMessage) {
-      const content = lastUserMessage.content.trim();
-      if (content.length > 80) {
-        return content.substring(0, 80) + '...';
+    // If we have meaningful messages, use the most descriptive one
+    if (meaningfulMessages.length > 0) {
+      // Try the last meaningful message first (often more specific)
+      let bestMessage = meaningfulMessages[meaningfulMessages.length - 1];
+      
+      // Or find the longest meaningful message (likely most descriptive)
+      const longestMessage = meaningfulMessages.reduce((prev, current) => 
+        current.content.length > prev.content.length ? current : prev
+      );
+      
+      if (longestMessage.content.length > bestMessage.content.length + 20) {
+        bestMessage = longestMessage;
+      }
+      
+      const content = bestMessage.content.trim();
+      if (content.length > 85) {
+        return content.substring(0, 85) + '...';
       }
       return content;
     }
     
-    return 'Conversation available';
+    // Analyze assistant responses for context if no good user messages
+    const assistantMessages = search.messages.filter(msg => msg.role === 'assistant');
+    if (assistantMessages.length > 0) {
+      const content = assistantMessages[0].content.toLowerCase();
+      
+      // Extract key topics from AI responses
+      if (content.includes('referral')) return 'Referral letter assistance';
+      if (content.includes('prescription') || content.includes('medication')) return 'Medication guidance';
+      if (content.includes('guideline') || content.includes('nice')) return 'Clinical guidelines';
+      if (content.includes('diagnosis')) return 'Diagnostic support';
+      if (content.includes('patient') && content.includes('care')) return 'Patient care advice';
+    }
+    
+    return 'General consultation';
   };
 
   const formatDateTime = (dateString: string) => {
@@ -170,8 +183,10 @@ export const SearchHistorySidebar: React.FC<SearchHistorySidebarProps> = ({
                   <div className="text-xs text-muted-foreground line-clamp-2 w-full">
                     {getSearchOverview(search)}
                   </div>
-                  <div className="text-xs text-muted-foreground">
-                    {formatDateTime(search.created_at)}
+                  <div className="text-xs text-muted-foreground/80 flex items-center gap-2">
+                    <span>{formatDateTime(search.created_at)}</span>
+                    <span>•</span>
+                    <span>{search.messages.length} message{search.messages.length !== 1 ? 's' : ''}</span>
                   </div>
                 </Button>
                 
