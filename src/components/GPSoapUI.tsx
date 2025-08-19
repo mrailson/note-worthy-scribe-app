@@ -1117,13 +1117,109 @@ export default function GPScribeSoapMock() {
                 signature: emailSignature,
                 links: NHS_LINKS[activeTemplate.id] || []
               });
+              
+              // Parse the letter text for structured display
+              const lines = letter.split('\n');
+              const sections: { type: 'paragraph' | 'list'; content: string; items?: string[] }[] = [];
+              let currentSection: string[] = [];
+              let inList = false;
+              
+              for (const line of lines) {
+                if (line.trim() === '') {
+                  if (currentSection.length > 0) {
+                    sections.push({ type: 'paragraph', content: currentSection.join(' ') });
+                    currentSection = [];
+                  }
+                  inList = false;
+                } else if (line.startsWith('- ')) {
+                  if (!inList && currentSection.length > 0) {
+                    sections.push({ type: 'paragraph', content: currentSection.join(' ') });
+                    currentSection = [];
+                  }
+                  if (!inList) {
+                    const prevSection = sections[sections.length - 1];
+                    if (prevSection && prevSection.type === 'paragraph') {
+                      sections[sections.length - 1] = { 
+                        type: 'list', 
+                        content: prevSection.content, 
+                        items: [line.substring(2)] 
+                      };
+                    } else {
+                      sections.push({ type: 'list', content: '', items: [line.substring(2)] });
+                    }
+                  } else {
+                    const lastSection = sections[sections.length - 1];
+                    if (lastSection && lastSection.type === 'list') {
+                      lastSection.items?.push(line.substring(2));
+                    }
+                  }
+                  inList = true;
+                } else {
+                  currentSection.push(line);
+                  inList = false;
+                }
+              }
+              
+              if (currentSection.length > 0) {
+                sections.push({ type: 'paragraph', content: currentSection.join(' ') });
+              }
+              
               return (
                 <>
-                  <PlainCard title="Patient Letter (Preview)" body={letter} />
+                  <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
+                    <div className="mb-4 flex items-center justify-between">
+                      <h3 className="text-lg font-semibold">Patient Letter (Preview)</h3>
+                      <button onClick={() => copy(letter)} className="rounded border px-3 py-1 text-sm hover:bg-slate-100">
+                        Copy
+                      </button>
+                    </div>
+                    <div className="space-y-4 text-sm leading-relaxed text-slate-700">
+                      {sections.map((section, idx) => (
+                        <div key={idx}>
+                          {section.type === 'paragraph' && section.content && (
+                            <p className="mb-3">{section.content}</p>
+                          )}
+                          {section.type === 'list' && (
+                            <div>
+                              {section.content && (
+                                <p className="font-semibold mb-2">{section.content}</p>
+                              )}
+                              {section.items && (
+                                <ul className="space-y-1 ml-4">
+                                  {section.items.map((item, itemIdx) => (
+                                    <li key={itemIdx} className="list-disc">
+                                      {item.includes('http') ? (
+                                        <>
+                                          {item.split(':')[0]}:{' '}
+                                          <a 
+                                            href={item.split(': ')[1]} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer" 
+                                            className="text-blue-600 underline"
+                                          >
+                                            {item.split(': ')[1]}
+                                          </a>
+                                        </>
+                                      ) : (
+                                        item
+                                      )}
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
                   <div className="flex gap-2">
-                    <button className="px-3 py-2 rounded border" onClick={() => copy(letter)}>Copy Letter</button>
-                    <button className="px-3 py-2 rounded border" onClick={() => copy(activeTemplate.patientCopy || '')}>Copy Short</button>
-                    {/* Export PDF will use the visible panel in your current setup */}
+                    <button className="px-3 py-2 rounded border hover:bg-slate-100" onClick={() => copy(letter)}>Copy Letter</button>
+                    <button className="px-3 py-2 rounded border hover:bg-slate-100" onClick={() => copy(activeTemplate.patientCopy || '')}>Copy Short</button>
+                    <button onClick={() => window.print()} className="rounded border px-3 py-2 text-sm hover:bg-slate-100">
+                      Export PDF
+                    </button>
                   </div>
                 </>
               );
