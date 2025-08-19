@@ -147,33 +147,244 @@ const handler = async (req: Request): Promise<Response> => {
       return tips[role] || '• Log in and explore your dashboard\n• Complete your profile setup\n• Contact support if you need assistance';
     }
 
+    // Function to parse meeting content into structured data
+    function parseMeetingContent(content: string, subject: string) {
+      const lines = content.split('\n').map(line => line.trim()).filter(line => line);
+      
+      // Extract basic info
+      const title = subject.replace(/^AI Generated:\s*/i, '').trim();
+      let date = '', time = '', location = '', attendees = '';
+      let agenda: string[] = [];
+      let discussion_points: Array<{heading: string, items: string[]}> = [];
+      let risks: Array<{title: string, risk: string, mitigation: string}> = [];
+      let next_steps: string[] = [];
+      let adjourned_time = '', prepared_by = '';
+
+      let currentSection = '';
+      let currentDiscussionPoint: {heading: string, items: string[]} | null = null;
+      let currentRisk: {title: string, risk: string, mitigation: string} | null = null;
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const lowerLine = line.toLowerCase();
+
+        // Extract metadata
+        if (lowerLine.startsWith('date:')) {
+          date = line.replace(/^date:\s*/i, '').replace(/\*\*/g, '');
+        } else if (lowerLine.startsWith('time:')) {
+          time = line.replace(/^time:\s*/i, '').replace(/\*\*/g, '');
+        } else if (lowerLine.startsWith('location:')) {
+          location = line.replace(/^location:\s*/i, '').replace(/\*\*/g, '');
+        } else if (lowerLine.startsWith('attendees:')) {
+          attendees = line.replace(/^attendees:\s*/i, '').replace(/\*\*/g, '');
+          // Collect multi-line attendees
+          let j = i + 1;
+          while (j < lines.length && lines[j].match(/^[-•]\s*/) && !lines[j].match(/^(agenda|discussion|risks|actions)/i)) {
+            attendees += '; ' + lines[j].replace(/^[-•]\s*/, '');
+            j++;
+          }
+          i = j - 1;
+        }
+
+        // Section headers
+        if (lowerLine.match(/^agenda:?$/)) {
+          currentSection = 'agenda';
+        } else if (lowerLine.match(/^discussion\s*points?:?$/)) {
+          currentSection = 'discussion';
+        } else if (lowerLine.match(/^risks?\s*(\/|&)?\s*issues?\s*log:?$/) || lowerLine.match(/^risks?\s*(\/|&)?\s*mitigations?:?$/)) {
+          currentSection = 'risks';
+        } else if (lowerLine.match(/^(actions?|next\s*steps?):?$/)) {
+          currentSection = 'actions';
+        } else if (lowerLine.match(/^meeting\s*adjourned:?$/)) {
+          adjourned_time = lines[i + 1]?.replace(/^.*:\s*/, '') || '';
+        } else if (lowerLine.match(/^prepared\s*by:?$/)) {
+          prepared_by = lines[i + 1]?.replace(/^.*:\s*/, '') || '';
+        }
+
+        // Content processing
+        if (currentSection === 'agenda' && line.match(/^\d+\.\s/) && !lowerLine.match(/^discussion|^risks|^actions/)) {
+          agenda.push(line.replace(/^\d+\.\s*/, ''));
+        } else if (currentSection === 'discussion') {
+          if (line.match(/^\d+\.\s*\*\*.*\*\*:?$/) || line.match(/^\*\*.*\*\*:?$/)) {
+            // New discussion point
+            if (currentDiscussionPoint) {
+              discussion_points.push(currentDiscussionPoint);
+            }
+            currentDiscussionPoint = {
+              heading: line.replace(/^\d+\.\s*/, '').replace(/\*\*/g, '').replace(/:$/, ''),
+              items: []
+            };
+          } else if (currentDiscussionPoint && (line.match(/^[-•]\s/) || line.match(/^[a-zA-Z]/))) {
+            currentDiscussionPoint.items.push(line.replace(/^[-•]\s*/, ''));
+          }
+        } else if (currentSection === 'risks') {
+          if (line.match(/^\d+\.\s*\*\*.*\*\*:?$/)) {
+            // New risk
+            if (currentRisk) {
+              risks.push(currentRisk);
+            }
+            currentRisk = {
+              title: line.replace(/^\d+\.\s*/, '').replace(/\*\*/g, '').replace(/:$/, ''),
+              risk: '',
+              mitigation: ''
+            };
+          } else if (currentRisk) {
+            if (lowerLine.startsWith('mitigation:')) {
+              currentRisk.mitigation = line.replace(/^mitigation:\s*/i, '').replace(/\*\*/g, '');
+            } else if (!currentRisk.risk && line.length > 0) {
+              currentRisk.risk = line.replace(/\*\*/g, '');
+            }
+          }
+        } else if (currentSection === 'actions' && (line.match(/^[-•]\s/) || line.match(/^\d+\.\s/))) {
+          next_steps.push(line.replace(/^[-•]\s*/, '').replace(/^\d+\.\s*/, ''));
+        }
+      }
+
+      // Add final items
+      if (currentDiscussionPoint) discussion_points.push(currentDiscussionPoint);
+      if (currentRisk) risks.push(currentRisk);
+
+      return {
+        title: title || 'Meeting Notes',
+        date: date || new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),
+        time: time || '',
+        location: location || '',
+        attendees: attendees || '',
+        agenda,
+        discussion_points,
+        risks,
+        next_steps,
+        adjourned_time: adjourned_time || '',
+        prepared_by: prepared_by || ''
+      };
+    }
+
+    // Professional HTML email template
+    function generateProfessionalEmailHTML(data: any): string {
+      return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width">
+    <meta charset="utf-8">
+    <title>${data.title}</title>
+  </head>
+  <body style="margin:0; padding:0; background:#f5f8ff;">
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background:#f0f6ff;">
+      <tr>
+        <td align="center" style="padding:24px 12px;">
+          <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="680" style="max-width:680px; background:#ffffff; border-radius:10px; overflow:hidden; box-shadow:0 1px 3px rgba(11,31,53,0.07);">
+            <tr>
+              <td style="background:#eaf2ff; padding:18px 24px; font-family:Segoe UI, Roboto, Arial, sans-serif; mso-line-height-rule:exactly; line-height:1.35;">
+                <div style="font-size:18px; font-weight:700; color:#0b2545; margin:0;">
+                  ${data.title}
+                </div>
+                ${data.date ? `<div style="font-size:13px; color:#335; margin-top:6px;">
+                  Date: <strong>${data.date}</strong>
+                </div>` : ''}
+              </td>
+            </tr>
+
+            ${data.time || data.location || data.attendees ? `<tr>
+              <td style="padding:20px 24px 8px; font-family:Segoe UI, Roboto, Arial, sans-serif; color:#0b2545;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                  <tr>
+                    <td style="font-size:14px; mso-line-height-rule:exactly; line-height:1.6;">
+                      ${data.time ? `<div style="margin:0 0 6px;">⏰ <strong>Time:</strong> ${data.time}</div>` : ''}
+                      ${data.location ? `<div style="margin:0 0 6px;">📍 <strong>Location:</strong> ${data.location}</div>` : ''}
+                      ${data.attendees ? `<div style="margin:0 0 6px;">👥 <strong>Attendees:</strong> ${data.attendees}</div>` : ''}
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>` : ''}
+
+            ${data.agenda.length > 0 || data.discussion_points.length > 0 ? `<tr>
+              <td style="padding:0 24px;">
+                <hr style="border:none; border-top:1px solid #e6eefc; margin:8px 0 14px;">
+              </td>
+            </tr>` : ''}
+
+            ${data.agenda.length > 0 ? `<tr>
+              <td style="padding:0 24px 6px; font-family:Segoe UI, Roboto, Arial, sans-serif;">
+                <div style="font-size:15px; font-weight:700; color:#0b2545; margin:0 0 6px;">Agenda</div>
+                <ol style="margin:0 0 14px 18px; padding:0; font-size:14px; color:#1a2a44; mso-line-height-rule:exactly; line-height:1.55;">
+                  ${data.agenda.map((item: string) => `<li style="margin:0 0 6px 0;">${item}</li>`).join('')}
+                </ol>
+              </td>
+            </tr>` : ''}
+
+            ${data.discussion_points.length > 0 ? `<tr>
+              <td style="padding:0 24px 2px; font-family:Segoe UI, Roboto, Arial, sans-serif;">
+                <div style="font-size:15px; font-weight:700; color:#0b2545; margin:0 0 6px;">Discussion Points</div>
+                ${data.discussion_points.map((point: any) => `
+                <div style="margin:0 0 14px 0;">
+                  <div style="font-size:14px; font-weight:700; color:#0b2545; margin:0 0 4px;">${point.heading}</div>
+                  <ul style="margin:0 0 6px 18px; padding:0; font-size:14px; color:#1a2a44; mso-line-height-rule:exactly; line-height:1.55;">
+                    ${point.items.map((item: string) => `<li style="margin:0 0 6px 0;">${item}</li>`).join('')}
+                  </ul>
+                </div>`).join('')}
+              </td>
+            </tr>` : ''}
+
+            ${data.risks.length > 0 ? `<tr>
+              <td style="padding:0 24px 2px; font-family:Segoe UI, Roboto, Arial, sans-serif;">
+                <div style="font-size:15px; font-weight:700; color:#0b2545; margin:2px 0 6px;">Risks &amp; Mitigations</div>
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border:1px solid #e6eefc; border-radius:8px;">
+                  <tr>
+                    <td style="padding:12px 16px;">
+                      <ol style="margin:0 0 0 18px; padding:0; font-size:14px; color:#1a2a44; mso-line-height-rule:exactly; line-height:1.55;">
+                        ${data.risks.map((risk: any) => `
+                        <li style="margin:0 0 10px 0;">
+                          <div><strong>${risk.title}:</strong> ${risk.risk}</div>
+                          ${risk.mitigation ? `<div style="margin-top:4px;"><em>Mitigation:</em> ${risk.mitigation}</div>` : ''}
+                        </li>`).join('')}
+                      </ol>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>` : ''}
+
+            ${data.next_steps.length > 0 ? `<tr>
+              <td style="padding:10px 24px 2px; font-family:Segoe UI, Roboto, Arial, sans-serif;">
+                <div style="font-size:15px; font-weight:700; color:#0b2545; margin:0 0 6px;">Next Steps</div>
+                <ul style="margin:0 0 10px 18px; padding:0; font-size:14px; color:#1a2a44; mso-line-height-rule:exactly; line-height:1.55;">
+                  ${data.next_steps.map((step: string) => `<li style="margin:0 0 6px 0;">${step}</li>`).join('')}
+                </ul>
+              </td>
+            </tr>` : ''}
+
+            ${data.adjourned_time || data.prepared_by ? `<tr>
+              <td style="padding:8px 24px 20px; font-family:Segoe UI, Roboto, Arial, sans-serif; color:#4a5a7a; font-size:12px;">
+                <hr style="border:none; border-top:1px solid #e6eefc; margin:10px 0 12px;">
+                <div style="mso-line-height-rule:exactly; line-height:1.4;">
+                  ${data.adjourned_time ? `<strong>Meeting adjourned:</strong> ${data.adjourned_time}<br>` : ''}
+                  ${data.prepared_by ? `<strong>Prepared by:</strong> ${data.prepared_by}` : ''}
+                </div>
+              </td>
+            </tr>` : ''}
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+    }
+
     // Prepare the EmailJS API request
     const emailjsUrl = "https://api.emailjs.com/api/v1.0/email/send";
     
     // If there's a Word attachment, we need to include it in the template params
     const templateParams = { ...enhancedEmailData };
     
-    // For AI-generated content, ensure proper HTML formatting
-    if (emailData.template_type === 'ai_generated_content' && emailData.message) {
-      // Create properly structured HTML email content while preserving original spacing
-      const htmlContent = emailData.message
-        .replace(/\n\n/g, '</p><p>') // Convert double line breaks to paragraph breaks
-        .replace(/\n/g, '<br>') // Convert single line breaks to <br>
-        .replace(/^/, '<p>') // Add opening paragraph tag
-        .replace(/$/, '</p>') // Add closing paragraph tag
-        .replace(/<p><\/p>/g, '') // Remove empty paragraphs
-        .replace(/<p><br>/g, '<p>'); // Clean up paragraph starts
+    // Professional HTML email template for AI-generated content
+    if (emailData.template_type === 'ai_generated_content') {
+      const parsedContent = parseMeetingContent(emailData.message || '', emailData.subject || '');
       
-      templateParams.message = htmlContent;
-      templateParams.html_message = `
-        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
-                    font-size: 14px; 
-                    line-height: 1.4; 
-                    color: #333333; 
-                    max-width: 600px;">
-          ${htmlContent}
-        </div>
-      `;
+      // Use the professional email template
+      templateParams.html_message = generateProfessionalEmailHTML(parsedContent);
+      templateParams.message = emailData.message; // Keep original for fallback
     }
     
     if (emailData.word_attachment) {
