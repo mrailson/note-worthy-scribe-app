@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from "react";
-import { Clock, Calendar, FileText, Play, Square, Timer } from "lucide-react";
+import { Clock, Calendar, FileText, Play, Square, Timer, Download } from "lucide-react";
 
 // GP Scribe – SOAP Notes UI with Transcript Demo
 // - Dropdown of 15 common templates
@@ -469,6 +469,247 @@ export default function GPScribeSoapMock() {
     }
   };
 
+  const downloadConsultationReview = async () => {
+    try {
+      const { Document, Packer, Paragraph, HeadingLevel, TextRun, AlignmentType } = await import('docx');
+      
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children: [
+            // Header
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "Consultation Review Document",
+                  bold: true,
+                  size: 28,
+                }),
+              ],
+              heading: HeadingLevel.TITLE,
+              alignment: AlignmentType.CENTER,
+            }),
+            
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: `${activeTemplate.name} - ${new Date().toLocaleDateString()}`,
+                  italics: true,
+                }),
+              ],
+              alignment: AlignmentType.CENTER,
+            }),
+            
+            new Paragraph({ text: "" }),
+            
+            // Summary Line
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "Summary Line: ",
+                  bold: true,
+                }),
+                new TextRun({
+                  text: activeTemplate.summaryLine,
+                }),
+              ],
+            }),
+            
+            new Paragraph({ text: "" }),
+            
+            // SOAP Notes - Standard Detail
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "SOAP Notes - Standard Detail",
+                  bold: true,
+                  size: 24,
+                }),
+              ],
+              heading: HeadingLevel.HEADING_1,
+            }),
+            
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "S - Subjective: ",
+                  bold: true,
+                }),
+                new TextRun({
+                  text: activeTemplate.standard.S,
+                }),
+              ],
+            }),
+            
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "O - Objective: ",
+                  bold: true,
+                }),
+                new TextRun({
+                  text: activeTemplate.standard.O,
+                }),
+              ],
+            }),
+            
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "A - Assessment: ",
+                  bold: true,
+                }),
+                new TextRun({
+                  text: activeTemplate.standard.A,
+                }),
+              ],
+            }),
+            
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "P - Plan: ",
+                  bold: true,
+                }),
+                new TextRun({
+                  text: activeTemplate.standard.P,
+                }),
+              ],
+            }),
+            
+            new Paragraph({ text: "" }),
+            
+            // SOAP Notes - GP Shorthand
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "SOAP Notes - GP Shorthand",
+                  bold: true,
+                  size: 24,
+                }),
+              ],
+              heading: HeadingLevel.HEADING_1,
+            }),
+            
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "S: ",
+                  bold: true,
+                }),
+                new TextRun({
+                  text: activeTemplate.shorthand.S,
+                  font: "Courier New",
+                }),
+              ],
+            }),
+            
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "O: ",
+                  bold: true,
+                }),
+                new TextRun({
+                  text: activeTemplate.shorthand.O,
+                  font: "Courier New",
+                }),
+              ],
+            }),
+            
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "A: ",
+                  bold: true,
+                }),
+                new TextRun({
+                  text: activeTemplate.shorthand.A,
+                  font: "Courier New",
+                }),
+              ],
+            }),
+            
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "P: ",
+                  bold: true,
+                }),
+                new TextRun({
+                  text: activeTemplate.shorthand.P,
+                  font: "Courier New",
+                }),
+              ],
+            }),
+            
+            new Paragraph({ text: "" }),
+            
+            // Transcript
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "Consultation Transcript",
+                  bold: true,
+                  size: 24,
+                }),
+              ],
+              heading: HeadingLevel.HEADING_1,
+            }),
+            
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: `Duration: 8m 15s | ${transcript.length} segments`,
+                  italics: true,
+                }),
+              ],
+            }),
+            
+            new Paragraph({ text: "" }),
+            
+            // Transcript entries
+            ...transcript.map((entry) => 
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: `[${entry.t}] ${entry.speaker}: `,
+                    bold: true,
+                    color: entry.speaker === "Patient" ? "008000" : "0066CC",
+                  }),
+                  new TextRun({
+                    text: entry.text,
+                  }),
+                ],
+              })
+            ),
+          ],
+        }],
+      });
+
+      const buffer = await Packer.toBuffer(doc);
+      const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+      
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${activeTemplate.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_review_${new Date().toISOString().slice(0, 10)}.docx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      console.log("Consultation review downloaded");
+    } catch (err) {
+      console.error("Download failed:", err);
+      // Fallback: copy to clipboard
+      const fallbackContent = `CONSULTATION REVIEW\n\n${activeTemplate.name}\nDate: ${new Date().toLocaleDateString()}\n\nSummary Line: ${activeTemplate.summaryLine}\n\n=== STANDARD DETAIL ===\nS: ${activeTemplate.standard.S}\nO: ${activeTemplate.standard.O}\nA: ${activeTemplate.standard.A}\nP: ${activeTemplate.standard.P}\n\n=== GP SHORTHAND ===\nS: ${activeTemplate.shorthand.S}\nO: ${activeTemplate.shorthand.O}\nA: ${activeTemplate.shorthand.A}\nP: ${activeTemplate.shorthand.P}\n\n=== TRANSCRIPT ===\n${transcript.map(entry => `[${entry.t}] ${entry.speaker}: ${entry.text}`).join('\n')}`;
+      
+      await navigator.clipboard.writeText(fallbackContent);
+      alert("Download failed, but content has been copied to clipboard");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800">
       {/* Top bar */}
@@ -603,6 +844,14 @@ export default function GPScribeSoapMock() {
                   <FileText className="h-4 w-4 text-sky-600" />
                   <span>{transcript.length} segments</span>
                 </div>
+                <button
+                  onClick={downloadConsultationReview}
+                  className="flex items-center gap-1.5 text-sm rounded border px-2 py-1 hover:bg-slate-100"
+                  title="Download Consultation Review"
+                >
+                  <Download className="h-4 w-4 text-sky-600" />
+                  Download
+                </button>
               </div>
               <div className="text-xs text-slate-600">
                 Face-to-face consultation • GP shorthand mode • Auto-generated from demo template
