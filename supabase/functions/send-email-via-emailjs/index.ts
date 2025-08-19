@@ -182,6 +182,99 @@ const handler = async (req: Request): Promise<Response> => {
       templateParams.attachment_type = emailData.word_attachment.type;
     }
     
+    // Helper function to calculate payload size
+    const getPayloadSize = (data: any) => {
+      return new TextEncoder().encode(JSON.stringify(data)).length;
+    };
+
+    // Helper function to truncate content to fit size limits
+    const truncateContent = (content: string, maxBytes: number) => {
+      if (new TextEncoder().encode(content).length <= maxBytes) {
+        return content;
+      }
+      
+      const truncatedSuffix = "...[content truncated for email size limits]";
+      let left = 0;
+      let right = content.length;
+      let result = "";
+      
+      while (left <= right) {
+        const mid = Math.floor((left + right) / 2);
+        const truncated = content.substring(0, mid) + (mid < content.length ? truncatedSuffix : "");
+        
+        if (new TextEncoder().encode(truncated).length <= maxBytes) {
+          result = truncated;
+          left = mid + 1;
+        } else {
+          right = mid - 1;
+        }
+      }
+      
+      return result;
+    };
+
+    // Truncate subject if too long (max 200 chars)
+    if (templateParams.subject && templateParams.subject.length > 200) {
+      templateParams.subject = templateParams.subject.substring(0, 197) + "...";
+    }
+
+    // Check initial payload size and truncate content if needed (EmailJS limit is 50KB)
+    let testPayload = {
+      service_id: serviceId,
+      template_id: templateId,
+      user_id: publicKey,
+      accessToken: privateKey,
+      template_params: templateParams
+    };
+    
+    const maxSize = 48000; // Leave some buffer for 50KB limit
+    let currentSize = getPayloadSize(testPayload);
+    
+    console.log(`Initial payload size: ${currentSize} bytes`);
+    
+    if (currentSize > maxSize) {
+      console.log("Payload too large, truncating content...");
+      
+      // Priority order for truncation: message > html_message > attachment content
+      if (templateParams.message) {
+        const testWithoutMessage = {...testPayload, template_params: {...templateParams, message: "", html_message: ""}};
+        const availableForMessage = maxSize - getPayloadSize(testWithoutMessage);
+        templateParams.message = truncateContent(templateParams.message, Math.floor(availableForMessage * 0.7));
+        
+        // Update html_message if it exists
+        if (templateParams.html_message) {
+          const htmlContent = templateParams.message
+            .replace(/\n\n/g, '</p><p>')
+            .replace(/\n/g, '<br>')
+            .replace(/^/, '<p>')
+            .replace(/$/, '</p>')
+            .replace(/<p><\/p>/g, '')
+            .replace(/<p><br>/g, '<p>');
+          
+          templateParams.html_message = `
+            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+                        font-size: 14px; 
+                        line-height: 1.4; 
+                        color: #333333; 
+                        max-width: 600px;">
+              ${htmlContent}
+            </div>
+          `;
+        }
+      }
+      
+      // Re-check and truncate attachment if still too large
+      testPayload.template_params = templateParams;
+      currentSize = getPayloadSize(testPayload);
+      if (currentSize > maxSize && templateParams.attachment_content) {
+        console.log("Still too large, removing attachment content...");
+        delete templateParams.attachment_content;
+        templateParams.attachment_name = templateParams.attachment_name + " (content removed due to size limits)";
+      }
+      
+      console.log(`Final payload size: ${getPayloadSize(testPayload)} bytes`);
+    }
+    
     const payload = {
       service_id: serviceId,
       template_id: templateId,
