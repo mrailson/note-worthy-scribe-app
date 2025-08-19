@@ -24,6 +24,7 @@ import { SummaryPanel } from "@/components/gpscribe/SummaryPanel";
 import { TabNavigation } from "@/components/gpscribe/TabNavigation";
 import { SettingsPanel } from "@/components/gpscribe/SettingsPanel";
 import { ExamplesPanel } from "@/components/gpscribe/ExamplesPanel";
+import { ExampleSoapDisplay } from "@/components/gpscribe/ExampleSoapDisplay";
 
 // Import existing components
 import { TranslationInterface } from "@/components/TranslationInterface";
@@ -214,7 +215,7 @@ const Index = () => {
       documents.setReferralLetter(example.referralLetter);
     }
     toast.success(`Loaded example: ${example.title}`);
-    setActiveTab("summary");
+    setActiveTab("example-summary");
   };
 
   // Helper functions to create formatted versions from existing summary
@@ -404,6 +405,11 @@ const Index = () => {
           {/* Examples Tab */}
           <TabsContent value="examples" className="space-y-6 mt-6">
             <ExamplesPanel onLoadExample={handleLoadExample} />
+          </TabsContent>
+
+          {/* Example Summary Tab */}
+          <TabsContent value="example-summary" className="space-y-6 mt-6">
+            <ExampleSoapDisplay exampleData={exampleData} />
           </TabsContent>
 
           {/* History Tab */}
