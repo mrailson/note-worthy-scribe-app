@@ -23,11 +23,15 @@ export const SearchHistorySidebar: React.FC<SearchHistorySidebarProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-GB', {
+  const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleString('en-GB', {
       day: '2-digit',
       month: 'short',
-      year: 'numeric'
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
     });
   };
 
@@ -123,7 +127,7 @@ export const SearchHistorySidebar: React.FC<SearchHistorySidebarProps> = ({
                     </div>
                   )}
                   <div className="text-xs text-muted-foreground">
-                    {formatDate(search.created_at)}
+                    {formatDateTime(search.created_at)}
                   </div>
                 </Button>
                 
