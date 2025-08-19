@@ -4,15 +4,6 @@ import { FileText, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
-// Generate a proper UUID for imported transcripts
-const generateUUID = () => {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0;
-    const v = c == 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
-};
-
 interface GenerateNotesButtonProps {
   transcript: string;
   onNotesGenerated?: (notes: any) => void;
@@ -38,7 +29,7 @@ export const GenerateNotesButton = ({
       
       const { data, error } = await supabase.functions.invoke('generate-consultation-notes', {
         body: {
-          consultationId: generateUUID(),
+          consultationId: `IMPORTED-${Date.now()}`,
           transcript: [
             {
               t: "00:00",
@@ -59,15 +50,7 @@ export const GenerateNotesButton = ({
       console.log("Generated notes:", data);
       
       if (data && onNotesGenerated) {
-        console.log("🔄 Calling onNotesGenerated with data:", {
-          hasShorthand: !!data.shorthand,
-          hasStandard: !!data.standard,
-          hasSummaryLine: !!data.summaryLine,
-          hasPatientCopy: !!data.patientCopy
-        });
         onNotesGenerated(data);
-      } else {
-        console.warn("⚠️ No data received or no callback provided");
       }
       
       toast.success("Consultation notes generated successfully!");

@@ -24,7 +24,6 @@ import { SummaryPanel } from "@/components/gpscribe/SummaryPanel";
 import { TabNavigation } from "@/components/gpscribe/TabNavigation";
 import { SettingsPanel } from "@/components/gpscribe/SettingsPanel";
 import { ExamplesPanel } from "@/components/gpscribe/ExamplesPanel";
-import { ExampleSoapDisplay } from "@/components/gpscribe/ExampleSoapDisplay";
 
 // Import existing components
 import { TranslationInterface } from "@/components/TranslationInterface";
@@ -32,7 +31,7 @@ import { MP3TranscriptionTest } from "@/components/MP3TranscriptionTest";
 import { ConsultationHistory } from "@/components/ConsultationHistory";
 import { PatientTranslationView } from "@/components/PatientTranslationView";
 import AI4GPService from "@/components/AI4GPService";
-import { GPSoapDisplay } from "@/components/GPSoapDisplay";
+import GPScribeSoapMock from "@/components/GPSoapUI";
 import { GenerateNotesButton } from "@/components/gpscribe/GenerateNotesButton";
 import GPGenieVoiceAgent from "@/components/GPGenieVoiceAgent";
 
@@ -193,7 +192,6 @@ const Index = () => {
 
   // Load example handler
   const handleLoadExample = (example: ConsultationExample) => {
-    console.log("🔄 Loading example:", example.title);
     // Set example data for the SOAP UI
     setExampleData({
       title: example.title,
@@ -204,9 +202,6 @@ const Index = () => {
       referralLetter: example.referralLetter,
       aiReview: example.aiReview
     });
-    
-    // Navigate to the example summary tab
-    setActiveTab('example-summary');
     
     // Keep existing functionality for backward compatibility
     recording.setTranscript(example.transcript);
@@ -219,7 +214,7 @@ const Index = () => {
       documents.setReferralLetter(example.referralLetter);
     }
     toast.success(`Loaded example: ${example.title}`);
-    setActiveTab("example-summary");
+    setActiveTab("summary");
   };
 
   // Helper functions to create formatted versions from existing summary
@@ -329,24 +324,12 @@ const Index = () => {
               onStopRecording={() => recording.stopRecording(navigate)}
               onPauseRecording={recording.pauseRecording}
               onResumeRecording={recording.resumeRecording}
-              onImportTranscript={async (transcript) => {
-                console.log("🔄 Importing transcript for testing:", transcript.substring(0, 100) + "...");
-                console.log("📝 Full transcript length:", transcript.length);
-                
-                // Clear any existing demo content first
-                console.log("🧹 Clearing all existing content...");
-                documents.clearAllContent();
-                
-                // Set the imported transcript
-                console.log("📂 Setting imported transcript...");
+              onImportTranscript={(transcript) => {
+                console.log("Importing transcript for testing:", transcript.substring(0, 100) + "...");
                 recording.setTranscript(transcript);
-                
                 // Auto-navigate to summary tab to see generated notes
-                console.log("🔄 Switching to summary tab...");
                 setActiveTab("summary");
-                toast.success("Transcript imported! Click 'Generate Consultation Notes' below.");
-                
-                console.log("✅ Import process completed. Current transcript length:", transcript.length);
+                toast.success("Transcript imported! Check the Summary tab for generated notes.");
               }}
               onResetConsultation={() => {
                 console.log("Starting new consultation - clearing all data");
@@ -367,53 +350,18 @@ const Index = () => {
                 <GenerateNotesButton 
                   transcript={recording.transcript}
                   onNotesGenerated={(notes) => {
-                    console.log("Notes generated, updating document state:", notes);
-                    
-                    // Update the document generation state with generated notes
-                    if (notes.shorthand) {
-                      const soap = notes.shorthand;
-                      const shorthandText = `S: ${soap.S || ''}\nO: ${soap.O || ''}\nA: ${soap.A || ''}\nP: ${soap.P || ''}`;
-                      documents.setGpShorthand(shorthandText);
-                    }
-                    
-                    if (notes.standard) {
-                      const soap = notes.standard;
-                      const standardText = `**Subjective:** ${soap.S || ''}\n\n**Objective:** ${soap.O || ''}\n\n**Assessment:** ${soap.A || ''}\n\n**Plan:** ${soap.P || ''}`;
-                      documents.setStandardDetail(standardText);
-                    }
-                    
-                    if (notes.summaryLine) {
-                      documents.setGpSummary(notes.summaryLine);
-                    }
-                    
-                    if (notes.patientCopy) {
-                      documents.setPatientCopy(notes.patientCopy);
-                    }
-                    
-                    if (notes.referral) {
-                      documents.setReferralLetter(notes.referral);
-                    }
-
-                    if (notes.review) {
-                      documents.setTraineeFeedback(notes.review);
-                    }
-                    
+                    console.log("Notes generated:", notes);
                     toast.success("Consultation notes generated! View below.");
                   }}
                 />
               </div>
             )}
-            <GPSoapDisplay transcript={recording.transcript} />
+            <GPScribeSoapMock />
           </TabsContent>
 
           {/* Examples Tab */}
           <TabsContent value="examples" className="space-y-6 mt-6">
             <ExamplesPanel onLoadExample={handleLoadExample} />
-          </TabsContent>
-
-          {/* Example Summary Tab */}
-          <TabsContent value="example-summary" className="space-y-6 mt-6">
-            <ExampleSoapDisplay exampleData={exampleData} />
           </TabsContent>
 
           {/* History Tab */}

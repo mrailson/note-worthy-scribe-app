@@ -134,25 +134,10 @@ serve(async (req) => {
       throw new Error('OPENAI_API_KEY not configured');
     }
 
-    const supabaseClient = createClient(
+    const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
-
-    // Get the authorization header and set the user context
-    const authHeader = req.headers.get('authorization');
-    let currentUserId = null;
-    
-    if (authHeader) {
-      const { data: { user } } = await supabaseClient.auth.getUser(authHeader.replace('Bearer ', ''));
-      currentUserId = user?.id;
-    }
 
     const requestData: GenerateNotesRequest = await req.json();
     console.log('📥 Request data:', { 
@@ -291,7 +276,7 @@ Format as JSON with keys: shorthand, standard, summaryLine, patientCopy, referra
 
     // Step 6: Store in database
     console.log('💾 Saving consultation notes...');
-    const { error: saveError } = await supabaseClient
+    const { error: saveError } = await supabase
       .from('consultation_notes')
       .upsert({
         id: requestData.consultationId,
@@ -300,7 +285,7 @@ Format as JSON with keys: shorthand, standard, summaryLine, patientCopy, referra
         consultation_type: requestData.consultationType,
         template_id: response.templateId,
         confidence_score: response.confidence,
-        created_by: currentUserId
+        created_by: req.headers.get('authorization') ? 'authenticated_user' : 'anonymous'
       });
 
     if (saveError) {
