@@ -345,18 +345,18 @@ export default function GPScribeSoapMock() {
   // SNOMED suggestions state
   const [selectedSnomed, setSelectedSnomed] = useState<string[]>([]);
 
-  // Patient Copy view toggle (persisted)
+  // === Patient Letter helpers ===
   type PatientCopyView = 'short' | 'letter';
   const [pcView, setPcView] = useState<PatientCopyView>(
     (localStorage.getItem('pcView') as PatientCopyView) || 'short'
   );
   useEffect(() => localStorage.setItem('pcView', pcView), [pcView]);
 
-  // Patient name and email signature (replace with real profile fetch)
-  const [patientName, setPatientName] = useState<string>('');
+  // Replace these two with your real patient + profile fields
+  const [patientName, setPatientName] = useState<string>('Mr Smith');
   const [emailSignature, setEmailSignature] = useState<string>(
-    localStorage.getItem('emailSignature') ||
-    'Dr A. Patel\nRiverbank Medical Practice\n01234 567890\npractice@nhs.net'
+    localStorage.getItem('emailSignature')
+    || 'Dr A. Patel\nRiverbank Medical Practice\n01234 567890\npractice@nhs.net'
   );
   useEffect(() => localStorage.setItem('emailSignature', emailSignature), [emailSignature]);
 
@@ -374,80 +374,68 @@ export default function GPScribeSoapMock() {
     urti: [
       { title: 'NHS – Common cold', url: 'https://www.nhs.uk/conditions/common-cold/' },
       { title: 'NHS – Sore throat', url: 'https://www.nhs.uk/conditions/sore-throat/' },
-      { title: 'NHS – Self-care for colds', url: 'https://www.nhs.uk/live-well/is-my-child-too-ill-for-school/common-cold/' }
+      { title: 'NHS – Self-care for colds', url: 'https://www.nhs.uk/live-well/is-my-child-too-ill-for-school/common-cold/' },
     ],
   };
 
-  // Split safety-net lines out of P
-  const splitSafetyFromPlan = (plan: string) => {
-    const lines = plan.split(/\n|[•;-]/).map(s => s.trim()).filter(Boolean);
-    const planLines: string[] = [], safetyLines: string[] = [];
+  const splitPlanSafety = (plan: string) => {
+    const lines = plan.split(/\n|[•;\-]/).map(s => s.trim()).filter(Boolean);
+    const p: string[] = [], s: string[] = [];
     for (const ln of lines) {
-      if (/safety|seek|urgent|return|worse|> *\d/.test(ln.toLowerCase())) safetyLines.push(ln);
-      else planLines.push(ln);
+      if (/safety|seek|urgent|return|worse|>\s*\d/.test(ln.toLowerCase())) s.push(ln); else p.push(ln);
     }
-    return [planLines, safetyLines] as const;
+    return [p, s] as const;
   };
 
-  // Build the patient letter (structured for HTML display)
-  function buildPatientLetter(opts: {
-    tplName: string;
-    summaryLine: string;
-    soap: Soap;
-    patientName?: string;
-    signature: string;
-    links?: {title:string; url:string}[];
-  }) {
-    const { tplName, summaryLine, soap, patientName, signature, links = [] } = opts;
-    const [planLines, safetyLines] = splitSafetyFromPlan(soap.P);
-    const hi = patientName?.trim() ? `Dear ${patientName},` : 'Dear patient,';
-    const toSentence = (txt: string) => txt.replace(/\s+/g, ' ').trim().replace(/\s*;\s*/g, '; ');
+  const tidySentence = (txt: string) =>
+    txt.replace(/\s+/g, ' ').replace(/\s*;\s*/g, '; ').trim();
 
-    return {
-      greeting: hi,
-      intro: `Thank you for seeing us today about ${tplName}.`,
-      sections: [
-        { title: 'Reason for visit', content: toSentence(soap.S) },
-        { title: 'What we found', content: toSentence(soap.O) },
-        { title: 'What it means', content: toSentence(soap.A) }
-      ],
-      plan: { title: 'What to do now', items: planLines },
-      safety: safetyLines.length ? { title: 'When to seek help', items: safetyLines } : null,
-      links: links.length ? { title: 'Helpful NHS information', items: links } : null,
-      closing: 'If anything changes or you are worried at any point, please get in touch.',
-      signature: signature
-    };
+  // expand common shorthand into patient-friendly text
+  function friendlyDx(dx: string) {
+    if (/urti/i.test(dx)) return 'a viral upper respiratory tract infection (a common cold)';
+    return dx.charAt(0).toUpperCase() + dx.slice(1);
   }
 
-  // Build plain text version for copying
-  function buildPatientLetterText(letterData: ReturnType<typeof buildPatientLetter>) {
-    const parts = [
-      letterData.greeting,
+  function buildPatientLetter(opts: {
+    tplName: string; summaryLine: string; soap: Soap;
+    patientName?: string; signature: string;
+    links?: {title:string; url:string}[];
+  }) {
+    const { tplName, soap, patientName, signature, links = [] } = opts;
+    const [planLines, safetyLines] = splitPlanSafety(soap.P);
+    const greeting = patientName?.trim() ? `Dear ${patientName},` : 'Dear patient,';
+
+    const reason = tidySentence(soap.S)
+      .replace(/^pt c\/o\s*/i, '')
+      .replace(/\bSOB\b/g, 'shortness of breath')
+      .replace(/\bCP\b/g, 'chest pain');
+
+    const findings = tidySentence(soap.O)
+      .replace(/\bObs WNL\b/i, 'your observations were within normal limits')
+      .replace(/\bnodes\b/gi, 'glands')
+      .replace(/\bthroat red\b/i, 'the throat looked inflamed');
+
+    const diagnosis = friendlyDx(soap.A);
+    const bullet = (s: string) => `- ${s}`;
+
+    const body = [
+      `${greeting}`,
       '',
-      letterData.intro,
+      `Thanks for coming in today. We talked about your symptoms and examined you. Here's a brief summary:`,
       '',
-      ...letterData.sections.map(s => `${s.title}: ${s.content}`),
+      `Reason for your visit: ${reason}.`,
+      `What we found: ${findings}.`,
+      `What it means: this is most consistent with ${diagnosis}. This usually settles within a week or so (a cough/congestion can linger up to 2–3 weeks).`,
       '',
-      letterData.plan.title,
-      ...letterData.plan.items.map(item => `- ${item}`),
-      ''
+      'What to do now:',
+      ...planLines.map(bullet),
     ];
-    
-    if (letterData.safety) {
-      parts.push(letterData.safety.title);
-      parts.push(...letterData.safety.items.map(item => `- ${item}`));
-      parts.push('');
-    }
-    
-    if (letterData.links) {
-      parts.push(letterData.links.title);
-      parts.push(...letterData.links.items.map(link => `- ${link.title}: ${link.url}`));
-      parts.push('');
-    }
-    
-    parts.push(letterData.closing, '', 'Kind regards,', letterData.signature);
-    
-    return parts.filter(Boolean).join('\n');
+    if (safetyLines.length) body.push('', 'When to seek help:', ...safetyLines.map(bullet));
+    if (links.length) body.push('', 'Helpful NHS information:', ...links.map(l => bullet(`${l.title}: ${l.url}`)));
+    body.push('', 'If anything changes or you\'re worried at any point, please get in touch.', '', 'Kind regards,', signature);
+
+    // ASCII-safe
+    return body.join('\n').replace(/[""]/g, '"').replace(/[']/g, "'");
   }
 
   const DEMO_TRANSCRIPT: TranscriptEntry[] = [
@@ -1082,7 +1070,7 @@ export default function GPScribeSoapMock() {
 
         {tab === "patient" && (
           <div className="p-4 space-y-3">
-            {/* Controls row (patient name + signature edit + view toggle) */}
+            {/* Controls */}
             <div className="flex flex-wrap items-center gap-2">
               <div className="flex items-center gap-2">
                 <label className="text-xs text-slate-600">Patient name</label>
@@ -1091,7 +1079,7 @@ export default function GPScribeSoapMock() {
                   value={patientName}
                   onChange={e => setPatientName(e.target.value)}
                   placeholder="(optional)"
-                  style={{minWidth: 180}}
+                  style={{minWidth: 160}}
                 />
               </div>
               <div className="flex items-center gap-2">
@@ -1104,7 +1092,6 @@ export default function GPScribeSoapMock() {
                   style={{minWidth: 260}}
                 />
               </div>
-
               <div className="ml-auto inline-flex overflow-hidden rounded-lg border">
                 <button
                   className={`px-3 py-1 text-sm ${pcView==='short' ? 'bg-sky-600 text-white' : 'bg-white'}`}
@@ -1117,14 +1104,12 @@ export default function GPScribeSoapMock() {
               </div>
             </div>
 
-            {/* Short version (unchanged) */}
             {pcView === 'short' && (
-              <PlainCard title="Patient Copy (Short)" body={activeTemplate.patientCopy || "Patient-friendly summary will appear here."} />
+              <PlainCard title="Patient Copy (Short)" body={activeTemplate.patientCopy || ''} />
             )}
 
-            {/* Letter version */}
             {pcView === 'letter' && (() => {
-              const letterData = buildPatientLetter({
+              const letter = buildPatientLetter({
                 tplName: activeTemplate.name,
                 summaryLine: activeTemplate.summaryLine,
                 soap,
@@ -1132,91 +1117,13 @@ export default function GPScribeSoapMock() {
                 signature: emailSignature,
                 links: NHS_LINKS[activeTemplate.id] || []
               });
-              const letterText = buildPatientLetterText(letterData);
-              
               return (
                 <>
-                  <div className="mt-6 rounded-2xl border bg-white p-6 shadow-sm">
-                    <div className="mb-4 flex items-center justify-between">
-                      <h3 className="text-lg font-semibold">Patient Letter (Preview)</h3>
-                      <button onClick={() => copy(letterText)} className="rounded border px-3 py-1 text-sm hover:bg-slate-100">
-                        Copy
-                      </button>
-                    </div>
-                    <div className="space-y-6 text-sm leading-relaxed text-slate-700">
-                      {/* Greeting */}
-                      <p>{letterData.greeting}</p>
-                      
-                      {/* Introduction */}
-                      <p>{letterData.intro}</p>
-                      
-                      {/* Visit details */}
-                      <div className="space-y-3">
-                        {letterData.sections.map((section, idx) => (
-                          <p key={idx}>
-                            <span className="font-semibold">{section.title}:</span> {section.content}
-                          </p>
-                        ))}
-                      </div>
-                      
-                      {/* Plan */}
-                      <div>
-                        <p className="font-semibold mb-2">{letterData.plan.title}</p>
-                        <ul className="space-y-1 ml-4">
-                          {letterData.plan.items.map((item, idx) => (
-                            <li key={idx} className="list-disc">{item}</li>
-                          ))}
-                        </ul>
-                      </div>
-                      
-                      {/* Safety net */}
-                      {letterData.safety && (
-                        <div>
-                          <p className="font-semibold mb-2">{letterData.safety.title}</p>
-                          <ul className="space-y-1 ml-4">
-                            {letterData.safety.items.map((item, idx) => (
-                              <li key={idx} className="list-disc">{item}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                      
-                      {/* NHS Links */}
-                      {letterData.links && (
-                        <div>
-                          <p className="font-semibold mb-2">{letterData.links.title}</p>
-                          <ul className="space-y-1 ml-4">
-                            {letterData.links.items.map((link, idx) => (
-                              <li key={idx} className="list-disc">
-                                <span>{link.title}:</span>{' '}
-                                <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
-                                  {link.url}
-                                </a>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                      
-                      {/* Closing */}
-                      <p>{letterData.closing}</p>
-                      
-                      {/* Signature */}
-                      <div className="pt-4">
-                        <p className="mb-2">Kind regards,</p>
-                        <div className="whitespace-pre-line font-medium">
-                          {letterData.signature}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
+                  <PlainCard title="Patient Letter (Preview)" body={letter} />
                   <div className="flex gap-2">
-                    <button className="px-3 py-2 rounded border hover:bg-slate-100" onClick={() => copy(letterText)}>Copy Letter</button>
-                    <button className="px-3 py-2 rounded border hover:bg-slate-100" onClick={() => copy(activeTemplate.patientCopy || '')}>Copy Short</button>
-                    <button onClick={() => window.print()} className="rounded border px-3 py-2 text-sm hover:bg-slate-100">
-                      Export PDF
-                    </button>
+                    <button className="px-3 py-2 rounded border" onClick={() => copy(letter)}>Copy Letter</button>
+                    <button className="px-3 py-2 rounded border" onClick={() => copy(activeTemplate.patientCopy || '')}>Copy Short</button>
+                    {/* Export PDF will use the visible panel in your current setup */}
                   </div>
                 </>
               );
