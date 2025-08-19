@@ -155,8 +155,8 @@ export function EmailCompositionModal({
 
     setIsSending(true);
     try {
-      // Strip markdown from message content
-      const cleanMessage = stripMarkdown(message.trim());
+      // Preserve formatting and spacing as shown in the chat bubble
+      const cleanMessage = message.trim();
       
       // Generate Word attachment if requested
       let wordAttachment = null;
