@@ -45,13 +45,13 @@ export default function GPScribeSoapMock() {
         S: "pt c/o sore throat 3/7, blocked nose, cough now productive; chills yest; paracetamol partial relief; no SOB/CP",
         O: "Obs WNL, chest clear, nodes small, throat red, no wheeze",
         A: "Viral URTI",
-        P: "Reassure, fluids, paracetamol, safety-net if fever >5/7, SOB, CP or rash",
+        P: "Drink plenty of fluids and rest; paracetamol for pain/fever as per packet; ibuprofen if suitable, with food; saline nasal rinses or menthol steam; decongestant spray can help for up to 3-5 days (avoid longer); throat lozenges or salt-water gargles if helpful; safety-net: seek help if breathing becomes difficult, chest pain develops, you cough blood or feel confused; if fever lasts more than 5 days, symptoms getting worse, or not improving by day 7-10",
       },
       standard: {
         S: "Patient reports 3-day history of sore throat, blocked nose and cough becoming productive. Subjective fever/chills yesterday. Partial relief with paracetamol. Denies shortness of breath or chest pain.",
         O: "Observations within normal limits. Chest clear. Mild cervical lymphadenopathy. Oropharynx erythematous. No wheeze.",
         A: "Likely viral upper respiratory tract infection.",
-        P: "Reassurance. Advise fluids and regular paracetamol. Safety-net: seek care if symptoms worsen, fever persists beyond 5 days, shortness of breath, chest pain or new rash.",
+        P: "Drink plenty of fluids and rest; consider warm drinks with honey. Paracetamol for pain/fever as per the packet; ibuprofen if suitable, with food. Saline nasal rinses or menthol steam. A decongestant spray can help for up to 3–5 days (avoid longer). Throat lozenges or salt-water gargles if helpful. Safety-net: If breathing becomes difficult, chest pain develops, you cough blood or feel confused. If fever lasts more than 5 days, symptoms are getting worse, or you're not improving by day 7–10.",
       },
       patientCopy:
         "You have a viral upper respiratory infection (a common cold). Drink plenty of fluids, rest and use paracetamol for fever/sore throat. Seek help urgently if breathing becomes difficult, chest pain develops, or you feel much worse.",
