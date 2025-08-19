@@ -3,12 +3,12 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { SafeMessageRenderer } from './SafeMessageRenderer';
-import { EmailCompositionModal } from './EmailCompositionModal';
 import { Copy, Sparkles, Maximize2, X, Download, Printer, Mail } from 'lucide-react';
 import { Document, Packer, Paragraph, TextRun } from "docx";
 import { saveAs } from "file-saver";
 import { toast } from "sonner";
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useAutoEmail } from '@/hooks/useAutoEmail';
 
 interface AIResponsePanelProps {
   response: string;
@@ -25,6 +25,7 @@ export const AIResponsePanel: React.FC<AIResponsePanelProps> = ({
 }) => {
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const isMobile = useIsMobile();
+  const { sendEmailAutomatically, isSending } = useAutoEmail();
   
   // Strip HTML tags for plain text versions
   const stripHtml = (html: string) => {
@@ -107,8 +108,8 @@ export const AIResponsePanel: React.FC<AIResponsePanelProps> = ({
   };
 
   // Handle email to patient
-  const handleEmailToPatient = () => {
-    setIsEmailModalOpen(true);
+  const handleEmail = async () => {
+    await sendEmailAutomatically(response, "Medical Consultation Information");
   };
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
@@ -158,11 +159,21 @@ export const AIResponsePanel: React.FC<AIResponsePanelProps> = ({
             <Button
               size="sm"
               variant="outline"
-              onClick={handleEmailToPatient}
-              className="flex-none"
+              onClick={handleEmail}
+              disabled={isSending}
+              className="flex-none disabled:opacity-50"
             >
-              <Mail className="h-4 w-4 mr-2" />
-              Email to Patient
+              {isSending ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Mail className="h-4 w-4 mr-2" />
+                  Email to Me
+                </>
+              )}
             </Button>
           </div>
           
@@ -184,13 +195,6 @@ export const AIResponsePanel: React.FC<AIResponsePanelProps> = ({
         </div>
       </SheetContent>
       
-      {/* Email Composition Modal */}
-      <EmailCompositionModal
-        isOpen={isEmailModalOpen}
-        onOpenChange={setIsEmailModalOpen}
-        content={response}
-        defaultSubject="Medical Consultation Information"
-      />
     </Sheet>
   );
 };

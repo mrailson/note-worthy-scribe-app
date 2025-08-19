@@ -27,6 +27,7 @@ import {
 import { toast } from 'sonner';
 import QuickActionButtons from '@/components/QuickActionButtons';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAutoEmail } from '@/hooks/useAutoEmail';
 import { EmailCompositionModal } from '@/components/EmailCompositionModal';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from '@/components/ui/dropdown-menu';
 
@@ -75,6 +76,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   const [showFullContent, setShowFullContent] = useState(true);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const { user } = useAuth();
+  const { sendEmailAutomatically, isSending } = useAutoEmail();
   
   // Auto-scroll to bottom when content updates during streaming
   const contentRef = React.useRef<HTMLDivElement>(null);
@@ -193,13 +195,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   };
 
   const handleEmailToMe = async () => {
-    if (!user?.email) {
-      toast.error('User email not found');
-      return;
-    }
-    
-    // TODO: Implement EmailJS integration to send directly to user
-    toast.success('Email sent to your account');
+    await sendEmailAutomatically(message.content, "AI Generated Content");
   };
 
   const handleEmailToOthers = () => {
@@ -714,9 +710,21 @@ Please fetch these and retry. No corrections made."`;
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-48">
-                        <DropdownMenuItem onClick={handleEmailToMe}>
-                          <Mail className="h-4 w-4 mr-2" />
-                          Email to me
+                        <DropdownMenuItem 
+                          onClick={handleEmailToMe}
+                          disabled={isSending}
+                        >
+                          {isSending ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2" />
+                              Sending...
+                            </>
+                          ) : (
+                            <>
+                              <Mail className="h-4 w-4 mr-2" />
+                              Email to me
+                            </>
+                          )}
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={handleEmailToOthers}>
                           <Mail className="h-4 w-4 mr-2" />
@@ -835,7 +843,7 @@ Please fetch these and retry. No corrections made."`;
         </div>
       </div>
       
-      {/* Email Composition Modal */}
+      {/* Email Composition Modal for sending to others */}
       <EmailCompositionModal
         isOpen={isEmailModalOpen}
         onOpenChange={setIsEmailModalOpen}
