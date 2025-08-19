@@ -268,6 +268,20 @@ const handler = async (req: Request): Promise<Response> => {
     <meta name="viewport" content="width=device-width">
     <meta charset="utf-8">
     <title>${data.title}</title>
+    <style>
+      /* Reset Outlook default margins */
+      p, ul, ol, li {
+        margin:0 !important;
+        padding:0 !important;
+      }
+      ul, ol {
+        margin-left:18px !important;
+      }
+      li {
+        margin-bottom:4px !important;
+        line-height:1.4 !important;
+      }
+    </style>
   </head>
   <body style="margin:0; padding:0; background:#f5f8ff;">
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background:#f0f6ff;">
@@ -275,7 +289,7 @@ const handler = async (req: Request): Promise<Response> => {
         <td align="center" style="padding:24px 12px;">
           <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="680" style="max-width:680px; background:#ffffff; border-radius:10px; overflow:hidden; box-shadow:0 1px 3px rgba(11,31,53,0.07);">
             <tr>
-              <td style="background:#eaf2ff; padding:18px 24px; font-family:Segoe UI, Roboto, Arial, sans-serif; mso-line-height-rule:exactly; line-height:1.35;">
+              <td style="background:#eaf2ff; padding:18px 24px; font-family:Segoe UI, Roboto, Arial, sans-serif; line-height:1.35;">
                 <div style="font-size:18px; font-weight:700; color:#0b2545; margin:0;">
                   ${data.title}
                 </div>
@@ -289,7 +303,7 @@ const handler = async (req: Request): Promise<Response> => {
               <td style="padding:20px 24px 8px; font-family:Segoe UI, Roboto, Arial, sans-serif; color:#0b2545;">
                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
                   <tr>
-                    <td style="font-size:14px; mso-line-height-rule:exactly; line-height:1.6;">
+                    <td style="font-size:14px; line-height:1.6;">
                       ${data.time ? `<div style="margin:0 0 6px;">⏰ <strong>Time:</strong> ${data.time}</div>` : ''}
                       ${data.location ? `<div style="margin:0 0 6px;">📍 <strong>Location:</strong> ${data.location}</div>` : ''}
                       ${data.attendees ? `<div style="margin:0 0 6px;">👥 <strong>Attendees:</strong> ${data.attendees}</div>` : ''}
@@ -308,8 +322,8 @@ const handler = async (req: Request): Promise<Response> => {
             ${data.agenda.length > 0 ? `<tr>
               <td style="padding:0 24px 6px; font-family:Segoe UI, Roboto, Arial, sans-serif;">
                 <div style="font-size:15px; font-weight:700; color:#0b2545; margin:0 0 6px;">Agenda</div>
-                <ol style="margin:0 0 14px 18px; padding:0; font-size:14px; color:#1a2a44; mso-line-height-rule:exactly; line-height:1.55;">
-                  ${data.agenda.map((item: string) => `<li style="margin:0 0 6px 0;">${item}</li>`).join('')}
+                <ol style="margin:0 0 6px 18px; padding:0; font-size:14px; color:#1a2a44; line-height:1.4;">
+                  ${data.agenda.map((item: string) => `<li>${item}</li>`).join('')}
                 </ol>
               </td>
             </tr>` : ''}
@@ -320,8 +334,8 @@ const handler = async (req: Request): Promise<Response> => {
                 ${data.discussion_points.map((point: any) => `
                 <div style="margin:0 0 14px 0;">
                   <div style="font-size:14px; font-weight:700; color:#0b2545; margin:0 0 4px;">${point.heading}</div>
-                  <ul style="margin:0 0 6px 18px; padding:0; font-size:14px; color:#1a2a44; mso-line-height-rule:exactly; line-height:1.55;">
-                    ${point.items.map((item: string) => `<li style="margin:0 0 6px 0;">${item}</li>`).join('')}
+                  <ul style="margin:0 0 6px 18px; padding:0; font-size:14px; color:#1a2a44; line-height:1.4;">
+                    ${point.items.map((item: string) => `<li>${item}</li>`).join('')}
                   </ul>
                 </div>`).join('')}
               </td>
@@ -333,7 +347,7 @@ const handler = async (req: Request): Promise<Response> => {
                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border:1px solid #e6eefc; border-radius:8px;">
                   <tr>
                     <td style="padding:12px 16px;">
-                      <ol style="margin:0 0 0 18px; padding:0; font-size:14px; color:#1a2a44; mso-line-height-rule:exactly; line-height:1.55;">
+                      <ol style="margin:0 0 0 18px; padding:0; font-size:14px; color:#1a2a44; line-height:1.4;">
                         ${data.risks.map((risk: any) => `
                         <li style="margin:0 0 10px 0;">
                           <div><strong>${risk.title}:</strong> ${risk.risk}</div>
@@ -349,8 +363,8 @@ const handler = async (req: Request): Promise<Response> => {
             ${data.next_steps.length > 0 ? `<tr>
               <td style="padding:10px 24px 2px; font-family:Segoe UI, Roboto, Arial, sans-serif;">
                 <div style="font-size:15px; font-weight:700; color:#0b2545; margin:0 0 6px;">Next Steps</div>
-                <ul style="margin:0 0 10px 18px; padding:0; font-size:14px; color:#1a2a44; mso-line-height-rule:exactly; line-height:1.55;">
-                  ${data.next_steps.map((step: string) => `<li style="margin:0 0 6px 0;">${step}</li>`).join('')}
+                <ul style="margin:0 0 10px 18px; padding:0; font-size:14px; color:#1a2a44; line-height:1.4;">
+                  ${data.next_steps.map((step: string) => `<li>${step}</li>`).join('')}
                 </ul>
               </td>
             </tr>` : ''}
@@ -358,7 +372,7 @@ const handler = async (req: Request): Promise<Response> => {
             ${data.adjourned_time || data.prepared_by ? `<tr>
               <td style="padding:8px 24px 20px; font-family:Segoe UI, Roboto, Arial, sans-serif; color:#4a5a7a; font-size:12px;">
                 <hr style="border:none; border-top:1px solid #e6eefc; margin:10px 0 12px;">
-                <div style="mso-line-height-rule:exactly; line-height:1.4;">
+                <div style="line-height:1.4;">
                   ${data.adjourned_time ? `<strong>Meeting adjourned:</strong> ${data.adjourned_time}<br>` : ''}
                   ${data.prepared_by ? `<strong>Prepared by:</strong> ${data.prepared_by}` : ''}
                 </div>
