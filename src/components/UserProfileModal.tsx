@@ -48,6 +48,7 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
   const [signatureUploading, setSignatureUploading] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
   const [logoSaved, setLogoSaved] = useState(false);
+  const [signatureLoading, setSignatureLoading] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile>({
     title: '',
     first_name: '',
@@ -312,6 +313,51 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
     setPracticeDetails(prev => ({ ...prev, practice_logo_url: '' }));
   };
 
+  const handleSaveSignatures = async () => {
+    if (!user) return;
+
+    setSignatureLoading(true);
+    try {
+      const signatureData = {
+        user_id: user.id,
+        email_signature: practiceDetails.email_signature,
+        letter_signature: practiceDetails.letter_signature,
+        updated_at: new Date().toISOString()
+      };
+
+      if (practiceDetails.id) {
+        // Update existing record
+        const { error } = await supabase
+          .from('practice_details')
+          .update(signatureData)
+          .eq('id', practiceDetails.id);
+
+        if (error) throw error;
+      } else {
+        // Insert new record with minimal required data
+        const { error } = await supabase
+          .from('practice_details')
+          .insert({
+            ...signatureData,
+            practice_name: practiceDetails.practice_name || 'Default Practice',
+            address: practiceDetails.address || '',
+            email: practiceDetails.email || '',
+            website: practiceDetails.website || '',
+            phone: practiceDetails.phone || ''
+          });
+
+        if (error) throw error;
+      }
+
+      toast.success('Signatures saved successfully');
+    } catch (error: any) {
+      console.error('Error saving signatures:', error);
+      toast.error('Failed to save signatures: ' + error.message);
+    } finally {
+      setSignatureLoading(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -558,6 +604,24 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
                   placeholder="Create your professional letter signature..."
                 />
               </div>
+
+              <Button 
+                onClick={handleSaveSignatures}
+                disabled={signatureLoading}
+                className="w-full"
+              >
+                {signatureLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving Signatures...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Save Signatures
+                  </>
+                )}
+              </Button>
             </CardContent>
           </Card>
 

@@ -6,6 +6,7 @@ import { Color } from '@tiptap/extension-color';
 import { FontFamily } from '@tiptap/extension-font-family';
 import { TextAlign } from '@tiptap/extension-text-align';
 import { Underline as UnderlineExtension } from '@tiptap/extension-underline';
+import { Image } from '@tiptap/extension-image';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { 
@@ -54,6 +55,12 @@ const SignatureEditor: React.FC<SignatureEditorProps> = ({
         types: ['heading', 'paragraph'],
       }),
       UnderlineExtension,
+      Image.configure({
+        HTMLAttributes: {
+          class: 'max-w-full h-auto',
+        },
+        allowBase64: true,
+      }),
     ],
     content,
     onUpdate: ({ editor }) => {
@@ -62,6 +69,28 @@ const SignatureEditor: React.FC<SignatureEditorProps> = ({
     editorProps: {
       attributes: {
         class: 'prose prose-sm max-w-none focus:outline-none min-h-[100px] p-3 border rounded-md',
+      },
+      handlePaste(view, event, slice) {
+        const items = Array.from(event.clipboardData?.items || []);
+        
+        for (const item of items) {
+          if (item.type.indexOf('image') === 0) {
+            const file = item.getAsFile();
+            if (file) {
+              const reader = new FileReader();
+              reader.onload = (e) => {
+                const result = e.target?.result as string;
+                if (result && editor) {
+                  editor.chain().focus().setImage({ src: result }).run();
+                }
+              };
+              reader.readAsDataURL(file);
+              event.preventDefault();
+              return true;
+            }
+          }
+        }
+        return false;
       },
     },
   });
