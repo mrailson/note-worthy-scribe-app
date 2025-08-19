@@ -483,6 +483,16 @@ export default function GPScribeSoapMock() {
     }
   };
 
+  const clearHistory = () => {
+    try {
+      localStorage.removeItem("gp_history");
+      setHistory([]);
+      console.log("History cleared");
+    } catch (err) {
+      console.error("Clear history failed:", err);
+    }
+  };
+
   // EMIS helper functions
   const ascii = (s: string) => s.replace(/[""]/g, '"').replace(/[']/g, "'"); // EMIS-safe
   
@@ -1080,8 +1090,16 @@ export default function GPScribeSoapMock() {
 
         {tab === "history" && (
           <div className="p-4">
-            <div className="mb-2 text-sm text-slate-600">
-              Autosaved locally; wire to Supabase for production.
+            <div className="mb-4 flex items-center justify-between">
+              <div className="text-sm text-slate-600">
+                Autosaved locally; wire to Supabase for production.
+              </div>
+              <button 
+                onClick={clearHistory}
+                className="rounded border px-3 py-2 text-sm hover:bg-slate-100 text-red-600 border-red-200"
+              >
+                Clear All History
+              </button>
             </div>
             <div className="overflow-hidden rounded-xl border bg-white">
               <table className="w-full text-sm">
