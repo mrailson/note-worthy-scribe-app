@@ -123,58 +123,32 @@ export const consultationExamples: ConsultationExample[] = [
 09:45 Clinician: Any other questions before we finish?
 09:47 Patient: No, that's everything. Thank you.
 09:50 Clinician: You're very welcome. I'll be here if things change—send a message if you're not improving by day 7 to 10 or sooner if you're worried.`,
-    summary: `**Patient:** Alex Jones, DOB: 12/03/1989
+    summary: `**GP Shorthand**
 
-**Chief Complaint:** Upper respiratory tract symptoms for 3 days
+**S:** 3/7 sore throat + coryza + cough (dry → now clear sputum). Chills last night. Paracetamol partial relief. No SOB/CP/hemoptysis. No N/V/D. Taste/smell ok. Mild asthma—no SABA use this illness. Teacher exposure; child with cold. Non-smoker.
 
-**History of Presenting Complaint:**
-- 3-day history of sore throat, blocked nose, and cough
-- Cough initially dry, now productive of clear sputum
-- Subjective fever and chills yesterday evening with night sweats
-- Facial heaviness (sinus symptoms)
-- Sore throat manageable, no dysphagia or voice changes
-- No loss of taste/smell, no GI symptoms
-- Current treatment: Paracetamol 6-hourly, honey with lemon
+**O:** T 37.7°C, P 88 reg, BP 128/78, RR 14, SpO₂ 98% RA. OP erythema, tonsils 1+, no exudate, uvula midline. Small tender ant cerv LN. Chest clear, no wheeze/crackles. Nasal mucosa pale/swollen, clear discharge; mild maxillary tend.
 
-**Past Medical History:**
-- Mild asthma (salbutamol inhaler PRN, not used recently)
-- NKDA
+**A:** Viral URTI. Centor 0–1 / FeverPAIN 1 → abx not indicated.
 
-**Social History:**
-- Teacher, non-smoker, minimal alcohol (1-2 glasses wine/week)
-- Recent exposure: Son had cold last week, work environment
+**P:** Self-care: fluids, rest, paracetamol/ibuprofen (label doses). Saline/menthol steam; decongestant spray ≤3–5d; lozenges/gargles. Fit to work when afebrile ≥24h. Safety-net: breathlessness, chest pain, confusion, hemoptysis, fever >5d, not improving by day 7–10 → seek care.
 
-**Patient Concerns:**
-- Worried about strep throat or pneumonia
-- Needs to return to work (teaching)
+---
 
-**Examination:**
-- Observations: T 37.7°C, HR 88 reg, BP 128/78, O2 sats 98% RA, RR 14
-- Throat: Erythematous, tonsils mildly swollen, no exudate, uvula central
-- Neck: Small tender anterior cervical lymph nodes
-- Chest: Clear to auscultation, no wheeze or crackles
-- ENT: Swollen pale nasal mucosa with clear discharge, mild sinus tenderness
+**Standard Detail**
 
-**Clinical Scores:**
-- FeverPAIN: 1/5 (fever yesterday only)
-- Centor: 0-1 (cough present, no exudate, mild lymphadenopathy)
+**S:** Three-day history sore throat, nasal congestion and cough (initially dry, now clear sputum). Subjective chills yesterday. Denies chest pain or dyspnoea; no GI symptoms; taste/smell intact. Using paracetamol with partial relief. Past Hx mild asthma (no reliever use); non-smoker; teacher; recent contact with URTI at home.
 
-**Assessment:**
-Viral upper respiratory tract infection (common cold)
-Low probability of streptococcal pharyngitis
+**O:** Temp 37.7 °C, pulse 88 regular, BP 128/78, RR 14, SpO₂ 98% on air. Oropharynx erythematous; tonsils mildly enlarged without exudate; uvula central. Small tender anterior cervical lymph nodes. Chest clear to auscultation; no wheeze/crackles. Nasal mucosa pale and oedematous with clear rhinorrhoea; mild maxillary sinus tenderness.
 
-**Management:**
-- Symptomatic treatment: Paracetamol/ibuprofen (with food)
-- Supportive care: Rest, fluids, warm drinks with honey
-- Nasal decongestant spray (maximum 3-5 days)
-- Throat lozenges/salt water gargles
-- Return to work when fever-free for 24 hours
-- No antibiotics indicated
+**A:** Likely viral upper respiratory tract infection. Low Centor/FeverPAIN score—antibiotics not indicated.
 
-**Safety Netting:**
-- Seek urgent care if: breathing difficulties, chest pain, haemoptysis, confusion, persistent fever >5 days
-- Review if not improving by 7-10 days or symptoms worsen
-- Information leaflet and patient app summary provided`,
+**P:** Education on viral course; analgesia/antipyretics; fluids/rest; saline irrigation; short course topical decongestant (≤3–5 days) if needed; lozenges/gargles. COVID test not required unless new red flags. Return-to-work advice (afebrile ≥24 h, hand hygiene). Safety-net as above.
+
+---
+
+**Summary Line (TPP/S1 style):**
+URTI 3/7, obs WNL (T 37.7, P 88, BP 128/78, SpO₂ 98), chest clear; abx not indicated; safety-net`,
     patientCopy: `Hi Alex, you have a viral upper respiratory tract infection (common cold). Take paracetamol or ibuprofen, rest, drink fluids, and use throat lozenges. Return to work when fever-free for 24 hours. Contact us if symptoms worsen or persist beyond 7-10 days, or if you develop breathing difficulties.`,
     aiReview: `**Consultation Review and Analysis**
 
