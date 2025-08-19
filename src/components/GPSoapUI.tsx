@@ -345,6 +345,21 @@ export default function GPScribeSoapMock() {
   // SNOMED suggestions state
   const [selectedSnomed, setSelectedSnomed] = useState<string[]>([]);
 
+  // Patient Copy view toggle (persisted)
+  type PatientCopyView = 'short' | 'letter';
+  const [pcView, setPcView] = useState<PatientCopyView>(
+    (localStorage.getItem('pcView') as PatientCopyView) || 'short'
+  );
+  useEffect(() => localStorage.setItem('pcView', pcView), [pcView]);
+
+  // Patient name and email signature (replace with real profile fetch)
+  const [patientName, setPatientName] = useState<string>('');
+  const [emailSignature, setEmailSignature] = useState<string>(
+    localStorage.getItem('emailSignature') ||
+    'Dr A. Patel\nRiverbank Medical Practice\n01234 567890\npractice@nhs.net'
+  );
+  useEffect(() => localStorage.setItem('emailSignature', emailSignature), [emailSignature]);
+
   // simple persistent history (swap to Supabase later)
   const [history, setHistory] = useState<ConsultationRecord[]>(() => {
     try { return JSON.parse(localStorage.getItem("gp_history") || "[]"); }
@@ -353,6 +368,66 @@ export default function GPScribeSoapMock() {
 
   const [consultId] = useState<string>(() => `CONS-${Date.now()}`);
   const [startedAt] = useState<string>(() => new Date().toISOString());
+
+  // NHS links per template
+  const NHS_LINKS: Record<string, {title: string; url: string}[]> = {
+    urti: [
+      { title: 'NHS – Common cold', url: 'https://www.nhs.uk/conditions/common-cold/' },
+      { title: 'NHS – Sore throat', url: 'https://www.nhs.uk/conditions/sore-throat/' },
+      { title: 'NHS – Self-care for colds', url: 'https://www.nhs.uk/live-well/is-my-child-too-ill-for-school/common-cold/' }
+    ],
+  };
+
+  // Split safety-net lines out of P
+  const splitSafetyFromPlan = (plan: string) => {
+    const lines = plan.split(/\n|[•;-]/).map(s => s.trim()).filter(Boolean);
+    const planLines: string[] = [], safetyLines: string[] = [];
+    for (const ln of lines) {
+      if (/safety|seek|urgent|return|worse|> *\d/.test(ln.toLowerCase())) safetyLines.push(ln);
+      else planLines.push(ln);
+    }
+    return [planLines, safetyLines] as const;
+  };
+
+  // Build the patient letter text
+  function buildPatientLetter(opts: {
+    tplName: string;
+    summaryLine: string;
+    soap: Soap;
+    patientName?: string;
+    signature: string;
+    links?: {title:string; url:string}[];
+  }) {
+    const { tplName, summaryLine, soap, patientName, signature, links = [] } = opts;
+    const [planLines, safetyLines] = splitSafetyFromPlan(soap.P);
+    const hi = patientName?.trim() ? `Dear ${patientName},` : 'Dear patient,';
+
+    const toSentence = (txt: string) => txt.replace(/\s+/g, ' ').trim().replace(/\s*;\s*/g, '; ');
+
+    const body = [
+      `${hi}`,
+      '',
+      `Thank you for seeing us today about ${tplName}.`,
+      '',
+      `**Reason for visit:** ${toSentence(soap.S)}`,
+      `**What we found:** ${toSentence(soap.O)}`,
+      `**What it means:** ${toSentence(soap.A)}`,
+      '',
+      `**What to do now**`,
+      ...planLines.map(l => `- ${l}`),
+      '',
+      (safetyLines.length ? `**When to seek help**\n` + safetyLines.map(l => `- ${l}`).join('\n') : ''),
+      (links.length ? `\n**Helpful NHS information**\n` + links.map(l => `- ${l.title}: ${l.url}`).join('\n') : ''),
+      '',
+      'If anything changes or you are worried at any point, please get in touch.',
+      '',
+      'Kind regards,',
+      signature
+    ].filter(Boolean);
+
+    // ASCII-safe
+    return body.join('\n').replace(/[""]/g,'"').replace(/[']/g,"'");
+  }
 
   const DEMO_TRANSCRIPT: TranscriptEntry[] = [
     { t: "00:05", speaker: "Clinician", text: "Good morning. What brings you in today?" },
@@ -984,7 +1059,73 @@ export default function GPScribeSoapMock() {
           </div>
         )}
 
-        {tab === "patient" && <PlainCard title="Patient Copy" body={activeTemplate.patientCopy || "Patient-friendly summary will appear here."} />}
+        {tab === "patient" && (
+          <div className="p-4 space-y-3">
+            {/* Controls row (patient name + signature edit + view toggle) */}
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-slate-600">Patient name</label>
+                <input
+                  className="border rounded px-2 py-1 text-sm"
+                  value={patientName}
+                  onChange={e => setPatientName(e.target.value)}
+                  placeholder="(optional)"
+                  style={{minWidth: 180}}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-slate-600">Email signature</label>
+                <textarea
+                  className="border rounded px-2 py-1 text-sm"
+                  value={emailSignature}
+                  onChange={e => setEmailSignature(e.target.value)}
+                  rows={2}
+                  style={{minWidth: 260}}
+                />
+              </div>
+
+              <div className="ml-auto inline-flex overflow-hidden rounded-lg border">
+                <button
+                  className={`px-3 py-1 text-sm ${pcView==='short' ? 'bg-sky-600 text-white' : 'bg-white'}`}
+                  onClick={() => setPcView('short')}
+                >Short</button>
+                <button
+                  className={`px-3 py-1 text-sm ${pcView==='letter' ? 'bg-sky-600 text-white' : 'bg-white'}`}
+                  onClick={() => setPcView('letter')}
+                >Letter</button>
+              </div>
+            </div>
+
+            {/* Short version (unchanged) */}
+            {pcView === 'short' && (
+              <PlainCard title="Patient Copy (Short)" body={activeTemplate.patientCopy || "Patient-friendly summary will appear here."} />
+            )}
+
+            {/* Letter version */}
+            {pcView === 'letter' && (() => {
+              const letter = buildPatientLetter({
+                tplName: activeTemplate.name,
+                summaryLine: activeTemplate.summaryLine,
+                soap,
+                patientName,
+                signature: emailSignature,
+                links: NHS_LINKS[activeTemplate.id] || []
+              });
+              return (
+                <>
+                  <PlainCard title="Patient Letter (Preview)" body={letter} />
+                  <div className="flex gap-2">
+                    <button className="px-3 py-2 rounded border hover:bg-slate-100" onClick={() => copy(letter)}>Copy Letter</button>
+                    <button className="px-3 py-2 rounded border hover:bg-slate-100" onClick={() => copy(activeTemplate.patientCopy || '')}>Copy Short</button>
+                    <button onClick={() => window.print()} className="rounded border px-3 py-2 text-sm hover:bg-slate-100">
+                      Export PDF
+                    </button>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        )}
         {tab === "referral" && <PlainCard title="Referral" body={activeTemplate.referral || "Referral text/criteria will appear here."} />}
         {tab === "review" && (
           <PlainCard title="Review & Recommendations" body={activeTemplate.review || "Follow-up plan, safety-netting and recommendations go here."} />
