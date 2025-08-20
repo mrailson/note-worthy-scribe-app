@@ -408,26 +408,41 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     }
   };
 
-  // Fetch transcript when modal opens
+  // Fetch transcript when modal opens - SECURE VERSION using RPC
   const fetchTranscript = async () => {
     if (!meeting?.id || transcript) return; // Don't fetch if already loaded
     
     setIsLoadingTranscript(true);
     try {
-      const { data: transcripts, error } = await supabase
-        .from('meeting_transcripts')
-        .select('*')
-        .eq('meeting_id', meeting.id)
-        .order('timestamp_seconds', { ascending: true });
-
-      if (error) throw error;
-
-      // Combine all transcript segments
-      const fullTranscript = transcripts?.map(t => t.content).join(' ') || '';
-      setTranscript(fullTranscript);
+      console.log('🔍 Fetching transcript for meeting:', meeting.id);
+      
+      // Use secure RPC function that validates user access
+      const { data: rpcRows, error: rpcError } = await supabase.rpc('get_meeting_full_transcript', { 
+        p_meeting_id: meeting.id 
+      });
+      
+      if (rpcError) {
+        console.error('RPC error:', rpcError);
+        throw rpcError;
+      }
+      
+      if (Array.isArray(rpcRows) && rpcRows.length > 0) {
+        const row = rpcRows[0] as { source: string; transcript: string; item_count: number };
+        if (row?.transcript && row.transcript.trim().length > 0) {
+          console.log('🔍 Transcript loaded from source:', row.source, 'Items:', row.item_count);
+          setTranscript(row.transcript);
+        } else {
+          console.log('🔍 No transcript content found');
+          setTranscript('');
+        }
+      } else {
+        console.log('🔍 No transcript data returned');
+        setTranscript('');
+      }
     } catch (error) {
-      console.error('Error fetching transcript:', error);
+      console.error('🚨 CRITICAL: Error fetching transcript:', error);
       toast.error('Failed to load transcript');
+      setTranscript('');
     } finally {
       setIsLoadingTranscript(false);
     }
