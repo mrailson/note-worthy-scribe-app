@@ -2121,105 +2121,28 @@ Speakers detected: ${meetingData?.speakerCount || 0}`;
       toast.error(error instanceof Error ? error.message : 'Failed to apply custom instructions');
     }
   };
+
+  // PDF download function
+  const downloadPDF = async () => {
     try {
       // Save the current summary to database before downloading
-      if (aiGeneratedMinutes) {
-        await saveSummaryToDatabase(aiGeneratedMinutes);
+      if (claudeNotes) {
+        await saveSummaryToDatabase(claudeNotes);
       }
       
-      // Get practice details for footer and logo
-      const { data: practiceData, error: practiceError } = await supabase
-        .from('practice_details')
-        .select('logo_url, footer_text, show_page_numbers, practice_name, address')
-        .eq('user_id', user?.id)
-        .eq('is_default', true)
-        .maybeSingle();
-      
-      if (practiceError) {
-        console.warn('Error fetching practice details:', practiceError);
-      }
-      
-      console.log('Practice data for PDF:', practiceData);
-      
-      const content = generateNHSSummaryContent();
-      
-      // Clean content for PDF (remove HTML tags if any)
-      let pdfContent;
-      if (aiGeneratedMinutes) {
-        pdfContent = content
-          .replace(/<[^>]*>/g, '') // Remove HTML tags
-          .replace(/&nbsp;/g, ' ')  // Replace HTML entities
-          .replace(/&amp;/g, '&')
-          .replace(/&lt;/g, '<')
-          .replace(/&gt;/g, '>');
-      } else {
-        pdfContent = content;
-      }
-
+      const content = claudeNotes || 'No content available';
       const pdf = new jsPDF();
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
       const margin = 20;
       
-      // Function to add logo to page
-      const addLogoToPage = async () => {
-        if (practiceData?.logo_url) {
-          try {
-            const response = await fetch(practiceData.logo_url);
-            if (!response.ok) throw new Error('Failed to fetch logo');
-            
-            const logoBlob = await response.blob();
-            const logoDataUrl = await new Promise<string>((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onload = () => resolve(reader.result as string);
-              reader.onerror = reject;
-              reader.readAsDataURL(logoBlob);
-            });
-            
-            const logoWidth = 40;
-            const logoHeight = 30;
-            pdf.addImage(logoDataUrl, 'PNG', pageWidth - logoWidth - margin, margin, logoWidth, logoHeight);
-            console.log('Logo added to PDF successfully');
-          } catch (error) {
-            console.warn('Failed to load logo for PDF:', error);
-          }
-        } else {
-          console.log('No logo URL found for practice');
-        }
-      };
-
-      // Function to add footer to current page
-      const addFooter = () => {
-        const footerY = pageHeight - 20;
-        pdf.setFontSize(8);
-        
-        // Footer text
-        if (practiceData?.footer_text) {
-          const footerLines = practiceData.footer_text.split('\n');
-          footerLines.forEach((line, index) => {
-            pdf.text(line, pageWidth / 2, footerY - (footerLines.length - 1 - index) * 5, { align: 'center' });
-          });
-        }
-        
-        // Page numbers
-        if (practiceData?.show_page_numbers !== false) {
-          const pageCount = pdf.getNumberOfPages();
-          pdf.text(`Page ${pageCount}`, pageWidth / 2, footerY + 10, { align: 'center' });
-        }
-      };
-
-      // Add logo to first page
-      await addLogoToPage();
-      
-      const lines = pdfContent.split('\n');
-      let y = practiceData?.logo_url ? 60 : 30; // Start below logo if present
+      const lines = content.split('\n');
+      let y = 30;
       
       // Process each line with formatting
       for (const line of lines) {
-        if (y > pageHeight - 40) { // Leave space for footer
-          addFooter();
+        if (y > pageHeight - 40) {
           pdf.addPage();
-          await addLogoToPage();
           y = 30;
         }
         
@@ -2228,47 +2151,22 @@ Speakers detected: ${meetingData?.speakerCount || 0}`;
           continue;
         }
         
-        // Title formatting
-        if (line.includes('AI Generated Meeting Minutes') || line.includes('NHS MEETING MINUTES')) {
-          pdf.setFontSize(16);
-          pdf.setFont('helvetica', 'bold');
-          pdf.text(line, pageWidth / 2, y, { align: 'center' });
-          y += 20;
-        }
-        // Section headers
-        else if (line.includes('###') || line.includes('ATTENDEES:') || line.includes('AGENDA:') || 
-                line.includes('KEY DISCUSSION POINTS:') || line.includes('DECISIONS MADE:') || 
-                line.includes('ACTION ITEMS:') || line.includes('NEXT STEPS:') || line.includes('ADDITIONAL NOTES:')) {
-          pdf.setFontSize(12);
-          pdf.setFont('helvetica', 'bold');
-          const cleanLine = line.replace(/###\s*/, '');
-          pdf.text(cleanLine, margin, y);
-          y += 12;
-        }
-        // Regular content
-        else {
-          pdf.setFontSize(10);
-          pdf.setFont('helvetica', 'normal');
-          
-          // Handle long lines by splitting them
-          const splitLines = pdf.splitTextToSize(line, pageWidth - 2 * margin);
-          for (const splitLine of splitLines) {
-            if (y > pageHeight - 40) {
-              addFooter();
-              pdf.addPage();
-              await addLogoToPage();
-              y = 30;
-            }
-            pdf.text(splitLine, margin, y);
-            y += 6;
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'normal');
+        
+        // Handle long lines by splitting them
+        const splitLines = pdf.splitTextToSize(line, pageWidth - 2 * margin);
+        for (const splitLine of splitLines) {
+          if (y > pageHeight - 40) {
+            pdf.addPage();
+            y = 30;
           }
+          pdf.text(splitLine, margin, y);
+          y += 6;
         }
       }
       
-      // Add footer to last page
-      addFooter();
-      
-      pdf.save(`${meetingData?.title || 'meeting'}_minutes.pdf`);
+      pdf.save(`${meetingData?.title || 'meeting'}_claude_notes.pdf`);
       toast.success("PDF file downloaded successfully");
     } catch (error) {
       console.error('Error generating PDF:', error);
@@ -3517,7 +3415,6 @@ Generated by Notewell AI Meeting Notes Service`;
                 deferredItems: [],
                 risks: {}
               }}
-              className="h-9 px-3 text-sm"
             />
             
             {/* Download PDF */}
@@ -3667,4 +3564,4 @@ Generated by Notewell AI Meeting Notes Service`;
     </Dialog>
     </>
   );
-};
+}
