@@ -28,64 +28,51 @@ serve(async (req) => {
       ? 'Be more detailed than standard. Expand points with accurate specifics from the transcript, include additional sub-bullets and clearer structure.'
       : 'Use the standard level of detail: concise yet complete, avoiding unnecessary verbosity.';
 
-    const prompt = `Please analyze the following meeting transcript and create professional meeting minutes. Do NOT include any times, time ranges, or timestamps anywhere in the output. Do NOT use placeholder text - only include information that is actually present in the transcript.
+    const prompt = `Create partnership meeting informal notes (detailed) from transcript.
 
-Format the output as follows:
+Format the output exactly as follows:
 
-# Meeting Minutes
+${meetingTitle || 'Partnership Meeting'} Notes
 
-**Date:** ${meetingDate || 'Not specified'}
-**Meeting:** ${meetingTitle || 'General Meeting'}
-**Location:** [Extract from transcript if mentioned, otherwise write "Not specified"]
+Date: ${meetingDate || '[Meeting Date]'}
+Attendees: ${meetingTime ? `Meeting held at ${meetingTime}` : 'Practice Partners and Key Staff'}
 
-## 1️⃣ Attendees
-List all participants mentioned by name in the transcript. If no specific names are mentioned, write "Participants identified by voice/role" and list any roles mentioned (e.g., "Practice Manager", "GP", "Receptionist").
+[Number]. [MAIN TOPIC IN CAPS]
 
-## 2️⃣ Meeting Agenda & Topics Discussed
-Summarize the main topics and agenda items that were actually discussed in the meeting based on the transcript content. Do not include any times or time ranges.
+[Subtopic]
 
-## 3️⃣ Key Discussion Points
-Provide a detailed summary of the main discussions organized by topic. For each major topic, include:
-- Important points raised by participants
-- Concerns or issues discussed
-- Ideas and suggestions shared
-- Any relevant background information mentioned
+- [Bullet points for key information]
+- [Continue with relevant details]
 
-Example format:
-**Opening Discussion**
-- Topic details...
+[Another Subtopic]
+[Paragraph text when appropriate]
 
-**Budget Review**
-- Budget-related discussion points...
+[Sub-subtopic]:
 
-## 4️⃣ Decisions Made
-List all decisions that were made during the meeting. For each decision, include:
-- What was decided
-- The reasoning behind the decision (if discussed)
-- Who was involved in making the decision
+- [Indented bullet points]
+- [More details]
 
-## 5️⃣ Action Items
-List all action items and tasks assigned during the meeting:
-- **Task:** [Description of the action item]
-- **Assigned to:** [Person or role responsible]
-- **Deadline:** [If mentioned, otherwise "To be determined"]
+[Another Sub-subtopic]:
 
-## 6️⃣ Next Steps
-Summarize what will happen next, including:
-- Follow-up meetings planned
-- Next review dates
-- Any ongoing tasks or projects mentioned
+- [Bullet points]
+- [Continue pattern]
 
-Important instructions:
-- Do not include any timestamps or time ranges anywhere
-- Only include information that is actually present in the transcript
-- Do not add placeholder text or make assumptions
-- If a section has no relevant information from the transcript, write "Not discussed in this meeting"
-- Use clear, professional language
-- Organize information logically
-- Extract specific details, names, and numbers when mentioned
+Requirements:
 
-Detail preference: ${detailInstructions}
+1. Use numbered sections for main topics (1., 2., 3., etc.)
+2. Use ALL CAPS for main section headers
+3. Use sentence case for subtopics
+4. Use bullet points (-) for lists, not asterisks
+5. Include "Challenges Identified", "Benefits", "Concerns", "Requirements" as subsection types where relevant
+6. Group related information under logical subtopics
+7. End with numbered "KEY DECISIONS NEEDED", "ACTION ITEMS", and "NEXT STEPS"
+8. Include a final note about implementation
+9. Do not use markdown formatting (##, **, etc.) - use plain text with spacing and indentation
+10. Keep explanations clear and to the point
+11. Use visual structure through spacing and indentation rather than formatting symbols
+12. ${detailInstructions}
+
+Extract and organize all key discussion points, decisions, action items, and follow-up requirements from the transcript.
 
 Transcript to analyze:
 ${transcript}`;
