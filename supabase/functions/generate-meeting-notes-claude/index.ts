@@ -85,6 +85,11 @@ Please create a single, comprehensive meeting minutes document following Style $
 async function processChunk(transcript, meetingTitle, meetingDate, meetingTime, styleChoice) {
   const meetingNotesPrompt = `Create comprehensive meeting notes from the transcript. This is a LONG MEETING (potentially 3+ hours, 30,000+ words) - ensure ALL agenda items and discussions are captured.
 
+LANGUAGE AND SPELLING REQUIREMENTS:
+- Use British English spelling throughout (e.g., organised, realise, colour, centre, recognised, specialise, summarise, prioritise)
+- Use British terminology (e.g., "whilst" not "while", "amongst" not "among", "programme" not "program")
+- Follow NHS/UK business conventions for dates, times, and formal language
+
 LARGE MEETING HANDLING:
 - Process the ENTIRE transcript systematically from start to finish
 - Identify ALL distinct agenda items and topic changes
