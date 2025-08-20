@@ -729,6 +729,7 @@ export const MeetingHistoryList = ({
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
+                    console.log('🔍 View Notes button clicked for meeting:', meeting.id);
                     onViewSummary(meeting.id);
                   }}
                   className="flex items-center justify-center gap-2 flex-1 sm:flex-none touch-manipulation min-h-[44px] text-primary hover:text-primary"
