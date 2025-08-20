@@ -66,6 +66,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [transcript, setTranscript] = useState("");
   const [isLoadingTranscript, setIsLoadingTranscript] = useState(false);
   const [editingContent, setEditingContent] = useState(""); // Clean content for editing
+  const [editingTab, setEditingTab] = useState<string>(""); // Track which tab is being edited
   
   // Search functionality for transcript
   const [searchTerm, setSearchTerm] = useState("");
@@ -520,6 +521,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       setActiveTab('notes'); // Reset to notes tab
       setIsEditing(false); // Exit edit mode
       setEditingContent(''); // Clear editing content
+      setEditingTab(''); // Clear editing tab
       // Clear search state
       setSearchTerm('');
       setCurrentMatchIndex(0);
@@ -616,18 +618,21 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   // Handle edit mode toggle
   const handleEditToggle = () => {
     if (!isEditing) {
-      // Entering edit mode - clean the content
+      // Entering edit mode - clean the content for the current tab
       const currentContent = activeTab === "notes" ? notes : transcript;
       const cleanContent = cleanHtmlForEditing(currentContent);
       setEditingContent(cleanContent);
+      setEditingTab(activeTab); // Track which tab we're editing
     } else {
-      // Exiting edit mode - save the content
-      if (activeTab === "notes") {
+      // Exiting edit mode - save the content to the correct tab
+      if (editingTab === "notes") {
         onNotesChange(editingContent);
         saveSummaryToDatabase(editingContent);
-      } else {
+      } else if (editingTab === "transcript") {
         setTranscript(editingContent);
       }
+      setEditingContent(""); // Clear editing content
+      setEditingTab(""); // Clear editing tab
     }
     setIsEditing(!isEditing);
   };
@@ -1093,7 +1098,21 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
           
           {/* Tabs Content */}
           <div className="flex-1 overflow-hidden">
-            <Tabs defaultValue="notes" value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
+            <Tabs defaultValue="notes" value={activeTab} onValueChange={(value) => {
+              // If we're editing, save current changes before switching tabs
+              if (isEditing && editingTab !== value) {
+                if (editingTab === "notes") {
+                  onNotesChange(editingContent);
+                  saveSummaryToDatabase(editingContent);
+                } else if (editingTab === "transcript") {
+                  setTranscript(editingContent);
+                }
+                setIsEditing(false);
+                setEditingContent("");
+                setEditingTab("");
+              }
+              setActiveTab(value);
+            }} className="h-full flex flex-col">
               <div className="px-6 pt-4 flex-shrink-0">
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="notes">Meeting Notes</TabsTrigger>
