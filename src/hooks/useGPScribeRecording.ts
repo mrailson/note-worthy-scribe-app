@@ -334,7 +334,7 @@ export const useGPScribeRecording = () => {
 
       // Auto-navigate to meeting summary if transcript exists and navigate function provided
       if (navigate && transcript.trim() && wordCount > 10) {
-        const meetingData = {
+        const meetingData: any = {
           title: "GP Consultation",
           duration,
           wordCount,
@@ -344,7 +344,41 @@ export const useGPScribeRecording = () => {
           meetingFormat: 'consultation'
         };
 
-        toast.info("Generating meeting notes...");
+        // Auto-generate Meeting Style 2 (Clear & Direct format)
+        toast.info("Generating meeting notes with Style 2 format...");
+        
+        try {
+          const { data, error } = await supabase.functions.invoke('generate-meeting-notes-claude', {
+            body: {
+              transcript: transcript.trim(),
+              meetingTitle: "GP Consultation",
+              meetingDate: new Date().toLocaleDateString('en-GB', { 
+                day: 'numeric',
+                month: 'long', 
+                year: 'numeric'
+              }),
+              meetingTime: new Date().toLocaleTimeString('en-GB', { 
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+              }),
+              detailLevel: 'informal' // Style 2 = Clear & Direct = informal
+            }
+          });
+
+          if (!error && data?.success && data?.meetingMinutes) {
+            // Include the generated notes in the meeting data
+            meetingData.generatedNotes = data.meetingMinutes;
+            toast.success("Meeting notes generated successfully with Style 2 format!");
+          } else {
+            console.error('Failed to generate meeting notes:', error || data?.error);
+            toast.warning("Recording saved but notes generation failed - you can generate them manually");
+          }
+        } catch (error) {
+          console.error('Error generating meeting notes:', error);
+          toast.warning("Recording saved but notes generation failed - you can generate them manually");
+        }
+
         navigate('/meeting-summary', { state: meetingData });
       }
     } catch (error) {
