@@ -47,6 +47,16 @@ export const MeetingRecordingInterface: React.FC<MeetingRecordingInterfaceProps>
   const startRecording = async () => {
     console.log('🚀 startRecording called', { user: user?.id, navigator: !!navigator.mediaDevices });
     
+    if (!user?.id) {
+      console.error('❌ No user ID found');
+      toast({ 
+        title: "Authentication Error", 
+        description: "Please log in to record meetings", 
+        variant: "destructive" 
+      });
+      return;
+    }
+
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       console.error('❌ Media devices not supported');
       toast({ 
@@ -70,7 +80,7 @@ export const MeetingRecordingInterface: React.FC<MeetingRecordingInterfaceProps>
         .insert({
           title,
           auto_generated_name: title,
-          user_id: user?.id,
+          user_id: user.id,
           start_time: new Date().toISOString(),
           status: 'recording',
           meeting_context: { recording_started: true }
