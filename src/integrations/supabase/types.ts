@@ -52,6 +52,7 @@ export type Database = {
           is_default: boolean | null
           name: string
           organization: string | null
+          practice_id: string | null
           role: string | null
           title: string | null
           updated_at: string
@@ -64,6 +65,7 @@ export type Database = {
           is_default?: boolean | null
           name: string
           organization?: string | null
+          practice_id?: string | null
           role?: string | null
           title?: string | null
           updated_at?: string
@@ -76,16 +78,26 @@ export type Database = {
           is_default?: boolean | null
           name?: string
           organization?: string | null
+          practice_id?: string | null
           role?: string | null
           title?: string | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "attendees_practice_id_fkey"
+            columns: ["practice_id"]
+            isOneToOne: false
+            referencedRelation: "practice_details"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       audio_chunks: {
         Row: {
           audio_blob_path: string | null
+          chunk_duration_ms: number | null
           chunk_number: number
           created_at: string | null
           end_time: string
@@ -97,6 +109,7 @@ export type Database = {
         }
         Insert: {
           audio_blob_path?: string | null
+          chunk_duration_ms?: number | null
           chunk_number: number
           created_at?: string | null
           end_time: string
@@ -108,6 +121,7 @@ export type Database = {
         }
         Update: {
           audio_blob_path?: string | null
+          chunk_duration_ms?: number | null
           chunk_number?: number
           created_at?: string | null
           end_time?: string
@@ -2131,6 +2145,68 @@ export type Database = {
         }
         Relationships: []
       }
+      meeting_attendee_templates: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          is_default: boolean | null
+          practice_id: string
+          template_name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          is_default?: boolean | null
+          practice_id: string
+          template_name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_default?: boolean | null
+          practice_id?: string
+          template_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      meeting_attendees: {
+        Row: {
+          attendee_id: string
+          created_at: string
+          id: string
+          meeting_id: string
+        }
+        Insert: {
+          attendee_id: string
+          created_at?: string
+          id?: string
+          meeting_id: string
+        }
+        Update: {
+          attendee_id?: string
+          created_at?: string
+          id?: string
+          meeting_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_attendees_attendee_id_fkey"
+            columns: ["attendee_id"]
+            isOneToOne: false
+            referencedRelation: "attendees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meeting_audio_backups: {
         Row: {
           backup_reason: string | null
@@ -2526,8 +2602,10 @@ export type Database = {
       }
       meetings: {
         Row: {
+          agenda: string | null
           audio_backup_created_at: string | null
           audio_backup_path: string | null
+          auto_generated_name: string | null
           created_at: string
           data_retention_date: string | null
           description: string | null
@@ -2537,8 +2615,12 @@ export type Database = {
           id: string
           left_audio_url: string | null
           location: string | null
+          meeting_context: Json | null
+          meeting_format: string | null
+          meeting_location: string | null
           meeting_type: string
           mixed_audio_url: string | null
+          participants: string[] | null
           practice_id: string | null
           recording_created_at: string | null
           requires_audio_backup: boolean | null
@@ -2550,8 +2632,10 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          agenda?: string | null
           audio_backup_created_at?: string | null
           audio_backup_path?: string | null
+          auto_generated_name?: string | null
           created_at?: string
           data_retention_date?: string | null
           description?: string | null
@@ -2561,8 +2645,12 @@ export type Database = {
           id?: string
           left_audio_url?: string | null
           location?: string | null
+          meeting_context?: Json | null
+          meeting_format?: string | null
+          meeting_location?: string | null
           meeting_type?: string
           mixed_audio_url?: string | null
+          participants?: string[] | null
           practice_id?: string | null
           recording_created_at?: string | null
           requires_audio_backup?: boolean | null
@@ -2574,8 +2662,10 @@ export type Database = {
           user_id: string
         }
         Update: {
+          agenda?: string | null
           audio_backup_created_at?: string | null
           audio_backup_path?: string | null
+          auto_generated_name?: string | null
           created_at?: string
           data_retention_date?: string | null
           description?: string | null
@@ -2585,8 +2675,12 @@ export type Database = {
           id?: string
           left_audio_url?: string | null
           location?: string | null
+          meeting_context?: Json | null
+          meeting_format?: string | null
+          meeting_location?: string | null
           meeting_type?: string
           mixed_audio_url?: string | null
+          participants?: string[] | null
           practice_id?: string | null
           recording_created_at?: string | null
           requires_audio_backup?: boolean | null
@@ -3599,6 +3693,42 @@ export type Database = {
         }
         Relationships: []
       }
+      template_attendees: {
+        Row: {
+          attendee_id: string
+          created_at: string
+          id: string
+          template_id: string
+        }
+        Insert: {
+          attendee_id: string
+          created_at?: string
+          id?: string
+          template_id: string
+        }
+        Update: {
+          attendee_id?: string
+          created_at?: string
+          id?: string
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_attendees_attendee_id_fkey"
+            columns: ["attendee_id"]
+            isOneToOne: false
+            referencedRelation: "attendees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_attendees_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_attendee_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transcription_chunks: {
         Row: {
           audio_chunk_id: string | null
@@ -3878,6 +4008,10 @@ export type Database = {
       check_user_practice_assignment: {
         Args: { p_email: string; p_practice_id: string }
         Returns: Json
+      }
+      create_default_attendee_templates: {
+        Args: { p_practice_id: string; p_user_id: string }
+        Returns: undefined
       }
       generate_complaint_reference: {
         Args: Record<PropertyKey, never>
