@@ -2632,8 +2632,18 @@ export const MeetingRecorder = ({
     
     // Check if this is an iPhone - if so, auto-save without modal/navigation
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    console.log('🔍 Device detection - isIOS:', isIOS, 'userAgent:', navigator.userAgent);
+    
     if (isIOS) {
       console.log('📱 iPhone detected - auto-saving recording without modal');
+      console.log('🔍 Recording data:', {
+        duration,
+        wordCount,
+        transcriptLength: currentTranscript.length,
+        startTime,
+        userId: user?.id,
+        userEmail: user?.email
+      });
       
       // Prepare meeting data for iPhone auto-save
       const iPhoneMeetingData = {
@@ -2648,8 +2658,11 @@ export const MeetingRecorder = ({
         meetingFormat: 'phone' // Mark as phone recording
       };
 
+      console.log('🔍 Prepared iPhone meeting data:', iPhoneMeetingData);
+
       // Save directly to database without AI notes for iPhone
       try {
+        console.log('🔄 Attempting to save iPhone recording to database...');
         const { data: savedMeeting, error: saveError } = await supabase
           .from('meetings')
           .insert([{
@@ -2668,19 +2681,29 @@ export const MeetingRecorder = ({
           .select()
           .single();
 
+        console.log('🔍 Database save result:', { savedMeeting, saveError });
+
         if (saveError) {
-          console.error('Failed to save iPhone recording:', saveError);
-          toast.error('Recording failed to save');
+          console.error('❌ Failed to save iPhone recording:', saveError);
+          toast.error(`Recording failed to save: ${saveError.message}`);
         } else {
-          console.log('✅ iPhone recording saved successfully:', savedMeeting.id);
-          toast.success(`Recording saved! ${wordCount} words transcribed.`);
+          console.log('✅ iPhone recording saved successfully:', savedMeeting);
+          toast.success(`Recording saved! ${wordCount} words transcribed.`, {
+            duration: 4000
+          });
           
-          // Refresh the meeting history if we're on that tab
-          loadMeetings();
+          // Refresh the meeting history
+          console.log('🔄 Refreshing meeting history...');
+          try {
+            await loadMeetings();
+            console.log('✅ Meeting history refreshed');
+          } catch (loadError) {
+            console.error('❌ Failed to refresh meeting history:', loadError);
+          }
         }
       } catch (saveError) {
-        console.error('Error saving iPhone recording:', saveError);
-        toast.error('Recording failed to save');
+        console.error('❌ Exception while saving iPhone recording:', saveError);
+        toast.error(`Recording failed to save: ${saveError.message}`);
       }
       
       return; // Exit early for iPhone - no modal or navigation
