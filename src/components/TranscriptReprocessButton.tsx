@@ -82,7 +82,7 @@ const TranscriptReprocessButton: React.FC<TranscriptReprocessButtonProps> = ({
       // First, find the audio backup for this meeting
       const { data: backups, error: backupError } = await supabase
         .from('meeting_audio_backups')
-        .select('id, file_path, file_size')
+        .select('id, file_path, file_size, created_at')
         .eq('meeting_id', meetingId)
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
@@ -90,26 +90,16 @@ const TranscriptReprocessButton: React.FC<TranscriptReprocessButtonProps> = ({
 
       if (backupError) throw backupError;
 
-      let backup = null;
       if (!backups || backups.length === 0) {
-        // Try to find backup by user and proximity to meeting time
-        const { data: proximityBackups, error: proximityError } = await supabase
-          .from('meeting_audio_backups')
-          .select('id, file_path, file_size, created_at')
-          .eq('user_id', userId)
-          .order('file_size', { ascending: false })
-          .limit(5);
-
-        if (proximityError) throw proximityError;
-
-        if (!proximityBackups || proximityBackups.length === 0) {
-          throw new Error('No audio backup found for this meeting');
-        }
-
-        backup = proximityBackups[0];
-      } else {
-        backup = backups[0];
+        throw new Error(`No audio backup found for meeting ${meetingId}. Please ensure audio was recorded for this specific meeting.`);
       }
+
+      const backup = backups[0];
+      console.log(`Found audio backup: ${backup.file_path} (${backup.file_size} bytes, created: ${backup.created_at})`);
+      
+      toast.info(`Using audio backup: ${backup.file_path}`, {
+        description: `File size: ${Math.round(backup.file_size / 1024 / 1024)} MB`
+      });
 
       updateStep('downloading');
       
