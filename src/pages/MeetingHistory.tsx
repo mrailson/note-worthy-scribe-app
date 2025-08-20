@@ -5,6 +5,7 @@ import { MeetingHistoryList } from "@/components/MeetingHistoryList";
 import { MeetingDocuments } from "@/components/MeetingDocuments";
 import { MeetingSearchBar, SearchFilters } from "@/components/MeetingSearchBar";
 import { FullPageNotesModal } from "@/components/FullPageNotesModal";
+import { MeetingRecordingInterface } from "@/components/MeetingRecordingInterface";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -191,10 +192,11 @@ const MeetingHistory = () => {
   // Mic test service visibility state
   const [micTestServiceVisible, setMicTestServiceVisible] = useState<boolean>(true);
   
-  // Collapsible action controls for mobile (removed - no longer needed)
+  // Recording interface state
+  const [showRecordingInterface, setShowRecordingInterface] = useState(false);
 
   const handleNewMeeting = () => {
-    navigate("/");
+    setShowRecordingInterface(true);
   };
 
   const handleViewMeetingSummary = async (meetingId: string) => {
@@ -1877,6 +1879,18 @@ const MeetingHistory = () => {
           notes={modalNotes}
           onNotesChange={setModalNotes}
         />
+
+        {/* Recording Interface Modal */}
+        {showRecordingInterface && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <MeetingRecordingInterface 
+              onClose={() => {
+                setShowRecordingInterface(false);
+                fetchMeetings(); // Refresh the meetings list
+              }} 
+            />
+          </div>
+        )}
       </div>
     </div>
   );
