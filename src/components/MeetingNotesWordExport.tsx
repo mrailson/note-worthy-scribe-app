@@ -48,15 +48,36 @@ const MeetingNotesWordExport: React.FC<MeetingNotesWordExportProps> = ({ meeting
       
       console.log('🔍 Creating formatted document...');
       
-      // Process content to preserve formatting
-      const processContentToParagraphs = (content: string) => {
+      // Strip HTML and process content to preserve formatting
+      const stripHtmlAndFormat = (htmlContent: string) => {
+        if (!htmlContent) return [];
+        
+        // Remove HTML tags and decode entities
+        let cleanText = htmlContent
+          .replace(/<br\s*\/?>/gi, '\n')
+          .replace(/<\/p>/gi, '\n\n')
+          .replace(/<p[^>]*>/gi, '')
+          .replace(/<\/h[1-6]>/gi, '\n')
+          .replace(/<h[1-6][^>]*>/gi, '\n**')
+          .replace(/<\/strong>/gi, '')
+          .replace(/<strong[^>]*>/gi, '**')
+          .replace(/<\/b>/gi, '')
+          .replace(/<b[^>]*>/gi, '**')
+          .replace(/<[^>]*>/g, '')
+          .replace(/&nbsp;/g, ' ')
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&quot;/g, '"')
+          .replace(/&#39;/g, "'");
+
         const paragraphs = [];
-        const lines = content.split('\n');
+        const lines = cleanText.split('\n');
         
         for (const line of lines) {
           const trimmedLine = line.trim();
           if (!trimmedLine) {
-            // Add empty paragraph for spacing
+            // Add spacing for empty lines
             paragraphs.push(new Paragraph({
               children: [new TextRun({ text: "", size: 20 })],
               spacing: { after: 120 }
@@ -64,9 +85,11 @@ const MeetingNotesWordExport: React.FC<MeetingNotesWordExportProps> = ({ meeting
             continue;
           }
           
-          // Check if line is a header (contains emojis or all caps sections)
-          const isHeader = /^[1-5]️⃣/.test(trimmedLine) || 
-                          /^[A-Z\s]{10,}$/.test(trimmedLine) ||
+          // Check for bold markers or headers
+          const isBold = trimmedLine.startsWith('**') && trimmedLine.endsWith('**');
+          const isHeader = /^[#*]{1,4}\s/.test(trimmedLine) || 
+                          /^[A-Z\s]{8,}$/.test(trimmedLine) ||
+                          isBold ||
                           trimmedLine.includes('ATTENDEES') ||
                           trimmedLine.includes('OVERVIEW') ||
                           trimmedLine.includes('CONTENT') ||
@@ -74,10 +97,15 @@ const MeetingNotesWordExport: React.FC<MeetingNotesWordExportProps> = ({ meeting
                           trimmedLine.includes('ACTION') ||
                           trimmedLine.includes('RISKS');
           
+          let displayText = trimmedLine;
+          if (isBold) {
+            displayText = trimmedLine.replace(/^\*\*|\*\*$/g, '');
+          }
+          
           if (isHeader) {
             paragraphs.push(new Paragraph({
               children: [new TextRun({
-                text: trimmedLine,
+                text: displayText,
                 bold: true,
                 size: 28,
                 color: "1f2937"
@@ -85,15 +113,29 @@ const MeetingNotesWordExport: React.FC<MeetingNotesWordExportProps> = ({ meeting
               spacing: { before: 240, after: 120 }
             }));
           } else {
-            // Regular content
-            paragraphs.push(new Paragraph({
-              children: [new TextRun({
-                text: trimmedLine,
-                size: 22,
-                color: "374151"
-              })],
-              spacing: { after: 120 }
-            }));
+            // Check for bullet points
+            const isBullet = trimmedLine.startsWith('-') || trimmedLine.startsWith('•');
+            if (isBullet) {
+              paragraphs.push(new Paragraph({
+                children: [new TextRun({
+                  text: trimmedLine,
+                  size: 22,
+                  color: "374151"
+                })],
+                spacing: { after: 120 },
+                indent: { left: 360 }
+              }));
+            } else {
+              // Regular content
+              paragraphs.push(new Paragraph({
+                children: [new TextRun({
+                  text: displayText,
+                  size: 22,
+                  color: "374151"
+                })],
+                spacing: { after: 120 }
+              }));
+            }
           }
         }
         
@@ -192,16 +234,7 @@ const MeetingNotesWordExport: React.FC<MeetingNotesWordExportProps> = ({ meeting
                 ],
                 spacing: { before: 240, after: 120 }
               }),
-              new Paragraph({
-                children: [
-                  new TextRun({
-                    text: meetingData.overview,
-                    size: 22,
-                    color: "374151"
-                  }),
-                ],
-                spacing: { after: 360 }
-              })
+              ...stripHtmlAndFormat(meetingData.overview)
             ] : []),
             
             // Content Section
@@ -217,7 +250,7 @@ const MeetingNotesWordExport: React.FC<MeetingNotesWordExportProps> = ({ meeting
                 ],
                 spacing: { before: 240, after: 120 }
               }),
-              ...processContentToParagraphs(meetingData.content)
+              ...stripHtmlAndFormat(meetingData.content)
             ] : []),
             
             // Footer
