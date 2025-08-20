@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
-import { Document, Packer, Paragraph, TextRun, AlignmentType } from 'docx';
 import { Button } from '@/components/ui/button';
-import { Download, FileText, CheckCircle, AlertCircle } from 'lucide-react';
+import { FileText } from 'lucide-react';
+import { toast } from 'sonner';
+
+// Import docx library
+import { Document, Packer, Paragraph, TextRun, AlignmentType } from 'docx';
 
 interface MeetingData {
   title: string;
@@ -504,14 +507,61 @@ const MeetingNotesWordExport: React.FC<MeetingNotesWordExportProps> = ({ meeting
   const generateWordDocument = async (e: React.MouseEvent) => {
     e.stopPropagation();
     console.log('🔍 Word Doc button clicked!');
-    console.log('🔍 Meeting data:', meetingData);
     
-    setIsGenerating(true);
-    setStatus('Generating Word document...');
-
     try {
-      console.log('🔍 Creating document...');
-      const doc = createWordDocument();
+      console.log('🔍 Meeting data:', meetingData);
+      
+      if (!meetingData) {
+        throw new Error('No meeting data available');
+      }
+
+      setIsGenerating(true);
+      setStatus('Generating Word document...');
+      
+      console.log('🔍 Creating simple document...');
+      
+      // Create a simple document first to test
+      const doc = new Document({
+        sections: [{
+          children: [
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: meetingData.title || "Meeting Notes",
+                  bold: true,
+                  size: 32,
+                }),
+              ],
+              alignment: AlignmentType.CENTER,
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: `Date: ${meetingData.date || 'Not specified'}`,
+                  size: 22,
+                }),
+              ],
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: `Attendees: ${meetingData.attendees || 'Not specified'}`,
+                  size: 22,
+                }),
+              ],
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: meetingData.content || meetingData.overview || "No content available",
+                  size: 22,
+                }),
+              ],
+            }),
+          ],
+        }],
+      });
+      
       console.log('🔍 Document created, packing...');
       const buffer = await Packer.toBuffer(doc);
       console.log('🔍 Buffer created, size:', buffer.byteLength);
@@ -525,7 +575,7 @@ const MeetingNotesWordExport: React.FC<MeetingNotesWordExportProps> = ({ meeting
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `Partnership_Meeting_Notes_${new Date().toISOString().split('T')[0]}.docx`;
+      link.download = `Meeting_Notes_${new Date().toISOString().split('T')[0]}.docx`;
       document.body.appendChild(link);
       console.log('🔍 Triggering download...');
       link.click();
@@ -534,10 +584,12 @@ const MeetingNotesWordExport: React.FC<MeetingNotesWordExportProps> = ({ meeting
       
       setStatus('Document generated successfully!');
       console.log('🔍 Word document download completed!');
+      toast.success('Word document downloaded successfully!');
       
     } catch (error) {
       console.error('❌ Error creating Word document:', error);
       setStatus('Error generating document. Please try again.');
+      toast.error(`Failed to generate Word document: ${error.message}`);
     } finally {
       setIsGenerating(false);
     }
