@@ -173,12 +173,25 @@ Date: 15th March 2024`
             <h2 className="text-2xl font-bold">Choose Your Meeting Notes Style</h2>
             <p className="text-primary-foreground/80 mt-1">Select the format that best suits your needs</p>
           </div>
-          <button 
-            onClick={onClose}
-            className="text-primary-foreground hover:text-primary-foreground/80 transition-colors"
-          >
-            <X className="w-6 h-6" />
-          </button>
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={handleConfirm}
+              disabled={!selectedStyle}
+              className={`px-6 py-2 rounded-lg font-semibold transition-colors ${
+                selectedStyle 
+                  ? 'bg-white text-primary hover:bg-white/90' 
+                  : 'bg-white/30 text-white/50 cursor-not-allowed'
+              }`}
+            >
+              Generate Notes
+            </button>
+            <button 
+              onClick={onClose}
+              className="text-primary-foreground hover:text-primary-foreground/80 transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
         </div>
 
         {/* Content */}
@@ -248,25 +261,12 @@ Date: 15th March 2024`
           <p className="text-sm text-muted-foreground">
             {selectedStyle ? 'Click "Generate Notes" to proceed with your selected style' : 'Please select a style to continue'}
           </p>
-          <div className="flex gap-3">
-            <button 
-              onClick={onClose}
-              className="px-4 py-2 text-muted-foreground border border-border rounded-lg hover:bg-muted/50 transition-colors"
-            >
-              Cancel
-            </button>
-            <button 
-              onClick={handleConfirm}
-              disabled={!selectedStyle}
-              className={`px-6 py-2 rounded-lg font-semibold transition-colors ${
-                selectedStyle 
-                  ? 'bg-primary text-primary-foreground hover:bg-primary/90' 
-                  : 'bg-muted text-muted-foreground cursor-not-allowed'
-              }`}
-            >
-              Generate Notes
-            </button>
-          </div>
+          <button 
+            onClick={onClose}
+            className="px-4 py-2 text-muted-foreground border border-border rounded-lg hover:bg-muted/50 transition-colors"
+          >
+            Cancel
+          </button>
         </div>
       </div>
     </div>
