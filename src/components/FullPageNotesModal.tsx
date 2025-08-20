@@ -454,18 +454,24 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     }
   };
 
-  // Clean HTML content for editing
+  // Clean HTML content for editing - preserve visual spacing
   const cleanHtmlForEditing = (htmlContent: string) => {
     if (!htmlContent) return '';
     
     let cleanText = htmlContent
-      // Convert HTML breaks to newlines
-      .replace(/<br\s*\/?>/gi, '\n')
-      .replace(/<\/p>/gi, '\n\n')
-      .replace(/<p[^>]*>/gi, '')
+      // Convert HTML breaks to newlines - preserve double spacing
+      .replace(/<br\s*\/?>\s*<br\s*\/?>/gi, '\n\n') // Double breaks = double newlines
+      .replace(/<br\s*\/?>/gi, '\n') // Single breaks = single newlines
+      .replace(/<\/p>\s*<p[^>]*>/gi, '\n\n') // Paragraph breaks = double newlines
+      .replace(/<\/p>/gi, '\n\n') // End of paragraph = double newlines
+      .replace(/<p[^>]*>/gi, '') // Remove paragraph starts
+      .replace(/<\/div>\s*<div[^>]*>/gi, '\n\n') // Div breaks = double newlines
       .replace(/<\/div>/gi, '\n')
       .replace(/<div[^>]*>/gi, '')
-      // Remove ALL HTML tags
+      // Handle header spacing - preserve the visual double spacing
+      .replace(/<\/h[1-6]>\s*/gi, '\n\n') // Headers followed by double spacing
+      .replace(/<h[1-6][^>]*>/gi, '') // Remove header tags
+      // Remove ALL other HTML tags
       .replace(/<[^>]*>/g, '')
       // Decode HTML entities
       .replace(/&nbsp;/g, ' ')
@@ -475,11 +481,12 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       .replace(/&quot;/g, '"')
       .replace(/&#39;/g, "'")
       .replace(/&apos;/g, "'")
-      // Remove excessive whitespace but preserve paragraph structure
-      .replace(/[ \t]+/g, ' ')
-      .replace(/\n[ \t]+/g, '\n')
-      .replace(/[ \t]+\n/g, '\n')
-      .replace(/\n{3,}/g, '\n\n')
+      // Clean up spacing while preserving intentional double spacing
+      .replace(/[ \t]+/g, ' ') // Multiple spaces/tabs to single space
+      .replace(/\n[ \t]+/g, '\n') // Remove spaces at start of lines
+      .replace(/[ \t]+\n/g, '\n') // Remove spaces at end of lines
+      // Preserve double newlines but limit to maximum of 2
+      .replace(/\n{3,}/g, '\n\n') // Max 2 consecutive newlines
       .trim();
     
     return cleanText;
