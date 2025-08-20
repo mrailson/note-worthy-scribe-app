@@ -19,6 +19,39 @@ export const SafeMessageRenderer: React.FC<SafeMessageRendererProps> = ({
     return text.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:text-blue-600 underline break-all">$1</a>');
   };
 
+  // Convert markdown to HTML
+  const markdownToHtml = (text: string): string => {
+    return text
+      // Headers (must come first)
+      .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+      .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+      .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+      // Bold text
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/__(.*?)__/g, '<strong>$1</strong>')
+      // Italic text  
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/_(.*?)_/g, '<em>$1</em>')
+      // Convert line breaks to temporary markers first
+      .replace(/\n/g, '|||LINEBREAK|||')
+      // Bullet points (handle multiple lines)
+      .replace(/^\* (.*)$/gm, '<li>$1</li>')
+      .replace(/^- (.*)$/gm, '<li>$1</li>')
+      // Numbered lists
+      .replace(/^\d+\. (.*)$/gm, '<li>$1</li>')
+      // Wrap consecutive list items in ul/ol tags
+      .replace(/(<li>.*?<\/li>)(\|\|\|LINEBREAK\|\|\|<li>.*?<\/li>)+/g, (match) => {
+        // Check if it's a numbered list by looking for digits
+        const isNumbered = /^\d+\./.test(match);
+        const tag = isNumbered ? 'ol' : 'ul';
+        return `<${tag}>${match.replace(/\|\|\|LINEBREAK\|\|\|/g, '')}</${tag}>`;
+      })
+      // Handle single list items
+      .replace(/^<li>(.*?)<\/li>$/gm, '<ul><li>$1</li></ul>')
+      // Restore line breaks
+      .replace(/\|\|\|LINEBREAK\|\|\|/g, '\n');
+  };
+
   // Clean AI response content by removing separators and extra blank lines
   const cleanAIContent = (text: string): string => {
     return text
@@ -29,9 +62,10 @@ export const SafeMessageRenderer: React.FC<SafeMessageRendererProps> = ({
       .trim();
   };
 
-  // Apply content cleaning and linkification before sanitization
+  // Apply content cleaning, markdown conversion, and linkification before sanitization
   const cleanedContent = cleanAIContent(content);
-  const linkedContent = linkifyContent(cleanedContent.replace(/\n/g, '<br/>'));
+  const markdownContent = markdownToHtml(cleanedContent);
+  const linkedContent = linkifyContent(markdownContent.replace(/\n/g, '<br/>'));
 
   // Configure DOMPurify to allow only safe HTML elements and attributes
   const cleanContent = DOMPurify.sanitize(linkedContent, {
