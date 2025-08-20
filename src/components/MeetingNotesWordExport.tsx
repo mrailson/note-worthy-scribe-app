@@ -101,7 +101,7 @@ const MeetingNotesWordExport: React.FC<MeetingNotesWordExportProps> = ({ meeting
             continue;
           }
           
-          // Check for section headers
+          // Check for section headers and clean hashtags
           const isHeader = /^[#*]{1,4}\s/.test(trimmedLine) || 
                           /^[A-Z\s]{8,}$/.test(trimmedLine) ||
                           trimmedLine.includes('ATTENDEES') ||
@@ -113,8 +113,14 @@ const MeetingNotesWordExport: React.FC<MeetingNotesWordExportProps> = ({ meeting
                           trimmedLine.includes('MEETING OVERVIEW') ||
                           trimmedLine.includes('DETAILED MEETING');
           
+          // Clean hashtags from headers
+          let cleanedLine = trimmedLine;
+          if (isHeader && /^[#]{1,4}\s/.test(trimmedLine)) {
+            cleanedLine = trimmedLine.replace(/^[#]{1,4}\s*/, '');
+          }
+          
           // Handle inline bold markers within text
-          let processedText = trimmedLine;
+          let processedText = cleanedLine; // Use cleaned line instead of trimmedLine
           const parts = [];
           let lastIndex = 0;
           
@@ -122,10 +128,10 @@ const MeetingNotesWordExport: React.FC<MeetingNotesWordExportProps> = ({ meeting
           const boldRegex = /\*{1,2}([^*]+?)\*{1,2}/g;
           let match;
           
-          while ((match = boldRegex.exec(trimmedLine)) !== null) {
+          while ((match = boldRegex.exec(cleanedLine)) !== null) { // Use cleanedLine here too
             // Add normal text before the bold part
             if (match.index > lastIndex) {
-              const normalText = trimmedLine.substring(lastIndex, match.index);
+              const normalText = cleanedLine.substring(lastIndex, match.index);
               if (normalText) {
                 parts.push(new TextRun({
                   text: normalText,
@@ -147,8 +153,8 @@ const MeetingNotesWordExport: React.FC<MeetingNotesWordExportProps> = ({ meeting
           }
           
           // Add remaining normal text
-          if (lastIndex < trimmedLine.length) {
-            const remainingText = trimmedLine.substring(lastIndex);
+          if (lastIndex < cleanedLine.length) { // Use cleanedLine here too
+            const remainingText = cleanedLine.substring(lastIndex);
             if (remainingText) {
               parts.push(new TextRun({
                 text: remainingText,
@@ -158,10 +164,10 @@ const MeetingNotesWordExport: React.FC<MeetingNotesWordExportProps> = ({ meeting
             }
           }
           
-          // If no bold parts found, use the whole line
+          // If no bold parts found, use the whole cleaned line
           if (parts.length === 0) {
             parts.push(new TextRun({
-              text: processedText,
+              text: cleanedLine, // Use cleanedLine instead of processedText
               size: isHeader ? 24 : 22,
               bold: isHeader,
               color: isHeader ? "1f2937" : "374151"
@@ -169,7 +175,7 @@ const MeetingNotesWordExport: React.FC<MeetingNotesWordExportProps> = ({ meeting
           }
           
           // Check for bullet points
-          const isBullet = trimmedLine.startsWith('-') || trimmedLine.startsWith('•');
+          const isBullet = cleanedLine.startsWith('-') || cleanedLine.startsWith('•'); // Use cleanedLine here too
           
           paragraphs.push(new Paragraph({
             children: parts,
