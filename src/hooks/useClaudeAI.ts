@@ -13,7 +13,7 @@ export const useClaudeAI = (meetingData: MeetingData | null) => {
   const [customInstruction, setCustomInstruction] = useState("");
   const [showCustomInstruction, setShowCustomInstruction] = useState(false);
 
-  const generateClaudeMeetingNotes = async (forceRegenerate = false) => {
+  const generateClaudeMeetingNotes = async (forceRegenerate = false, enhancedContext = null) => {
     if (!meetingData?.transcript || (!forceRegenerate && claudeNotes && claudeNotes.length > 0)) {
       if (claudeNotes && claudeNotes.length > 0) {
         toast.info("Meeting notes already generated");
@@ -29,19 +29,42 @@ export const useClaudeAI = (meetingData: MeetingData | null) => {
       const { data, error } = await supabase.functions.invoke('generate-meeting-notes-claude', {
         body: {
           transcript: meetingData.transcript,
-          meetingTitle: meetingData.title,
+          meetingTitle: meetingData.title || 'Meeting Notes',
           meetingDate: new Date(meetingData.startTime).toLocaleDateString(),
           meetingTime: new Date(meetingData.startTime).toLocaleTimeString(),
-          detailLevel: claudeDetailLevel
+          detailLevel: claudeDetailLevel,
+          meetingContext: enhancedContext || {
+            participants: meetingData.participants || [],
+            agenda: meetingData.agenda || '',
+            meetingFormat: meetingData.meetingFormat || '',
+            meetingLocation: meetingData.meetingLocation || ''
+          },
+          customInstruction: customInstruction || undefined
         }
       });
 
       if (error) throw error;
 
-      if (data?.meetingMinutes) {
-        setClaudeNotes(data.meetingMinutes);
-        saveSummaryToDatabase(data.meetingMinutes);
-        toast.success("Meeting notes generated successfully!");
+      if (data?.generatedNotes) {
+        setClaudeNotes(data.generatedNotes);
+        await saveSummaryToDatabase(meetingData.id, data.generatedNotes);
+        
+        // Update meeting with enhanced context if provided
+        if (enhancedContext && meetingData.id) {
+          await supabase.from('meetings').update({
+            participants: enhancedContext.participants,
+            agenda: enhancedContext.agenda,
+            meeting_format: enhancedContext.meetingFormat,
+            meeting_location: enhancedContext.meetingLocation,
+            meeting_context: { 
+              enhancement_level: 'enhanced', 
+              ai_generated: true,
+              enhanced_at: new Date().toISOString()
+            }
+          }).eq('id', meetingData.id);
+        }
+        
+        toast.success("Enhanced meeting notes generated successfully!");
       } else {
         throw new Error("No meeting notes returned from API");
       }
@@ -53,16 +76,17 @@ export const useClaudeAI = (meetingData: MeetingData | null) => {
     }
   };
 
-  const saveSummaryToDatabase = async (content: string) => {
-    if (!meetingData?.id) return;
+  const saveSummaryToDatabase = async (meetingId: string, content: string) => {
+    if (!meetingId) return;
     
     try {
       const { error } = await supabase
         .from('meetings')
         .update({ 
-          description: content.substring(0, 1000) // Store in description field
+          generated_notes: content, // Store in generated_notes field
+          description: content.substring(0, 1000) // Also store truncated version in description
         })
-        .eq('id', meetingData.id);
+        .eq('id', meetingId);
 
       if (error) throw error;
     } catch (error) {
@@ -92,7 +116,9 @@ export const useClaudeAI = (meetingData: MeetingData | null) => {
 
       if (data?.enhancedContent) {
         setClaudeNotes(data.enhancedContent);
-        saveSummaryToDatabase(data.enhancedContent);
+        if (meetingData?.id) {
+          await saveSummaryToDatabase(meetingData.id, data.enhancedContent);
+        }
         setCustomInstruction("");
         setShowCustomInstruction(false);
         toast.success("Meeting notes enhanced with custom instructions!");

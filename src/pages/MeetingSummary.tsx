@@ -265,7 +265,7 @@ export default function MeetingSummary() {
           showFindReplace={showFindReplace}
           setShowFindReplace={setShowFindReplace}
           generateClaudeMeetingNotes={generateClaudeMeetingNotes}
-          saveSummaryToDatabase={saveSummaryToDatabase}
+        saveSummaryToDatabase={(content) => saveSummaryToDatabase(meetingData?.id || '', content)}
           handleCustomInstructionSubmit={handleCustomInstructionSubmit}
           onCopy={copyToClipboard}
           onDownloadWord={generateWordDocument}
