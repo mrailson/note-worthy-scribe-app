@@ -2363,10 +2363,17 @@ export const MeetingRecorder = ({
   };
 
   const stopRecording = async () => {
+    console.log('🚨 STOP RECORDING FUNCTION CALLED');
+    console.log('🚨 User agent:', navigator.userAgent);
+    console.log('🚨 Current state - isRecording:', isRecording);
+    console.log('🚨 Current state - duration:', duration);
+    console.log('🚨 Current state - wordCount:', wordCount);
+    console.log('🚨 Current state - transcript length:', transcript.length);
+    
     // Update debug info
     updateDebugInfo({ 
       recordingState: 'stopping',
-      transcriptionEvents: [`${new Date().toLocaleTimeString()}: Stopping recording...`]
+      transcriptionEvents: [`${new Date().toLocaleTimeString()}: STOP RECORDING CALLED - duration: ${duration}s, words: ${wordCount}`]
     });
     
     setIsStoppingRecording(true);
@@ -2466,17 +2473,31 @@ export const MeetingRecorder = ({
     console.log('Recording stopped');
     toast.success('Recording stopped');
     
+    console.log('🚨 VALIDATION CHECKS - Duration:', duration, 'WordCount:', wordCount);
+    
     // Check if recording has at least 10 seconds of content
     if (duration < 10) {
+      console.log('🚨 VALIDATION FAILED - Duration too short:', duration);
+      updateDebugInfo({
+        lastError: `Duration too short: ${duration}s (need 10s+)`,
+        transcriptionEvents: [`${new Date().toLocaleTimeString()}: ERROR - Recording too short: ${duration}s`]
+      });
       toast.error('Recording too short. Minimum 10 seconds required.');
       return;
     }
 
-    // Check if there's meaningful transcript content (at least 20 words)
+    // Check if there's meaningful transcript content (at least 20 words)  
     if (wordCount < 20) {
+      console.log('🚨 VALIDATION FAILED - Word count too low:', wordCount);
+      updateDebugInfo({
+        lastError: `Word count too low: ${wordCount} (need 20+)`,
+        transcriptionEvents: [`${new Date().toLocaleTimeString()}: ERROR - Word count too low: ${wordCount}`]
+      });
       toast.error('Recording too short. Minimum 20 words required.');
       return;
     }
+    
+    console.log('🚨 VALIDATION PASSED - proceeding to save...');
     
     // Check if audio backup is needed based on word count vs duration
     const needsAudioBackup = shouldCreateAudioBackup(wordCount, duration);
