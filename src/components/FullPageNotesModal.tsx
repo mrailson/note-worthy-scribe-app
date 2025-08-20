@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { SafeMessageRenderer } from "@/components/SafeMessageRenderer";
 import { ClaudeEnhancementModal } from "@/components/ClaudeEnhancementModal";
@@ -57,6 +58,9 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [showCustomInstruction, setShowCustomInstruction] = useState(false);
   const [customInstruction, setCustomInstruction] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [activeTab, setActiveTab] = useState("notes");
+  const [transcript, setTranscript] = useState("");
+  const [isLoadingTranscript, setIsLoadingTranscript] = useState(false);
 
   // Create a mock meeting data object for the export hook
   const mockMeetingData = meeting ? {
@@ -403,6 +407,52 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     }
   };
 
+  // Fetch transcript when modal opens
+  const fetchTranscript = async () => {
+    if (!meeting?.id || transcript) return; // Don't fetch if already loaded
+    
+    setIsLoadingTranscript(true);
+    try {
+      const { data: transcripts, error } = await supabase
+        .from('meeting_transcripts')
+        .select('*')
+        .eq('meeting_id', meeting.id)
+        .order('timestamp_seconds', { ascending: true });
+
+      if (error) throw error;
+
+      // Combine all transcript segments
+      const fullTranscript = transcripts?.map(t => t.content).join(' ') || '';
+      setTranscript(fullTranscript);
+    } catch (error) {
+      console.error('Error fetching transcript:', error);
+      toast.error('Failed to load transcript');
+    } finally {
+      setIsLoadingTranscript(false);
+    }
+  };
+
+  // Fetch transcript when modal opens
+  React.useEffect(() => {
+    if (isOpen && meeting) {
+      fetchTranscript();
+    }
+  }, [isOpen, meeting?.id]);
+
+  // Get current content based on active tab
+  const getCurrentContent = () => {
+    return activeTab === "notes" ? notes : transcript;
+  };
+
+  // Get current content setter based on active tab  
+  const setCurrentContent = (content: string) => {
+    if (activeTab === "notes") {
+      onNotesChange(content);
+    } else {
+      setTranscript(content);
+    }
+  };
+
   const copyToClipboard = (content: string) => {
     navigator.clipboard.writeText(content).then(() => {
       toast.success('Content copied to clipboard!');
@@ -579,7 +629,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuGroup>
-                  <DropdownMenuItem onClick={() => copyToClipboard(notes)}>
+                  <DropdownMenuItem onClick={() => copyToClipboard(getCurrentContent())}>
                     <Copy className="h-4 w-4 mr-2" />
                     Copy to Clipboard
                   </DropdownMenuItem>
@@ -590,15 +640,24 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                       Download
                     </DropdownMenuSubTrigger>
                     <DropdownMenuSubContent>
-                      <DropdownMenuItem onClick={() => generateAdvancedWordDocument(notes, `${meeting.title} - Meeting Notes`)}>
+                      <DropdownMenuItem onClick={() => generateAdvancedWordDocument(getCurrentContent(), `${meeting.title} - ${activeTab === "notes" ? "Meeting Notes" : "Transcript"}`)}>
                         <FileText className="h-4 w-4 mr-2" />
                         Download as Word
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => generatePDF(notes, `${meeting.title} - Meeting Notes`)}>
+                      <DropdownMenuItem onClick={() => generatePDF(getCurrentContent(), `${meeting.title} - ${activeTab === "notes" ? "Meeting Notes" : "Transcript"}`)}>
                         <FileType className="h-4 w-4 mr-2" />
                         Download as PDF
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={handleDownloadText}>
+                      <DropdownMenuItem onClick={() => {
+                        const element = document.createElement("a");
+                        const file = new Blob([getCurrentContent()], { type: 'text/plain' });
+                        element.href = URL.createObjectURL(file);
+                        element.download = `${meeting.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}-${activeTab}.txt`;
+                        document.body.appendChild(element);
+                        element.click();
+                        document.body.removeChild(element);
+                        toast.success("Plain text downloaded successfully!");
+                      }}>
                         <Type className="h-4 w-4 mr-2" />
                         Download as Plain Text
                       </DropdownMenuItem>
@@ -633,10 +692,12 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                     </DropdownMenuSubTrigger>
                     <DropdownMenuSubContent>
                       <ClaudeEnhancementModal
-                        originalContent={notes}
+                        originalContent={getCurrentContent()}
                         onEnhancedContent={(enhancedContent) => {
-                          onNotesChange(enhancedContent);
-                          saveSummaryToDatabase(enhancedContent);
+                          setCurrentContent(enhancedContent);
+                          if (activeTab === "notes") {
+                            saveSummaryToDatabase(enhancedContent);
+                          }
                         }}
                       >
                         <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
@@ -668,10 +729,12 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                 </Button>
               </div>
               <FindReplacePanel
-                getCurrentText={() => notes}
+                getCurrentText={() => getCurrentContent()}
                 onApply={(updatedText) => {
-                  onNotesChange(updatedText);
-                  saveSummaryToDatabase(updatedText);
+                  setCurrentContent(updatedText);
+                  if (activeTab === "notes") {
+                    saveSummaryToDatabase(updatedText);
+                  }
                   toast.success("Text replaced successfully!");
                 }}
               />
@@ -697,7 +760,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                   <Textarea
                     value={customInstruction}
                     onChange={(e) => setCustomInstruction(e.target.value)}
-                    placeholder="Enter your custom instructions for enhancing the meeting notes..."
+                    placeholder="Enter your custom instructions for enhancing the content..."
                     className="flex-1 min-h-[80px]"
                   />
                   <SpeechToText 
@@ -710,7 +773,42 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                   />
                 </div>
                 <Button
-                  onClick={handleCustomInstructionSubmit}
+                  onClick={async () => {
+                    if (!customInstruction.trim() || !meeting?.id) {
+                      toast.error("Please enter custom instructions");
+                      return;
+                    }
+
+                    setIsGenerating(true);
+                    
+                    try {
+                      const { data, error } = await supabase.functions.invoke('enhance-meeting-minutes', {
+                        body: {
+                          originalContent: getCurrentContent(),
+                          enhancementType: 'custom',
+                          customRequest: customInstruction,
+                          additionalContext: ''
+                        }
+                      });
+
+                      if (error) throw error;
+
+                      if (data?.enhancedContent) {
+                        setCurrentContent(data.enhancedContent);
+                        if (activeTab === "notes") {
+                          saveSummaryToDatabase(data.enhancedContent);
+                        }
+                        setCustomInstruction("");
+                        setShowCustomInstruction(false);
+                        toast.success(`${activeTab === "notes" ? "Meeting notes" : "Transcript"} enhanced with custom instructions!`);
+                      }
+                    } catch (error) {
+                      console.error('Error applying custom instructions:', error);
+                      toast.error("Failed to apply custom instructions");
+                    } finally {
+                      setIsGenerating(false);
+                    }
+                  }}
                   disabled={!customInstruction.trim() || isGenerating}
                   className="w-full"
                 >
@@ -721,35 +819,81 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
             </div>
           )}
           
-          {/* Notes Content */}
-          <div className="flex-1 p-6 bg-white overflow-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Meeting Notes</h3>
-              <Button
-                onClick={() => setIsEditing(!isEditing)}
-                variant="outline"
-                size="sm"
-                className="gap-2"
-              >
-                <Edit3 className="h-4 w-4" />
-                {isEditing ? 'Preview' : 'Edit'}
-              </Button>
+          {/* Tabs Content */}
+          <Tabs defaultValue="notes" value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+            <div className="px-6 pt-4">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="notes">Meeting Notes</TabsTrigger>
+                <TabsTrigger value="transcript">Transcript</TabsTrigger>
+              </TabsList>
             </div>
-
-            {isEditing ? (
-              <Textarea
-                value={notes}
-                onChange={(e) => onNotesChange(e.target.value)}
-                onBlur={() => saveSummaryToDatabase(notes)}
-                className="min-h-[400px] font-mono text-sm"
-                placeholder="Meeting notes will appear here..."
-              />
-            ) : (
-              <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground">
-                <SafeMessageRenderer content={notes} />
+            
+            <TabsContent value="notes" className="flex-1 p-6 bg-white overflow-auto mt-0">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">Meeting Notes</h3>
+                <Button
+                  onClick={() => setIsEditing(!isEditing)}
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                >
+                  <Edit3 className="h-4 w-4" />
+                  {isEditing ? 'Preview' : 'Edit'}
+                </Button>
               </div>
-            )}
-          </div>
+
+              {isEditing ? (
+                <Textarea
+                  value={notes}
+                  onChange={(e) => onNotesChange(e.target.value)}
+                  onBlur={() => saveSummaryToDatabase(notes)}
+                  className="min-h-[400px] font-mono text-sm"
+                  placeholder="Meeting notes will appear here..."
+                />
+              ) : (
+                <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground">
+                  <SafeMessageRenderer content={notes} />
+                </div>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="transcript" className="flex-1 p-6 bg-white overflow-auto mt-0">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">Meeting Transcript</h3>
+                <Button
+                  onClick={() => setIsEditing(!isEditing)}
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                >
+                  <Edit3 className="h-4 w-4" />
+                  {isEditing ? 'Preview' : 'Edit'}
+                </Button>
+              </div>
+
+              {isLoadingTranscript ? (
+                <div className="flex items-center justify-center h-40">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  <span className="ml-2">Loading transcript...</span>
+                </div>
+              ) : isEditing ? (
+                <Textarea
+                  value={transcript}
+                  onChange={(e) => setTranscript(e.target.value)}
+                  className="min-h-[400px] font-mono text-sm"
+                  placeholder="Meeting transcript will appear here..."
+                />
+              ) : (
+                <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground">
+                  {transcript ? (
+                    <pre className="whitespace-pre-wrap font-sans">{transcript}</pre>
+                  ) : (
+                    <p className="text-muted-foreground">No transcript available for this meeting.</p>
+                  )}
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
         </div>
       </DialogContent>
     </Dialog>
