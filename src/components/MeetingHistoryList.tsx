@@ -816,6 +816,7 @@ export const MeetingHistoryList = ({
               <MeetingOverviewEditor 
                 meetingId={meeting.id}
                 currentOverview={meeting.overview || generateOverview(meeting)}
+                onOverviewChange={() => onRefresh?.()}
                 className="mb-3"
               />
               
