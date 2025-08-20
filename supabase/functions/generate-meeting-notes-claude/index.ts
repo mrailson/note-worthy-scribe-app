@@ -28,25 +28,31 @@ serve(async (req) => {
       ? 'Be more detailed than standard. Expand points with accurate specifics from the transcript, include additional sub-bullets and clearer structure.'
       : 'Use the standard level of detail: concise yet complete, avoiding unnecessary verbosity.';
 
-    const prompt = `Create detailed partnership meeting notes from the transcript. Extract ALL specific details, names, locations, systems, and technical information mentioned.
+    const prompt = `Create comprehensive partnership meeting notes from the transcript. Extract EVERY specific detail mentioned.
 
-CRITICAL REQUIREMENTS - CAPTURE EVERY GRANULAR DETAIL:
+CRITICAL EXTRACTION REQUIREMENTS:
+- EVERY person mentioned by name with their roles, responsibilities, background
+- EVERY location, site name, system name mentioned (spell exactly as heard)
+- EVERY number, percentage, cost, timeframe, date mentioned  
+- EVERY technical system, process, or procedure discussed
+- EVERY specific quote or phrase mentioned (use quotation marks)
+- EVERY training program, course, qualification, exam date
+- EVERY past experience, trial, or example referenced
+- EVERY concern, benefit, challenge, or solution discussed
+- EVERY compliance issue, regulatory requirement mentioned
+- EVERY alternative solution or option considered
 
-PEOPLE & ROLES: Include EVERY person mentioned by name with their specific roles, training status, qualifications, and responsibilities. Do not miss anyone.
+LISTEN CAREFULLY FOR:
+- Proper names of people, places, systems (transcription may have errors)
+- Specific terminology like "just in time", "dispensing from totes", technical phrases
+- Past experiences and their outcomes
+- Training costs, funding sources, dates
+- Patient access concerns and specific village names
+- Compliance and regulatory issues (CQC, EPS, ODS codes)
+- Financial implications, savings, costs
 
-LOCATIONS & SITES: Include ALL site names, locations, villages, and geographic details mentioned. Get spelling exactly right.
-
-TECHNICAL SYSTEMS: Capture ALL system names, technical processes, codes (like EPS/ODS), ordering systems, delivery schedules, turnaround times, and technical explanations.
-
-FINANCIAL DETAILS: Include ALL costs, prices, percentage changes, savings amounts, funding sources, and financial implications discussed.
-
-TRAINING & QUALIFICATIONS: Capture ALL training programs, courses, institutions, costs, timelines, exam dates, and qualification details.
-
-TIMELINES & DATES: Include ALL specific dates, timeframes, schedules, and timing mentioned.
-
-BUSINESS PROCESSES: Document ALL operational details, workflow processes, service changes, and procedural discussions.
-
-Do NOT summarize, generalize, or omit ANY detail - include the actual specifics discussed.
+STRUCTURE WITH DETAILED SUBSECTIONS:
+Use this exact format with comprehensive subsections:
 
 Format exactly as:
 
@@ -55,74 +61,66 @@ ${meetingTitle || 'Partnership Meeting'} Notes
 Date: ${meetingDate || '[Meeting Date]'}
 Attendees: ${meetingTime ? `Meeting held at ${meetingTime}` : 'Practice Partners and Key Staff'}
 
-1. [MAIN TOPIC IN ALL CAPS]
+1. [MAIN TOPIC]
 
 Proposal Overview
-
-- [Specific details from transcript]
-- [Include actual locations, systems, technical details mentioned]
+- [All specific details about what's being proposed]
 
 Challenges Identified
-[Subsection Name]:
+Staff and Patient Impact:
+- [Specific concerns, quotes, impact details]
 
-- [Specific concerns raised with actual quotes where possible]
-- [Include names of people, places, systems mentioned]
+Operational Concerns: 
+- [Process issues, past experiences, staffing details]
 
-[Another Subsection Name]:
-
-- [More specific details]
-- [Technical limitations, compliance concerns, etc.]
+Technology Limitations:
+- [System names, technical barriers, compliance issues]
 
 Potential Benefits
-
-- [Specific benefits discussed]
-- [Financial implications mentioned]
+- [Specific benefits, financial implications, efficiencies]
 
 Alternative Solutions Discussed
-
-- [Specific alternatives with technical details]
-- [System names, costs, implementation challenges]
+- [Each alternative with technical details, costs, pros/cons]
 
 2. [NEXT MAJOR TOPIC]
 
 Current System Issues
-
 - [Specific problems identified]
 
-Proposed [System/Approach] Model
+Proposed "[System Name]" Model
 Concept:
-
-- [Detailed explanation of what was proposed]
-- [Specific timelines, processes, technical details]
+- [Detailed process description with technical terms]
 
 Benefits:
-
-- [Specific benefits discussed]
+- [Specific advantages]
 
 Implementation Requirements:
-
-- [Specific people, systems, training mentioned]
-- [Actual dates, events, requirements discussed]
+- [People, systems, training, timelines, costs]
 
 Concerns:
-
-- [Specific concerns raised]
+- [Specific risks and challenges]
 
 3. ROLE ALLOCATIONS & RESPONSIBILITIES
 
 Current Lead Responsibilities
-[Specific Area]:
+Dispensary Operations:
+- [Name]: [Specific responsibilities and expertise]
 
-- [Person's name]: [Specific responsibilities and background mentioned]
-
-[Continue for each area discussed with names and details]
+Clinical Specialties:
+- [Specialty]: [Name] - [Specific responsibilities, background]
 
 Training & Development:
+- [Program]: [Details about people, timelines, status]
 
-- [Specific training programs, people, timelines mentioned]
-- [Include actual course names, dates, institutions]
+Administrative:
+- [Role]: [Name and details]
 
-[Continue with all subsections capturing specific details]
+Training Developments
+[Person's Progress]:
+- [Specific training details, courses, timelines]
+
+Future Planning Considerations
+- [Succession planning, upcoming changes]
 
 4. KEY DECISIONS NEEDED
    [List specific decisions that need to be made based on discussion]
@@ -136,7 +134,7 @@ Training & Development:
 
 Note: [Implementation guidance discussed]
 
-REMEMBER: Include EVERY specific detail, name, system, concern, and technical point discussed. Do not generalize or omit details.
+REMEMBER: If the transcript mentions someone's name, a place, a system, a cost, a date, a process, or a concern - include it exactly. Don't paraphrase or summarize. Capture the specific language used.
 
 Detail preference: ${detailInstructions}
 
