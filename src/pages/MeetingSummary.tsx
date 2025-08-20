@@ -31,7 +31,8 @@ import {
   X,
   MessageSquare,
   Copy,
-  Bot
+  Bot,
+  AlertTriangle
 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Slider } from "@/components/ui/slider";
@@ -53,6 +54,7 @@ import { SafeMessageRenderer } from "@/components/SafeMessageRenderer";
 import { MeetingMinutesEnhancer } from "@/components/MeetingMinutesEnhancer";
 import { Header } from "@/components/Header";
 import { NotewellAIAnimation } from "@/components/NotewellAIAnimation";
+import AudioReprocessingPanel from "@/components/AudioReprocessingPanel";
 
 interface MeetingData {
   id?: string;
@@ -138,6 +140,14 @@ export default function MeetingSummary() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isTranscriptOpen, setIsTranscriptOpen] = useState(false);
   const [isAIMinutesOpen, setIsAIMinutesOpen] = useState(true); // Expanded by default
+
+  // Audio backup and truncation detection states
+  const [audioBackupInfo, setAudioBackupInfo] = useState<{
+    file_path: string;
+    file_size: number;
+    meeting_id: string;
+  } | null>(null);
+  const [transcriptTruncated, setTranscriptTruncated] = useState(false);
 
   type MeetingSettingsState = {
     title: string;
@@ -330,6 +340,61 @@ export default function MeetingSummary() {
       }
     }
   }, [location.state, navigate, isSaved, isSaving, meetingData?.id]);
+
+  // Check for audio backup and potential truncation issues
+  useEffect(() => {
+    const checkAudioBackupAndTruncation = async () => {
+      if (!meetingData?.id) return;
+      
+      try {
+        // Check for audio backup
+        const { data: backup, error } = await supabase
+          .from('meeting_audio_backups')
+          .select('file_path, file_size, meeting_id')
+          .eq('meeting_id', meetingData.id)
+          .single();
+        
+        if (!error && backup) {
+          setAudioBackupInfo(backup);
+          
+          // Check if transcript seems truncated for long meetings
+          const duration = meetingData.duration?.split(':').map(Number) || [0, 0];
+          const totalMinutes = duration[0] * 60 + duration[1];
+          
+          if (meetingData.transcript && totalMinutes > 45) {
+            const transcriptLength = meetingData.transcript.length;
+            const expectedMinLength = totalMinutes * 150; // ~150 chars per minute
+            
+            if (transcriptLength < expectedMinLength * 0.7) {
+              console.log('🚨 Potential transcript truncation detected:', {
+                meetingId: meetingData.id,
+                duration: `${totalMinutes} minutes`,
+                transcriptLength,
+                expectedMinLength
+              });
+              setTranscriptTruncated(true);
+              
+              // Log the truncation for monitoring
+              await supabase.functions.invoke('meeting-length-monitor', {
+                body: {
+                  action: 'monitor_length',
+                  meetingId: meetingData.id,
+                  userId: user?.id,
+                  currentDuration: totalMinutes
+                }
+              });
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error checking audio backup:', error);
+      }
+    };
+    
+    if (meetingData?.id && user?.id) {
+      checkAudioBackupAndTruncation();
+    }
+  }, [meetingData?.id, meetingData?.transcript, meetingData?.duration, user?.id]);
 
   // Countdown timer effect
   useEffect(() => {
