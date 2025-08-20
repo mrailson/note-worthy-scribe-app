@@ -41,6 +41,7 @@ import { DesktopWhisperTranscriber, TranscriptData as DesktopTranscriptData } fr
 import { IncrementalTranscriptHandler, IncrementalTranscriptData } from '@/utils/IncrementalTranscriptHandler';
 import { StereoAudioCapture } from '@/utils/StereoAudioCapture';
 import { transcriptCleaner, RemovedSegment } from '@/utils/TranscriptCleaner';
+import { detectDevice, logDeviceInfo, getRecommendedTranscriber } from '@/utils/DeviceDetection';
 
 interface TranscriptData {
   text: string;
@@ -128,6 +129,15 @@ export const MeetingRecorder = ({
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [isGeneratingNotes, setIsGeneratingNotes] = useState(false);
   
+  // Debug panel state
+  const [showDebugPanel, setShowDebugPanel] = useState(false);
+  const [debugInfo, setDebugInfo] = useState({
+    deviceInfo: detectDevice(),
+    recordingState: 'idle',
+    lastError: '',
+    transcriptionEvents: [] as string[]
+  });
+  
   // Meeting settings
   const [meetingSettings, setMeetingSettings] = useState(() => initialSettings || {
     title: "General Meeting",
@@ -136,6 +146,17 @@ export const MeetingRecorder = ({
     practiceId: "",
     meetingFormat: "teams"
   });
+
+  // Function to update debug info
+  const updateDebugInfo = (updates: Partial<typeof debugInfo>) => {
+    setDebugInfo(prev => ({
+      ...prev,
+      ...updates,
+      transcriptionEvents: updates.transcriptionEvents 
+        ? [...prev.transcriptionEvents, ...updates.transcriptionEvents].slice(-10)
+        : prev.transcriptionEvents
+    }));
+  };
 
   // Reset meeting function
   const resetMeeting = async () => {
@@ -2230,6 +2251,12 @@ export const MeetingRecorder = ({
 
   const startRecording = async () => {
     try {
+      // Update debug info
+      updateDebugInfo({ 
+        recordingState: 'starting',
+        transcriptionEvents: [`${new Date().toLocaleTimeString()}: Starting recording...`]
+      });
+      
       addDebugLog('🚀 Starting recording...');
       console.log('Starting recording...');
       
@@ -2266,12 +2293,18 @@ export const MeetingRecorder = ({
         }
       }
       
-      setIsRecording(true);
-      isRecordingRef.current = true;
-      setRealtimeTranscripts([]);
-      setSpeakerCount(1);
-      setStartTime(generateMeetingTimestamp());
-      setConnectionStatus("Connected");
+    setIsRecording(true);
+    isRecordingRef.current = true;
+    setRealtimeTranscripts([]);
+    setSpeakerCount(1);
+    setStartTime(generateMeetingTimestamp());
+    setConnectionStatus("Connected");
+    
+    // Update debug info
+    updateDebugInfo({ 
+      recordingState: 'active',
+      transcriptionEvents: [`${new Date().toLocaleTimeString()}: Recording started successfully`]
+    });
       
       // Generate and store temporary meeting ID for this session
       const tempMeetingId = crypto.randomUUID();
@@ -2330,6 +2363,12 @@ export const MeetingRecorder = ({
   };
 
   const stopRecording = async () => {
+    // Update debug info
+    updateDebugInfo({ 
+      recordingState: 'stopping',
+      transcriptionEvents: [`${new Date().toLocaleTimeString()}: Stopping recording...`]
+    });
+    
     setIsStoppingRecording(true);
     addDebugLog('🛑 Stopping recording...');
     console.log('Stopping recording...');
@@ -3141,6 +3180,65 @@ export const MeetingRecorder = ({
   // Clean up the stray line
   return (
     <div className="space-y-6">
+      {/* Debug Panel for iPhone/Mobile Testing */}
+      <Card className="bg-slate-50 border-dashed">
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <AlertCircle className="h-4 w-4" />
+              Debug Panel
+            </CardTitle>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowDebugPanel(!showDebugPanel)}
+            >
+              {showDebugPanel ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </Button>
+          </div>
+        </CardHeader>
+        {showDebugPanel && (
+          <CardContent className="space-y-3 text-xs">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <div className="font-semibold">Device Info</div>
+                <div>iOS: {debugInfo.deviceInfo.isIOS ? '✅' : '❌'}</div>
+                <div>Safari: {debugInfo.deviceInfo.isSafari ? '✅' : '❌'}</div>
+                <div>Chromium: {debugInfo.deviceInfo.isChromium ? '✅' : '❌'}</div>
+                <div>Mobile: {debugInfo.deviceInfo.isMobile ? '✅' : '❌'}</div>
+                <div>Type: {debugInfo.deviceInfo.deviceType}</div>
+                <div>Transcriber: {getRecommendedTranscriber()}</div>
+              </div>
+              <div className="space-y-2">
+                <div className="font-semibold">Recording State</div>
+                <div>Status: {isRecording ? '🔴 Recording' : '⚫ Stopped'}</div>
+                <div>Duration: {Math.floor(duration / 60)}:{(duration % 60).toString().padStart(2, '0')}</div>
+                <div>Words: {wordCount}</div>
+                <div>Connection: {connectionStatus}</div>
+                <div>Paused: {isPaused ? '✅' : '❌'}</div>
+                <div>Mode: {recordingMode}</div>
+              </div>
+            </div>
+            {debugInfo.lastError && (
+              <div className="mt-3 p-2 bg-red-100 border border-red-200 rounded">
+                <div className="font-semibold text-red-800">Last Error:</div>
+                <div className="text-red-700">{debugInfo.lastError}</div>
+              </div>
+            )}
+            {debugInfo.transcriptionEvents.length > 0 && (
+              <div className="mt-3">
+                <div className="font-semibold mb-1">Recent Events:</div>
+                <div className="max-h-24 overflow-y-auto space-y-1">
+                  {debugInfo.transcriptionEvents.slice(-5).map((event, index) => (
+                    <div key={index} className="text-gray-600 bg-gray-100 p-1 rounded">{event}</div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        )}
+      </Card>
+
       {/* Tabbed Interface */}
       <Tabs defaultValue={initialActiveTab || "recorder"} className="w-full">
         <TabsList className={`grid w-full ${micTestServiceVisible ? 'grid-cols-5' : 'grid-cols-4'}`}>
