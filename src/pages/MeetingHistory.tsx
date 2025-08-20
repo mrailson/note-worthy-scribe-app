@@ -198,6 +198,9 @@ const MeetingHistory = () => {
   };
 
   const handleViewMeetingSummary = async (meetingId: string) => {
+    console.log('🔍 handleViewMeetingSummary called with meetingId:', meetingId);
+    console.log('🔍 Current fullPageModalOpen state:', fullPageModalOpen);
+    
     try {
       // Fetch meeting details
       const { data: meeting, error: meetingError } = await supabase
@@ -208,6 +211,7 @@ const MeetingHistory = () => {
         .single();
 
       if (meetingError) throw meetingError;
+      console.log('🔍 Meeting data fetched:', meeting);
 
       // Fetch existing summary if available
       const { data: summaryData, error: summaryError } = await supabase
@@ -216,14 +220,17 @@ const MeetingHistory = () => {
         .eq('meeting_id', meetingId)
         .maybeSingle();
       
+      console.log('🔍 Summary data fetched:', summaryData?.summary ? 'Summary exists' : 'No summary');
+      
       // Open the full page modal with notes
+      console.log('🔍 Setting modal states...');
       setModalMeeting(meeting);
       setModalNotes(summaryData?.summary || '');
       setFullPageModalOpen(true);
       
-      console.log('📝 Opening full page modal for meeting:', meeting.title);
+      console.log('📝 Full page modal should now be open for meeting:', meeting.title);
     } catch (error: any) {
-      console.error("Error Loading Meeting:", error.message);
+      console.error("❌ Error Loading Meeting:", error.message);
       toast.error("Failed to load meeting notes");
     }
   };

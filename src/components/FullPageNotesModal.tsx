@@ -7,9 +7,11 @@ import { SafeMessageRenderer } from "@/components/SafeMessageRenderer";
 import { ClaudeEnhancementModal } from "@/components/ClaudeEnhancementModal";
 import FindReplacePanel from "@/components/FindReplacePanel";
 import { SpeechToText } from "@/components/SpeechToText";
-import { useMeetingExport } from "@/hooks/useMeetingExport";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel } from 'docx';
+import { saveAs } from 'file-saver';
+import jsPDF from 'jspdf';
 import { 
   Bot, 
   ChevronDown, 
@@ -48,6 +50,8 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   notes,
   onNotesChange
 }) => {
+  console.log('🔍 FullPageNotesModal render - isOpen:', isOpen, 'meeting:', meeting?.title);
+  
   const [isEditing, setIsEditing] = useState(false);
   const [showFindReplace, setShowFindReplace] = useState(false);
   const [showCustomInstruction, setShowCustomInstruction] = useState(false);
@@ -83,7 +87,266 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     location: ''
   };
 
-  const { generateWordDocument, generatePDF, copyToClipboard } = useMeetingExport(mockMeetingData, mockMeetingSettings);
+  // Advanced Word export with full formatting (like MeetingNotesWordExport.tsx)
+  const generateAdvancedWordDocument = async (content: string, title: string) => {
+    try {
+      console.log('🔍 Generating full-featured Word document with formatting!');
+      toast.info('Generating Word document...');
+      
+      // Strip HTML and process content to preserve formatting
+      const stripHtmlAndFormat = (htmlContent: string) => {
+        if (!htmlContent) return [];
+        
+        // Remove HTML tags and decode entities
+        let cleanText = htmlContent
+          .replace(/<br\s*\/?>/gi, '\n')
+          .replace(/<\/p>/gi, '\n\n')
+          .replace(/<p[^>]*>/gi, '')
+          .replace(/<\/h[1-6]>/gi, '\n')
+          .replace(/<h[1-6][^>]*>/gi, '\n')
+          .replace(/<\/strong>/gi, '')
+          .replace(/<strong[^>]*>/gi, '')
+          .replace(/<\/b>/gi, '')
+          .replace(/<b[^>]*>/gi, '')
+          .replace(/<[^>]*>/g, '')
+          .replace(/&nbsp;/g, ' ')
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&quot;/g, '"')
+          .replace(/&#39;/g, "'");
+
+        const paragraphs = [];
+        const lines = cleanText.split('\n');
+        
+        for (const line of lines) {
+          const trimmedLine = line.trim();
+          if (!trimmedLine) {
+            // Add minimal spacing for empty lines
+            paragraphs.push(new Paragraph({
+              children: [new TextRun({ text: "", size: 22 })],
+              spacing: { after: 60 }
+            }));
+            continue;
+          }
+          
+          // Check for bold markers
+          const boldMatch = trimmedLine.match(/^\*\*(.*?)\*\*$/);
+          if (boldMatch) {
+            // Bold text without ** markers
+            paragraphs.push(new Paragraph({
+              children: [new TextRun({
+                text: boldMatch[1],
+                bold: true,
+                size: 24,
+                color: "1f2937"
+              })],
+              spacing: { after: 80 }
+            }));
+            continue;
+          }
+          
+          // Check for section headers and clean hashtags
+          const isHeader = /^[#*]{1,4}\s/.test(trimmedLine) || 
+                          /^[A-Z\s]{8,}$/.test(trimmedLine) ||
+                          trimmedLine.includes('ATTENDEES') ||
+                          trimmedLine.includes('OVERVIEW') ||
+                          trimmedLine.includes('CONTENT') ||
+                          trimmedLine.includes('DECISIONS') ||
+                          trimmedLine.includes('ACTION') ||
+                          trimmedLine.includes('RISKS') ||
+                          trimmedLine.includes('MEETING OVERVIEW') ||
+                          trimmedLine.includes('DETAILED MEETING');
+          
+          // Clean hashtags from headers
+          let cleanedLine = trimmedLine;
+          if (isHeader && /^[#]{1,4}\s/.test(trimmedLine)) {
+            cleanedLine = trimmedLine.replace(/^[#]{1,4}\s*/, '');
+          }
+          
+          // Handle inline bold markers within text
+          const parts = [];
+          let lastIndex = 0;
+          
+          // Find all **text** patterns (including single * patterns)
+          const boldRegex = /\*{1,2}([^*]+?)\*{1,2}/g;
+          let match;
+          
+          while ((match = boldRegex.exec(cleanedLine)) !== null) {
+            // Add normal text before the bold part
+            if (match.index > lastIndex) {
+              const normalText = cleanedLine.substring(lastIndex, match.index);
+              if (normalText) {
+                parts.push(new TextRun({
+                  text: normalText,
+                  size: 22,
+                  color: "374151"
+                }));
+              }
+            }
+            
+            // Add bold text
+            parts.push(new TextRun({
+              text: match[1],
+              bold: true,
+              size: 22,
+              color: "1f2937"
+            }));
+            
+            lastIndex = match.index + match[0].length;
+          }
+          
+          // Add remaining normal text
+          if (lastIndex < cleanedLine.length) {
+            const remainingText = cleanedLine.substring(lastIndex);
+            if (remainingText) {
+              parts.push(new TextRun({
+                text: remainingText,
+                size: 22,
+                color: "374151"
+              }));
+            }
+          }
+          
+          // If no bold parts found, use the whole cleaned line
+          if (parts.length === 0) {
+            parts.push(new TextRun({
+              text: cleanedLine,
+              size: isHeader ? 24 : 22,
+              bold: isHeader,
+              color: isHeader ? "1f2937" : "374151"
+            }));
+          }
+          
+          // Check for bullet points
+          const isBullet = cleanedLine.startsWith('-') || cleanedLine.startsWith('•');
+          
+          paragraphs.push(new Paragraph({
+            children: parts,
+            spacing: { 
+              after: isHeader ? 120 : (isBullet ? 40 : 60),
+              before: isHeader ? 160 : 0
+            },
+            indent: isBullet ? { left: 360 } : undefined
+          }));
+        }
+        
+        return paragraphs;
+      };
+      
+      const doc = new Document({
+        sections: [{
+          properties: {
+            page: {
+              margin: {
+                top: 1440,    // 1 inch
+                right: 1440,
+                bottom: 1440,
+                left: 1440,
+              },
+            },
+          },
+          children: [
+            // Title
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: title,
+                  bold: true,
+                  size: 36,
+                  color: "1f2937"
+                }),
+              ],
+              alignment: AlignmentType.CENTER,
+              spacing: { after: 480 }
+            }),
+            
+            // Meeting Details
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "Date: ",
+                  bold: true,
+                  size: 24,
+                  color: "1f2937"
+                }),
+                new TextRun({
+                  text: new Date().toLocaleDateString(),
+                  size: 24,
+                  color: "374151"
+                }),
+              ],
+              spacing: { after: 360 }
+            }),
+            
+            // Content Section
+            ...stripHtmlAndFormat(content),
+            
+            // Footer
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: `Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`,
+                  italics: true,
+                  size: 18,
+                  color: "6b7280"
+                }),
+              ],
+              alignment: AlignmentType.CENTER,
+              spacing: { before: 480 }
+            }),
+          ],
+        }],
+      });
+      
+      console.log('🔍 Document created, converting to blob...');
+      const blob = await Packer.toBlob(doc);
+      saveAs(blob, `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}-${new Date().toLocaleDateString()}.docx`);
+      toast.success('Word document downloaded successfully!');
+      
+    } catch (error) {
+      console.error('Word generation error:', error);
+      toast.error('Failed to generate Word document');
+    }
+  };
+
+  const generatePDF = (content: string, title: string) => {
+    try {
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const margin = 20;
+      const maxWidth = pageWidth - (2 * margin);
+      
+      // Title
+      doc.setFontSize(20);
+      doc.setFont('helvetica', 'bold');
+      doc.text(title, pageWidth / 2, 30, { align: 'center' });
+      
+      // Date
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Date: ${new Date().toLocaleDateString()}`, pageWidth / 2, 45, { align: 'center' });
+      
+      // Content
+      doc.setFontSize(11);
+      const lines = doc.splitTextToSize(content, maxWidth);
+      doc.text(lines, margin, 60);
+      
+      doc.save(`${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}-${new Date().toLocaleDateString()}.pdf`);
+      toast.success('PDF generated successfully!');
+    } catch (error) {
+      console.error('PDF generation error:', error);
+      toast.error('Failed to generate PDF');
+    }
+  };
+
+  const copyToClipboard = (content: string) => {
+    navigator.clipboard.writeText(content).then(() => {
+      toast.success('Content copied to clipboard!');
+    }).catch(() => {
+      toast.error('Failed to copy to clipboard');
+    });
+  };
 
   const handleDownloadText = () => {
     if (!meeting || !notes) return;
@@ -111,13 +374,31 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
           action_items: [],
           decisions: [],
           next_steps: []
+        }, {
+          onConflict: 'meeting_id'
         });
 
       if (error) throw error;
       toast.success("Notes saved successfully!");
     } catch (error) {
       console.error('Error saving summary:', error);
-      toast.error("Failed to save notes");
+      if (error.code === '23505') {
+        // Handle duplicate key error - try update instead
+        try {
+          const { error: updateError } = await supabase
+            .from('meeting_summaries')
+            .update({ summary: content })
+            .eq('meeting_id', meeting.id);
+          
+          if (updateError) throw updateError;
+          toast.success("Notes updated successfully!");
+        } catch (updateError) {
+          console.error('Error updating summary:', updateError);
+          toast.error("Failed to save notes");
+        }
+      } else {
+        toast.error("Failed to save notes");
+      }
     }
   };
 
@@ -189,7 +470,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                       Download
                     </DropdownMenuSubTrigger>
                     <DropdownMenuSubContent>
-                      <DropdownMenuItem onClick={() => generateWordDocument(notes, `${meeting.title} - Meeting Notes`)}>
+                      <DropdownMenuItem onClick={() => generateAdvancedWordDocument(notes, `${meeting.title} - Meeting Notes`)}>
                         <FileText className="h-4 w-4 mr-2" />
                         Download as Word
                       </DropdownMenuItem>
