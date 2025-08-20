@@ -8,30 +8,82 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+// Add this function to handle large transcripts
+function handleLargeTranscript(transcript, meetingTitle, meetingDate, meetingTime, styleChoice) {
+  if (transcript.length > 25000) {
+    // Implement chunking strategy
+    return processInChunks(transcript, meetingTitle, meetingDate, meetingTime, styleChoice);
+  } else {
+    // Use standard single API call
+    return processSingle(transcript, meetingTitle, meetingDate, meetingTime, styleChoice);
+  }
+}
+
+function processInChunks(transcript, meetingTitle, meetingDate, meetingTime, styleChoice) {
+  const words = transcript.split(' ');
+  const chunkSize = 20000; // Words per chunk
+  const overlap = 2000; // Word overlap between chunks
+  const chunks = [];
+  
+  for (let i = 0; i < words.length; i += chunkSize - overlap) {
+    const chunk = words.slice(i, i + chunkSize).join(' ');
+    chunks.push(chunk);
+  }
+  
+  return { chunks, strategy: 'chunked' };
+}
+
+function processSingle(transcript, meetingTitle, meetingDate, meetingTime, styleChoice) {
+  return { transcript, strategy: 'single' };
+}
+
+async function consolidateChunkResults(chunkResults, meetingTitle, meetingDate, meetingTime, styleChoice) {
+  const consolidationPrompt = `Consolidate these meeting minute chunks into a single comprehensive document. Ensure no duplication of action items or decisions, and maintain chronological flow.
+
+CONSOLIDATION REQUIREMENTS:
+- Merge all agenda items in chronological order
+- Consolidate all action items (remove duplicates)
+- Consolidate all decisions (note if any were modified later)
+- Maintain all specific details, names, dates, and quotes
+- Create unified executive summary
+- Create consolidated action items section
+- Create consolidated decisions section
+
+CHUNK RESULTS TO CONSOLIDATE:
+${chunkResults.join('\n\n--- CHUNK SEPARATOR ---\n\n')}
+
+Please create a single, comprehensive meeting minutes document following Style ${styleChoice} format.`;
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': anthropicApiKey,
+      'Content-Type': 'application/json',
+      'anthropic-version': '2023-06-01'
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 8192,
+      messages: [
+        { 
+          role: 'user', 
+          content: consolidationPrompt 
+        }
+      ]
+    }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(`Claude API error during consolidation: ${errorData.error?.message || 'Unknown error'}`);
   }
 
-  try {
-    const { transcript, meetingTitle, meetingDate, meetingTime, detailLevel } = await req.json();
+  const data = await response.json();
+  return data.content[0].text;
+}
 
-    if (!transcript) {
-      throw new Error('Transcript is required');
-    }
-
-    const level = (detailLevel || 'standard').toString().toLowerCase();
-    
-    // Determine style based on detailLevel
-    let styleChoice = 1; // Default to Professional Business
-    if (level === 'informal' || level === 'original') {
-      styleChoice = 2; // Original Informal
-    } else if (level === 'nhs' || level === 'formal') {
-      styleChoice = 3; // NHS Formal
-    }
-
-    const meetingNotesPrompt = `Create comprehensive meeting notes from the transcript. This is a LONG MEETING (potentially 3+ hours, 30,000+ words) - ensure ALL agenda items and discussions are captured.
+async function processChunk(transcript, meetingTitle, meetingDate, meetingTime, styleChoice) {
+  const meetingNotesPrompt = `Create comprehensive meeting notes from the transcript. This is a LONG MEETING (potentially 3+ hours, 30,000+ words) - ensure ALL agenda items and discussions are captured.
 
 LARGE MEETING HANDLING:
 - Process the ENTIRE transcript systematically from start to finish
@@ -328,40 +380,89 @@ REMEMBER: For long meetings, systematically work through the ENTIRE transcript. 
 
 Transcript: ${transcript}`;
 
-    console.log('Generating Claude meeting minutes for:', meetingTitle);
+  console.log('Processing chunk for meeting:', meetingTitle);
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': anthropicApiKey,
-        'Content-Type': 'application/json',
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 8192,
-        messages: [
-          { 
-            role: 'user', 
-            content: meetingNotesPrompt 
-          }
-        ]
-      }),
-    });
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': anthropicApiKey,
+      'Content-Type': 'application/json',
+      'anthropic-version': '2023-06-01'
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 8192,
+      messages: [
+        { 
+          role: 'user', 
+          content: meetingNotesPrompt 
+        }
+      ]
+    }),
+  });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`Claude API error: ${errorData.error?.message || 'Unknown error'}`);
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(`Claude API error: ${errorData.error?.message || 'Unknown error'}`);
+  }
+
+  const data = await response.json();
+  return data.content[0].text;
+}
+
+serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const { transcript, meetingTitle, meetingDate, meetingTime, detailLevel } = await req.json();
+
+    if (!transcript) {
+      throw new Error('Transcript is required');
     }
 
-    const data = await response.json();
-    const generatedMinutes = data.content[0].text;
+    const level = (detailLevel || 'standard').toString().toLowerCase();
+    
+    // Determine style based on detailLevel
+    let styleChoice = 1; // Default to Professional Business
+    if (level === 'informal' || level === 'original') {
+      styleChoice = 2; // Original Informal
+    } else if (level === 'nhs' || level === 'formal') {
+      styleChoice = 3; // NHS Formal
+    }
+
+    // Handle large transcripts with chunking strategy
+    const processingResult = handleLargeTranscript(transcript, meetingTitle, meetingDate, meetingTime, styleChoice);
+    
+    let meetingMinutes;
+    
+    if (processingResult.strategy === 'chunked') {
+      console.log(`Processing large transcript with ${processingResult.chunks.length} chunks`);
+      
+      // Process chunks and consolidate results
+      const chunkResults = [];
+      
+      for (let i = 0; i < processingResult.chunks.length; i++) {
+        console.log(`Processing chunk ${i + 1}/${processingResult.chunks.length}`);
+        const chunkMinutes = await processChunk(processingResult.chunks[i], meetingTitle, meetingDate, meetingTime, styleChoice);
+        chunkResults.push(chunkMinutes);
+      }
+      
+      console.log('Consolidating chunk results');
+      // Consolidate chunk results
+      meetingMinutes = await consolidateChunkResults(chunkResults, meetingTitle, meetingDate, meetingTime, styleChoice);
+    } else {
+      // Standard single processing
+      meetingMinutes = await processChunk(transcript, meetingTitle, meetingDate, meetingTime, styleChoice);
+    }
 
     console.log('Claude meeting minutes generated successfully');
 
     return new Response(JSON.stringify({ 
       success: true,
-      meetingMinutes: generatedMinutes 
+      meetingMinutes: meetingMinutes 
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
