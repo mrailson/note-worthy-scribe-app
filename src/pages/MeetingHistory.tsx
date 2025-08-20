@@ -4,6 +4,7 @@ import { Header } from "@/components/Header";
 import { MeetingHistoryList } from "@/components/MeetingHistoryList";
 import { MeetingDocuments } from "@/components/MeetingDocuments";
 import { MeetingSearchBar, SearchFilters } from "@/components/MeetingSearchBar";
+import { FullPageNotesModal } from "@/components/FullPageNotesModal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,6 +39,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cleanLargeTranscript } from '@/utils/CleanTranscriptOrchestrator';
+import { toast } from "sonner";
 
 interface Meeting {
   id: string;
@@ -172,6 +174,11 @@ const MeetingHistory = () => {
   const [meetingSummary, setMeetingSummary] = useState("");
   const [isGeneratingNotes, setIsGeneratingNotes] = useState(false);
   
+  // Full page modal state
+  const [fullPageModalOpen, setFullPageModalOpen] = useState(false);
+  const [modalMeeting, setModalMeeting] = useState<Meeting | null>(null);
+  const [modalNotes, setModalNotes] = useState("");
+  
   // Transcript view state
   const [transcriptDialogOpen, setTranscriptDialogOpen] = useState(false);
   const [viewingTranscript, setViewingTranscript] = useState("");
@@ -202,31 +209,6 @@ const MeetingHistory = () => {
 
       if (meetingError) throw meetingError;
 
-      // Fetch transcript from multiple possible sources
-      let fullTranscript = '';
-      
-      // First try meeting_transcripts table (for regular recordings)
-      const { data: transcripts, error: transcriptError } = await supabase
-        .from('meeting_transcripts')
-        .select('*')
-        .eq('meeting_id', meetingId)
-        .order('timestamp_seconds', { ascending: true });
-
-      if (transcripts && transcripts.length > 0) {
-        fullTranscript = deduplicateTranscript(transcripts.map(t => t.content));
-      } else {
-        // If no results, try transcription_chunks table (for imported audio)
-        const { data: chunks, error: chunksError } = await supabase
-          .from('transcription_chunks')
-          .select('*')
-          .eq('meeting_id', meetingId)
-          .order('chunk_number', { ascending: true });
-
-        if (chunks && chunks.length > 0) {
-          fullTranscript = chunks.map(chunk => chunk.transcript_text).join(' ');
-        }
-      }
-
       // Fetch existing summary if available
       const { data: summaryData, error: summaryError } = await supabase
         .from('meeting_summaries')
@@ -234,14 +216,15 @@ const MeetingHistory = () => {
         .eq('meeting_id', meetingId)
         .maybeSingle();
       
-      setSelectedMeeting(meeting);
-      setMeetingTranscript(fullTranscript);
-      setMeetingSummary(summaryData?.summary || '');
+      // Open the full page modal with notes
+      setModalMeeting(meeting);
+      setModalNotes(summaryData?.summary || '');
+      setFullPageModalOpen(true);
       
-      console.log('📝 Loaded transcript length:', fullTranscript.length);
-      console.log('📝 Has existing summary:', !!summaryData?.summary);
+      console.log('📝 Opening full page modal for meeting:', meeting.title);
     } catch (error: any) {
       console.error("Error Loading Meeting:", error.message);
+      toast.error("Failed to load meeting notes");
     }
   };
 
@@ -1859,6 +1842,19 @@ const MeetingHistory = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Full Page Notes Modal */}
+        <FullPageNotesModal
+          isOpen={fullPageModalOpen}
+          onClose={() => {
+            setFullPageModalOpen(false);
+            setModalMeeting(null);
+            setModalNotes('');
+          }}
+          meeting={modalMeeting}
+          notes={modalNotes}
+          onNotesChange={setModalNotes}
+        />
       </div>
     </div>
   );
