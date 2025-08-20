@@ -13,7 +13,7 @@ import { medicalTermCorrector } from "@/utils/MedicalTermCorrector";
 import { MedicalTermCorrectionDialog } from "@/components/MedicalTermCorrectionDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import FindReplacePanel from "@/components/FindReplacePanel";
+import EnhancedFindReplacePanel from "@/components/EnhancedFindReplacePanel";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { 
@@ -687,7 +687,7 @@ export const LiveTranscript = ({
                 {(cleanedTranscript || transcript) && (
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">Find & Replace (misheard names)</Label>
-                    <FindReplacePanel
+                    <EnhancedFindReplacePanel
                       getCurrentText={() => getFormattedCleanedText()}
                       onApply={(updated) => {
                         setCleanedTranscript(updated);

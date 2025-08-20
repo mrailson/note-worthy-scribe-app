@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { SafeMessageRenderer } from "@/components/SafeMessageRenderer";
 import { ClaudeEnhancementModal } from "@/components/ClaudeEnhancementModal";
-import FindReplacePanel from "@/components/FindReplacePanel";
+import EnhancedFindReplacePanel from "@/components/EnhancedFindReplacePanel";
 import { SpeechToText } from "@/components/SpeechToText";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -1181,7 +1181,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                   <X className="h-3 w-3" />
                 </Button>
               </div>
-              <FindReplacePanel
+              <EnhancedFindReplacePanel
                 getCurrentText={() => getCurrentContent()}
                 onApply={(updatedText) => {
                   setCurrentContent(updatedText);

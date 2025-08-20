@@ -13,6 +13,8 @@ export interface MedicalTermCorrection {
 
 export class MedicalTermCorrector {
   private corrections: Map<string, string> = new Map();
+  private contextualCorrections: Map<string, { correction: string; context?: string; confidence: number }> = new Map();
+  private usageStats: Map<string, number> = new Map();
   private isLoaded = false;
 
   async loadCorrections(userId?: string): Promise<void> {
@@ -43,6 +45,16 @@ export class MedicalTermCorrector {
       data?.forEach((correction) => {
         const key = correction.incorrect_term.toLowerCase().trim();
         this.corrections.set(key, correction.correct_term);
+        
+        // Store contextual information
+        this.contextualCorrections.set(key, {
+          correction: correction.correct_term,
+          context: correction.context_phrase,
+          confidence: this.calculateConfidence(correction)
+        });
+        
+        // Track usage statistics
+        this.usageStats.set(key, correction.usage_count);
       });
 
       this.isLoaded = true;
@@ -119,21 +131,72 @@ export class MedicalTermCorrector {
     }
   }
 
-  applyCorrections(text: string): string {
+  applyCorrections(text: string, context?: string): string {
     if (!this.isLoaded || !text) {
       return text;
     }
 
     let correctedText = text;
 
-    // Apply each correction
-    this.corrections.forEach((correctTerm, incorrectTerm) => {
+    // Apply contextual corrections first (higher priority)
+    this.contextualCorrections.forEach((correctionData, incorrectTerm) => {
+      // If context is provided, check if it matches
+      if (context && correctionData.context) {
+        const contextMatch = context.toLowerCase().includes(correctionData.context.toLowerCase());
+        if (!contextMatch) return; // Skip if context doesn't match
+      }
+
       // Create regex for case-insensitive word boundary matching
       const regex = new RegExp(`\\b${this.escapeRegex(incorrectTerm)}\\b`, 'gi');
-      correctedText = correctedText.replace(regex, correctTerm);
+      correctedText = correctedText.replace(regex, (match) => {
+        // Preserve case when replacing
+        return this.preserveCase(match, correctionData.correction);
+      });
+    });
+
+    // Apply standard corrections for any remaining matches
+    this.corrections.forEach((correctTerm, incorrectTerm) => {
+      if (!this.contextualCorrections.has(incorrectTerm)) {
+        const regex = new RegExp(`\\b${this.escapeRegex(incorrectTerm)}\\b`, 'gi');
+        correctedText = correctedText.replace(regex, (match) => {
+          return this.preserveCase(match, correctTerm);
+        });
+      }
     });
 
     return correctedText;
+  }
+
+  private calculateConfidence(correction: MedicalTermCorrection): number {
+    // Calculate confidence based on usage count, context, and other factors
+    let confidence = 0.5; // Base confidence
+    
+    // Higher usage = higher confidence
+    if (correction.usage_count > 10) confidence += 0.3;
+    else if (correction.usage_count > 5) confidence += 0.2;
+    else if (correction.usage_count > 0) confidence += 0.1;
+    
+    // Context presence increases confidence
+    if (correction.context_phrase) confidence += 0.2;
+    
+    // Global corrections are more trusted
+    if (correction.is_global) confidence += 0.1;
+    
+    return Math.min(confidence, 1.0);
+  }
+
+  private preserveCase(original: string, replacement: string): string {
+    // If original is all uppercase, make replacement uppercase
+    if (original === original.toUpperCase()) {
+      return replacement.toUpperCase();
+    }
+    
+    // If original is title case, make replacement title case
+    if (original[0] === original[0].toUpperCase() && original.slice(1) === original.slice(1).toLowerCase()) {
+      return replacement.charAt(0).toUpperCase() + replacement.slice(1).toLowerCase();
+    }
+    
+    return replacement;
   }
 
   private escapeRegex(text: string): string {
@@ -146,6 +209,45 @@ export class MedicalTermCorrector {
 
   hasCorrections(): boolean {
     return this.corrections.size > 0;
+  }
+
+  getContextualCorrections(): Map<string, { correction: string; context?: string; confidence: number }> {
+    return new Map(this.contextualCorrections);
+  }
+
+  getUsageStats(): Map<string, number> {
+    return new Map(this.usageStats);
+  }
+
+  // Batch apply corrections to multiple texts
+  async batchApplyCorrections(texts: string[], context?: string): Promise<string[]> {
+    return texts.map(text => this.applyCorrections(text, context));
+  }
+
+  // Get correction suggestions based on context
+  getSuggestions(text: string, context?: string): Array<{ incorrect: string; correct: string; confidence: number }> {
+    const suggestions: Array<{ incorrect: string; correct: string; confidence: number }> = [];
+    
+    this.contextualCorrections.forEach((correctionData, incorrectTerm) => {
+      const regex = new RegExp(`\\b${this.escapeRegex(incorrectTerm)}\\b`, 'gi');
+      if (regex.test(text)) {
+        let confidence = correctionData.confidence;
+        
+        // Adjust confidence based on context match
+        if (context && correctionData.context) {
+          const contextMatch = context.toLowerCase().includes(correctionData.context.toLowerCase());
+          confidence = contextMatch ? confidence * 1.2 : confidence * 0.8;
+        }
+        
+        suggestions.push({
+          incorrect: incorrectTerm,
+          correct: correctionData.correction,
+          confidence: Math.min(confidence, 1.0)
+        });
+      }
+    });
+    
+    return suggestions.sort((a, b) => b.confidence - a.confidence);
   }
 
   async refreshCorrections(userId?: string): Promise<void> {

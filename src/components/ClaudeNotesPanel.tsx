@@ -8,7 +8,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem,
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { SafeMessageRenderer } from "@/components/SafeMessageRenderer";
 import { ClaudeEnhancementModal } from "@/components/ClaudeEnhancementModal";
-import FindReplacePanel from "@/components/FindReplacePanel";
+import EnhancedFindReplacePanel from "@/components/EnhancedFindReplacePanel";
 import { SpeechToText } from "@/components/SpeechToText";
 import { MeetingData } from "@/types/meetingTypes";
 import { 
@@ -258,7 +258,7 @@ export const ClaudeNotesPanel: React.FC<ClaudeNotesPanelProps> = ({
                           <X className="h-3 w-3" />
                         </Button>
                       </div>
-                      <FindReplacePanel
+                      <EnhancedFindReplacePanel
                         getCurrentText={() => claudeNotes}
                         onApply={(updatedText) => {
                           setClaudeNotes(updatedText);
