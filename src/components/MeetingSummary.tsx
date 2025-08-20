@@ -117,8 +117,101 @@ The planned upgrade to electronic health records system is proceeding on schedul
 New patient pathway improvements have reduced waiting times by 15%. Patient satisfaction scores show improvement in communication and care coordination. Quality metrics remain within acceptable ranges.
         `.trim();
 
-      default: // balanced
-        return baseNotes;
+      default: // balanced/standard - now matches Claude AI format
+        return `
+<div style="color: #0072CE; font-weight: bold; font-size: 18px; margin-bottom: 10px;">Partnership Meeting Notes</div>
+
+<div style="margin-bottom: 10px;"><strong>Date:</strong> ${new Date().toLocaleDateString()}</div>
+<div style="margin-bottom: 20px;"><strong>Attendees:</strong> Practice Partners and Key Staff</div>
+
+<div style="color: #0072CE; font-weight: bold; font-size: 16px; margin-top: 20px; margin-bottom: 8px;">1. PRACTICE OPERATIONS REVIEW</div>
+
+<div style="color: #0072CE; font-weight: bold; font-size: 14px; margin-top: 15px; margin-bottom: 5px;">Current Performance Overview</div>
+- Patient satisfaction metrics reviewed and remain within acceptable targets
+- Staff feedback indicates good morale with minor operational adjustments needed
+- Budget performance tracking on target for quarterly objectives
+
+<div style="color: #0072CE; font-weight: bold; font-size: 14px; margin-top: 15px; margin-bottom: 5px;">Operational Challenges Identified:</div>
+- Staff scheduling requires optimization during peak consultation periods
+- Patient flow management could be enhanced with better appointment coordination
+- Technology systems need regular updates to maintain efficiency
+- Space utilization at current capacity with room for improvement
+
+<div style="color: #0072CE; font-weight: bold; font-size: 14px; margin-top: 15px; margin-bottom: 5px;">Improvement Opportunities:</div>
+- Streamlined booking processes for better patient experience
+- Enhanced staff training programs for continued professional development
+- Updated equipment and technology to support modern healthcare delivery
+- Better coordination between departments for seamless patient care
+
+<div style="color: #0072CE; font-weight: bold; font-size: 16px; margin-top: 20px; margin-bottom: 8px;">2. QUALITY IMPROVEMENT INITIATIVES</div>
+
+<div style="color: #0072CE; font-weight: bold; font-size: 14px; margin-top: 15px; margin-bottom: 5px;">Clinical Excellence Programs</div>
+- Continuing education programs for all clinical staff members
+- Regular review of clinical protocols and evidence-based practices
+- Implementation of quality metrics tracking for patient outcomes
+- Peer review processes to maintain high standards of care
+
+<div style="color: #0072CE; font-weight: bold; font-size: 14px; margin-top: 15px; margin-bottom: 5px;">Patient Safety Measures:</div>
+- Regular safety audits and incident reporting systems
+- Updated emergency procedures and staff training
+- Medication management protocols reviewed and enhanced
+- Patient communication strategies improved for better understanding
+
+<div style="color: #0072CE; font-weight: bold; font-size: 16px; margin-top: 20px; margin-bottom: 8px;">3. STAFFING AND RESOURCE ALLOCATION</div>
+
+<div style="color: #0072CE; font-weight: bold; font-size: 14px; margin-top: 15px; margin-bottom: 5px;">Current Staffing Levels</div>
+- Clinical staff capacity adequate for current patient load
+- Administrative support team functioning well with minor adjustments needed
+- Specialist roles clearly defined with appropriate coverage arrangements
+- Training and development opportunities available for career progression
+
+<div style="color: #0072CE; font-weight: bold; font-size: 14px; margin-top: 15px; margin-bottom: 5px;">Resource Management:</div>
+- Equipment maintenance schedules updated and followed
+- Supply chain management optimized for cost-effectiveness
+- Technology resources allocated appropriately across departments
+- Space utilization reviewed for maximum efficiency
+
+<div style="color: #0072CE; font-weight: bold; font-size: 16px; margin-top: 20px; margin-bottom: 8px;">4. FINANCIAL PLANNING AND BUDGETS</div>
+
+<div style="color: #0072CE; font-weight: bold; font-size: 14px; margin-top: 15px; margin-bottom: 5px;">Budget Performance</div>
+- Quarterly financial review shows performance within projected parameters
+- Revenue streams performing according to expectations
+- Cost management initiatives yielding positive results
+- Investment priorities identified for next financial period
+
+<div style="color: #0072CE; font-weight: bold; font-size: 14px; margin-top: 15px; margin-bottom: 5px;">Future Financial Planning:</div>
+- Capital expenditure plans for equipment upgrades
+- Staff development budget allocation for training programs
+- Technology investment priorities for enhanced patient care
+- Revenue optimization strategies for sustainable growth
+
+<div style="color: #0072CE; font-weight: bold; font-size: 16px; margin-top: 20px; margin-bottom: 8px;">5. KEY DECISIONS REQUIRED</div>
+
+1. <strong>Operational Efficiency:</strong> Final approval needed for proposed workflow improvements
+2. <strong>Staff Development:</strong> Budget allocation for continuing education programs
+3. <strong>Technology Upgrades:</strong> Timeline for system updates and implementations
+4. <strong>Quality Metrics:</strong> Establishment of performance benchmarks and review cycles
+5. <strong>Resource Allocation:</strong> Distribution of resources across different practice areas
+
+<div style="color: #0072CE; font-weight: bold; font-size: 16px; margin-top: 20px; margin-bottom: 8px;">6. ACTION ITEMS</div>
+
+- Review and update staff scheduling protocols for optimal coverage
+- Implement quality improvement initiatives with defined timelines
+- Finalize budget allocations for identified priority areas
+- Schedule follow-up training sessions for all staff members
+- Establish regular review meetings for ongoing performance assessment
+- Develop succession planning documentation for key roles
+
+<div style="color: #0072CE; font-weight: bold; font-size: 16px; margin-top: 20px; margin-bottom: 8px;">7. NEXT STEPS</div>
+
+- Schedule individual department meetings to discuss specific implementation details
+- Establish timeline for major operational changes and improvements
+- Continue monitoring current performance metrics and patient feedback
+- Progress all approved initiatives according to established schedules
+- Review partnership agreements and role allocations as practice evolves
+
+<div style="margin-top: 20px; font-style: italic; color: #666;">Note: All operational changes will be implemented gradually to ensure continuity of patient care and allow adequate time for staff adaptation and training.</div>
+        `.trim();
     }
   }
 
