@@ -2475,25 +2475,25 @@ export const MeetingRecorder = ({
     
     console.log('🚨 VALIDATION CHECKS - Duration:', duration, 'WordCount:', wordCount);
     
-    // Check if recording has at least 10 seconds of content
-    if (duration < 10) {
+    // Relaxed validation - only require 5 seconds and any transcript content
+    if (duration < 5) {
       console.log('🚨 VALIDATION FAILED - Duration too short:', duration);
       updateDebugInfo({
-        lastError: `Duration too short: ${duration}s (need 10s+)`,
+        lastError: `Duration too short: ${duration}s (need 5s+)`,
         transcriptionEvents: [`${new Date().toLocaleTimeString()}: ERROR - Recording too short: ${duration}s`]
       });
-      toast.error('Recording too short. Minimum 10 seconds required.');
+      toast.error('Recording too short. Minimum 5 seconds required.');
       return;
     }
 
-    // Check if there's meaningful transcript content (at least 20 words)  
-    if (wordCount < 20) {
-      console.log('🚨 VALIDATION FAILED - Word count too low:', wordCount);
+    // For iPhone compatibility - accept any transcript content
+    if (!transcript && wordCount < 5) {
+      console.log('🚨 VALIDATION FAILED - No transcript content:', { transcript: transcript.length, wordCount });
       updateDebugInfo({
-        lastError: `Word count too low: ${wordCount} (need 20+)`,
-        transcriptionEvents: [`${new Date().toLocaleTimeString()}: ERROR - Word count too low: ${wordCount}`]
+        lastError: `No transcript content found`,
+        transcriptionEvents: [`${new Date().toLocaleTimeString()}: ERROR - No transcript content`]
       });
-      toast.error('Recording too short. Minimum 20 words required.');
+      toast.error('No transcript content detected.');
       return;
     }
     
@@ -2506,95 +2506,38 @@ export const MeetingRecorder = ({
     // STOP all real-time processing immediately to prevent interference
     setRealtimeTranscripts([]); // Clear any pending real-time transcripts
     
-    // Get transcript directly from the database instead of relying on state
-    console.log('🔍 DEBUG: Getting transcript from database...');
-    let finalTranscript = '';
+    // Simplified transcript handling - use state first, then database as fallback
+    console.log('🔍 DEBUG: Using simplified transcript handling...');
+    let finalTranscript = transcript.trim();
     
-    // Get session ID from storage (reliable even if transcriber is cleaned up)
-    let sessionId = sessionStorage.getItem('currentSessionId') || '';
-    console.log(`🔍 DEBUG: Session ID from storage: "${sessionId}"`);
+    console.log(`🔍 DEBUG: State transcript: ${finalTranscript.length} chars`);
     
-    // Also try to get from transcriber if available
-    if (desktopTranscriberRef.current) {
-      const transcriberSessionId = desktopTranscriberRef.current.getSessionId();
-      console.log(`🔍 DEBUG: Session ID from transcriber: "${transcriberSessionId}"`);
-      if (transcriberSessionId) {
-        sessionId = transcriberSessionId;
-        console.log(`🔍 DEBUG: Using transcriber session ID: "${sessionId}"`);
-      }
-      
-      // Try transcriber method first - this should give us the complete database transcript
-      finalTranscript = await desktopTranscriberRef.current.getCompleteTranscriptFromDatabase();
-      console.log(`🔍 DEBUG: Database transcript from transcriber: ${finalTranscript.length} chars`);
-      if (finalTranscript) {
-        console.log(`🔍 DEBUG: Database transcript preview: "${finalTranscript.substring(0, 200)}..."`);
-        console.log(`🔍 DEBUG: Database transcript ending: "${finalTranscript.slice(-200)}"`);
-      }
-    }
-    
-    // If transcriber didn't return transcript, query database directly with session ID
-    if (!finalTranscript && sessionId) {
-      try {
-        console.log(`🔍 DEBUG: Querying database directly for session: ${sessionId}`);
-        let mtcQuery = supabase
-          .from('meeting_transcription_chunks')
-          .select('transcription_text, chunk_number')
-          .eq('session_id', sessionId)
-          .order('chunk_number');
-
-        // Add user filter to satisfy RLS if available
-        if (user?.id) {
-          mtcQuery = mtcQuery.eq('user_id', user.id);
-        }
-
-        const { data, error } = await mtcQuery;
-
-        if (!error && data && data.length > 0) {
-          finalTranscript = data.map(chunk => chunk.transcription_text).join(' ').trim();
-          console.log(`🔍 DEBUG: Database transcript direct query: ${finalTranscript.length} chars, ${data.length} chunks`);
-          console.log(`🔍 DEBUG: Chunk details:`, data.map(chunk => `Chunk ${chunk.chunk_number}: ${chunk.transcription_text.substring(0, 50)}...`));
-          console.log(`🔍 DEBUG: Direct query preview: "${finalTranscript.substring(0, 200)}..."`);
-          console.log(`🔍 DEBUG: Direct query ending: "${finalTranscript.slice(-200)}"`);
-        } else {
-          console.log('🔍 DEBUG: No chunks found in database for session:', sessionId, 'Error:', error);
-          console.log('🔍 DEBUG: Query data result:', data);
-        }
-      } catch (dbError) {
-        console.error('❌ Direct database query failed:', dbError);
-      }
-    }
-    
-    // If database methods failed, fall back to combining in-memory final transcripts
+    // Only try database if state transcript is empty
     if (!finalTranscript) {
-      console.log('🔍 DEBUG: No database transcript available, combining all in-memory final transcripts');
-      const finals = realtimeTranscripts.filter(t => t.isFinal);
-      if (finals.length > 0) {
-        // Concatenate in order, with light de-duplication of exact suffix
-        const pieces = finals.map(t => (t.text || '').trim()).filter(Boolean);
-        let combined = '';
-        for (const piece of pieces) {
-          const needsSpace = combined.length > 0 && !combined.endsWith(' ');
-          if (!combined.endsWith(piece)) {
-            combined += (needsSpace ? ' ' : '') + piece;
+      console.log('🔍 DEBUG: State transcript empty, trying database...');
+      const sessionId = sessionStorage.getItem('currentSessionId') || '';
+      
+      if (sessionId && user?.id) {
+        try {
+          const { data, error } = await supabase
+            .from('meeting_transcription_chunks')
+            .select('transcription_text')
+            .eq('session_id', sessionId)
+            .eq('user_id', user.id)
+            .order('chunk_number');
+
+          if (!error && data && data.length > 0) {
+            finalTranscript = data.map(chunk => chunk.transcription_text).join(' ').trim();
+            console.log(`🔍 DEBUG: Database transcript: ${finalTranscript.length} chars from ${data.length} chunks`);
           }
+        } catch (dbError) {
+          console.error('❌ Database query failed:', dbError);
         }
-        finalTranscript = combined.trim();
-        console.log(`🔍 DEBUG: Combined in-memory transcript: ${finalTranscript.length} chars from ${finals.length} chunks`);
       }
     }
     
     // Clean up session storage
     sessionStorage.removeItem('currentSessionId');
-    
-    console.log('🔍 DEBUG: Final transcript after database retrieval:', finalTranscript.length, 'chars');
-    console.log('🔍 DEBUG: Final transcript preview:', finalTranscript.substring(0, 200));
-    console.log('🔍 DEBUG: Final transcript ending:', finalTranscript.slice(-200));
-    
-    // Final fallback to state-based transcript
-    if (!finalTranscript) {
-      console.log('🔍 DEBUG: No database transcript available, falling back to state');
-      finalTranscript = transcript.trim();
-    }
     
     // Clean the final transcript
     const currentTranscript = finalTranscript
@@ -2700,206 +2643,121 @@ export const MeetingRecorder = ({
       stereoBlob: stereoBlob,
       mixedAudioBlob: currentRecordingBlob,
       leftAudioBlob: currentMicBlob,
-      rightAudioBlob: currentSystemBlob
+      rightAudioBlob: currentSystemBlob,
+      meetingFormat: 'meetingFormat' in meetingSettings ? meetingSettings.meetingFormat : 'teams'
     };
 
-    // Show Notewell AI animation
-    setIsGeneratingNotes(true);
+    console.log('🚨 SAVING MEETING TO DATABASE FIRST...');
     updateDebugInfo({
-      recordingState: 'generating_notes',
-      transcriptionEvents: [`${new Date().toLocaleTimeString()}: Starting note generation...`]
+      recordingState: 'saving_to_database',
+      transcriptionEvents: [`${new Date().toLocaleTimeString()}: Saving meeting to database...`]
     });
 
     try {
-      // Temporarily bypass transcript cleaning to avoid truncation
-      let cleanedTranscript = currentTranscript;
-      console.log('Skipping transcript cleaning to avoid truncation - using original transcript');
+      // 1. Save main meeting record FIRST
+      const { data: savedMeeting, error: saveError } = await supabase
+        .from('meetings')
+        .insert({
+          title: meetingData.title,
+          duration_minutes: Math.ceil(duration / 60),
+          meeting_type: 'general',
+          start_time: meetingData.startTime,
+          status: 'completed',
+          user_id: user?.id,
+          practice_id: meetingData.practiceId,
+          meeting_format: meetingData.meetingFormat
+        })
+        .select()
+        .single();
 
-      // Update meeting data with cleaned transcript
-      const enhancedMeetingData = {
-        ...meetingData,
-        transcript: cleanedTranscript,
-        rawTranscript: currentTranscript // Use the complete database transcript, not the partial state
-      };
-      
-      console.log('🔍 DEBUG: About to send to generate-meeting-minutes:');
-      console.log('🔍 DEBUG: Transcript length:', cleanedTranscript.length);
-      console.log('🔍 DEBUG: Transcript ending:', cleanedTranscript.slice(-200));
-      console.log('🔍 DEBUG: Full transcript for inspection:', cleanedTranscript);
-
-      // Call the generate-meeting-notes-claude edge function with cleaned transcript
-      const { data: minutesData, error } = await supabase.functions.invoke('generate-meeting-notes-claude', {
-        body: {
-          transcript: cleanedTranscript,
-          meetingTitle: enhancedMeetingData.title,
-          meetingDate: new Date().toLocaleDateString(),
-          meetingTime: new Date().toLocaleTimeString(),
-          detailLevel: 'standard'
-        }
-      });
-
-      if (error) {
-        throw error;
+      if (saveError) {
+        throw saveError;
       }
 
-      if (minutesData?.success && minutesData?.meetingMinutes) {
-        // Add the generated meeting notes to the meeting data
-        const finalMeetingData = {
-          ...enhancedMeetingData,
-          generatedNotes: minutesData.meetingMinutes,
-          meetingFormat: 'meetingFormat' in meetingSettings ? meetingSettings.meetingFormat : 'teams',
-          practiceId: 'practiceId' in meetingSettings ? meetingSettings.practiceId : undefined
-        };
+      console.log('🚨 MEETING SAVED TO DATABASE:', savedMeeting.id);
 
-        setIsGeneratingNotes(false);
-        updateDebugInfo({
-          recordingState: 'notes_complete',
-          transcriptionEvents: [`${new Date().toLocaleTimeString()}: Notes generated successfully! Saving to database...`]
-        });
-        
-        // Save meeting to database before navigating
-        try {
-          // 1. Save main meeting record
-          const { data: savedMeeting, error: saveError } = await supabase
-            .from('meetings')
-            .insert({
-              title: finalMeetingData.title,
-              duration_minutes: Math.ceil(duration / 60), // Convert seconds to minutes
-              meeting_type: 'general',
-              start_time: finalMeetingData.startTime,
-              status: 'completed',
-              user_id: user?.id,
-              practice_id: finalMeetingData.practiceId,
-              meeting_format: finalMeetingData.meetingFormat
-            })
-            .select()
-            .single();
-
-          if (saveError) {
-            throw saveError;
-          }
-
-          // 2. Save transcript
-          const { error: transcriptError } = await supabase
-            .from('meeting_transcripts')
-            .insert({
-              meeting_id: savedMeeting.id,
-              speaker_name: 'Meeting Recording',
-              content: finalMeetingData.transcript,
-              timestamp_seconds: 0,
-              confidence_score: 1.0
-            });
-
-          if (transcriptError) {
-            console.warn('Failed to save transcript:', transcriptError);
-          }
-
-          // 3. Save AI-generated notes if available
-          if (finalMeetingData.generatedNotes) {
-            const { error: summaryError } = await supabase
-              .from('meeting_summaries')
-              .insert({
-                meeting_id: savedMeeting.id,
-                summary: finalMeetingData.generatedNotes,
-                ai_generated: true
-              });
-
-            if (summaryError) {
-              console.warn('Failed to save AI summary:', summaryError);
-            }
-          }
-
-          updateDebugInfo({
-            transcriptionEvents: [`${new Date().toLocaleTimeString()}: Meeting saved to database! ID: ${savedMeeting.id}`]
-          });
-          
-          toast.success('Meeting saved successfully!');
-          
-          // Navigate to meeting summary with saved meeting data
-          navigate('/meeting-summary', { state: { ...finalMeetingData, id: savedMeeting.id } });
-          
-        } catch (saveError) {
-          console.error('Error saving meeting to database:', saveError);
-          updateDebugInfo({
-            lastError: `Database save failed: ${saveError.message}`,
-            transcriptionEvents: [`${new Date().toLocaleTimeString()}: ERROR saving to database - ${saveError.message}`]
-          });
-          toast.error('Failed to save meeting to database');
-          
-          // Still navigate but without database ID
-          navigate('/meeting-summary', { state: finalMeetingData });
-        }
-      } else {
-        throw new Error('Failed to generate meeting notes');
-      }
-    } catch (error) {
-      console.error('Error generating meeting notes:', error);
-      setIsGeneratingNotes(false);
-      updateDebugInfo({
-        recordingState: 'notes_error',
-        lastError: error.message || 'Note generation failed',
-        transcriptionEvents: [`${new Date().toLocaleTimeString()}: ERROR - ${error.message || 'Note generation failed'}`]
-      });
-      toast.error('Failed to generate meeting notes. Saving meeting without AI notes...');
-      
-      // Save meeting to database even if note generation fails
-      try {
-        const fallbackMeetingData = {
-          ...meetingData,
-          meetingFormat: 'meetingFormat' in meetingSettings ? meetingSettings.meetingFormat : 'teams',
-          practiceId: 'practiceId' in meetingSettings ? meetingSettings.practiceId : undefined
-        };
-        
-        // 1. Save main meeting record
-        const { data: savedMeeting, error: saveError } = await supabase
-          .from('meetings')
-          .insert({
-            title: fallbackMeetingData.title,
-            duration_minutes: Math.ceil(duration / 60), // Convert seconds to minutes
-            meeting_type: 'general',
-            start_time: fallbackMeetingData.startTime,
-            status: 'completed',
-            user_id: user?.id,
-            practice_id: fallbackMeetingData.practiceId,
-            meeting_format: fallbackMeetingData.meetingFormat
-          })
-          .select()
-          .single();
-
-        if (saveError) {
-          throw saveError; 
-        }
-
-        // 2. Save transcript
-        const { error: transcriptError } = await supabase
+      // 2. Save transcript
+      if (meetingData.transcript) {
+        await supabase
           .from('meeting_transcripts')
           .insert({
             meeting_id: savedMeeting.id,
             speaker_name: 'Meeting Recording',
-            content: fallbackMeetingData.transcript,
+            content: meetingData.transcript,
             timestamp_seconds: 0,
             confidence_score: 1.0
           });
-
-        if (transcriptError) {
-          console.warn('Failed to save transcript:', transcriptError);
-        }
-
-        updateDebugInfo({
-          transcriptionEvents: [`${new Date().toLocaleTimeString()}: Meeting saved to database (without AI notes)! ID: ${savedMeeting.id}`]
-        });
-        
-        toast.success('Meeting saved successfully!');
-        navigate('/meeting-summary', { state: { ...fallbackMeetingData, id: savedMeeting.id } });
-        
-      } catch (saveError) {
-        console.error('Error saving fallback meeting:', saveError);
-        updateDebugInfo({
-          lastError: `Database save failed: ${saveError.message}`,
-          transcriptionEvents: [`${new Date().toLocaleTimeString()}: CRITICAL ERROR - Failed to save meeting: ${saveError.message}`]
-        });
-        toast.error('Critical error: Failed to save meeting to database');
       }
+
+      updateDebugInfo({
+        transcriptionEvents: [`${new Date().toLocaleTimeString()}: ✅ Meeting saved! ID: ${savedMeeting.id}`]
+      });
+      
+      toast.success('Meeting saved successfully!');
+
+      // Now try to generate AI notes (optional)
+      setIsGeneratingNotes(true);
+      updateDebugInfo({
+        recordingState: 'generating_notes',
+        transcriptionEvents: [`${new Date().toLocaleTimeString()}: Starting AI note generation...`]
+      });
+
+      try {
+        // Generate AI notes (optional enhancement)
+        const { data: minutesData, error } = await supabase.functions.invoke('generate-meeting-notes-claude', {
+          body: {
+            transcript: currentTranscript,
+            meetingTitle: meetingData.title,
+            meetingDate: new Date().toLocaleDateString(),
+            meetingTime: new Date().toLocaleTimeString(),
+            detailLevel: 'standard'
+          }
+        });
+
+        if (!error && minutesData?.success && minutesData?.meetingMinutes) {
+          // Save AI-generated notes to the already saved meeting
+          await supabase
+            .from('meeting_summaries')
+            .insert({
+              meeting_id: savedMeeting.id,
+              summary: minutesData.meetingMinutes,
+              ai_generated: true
+            });
+
+          updateDebugInfo({
+            transcriptionEvents: [`${new Date().toLocaleTimeString()}: ✅ AI notes generated and saved!`]
+          });
+        }
+      } catch (aiError) {
+        console.warn('AI note generation failed (meeting already saved):', aiError);
+        updateDebugInfo({
+          transcriptionEvents: [`${new Date().toLocaleTimeString()}: ⚠️ AI notes failed but meeting is saved`]
+        });
+      }
+
+      setIsGeneratingNotes(false);
+      
+      // Navigate to meeting summary
+      navigate('/meeting-summary', { 
+        state: { 
+          ...meetingData, 
+          id: savedMeeting.id 
+        } 
+      });
+
+    } catch (error) {
+      console.error('❌ CRITICAL ERROR - Failed to save meeting:', error);
+      updateDebugInfo({
+        recordingState: 'save_error',
+        lastError: `Save failed: ${error.message}`,
+        transcriptionEvents: [`${new Date().toLocaleTimeString()}: ❌ SAVE FAILED - ${error.message}`]
+      });
+      
+      setIsGeneratingNotes(false);
+      toast.error('Failed to save meeting to database');
+      
+      // Still try to navigate with local data
+      navigate('/meeting-summary', { state: meetingData });
     }
   };
 
