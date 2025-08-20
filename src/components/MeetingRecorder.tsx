@@ -115,9 +115,6 @@ export const MeetingRecorder = ({
   // Pause/Mute state
   const [isPaused, setIsPaused] = useState(false);
   
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  
   // Meeting history state
   const [meetings, setMeetings] = useState<any[]>([]);
   const [filteredMeetings, setFilteredMeetings] = useState<any[]>([]);
@@ -154,12 +151,13 @@ export const MeetingRecorder = ({
      }
    };
 
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  
   // Load meetings on component mount and user change
   useEffect(() => {
     loadMeetings();
   }, [user?.id]);
-
-  // Meeting action handlers
   const handleEditMeeting = (meetingId: string) => {
     console.log('Edit meeting:', meetingId);
     // Implementation can be added later if needed
