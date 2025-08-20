@@ -2411,6 +2411,10 @@ export const MeetingRecorder = ({
   };
 
   const stopRecording = async () => {
+    console.log('🚨 STOP RECORDING FUNCTION CALLED - START');
+    console.log('🚨 User agent:', navigator.userAgent);
+    console.log('🚨 Duration:', duration, 'Word count:', wordCount);
+    
     setIsStoppingRecording(true);
     addDebugLog('🛑 Stopping recording...');
     console.log('Stopping recording...');
