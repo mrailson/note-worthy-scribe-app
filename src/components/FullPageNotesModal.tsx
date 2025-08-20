@@ -1334,7 +1334,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                       <Textarea
                         value={editingContent}
                         onChange={(e) => setEditingContent(e.target.value)}
-                        className="min-h-[400px] font-mono text-sm resize-none"
+                        className="h-full w-full font-mono text-sm resize-none"
                         placeholder="Meeting notes will appear here..."
                       />
                     ) : (
@@ -1424,7 +1424,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                       <Textarea
                         value={editingContent}
                         onChange={(e) => setEditingContent(e.target.value)}
-                        className="min-h-[400px] font-mono text-sm resize-none"
+                        className="h-full w-full font-mono text-sm resize-none"
                         placeholder="Meeting transcript will appear here..."
                       />
                     ) : (
