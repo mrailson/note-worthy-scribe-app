@@ -454,25 +454,47 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     }
   };
 
-  // Clean HTML content for editing - preserve visual spacing
+  // Clean HTML content for editing - match visual display exactly
   const cleanHtmlForEditing = (htmlContent: string) => {
     if (!htmlContent) return '';
     
     let cleanText = htmlContent
-      // Convert HTML breaks to newlines - preserve double spacing
+      // First, convert div spacing patterns that create visual gaps
+      .replace(/<div class="mb-3"><\/div>/gi, '\n') // Empty divs = single newline
+      .replace(/<div class="mb-4"><\/div>/gi, '\n\n') // Larger spacing divs = double newline
+      
+      // Handle HTML breaks - preserve visual double spacing
       .replace(/<br\s*\/?>\s*<br\s*\/?>/gi, '\n\n') // Double breaks = double newlines
       .replace(/<br\s*\/?>/gi, '\n') // Single breaks = single newlines
-      .replace(/<\/p>\s*<p[^>]*>/gi, '\n\n') // Paragraph breaks = double newlines
-      .replace(/<\/p>/gi, '\n\n') // End of paragraph = double newlines
+      
+      // Handle paragraph spacing
+      .replace(/<\/p>\s*<p[^>]*>/gi, '\n\n') // Between paragraphs = double newlines
+      .replace(/<\/p>/gi, '\n') // End paragraph = single newline
       .replace(/<p[^>]*>/gi, '') // Remove paragraph starts
-      .replace(/<\/div>\s*<div[^>]*>/gi, '\n\n') // Div breaks = double newlines
+      
+      // Handle header spacing more accurately
+      .replace(/<\/h[1-6]>\s*<div[^>]*>\s*<\/div>\s*/gi, '\n\n') // Header followed by spacing div
+      .replace(/<\/h[1-6]>\s*/gi, '\n\n') // Headers always followed by double spacing
+      .replace(/<h[1-6][^>]*>/gi, '') // Remove header tags
+      
+      // Handle div spacing
+      .replace(/<\/div>\s*<div[^>]*>/gi, (match) => {
+        // Check if this creates visual spacing
+        if (match.includes('mb-') || match.includes('mt-')) {
+          return '\n\n';
+        }
+        return '\n';
+      })
       .replace(/<\/div>/gi, '\n')
       .replace(/<div[^>]*>/gi, '')
-      // Handle header spacing - preserve the visual double spacing
-      .replace(/<\/h[1-6]>\s*/gi, '\n\n') // Headers followed by double spacing
-      .replace(/<h[1-6][^>]*>/gi, '') // Remove header tags
+      
+      // Remove strong/bold tags but keep content
+      .replace(/<\/?strong[^>]*>/gi, '')
+      .replace(/<\/?b[^>]*>/gi, '')
+      
       // Remove ALL other HTML tags
       .replace(/<[^>]*>/g, '')
+      
       // Decode HTML entities
       .replace(/&nbsp;/g, ' ')
       .replace(/&amp;/g, '&')
@@ -481,12 +503,16 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       .replace(/&quot;/g, '"')
       .replace(/&#39;/g, "'")
       .replace(/&apos;/g, "'")
-      // Clean up spacing while preserving intentional double spacing
+      
+      // Clean up spacing while preserving structure
       .replace(/[ \t]+/g, ' ') // Multiple spaces/tabs to single space
       .replace(/\n[ \t]+/g, '\n') // Remove spaces at start of lines
       .replace(/[ \t]+\n/g, '\n') // Remove spaces at end of lines
-      // Preserve double newlines but limit to maximum of 2
-      .replace(/\n{3,}/g, '\n\n') // Max 2 consecutive newlines
+      
+      // Normalize multiple newlines but preserve intentional double spacing
+      .replace(/\n{4,}/g, '\n\n\n') // Max 3 consecutive newlines
+      .replace(/^\n+/, '') // Remove leading newlines
+      .replace(/\n+$/, '') // Remove trailing newlines
       .trim();
     
     return cleanText;
