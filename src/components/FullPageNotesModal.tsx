@@ -829,7 +829,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                 </TabsList>
               </div>
               
-              <TabsContent value="notes" className="flex-1 overflow-hidden mt-0">
+              <TabsContent value="notes" className="flex-1 overflow-hidden mt-0 bg-white">
                 <div className="h-full flex flex-col">
                   <div className="flex items-center justify-between p-6 pb-4 flex-shrink-0">
                     <h3 className="text-lg font-semibold">Meeting Notes</h3>
@@ -862,7 +862,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                 </div>
               </TabsContent>
               
-              <TabsContent value="transcript" className="flex-1 overflow-hidden mt-0">
+              <TabsContent value="transcript" className="flex-1 overflow-hidden mt-0 bg-white">
                 <div className="h-full flex flex-col">
                   <div className="flex items-center justify-between p-6 pb-4 flex-shrink-0">
                     <h3 className="text-lg font-semibold">Meeting Transcript</h3>
