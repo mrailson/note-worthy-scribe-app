@@ -41,7 +41,7 @@ export const MeetingRecordingInterface: React.FC<MeetingRecordingInterfaceProps>
   const generateAutoTitle = () => {
     const now = new Date();
     const roundedTime = new Date(Math.ceil(now.getTime() / (15 * 60 * 1000)) * (15 * 60 * 1000));
-    return `Meeting Recorded on ${roundedTime.toLocaleDateString()} at ${roundedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    return `Meeting ${roundedTime.toLocaleDateString()} ${roundedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
   };
 
   const startRecording = async () => {
@@ -253,11 +253,48 @@ export const MeetingRecordingInterface: React.FC<MeetingRecordingInterfaceProps>
     if (!currentMeetingId) return;
 
     try {
-      // Generate basic transcript from stored chunks or use simple note
-      const basicTranscript = `Meeting recorded from ${new Date(Date.now() - recordingTime * 1000).toLocaleTimeString()} to ${new Date().toLocaleTimeString()}. Duration: ${Math.floor(recordingTime / 60)} minutes ${recordingTime % 60} seconds.`;
+      console.log('🔄 Processing recording and generating transcript...');
+      setProcessingStatus('processing');
+
+      // Try to process the recorded audio chunks for transcription
+      try {
+        const { data: transcriptData, error: transcriptError } = await supabase.functions.invoke('process-meeting-audio', {
+          body: { meetingId: currentMeetingId }
+        });
+
+        if (transcriptError) {
+          console.error('❌ Transcription error:', transcriptError);
+          throw transcriptError;
+        }
+
+        if (transcriptData?.transcript) {
+          console.log('✅ Transcript generated:', transcriptData.transcript.substring(0, 100) + '...');
+          setTranscript(transcriptData.transcript);
+          
+          // Save the transcript to the database
+          await supabase.from('meeting_transcripts').insert({
+            meeting_id: currentMeetingId,
+            content: transcriptData.transcript,
+            timestamp_seconds: 0
+          });
+        } else {
+          throw new Error('No transcript generated');
+        }
+      } catch (transcriptError) {
+        console.warn('⚠️ Transcription failed, using basic note:', transcriptError);
+        // Fallback to basic note if transcription fails
+        const basicTranscript = `Meeting recorded from ${new Date(Date.now() - recordingTime * 1000).toLocaleTimeString()} to ${new Date().toLocaleTimeString()}. Duration: ${Math.floor(recordingTime / 60)} minutes ${recordingTime % 60} seconds.`;
+        setTranscript(basicTranscript);
+        
+        // Save basic transcript
+        await supabase.from('meeting_transcripts').insert({
+          meeting_id: currentMeetingId,
+          content: basicTranscript,
+          timestamp_seconds: 0
+        });
+      }
       
-      setTranscript(basicTranscript);
-      
+      // Update meeting status
       await supabase.from('meetings').update({
         end_time: new Date().toISOString(),
         status: 'completed',
@@ -265,11 +302,12 @@ export const MeetingRecordingInterface: React.FC<MeetingRecordingInterfaceProps>
       }).eq('id', currentMeetingId);
 
       setProcessingStatus('completed');
-      toast({ title: "Recording completed", description: "Ready for enhancement" });
+      toast({ title: "Recording completed", description: "Transcript generated and ready for enhancement" });
 
     } catch (error) {
-      console.error('Error processing recording:', error);
+      console.error('❌ Error processing recording:', error);
       toast({ title: "Error", description: "Failed to process recording", variant: "destructive" });
+      setProcessingStatus('idle');
     }
   };
 
