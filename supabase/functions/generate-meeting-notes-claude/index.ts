@@ -28,49 +28,107 @@ serve(async (req) => {
       ? 'Be more detailed than standard. Expand points with accurate specifics from the transcript, include additional sub-bullets and clearer structure.'
       : 'Use the standard level of detail: concise yet complete, avoiding unnecessary verbosity.';
 
-    const prompt = `Create partnership meeting informal notes (detailed) from transcript.
+    const prompt = `Create detailed partnership meeting notes from the transcript. Extract ALL specific details, names, locations, systems, and technical information mentioned.
 
-Format the output exactly as follows:
+CRITICAL REQUIREMENTS:
+
+- Include EVERY specific detail from the transcript (names, places, systems, concerns, quotes)
+- Capture ALL technical discussions about systems, processes, and challenges
+- Include ALL people mentioned by name and their roles/responsibilities
+- Extract ALL specific concerns, benefits, and implementation details discussed
+- Do NOT summarize or generalize - include the actual details discussed
+
+Format exactly as:
 
 ${meetingTitle || 'Partnership Meeting'} Notes
 
 Date: ${meetingDate || '[Meeting Date]'}
 Attendees: ${meetingTime ? `Meeting held at ${meetingTime}` : 'Practice Partners and Key Staff'}
 
-[Number]. [MAIN TOPIC IN CAPS]
+1. [MAIN TOPIC IN ALL CAPS]
 
-[Subtopic]
+Proposal Overview
 
-- [Bullet points for key information]
-- [Continue with relevant details]
+- [Specific details from transcript]
+- [Include actual locations, systems, technical details mentioned]
 
-[Another Subtopic]
-[Paragraph text when appropriate]
+Challenges Identified
+[Subsection Name]:
 
-[Sub-subtopic]:
+- [Specific concerns raised with actual quotes where possible]
+- [Include names of people, places, systems mentioned]
 
-- [Indented bullet points]
-- [More details]
+[Another Subsection Name]:
 
-[Another Sub-subtopic]:
+- [More specific details]
+- [Technical limitations, compliance concerns, etc.]
 
-- [Bullet points]
-- [Continue pattern]
+Potential Benefits
 
-Requirements:
+- [Specific benefits discussed]
+- [Financial implications mentioned]
 
-1. Use numbered sections for main topics (1., 2., 3., etc.)
-2. Use ALL CAPS for main section headers
-3. Use sentence case for subtopics
-4. Use bullet points (-) for lists, not asterisks
-5. Include "Challenges Identified", "Benefits", "Concerns", "Requirements" as subsection types where relevant
-6. Group related information under logical subtopics
-7. End with numbered "KEY DECISIONS NEEDED", "ACTION ITEMS", and "NEXT STEPS"
-8. Include a final note about implementation
-9. Do not use markdown formatting (##, **, etc.) - use plain text with spacing and indentation
-10. Keep explanations clear and to the point
-11. Use visual structure through spacing and indentation rather than formatting symbols
-12. ${detailInstructions}
+Alternative Solutions Discussed
+
+- [Specific alternatives with technical details]
+- [System names, costs, implementation challenges]
+
+2. [NEXT MAJOR TOPIC]
+
+Current System Issues
+
+- [Specific problems identified]
+
+Proposed [System/Approach] Model
+Concept:
+
+- [Detailed explanation of what was proposed]
+- [Specific timelines, processes, technical details]
+
+Benefits:
+
+- [Specific benefits discussed]
+
+Implementation Requirements:
+
+- [Specific people, systems, training mentioned]
+- [Actual dates, events, requirements discussed]
+
+Concerns:
+
+- [Specific concerns raised]
+
+3. ROLE ALLOCATIONS & RESPONSIBILITIES
+
+Current Lead Responsibilities
+[Specific Area]:
+
+- [Person's name]: [Specific responsibilities and background mentioned]
+
+[Continue for each area discussed with names and details]
+
+Training & Development:
+
+- [Specific training programs, people, timelines mentioned]
+- [Include actual course names, dates, institutions]
+
+[Continue with all subsections capturing specific details]
+
+4. KEY DECISIONS NEEDED
+   [List specific decisions that need to be made based on discussion]
+5. ACTION ITEMS
+
+- [Specific actions with people/dates where mentioned]
+
+6. NEXT STEPS
+
+- [Specific next steps discussed]
+
+Note: [Implementation guidance discussed]
+
+REMEMBER: Include EVERY specific detail, name, system, concern, and technical point discussed. Do not generalize or omit details.
+
+Detail preference: ${detailInstructions}
 
 Extract and organize all key discussion points, decisions, action items, and follow-up requirements from the transcript.
 
