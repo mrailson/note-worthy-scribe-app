@@ -503,31 +503,40 @@ const MeetingNotesWordExport: React.FC<MeetingNotesWordExportProps> = ({ meeting
   
   const generateWordDocument = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    console.log('🔍 Word Doc button clicked!');
+    console.log('🔍 Meeting data:', meetingData);
+    
     setIsGenerating(true);
     setStatus('Generating Word document...');
 
     try {
+      console.log('🔍 Creating document...');
       const doc = createWordDocument();
+      console.log('🔍 Document created, packing...');
       const buffer = await Packer.toBuffer(doc);
+      console.log('🔍 Buffer created, size:', buffer.byteLength);
       
       // Create download
       const blob = new Blob([buffer], { 
         type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
       });
+      console.log('🔍 Blob created, size:', blob.size);
       
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
       link.download = `Partnership_Meeting_Notes_${new Date().toISOString().split('T')[0]}.docx`;
       document.body.appendChild(link);
+      console.log('🔍 Triggering download...');
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
       
       setStatus('Document generated successfully!');
+      console.log('🔍 Word document download completed!');
       
     } catch (error) {
-      console.error('Error creating Word document:', error);
+      console.error('❌ Error creating Word document:', error);
       setStatus('Error generating document. Please try again.');
     } finally {
       setIsGenerating(false);
@@ -541,9 +550,15 @@ const MeetingNotesWordExport: React.FC<MeetingNotesWordExportProps> = ({ meeting
       variant="outline"
       size="sm"
       className="h-7 px-2 text-xs touch-manipulation"
+      type="button"
     >
       <FileText className="h-3 w-3 mr-1" />
       {isGenerating ? "Generating..." : "Word Doc"}
+      {status && (
+        <span className="ml-1 text-xs text-muted-foreground">
+          {status.includes('Error') ? '❌' : '✅'}
+        </span>
+      )}
     </Button>
   );
 };
