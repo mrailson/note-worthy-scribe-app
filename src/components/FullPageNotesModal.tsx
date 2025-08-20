@@ -93,142 +93,104 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       console.log('🔍 Generating full-featured Word document with formatting!');
       toast.info('Generating Word document...');
       
-      // Strip HTML and process content to preserve formatting
+      // Clean and format content for professional Word document
       const stripHtmlAndFormat = (htmlContent: string) => {
         if (!htmlContent) return [];
         
-        // Remove HTML tags and decode entities
+        // Comprehensive HTML cleanup - remove ALL HTML tags and styling
         let cleanText = htmlContent
-          .replace(/<br\s*\/?>/gi, '\n')
-          .replace(/<\/p>/gi, '\n\n')
-          .replace(/<p[^>]*>/gi, '')
-          .replace(/<\/h[1-6]>/gi, '\n')
-          .replace(/<h[1-6][^>]*>/gi, '\n')
-          .replace(/<\/strong>/gi, '')
-          .replace(/<strong[^>]*>/gi, '')
-          .replace(/<\/b>/gi, '')
-          .replace(/<b[^>]*>/gi, '')
+          // Remove HTML tags completely
           .replace(/<[^>]*>/g, '')
+          // Decode HTML entities
           .replace(/&nbsp;/g, ' ')
           .replace(/&amp;/g, '&')
           .replace(/&lt;/g, '<')
           .replace(/&gt;/g, '>')
           .replace(/&quot;/g, '"')
-          .replace(/&#39;/g, "'");
+          .replace(/&#39;/g, "'")
+          .replace(/&apos;/g, "'")
+          // Remove markdown-style formatting that shouldn't be in Word
+          .replace(/\*\*([^*]+)\*\*/g, '$1')
+          .replace(/\*([^*]+)\*/g, '$1')
+          // Clean up excessive whitespace
+          .replace(/\s+/g, ' ')
+          .replace(/^\s+|\s+$/g, '')
+          // Convert common patterns to proper spacing
+          .replace(/\n\s*\n\s*\n+/g, '\n\n')
+          .trim();
 
         const paragraphs = [];
         const lines = cleanText.split('\n');
         
-        for (const line of lines) {
-          const trimmedLine = line.trim();
-          if (!trimmedLine) {
-            // Add minimal spacing for empty lines
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i].trim();
+          
+          // Skip completely empty lines
+          if (!line) {
+            // Add spacing between sections
             paragraphs.push(new Paragraph({
-              children: [new TextRun({ text: "", size: 22 })],
-              spacing: { after: 60 }
+              children: [new TextRun({ text: " ", size: 12 })],
+              spacing: { after: 120 }
             }));
             continue;
           }
           
-          // Check for bold markers
-          const boldMatch = trimmedLine.match(/^\*\*(.*?)\*\*$/);
-          if (boldMatch) {
-            // Bold text without ** markers
+          // Detect section headers (numbers with periods, emoji headers, or all caps)
+          const isNumberedSection = /^#?\s*\d+\.?\s/.test(line) || /^##?\s*\d+/.test(line);
+          const isEmojiSection = /^[1-5]️⃣/.test(line);
+          const isAllCapsHeader = /^[A-Z\s]{6,}$/.test(line) && line.length < 50;
+          const isMainHeader = line.includes('MEETING') || line.includes('OVERVIEW') || line.includes('CONTENT');
+          
+          const isHeader = isNumberedSection || isEmojiSection || isAllCapsHeader || isMainHeader;
+          
+          // Clean section headers
+          let displayText = line;
+          if (isNumberedSection) {
+            displayText = line.replace(/^#*\s*(\d+\.?\s*)/, '$1');
+          }
+          if (isEmojiSection) {
+            displayText = line.replace(/^([1-5]️⃣)\s*/, '$1 ');
+          }
+          
+          // Detect bullet points
+          const isBulletPoint = /^[-•*]\s/.test(line);
+          
+          if (isBulletPoint) {
+            // Format as bullet point
+            const bulletText = line.replace(/^[-•*]\s*/, '');
+            paragraphs.push(new Paragraph({
+              children: [
+                new TextRun({ text: "• ", size: 22, bold: true }),
+                new TextRun({ text: bulletText, size: 22 })
+              ],
+              spacing: { after: 80 },
+              indent: { left: 360 }
+            }));
+          } else if (isHeader) {
+            // Format as header
             paragraphs.push(new Paragraph({
               children: [new TextRun({
-                text: boldMatch[1],
+                text: displayText,
                 bold: true,
-                size: 24,
+                size: isMainHeader ? 28 : (isEmojiSection ? 26 : 24),
                 color: "1f2937"
               })],
-              spacing: { after: 80 }
-            }));
-            continue;
-          }
-          
-          // Check for section headers and clean hashtags
-          const isHeader = /^[#*]{1,4}\s/.test(trimmedLine) || 
-                          /^[A-Z\s]{8,}$/.test(trimmedLine) ||
-                          trimmedLine.includes('ATTENDEES') ||
-                          trimmedLine.includes('OVERVIEW') ||
-                          trimmedLine.includes('CONTENT') ||
-                          trimmedLine.includes('DECISIONS') ||
-                          trimmedLine.includes('ACTION') ||
-                          trimmedLine.includes('RISKS') ||
-                          trimmedLine.includes('MEETING OVERVIEW') ||
-                          trimmedLine.includes('DETAILED MEETING');
-          
-          // Clean hashtags from headers
-          let cleanedLine = trimmedLine;
-          if (isHeader && /^[#]{1,4}\s/.test(trimmedLine)) {
-            cleanedLine = trimmedLine.replace(/^[#]{1,4}\s*/, '');
-          }
-          
-          // Handle inline bold markers within text
-          const parts = [];
-          let lastIndex = 0;
-          
-          // Find all **text** patterns (including single * patterns)
-          const boldRegex = /\*{1,2}([^*]+?)\*{1,2}/g;
-          let match;
-          
-          while ((match = boldRegex.exec(cleanedLine)) !== null) {
-            // Add normal text before the bold part
-            if (match.index > lastIndex) {
-              const normalText = cleanedLine.substring(lastIndex, match.index);
-              if (normalText) {
-                parts.push(new TextRun({
-                  text: normalText,
-                  size: 22,
-                  color: "374151"
-                }));
+              spacing: { 
+                before: isMainHeader ? 400 : 240,
+                after: 160
               }
-            }
-            
-            // Add bold text
-            parts.push(new TextRun({
-              text: match[1],
-              bold: true,
-              size: 22,
-              color: "1f2937"
             }));
-            
-            lastIndex = match.index + match[0].length;
-          }
-          
-          // Add remaining normal text
-          if (lastIndex < cleanedLine.length) {
-            const remainingText = cleanedLine.substring(lastIndex);
-            if (remainingText) {
-              parts.push(new TextRun({
-                text: remainingText,
+          } else {
+            // Regular paragraph text
+            paragraphs.push(new Paragraph({
+              children: [new TextRun({
+                text: displayText,
                 size: 22,
                 color: "374151"
-              }));
-            }
-          }
-          
-          // If no bold parts found, use the whole cleaned line
-          if (parts.length === 0) {
-            parts.push(new TextRun({
-              text: cleanedLine,
-              size: isHeader ? 24 : 22,
-              bold: isHeader,
-              color: isHeader ? "1f2937" : "374151"
+              })],
+              spacing: { after: 120 }
             }));
           }
-          
-          // Check for bullet points
-          const isBullet = cleanedLine.startsWith('-') || cleanedLine.startsWith('•');
-          
-          paragraphs.push(new Paragraph({
-            children: parts,
-            spacing: { 
-              after: isHeader ? 120 : (isBullet ? 40 : 60),
-              before: isHeader ? 160 : 0
-            },
-            indent: isBullet ? { left: 360 } : undefined
-          }));
         }
         
         return paragraphs;
