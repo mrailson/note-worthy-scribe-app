@@ -33,12 +33,12 @@ const MeetingNotesWordExport: React.FC<MeetingNotesWordExportProps> = ({ meeting
 
   const generateWordDocument = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    console.log('🔍 BUTTON CLICKED - This should appear in console!');
+    console.log('🔍 BUTTON CLICKED - Testing browser-compatible Word generation!');
     
     try {
       setIsGenerating(true);
       setStatus('Testing...');
-      toast.info('Testing button click...');
+      toast.info('Testing Word generation...');
       
       console.log('🔍 About to test docx import...');
       
@@ -78,27 +78,26 @@ const MeetingNotesWordExport: React.FC<MeetingNotesWordExportProps> = ({ meeting
         }],
       });
       
-      console.log('🔍 Document created, converting to buffer...');
-      const buffer = await Packer.toBuffer(doc);
-      console.log('🔍 Buffer created, size:', buffer.byteLength);
+      console.log('🔍 Document created, converting to blob (browser-compatible)...');
       
-      // Create download
-      const blob = new Blob([buffer], { 
-        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
-      });
+      // Use toBlob instead of toBuffer for browser compatibility
+      const blob = await Packer.toBlob(doc);
+      console.log('🔍 Blob created successfully, size:', blob.size, 'bytes');
       
+      // Create download directly with the blob
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
       link.download = `Test_Document.docx`;
       document.body.appendChild(link);
+      console.log('🔍 Triggering download...');
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
       
       setStatus('Success!');
       toast.success('Test document created!');
-      console.log('🔍 Test completed successfully');
+      console.log('🔍 Test completed successfully - Word document should have downloaded!');
       
     } catch (error: any) {
       console.error('❌ Test failed:', error);
