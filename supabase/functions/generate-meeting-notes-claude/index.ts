@@ -301,6 +301,21 @@ Date: [Date line]
 
 Meeting closed at: [Time if mentioned]
 
+=== HANDLING VERY LARGE OUTPUTS ===
+
+IF OUTPUT APPROACHES TOKEN LIMIT:
+1. Prioritize: Executive Summary, Key Decisions, Action Items
+2. Use more concise bullet points while maintaining specificity
+3. Consider two-pass approach: outline first, then details
+4. Focus on actionable items and critical decisions
+5. Maintain all names, dates, and specific commitments
+
+TRANSCRIPT CHUNKING GUIDANCE:
+- If transcript >25,000 words, consider processing in chronological chunks
+- Maintain 2000-word overlap between chunks for context
+- Process agenda items completely within chunks where possible
+- Consolidate results ensuring no duplication of action items or decisions
+
 === END OF STYLE OPTIONS ===
 
 TRANSCRIPT HANDLING NOTES:
@@ -324,7 +339,7 @@ Transcript: ${transcript}`;
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 8000,
+        max_tokens: 8192,
         messages: [
           { 
             role: 'user', 
