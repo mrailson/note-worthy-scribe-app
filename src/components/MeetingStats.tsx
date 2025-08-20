@@ -11,7 +11,8 @@ interface MeetingStatsProps {
 export const MeetingStats: React.FC<MeetingStatsProps> = ({ meetingData }) => {
   if (!meetingData) return null;
 
-  const formatDuration = (duration: string) => {
+  const formatDuration = (duration: string | undefined) => {
+    if (!duration) return '0:00';
     if (duration.includes(':')) return duration;
     return `${duration}:00`;
   };
@@ -29,13 +30,13 @@ export const MeetingStats: React.FC<MeetingStatsProps> = ({ meetingData }) => {
           <div className="flex items-center gap-2">
             <FileText className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm text-muted-foreground">Words:</span>
-            <Badge variant="secondary">{meetingData.wordCount.toLocaleString()}</Badge>
+            <Badge variant="secondary">{(meetingData.wordCount || 0).toLocaleString()}</Badge>
           </div>
           
           <div className="flex items-center gap-2">
             <Users className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm text-muted-foreground">Speakers:</span>
-            <Badge variant="secondary">{meetingData.speakerCount}</Badge>
+            <Badge variant="secondary">{meetingData.speakerCount || 0}</Badge>
           </div>
           
           {meetingData.startTime && (
