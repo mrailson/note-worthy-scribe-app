@@ -115,88 +115,11 @@ export const MeetingRecorder = ({
   // Pause/Mute state
   const [isPaused, setIsPaused] = useState(false);
   
+  
   // Meeting history state
   const [meetings, setMeetings] = useState<any[]>([]);
   const [filteredMeetings, setFilteredMeetings] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
-   
-   // Load meetings data
-   const loadMeetings = async () => {
-     if (!user?.id) return;
-     
-     setLoadingHistory(true);
-     try {
-       const { data, error } = await supabase
-         .from('meetings')
-         .select(`
-           *,
-           meeting_summaries (
-             id,
-             summary,
-             created_at
-           )
-         `)
-         .eq('user_id', user.id)
-         .order('created_at', { ascending: false });
-       
-       if (error) throw error;
-       
-       setMeetings(data || []);
-       setFilteredMeetings(data || []);
-     } catch (error) {
-       console.error('Error loading meetings:', error);
-       toast.error('Failed to load meetings');
-     } finally {
-       setLoadingHistory(false);
-     }
-   };
-
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  
-  // Load meetings on component mount and user change
-  useEffect(() => {
-    loadMeetings();
-  }, [user?.id]);
-  const handleEditMeeting = (meetingId: string) => {
-    console.log('Edit meeting:', meetingId);
-    // Implementation can be added later if needed
-  };
-
-  const handleViewSummary = (meetingId: string) => {
-    navigate(`/meeting-summary?id=${meetingId}`);
-  };
-
-  const handleViewTranscript = (meetingId: string) => {
-    console.log('View transcript for meeting:', meetingId);
-    // Implementation can be added later if needed
-  };
-
-  const handleDeleteMeeting = async (meetingId: string) => {
-    try {
-      const { error } = await supabase
-        .from('meetings')
-        .delete()
-        .eq('id', meetingId)
-        .eq('user_id', user?.id);
-      
-      if (error) throw error;
-      
-      toast.success('Meeting deleted successfully');
-      loadMeetings(); // Refresh the list
-    } catch (error) {
-      console.error('Error deleting meeting:', error);
-      toast.error('Failed to delete meeting');
-    }
-  };
-
-  const handleSelectMeeting = (meetingId: string, checked: boolean) => {
-    if (checked) {
-      setSelectedMeetings(prev => [...prev, meetingId]);
-    } else {
-      setSelectedMeetings(prev => prev.filter(id => id !== meetingId));
-    }
-  };
   
   // Search and multi-select state
   const [searchQuery, setSearchQuery] = useState("");
@@ -304,6 +227,9 @@ export const MeetingRecorder = ({
       window.location.reload();
     }, 1000);
   };
+  
+  const navigate = useNavigate();
+  const { user } = useAuth();
   
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const latestCompleteTranscriptRef = useRef<string>('');
@@ -1038,13 +964,6 @@ export const MeetingRecorder = ({
   // Check for unsaved meeting on component mount
   useEffect(() => {
     const checkUnsavedMeeting = () => {
-      // Skip unsaved meeting recovery for iPhone users (they auto-save)
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-      if (isIOS) {
-        console.log('📱 iPhone detected - skipping unsaved meeting check');
-        return;
-      }
-      
       const unsavedMeeting = localStorage.getItem('unsaved_meeting');
       if (unsavedMeeting) {
         const meetingData = JSON.parse(unsavedMeeting);
@@ -2310,13 +2229,6 @@ export const MeetingRecorder = ({
   };
 
   const startRecording = async () => {
-    console.log('🚨 START RECORDING FUNCTION CALLED');
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    console.log('🚨 Device detection - isIOS:', isIOS);
-    console.log('🚨 Current isRecording state:', isRecording);
-    console.log('🚨 Current duration:', duration);
-    console.log('🚨 Current wordCount:', wordCount);
-    
     try {
       addDebugLog('🚀 Starting recording...');
       console.log('Starting recording...');
@@ -2334,17 +2246,8 @@ export const MeetingRecorder = ({
       const isChrome = /Chrome/.test(navigator.userAgent) && !/Edg/.test(navigator.userAgent);
       const isEdge = /Edg/.test(navigator.userAgent);
       const useScreenShare = isChrome || isEdge;
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
       
-      console.log('🚨 Browser detection:', { isChrome, isEdge, isIOS, useScreenShare });
-      console.log('🚨 Recording mode:', recordingMode);
-      
-      if (isIOS) {
-        // iPhone/iPad: Always use microphone only
-        console.log('📱 iPhone detected - using microphone-only transcription');
-        addDebugLog('📱 iPhone detected - using microphone-only transcription...');
-        await startMicrophoneTranscription();
-      } else if (recordingMode === 'mic-only') {
+      if (recordingMode === 'mic-only') {
         // Microphone only mode
         addDebugLog('🎙️ Starting microphone-only recording...');
         await startMicrophoneTranscription();
@@ -2363,10 +2266,8 @@ export const MeetingRecorder = ({
         }
       }
       
-      console.log('🚨 Setting isRecording to true...');
       setIsRecording(true);
       isRecordingRef.current = true;
-      console.log('🚨 State updated - isRecording should now be true');
       setRealtimeTranscripts([]);
       setSpeakerCount(1);
       setStartTime(generateMeetingTimestamp());
@@ -2429,10 +2330,6 @@ export const MeetingRecorder = ({
   };
 
   const stopRecording = async () => {
-    console.log('🚨 STOP RECORDING FUNCTION CALLED - START');
-    console.log('🚨 User agent:', navigator.userAgent);
-    console.log('🚨 Duration:', duration, 'Word count:', wordCount);
-    
     setIsStoppingRecording(true);
     addDebugLog('🛑 Stopping recording...');
     console.log('Stopping recording...');
@@ -2652,85 +2549,6 @@ export const MeetingRecorder = ({
     console.log('🔍 DEBUG: First 200 chars:', currentTranscript.substring(0, 200));
     console.log('🔍 DEBUG: Last 200 chars:', currentTranscript.slice(-200));
     
-    // Check if this is an iPhone - if so, auto-save without modal/navigation
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    console.log('🔍 Device detection - isIOS:', isIOS, 'userAgent:', navigator.userAgent);
-    
-    if (isIOS) {
-      console.log('📱 iPhone detected - auto-saving recording without modal');
-      console.log('🔍 Recording data:', {
-        duration,
-        wordCount,
-        transcriptLength: currentTranscript.length,
-        startTime,
-        userId: user?.id,
-        userEmail: user?.email
-      });
-      
-      // Prepare meeting data for iPhone auto-save
-      const iPhoneMeetingData = {
-        title: meetingSettings?.title || initialSettings?.title || 'iPhone Recording',
-        duration: formatDuration(duration),
-        wordCount: wordCount,
-        transcript: currentTranscript,
-        speakerCount: speakerCount || 1,
-        startTime: startTime,
-        startedBy: user?.email || 'Unknown User',
-        practiceId: meetingSettings?.practiceId || initialSettings?.practiceId,
-        meetingFormat: 'phone' // Mark as phone recording
-      };
-
-      console.log('🔍 Prepared iPhone meeting data:', iPhoneMeetingData);
-
-      // Save directly to database without AI notes for iPhone
-      try {
-        console.log('🔄 Attempting to save iPhone recording to database...');
-        const { data: savedMeeting, error: saveError } = await supabase
-          .from('meetings')
-          .insert([{
-            title: iPhoneMeetingData.title,
-            duration: iPhoneMeetingData.duration,
-            word_count: iPhoneMeetingData.wordCount,
-            transcript: iPhoneMeetingData.transcript,
-            speaker_count: iPhoneMeetingData.speakerCount,
-            start_time: iPhoneMeetingData.startTime,
-            user_id: user?.id,
-            practice_name: 'General Practice',
-            meeting_format: iPhoneMeetingData.meetingFormat,
-            started_by: iPhoneMeetingData.startedBy,
-            needs_audio_backup: false
-          }])
-          .select()
-          .single();
-
-        console.log('🔍 Database save result:', { savedMeeting, saveError });
-
-        if (saveError) {
-          console.error('❌ Failed to save iPhone recording:', saveError);
-          toast.error(`Recording failed to save: ${saveError.message}`);
-        } else {
-          console.log('✅ iPhone recording saved successfully:', savedMeeting);
-          toast.success(`Recording saved! ${wordCount} words transcribed.`, {
-            duration: 4000
-          });
-          
-          // Refresh the meeting history
-          console.log('🔄 Refreshing meeting history...');
-          try {
-            await loadMeetings();
-            console.log('✅ Meeting history refreshed');
-          } catch (loadError) {
-            console.error('❌ Failed to refresh meeting history:', loadError);
-          }
-        }
-      } catch (saveError) {
-        console.error('❌ Exception while saving iPhone recording:', saveError);
-        toast.error(`Recording failed to save: ${saveError.message}`);
-      }
-      
-      return; // Exit early for iPhone - no modal or navigation
-    }
-    
     // Helper function to convert AudioBuffer to Blob
     const audioBufferToBlob = async (audioBuffer: AudioBuffer): Promise<Blob> => {
       const offlineContext = new OfflineAudioContext(
@@ -2862,49 +2680,12 @@ export const MeetingRecorder = ({
 
       if (minutesData?.success && minutesData?.meetingMinutes) {
         // Add the generated meeting notes to the meeting data
-        const finalMeetingData: any = {
+        const finalMeetingData = {
           ...enhancedMeetingData,
           generatedNotes: minutesData.meetingMinutes,
           meetingFormat: 'meetingFormat' in meetingSettings ? meetingSettings.meetingFormat : 'teams',
           practiceId: 'practiceId' in meetingSettings ? meetingSettings.practiceId : undefined
         };
-
-        // Save meeting to database
-        console.log('💾 Saving meeting to database...');
-        try {
-          const { data: savedMeeting, error: saveError } = await supabase
-            .from('meetings')
-            .insert([{
-              title: finalMeetingData.title,
-              duration: finalMeetingData.duration,
-              word_count: finalMeetingData.wordCount,
-              transcript: finalMeetingData.transcript,
-              speaker_count: finalMeetingData.speakerCount,
-              start_time: finalMeetingData.startTime,
-              user_id: user?.id,
-              practice_name: 'General Practice',
-              meeting_format: finalMeetingData.meetingFormat,
-              generated_notes: finalMeetingData.generatedNotes,
-              started_by: finalMeetingData.startedBy,
-              needs_audio_backup: finalMeetingData.needsAudioBackup
-            }])
-            .select()
-            .single();
-
-          if (saveError) {
-            console.error('Failed to save meeting:', saveError);
-            toast.error('Meeting recorded but failed to save to history');
-          } else {
-            console.log('✅ Meeting saved successfully:', savedMeeting.id);
-            toast.success('Meeting saved to history!');
-            
-            // Add the database ID to the meeting data for navigation
-            finalMeetingData.id = savedMeeting.id;
-          }
-        } catch (saveError) {
-          console.error('Error saving meeting:', saveError);
-          toast.error('Meeting recorded but failed to save to history');
-        }
 
         setIsGeneratingNotes(false);
         toast.success('Meeting notes generated successfully!');
@@ -2920,48 +2701,11 @@ export const MeetingRecorder = ({
       toast.error('Failed to generate meeting notes. Proceeding without AI notes.');
       
       // Still navigate to meeting summary even if note generation fails, including meeting format
-      const fallbackMeetingData: any = {
+      const fallbackMeetingData = {
         ...meetingData,
         meetingFormat: 'meetingFormat' in meetingSettings ? meetingSettings.meetingFormat : 'teams',
         practiceId: 'practiceId' in meetingSettings ? meetingSettings.practiceId : undefined
       };
-
-      // Save meeting to database even without AI notes
-      console.log('💾 Saving meeting to database (without AI notes)...');
-      try {
-        const { data: savedMeeting, error: saveError } = await supabase
-          .from('meetings')
-          .insert([{
-            title: fallbackMeetingData.title,
-            duration: fallbackMeetingData.duration,
-            word_count: fallbackMeetingData.wordCount,
-            transcript: fallbackMeetingData.transcript,
-            speaker_count: fallbackMeetingData.speakerCount,
-            start_time: fallbackMeetingData.startTime,
-            user_id: user?.id,
-            practice_name: 'General Practice',
-            meeting_format: fallbackMeetingData.meetingFormat,
-            started_by: fallbackMeetingData.startedBy,
-            needs_audio_backup: fallbackMeetingData.needsAudioBackup
-          }])
-          .select()
-          .single();
-
-        if (saveError) {
-          console.error('Failed to save meeting:', saveError);
-          toast.error('Meeting recorded but failed to save to history');
-        } else {
-          console.log('✅ Meeting saved successfully:', savedMeeting.id);
-          toast.success('Meeting saved to history!');
-          
-          // Add the database ID to the meeting data for navigation
-          fallbackMeetingData.id = savedMeeting.id;
-        }
-      } catch (saveError) {
-        console.error('Error saving meeting:', saveError);
-        toast.error('Meeting recorded but failed to save to history');
-      }
-
       navigate('/meeting-summary', { state: fallbackMeetingData });
     }
   };
@@ -3181,6 +2925,138 @@ export const MeetingRecorder = ({
     
     setFilteredMeetings(filtered);
   }, [meetings, searchQuery]);
+
+  // Meeting history handlers
+  const handleEditMeeting = (meetingId: string) => {
+    navigate(`/meeting-summary`, { state: { id: meetingId } });
+  };
+
+  const handleViewSummary = (meetingId: string) => {
+    navigate('/meeting-history', { state: { viewNotes: meetingId, openModal: true } });
+  };
+
+  const handleViewTranscript = (meetingId: string) => {
+    navigate('/meeting-history', { state: { viewTranscript: meetingId, openDialog: true } });
+  };
+
+  const handleDeleteMeeting = async (meetingId: string) => {
+    try {
+      // First, get and delete any associated documents from storage
+      const { data: documents } = await supabase
+        .from('meeting_documents')
+        .select('file_path')
+        .eq('meeting_id', meetingId);
+
+      if (documents && documents.length > 0) {
+        // Delete files from storage
+        const filePaths = documents.map(doc => doc.file_path);
+        const { error: storageError } = await supabase.storage
+          .from('meeting-documents')
+          .remove(filePaths);
+
+        if (storageError) {
+          console.warn('Some files could not be deleted from storage:', storageError);
+        }
+
+        // Delete document records from database
+        await supabase
+          .from('meeting_documents')
+          .delete()
+          .eq('meeting_id', meetingId);
+      }
+
+      // Delete transcripts
+      await supabase
+        .from('meeting_transcripts')
+        .delete()
+        .eq('meeting_id', meetingId);
+
+      // Delete summaries
+      await supabase
+        .from('meeting_summaries')
+        .delete()
+        .eq('meeting_id', meetingId);
+
+      // Delete meeting overviews
+      await supabase
+        .from('meeting_overviews')
+        .delete()
+        .eq('meeting_id', meetingId);
+
+      // Delete meeting
+      const { error } = await supabase
+        .from('meetings')
+        .delete()
+        .eq('id', meetingId);
+
+      if (error) throw error;
+
+      toast.success('Meeting deleted successfully');
+      loadMeetingHistory(); // Reload the list
+    } catch (error) {
+      console.error('Error deleting meeting:', error);
+      toast.error('Failed to delete meeting');
+    }
+  };
+
+  // Multi-select handlers
+  const handleSelectMeeting = (meetingId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedMeetings(prev => [...prev, meetingId]);
+    } else {
+      setSelectedMeetings(prev => prev.filter(id => id !== meetingId));
+    }
+  };
+
+  const handleSelectAll = () => {
+    if (selectedMeetings.length === filteredMeetings.length) {
+      setSelectedMeetings([]);
+    } else {
+      setSelectedMeetings(filteredMeetings.map(m => m.id));
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    try {
+      const { error } = await supabase
+        .from('meetings')
+        .delete()
+        .in('id', selectedMeetings)
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+
+      toast.success(`${selectedMeetings.length} meetings deleted successfully`);
+      
+      setSelectedMeetings([]);
+      setIsSelectMode(false);
+      loadMeetingHistory();
+    } catch (error: any) {
+      console.error("Error deleting selected meetings:", error.message);
+      toast.error("Failed to delete selected meetings");
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    try {
+      const { error } = await supabase
+        .from('meetings')
+        .delete()
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+
+      toast.success("All meetings deleted successfully");
+      
+      setDeleteConfirmation("");
+      setSelectedMeetings([]);
+      setIsSelectMode(false);
+      loadMeetingHistory();
+    } catch (error: any) {
+      console.error("Error deleting all meetings:", error.message);
+      toast.error("Failed to delete all meetings");
+    }
+  };
 
   // Pause/Unpause recording functionality
   const pauseRecording = () => {
@@ -3715,18 +3591,202 @@ export const MeetingRecorder = ({
 
         {/* Meeting History Tab */}
         <TabsContent value="history" className="space-y-4 mt-6">
-          <MeetingHistoryList 
-            meetings={meetings}
-            onEdit={handleEditMeeting}
-            onViewSummary={handleViewSummary}
-            onViewTranscript={handleViewTranscript}
-            onDelete={handleDeleteMeeting}
-            loading={loadingHistory}
-            isSelectMode={isSelectMode}
-            selectedMeetings={selectedMeetings}
-            onSelectMeeting={handleSelectMeeting}
-            onRefresh={loadMeetings}
-          />
+          <Card className="border-accent/30">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <History className="h-5 w-5" />
+                My Meeting History
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Search Bar */}
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search meetings..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                {filteredMeetings.length > 0 && (
+                  <span className="text-sm text-muted-foreground whitespace-nowrap">
+                    {filteredMeetings.length} meeting{filteredMeetings.length > 1 ? 's' : ''}
+                  </span>
+                )}
+              </div>
+
+              {/* Multi-select and Delete Controls */}
+              {meetings.length > 0 && (
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  {/* Multi-select controls */}
+                  <div className="flex items-center gap-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setIsSelectMode(!isSelectMode);
+                        setSelectedMeetings([]);
+                      }}
+                      className="touch-manipulation min-h-[44px]"
+                    >
+                      {isSelectMode ? (
+                        <>
+                          <SquareIcon className="h-4 w-4 mr-2" />
+                          Cancel Selection
+                        </>
+                      ) : (
+                        <>
+                          <CheckSquare className="h-4 w-4 mr-2" />
+                          Select Multiple
+                        </>
+                      )}
+                    </Button>
+                    
+                    {isSelectMode && (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleSelectAll}
+                          className="touch-manipulation min-h-[44px] text-xs sm:text-sm"
+                        >
+                          {selectedMeetings.length === filteredMeetings.length ? 'Deselect All' : 'Select All'}
+                        </Button>
+                        
+                        {selectedMeetings.length > 0 && (
+                          <span className="text-sm text-muted-foreground">
+                            {selectedMeetings.length} selected
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </div>
+
+                  {/* Delete actions */}
+                  <div className="flex gap-2">
+                    {isSelectMode && selectedMeetings.length > 0 && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button 
+                            variant="destructive" 
+                            size="sm"
+                            className="touch-manipulation min-h-[44px] text-xs sm:text-sm"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete Selected ({selectedMeetings.length})
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent className="mx-4 max-w-md">
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Selected Meetings</AlertDialogTitle>
+                            <AlertDialogDescription className="text-sm">
+                              This action will permanently delete {selectedMeetings.length} meeting{selectedMeetings.length > 1 ? 's' : ''}, their transcripts, and summaries. This cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                            <AlertDialogCancel className="touch-manipulation min-h-[44px]">
+                              Cancel
+                            </AlertDialogCancel>
+                            <AlertDialogAction 
+                              onClick={handleDeleteSelected}
+                              className="bg-destructive hover:bg-destructive/90 touch-manipulation min-h-[44px]"
+                            >
+                              Delete Selected
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
+
+                    {meetings.length > 0 && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button 
+                            variant="destructive" 
+                            size="sm"
+                            className="touch-manipulation min-h-[44px] text-xs sm:text-sm"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete All
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent className="mx-4 max-w-md">
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete All Meetings</AlertDialogTitle>
+                            <AlertDialogDescription className="text-sm">
+                              This action will permanently delete all {meetings.length} meetings, their transcripts, and summaries. This cannot be undone.
+                              <br /><br />
+                              To confirm, please type <strong>delete</strong> in the field below:
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <Input
+                            placeholder="Type 'delete' to confirm"
+                            value={deleteConfirmation}
+                            onChange={(e) => setDeleteConfirmation(e.target.value)}
+                            className="touch-manipulation min-h-[44px]"
+                          />
+                          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                            <AlertDialogCancel 
+                              onClick={() => setDeleteConfirmation("")}
+                              className="touch-manipulation min-h-[44px]"
+                            >
+                              Cancel
+                            </AlertDialogCancel>
+                            <AlertDialogAction 
+                              onClick={handleDeleteAll}
+                              disabled={deleteConfirmation.toLowerCase() !== 'delete'}
+                              className="bg-destructive hover:bg-destructive/90 touch-manipulation min-h-[44px]"
+                            >
+                              Delete All Meetings
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Meeting List */}
+              <MeetingHistoryList
+                meetings={filteredMeetings}
+                onEdit={handleEditMeeting}
+                onViewSummary={handleViewSummary}
+                onViewTranscript={handleViewTranscript}
+                onDelete={handleDeleteMeeting}
+                loading={loadingHistory}
+                isSelectMode={isSelectMode}
+                selectedMeetings={selectedMeetings}
+                onSelectMeeting={handleSelectMeeting}
+                onMeetingUpdate={(meetingId, updatedTitle) => {
+                  // Update the local meetings array
+                  setMeetings(prev => prev.map(meeting => 
+                    meeting.id === meetingId 
+                      ? { ...meeting, title: updatedTitle }
+                      : meeting
+                  ));
+                }}
+                onDocumentsUploaded={(meetingId, uploadedFiles) => {
+                  // Update the local meetings array with new documents
+                  setMeetings(prev => prev.map(meeting => {
+                    if (meeting.id === meetingId) {
+                      const existingDocuments = meeting.documents || [];
+                      const newDocuments = [...existingDocuments, ...uploadedFiles];
+                      return {
+                        ...meeting,
+                        document_count: newDocuments.length,
+                        documents: newDocuments
+                      };
+                    }
+                    return meeting;
+                  }));
+                 }}
+                showRecordingPlayback={micTestServiceVisible}
+               />
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Mic Test Service Tab */}
