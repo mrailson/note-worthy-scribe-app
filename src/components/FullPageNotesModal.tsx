@@ -692,11 +692,19 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     setIsGenerating(true);
     
     try {
-      const { data, error } = await supabase.functions.invoke('generate-meeting-minutes', {
+      const meetingDate = meeting.start_time ? new Date(meeting.start_time).toLocaleDateString('en-GB') : '';
+      const meetingTime = meeting.start_time ? new Date(meeting.start_time).toLocaleTimeString('en-GB', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      }) : '';
+
+      const { data, error } = await supabase.functions.invoke('generate-meeting-notes-claude', {
         body: {
           transcript: transcript,
-          meetingId: meeting.id,
-          title: meeting.title
+          meetingTitle: meeting.title,
+          meetingDate: meetingDate,
+          meetingTime: meetingTime,
+          detailLevel: 'standard'
         }
       });
 
