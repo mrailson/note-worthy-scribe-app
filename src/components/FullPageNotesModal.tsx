@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -1011,7 +1011,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl h-[90vh] flex flex-col">
+      <DialogContent className="max-w-6xl h-[90vh] max-h-screen flex flex-col fixed left-[50%] top-[50%] translate-x-[-50%] translate-y-[-50%] overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between pr-8">
             <div className="flex items-center gap-2">
@@ -1164,6 +1164,9 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
               </DropdownMenuContent>
             </DropdownMenu>
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            View and edit meeting notes and transcript for {meeting.title}
+          </DialogDescription>
         </DialogHeader>
         
         <div className="flex-1 overflow-hidden flex flex-col">
