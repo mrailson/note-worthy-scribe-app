@@ -6,6 +6,7 @@ import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
 import { TextAlign } from '@tiptap/extension-text-align';
 import { FontFamily } from '@tiptap/extension-font-family';
+import DOMPurify from 'dompurify';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { 
@@ -63,6 +64,59 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   placeholder = "Start typing...",
   className = ""
 }) => {
+  // Convert markdown to HTML for TipTap
+  const convertMarkdownToHtml = (text: string): string => {
+    if (!text) return '';
+    
+    return text
+      // Headers (must come first)
+      .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+      .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+      .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+      // Bold text
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/__(.*?)__/g, '<strong>$1</strong>')
+      // Italic text  
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/_(.*?)_/g, '<em>$1</em>')
+      // Convert line breaks to temporary markers first
+      .replace(/\n/g, '|||LINEBREAK|||')
+      // Bullet points (handle multiple lines)
+      .replace(/^\* (.*)$/gm, '<li>$1</li>')
+      .replace(/^- (.*)$/gm, '<li>$1</li>')
+      // Numbered lists
+      .replace(/^\d+\. (.*)$/gm, '<li>$1</li>')
+      // Wrap consecutive list items in ul/ol tags
+      .replace(/(<li>.*?<\/li>)(\|\|\|LINEBREAK\|\|\|<li>.*?<\/li>)+/g, (match) => {
+        const isNumbered = /^\d+\./.test(match);
+        const tag = isNumbered ? 'ol' : 'ul';
+        return `<${tag}>${match.replace(/\|\|\|LINEBREAK\|\|\|/g, '')}</${tag}>`;
+      })
+      // Handle single list items
+      .replace(/^<li>(.*?)<\/li>$/gm, '<ul><li>$1</li></ul>')
+      // Restore line breaks as paragraphs
+      .replace(/\|\|\|LINEBREAK\|\|\|/g, '</p><p>')
+      // Wrap in paragraph tags if not already wrapped
+      .replace(/^(?!<[houl])/gm, '<p>')
+      .replace(/(?<![>])$/gm, '</p>')
+      // Clean up empty paragraphs and fix structure
+      .replace(/<p><\/p>/g, '')
+      .replace(/<p>(<[houl])/g, '$1')
+      .replace(/(<\/[houl][^>]*>)<\/p>/g, '$1');
+  };
+
+  // Clean and convert content
+  const cleanedContent = convertMarkdownToHtml(content);
+  const processedContent = DOMPurify.sanitize(cleanedContent, {
+    ALLOWED_TAGS: [
+      'p', 'br', 'strong', 'em', 'u', 'b', 'i', 
+      'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+      'ul', 'ol', 'li', 'blockquote', 'pre', 'code',
+      'div', 'span'
+    ],
+    ALLOWED_ATTR: ['class', 'style'],
+    KEEP_CONTENT: true
+  });
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -74,7 +128,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       }),
       FontFamily,
     ],
-    content,
+    content: processedContent,
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
     },
