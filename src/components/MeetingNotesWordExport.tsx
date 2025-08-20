@@ -258,10 +258,17 @@ const MeetingNotesWordExport: React.FC<MeetingNotesWordExportProps> = ({
     return sections;
   };
   
-  const downloadDocument = async () => {
+  const downloadDocument = async (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent collapsible from toggling
+    
     try {
+      console.log('🔄 Starting Word document download...');
+      console.log('📄 Meeting data:', meetingData);
+      
       const doc = createWordDocument();
       const buffer = await Packer.toBuffer(doc);
+      
+      console.log('✅ Document buffer created, size:', buffer.byteLength);
       
       // Create download
       const blob = new Blob([buffer], { 
@@ -277,10 +284,11 @@ const MeetingNotesWordExport: React.FC<MeetingNotesWordExportProps> = ({
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
       
+      console.log('✅ Word document download initiated');
       toast.success('Word document downloaded successfully!');
       
     } catch (error) {
-      console.error('Error creating Word document:', error);
+      console.error('❌ Error creating Word document:', error);
       toast.error('Error creating document. Please try again.');
     }
   };
