@@ -30,7 +30,8 @@ import {
   Wand2,
   RefreshCw,
   ChevronUp,
-  ChevronDown as ChevronDownIcon
+  ChevronDown as ChevronDownIcon,
+  Undo
 } from "lucide-react";
 
 interface Meeting {
@@ -46,6 +47,13 @@ interface FullPageNotesModalProps {
   meeting: Meeting | null;
   notes: string;
   onNotesChange: (notes: string) => void;
+}
+
+interface ContentVersion {
+  content: string;
+  timestamp: number;
+  contentType: 'notes' | 'transcript';
+  actionType: string;
 }
 
 export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
@@ -67,6 +75,10 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [isLoadingTranscript, setIsLoadingTranscript] = useState(false);
   const [editingContent, setEditingContent] = useState(""); // Clean content for editing
   const [editingTab, setEditingTab] = useState<string>(""); // Track which tab is being edited
+  
+  // Version history for undo functionality
+  const [notesVersions, setNotesVersions] = useState<ContentVersion[]>([]);
+  const [transcriptVersions, setTranscriptVersions] = useState<ContentVersion[]>([]);
   
   // Search functionality for transcript
   const [searchTerm, setSearchTerm] = useState("");
@@ -527,6 +539,8 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       setCurrentMatchIndex(0);
       setTotalMatches(0);
       setHighlightedTranscript('');
+      // Clear version history when meeting changes
+      clearVersionHistory();
     }
   }, [meeting?.id]);
 
@@ -550,6 +564,82 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       setTranscript(content);
     }
   };
+
+  // Version history management functions
+  const saveCurrentVersion = (actionType: string, contentType: 'notes' | 'transcript' = activeTab as 'notes' | 'transcript') => {
+    const currentContent = contentType === 'notes' ? notes : transcript;
+    if (!currentContent.trim()) return; // Don't save empty content
+    
+    const version: ContentVersion = {
+      content: currentContent,
+      timestamp: Date.now(),
+      contentType,
+      actionType
+    };
+    
+    if (contentType === 'notes') {
+      setNotesVersions(prev => [...prev.slice(-9), version]); // Keep last 10 versions
+    } else {
+      setTranscriptVersions(prev => [...prev.slice(-9), version]); // Keep last 10 versions
+    }
+  };
+
+  const handleUndo = () => {
+    const versions = activeTab === 'notes' ? notesVersions : transcriptVersions;
+    const setVersions = activeTab === 'notes' ? setNotesVersions : setTranscriptVersions;
+    
+    if (versions.length === 0) {
+      toast.error('No previous versions available');
+      return;
+    }
+    
+    // Get the last version
+    const lastVersion = versions[versions.length - 1];
+    
+    // Restore the content
+    if (activeTab === 'notes') {
+      onNotesChange(lastVersion.content);
+      saveSummaryToDatabase(lastVersion.content);
+    } else {
+      setTranscript(lastVersion.content);
+    }
+    
+    // Remove the restored version from history
+    setVersions(prev => prev.slice(0, -1));
+    
+    toast.success(`Restored previous ${activeTab === 'notes' ? 'notes' : 'transcript'} version`);
+  };
+
+  const clearVersionHistory = (contentType?: 'notes' | 'transcript') => {
+    if (!contentType || contentType === 'notes') {
+      setNotesVersions([]);
+    }
+    if (!contentType || contentType === 'transcript') {
+      setTranscriptVersions([]);
+    }
+  };
+
+  const getVersionHistory = () => {
+    return activeTab === 'notes' ? notesVersions : transcriptVersions;
+  };
+
+  // Keyboard shortcut for undo (Ctrl+Z)
+  React.useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === 'z' && !event.shiftKey) {
+        event.preventDefault();
+        const versions = getVersionHistory();
+        if (versions.length > 0) {
+          handleUndo();
+        }
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [isOpen, activeTab, notesVersions, transcriptVersions]);
 
   // Clean HTML content for editing - match visual display exactly
   const cleanHtmlForEditing = (htmlContent: string) => {
@@ -618,6 +708,9 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   // Handle edit mode toggle
   const handleEditToggle = () => {
     if (!isEditing) {
+      // Save current version before editing
+      saveCurrentVersion('manual-edit', activeTab as 'notes' | 'transcript');
+      
       // Entering edit mode - clean the content for the current tab
       const currentContent = activeTab === "notes" ? notes : transcript;
       const cleanContent = cleanHtmlForEditing(currentContent);
@@ -762,6 +855,8 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       return;
     }
 
+    // Save current version before regenerating
+    saveCurrentVersion('ai-regenerate', 'notes');
     setIsGenerating(true);
     
     try {
@@ -1056,17 +1151,20 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                       return;
                     }
 
-                    setIsGenerating(true);
-                    
-                    try {
-                      const { data, error } = await supabase.functions.invoke('enhance-meeting-minutes', {
-                        body: {
-                          originalContent: getCurrentContent(),
-                          enhancementType: 'custom',
-                          customRequest: customInstruction,
-                          additionalContext: ''
-                        }
-                      });
+                     // Save current version before enhancement
+                     saveCurrentVersion('custom-enhancement', activeTab as 'notes' | 'transcript');
+                     
+                     setIsGenerating(true);
+                     
+                     try {
+                       const { data, error } = await supabase.functions.invoke('enhance-meeting-minutes', {
+                         body: {
+                           originalContent: getCurrentContent(),
+                           enhancementType: 'custom',
+                           customRequest: customInstruction,
+                           additionalContext: ''
+                         }
+                       });
 
                       if (error) throw error;
 
@@ -1101,6 +1199,9 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
             <Tabs defaultValue="notes" value={activeTab} onValueChange={(value) => {
               // If we're editing, save current changes before switching tabs
               if (isEditing && editingTab !== value) {
+                // Save current version before switching tabs
+                saveCurrentVersion('tab-switch', editingTab as 'notes' | 'transcript');
+                
                 if (editingTab === "notes") {
                   onNotesChange(editingContent);
                   saveSummaryToDatabase(editingContent);
@@ -1124,15 +1225,28 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                 <div className="h-full flex flex-col">
                   <div className="flex items-center justify-between p-6 pb-4 flex-shrink-0">
                     <h3 className="text-lg font-semibold">Meeting Notes</h3>
-                    <Button
-                      onClick={handleEditToggle}
-                      variant="outline"
-                      size="sm"
-                      className="gap-2"
-                    >
-                      <Edit3 className="h-4 w-4" />
-                      {isEditing ? 'Save' : 'Edit'}
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        onClick={handleUndo}
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                        disabled={notesVersions.length === 0}
+                        title={`Undo (${notesVersions.length} versions available)`}
+                      >
+                        <Undo className="h-4 w-4" />
+                        Undo
+                      </Button>
+                      <Button
+                        onClick={handleEditToggle}
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                      >
+                        <Edit3 className="h-4 w-4" />
+                        {isEditing ? 'Save' : 'Edit'}
+                      </Button>
+                    </div>
                   </div>
 
                   <div className="flex-1 overflow-auto px-6 pb-6">
@@ -1197,6 +1311,17 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                           )}
                         </div>
                       )}
+                      <Button
+                        onClick={handleUndo}
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                        disabled={transcriptVersions.length === 0}
+                        title={`Undo (${transcriptVersions.length} versions available)`}
+                      >
+                        <Undo className="h-4 w-4" />
+                        Undo
+                      </Button>
                       <Button
                         onClick={handleEditToggle}
                         variant="outline"
