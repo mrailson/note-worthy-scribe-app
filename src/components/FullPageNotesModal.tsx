@@ -875,16 +875,61 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                         <FileType className="h-4 w-4 mr-2" />
                         Download as PDF
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => {
-                        const element = document.createElement("a");
-                        const file = new Blob([getCurrentContent()], { type: 'text/plain' });
-                        element.href = URL.createObjectURL(file);
-                        element.download = `${meeting.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}-${activeTab}.txt`;
-                        document.body.appendChild(element);
-                        element.click();
-                        document.body.removeChild(element);
-                        toast.success("Plain text downloaded successfully!");
-                      }}>
+                       <DropdownMenuItem onClick={() => {
+                         // Create clean plain text version
+                         const cleanPlainText = (content: string) => {
+                           if (!content) return '';
+                           
+                           return content
+                             // First convert HTML breaks to newlines
+                             .replace(/<br\s*\/?>/gi, '\n')
+                             .replace(/<\/p>\s*<p[^>]*>/gi, '\n\n')
+                             .replace(/<\/p>/gi, '\n')
+                             .replace(/<p[^>]*>/gi, '')
+                             
+                             // Handle headers with proper spacing
+                             .replace(/<\/h[1-6]>/gi, '\n\n')
+                             .replace(/<h[1-6][^>]*>/gi, '')
+                             
+                             // Remove all HTML tags
+                             .replace(/<[^>]*>/g, '')
+                             
+                             // Remove markdown formatting
+                             .replace(/\*\*([^*]+)\*\*/g, '$1') // Remove **bold**
+                             .replace(/\*([^*]+)\*/g, '$1') // Remove *italic*
+                             .replace(/~~([^~]+)~~/g, '$1') // Remove ~~strikethrough~~
+                             .replace(/`([^`]+)`/g, '$1') // Remove `code`
+                             .replace(/^#+\s*/gm, '') // Remove markdown headers
+                             
+                             // Convert HTML entities
+                             .replace(/&nbsp;/g, ' ')
+                             .replace(/&amp;/g, '&')
+                             .replace(/&lt;/g, '<')
+                             .replace(/&gt;/g, '>')
+                             .replace(/&quot;/g, '"')
+                             .replace(/&#39;/g, "'")
+                             .replace(/&apos;/g, "'")
+                             
+                             // Clean up spacing while maintaining structure
+                             .replace(/[ \t]+/g, ' ') // Multiple spaces to single space
+                             .replace(/\n[ \t]+/g, '\n') // Remove leading spaces on new lines
+                             .replace(/[ \t]+\n/g, '\n') // Remove trailing spaces before new lines
+                             .replace(/\n{3,}/g, '\n\n') // Max 2 consecutive newlines
+                             .replace(/^---+$/gm, '') // Remove horizontal rules
+                             .replace(/^\s*[\*\-\+]\s*/gm, '• ') // Convert markdown bullets to simple bullets
+                             .trim();
+                         };
+                         
+                         const plainTextContent = cleanPlainText(getCurrentContent());
+                         const element = document.createElement("a");
+                         const file = new Blob([plainTextContent], { type: 'text/plain' });
+                         element.href = URL.createObjectURL(file);
+                         element.download = `${meeting.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}-${activeTab}.txt`;
+                         document.body.appendChild(element);
+                         element.click();
+                         document.body.removeChild(element);
+                         toast.success("Clean plain text downloaded successfully!");
+                       }}>
                         <Type className="h-4 w-4 mr-2" />
                         Download as Plain Text
                       </DropdownMenuItem>
