@@ -410,7 +410,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
 
   // Fetch transcript when modal opens - SECURE VERSION using RPC
   const fetchTranscript = async () => {
-    if (!meeting?.id || transcript) return; // Don't fetch if already loaded
+    if (!meeting?.id) return; // Only skip if no meeting ID
     
     setIsLoadingTranscript(true);
     try {
@@ -447,6 +447,17 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       setIsLoadingTranscript(false);
     }
   };
+
+  // CRITICAL: Clear transcript when meeting changes to prevent data mixing
+  React.useEffect(() => {
+    if (meeting?.id) {
+      console.log('🔍 Meeting changed to:', meeting.id, '- Clearing previous transcript');
+      setTranscript(''); // Clear previous transcript immediately
+      setActiveTab('notes'); // Reset to notes tab
+      setIsEditing(false); // Exit edit mode
+      setEditingContent(''); // Clear editing content
+    }
+  }, [meeting?.id]);
 
   // Fetch transcript when modal opens
   React.useEffect(() => {
