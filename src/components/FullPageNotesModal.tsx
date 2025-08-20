@@ -414,14 +414,71 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const handleDownloadText = () => {
     if (!meeting || !notes) return;
     
+    // Clean the content for plain text download
+    let cleanText = notes
+      // Convert HTML breaks to newlines first
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/p>/gi, '\n\n')
+      .replace(/<p[^>]*>/gi, '')
+      .replace(/<\/div>/gi, '\n')
+      .replace(/<div[^>]*>/gi, '')
+      // Remove ALL HTML tags completely
+      .replace(/<[^>]*>/g, '')
+      // Decode HTML entities
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&apos;/g, "'")
+      // Remove ALL markdown formatting
+      .replace(/\*\*([^*]+)\*\*/g, '$1') // Remove **bold**
+      .replace(/\*([^*]+)\*/g, '$1') // Remove *italic*
+      .replace(/^#+\s*/gm, '') // Remove all # symbols at start of lines
+      // Clean up excessive whitespace but preserve paragraph structure
+      .replace(/[ \t]+/g, ' ') // Multiple spaces/tabs to single space
+      .replace(/\n[ \t]+/g, '\n') // Remove spaces at start of lines
+      .replace(/[ \t]+\n/g, '\n') // Remove spaces at end of lines
+      .replace(/\n{3,}/g, '\n\n') // Max 2 consecutive newlines
+      .trim();
+
+    // Process line by line to ensure proper spacing
+    const lines = cleanText.split('\n');
+    const processedLines = [];
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      
+      if (!line) {
+        // Keep empty lines for spacing
+        processedLines.push('');
+        continue;
+      }
+      
+      // Detect different content types for proper spacing
+      const isEmojiHeader = /^[1-9]️⃣/.test(line);
+      const isNumberedSection = /^\d+\.?\s/.test(line);
+      const isBulletPoint = /^[-•*]\s/.test(line);
+      
+      // Add extra spacing before major sections
+      if (isEmojiHeader && processedLines.length > 0 && processedLines[processedLines.length - 1] !== '') {
+        processedLines.push('');
+      }
+      
+      processedLines.push(line);
+    }
+    
+    const finalText = processedLines.join('\n');
+    
     const element = document.createElement("a");
-    const file = new Blob([notes], { type: 'text/plain' });
+    const file = new Blob([finalText], { type: 'text/plain' });
     element.href = URL.createObjectURL(file);
     element.download = `meeting-notes-${meeting.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.txt`;
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
-    toast.success("Plain text downloaded successfully!");
+    toast.success("Clean plain text downloaded successfully!");
   };
 
   const saveSummaryToDatabase = async (content: string) => {
