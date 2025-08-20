@@ -2932,7 +2932,7 @@ export const MeetingRecorder = ({
   };
 
   const handleViewSummary = (meetingId: string) => {
-    navigate(`/meeting-summary`, { state: { id: meetingId } });
+    navigate('/meeting-history', { state: { viewNotes: meetingId, openModal: true } });
   };
 
   const handleViewTranscript = (meetingId: string) => {

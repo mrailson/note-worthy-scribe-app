@@ -841,6 +841,15 @@ const MeetingHistory = () => {
       }, 500);
       return () => clearTimeout(timer);
     }
+    
+    // Handle auto-opening notes modal when navigated from MeetingRecorder
+    if (state?.viewNotes && state?.openModal) {
+      // Wait for meetings to load, then open the notes modal
+      const timer = setTimeout(() => {
+        handleViewMeetingSummary(state.viewNotes);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
   }, [location.state]);
 
   useEffect(() => {
