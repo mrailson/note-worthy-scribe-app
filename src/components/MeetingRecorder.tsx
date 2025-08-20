@@ -2654,6 +2654,28 @@ export const MeetingRecorder = ({
     });
 
     try {
+    console.log('🚨 ATTEMPTING DATABASE SAVE...');
+    console.log('🚨 Auth user:', user);
+    console.log('🚨 User ID:', user?.id);
+    console.log('🚨 User email:', user?.email);
+    console.log('🚨 User metadata:', user?.user_metadata);
+    
+    // Check if user is authenticated
+    if (!user?.id) {
+      throw new Error('User not authenticated - cannot save meeting');
+    }
+    
+    console.log('🚨 Meeting data to save:', {
+      title: meetingData.title,
+      duration_minutes: Math.ceil(duration / 60),
+      meeting_type: 'general',
+      start_time: meetingData.startTime,
+      status: 'completed',
+      user_id: user?.id,
+      practice_id: meetingData.practiceId,
+      meeting_format: meetingData.meetingFormat
+    });
+
       // 1. Save main meeting record FIRST
       const { data: savedMeeting, error: saveError } = await supabase
         .from('meetings')
@@ -2670,7 +2692,12 @@ export const MeetingRecorder = ({
         .select()
         .single();
 
+      console.log('🚨 DATABASE SAVE RESULT:');
+      console.log('🚨 SaveError:', saveError);
+      console.log('🚨 SavedMeeting:', savedMeeting);
+
       if (saveError) {
+        console.error('🚨 DATABASE SAVE FAILED:', saveError);
         throw saveError;
       }
 

@@ -862,6 +862,8 @@ const MeetingHistory = () => {
     try {
       setLoading(true);
       
+      console.log('🚨 FETCHING MEETINGS - User ID:', user?.id);
+      
       // Get everything in one optimized query using joins
       const { data: meetingsData, error: meetingsError } = await supabase
         .from('meetings')
@@ -890,6 +892,11 @@ const MeetingHistory = () => {
         .neq('meeting_type', 'gp_consultation')
         .order('created_at', { ascending: false })
         .limit(10); // Limit initial load for performance
+
+      console.log('🚨 MEETINGS QUERY RESULT:');
+      console.log('🚨 Error:', meetingsError);
+      console.log('🚨 Data count:', meetingsData?.length);
+      console.log('🚨 Raw data:', meetingsData);
 
       if (meetingsError) throw meetingsError;
 
