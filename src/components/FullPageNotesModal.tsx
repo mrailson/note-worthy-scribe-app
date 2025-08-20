@@ -723,7 +723,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-6xl h-[90vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
+          <DialogTitle className="flex items-center justify-between pr-8">
             <div className="flex items-center gap-2">
               <Bot className="h-5 w-5 text-primary" />
               {meeting.title} - Meeting Notes
@@ -731,7 +731,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2">
+                <Button variant="outline" size="sm" className="gap-2 mr-2">
                   <Download className="h-4 w-4" />
                   Quick Pick
                   <ChevronDown className="h-3 w-3" />
