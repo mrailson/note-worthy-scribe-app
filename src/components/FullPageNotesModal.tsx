@@ -1123,10 +1123,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                       Edit
                     </DropdownMenuSubTrigger>
                     <DropdownMenuSubContent>
-                      <DropdownMenuItem onClick={() => setIsEditing(!isEditing)}>
-                        <Edit3 className="h-4 w-4 mr-2" />
-                        Edit Meeting Notes
-                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => setShowFindReplace(!showFindReplace)}>
                         <Search className="h-4 w-4 mr-2" />
                         Find and Replace
