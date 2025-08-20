@@ -258,7 +258,7 @@ export const MeetingRecordingInterface: React.FC<MeetingRecordingInterfaceProps>
 
       // Try to process the recorded audio chunks for transcription
       try {
-        const { data: transcriptData, error: transcriptError } = await supabase.functions.invoke('process-meeting-audio', {
+        const { data: transcriptData, error: transcriptError } = await supabase.functions.invoke('transcribe-meeting-audio', {
           body: { meetingId: currentMeetingId }
         });
 
@@ -270,13 +270,7 @@ export const MeetingRecordingInterface: React.FC<MeetingRecordingInterfaceProps>
         if (transcriptData?.transcript) {
           console.log('✅ Transcript generated:', transcriptData.transcript.substring(0, 100) + '...');
           setTranscript(transcriptData.transcript);
-          
-          // Save the transcript to the database
-          await supabase.from('meeting_transcripts').insert({
-            meeting_id: currentMeetingId,
-            content: transcriptData.transcript,
-            timestamp_seconds: 0
-          });
+          // Transcript is already saved by the function, no need to save again
         } else {
           throw new Error('No transcript generated');
         }
