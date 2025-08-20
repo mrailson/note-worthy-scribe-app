@@ -291,7 +291,10 @@ export const ClaudeNotesPanel: React.FC<ClaudeNotesPanelProps> = ({
                             className="flex-1 min-h-[80px]"
                           />
                           <SpeechToText 
-                            onTranscription={(text) => setCustomInstruction(prev => (prev || '') + ' ' + text)}
+                            onTranscription={(text) => {
+                              const currentValue = customInstruction || '';
+                              setCustomInstruction(currentValue + ' ' + text);
+                            }}
                             size="sm"
                             className="h-10"
                           />

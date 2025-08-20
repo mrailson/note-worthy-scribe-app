@@ -92,7 +92,7 @@ export const useMeetingData = () => {
           title: data.title || 'Meeting',
           duration: '00:00',
           wordCount: 0,
-          transcript: data.transcript || '',
+          transcript: '', // Will be loaded from transcript chunks
           speakerCount: 1,
           startTime: data.start_time || '',
           practiceName: '',
