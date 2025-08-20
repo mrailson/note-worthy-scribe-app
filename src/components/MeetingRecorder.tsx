@@ -2733,12 +2733,81 @@ export const MeetingRecorder = ({
         setIsGeneratingNotes(false);
         updateDebugInfo({
           recordingState: 'notes_complete',
-          transcriptionEvents: [`${new Date().toLocaleTimeString()}: Notes generated successfully! Navigating to summary...`]
+          transcriptionEvents: [`${new Date().toLocaleTimeString()}: Notes generated successfully! Saving to database...`]
         });
-        toast.success('Meeting notes generated successfully!');
         
-        // Navigate to meeting summary with data and generated notes
-        navigate('/meeting-summary', { state: finalMeetingData });
+        // Save meeting to database before navigating
+        try {
+          // 1. Save main meeting record
+          const { data: savedMeeting, error: saveError } = await supabase
+            .from('meetings')
+            .insert({
+              title: finalMeetingData.title,
+              duration_minutes: Math.ceil(duration / 60), // Convert seconds to minutes
+              meeting_type: 'general',
+              start_time: finalMeetingData.startTime,
+              status: 'completed',
+              user_id: user?.id,
+              practice_id: finalMeetingData.practiceId,
+              meeting_format: finalMeetingData.meetingFormat
+            })
+            .select()
+            .single();
+
+          if (saveError) {
+            throw saveError;
+          }
+
+          // 2. Save transcript
+          const { error: transcriptError } = await supabase
+            .from('meeting_transcripts')
+            .insert({
+              meeting_id: savedMeeting.id,
+              speaker_name: 'Meeting Recording',
+              content: finalMeetingData.transcript,
+              timestamp_seconds: 0,
+              confidence_score: 1.0
+            });
+
+          if (transcriptError) {
+            console.warn('Failed to save transcript:', transcriptError);
+          }
+
+          // 3. Save AI-generated notes if available
+          if (finalMeetingData.generatedNotes) {
+            const { error: summaryError } = await supabase
+              .from('meeting_summaries')
+              .insert({
+                meeting_id: savedMeeting.id,
+                summary: finalMeetingData.generatedNotes,
+                ai_generated: true
+              });
+
+            if (summaryError) {
+              console.warn('Failed to save AI summary:', summaryError);
+            }
+          }
+
+          updateDebugInfo({
+            transcriptionEvents: [`${new Date().toLocaleTimeString()}: Meeting saved to database! ID: ${savedMeeting.id}`]
+          });
+          
+          toast.success('Meeting saved successfully!');
+          
+          // Navigate to meeting summary with saved meeting data
+          navigate('/meeting-summary', { state: { ...finalMeetingData, id: savedMeeting.id } });
+          
+        } catch (saveError) {
+          console.error('Error saving meeting to database:', saveError);
+          updateDebugInfo({
+            lastError: `Database save failed: ${saveError.message}`,
+            transcriptionEvents: [`${new Date().toLocaleTimeString()}: ERROR saving to database - ${saveError.message}`]
+          });
+          toast.error('Failed to save meeting to database');
+          
+          // Still navigate but without database ID
+          navigate('/meeting-summary', { state: finalMeetingData });
+        }
       } else {
         throw new Error('Failed to generate meeting notes');
       }
@@ -2750,15 +2819,66 @@ export const MeetingRecorder = ({
         lastError: error.message || 'Note generation failed',
         transcriptionEvents: [`${new Date().toLocaleTimeString()}: ERROR - ${error.message || 'Note generation failed'}`]
       });
-      toast.error('Failed to generate meeting notes. Proceeding without AI notes.');
+      toast.error('Failed to generate meeting notes. Saving meeting without AI notes...');
       
-      // Still navigate to meeting summary even if note generation fails, including meeting format
-      const fallbackMeetingData = {
-        ...meetingData,
-        meetingFormat: 'meetingFormat' in meetingSettings ? meetingSettings.meetingFormat : 'teams',
-        practiceId: 'practiceId' in meetingSettings ? meetingSettings.practiceId : undefined
-      };
-      navigate('/meeting-summary', { state: fallbackMeetingData });
+      // Save meeting to database even if note generation fails
+      try {
+        const fallbackMeetingData = {
+          ...meetingData,
+          meetingFormat: 'meetingFormat' in meetingSettings ? meetingSettings.meetingFormat : 'teams',
+          practiceId: 'practiceId' in meetingSettings ? meetingSettings.practiceId : undefined
+        };
+        
+        // 1. Save main meeting record
+        const { data: savedMeeting, error: saveError } = await supabase
+          .from('meetings')
+          .insert({
+            title: fallbackMeetingData.title,
+            duration_minutes: Math.ceil(duration / 60), // Convert seconds to minutes
+            meeting_type: 'general',
+            start_time: fallbackMeetingData.startTime,
+            status: 'completed',
+            user_id: user?.id,
+            practice_id: fallbackMeetingData.practiceId,
+            meeting_format: fallbackMeetingData.meetingFormat
+          })
+          .select()
+          .single();
+
+        if (saveError) {
+          throw saveError; 
+        }
+
+        // 2. Save transcript
+        const { error: transcriptError } = await supabase
+          .from('meeting_transcripts')
+          .insert({
+            meeting_id: savedMeeting.id,
+            speaker_name: 'Meeting Recording',
+            content: fallbackMeetingData.transcript,
+            timestamp_seconds: 0,
+            confidence_score: 1.0
+          });
+
+        if (transcriptError) {
+          console.warn('Failed to save transcript:', transcriptError);
+        }
+
+        updateDebugInfo({
+          transcriptionEvents: [`${new Date().toLocaleTimeString()}: Meeting saved to database (without AI notes)! ID: ${savedMeeting.id}`]
+        });
+        
+        toast.success('Meeting saved successfully!');
+        navigate('/meeting-summary', { state: { ...fallbackMeetingData, id: savedMeeting.id } });
+        
+      } catch (saveError) {
+        console.error('Error saving fallback meeting:', saveError);
+        updateDebugInfo({
+          lastError: `Database save failed: ${saveError.message}`,
+          transcriptionEvents: [`${new Date().toLocaleTimeString()}: CRITICAL ERROR - Failed to save meeting: ${saveError.message}`]
+        });
+        toast.error('Critical error: Failed to save meeting to database');
+      }
     }
   };
 
