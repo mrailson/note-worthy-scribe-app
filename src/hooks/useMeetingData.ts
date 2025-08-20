@@ -1,0 +1,163 @@
+import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
+import { MeetingData, MeetingSettingsState, SummaryContent } from "@/types/meetingTypes";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
+
+export const useMeetingData = () => {
+  const location = useLocation();
+  const { user } = useAuth();
+  const [meetingData, setMeetingData] = useState<MeetingData | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [practiceData, setPracticeData] = useState<any>(null);
+
+  const [meetingSettings, setMeetingSettings] = useState<MeetingSettingsState>({
+    title: "",
+    description: "",
+    meetingType: "general",
+    meetingStyle: "standard",
+    attendees: "",
+    agenda: "",
+    date: "",
+    startTime: "",
+    format: "",
+    location: ""
+  });
+
+  const [summaryContent, setSummaryContent] = useState<SummaryContent>({
+    attendees: "",
+    agenda: "",
+    keyPoints: "",
+    decisions: "",
+    actionItems: "",
+    nextSteps: "",
+    additionalNotes: ""
+  });
+
+  const saveMeetingToDatabase = async (data: MeetingData) => {
+    if (!user || isSaving) return;
+    
+    setIsSaving(true);
+    try {
+      const { data: savedMeeting, error } = await supabase
+        .from('meetings')
+        .insert({
+          user_id: user.id,
+          title: data.title,
+          transcript: data.transcript,
+          duration: data.duration,
+          word_count: data.wordCount,
+          speaker_count: data.speakerCount,
+          start_time: data.startTime,
+          practice_name: data.practiceName,
+          practice_id: data.practiceId,
+          meeting_format: data.meetingFormat,
+          generated_notes: data.generatedNotes,
+          started_by: data.startedBy
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setMeetingData(prev => prev ? { ...prev, id: savedMeeting.id } : null);
+      setIsSaved(true);
+      toast.success('Meeting saved successfully');
+    } catch (error) {
+      console.error('Error saving meeting:', error);
+      toast.error('Failed to save meeting');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const loadExistingSummary = async (meetingId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('meetings')
+        .select('*')
+        .eq('id', meetingId)
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        const startDate = data.start_time ? new Date(data.start_time) : null;
+        const pad = (n: number) => n.toString().padStart(2, '0');
+
+        setMeetingData({
+          id: data.id,
+          title: data.title || 'Meeting',
+          duration: '00:00',
+          wordCount: 0,
+          transcript: data.transcript || '',
+          speakerCount: 1,
+          startTime: data.start_time || '',
+          practiceName: '',
+          practiceId: '',
+          meetingFormat: data.format || '',
+          generatedNotes: '',
+          startedBy: data.user_id || ''
+        });
+
+        setMeetingSettings(prev => ({
+          ...prev,
+          title: data.title || 'Meeting',
+          date: startDate ? `${startDate.getFullYear()}-${pad(startDate.getMonth() + 1)}-${pad(startDate.getDate())}` : "",
+          startTime: startDate ? `${pad(startDate.getHours())}:${pad(startDate.getMinutes())}` : "",
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading meeting:', error);
+    }
+  };
+
+  const fetchPracticeData = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('practice_name, practice_logo_url')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!error && data) {
+        setPracticeData(data);
+      }
+    } catch (error) {
+      console.error('Error fetching practice data:', error);
+    }
+  };
+
+  // Sync attendees and agenda from Meeting Settings into summary content
+  useEffect(() => {
+    setSummaryContent(prev => {
+      const next = { ...prev } as typeof prev;
+      let changed = false;
+      const mAtt = (meetingSettings.attendees || '').trim();
+      const mAg = (meetingSettings.agenda || '').trim();
+      if (mAtt && mAtt !== prev.attendees) { next.attendees = mAtt; changed = true; }
+      if (mAg && mAg !== prev.agenda) { next.agenda = mAg; changed = true; }
+      return changed ? next : prev;
+    });
+  }, [meetingSettings.attendees, meetingSettings.agenda]);
+
+  return {
+    meetingData,
+    setMeetingData,
+    isSaving,
+    isSaved,
+    setIsSaved,
+    meetingSettings,
+    setMeetingSettings,
+    summaryContent,
+    setSummaryContent,
+    practiceData,
+    saveMeetingToDatabase,
+    loadExistingSummary,
+    fetchPracticeData
+  };
+};
