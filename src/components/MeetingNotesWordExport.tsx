@@ -69,7 +69,8 @@ const MeetingNotesWordExport: React.FC<MeetingNotesWordExportProps> = ({ meeting
           .replace(/&lt;/g, '<')
           .replace(/&gt;/g, '>')
           .replace(/&quot;/g, '"')
-          .replace(/&#39;/g, "'");
+          .replace(/&#39;/g, "'")
+          .replace(/^---+$/gm, ''); // Remove horizontal rules (--- characters)
 
         const paragraphs = [];
         const lines = cleanText.split('\n');
