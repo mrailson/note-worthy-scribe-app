@@ -222,13 +222,19 @@ const MeetingHistory = () => {
       
       console.log('🔍 Summary data fetched:', summaryData?.summary ? 'Summary exists' : 'No summary');
       
-      // Open the full page modal with notes
-      console.log('🔍 Setting modal states...');
+      // Set all modal states together using React's batching
+      console.log('🔍 Setting all modal states together...');
+      
+      // Use React 18's automatic batching by setting states in sequence
       setModalMeeting(meeting);
       setModalNotes(summaryData?.summary || '');
-      setFullPageModalOpen(true);
       
-      console.log('📝 Full page modal should now be open for meeting:', meeting.title);
+      // Use setTimeout to ensure state updates are applied before opening modal
+      setTimeout(() => {
+        console.log('📝 Opening modal with meeting:', meeting?.title);
+        setFullPageModalOpen(true);
+      }, 100);
+      
     } catch (error: any) {
       console.error("❌ Error Loading Meeting:", error.message);
       toast.error("Failed to load meeting notes");
