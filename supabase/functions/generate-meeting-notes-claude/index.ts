@@ -30,13 +30,23 @@ serve(async (req) => {
 
     const prompt = `Create detailed partnership meeting notes from the transcript. Extract ALL specific details, names, locations, systems, and technical information mentioned.
 
-CRITICAL REQUIREMENTS:
+CRITICAL REQUIREMENTS - CAPTURE EVERY GRANULAR DETAIL:
 
-- Include EVERY specific detail from the transcript (names, places, systems, concerns, quotes)
-- Capture ALL technical discussions about systems, processes, and challenges
-- Include ALL people mentioned by name and their roles/responsibilities
-- Extract ALL specific concerns, benefits, and implementation details discussed
-- Do NOT summarize or generalize - include the actual details discussed
+PEOPLE & ROLES: Include EVERY person mentioned by name with their specific roles, training status, qualifications, and responsibilities. Do not miss anyone.
+
+LOCATIONS & SITES: Include ALL site names, locations, villages, and geographic details mentioned. Get spelling exactly right.
+
+TECHNICAL SYSTEMS: Capture ALL system names, technical processes, codes (like EPS/ODS), ordering systems, delivery schedules, turnaround times, and technical explanations.
+
+FINANCIAL DETAILS: Include ALL costs, prices, percentage changes, savings amounts, funding sources, and financial implications discussed.
+
+TRAINING & QUALIFICATIONS: Capture ALL training programs, courses, institutions, costs, timelines, exam dates, and qualification details.
+
+TIMELINES & DATES: Include ALL specific dates, timeframes, schedules, and timing mentioned.
+
+BUSINESS PROCESSES: Document ALL operational details, workflow processes, service changes, and procedural discussions.
+
+Do NOT summarize, generalize, or omit ANY detail - include the actual specifics discussed.
 
 Format exactly as:
 
