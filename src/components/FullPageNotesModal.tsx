@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { SafeMessageRenderer } from "@/components/SafeMessageRenderer";
@@ -27,7 +28,9 @@ import {
   Mic,
   X,
   Wand2,
-  RefreshCw
+  RefreshCw,
+  ChevronUp,
+  ChevronDown as ChevronDownIcon
 } from "lucide-react";
 
 interface Meeting {
@@ -63,6 +66,12 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [transcript, setTranscript] = useState("");
   const [isLoadingTranscript, setIsLoadingTranscript] = useState(false);
   const [editingContent, setEditingContent] = useState(""); // Clean content for editing
+  
+  // Search functionality for transcript
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
+  const [totalMatches, setTotalMatches] = useState(0);
+  const [highlightedTranscript, setHighlightedTranscript] = useState("");
 
   // Create a mock meeting data object for the export hook
   const mockMeetingData = meeting ? {
@@ -449,6 +458,60 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     }
   };
 
+  // Search functionality for transcript
+  const performSearch = React.useCallback(() => {
+    if (!searchTerm || !transcript) {
+      setHighlightedTranscript(transcript);
+      setTotalMatches(0);
+      setCurrentMatchIndex(0);
+      return;
+    }
+
+    const regex = new RegExp(searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+    const matches = [...transcript.matchAll(regex)];
+    setTotalMatches(matches.length);
+    
+    if (matches.length === 0) {
+      setHighlightedTranscript(transcript);
+      setCurrentMatchIndex(0);
+      return;
+    }
+
+    let highlighted = transcript;
+    let offset = 0;
+    
+    matches.forEach((match, index) => {
+      const start = match.index! + offset;
+      const end = start + match[0].length;
+      const isCurrentMatch = index === currentMatchIndex;
+      
+      const replacement = isCurrentMatch 
+        ? `<mark style="background-color: #fbbf24; padding: 2px 4px; border-radius: 2px; color: #000; font-weight: bold;">${match[0]}</mark>`
+        : `<mark style="background-color: #fef3c7; padding: 2px 4px; border-radius: 2px; color: #000;">${match[0]}</mark>`;
+      
+      highlighted = highlighted.slice(0, start) + replacement + highlighted.slice(end);
+      offset += replacement.length - match[0].length;
+    });
+    
+    setHighlightedTranscript(highlighted);
+  }, [searchTerm, transcript, currentMatchIndex]);
+
+  React.useEffect(() => {
+    performSearch();
+  }, [performSearch]);
+
+  const goToNextMatch = () => {
+    if (totalMatches > 0) {
+      setCurrentMatchIndex((prev) => (prev + 1) % totalMatches);
+    }
+  };
+
+  const goToPreviousMatch = () => {
+    if (totalMatches > 0) {
+      setCurrentMatchIndex((prev) => (prev - 1 + totalMatches) % totalMatches);
+    }
+  };
+
   // CRITICAL: Clear transcript when meeting changes to prevent data mixing
   React.useEffect(() => {
     if (meeting?.id) {
@@ -457,6 +520,11 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       setActiveTab('notes'); // Reset to notes tab
       setIsEditing(false); // Exit edit mode
       setEditingContent(''); // Clear editing content
+      // Clear search state
+      setSearchTerm('');
+      setCurrentMatchIndex(0);
+      setTotalMatches(0);
+      setHighlightedTranscript('');
     }
   }, [meeting?.id]);
 
@@ -1024,15 +1092,57 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                 <div className="h-full flex flex-col">
                   <div className="flex items-center justify-between p-6 pb-4 flex-shrink-0">
                     <h3 className="text-lg font-semibold">Meeting Transcript</h3>
-                    <Button
-                      onClick={handleEditToggle}
-                      variant="outline"
-                      size="sm"
-                      className="gap-2"
-                    >
-                      <Edit3 className="h-4 w-4" />
-                      {isEditing ? 'Save' : 'Edit'}
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      {!isEditing && transcript && (
+                        <div className="flex items-center gap-2 mr-4">
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              placeholder="Search transcript..."
+                              value={searchTerm}
+                              onChange={(e) => setSearchTerm(e.target.value)}
+                              className="pl-10 pr-4 h-8 w-48"
+                            />
+                          </div>
+                          {totalMatches > 0 && (
+                            <>
+                              <span className="text-sm text-muted-foreground">
+                                {currentMatchIndex + 1} of {totalMatches}
+                              </span>
+                              <div className="flex items-center">
+                                <Button
+                                  onClick={goToPreviousMatch}
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 w-8 p-0"
+                                  disabled={totalMatches === 0}
+                                >
+                                  <ChevronUp className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  onClick={goToNextMatch}
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 ml-1"
+                                  disabled={totalMatches === 0}
+                                >
+                                  <ChevronDownIcon className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      )}
+                      <Button
+                        onClick={handleEditToggle}
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                      >
+                        <Edit3 className="h-4 w-4" />
+                        {isEditing ? 'Save' : 'Edit'}
+                      </Button>
+                    </div>
                   </div>
 
                   <div className="flex-1 overflow-auto px-6 pb-6">
@@ -1051,7 +1161,12 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                     ) : (
                       <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground">
                         {transcript ? (
-                          <pre className="whitespace-pre-wrap font-sans">{transcript}</pre>
+                          <pre 
+                            className="whitespace-pre-wrap font-sans"
+                            dangerouslySetInnerHTML={{ 
+                              __html: searchTerm ? highlightedTranscript : transcript 
+                            }}
+                          />
                         ) : (
                           <p className="text-muted-foreground">No transcript available for this meeting.</p>
                         )}
