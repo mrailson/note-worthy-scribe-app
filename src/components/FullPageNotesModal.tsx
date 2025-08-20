@@ -61,6 +61,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [activeTab, setActiveTab] = useState("notes");
   const [transcript, setTranscript] = useState("");
   const [isLoadingTranscript, setIsLoadingTranscript] = useState(false);
+  const [editingContent, setEditingContent] = useState(""); // Clean content for editing
 
   // Create a mock meeting data object for the export hook
   const mockMeetingData = meeting ? {
@@ -453,6 +454,56 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     }
   };
 
+  // Clean HTML content for editing
+  const cleanHtmlForEditing = (htmlContent: string) => {
+    if (!htmlContent) return '';
+    
+    let cleanText = htmlContent
+      // Convert HTML breaks to newlines
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/p>/gi, '\n\n')
+      .replace(/<p[^>]*>/gi, '')
+      .replace(/<\/div>/gi, '\n')
+      .replace(/<div[^>]*>/gi, '')
+      // Remove ALL HTML tags
+      .replace(/<[^>]*>/g, '')
+      // Decode HTML entities
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&apos;/g, "'")
+      // Remove excessive whitespace but preserve paragraph structure
+      .replace(/[ \t]+/g, ' ')
+      .replace(/\n[ \t]+/g, '\n')
+      .replace(/[ \t]+\n/g, '\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+    
+    return cleanText;
+  };
+
+  // Handle edit mode toggle
+  const handleEditToggle = () => {
+    if (!isEditing) {
+      // Entering edit mode - clean the content
+      const currentContent = activeTab === "notes" ? notes : transcript;
+      const cleanContent = cleanHtmlForEditing(currentContent);
+      setEditingContent(cleanContent);
+    } else {
+      // Exiting edit mode - save the content
+      if (activeTab === "notes") {
+        onNotesChange(editingContent);
+        saveSummaryToDatabase(editingContent);
+      } else {
+        setTranscript(editingContent);
+      }
+    }
+    setIsEditing(!isEditing);
+  };
+
   const copyToClipboard = (content: string) => {
     navigator.clipboard.writeText(content).then(() => {
       toast.success('Content copied to clipboard!');
@@ -834,22 +885,21 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                   <div className="flex items-center justify-between p-6 pb-4 flex-shrink-0">
                     <h3 className="text-lg font-semibold">Meeting Notes</h3>
                     <Button
-                      onClick={() => setIsEditing(!isEditing)}
+                      onClick={handleEditToggle}
                       variant="outline"
                       size="sm"
                       className="gap-2"
                     >
                       <Edit3 className="h-4 w-4" />
-                      {isEditing ? 'Preview' : 'Edit'}
+                      {isEditing ? 'Save' : 'Edit'}
                     </Button>
                   </div>
 
                   <div className="flex-1 overflow-auto px-6 pb-6">
                     {isEditing ? (
                       <Textarea
-                        value={notes}
-                        onChange={(e) => onNotesChange(e.target.value)}
-                        onBlur={() => saveSummaryToDatabase(notes)}
+                        value={editingContent}
+                        onChange={(e) => setEditingContent(e.target.value)}
                         className="min-h-[400px] font-mono text-sm resize-none"
                         placeholder="Meeting notes will appear here..."
                       />
@@ -867,13 +917,13 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                   <div className="flex items-center justify-between p-6 pb-4 flex-shrink-0">
                     <h3 className="text-lg font-semibold">Meeting Transcript</h3>
                     <Button
-                      onClick={() => setIsEditing(!isEditing)}
+                      onClick={handleEditToggle}
                       variant="outline"
                       size="sm"
                       className="gap-2"
                     >
                       <Edit3 className="h-4 w-4" />
-                      {isEditing ? 'Preview' : 'Edit'}
+                      {isEditing ? 'Save' : 'Edit'}
                     </Button>
                   </div>
 
@@ -885,8 +935,8 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                       </div>
                     ) : isEditing ? (
                       <Textarea
-                        value={transcript}
-                        onChange={(e) => setTranscript(e.target.value)}
+                        value={editingContent}
+                        onChange={(e) => setEditingContent(e.target.value)}
                         className="min-h-[400px] font-mono text-sm resize-none"
                         placeholder="Meeting transcript will appear here..."
                       />
