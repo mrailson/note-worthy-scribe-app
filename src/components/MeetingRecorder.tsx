@@ -2754,12 +2754,49 @@ export const MeetingRecorder = ({
 
       if (minutesData?.success && minutesData?.meetingMinutes) {
         // Add the generated meeting notes to the meeting data
-        const finalMeetingData = {
+        const finalMeetingData: any = {
           ...enhancedMeetingData,
           generatedNotes: minutesData.meetingMinutes,
           meetingFormat: 'meetingFormat' in meetingSettings ? meetingSettings.meetingFormat : 'teams',
           practiceId: 'practiceId' in meetingSettings ? meetingSettings.practiceId : undefined
         };
+
+        // Save meeting to database
+        console.log('💾 Saving meeting to database...');
+        try {
+          const { data: savedMeeting, error: saveError } = await supabase
+            .from('meetings')
+            .insert([{
+              title: finalMeetingData.title,
+              duration: finalMeetingData.duration,
+              word_count: finalMeetingData.wordCount,
+              transcript: finalMeetingData.transcript,
+              speaker_count: finalMeetingData.speakerCount,
+              start_time: finalMeetingData.startTime,
+              user_id: user?.id,
+              practice_name: 'General Practice',
+              meeting_format: finalMeetingData.meetingFormat,
+              generated_notes: finalMeetingData.generatedNotes,
+              started_by: finalMeetingData.startedBy,
+              needs_audio_backup: finalMeetingData.needsAudioBackup
+            }])
+            .select()
+            .single();
+
+          if (saveError) {
+            console.error('Failed to save meeting:', saveError);
+            toast.error('Meeting recorded but failed to save to history');
+          } else {
+            console.log('✅ Meeting saved successfully:', savedMeeting.id);
+            toast.success('Meeting saved to history!');
+            
+            // Add the database ID to the meeting data for navigation
+            finalMeetingData.id = savedMeeting.id;
+          }
+        } catch (saveError) {
+          console.error('Error saving meeting:', saveError);
+          toast.error('Meeting recorded but failed to save to history');
+        }
 
         setIsGeneratingNotes(false);
         toast.success('Meeting notes generated successfully!');
@@ -2775,11 +2812,48 @@ export const MeetingRecorder = ({
       toast.error('Failed to generate meeting notes. Proceeding without AI notes.');
       
       // Still navigate to meeting summary even if note generation fails, including meeting format
-      const fallbackMeetingData = {
+      const fallbackMeetingData: any = {
         ...meetingData,
         meetingFormat: 'meetingFormat' in meetingSettings ? meetingSettings.meetingFormat : 'teams',
         practiceId: 'practiceId' in meetingSettings ? meetingSettings.practiceId : undefined
       };
+
+      // Save meeting to database even without AI notes
+      console.log('💾 Saving meeting to database (without AI notes)...');
+      try {
+        const { data: savedMeeting, error: saveError } = await supabase
+          .from('meetings')
+          .insert([{
+            title: fallbackMeetingData.title,
+            duration: fallbackMeetingData.duration,
+            word_count: fallbackMeetingData.wordCount,
+            transcript: fallbackMeetingData.transcript,
+            speaker_count: fallbackMeetingData.speakerCount,
+            start_time: fallbackMeetingData.startTime,
+            user_id: user?.id,
+            practice_name: 'General Practice',
+            meeting_format: fallbackMeetingData.meetingFormat,
+            started_by: fallbackMeetingData.startedBy,
+            needs_audio_backup: fallbackMeetingData.needsAudioBackup
+          }])
+          .select()
+          .single();
+
+        if (saveError) {
+          console.error('Failed to save meeting:', saveError);
+          toast.error('Meeting recorded but failed to save to history');
+        } else {
+          console.log('✅ Meeting saved successfully:', savedMeeting.id);
+          toast.success('Meeting saved to history!');
+          
+          // Add the database ID to the meeting data for navigation
+          fallbackMeetingData.id = savedMeeting.id;
+        }
+      } catch (saveError) {
+        console.error('Error saving meeting:', saveError);
+        toast.error('Meeting recorded but failed to save to history');
+      }
+
       navigate('/meeting-summary', { state: fallbackMeetingData });
     }
   };
