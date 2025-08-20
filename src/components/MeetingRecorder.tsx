@@ -115,11 +115,90 @@ export const MeetingRecorder = ({
   // Pause/Mute state
   const [isPaused, setIsPaused] = useState(false);
   
+  const navigate = useNavigate();
+  const { user } = useAuth();
   
   // Meeting history state
   const [meetings, setMeetings] = useState<any[]>([]);
   const [filteredMeetings, setFilteredMeetings] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+   
+   // Load meetings data
+   const loadMeetings = async () => {
+     if (!user?.id) return;
+     
+     setLoadingHistory(true);
+     try {
+       const { data, error } = await supabase
+         .from('meetings')
+         .select(`
+           *,
+           meeting_summaries (
+             id,
+             summary,
+             created_at
+           )
+         `)
+         .eq('user_id', user.id)
+         .order('created_at', { ascending: false });
+       
+       if (error) throw error;
+       
+       setMeetings(data || []);
+       setFilteredMeetings(data || []);
+     } catch (error) {
+       console.error('Error loading meetings:', error);
+       toast.error('Failed to load meetings');
+     } finally {
+       setLoadingHistory(false);
+     }
+   };
+
+  // Load meetings on component mount and user change
+  useEffect(() => {
+    loadMeetings();
+  }, [user?.id]);
+
+  // Meeting action handlers
+  const handleEditMeeting = (meetingId: string) => {
+    console.log('Edit meeting:', meetingId);
+    // Implementation can be added later if needed
+  };
+
+  const handleViewSummary = (meetingId: string) => {
+    navigate(`/meeting-summary?id=${meetingId}`);
+  };
+
+  const handleViewTranscript = (meetingId: string) => {
+    console.log('View transcript for meeting:', meetingId);
+    // Implementation can be added later if needed
+  };
+
+  const handleDeleteMeeting = async (meetingId: string) => {
+    try {
+      const { error } = await supabase
+        .from('meetings')
+        .delete()
+        .eq('id', meetingId)
+        .eq('user_id', user?.id);
+      
+      if (error) throw error;
+      
+      toast.success('Meeting deleted successfully');
+      loadMeetings(); // Refresh the list
+    } catch (error) {
+      console.error('Error deleting meeting:', error);
+      toast.error('Failed to delete meeting');
+    }
+  };
+
+  const handleSelectMeeting = (meetingId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedMeetings(prev => [...prev, meetingId]);
+    } else {
+      setSelectedMeetings(prev => prev.filter(id => id !== meetingId));
+    }
+  };
   
   // Search and multi-select state
   const [searchQuery, setSearchQuery] = useState("");
@@ -227,9 +306,6 @@ export const MeetingRecorder = ({
       window.location.reload();
     }, 1000);
   };
-  
-  const navigate = useNavigate();
-  const { user } = useAuth();
   
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const latestCompleteTranscriptRef = useRef<string>('');
@@ -2926,138 +3002,6 @@ export const MeetingRecorder = ({
     setFilteredMeetings(filtered);
   }, [meetings, searchQuery]);
 
-  // Meeting history handlers
-  const handleEditMeeting = (meetingId: string) => {
-    navigate(`/meeting-summary`, { state: { id: meetingId } });
-  };
-
-  const handleViewSummary = (meetingId: string) => {
-    navigate('/meeting-history', { state: { viewNotes: meetingId, openModal: true } });
-  };
-
-  const handleViewTranscript = (meetingId: string) => {
-    navigate('/meeting-history', { state: { viewTranscript: meetingId, openDialog: true } });
-  };
-
-  const handleDeleteMeeting = async (meetingId: string) => {
-    try {
-      // First, get and delete any associated documents from storage
-      const { data: documents } = await supabase
-        .from('meeting_documents')
-        .select('file_path')
-        .eq('meeting_id', meetingId);
-
-      if (documents && documents.length > 0) {
-        // Delete files from storage
-        const filePaths = documents.map(doc => doc.file_path);
-        const { error: storageError } = await supabase.storage
-          .from('meeting-documents')
-          .remove(filePaths);
-
-        if (storageError) {
-          console.warn('Some files could not be deleted from storage:', storageError);
-        }
-
-        // Delete document records from database
-        await supabase
-          .from('meeting_documents')
-          .delete()
-          .eq('meeting_id', meetingId);
-      }
-
-      // Delete transcripts
-      await supabase
-        .from('meeting_transcripts')
-        .delete()
-        .eq('meeting_id', meetingId);
-
-      // Delete summaries
-      await supabase
-        .from('meeting_summaries')
-        .delete()
-        .eq('meeting_id', meetingId);
-
-      // Delete meeting overviews
-      await supabase
-        .from('meeting_overviews')
-        .delete()
-        .eq('meeting_id', meetingId);
-
-      // Delete meeting
-      const { error } = await supabase
-        .from('meetings')
-        .delete()
-        .eq('id', meetingId);
-
-      if (error) throw error;
-
-      toast.success('Meeting deleted successfully');
-      loadMeetingHistory(); // Reload the list
-    } catch (error) {
-      console.error('Error deleting meeting:', error);
-      toast.error('Failed to delete meeting');
-    }
-  };
-
-  // Multi-select handlers
-  const handleSelectMeeting = (meetingId: string, checked: boolean) => {
-    if (checked) {
-      setSelectedMeetings(prev => [...prev, meetingId]);
-    } else {
-      setSelectedMeetings(prev => prev.filter(id => id !== meetingId));
-    }
-  };
-
-  const handleSelectAll = () => {
-    if (selectedMeetings.length === filteredMeetings.length) {
-      setSelectedMeetings([]);
-    } else {
-      setSelectedMeetings(filteredMeetings.map(m => m.id));
-    }
-  };
-
-  const handleDeleteSelected = async () => {
-    try {
-      const { error } = await supabase
-        .from('meetings')
-        .delete()
-        .in('id', selectedMeetings)
-        .eq('user_id', user?.id);
-
-      if (error) throw error;
-
-      toast.success(`${selectedMeetings.length} meetings deleted successfully`);
-      
-      setSelectedMeetings([]);
-      setIsSelectMode(false);
-      loadMeetingHistory();
-    } catch (error: any) {
-      console.error("Error deleting selected meetings:", error.message);
-      toast.error("Failed to delete selected meetings");
-    }
-  };
-
-  const handleDeleteAll = async () => {
-    try {
-      const { error } = await supabase
-        .from('meetings')
-        .delete()
-        .eq('user_id', user?.id);
-
-      if (error) throw error;
-
-      toast.success("All meetings deleted successfully");
-      
-      setDeleteConfirmation("");
-      setSelectedMeetings([]);
-      setIsSelectMode(false);
-      loadMeetingHistory();
-    } catch (error: any) {
-      console.error("Error deleting all meetings:", error.message);
-      toast.error("Failed to delete all meetings");
-    }
-  };
-
   // Pause/Unpause recording functionality
   const pauseRecording = () => {
     try {
@@ -3591,20 +3535,18 @@ export const MeetingRecorder = ({
 
         {/* Meeting History Tab */}
         <TabsContent value="history" className="space-y-4 mt-6">
-          <div className="text-center space-y-4">
-            <p className="text-muted-foreground">Meeting History</p>
-            <Button 
-              onClick={() => navigate('/meeting-history')}
-              variant="outline"
-              className="w-full max-w-md"
-            >
-              <History className="h-4 w-4 mr-2" />
-              View Full Meeting History
-            </Button>
-            <p className="text-xs text-muted-foreground">
-              Access all your saved meetings and transcripts
-            </p>
-          </div>
+          <MeetingHistoryList 
+            meetings={meetings}
+            onEdit={handleEditMeeting}
+            onViewSummary={handleViewSummary}
+            onViewTranscript={handleViewTranscript}
+            onDelete={handleDeleteMeeting}
+            loading={loadingHistory}
+            isSelectMode={isSelectMode}
+            selectedMeetings={selectedMeetings}
+            onSelectMeeting={handleSelectMeeting}
+            onRefresh={loadMeetings}
+          />
         </TabsContent>
 
         {/* Mic Test Service Tab */}
