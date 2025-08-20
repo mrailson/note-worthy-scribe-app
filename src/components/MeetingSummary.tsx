@@ -15,11 +15,15 @@ import {
   FileDown,
   Download,
   Clock,
-  Hash
+  Hash,
+  Bot,
+  Sparkles
 } from "lucide-react";
 import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, BorderStyle } from "docx";
 import { useAuth } from "@/contexts/AuthContext";
 import { MeetingMinutesEmailModal } from "@/components/MeetingMinutesEmailModal";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 interface MeetingSummaryProps {
   duration: string;
@@ -48,6 +52,13 @@ export const MeetingSummary = ({
   const [notes, setNotes] = useState(generateMeetingNotes(transcript, "detailed"));
   const [isEditing, setIsEditing] = useState(false);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  
+  // Claude AI states
+  const [claudeDetailLevel, setClaudeDetailLevel] = useState("standard");
+  const [claudeNotes, setClaudeNotes] = useState("");
+  const [isClaudeEditing, setIsClaudeEditing] = useState(false);
+  const [isClaudeGenerating, setIsClaudeGenerating] = useState(false);
+  
   const { user } = useAuth();
 
   function generateMeetingNotes(transcript: string, level: string) {
@@ -234,6 +245,59 @@ New patient pathway improvements have reduced waiting times by 15%. Patient sati
         top: 200,
         bottom: 200,
       }
+    });
+  };
+
+  const generateClaudeMeetingNotes = async (newLevel?: string) => {
+    const levelToUse = newLevel || claudeDetailLevel;
+    setIsClaudeGenerating(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-meeting-notes-claude', {
+        body: {
+          transcript,
+          meetingTitle: meetingSettings?.title || "General Meeting",
+          meetingDate: new Date().toLocaleDateString(),
+          meetingTime: new Date().toLocaleTimeString(),
+          detailLevel: levelToUse
+        }
+      });
+
+      if (error) throw error;
+      
+      if (data?.success && data?.meetingMinutes) {
+        setClaudeNotes(data.meetingMinutes);
+        toast({
+          title: "Success",
+          description: "Claude AI meeting minutes generated successfully!",
+        });
+      } else {
+        throw new Error(data?.error || 'Failed to generate meeting minutes');
+      }
+    } catch (error: any) {
+      console.error('Error generating Claude meeting notes:', error);
+      toast({
+        title: "Error",
+        description: `Failed to generate Claude AI meeting notes: ${error.message}`,
+        variant: "destructive"
+      });
+    } finally {
+      setIsClaudeGenerating(false);
+    }
+  };
+
+  const handleClaudeDetailLevelChange = (newLevel: string) => {
+    setClaudeDetailLevel(newLevel);
+    if (claudeNotes) {
+      generateClaudeMeetingNotes(newLevel);
+    }
+  };
+
+  const handleCopyClaudeNotes = () => {
+    navigator.clipboard.writeText(claudeNotes);
+    toast({
+      title: "Copied",
+      description: "Claude AI notes copied to clipboard",
     });
   };
 
@@ -563,6 +627,99 @@ New patient pathway improvements have reduced waiting times by 15%. Patient sati
             Transcript
           </Button>
         </div>
+
+        {/* Claude AI Meeting Notes Section */}
+        <div className="space-y-4 border-t pt-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Sparkles className="h-5 w-5 text-primary" />
+            <h3 className="text-lg font-semibold">Claude AI Meeting Notes</h3>
+            <Badge variant="secondary" className="text-xs">
+              <Bot className="h-3 w-3 mr-1" />
+              AI Enhanced
+            </Badge>
+          </div>
+
+          {/* Claude Detail Level Selector */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Claude AI Detail Level</label>
+            <Select value={claudeDetailLevel} onValueChange={handleClaudeDetailLevelChange}>
+              <SelectTrigger className="w-full sm:w-[200px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="standard">Standard Detail</SelectItem>
+                <SelectItem value="more">More Detailed</SelectItem>
+                <SelectItem value="super">Maximum Detail</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Claude AI Action Buttons */}
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+            <Button 
+              onClick={() => generateClaudeMeetingNotes()} 
+              disabled={isClaudeGenerating || !transcript}
+              variant="default"
+              size="sm"
+              className="w-full sm:w-auto touch-manipulation min-h-[44px]"
+            >
+              <Sparkles className="h-4 w-4 mr-2" />
+              {isClaudeGenerating ? "Generating..." : "Generate with Claude AI"}
+            </Button>
+            
+            {claudeNotes && (
+              <>
+                <Button 
+                  onClick={() => setIsClaudeEditing(!isClaudeEditing)} 
+                  variant="outline" 
+                  size="sm"
+                  className="w-full sm:w-auto touch-manipulation min-h-[44px]"
+                >
+                  <Edit3 className="h-4 w-4 mr-2" />
+                  {isClaudeEditing ? "Save" : "Edit"}
+                </Button>
+                <Button 
+                  onClick={handleCopyClaudeNotes} 
+                  variant="outline" 
+                  size="sm"
+                  className="w-full sm:w-auto touch-manipulation min-h-[44px]"
+                >
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy
+                </Button>
+              </>
+            )}
+          </div>
+
+          {/* Claude AI Meeting Notes Display */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Claude AI Generated Notes</label>
+            <div className="min-h-[200px] max-h-[600px] border rounded-lg p-3 bg-background overflow-auto">
+              {claudeNotes ? (
+                isClaudeEditing ? (
+                  <Textarea 
+                    value={claudeNotes}
+                    onChange={(e) => setClaudeNotes(e.target.value)}
+                    className="min-h-[300px] border-0 p-0 resize-none focus-visible:ring-0 text-sm"
+                    placeholder="Claude AI generated notes will appear here..."
+                  />
+                ) : (
+                  <div className="prose prose-sm max-w-none text-sm">
+                    <SafeMessageRenderer content={claudeNotes} />
+                  </div>
+                )
+              ) : (
+                <div className="flex items-center justify-center h-32 text-muted-foreground">
+                  <div className="text-center">
+                    <Bot className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">Click "Generate with Claude AI" to create enhanced meeting notes</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
         <MeetingMinutesEmailModal
           isOpen={isEmailModalOpen}
           onOpenChange={setIsEmailModalOpen}
