@@ -26,7 +26,8 @@ import {
   FileType,
   Mic,
   X,
-  Wand2
+  Wand2,
+  RefreshCw
 } from "lucide-react";
 
 interface Meeting {
@@ -682,6 +683,38 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     }
   };
 
+  const handleRegenerateNotes = async () => {
+    if (!meeting?.id || !transcript) {
+      toast.error("No transcript available to generate notes from");
+      return;
+    }
+
+    setIsGenerating(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-meeting-minutes', {
+        body: {
+          transcript: transcript,
+          meetingId: meeting.id,
+          title: meeting.title
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.meetingMinutes) {
+        onNotesChange(data.meetingMinutes);
+        saveSummaryToDatabase(data.meetingMinutes);
+        toast.success("Meeting notes regenerated successfully!");
+      }
+    } catch (error) {
+      console.error('Error regenerating meeting notes:', error);
+      toast.error("Failed to regenerate meeting notes");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const handleCustomInstructionSubmit = async () => {
     if (!customInstruction.trim() || !meeting?.id) {
       toast.error("Please enter custom instructions");
@@ -737,14 +770,22 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                   <ChevronDown className="h-3 w-3" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuGroup>
-                  <DropdownMenuItem onClick={() => copyToClipboard(getCurrentContent())}>
-                    <Copy className="h-4 w-4 mr-2" />
-                    Copy to Clipboard
-                  </DropdownMenuItem>
-                  
-                  <DropdownMenuSub>
+               <DropdownMenuContent align="end" className="w-56">
+                 <DropdownMenuGroup>
+                   <DropdownMenuItem onClick={() => copyToClipboard(getCurrentContent())}>
+                     <Copy className="h-4 w-4 mr-2" />
+                     Copy to Clipboard
+                   </DropdownMenuItem>
+                   
+                   {/* Regenerate option - only show if no meeting notes are available and on notes tab */}
+                   {activeTab === "notes" && (!notes || notes.trim().length === 0 || notes === "No meeting content to summarize.") && (
+                     <DropdownMenuItem onClick={handleRegenerateNotes} disabled={isGenerating || !transcript}>
+                       <RefreshCw className="h-4 w-4 mr-2" />
+                       {isGenerating ? 'Regenerating...' : 'Regenerate Notes'}
+                     </DropdownMenuItem>
+                   )}
+                   
+                   <DropdownMenuSub>
                     <DropdownMenuSubTrigger className="cursor-pointer">
                       <Download className="h-4 w-4 mr-2" />
                       Download
