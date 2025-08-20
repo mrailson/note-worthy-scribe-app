@@ -2310,6 +2310,13 @@ export const MeetingRecorder = ({
   };
 
   const startRecording = async () => {
+    console.log('🚨 START RECORDING FUNCTION CALLED');
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    console.log('🚨 Device detection - isIOS:', isIOS);
+    console.log('🚨 Current isRecording state:', isRecording);
+    console.log('🚨 Current duration:', duration);
+    console.log('🚨 Current wordCount:', wordCount);
+    
     try {
       addDebugLog('🚀 Starting recording...');
       console.log('Starting recording...');
@@ -2327,8 +2334,17 @@ export const MeetingRecorder = ({
       const isChrome = /Chrome/.test(navigator.userAgent) && !/Edg/.test(navigator.userAgent);
       const isEdge = /Edg/.test(navigator.userAgent);
       const useScreenShare = isChrome || isEdge;
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
       
-      if (recordingMode === 'mic-only') {
+      console.log('🚨 Browser detection:', { isChrome, isEdge, isIOS, useScreenShare });
+      console.log('🚨 Recording mode:', recordingMode);
+      
+      if (isIOS) {
+        // iPhone/iPad: Always use microphone only
+        console.log('📱 iPhone detected - using microphone-only transcription');
+        addDebugLog('📱 iPhone detected - using microphone-only transcription...');
+        await startMicrophoneTranscription();
+      } else if (recordingMode === 'mic-only') {
         // Microphone only mode
         addDebugLog('🎙️ Starting microphone-only recording...');
         await startMicrophoneTranscription();
@@ -2347,8 +2363,10 @@ export const MeetingRecorder = ({
         }
       }
       
+      console.log('🚨 Setting isRecording to true...');
       setIsRecording(true);
       isRecordingRef.current = true;
+      console.log('🚨 State updated - isRecording should now be true');
       setRealtimeTranscripts([]);
       setSpeakerCount(1);
       setStartTime(generateMeetingTimestamp());
