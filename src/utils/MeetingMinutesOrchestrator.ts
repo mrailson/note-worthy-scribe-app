@@ -74,7 +74,7 @@ export async function generateMinutesFast(
 
   // Small transcripts: use single existing function for compatibility
   if (transcript.length <= 7000) {
-    const { data, error } = await supabase.functions.invoke('generate-meeting-minutes', {
+    const { data, error } = await supabase.functions.invoke('generate-meeting-notes-claude', {
       body: { transcript, meetingTitle, meetingDate, meetingTime, detailLevel },
     });
     if (error) throw error;

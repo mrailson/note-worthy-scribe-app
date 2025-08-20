@@ -2663,15 +2663,14 @@ export const MeetingRecorder = ({
       console.log('🔍 DEBUG: Transcript ending:', cleanedTranscript.slice(-200));
       console.log('🔍 DEBUG: Full transcript for inspection:', cleanedTranscript);
 
-      // Call the generate-meeting-minutes edge function with cleaned transcript
-      const { data: minutesData, error } = await supabase.functions.invoke('generate-meeting-minutes', {
+      // Call the generate-meeting-notes-claude edge function with cleaned transcript
+      const { data: minutesData, error } = await supabase.functions.invoke('generate-meeting-notes-claude', {
         body: {
           transcript: cleanedTranscript,
           meetingTitle: enhancedMeetingData.title,
           meetingDate: new Date().toLocaleDateString(),
           meetingTime: new Date().toLocaleTimeString(),
-          meetingFormat: 'meetingFormat' in meetingSettings ? meetingSettings.meetingFormat : 'teams',
-          practiceId: 'practiceId' in meetingSettings ? meetingSettings.practiceId : undefined
+          detailLevel: 'standard'
         }
       });
 

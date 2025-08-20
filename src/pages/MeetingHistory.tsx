@@ -348,12 +348,13 @@ const MeetingHistory = () => {
     
     setIsGeneratingNotes(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-meeting-minutes', {
+      const { data, error } = await supabase.functions.invoke('generate-meeting-notes-claude', {
         body: {
           transcript: meetingTranscript,
           meetingTitle: selectedMeeting.title,
-          meetingType: selectedMeeting.meeting_type,
-          meetingFormat: selectedMeeting.format || 'teams'
+          meetingDate: new Date(selectedMeeting.created_at).toISOString().split('T')[0],
+          meetingTime: new Date(selectedMeeting.created_at).toLocaleTimeString(),
+          detailLevel: 'standard'
         }
       });
 

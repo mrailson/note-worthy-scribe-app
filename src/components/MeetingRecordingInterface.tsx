@@ -217,11 +217,14 @@ export const MeetingRecordingInterface: React.FC<MeetingRecordingInterfaceProps>
       console.log('Generating summary for meeting:', currentMeetingId);
       
       const { data: summaryData, error: summaryError } = await supabase.functions.invoke(
-        'generate-meeting-minutes',
+        'generate-meeting-notes-claude',
         {
           body: {
             transcript: transcriptText,
-            meetingId: currentMeetingId
+            meetingTitle: 'Recorded Meeting',
+            meetingDate: new Date().toISOString().split('T')[0],
+            meetingTime: new Date().toLocaleTimeString(),
+            detailLevel: 'standard'
           }
         }
       );

@@ -147,14 +147,13 @@ export const MP3TranscriptionTest = ({ onTranscriptReceived }: MP3TranscriptionT
 
       // Generate meeting minutes using the existing edge function
       try {
-        const { data: notesData, error: notesError } = await supabase.functions.invoke('generate-meeting-minutes', {
+        const { data: notesData, error: notesError } = await supabase.functions.invoke('generate-meeting-notes-claude', {
           body: {
-            meetingId: meeting.id,
             transcript: result.text,
             meetingTitle: meetingTitle,
             meetingDate: new Date().toISOString().split('T')[0],
             meetingTime: new Date().toLocaleTimeString(),
-            meetingFormat: 'teams' // Default for imported files
+            detailLevel: 'standard'
           }
         });
 
