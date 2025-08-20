@@ -820,80 +820,90 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
           )}
           
           {/* Tabs Content */}
-          <Tabs defaultValue="notes" value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-            <div className="px-6 pt-4">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="notes">Meeting Notes</TabsTrigger>
-                <TabsTrigger value="transcript">Transcript</TabsTrigger>
-              </TabsList>
-            </div>
-            
-            <TabsContent value="notes" className="flex-1 p-6 bg-white overflow-auto mt-0">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">Meeting Notes</h3>
-                <Button
-                  onClick={() => setIsEditing(!isEditing)}
-                  variant="outline"
-                  size="sm"
-                  className="gap-2"
-                >
-                  <Edit3 className="h-4 w-4" />
-                  {isEditing ? 'Preview' : 'Edit'}
-                </Button>
+          <div className="flex-1 overflow-hidden">
+            <Tabs defaultValue="notes" value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
+              <div className="px-6 pt-4 flex-shrink-0">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="notes">Meeting Notes</TabsTrigger>
+                  <TabsTrigger value="transcript">Transcript</TabsTrigger>
+                </TabsList>
               </div>
+              
+              <TabsContent value="notes" className="flex-1 overflow-hidden mt-0">
+                <div className="h-full flex flex-col">
+                  <div className="flex items-center justify-between p-6 pb-4 flex-shrink-0">
+                    <h3 className="text-lg font-semibold">Meeting Notes</h3>
+                    <Button
+                      onClick={() => setIsEditing(!isEditing)}
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                    >
+                      <Edit3 className="h-4 w-4" />
+                      {isEditing ? 'Preview' : 'Edit'}
+                    </Button>
+                  </div>
 
-              {isEditing ? (
-                <Textarea
-                  value={notes}
-                  onChange={(e) => onNotesChange(e.target.value)}
-                  onBlur={() => saveSummaryToDatabase(notes)}
-                  className="min-h-[400px] font-mono text-sm"
-                  placeholder="Meeting notes will appear here..."
-                />
-              ) : (
-                <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground">
-                  <SafeMessageRenderer content={notes} />
+                  <div className="flex-1 overflow-auto px-6 pb-6">
+                    {isEditing ? (
+                      <Textarea
+                        value={notes}
+                        onChange={(e) => onNotesChange(e.target.value)}
+                        onBlur={() => saveSummaryToDatabase(notes)}
+                        className="min-h-[400px] font-mono text-sm resize-none"
+                        placeholder="Meeting notes will appear here..."
+                      />
+                    ) : (
+                      <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground">
+                        <SafeMessageRenderer content={notes} />
+                      </div>
+                    )}
+                  </div>
                 </div>
-              )}
-            </TabsContent>
-            
-            <TabsContent value="transcript" className="flex-1 p-6 bg-white overflow-auto mt-0">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">Meeting Transcript</h3>
-                <Button
-                  onClick={() => setIsEditing(!isEditing)}
-                  variant="outline"
-                  size="sm"
-                  className="gap-2"
-                >
-                  <Edit3 className="h-4 w-4" />
-                  {isEditing ? 'Preview' : 'Edit'}
-                </Button>
-              </div>
+              </TabsContent>
+              
+              <TabsContent value="transcript" className="flex-1 overflow-hidden mt-0">
+                <div className="h-full flex flex-col">
+                  <div className="flex items-center justify-between p-6 pb-4 flex-shrink-0">
+                    <h3 className="text-lg font-semibold">Meeting Transcript</h3>
+                    <Button
+                      onClick={() => setIsEditing(!isEditing)}
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                    >
+                      <Edit3 className="h-4 w-4" />
+                      {isEditing ? 'Preview' : 'Edit'}
+                    </Button>
+                  </div>
 
-              {isLoadingTranscript ? (
-                <div className="flex items-center justify-center h-40">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                  <span className="ml-2">Loading transcript...</span>
+                  <div className="flex-1 overflow-auto px-6 pb-6">
+                    {isLoadingTranscript ? (
+                      <div className="flex items-center justify-center h-40">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                        <span className="ml-2">Loading transcript...</span>
+                      </div>
+                    ) : isEditing ? (
+                      <Textarea
+                        value={transcript}
+                        onChange={(e) => setTranscript(e.target.value)}
+                        className="min-h-[400px] font-mono text-sm resize-none"
+                        placeholder="Meeting transcript will appear here..."
+                      />
+                    ) : (
+                      <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground">
+                        {transcript ? (
+                          <pre className="whitespace-pre-wrap font-sans">{transcript}</pre>
+                        ) : (
+                          <p className="text-muted-foreground">No transcript available for this meeting.</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              ) : isEditing ? (
-                <Textarea
-                  value={transcript}
-                  onChange={(e) => setTranscript(e.target.value)}
-                  className="min-h-[400px] font-mono text-sm"
-                  placeholder="Meeting transcript will appear here..."
-                />
-              ) : (
-                <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground">
-                  {transcript ? (
-                    <pre className="whitespace-pre-wrap font-sans">{transcript}</pre>
-                  ) : (
-                    <p className="text-muted-foreground">No transcript available for this meeting.</p>
-                  )}
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
+              </TabsContent>
+            </Tabs>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
