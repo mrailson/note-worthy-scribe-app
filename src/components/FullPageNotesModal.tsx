@@ -273,28 +273,142 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
 
   const generatePDF = (content: string, title: string) => {
     try {
+      console.log('🔍 Generating clean PDF document...');
+      toast.info('Generating PDF document...');
+      
       const doc = new jsPDF();
       const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
       const margin = 20;
       const maxWidth = pageWidth - (2 * margin);
+      let currentY = 30;
+      
+      // Clean the content similar to Word processing
+      let cleanText = content
+        // Convert HTML breaks to newlines first
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<\/p>/gi, '\n\n')
+        .replace(/<p[^>]*>/gi, '')
+        // Remove all other HTML tags
+        .replace(/<[^>]*>/g, '')
+        // Decode HTML entities
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/&apos;/g, "'")
+        // Clean up excessive whitespace but preserve structure
+        .replace(/[ \t]+/g, ' ')
+        .replace(/\n[ \t]+/g, '\n')
+        .replace(/[ \t]+\n/g, '\n')
+        .trim();
       
       // Title
-      doc.setFontSize(20);
+      doc.setFontSize(18);
       doc.setFont('helvetica', 'bold');
-      doc.text(title, pageWidth / 2, 30, { align: 'center' });
+      doc.text(title, pageWidth / 2, currentY, { align: 'center' });
+      currentY += 15;
       
       // Date
       doc.setFontSize(12);
       doc.setFont('helvetica', 'normal');
-      doc.text(`Date: ${new Date().toLocaleDateString()}`, pageWidth / 2, 45, { align: 'center' });
+      doc.text(`Date: ${new Date().toLocaleDateString()}`, pageWidth / 2, currentY, { align: 'center' });
+      currentY += 20;
       
-      // Content
-      doc.setFontSize(11);
-      const lines = doc.splitTextToSize(content, maxWidth);
-      doc.text(lines, margin, 60);
+      // Process content line by line
+      const lines = cleanText.split('\n');
+      
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        
+        // Skip empty lines but add spacing
+        if (!line) {
+          currentY += 6;
+          continue;
+        }
+        
+        // Check if we need a new page
+        if (currentY > pageHeight - 30) {
+          doc.addPage();
+          currentY = 30;
+        }
+        
+        // Detect different types of content
+        const isEmojiHeader = /^[1-9]️⃣/.test(line);
+        const isNumberedSection = /^##?\s*\d+\.?\s/.test(line);
+        const isMainHeader = /^#\s/.test(line) || (line.includes('MEETING') && line.length < 100);
+        const isBulletPoint = /^[-•*]\s/.test(line);
+        const isHeader = isEmojiHeader || isNumberedSection || isMainHeader;
+        
+        // Clean and format the text
+        let displayText = line;
+        
+        // Remove markdown formatting
+        if (isNumberedSection) {
+          displayText = line.replace(/^##?\s*/, '');
+        } else if (isMainHeader) {
+          displayText = line.replace(/^#\s*/, '');
+        }
+        
+        // Remove any remaining ** bold markers
+        displayText = displayText.replace(/\*\*([^*]+)\*\*/g, '$1');
+        displayText = displayText.replace(/\*([^*]+)\*/g, '$1');
+        
+        if (isBulletPoint) {
+          // Format bullet points
+          const bulletText = displayText.replace(/^[-•*]\s*/, '');
+          doc.setFontSize(11);
+          doc.setFont('helvetica', 'normal');
+          
+          // Add bullet
+          doc.text('•', margin + 10, currentY);
+          
+          // Add bullet text with wrapping
+          const wrappedText = doc.splitTextToSize(bulletText, maxWidth - 20);
+          doc.text(wrappedText, margin + 20, currentY);
+          currentY += wrappedText.length * 5 + 3;
+          
+        } else if (isHeader) {
+          // Format headers
+          currentY += 8; // Extra space before headers
+          doc.setFontSize(isMainHeader ? 14 : 12);
+          doc.setFont('helvetica', 'bold');
+          
+          const wrappedHeader = doc.splitTextToSize(displayText, maxWidth);
+          doc.text(wrappedHeader, margin, currentY);
+          currentY += wrappedHeader.length * 6 + 8;
+          
+        } else {
+          // Regular paragraph
+          doc.setFontSize(11);
+          doc.setFont('helvetica', 'normal');
+          
+          const wrappedText = doc.splitTextToSize(displayText, maxWidth);
+          doc.text(wrappedText, margin, currentY);
+          currentY += wrappedText.length * 5 + 6;
+        }
+      }
+      
+      // Footer
+      const totalPages = doc.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.text(
+          `Generated on ${new Date().toLocaleDateString()} - Page ${i} of ${totalPages}`,
+          pageWidth / 2,
+          pageHeight - 10,
+          { align: 'center' }
+        );
+      }
       
       doc.save(`${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}-${new Date().toLocaleDateString()}.pdf`);
-      toast.success('PDF generated successfully!');
+      toast.success('Clean PDF generated successfully!');
+      console.log('🔍 Clean PDF generation completed!');
+      
     } catch (error) {
       console.error('PDF generation error:', error);
       toast.error('Failed to generate PDF');
