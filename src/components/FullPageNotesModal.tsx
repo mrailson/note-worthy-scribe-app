@@ -785,9 +785,9 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                      Copy to Clipboard
                    </DropdownMenuItem>
                    
-                   {/* Regenerate option - only show if no meeting notes are available and on notes tab */}
-                   {activeTab === "notes" && (!notes || notes.trim().length === 0 || notes === "No meeting content to summarize.") && (
-                     <DropdownMenuItem onClick={handleRegenerateNotes} disabled={isGenerating || !transcript}>
+                   {/* Regenerate option - show on notes tab when transcript is available */}
+                   {activeTab === "notes" && transcript && (
+                     <DropdownMenuItem onClick={handleRegenerateNotes} disabled={isGenerating}>
                        <RefreshCw className="h-4 w-4 mr-2" />
                        {isGenerating ? 'Regenerating...' : 'Regenerate Notes'}
                      </DropdownMenuItem>
