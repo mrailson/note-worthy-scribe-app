@@ -858,6 +858,14 @@ const MeetingHistory = () => {
     filterMeetings();
   }, [meetings, searchQuery, filterType, advancedFilters]);
 
+  // Debug effect to track filteredMeetings changes
+  useEffect(() => {
+    console.log('🚨 FILTERED MEETINGS STATE CHANGED:', filteredMeetings.length);
+    if (filteredMeetings.length > 0) {
+      console.log('🚨 First meeting in filteredMeetings:', filteredMeetings[0].title);
+    }
+  }, [filteredMeetings]);
+
   const fetchMeetings = async () => {
     try {
       setLoading(true);
@@ -901,9 +909,16 @@ const MeetingHistory = () => {
       if (meetingsError) throw meetingsError;
 
       if (!meetingsData || meetingsData.length === 0) {
+        console.log('🚨 NO MEETINGS DATA - setting empty array');
         setMeetings([]);
+        setFilteredMeetings([]);
         return;
       }
+
+      console.log('🚨 MEETINGS DATA RECEIVED:', meetingsData.length, 'meetings');
+      meetingsData.forEach((meeting, index) => {
+        console.log(`🚨 Meeting ${index}:`, meeting.title, meeting.created_at);
+      });
 
       // Batch the remaining queries efficiently
       const meetingIds = meetingsData.map(m => m.id);
@@ -981,7 +996,15 @@ const MeetingHistory = () => {
         overview: meeting.meeting_overviews?.overview || null
       }));
 
+      console.log('🚨 ENRICHED MEETINGS:', enrichedMeetings.length);
+      enrichedMeetings.forEach((meeting, index) => {
+        console.log(`🚨 Enriched Meeting ${index}:`, meeting.title, meeting.id);
+      });
+
+      console.log('🚨 SETTING MEETINGS STATE...');
       setMeetings(enrichedMeetings);
+      
+      console.log('🚨 MEETINGS STATE SET - should trigger re-render');
     } catch (error: any) {
       console.error("Error Loading Meetings:", error.message);
     } finally {
@@ -990,6 +1013,10 @@ const MeetingHistory = () => {
   };
 
   const filterMeetings = () => {
+    console.log('🚨 FILTERING MEETINGS - input meetings:', meetings.length);
+    console.log('🚨 Search query:', `"${searchQuery}"`);
+    console.log('🚨 Filter type:', filterType);
+    
     let filtered = meetings;
 
     // Apply search query filter
@@ -1045,6 +1072,7 @@ const MeetingHistory = () => {
       filtered = filtered.filter(meeting => meeting.format === advancedFilters.format);
     }
     
+    console.log('🚨 FILTERED MEETINGS RESULT:', filtered.length);
     setFilteredMeetings(filtered);
   };
 

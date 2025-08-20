@@ -134,6 +134,9 @@ export const MeetingHistoryList = ({
   showRecordingPlayback = true,
   onRefresh
 }: MeetingHistoryListProps) => {
+  console.log('🚨 MeetingHistoryList render - meetings:', meetings.length);
+  console.log('🚨 MeetingHistoryList meetings data:', meetings.slice(0, 3).map(m => ({ id: m.id, title: m.title })));
+  
   const [editingMeetingId, setEditingMeetingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState<string>("");
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
