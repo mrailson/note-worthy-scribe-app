@@ -686,19 +686,6 @@ export const MeetingHistoryList = ({
                       )}
                     </div>
                     <div className="flex flex-wrap gap-2 items-center">
-                      <Badge variant="secondary" className="text-xs">
-                        {getMeetingTypeLabel(meeting.meeting_type)}
-                      </Badge>
-                      
-                      {/* Add Shared Meeting Badge */}
-                      <SharedMeetingBadge 
-                        accessType={meeting.access_type || 'owner'}
-                        accessLevel={meeting.access_level}
-                        sharedBy={meeting.shared_by}
-                        sharedAt={meeting.shared_at}
-                        shareMessage={meeting.share_message}
-                      />
-                      
                       {/* Date, Time, Duration, Word Count, Files - All on same line */}
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
                         <Calendar className="h-3 w-3 flex-shrink-0" />
