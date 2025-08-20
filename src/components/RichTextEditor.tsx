@@ -11,7 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { 
   Bold, 
   Italic, 
-  Underline as UnderlineIcon, 
+  Underline as UnderlineIcon,
   Strikethrough,
   AlignLeft,
   AlignCenter,
@@ -48,7 +48,7 @@ const colorOptions = [
 ];
 
 const fontFamilies = [
-  { label: 'Default', value: '' },
+  { label: 'Default', value: 'default' },
   { label: 'Arial', value: 'Arial, sans-serif' },
   { label: 'Calibri', value: 'Calibri, sans-serif' },
   { label: 'Times New Roman', value: 'Times New Roman, serif' },
@@ -134,9 +134,9 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         
         {/* Font Family */}
         <Select
-          value={editor.getAttributes('textStyle').fontFamily || ''}
+          value={editor.getAttributes('textStyle').fontFamily || 'default'}
           onValueChange={(value) => 
-            value ? editor.chain().focus().setFontFamily(value).run() : editor.chain().focus().unsetFontFamily().run()
+            value === 'default' ? editor.chain().focus().unsetFontFamily().run() : editor.chain().focus().setFontFamily(value).run()
           }
         >
           <SelectTrigger className="w-32 h-8">
