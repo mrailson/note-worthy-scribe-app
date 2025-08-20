@@ -58,11 +58,11 @@ const MeetingNotesWordExport: React.FC<MeetingNotesWordExportProps> = ({ meeting
           .replace(/<\/p>/gi, '\n\n')
           .replace(/<p[^>]*>/gi, '')
           .replace(/<\/h[1-6]>/gi, '\n')
-          .replace(/<h[1-6][^>]*>/gi, '\n**')
+          .replace(/<h[1-6][^>]*>/gi, '\n')
           .replace(/<\/strong>/gi, '')
-          .replace(/<strong[^>]*>/gi, '**')
+          .replace(/<strong[^>]*>/gi, '')
           .replace(/<\/b>/gi, '')
-          .replace(/<b[^>]*>/gi, '**')
+          .replace(/<b[^>]*>/gi, '')
           .replace(/<[^>]*>/g, '')
           .replace(/&nbsp;/g, ' ')
           .replace(/&amp;/g, '&')
@@ -77,66 +77,108 @@ const MeetingNotesWordExport: React.FC<MeetingNotesWordExportProps> = ({ meeting
         for (const line of lines) {
           const trimmedLine = line.trim();
           if (!trimmedLine) {
-            // Add spacing for empty lines
+            // Add minimal spacing for empty lines
             paragraphs.push(new Paragraph({
-              children: [new TextRun({ text: "", size: 20 })],
-              spacing: { after: 120 }
+              children: [new TextRun({ text: "", size: 22 })],
+              spacing: { after: 60 }
             }));
             continue;
           }
           
-          // Check for bold markers or headers
-          const isBold = trimmedLine.startsWith('**') && trimmedLine.endsWith('**');
+          // Check for bold markers
+          const boldMatch = trimmedLine.match(/^\*\*(.*?)\*\*$/);
+          if (boldMatch) {
+            // Bold text without ** markers
+            paragraphs.push(new Paragraph({
+              children: [new TextRun({
+                text: boldMatch[1],
+                bold: true,
+                size: 24,
+                color: "1f2937"
+              })],
+              spacing: { after: 80 }
+            }));
+            continue;
+          }
+          
+          // Check for section headers
           const isHeader = /^[#*]{1,4}\s/.test(trimmedLine) || 
                           /^[A-Z\s]{8,}$/.test(trimmedLine) ||
-                          isBold ||
                           trimmedLine.includes('ATTENDEES') ||
                           trimmedLine.includes('OVERVIEW') ||
                           trimmedLine.includes('CONTENT') ||
                           trimmedLine.includes('DECISIONS') ||
                           trimmedLine.includes('ACTION') ||
-                          trimmedLine.includes('RISKS');
+                          trimmedLine.includes('RISKS') ||
+                          trimmedLine.includes('MEETING OVERVIEW') ||
+                          trimmedLine.includes('DETAILED MEETING');
           
-          let displayText = trimmedLine;
-          if (isBold) {
-            displayText = trimmedLine.replace(/^\*\*|\*\*$/g, '');
+          // Handle inline bold markers within text
+          let processedText = trimmedLine;
+          const parts = [];
+          let lastIndex = 0;
+          
+          // Find all **text** patterns
+          const boldRegex = /\*\*(.*?)\*\*/g;
+          let match;
+          
+          while ((match = boldRegex.exec(trimmedLine)) !== null) {
+            // Add normal text before the bold part
+            if (match.index > lastIndex) {
+              const normalText = trimmedLine.substring(lastIndex, match.index);
+              if (normalText) {
+                parts.push(new TextRun({
+                  text: normalText,
+                  size: 22,
+                  color: "374151"
+                }));
+              }
+            }
+            
+            // Add bold text
+            parts.push(new TextRun({
+              text: match[1],
+              bold: true,
+              size: 22,
+              color: "1f2937"
+            }));
+            
+            lastIndex = match.index + match[0].length;
           }
           
-          if (isHeader) {
-            paragraphs.push(new Paragraph({
-              children: [new TextRun({
-                text: displayText,
-                bold: true,
-                size: 28,
-                color: "1f2937"
-              })],
-              spacing: { before: 240, after: 120 }
-            }));
-          } else {
-            // Check for bullet points
-            const isBullet = trimmedLine.startsWith('-') || trimmedLine.startsWith('•');
-            if (isBullet) {
-              paragraphs.push(new Paragraph({
-                children: [new TextRun({
-                  text: trimmedLine,
-                  size: 22,
-                  color: "374151"
-                })],
-                spacing: { after: 120 },
-                indent: { left: 360 }
-              }));
-            } else {
-              // Regular content
-              paragraphs.push(new Paragraph({
-                children: [new TextRun({
-                  text: displayText,
-                  size: 22,
-                  color: "374151"
-                })],
-                spacing: { after: 120 }
+          // Add remaining normal text
+          if (lastIndex < trimmedLine.length) {
+            const remainingText = trimmedLine.substring(lastIndex);
+            if (remainingText) {
+              parts.push(new TextRun({
+                text: remainingText,
+                size: 22,
+                color: "374151"
               }));
             }
           }
+          
+          // If no bold parts found, use the whole line
+          if (parts.length === 0) {
+            parts.push(new TextRun({
+              text: processedText,
+              size: isHeader ? 24 : 22,
+              bold: isHeader,
+              color: isHeader ? "1f2937" : "374151"
+            }));
+          }
+          
+          // Check for bullet points
+          const isBullet = trimmedLine.startsWith('-') || trimmedLine.startsWith('•');
+          
+          paragraphs.push(new Paragraph({
+            children: parts,
+            spacing: { 
+              after: isHeader ? 120 : (isBullet ? 40 : 60),
+              before: isHeader ? 160 : 0
+            },
+            indent: isBullet ? { left: 360 } : undefined
+          }));
         }
         
         return paragraphs;
