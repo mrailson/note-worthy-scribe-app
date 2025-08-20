@@ -144,16 +144,10 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
           // Clean and format the text
           let displayText = line;
           
-          // Remove markdown formatting
-          if (isNumberedSection) {
-            displayText = line.replace(/^##?\s*/, '');
-          } else if (isMainHeader) {
-            displayText = line.replace(/^#\s*/, '');
-          }
-          
-          // Remove any remaining ** bold markers
-          displayText = displayText.replace(/\*\*([^*]+)\*\*/g, '$1');
-          displayText = displayText.replace(/\*([^*]+)\*/g, '$1');
+          // Remove ALL hash symbols and markdown formatting
+          displayText = displayText.replace(/^#+\s*/, ''); // Remove any number of # at start
+          displayText = displayText.replace(/\*\*([^*]+)\*\*/g, '$1'); // Remove **bold**
+          displayText = displayText.replace(/\*([^*]+)\*/g, '$1'); // Remove *italic*
           
           if (isBulletPoint) {
             // Format bullet points
@@ -345,16 +339,10 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
         // Clean and format the text
         let displayText = line;
         
-        // Remove markdown formatting
-        if (isNumberedSection) {
-          displayText = line.replace(/^##?\s*/, '');
-        } else if (isMainHeader) {
-          displayText = line.replace(/^#\s*/, '');
-        }
-        
-        // Remove any remaining ** bold markers
-        displayText = displayText.replace(/\*\*([^*]+)\*\*/g, '$1');
-        displayText = displayText.replace(/\*([^*]+)\*/g, '$1');
+        // Remove ALL hash symbols and markdown formatting
+        displayText = displayText.replace(/^#+\s*/, ''); // Remove any number of # at start
+        displayText = displayText.replace(/\*\*([^*]+)\*\*/g, '$1'); // Remove **bold**
+        displayText = displayText.replace(/\*([^*]+)\*/g, '$1'); // Remove *italic*
         
         if (isBulletPoint) {
           // Format bullet points
