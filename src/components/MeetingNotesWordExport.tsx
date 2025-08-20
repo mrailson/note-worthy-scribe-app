@@ -118,8 +118,8 @@ const MeetingNotesWordExport: React.FC<MeetingNotesWordExportProps> = ({ meeting
           const parts = [];
           let lastIndex = 0;
           
-          // Find all **text** patterns
-          const boldRegex = /\*\*(.*?)\*\*/g;
+          // Find all **text** patterns (including single * patterns)
+          const boldRegex = /\*{1,2}([^*]+?)\*{1,2}/g;
           let match;
           
           while ((match = boldRegex.exec(trimmedLine)) !== null) {
