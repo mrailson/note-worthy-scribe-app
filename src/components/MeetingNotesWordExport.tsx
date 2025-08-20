@@ -52,18 +52,18 @@ const MeetingNotesWordExport: React.FC<MeetingNotesWordExportProps> = ({ meeting
       const stripHtmlAndFormat = (htmlContent: string) => {
         if (!htmlContent) return [];
         
-        // Remove HTML tags and decode entities
-        let cleanText = htmlContent
+        // First, convert HTML formatting to temporary markers
+        let processedText = htmlContent
           .replace(/<br\s*\/?>/gi, '\n')
           .replace(/<\/p>/gi, '\n\n')
           .replace(/<p[^>]*>/gi, '')
           .replace(/<\/h[1-6]>/gi, '\n')
           .replace(/<h[1-6][^>]*>/gi, '\n')
-          .replace(/<\/strong>/gi, '')
-          .replace(/<strong[^>]*>/gi, '')
-          .replace(/<\/b>/gi, '')
-          .replace(/<b[^>]*>/gi, '')
-          .replace(/<[^>]*>/g, '')
+          .replace(/<strong[^>]*>(.*?)<\/strong>/gi, '**$1**') // Convert HTML bold to markdown
+          .replace(/<b[^>]*>(.*?)<\/b>/gi, '**$1**') // Convert HTML bold to markdown
+          .replace(/<em[^>]*>(.*?)<\/em>/gi, '*$1*') // Convert HTML italic to markdown
+          .replace(/<i[^>]*>(.*?)<\/i>/gi, '*$1*') // Convert HTML italic to markdown
+          .replace(/<[^>]*>/g, '') // Remove remaining HTML tags
           .replace(/&nbsp;/g, ' ')
           .replace(/&amp;/g, '&')
           .replace(/&lt;/g, '<')
@@ -73,7 +73,7 @@ const MeetingNotesWordExport: React.FC<MeetingNotesWordExportProps> = ({ meeting
           .replace(/^---+$/gm, ''); // Remove horizontal rules (--- characters)
 
         const paragraphs = [];
-        const lines = cleanText.split('\n');
+        const lines = processedText.split('\n');
         
         for (const line of lines) {
           const trimmedLine = line.trim();
