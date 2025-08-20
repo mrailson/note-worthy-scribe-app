@@ -1038,6 +1038,13 @@ export const MeetingRecorder = ({
   // Check for unsaved meeting on component mount
   useEffect(() => {
     const checkUnsavedMeeting = () => {
+      // Skip unsaved meeting recovery for iPhone users (they auto-save)
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      if (isIOS) {
+        console.log('📱 iPhone detected - skipping unsaved meeting check');
+        return;
+      }
+      
       const unsavedMeeting = localStorage.getItem('unsaved_meeting');
       if (unsavedMeeting) {
         const meetingData = JSON.parse(unsavedMeeting);
