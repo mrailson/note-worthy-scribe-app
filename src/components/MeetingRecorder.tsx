@@ -2684,6 +2684,10 @@ export const MeetingRecorder = ({
 
     // Show Notewell AI animation
     setIsGeneratingNotes(true);
+    updateDebugInfo({
+      recordingState: 'generating_notes',
+      transcriptionEvents: [`${new Date().toLocaleTimeString()}: Starting note generation...`]
+    });
 
     try {
       // Temporarily bypass transcript cleaning to avoid truncation
@@ -2727,6 +2731,10 @@ export const MeetingRecorder = ({
         };
 
         setIsGeneratingNotes(false);
+        updateDebugInfo({
+          recordingState: 'notes_complete',
+          transcriptionEvents: [`${new Date().toLocaleTimeString()}: Notes generated successfully! Navigating to summary...`]
+        });
         toast.success('Meeting notes generated successfully!');
         
         // Navigate to meeting summary with data and generated notes
@@ -2737,6 +2745,11 @@ export const MeetingRecorder = ({
     } catch (error) {
       console.error('Error generating meeting notes:', error);
       setIsGeneratingNotes(false);
+      updateDebugInfo({
+        recordingState: 'notes_error',
+        lastError: error.message || 'Note generation failed',
+        transcriptionEvents: [`${new Date().toLocaleTimeString()}: ERROR - ${error.message || 'Note generation failed'}`]
+      });
       toast.error('Failed to generate meeting notes. Proceeding without AI notes.');
       
       // Still navigate to meeting summary even if note generation fails, including meeting format
@@ -3909,7 +3922,14 @@ export const MeetingRecorder = ({
 
       </Tabs>
       
-      <NotewellAIAnimation isVisible={isGeneratingNotes} />
+      <NotewellAIAnimation 
+        isVisible={isGeneratingNotes} 
+        onDismiss={() => {
+          updateDebugInfo({
+            transcriptionEvents: [`${new Date().toLocaleTimeString()}: Animation dismissed by user`]
+          });
+        }}
+      />
     </div>
   );
 };

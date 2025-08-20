@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
-import { FileText, Sparkles, Bot } from "lucide-react";
+import { FileText, Sparkles, Bot, X, Eye } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface NotewellAIAnimationProps {
   isVisible: boolean;
+  onDismiss?: () => void;
 }
 
-export const NotewellAIAnimation = ({ isVisible }: NotewellAIAnimationProps) => {
+export const NotewellAIAnimation = ({ isVisible, onDismiss }: NotewellAIAnimationProps) => {
   const [dots, setDots] = useState("");
 
   useEffect(() => {
@@ -27,7 +29,19 @@ export const NotewellAIAnimation = ({ isVisible }: NotewellAIAnimationProps) => 
 
   return (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
-      <div className="bg-card rounded-lg p-8 shadow-lg border max-w-md mx-4 text-center">
+      <div className="bg-card rounded-lg p-8 shadow-lg border max-w-md mx-4 text-center relative">
+        {/* Dismiss button */}
+        {onDismiss && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="absolute top-2 right-2 h-8 w-8 p-0"
+            onClick={onDismiss}
+          >
+            <Eye className="h-4 w-4" />
+          </Button>
+        )}
+        
         <div className="relative mb-6 w-20 h-20 mx-auto">
           {/* Main rotating gear */}
           <div className="absolute inset-0 flex items-center justify-center">
@@ -60,6 +74,11 @@ export const NotewellAIAnimation = ({ isVisible }: NotewellAIAnimationProps) => 
           
           <div className="text-sm text-muted-foreground">
             Creating comprehensive notes from your recording
+          </div>
+          
+          <div className="text-xs text-muted-foreground mt-2 flex items-center justify-center gap-1">
+            <Eye className="h-3 w-3" />
+            <span>Tap eye icon to see debug info</span>
           </div>
         </div>
       </div>
