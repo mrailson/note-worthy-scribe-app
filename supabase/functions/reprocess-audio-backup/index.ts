@@ -81,17 +81,37 @@ serve(async (req) => {
       )
     }
 
-    // Update the original meeting transcript
-    const { error: updateError } = await supabase
-      .from('meetings')
-      .update({ 
-        transcript: transcription.text,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', backup.meeting_id)
+    // Update the meeting transcript in meeting_transcripts table
+    // First, delete existing transcript entries for this meeting
+    const { error: deleteError } = await supabase
+      .from('meeting_transcripts')
+      .delete()
+      .eq('meeting_id', backup.meeting_id)
 
-    if (updateError) {
-      console.error('Failed to update meeting transcript:', updateError)
+    if (deleteError) {
+      console.error('Failed to delete existing transcript:', deleteError)
+    }
+
+    // Insert the new transcript
+    const { error: insertError } = await supabase
+      .from('meeting_transcripts')
+      .insert({
+        meeting_id: backup.meeting_id,
+        content: transcription.text,
+        speaker_name: 'Reprocessed Audio',
+        timestamp_seconds: 0,
+        confidence_score: 1.0
+      })
+
+    if (insertError) {
+      console.error('Failed to insert reprocessed transcript:', insertError)
+      return new Response(
+        JSON.stringify({ error: 'Failed to save transcript', details: insertError }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
     }
 
     // Mark backup as reprocessed
