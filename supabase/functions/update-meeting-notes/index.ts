@@ -47,7 +47,7 @@ serve(async (req) => {
     // Extract structured information from the meeting minutes
     const keyPoints = [
       'Dispensary spatial reorganization and consolidation strategy',
-      'Multi-site operations between Bricksworth and main locations',
+      'Multi-site operations between Brixworth and main locations',
       'Proscript technology implementation for EPS integration', 
       'Staff succession planning with multiple retirements pending',
       'Cost-benefit analysis of operational consolidation',
@@ -58,14 +58,14 @@ serve(async (req) => {
       'Complete hatch installation to access additional room space',
       'Finalize cost-benefit analysis comparing consolidation scenarios',
       'Develop detailed implementation timeline for Proscript system',
-      'Assess specific revenue impact of Bricksworth closure scenario',
+      'Assess specific revenue impact of Brixworth closure scenario',
       'Create succession planning documentation for retiring staff',
       'Evaluate technology requirements for full EPS integration'
     ];
 
     const decisions = [
       'Proscript system selected as preferred technology solution',
-      'Bricksworth identified as primary candidate for closure if consolidating',
+      'Brixworth identified as primary candidate for closure if consolidating',
       'Technology implementation prioritized to reduce operational duplication',
       'CQC compliance recognized as multi-person responsibility'
     ];

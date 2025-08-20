@@ -23,7 +23,7 @@ This strategic planning meeting focused on major operational restructuring of di
 ### **2.1 Dispensary Spatial Reorganization**
 **Key Discussion Points:**
 - Proposal to relocate dispensary operations to create additional space
-- Current space constraints at Bricksworth location where staff are "on each other's toes a lot"
+- Current space constraints at Brixworth location where staff are "on each other's toes a lot"
 - Available unused rooms at main site pending "hatch installation"
 - Consideration of moving operations "to one side" when space renovation is complete
 
@@ -34,7 +34,7 @@ This strategic planning meeting focused on major operational restructuring of di
 
 ### **2.2 Multi-Site Operations Strategy**
 **Key Discussion Points:**
-- Comparison between Bricksworth and main site operational capacity
+- Comparison between Brixworth and main site operational capacity
 - Logistics of medication distribution between sites
 - Evaluation of maintaining separate dispensaries vs. consolidation
 
@@ -64,7 +64,7 @@ This strategic planning meeting focused on major operational restructuring of di
 
 ### **3.2 Infrastructure Considerations**
 - Pending hatch installation to open additional room capacity
-- Physical space limitations at Bricksworth requiring optimization
+- Physical space limitations at Brixworth requiring optimization
 - Dispensary layout improvements needed for workflow efficiency
 
 ---
@@ -79,7 +79,7 @@ This strategic planning meeting focused on major operational restructuring of di
 
 **Cost Considerations:**
 - Initial implementation would be "quite disruptive"
-- Need to "weigh up how much are you losing on acute scripts and some at Bricksworth versus how much it costs to run a dispensary"
+- Need to "weigh up how much are you losing on acute scripts and some at Brixworth versus how much it costs to run a dispensary"
 - Potential revenue loss from reduced prescription volume at satellite locations
 
 ### **4.2 Financial Viability Assessment**
@@ -91,7 +91,7 @@ This strategic planning meeting focused on major operational restructuring of di
 ## **5. STAFFING & HR MATTERS**
 
 ### **5.1 Historical Context & Lessons Learned**
-**Previous Experience at Bricksworth:**
+**Previous Experience at Brixworth:**
 - Failed attempt during Catherine and Simon era where temporary dispensary coverage "really didn't work"
 - Individual had to abandon regular duties to cover dispensary alone for two weeks
 - Highlighted challenges of cross-training and emergency coverage
@@ -120,7 +120,7 @@ This strategic planning meeting focused on major operational restructuring of di
 
 ### **6.1 Consolidation Strategy**
 **Primary Consideration:**
-- "I could only see that being worth the effort if we were shutting one entirely, and that would have to be Bricksworth"
+- "I could only see that being worth the effort if we were shutting one entirely, and that would have to be Brixworth"
 - Full closure vs. partial consolidation as key strategic decision point
 
 ### **6.2 Implementation Planning**
@@ -148,7 +148,7 @@ This strategic planning meeting focused on major operational restructuring of di
 - Complete hatch installation to access additional room space
 - Finalize cost-benefit analysis comparing consolidation scenarios
 - Develop detailed implementation timeline for Proscript system
-- Assess specific revenue impact of Bricksworth closure scenario
+- Assess specific revenue impact of Brixworth closure scenario
 
 **Medium-term Planning:**
 - Create succession planning documentation for retiring staff
@@ -156,7 +156,7 @@ This strategic planning meeting focused on major operational restructuring of di
 - Evaluate technology requirements for full EPS integration
 
 **Strategic Decisions Pending:**
-- Final decision on Bricksworth closure vs. consolidation
+- Final decision on Brixworth closure vs. consolidation
 - Staffing model for consolidated operations
 - Timeline for technology implementation
 
