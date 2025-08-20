@@ -85,33 +85,39 @@ async function processAudioInChunks(audioBuffer: ArrayBuffer, meetingId: string,
 // Update meeting transcript with new chunks
 async function updateMeetingTranscript(meetingId: string, userId: string, newChunks: any[]) {
   try {
-    // Get existing transcript
-    const { data: existingTranscript, error: fetchError } = await supabase
-      .from('meeting_transcripts')
-      .select('content')
-      .eq('meeting_id', meetingId)
-      .single();
+    console.log(`Updating transcript for meeting ${meetingId} with ${newChunks.length} chunks`);
     
-    if (fetchError && fetchError.code !== 'PGRST116') {
-      throw fetchError;
+    // First, delete existing transcript entries for this meeting
+    const { error: deleteError } = await supabase
+      .from('meeting_transcripts')
+      .delete()
+      .eq('meeting_id', meetingId);
+    
+    if (deleteError) {
+      console.error('Error deleting existing transcript:', deleteError);
+      // Continue anyway - might not have existing transcript
     }
     
-    // Combine existing and new content
-    const existingContent = existingTranscript?.content || '';
+    // Combine all chunks into new content
     const newContent = newChunks.map(chunk => chunk.text).join(' ');
-    const fullTranscript = existingContent + ' ' + newContent;
     
-    // Update or insert transcript
-    const { error: upsertError } = await supabase
+    // Insert the new transcript
+    const { error: insertError } = await supabase
       .from('meeting_transcripts')
-      .upsert({
+      .insert({
         meeting_id: meetingId,
-        content: fullTranscript,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        content: newContent,
+        speaker_name: 'Reprocessed Audio',
+        timestamp_seconds: 0,
+        confidence_score: 0.95
       });
     
-    if (upsertError) throw upsertError;
+    if (insertError) {
+      console.error('Error inserting reprocessed transcript:', insertError);
+      throw insertError;
+    }
+    
+    console.log(`Successfully saved reprocessed transcript: ${newContent.length} characters`);
     
     // Log the reprocessing
     const { error: logError } = await supabase
@@ -122,7 +128,7 @@ async function updateMeetingTranscript(meetingId: string, userId: string, newChu
         record_id: meetingId,
         user_id: userId,
         new_values: {
-          chunks_added: newChunks.length,
+          chunks_processed: newChunks.length,
           total_new_length: newContent.length,
           reprocessed_at: new Date().toISOString()
         }
@@ -132,8 +138,8 @@ async function updateMeetingTranscript(meetingId: string, userId: string, newChu
     
     return {
       success: true,
-      chunksAdded: newChunks.length,
-      totalLength: fullTranscript.length,
+      chunksProcessed: newChunks.length,
+      totalLength: newContent.length,
       newContentLength: newContent.length
     };
     

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
-import { RefreshCw, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+import { RefreshCw, AlertTriangle, CheckCircle, Clock, FileAudio } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -13,6 +13,13 @@ interface TranscriptReprocessButtonProps {
   className?: string;
 }
 
+interface ProcessingStep {
+  step: string;
+  description: string;
+  progress: number;
+  completed: boolean;
+}
+
 const TranscriptReprocessButton: React.FC<TranscriptReprocessButtonProps> = ({
   meetingId,
   userId,
@@ -20,26 +27,59 @@ const TranscriptReprocessButton: React.FC<TranscriptReprocessButtonProps> = ({
   className = ""
 }) => {
   const [isReprocessing, setIsReprocessing] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [status, setStatus] = useState<string>('');
+  const [currentStep, setCurrentStep] = useState<ProcessingStep | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<boolean>(false);
+  const [processingSteps, setProcessingSteps] = useState<ProcessingStep[]>([]);
 
-  const handleReprocessAudio = async () => {
+  const steps: ProcessingStep[] = [
+    { step: 'finding', description: 'Finding audio backup...', progress: 10, completed: false },
+    { step: 'downloading', description: 'Downloading audio file...', progress: 25, completed: false },
+    { step: 'chunking', description: 'Splitting audio into chunks...', progress: 40, completed: false },
+    { step: 'transcribing', description: 'Transcribing audio chunks...', progress: 75, completed: false },
+    { step: 'saving', description: 'Saving transcript to database...', progress: 90, completed: false },
+    { step: 'complete', description: 'Reprocessing complete!', progress: 100, completed: false }
+  ];
+
+  const updateStep = (stepName: string) => {
+    const step = steps.find(s => s.step === stepName);
+    if (step) {
+      setCurrentStep(step);
+      setProcessingSteps(prev => {
+        const updated = [...prev];
+        const index = updated.findIndex(s => s.step === stepName);
+        if (index >= 0) {
+          updated[index] = { ...step, completed: true };
+        } else {
+          updated.push({ ...step, completed: true });
+        }
+        return updated;
+      });
+    }
+  };
+
+  const handleReprocessAudio = async (e: React.MouseEvent) => {
+    // Prevent collapse behavior
+    e.preventDefault();
+    e.stopPropagation();
+    
     if (!meetingId || !userId) {
       toast.error('Missing meeting or user information');
       return;
     }
 
     setIsReprocessing(true);
-    setProgress(0);
     setError(null);
     setSuccess(false);
-    setStatus('Finding audio backup...');
-
+    setProcessingSteps([]);
+    
     try {
+      updateStep('finding');
+      toast.info('Starting audio reprocessing...', {
+        description: 'This will regenerate the full transcript from audio backup'
+      });
+
       // First, find the audio backup for this meeting
-      setProgress(10);
       const { data: backups, error: backupError } = await supabase
         .from('meeting_audio_backups')
         .select('id, file_path, file_size')
@@ -50,9 +90,9 @@ const TranscriptReprocessButton: React.FC<TranscriptReprocessButtonProps> = ({
 
       if (backupError) throw backupError;
 
+      let backup = null;
       if (!backups || backups.length === 0) {
         // Try to find backup by user and proximity to meeting time
-        setStatus('Searching for backup by time proximity...');
         const { data: proximityBackups, error: proximityError } = await supabase
           .from('meeting_audio_backups')
           .select('id, file_path, file_size, created_at')
@@ -66,19 +106,66 @@ const TranscriptReprocessButton: React.FC<TranscriptReprocessButtonProps> = ({
           throw new Error('No audio backup found for this meeting');
         }
 
-        // Use the largest backup (likely the most complete)
-        const backup = proximityBackups[0];
-        setStatus('Found audio backup, starting reprocessing...');
-        setProgress(30);
-
-        await reprocessBackup(backup.id);
+        backup = proximityBackups[0];
       } else {
-        const backup = backups[0];
-        setStatus('Found audio backup, starting reprocessing...');
-        setProgress(30);
-
-        await reprocessBackup(backup.id);
+        backup = backups[0];
       }
+
+      updateStep('downloading');
+      
+      // Use the chunked reprocessing function
+      updateStep('chunking');
+      updateStep('transcribing');
+      
+      const { data, error } = await supabase.functions.invoke('reprocess-audio-chunks', {
+        body: { 
+          meetingId,
+          userId,
+          audioFilePath: backup.file_path
+        }
+      });
+
+      if (error) throw error;
+
+      if (!data.success) {
+        throw new Error(data.error || 'Reprocessing failed');
+      }
+
+      updateStep('saving');
+      
+      // The transcript should already be updated by the edge function
+      // Let's fetch the updated transcript from meeting_transcripts table
+      const { data: transcripts, error: transcriptError } = await supabase
+        .from('meeting_transcripts')
+        .select('content')
+        .eq('meeting_id', meetingId)
+        .order('created_at', { ascending: true });
+
+      if (transcriptError) {
+        console.warn('Could not fetch updated transcript:', transcriptError);
+      }
+
+      updateStep('complete');
+      setSuccess(true);
+
+      // Call the callback with the new transcript
+      if (onTranscriptUpdated && transcripts && transcripts.length > 0) {
+        const fullTranscript = transcripts.map(t => t.content).join(' ');
+        onTranscriptUpdated(fullTranscript);
+      } else if (onTranscriptUpdated && data.transcription) {
+        onTranscriptUpdated(data.transcription);
+      }
+
+      toast.success('Transcript successfully regenerated!', {
+        description: `Processed ${data.chunksProcessed || 'multiple'} audio chunks`
+      });
+
+      // Clear success state after 5 seconds
+      setTimeout(() => {
+        setSuccess(false);
+        setCurrentStep(null);
+        setProcessingSteps([]);
+      }, 5000);
 
     } catch (err) {
       console.error('Reprocessing error:', err);
@@ -89,57 +176,6 @@ const TranscriptReprocessButton: React.FC<TranscriptReprocessButtonProps> = ({
     } finally {
       setIsReprocessing(false);
     }
-  };
-
-  const reprocessBackup = async (backupId: string) => {
-    setStatus('Processing audio file...');
-    setProgress(50);
-
-    const { data, error } = await supabase.functions.invoke('reprocess-audio-backup', {
-      body: { backupId }
-    });
-
-    if (error) throw error;
-
-    if (!data.success) {
-      throw new Error(data.error || 'Reprocessing failed');
-    }
-
-    setProgress(80);
-    setStatus('Updating transcript in database...');
-
-    // The transcript should already be updated by the edge function
-    // Let's fetch the updated transcript from meeting_transcripts table
-    const { data: transcripts, error: transcriptError } = await supabase
-      .from('meeting_transcripts')
-      .select('content')
-      .eq('meeting_id', meetingId)
-      .order('created_at', { ascending: true });
-
-    if (transcriptError) {
-      console.warn('Could not fetch updated transcript:', transcriptError);
-    }
-
-    setProgress(100);
-    setStatus('Reprocessing complete!');
-    setSuccess(true);
-
-    // Call the callback with the new transcript
-    if (onTranscriptUpdated && transcripts && transcripts.length > 0) {
-      const fullTranscript = transcripts.map(t => t.content).join(' ');
-      onTranscriptUpdated(fullTranscript);
-    } else if (onTranscriptUpdated && data.transcription) {
-      onTranscriptUpdated(data.transcription);
-    }
-
-    toast.success('Transcript successfully regenerated from audio backup!');
-
-    // Clear success state after 3 seconds
-    setTimeout(() => {
-      setSuccess(false);
-      setStatus('');
-      setProgress(0);
-    }, 3000);
   };
 
   return (
@@ -160,13 +196,24 @@ const TranscriptReprocessButton: React.FC<TranscriptReprocessButtonProps> = ({
         </Alert>
       )}
 
-      {isReprocessing && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+      {isReprocessing && currentStep && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 text-sm">
             <div className="h-3 w-3 animate-spin border border-current border-t-transparent rounded-full" />
-            <span>{status}</span>
+            <span className="font-medium">{currentStep.description}</span>
           </div>
-          <Progress value={progress} className="w-full" />
+          <Progress value={currentStep.progress} className="w-full" />
+          
+          {processingSteps.length > 0 && (
+            <div className="space-y-1">
+              {processingSteps.map((step, index) => (
+                <div key={step.step} className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <CheckCircle className="h-3 w-3 text-green-500" />
+                  <span>{step.description}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -193,8 +240,8 @@ const TranscriptReprocessButton: React.FC<TranscriptReprocessButtonProps> = ({
       {!isReprocessing && !success && (
         <div className="text-xs text-muted-foreground">
           <div className="flex items-center gap-1">
-            <Clock className="h-3 w-3" />
-            <span>Regenerates full transcript from audio backup (~1-2 minutes)</span>
+            <FileAudio className="h-3 w-3" />
+            <span>Regenerates full transcript from audio backup in chunks (~2-3 minutes)</span>
           </div>
         </div>
       )}
