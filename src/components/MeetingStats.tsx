@@ -9,10 +9,15 @@ interface MeetingStatsProps {
 }
 
 export const MeetingStats: React.FC<MeetingStatsProps> = ({ meetingData }) => {
+  console.log('MeetingStats received meetingData:', meetingData);
   if (!meetingData) return null;
 
   const formatDuration = (duration: string | undefined) => {
-    if (!duration) return '0:00';
+    console.log('formatDuration called with:', duration, typeof duration);
+    if (!duration) {
+      console.log('Duration is falsy, returning 0:00');
+      return '0:00';
+    }
     if (duration.includes(':')) return duration;
     return `${duration}:00`;
   };

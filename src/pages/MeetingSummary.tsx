@@ -15,12 +15,12 @@ import { useState } from "react";
 
 interface MeetingDataFromState {
   id?: string;
-  title: string;
-  duration: string;
-  wordCount: number;
-  transcript: string;
-  speakerCount: number;
-  startTime: string;
+  title?: string;
+  duration?: string;
+  wordCount?: number;
+  transcript?: string;
+  speakerCount?: number;
+  startTime?: string;
   practiceName?: string;
   practiceId?: string;
   meetingFormat?: string;
@@ -106,7 +106,27 @@ export default function MeetingSummary() {
     const data = location.state as MeetingDataFromState;
     if (data && !isSaved && !isSaving && !meetingData?.id) {
       console.log('MeetingSummary useEffect triggered with data:', data.title, data.startTime);
-      setMeetingData(data);
+      
+      // Safely set meeting data with proper defaults to avoid undefined errors
+      setMeetingData({
+        id: data.id,
+        title: data.title || 'Meeting',
+        duration: data.duration || '00:00',
+        wordCount: data.wordCount || 0,
+        transcript: data.transcript || '',
+        speakerCount: data.speakerCount || 0,
+        startTime: data.startTime || '',
+        practiceName: data.practiceName || '',
+        practiceId: data.practiceId || '',
+        meetingFormat: data.meetingFormat || '',
+        generatedNotes: data.generatedNotes || '',
+        mixedAudioBlob: data.mixedAudioBlob,
+        leftAudioBlob: data.leftAudioBlob,
+        rightAudioBlob: data.rightAudioBlob,
+        startedBy: data.startedBy || '',
+        needsAudioBackup: data.needsAudioBackup || false,
+        audioBackupBlob: data.audioBackupBlob || null
+      });
       
       // If we have generated notes, set them as Claude notes
       if (data.generatedNotes) {
@@ -118,7 +138,7 @@ export default function MeetingSummary() {
       const dt = data.startTime ? new Date(data.startTime) : null;
       const pad = (n: number) => n.toString().padStart(2, '0');
       setMeetingSettings({
-        title: data.title,
+        title: data.title || 'Meeting',
         description: data.extractedSettings?.description || "",
         meetingType: data.extractedSettings?.meetingType || "general",
         meetingStyle: "standard",
@@ -139,8 +159,28 @@ export default function MeetingSummary() {
       
       // Only save to database if this is a new meeting (no ID)
       if (!data.id) {
+        const sanitizedMeetingData = {
+          id: data.id,
+          title: data.title || 'Meeting',
+          duration: data.duration || '00:00',
+          wordCount: data.wordCount || 0,
+          transcript: data.transcript || '',
+          speakerCount: data.speakerCount || 0,
+          startTime: data.startTime || '',
+          practiceName: data.practiceName || '',
+          practiceId: data.practiceId || '',
+          meetingFormat: data.meetingFormat || '',
+          generatedNotes: data.generatedNotes || '',
+          mixedAudioBlob: data.mixedAudioBlob,
+          leftAudioBlob: data.leftAudioBlob,
+          rightAudioBlob: data.rightAudioBlob,
+          startedBy: data.startedBy || '',
+          needsAudioBackup: data.needsAudioBackup || false,
+          audioBackupBlob: data.audioBackupBlob || null
+        };
+        
         const timer = setTimeout(() => {
-          saveMeetingToDatabase(data);
+          saveMeetingToDatabase(sanitizedMeetingData);
         }, 100);
         
         return () => clearTimeout(timer);
@@ -149,28 +189,33 @@ export default function MeetingSummary() {
         setIsSaved(true);
         loadExistingSummary(data.id);
       }
-    } else if (!data) {
-      // Handle direct URL access or query params
-      const params = new URLSearchParams(window.location.search);
-      const paramId = params.get('id') || params.get('meeting_id');
-      if (paramId) {
-        console.log('Direct load by query param id', paramId);
-        setIsSaved(true);
-        setMeetingData({
-          id: paramId,
-          title: 'Meeting',
-          duration: '00:00',
-          wordCount: 0,
-          transcript: '',
-          speakerCount: 0,
-          startTime: ''
-        });
-        loadExistingSummary(paramId);
       } else {
-        toast.error('No meeting selected');
-        navigate('/meeting-history');
+        // Handle direct URL access or query params
+        const params = new URLSearchParams(window.location.search);
+        const paramId = params.get('id') || params.get('meeting_id');
+        if (paramId) {
+          console.log('Direct load by query param id', paramId);
+          setIsSaved(true);
+          setMeetingData({
+            id: paramId,
+            title: 'Meeting',
+            duration: '00:00',
+            wordCount: 0,
+            transcript: '',
+            speakerCount: 0,
+            startTime: '',
+            practiceName: '',
+            practiceId: '',
+            meetingFormat: '',
+            generatedNotes: '',
+            startedBy: ''
+          });
+          loadExistingSummary(paramId);
+        } else {
+          toast.error('No meeting selected');
+          navigate('/meeting-history');
+        }
       }
-    }
   }, [location.state, navigate, isSaved, isSaving, meetingData?.id]);
 
   // Fetch practice data on user load
