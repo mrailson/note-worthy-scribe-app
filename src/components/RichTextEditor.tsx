@@ -105,6 +105,40 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       .replace(/(<\/[houl][^>]*>)<\/p>/g, '$1');
   };
 
+  // Convert HTML back to markdown-like format to preserve structure
+  const convertHtmlToMarkdown = (html: string): string => {
+    if (!html) return '';
+    
+    return html
+      // Headers
+      .replace(/<h1[^>]*>(.*?)<\/h1>/g, '# $1\n\n')
+      .replace(/<h2[^>]*>(.*?)<\/h2>/g, '## $1\n\n')
+      .replace(/<h3[^>]*>(.*?)<\/h3>/g, '### $1\n\n')
+      // Bold
+      .replace(/<strong[^>]*>(.*?)<\/strong>/g, '**$1**')
+      .replace(/<b[^>]*>(.*?)<\/b>/g, '**$1**')
+      // Italic
+      .replace(/<em[^>]*>(.*?)<\/em>/g, '*$1*')
+      .replace(/<i[^>]*>(.*?)<\/i>/g, '*$1*')
+      // Lists
+      .replace(/<ul[^>]*>(.*?)<\/ul>/gs, (match, content) => {
+        return content.replace(/<li[^>]*>(.*?)<\/li>/g, '- $1\n') + '\n';
+      })
+      .replace(/<ol[^>]*>(.*?)<\/ol>/gs, (match, content) => {
+        let counter = 1;
+        return content.replace(/<li[^>]*>(.*?)<\/li>/g, () => `${counter++}. $1\n`) + '\n';
+      })
+      // Paragraphs - convert to double line breaks
+      .replace(/<p[^>]*>(.*?)<\/p>/g, '$1\n\n')
+      // Line breaks
+      .replace(/<br[^>]*>/g, '\n')
+      // Remove any remaining HTML tags
+      .replace(/<[^>]*>/g, '')
+      // Clean up extra whitespace but preserve intentional spacing
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+  };
+
   // Clean and convert content
   const cleanedContent = convertMarkdownToHtml(content);
   const processedContent = DOMPurify.sanitize(cleanedContent, {
@@ -130,7 +164,10 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     ],
     content: processedContent,
     onUpdate: ({ editor }) => {
-      onChange(editor.getHTML());
+      // Convert HTML back to markdown-like format to preserve original structure
+      const htmlContent = editor.getHTML();
+      const convertedContent = convertHtmlToMarkdown(htmlContent);
+      onChange(convertedContent);
     },
     editorProps: {
       attributes: {
