@@ -97,9 +97,13 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       const stripHtmlAndFormat = (htmlContent: string) => {
         if (!htmlContent) return [];
         
-        // Comprehensive HTML cleanup - remove ALL HTML tags and styling
+        // Clean HTML but preserve basic structure
         let cleanText = htmlContent
-          // Remove HTML tags completely
+          // Convert HTML breaks to newlines first
+          .replace(/<br\s*\/?>/gi, '\n')
+          .replace(/<\/p>/gi, '\n\n')
+          .replace(/<p[^>]*>/gi, '')
+          // Remove all other HTML tags
           .replace(/<[^>]*>/g, '')
           // Decode HTML entities
           .replace(/&nbsp;/g, ' ')
@@ -109,14 +113,10 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
           .replace(/&quot;/g, '"')
           .replace(/&#39;/g, "'")
           .replace(/&apos;/g, "'")
-          // Remove markdown-style formatting that shouldn't be in Word
-          .replace(/\*\*([^*]+)\*\*/g, '$1')
-          .replace(/\*([^*]+)\*/g, '$1')
-          // Clean up excessive whitespace
-          .replace(/\s+/g, ' ')
-          .replace(/^\s+|\s+$/g, '')
-          // Convert common patterns to proper spacing
-          .replace(/\n\s*\n\s*\n+/g, '\n\n')
+          // Clean up excessive whitespace but preserve structure
+          .replace(/[ \t]+/g, ' ')
+          .replace(/\n[ \t]+/g, '\n')
+          .replace(/[ \t]+\n/g, '\n')
           .trim();
 
         const paragraphs = [];
@@ -125,68 +125,67 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
         for (let i = 0; i < lines.length; i++) {
           const line = lines[i].trim();
           
-          // Skip completely empty lines
+          // Skip empty lines but add spacing
           if (!line) {
-            // Add spacing between sections
             paragraphs.push(new Paragraph({
-              children: [new TextRun({ text: " ", size: 12 })],
+              children: [new TextRun({ text: "", size: 12 })],
               spacing: { after: 120 }
             }));
             continue;
           }
           
-          // Detect section headers (numbers with periods, emoji headers, or all caps)
-          const isNumberedSection = /^#?\s*\d+\.?\s/.test(line) || /^##?\s*\d+/.test(line);
-          const isEmojiSection = /^[1-5]️⃣/.test(line);
-          const isAllCapsHeader = /^[A-Z\s]{6,}$/.test(line) && line.length < 50;
-          const isMainHeader = line.includes('MEETING') || line.includes('OVERVIEW') || line.includes('CONTENT');
-          
-          const isHeader = isNumberedSection || isEmojiSection || isAllCapsHeader || isMainHeader;
-          
-          // Clean section headers
-          let displayText = line;
-          if (isNumberedSection) {
-            displayText = line.replace(/^#*\s*(\d+\.?\s*)/, '$1');
-          }
-          if (isEmojiSection) {
-            displayText = line.replace(/^([1-5]️⃣)\s*/, '$1 ');
-          }
-          
-          // Detect bullet points
+          // Detect different types of content
+          const isEmojiHeader = /^[1-9]️⃣/.test(line);
+          const isNumberedSection = /^##?\s*\d+\.?\s/.test(line);
+          const isMainHeader = /^#\s/.test(line) || (line.includes('MEETING') && line.length < 100);
           const isBulletPoint = /^[-•*]\s/.test(line);
+          const isHeader = isEmojiHeader || isNumberedSection || isMainHeader;
+          
+          // Clean and format the text
+          let displayText = line;
+          
+          // Remove markdown formatting
+          if (isNumberedSection) {
+            displayText = line.replace(/^##?\s*/, '');
+          } else if (isMainHeader) {
+            displayText = line.replace(/^#\s*/, '');
+          }
+          
+          // Remove any remaining ** bold markers
+          displayText = displayText.replace(/\*\*([^*]+)\*\*/g, '$1');
+          displayText = displayText.replace(/\*([^*]+)\*/g, '$1');
           
           if (isBulletPoint) {
-            // Format as bullet point
-            const bulletText = line.replace(/^[-•*]\s*/, '');
+            // Format bullet points
+            const bulletText = displayText.replace(/^[-•*]\s*/, '');
             paragraphs.push(new Paragraph({
               children: [
-                new TextRun({ text: "• ", size: 22, bold: true }),
+                new TextRun({ text: "• ", size: 22 }),
                 new TextRun({ text: bulletText, size: 22 })
               ],
-              spacing: { after: 80 },
+              spacing: { after: 100 },
               indent: { left: 360 }
             }));
           } else if (isHeader) {
-            // Format as header
+            // Format headers
             paragraphs.push(new Paragraph({
               children: [new TextRun({
                 text: displayText,
                 bold: true,
-                size: isMainHeader ? 28 : (isEmojiSection ? 26 : 24),
+                size: isMainHeader ? 24 : 22,
                 color: "1f2937"
               })],
               spacing: { 
-                before: isMainHeader ? 400 : 240,
-                after: 160
+                before: 200,
+                after: 120
               }
             }));
           } else {
-            // Regular paragraph text
+            // Regular paragraph
             paragraphs.push(new Paragraph({
               children: [new TextRun({
                 text: displayText,
-                size: 22,
-                color: "374151"
+                size: 22
               })],
               spacing: { after: 120 }
             }));
