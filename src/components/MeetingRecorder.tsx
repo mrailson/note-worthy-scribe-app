@@ -2623,6 +2623,62 @@ export const MeetingRecorder = ({
     console.log('🔍 DEBUG: First 200 chars:', currentTranscript.substring(0, 200));
     console.log('🔍 DEBUG: Last 200 chars:', currentTranscript.slice(-200));
     
+    // Check if this is an iPhone - if so, auto-save without modal/navigation
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    if (isIOS) {
+      console.log('📱 iPhone detected - auto-saving recording without modal');
+      
+      // Prepare meeting data for iPhone auto-save
+      const iPhoneMeetingData = {
+        title: meetingSettings?.title || initialSettings?.title || 'iPhone Recording',
+        duration: formatDuration(duration),
+        wordCount: wordCount,
+        transcript: currentTranscript,
+        speakerCount: speakerCount || 1,
+        startTime: startTime,
+        startedBy: user?.email || 'Unknown User',
+        practiceId: meetingSettings?.practiceId || initialSettings?.practiceId,
+        meetingFormat: 'phone' // Mark as phone recording
+      };
+
+      // Save directly to database without AI notes for iPhone
+      try {
+        const { data: savedMeeting, error: saveError } = await supabase
+          .from('meetings')
+          .insert([{
+            title: iPhoneMeetingData.title,
+            duration: iPhoneMeetingData.duration,
+            word_count: iPhoneMeetingData.wordCount,
+            transcript: iPhoneMeetingData.transcript,
+            speaker_count: iPhoneMeetingData.speakerCount,
+            start_time: iPhoneMeetingData.startTime,
+            user_id: user?.id,
+            practice_name: 'General Practice',
+            meeting_format: iPhoneMeetingData.meetingFormat,
+            started_by: iPhoneMeetingData.startedBy,
+            needs_audio_backup: false
+          }])
+          .select()
+          .single();
+
+        if (saveError) {
+          console.error('Failed to save iPhone recording:', saveError);
+          toast.error('Recording failed to save');
+        } else {
+          console.log('✅ iPhone recording saved successfully:', savedMeeting.id);
+          toast.success(`Recording saved! ${wordCount} words transcribed.`);
+          
+          // Refresh the meeting history if we're on that tab
+          loadMeetings();
+        }
+      } catch (saveError) {
+        console.error('Error saving iPhone recording:', saveError);
+        toast.error('Recording failed to save');
+      }
+      
+      return; // Exit early for iPhone - no modal or navigation
+    }
+    
     // Helper function to convert AudioBuffer to Blob
     const audioBufferToBlob = async (audioBuffer: AudioBuffer): Promise<Blob> => {
       const offlineContext = new OfflineAudioContext(
