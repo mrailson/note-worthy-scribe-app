@@ -22,15 +22,25 @@ serve(async (req) => {
     }
 
     const level = (detailLevel || 'standard').toString().toLowerCase();
-    const detailInstructions = level === 'super' 
-      ? 'Maximise detail and specificity. Extract granular points, sub-bullets, explicit attributions when available, and comprehensive context grounded ONLY in the transcript.'
-      : level === 'more'
-      ? 'Be more detailed than standard. Expand points with accurate specifics from the transcript, include additional sub-bullets and clearer structure.'
-      : 'Use the standard level of detail: concise yet complete, avoiding unnecessary verbosity.';
+    
+    // Determine style based on detailLevel
+    let styleChoice = 1; // Default to Professional Business
+    if (level === 'informal' || level === 'original') {
+      styleChoice = 2; // Original Informal
+    } else if (level === 'nhs' || level === 'formal') {
+      styleChoice = 3; // NHS Formal
+    }
 
-    const prompt = `Create comprehensive partnership meeting notes from the transcript. Extract EVERY specific detail mentioned.
+    const meetingNotesPrompt = `Create comprehensive meeting notes from the transcript. Extract EVERY specific detail mentioned.
 
-CRITICAL EXTRACTION REQUIREMENTS:
+STYLE OPTIONS:
+Style 1 (Default - Professional Business): Modern business format with executive structure
+Style 2 (Original - Informal): Clear, direct format without formal business structure  
+Style 3 (NHS Formal): Traditional NHS committee minutes format
+
+[Use Style ${styleChoice}]
+
+CRITICAL EXTRACTION REQUIREMENTS (ALL STYLES):
 - EVERY person mentioned by name with their roles, responsibilities, background
 - EVERY location, site name, system name mentioned (spell exactly as heard)
 - EVERY number, percentage, cost, timeframe, date mentioned  
@@ -42,106 +52,205 @@ CRITICAL EXTRACTION REQUIREMENTS:
 - EVERY compliance issue, regulatory requirement mentioned
 - EVERY alternative solution or option considered
 
-LISTEN CAREFULLY FOR:
-- Proper names of people, places, systems (transcription may have errors)
-- Specific terminology like "just in time", "dispensing from totes", technical phrases
-- Past experiences and their outcomes
-- Training costs, funding sources, dates
-- Patient access concerns and specific village names
-- Compliance and regulatory issues (CQC, EPS, ODS codes)
-- Financial implications, savings, costs
+=== STYLE 1 (DEFAULT): PROFESSIONAL BUSINESS FORMAT ===
 
-STRUCTURE WITH DETAILED SUBSECTIONS:
-Use this exact format with comprehensive subsections:
+${meetingTitle || 'PARTNERSHIP MEETING'} MINUTES
 
-Format exactly as:
+Meeting Details:
+Date: ${meetingDate || '[Date if mentioned, otherwise "Not specified"]'}
+Time: ${meetingTime || '[Time if mentioned]'}
+Location: [Location/Sites discussed]
+Attendees: [List key participants mentioned]
+Chair: [If identified]
+Secretary: [If identified]
+
+EXECUTIVE SUMMARY
+[2-3 bullet points summarizing key outcomes and decisions]
+
+AGENDA ITEMS DISCUSSED
+
+1. [MAIN TOPIC]
+   
+   1.1 Current Situation
+       • [Specific details about current state]
+       • [Key challenges and constraints]
+   
+   1.2 Proposal Overview
+       • [What is being proposed with specific details]
+       • [Scope and implications]
+   
+   1.3 Analysis of Challenges
+       Staff and Operational Impact:
+       • [Specific concerns, quotes, impact details]
+       
+       Technical and System Constraints:
+       • [System names, technical barriers, compliance issues]
+       
+       Financial and Business Implications:
+       • [Cost implications, potential savings, business risks]
+   
+   1.4 Identified Benefits
+       • [Specific advantages and efficiencies]
+   
+   1.5 Alternative Solutions Considered
+       • [Each alternative with technical details, costs, pros/cons]
+
+[Continue with sections 2, 3, etc.]
+
+DECISIONS REQUIRED
+Priority 1 (Immediate): [Critical decisions]
+Priority 2 (Short-term): [Medium priority decisions]
+Priority 3 (Long-term): [Strategic planning decisions]
+
+ACTION ITEMS
+[Responsible Party] - [Specific action with deadline]
+• [Detailed description]
+• Target completion: [Date/timeline]
+
+NEXT STEPS AND TIMELINE
+Immediate (Next 2 weeks): [Immediate actions]
+Short-term (1-3 months): [Medium-term actions]
+Long-term (3+ months): [Strategic initiatives]
+
+RISKS AND CONSIDERATIONS
+[Risk categories with specific mitigation plans]
+
+=== STYLE 2: ORIGINAL INFORMAL FORMAT ===
 
 ${meetingTitle || 'Partnership Meeting'} Notes
 
 Date: ${meetingDate || '[Meeting Date]'}
-Attendees: ${meetingTime ? `Meeting held at ${meetingTime}` : 'Practice Partners and Key Staff'}
+Attendees: Practice Partners and Key Staff
 
-1. [MAIN TOPIC]
+1. [MAIN TOPIC IN ALL CAPS]
 
 Proposal Overview
-- [All specific details about what's being proposed]
+- [Specific details from transcript]
 
 Challenges Identified
 Staff and Patient Impact:
-- [Specific concerns, quotes, impact details]
+- [Specific concerns raised with actual quotes where possible]
 
-Operational Concerns: 
-- [Process issues, past experiences, staffing details]
+Operational Concerns:
+- [More specific details]
 
 Technology Limitations:
-- [System names, technical barriers, compliance issues]
+- [Technical limitations, compliance concerns, etc.]
 
 Potential Benefits
-- [Specific benefits, financial implications, efficiencies]
+- [Specific benefits discussed]
 
 Alternative Solutions Discussed
-- [Each alternative with technical details, costs, pros/cons]
+- [Specific alternatives with technical details]
 
 2. [NEXT MAJOR TOPIC]
 
 Current System Issues
 - [Specific problems identified]
 
-Proposed "[System Name]" Model
+Proposed "[System/Approach]" Model
 Concept:
-- [Detailed process description with technical terms]
+- [Detailed explanation of what was proposed]
 
 Benefits:
-- [Specific advantages]
+- [Specific benefits discussed]
 
 Implementation Requirements:
-- [People, systems, training, timelines, costs]
+- [Specific people, systems, training mentioned]
 
 Concerns:
-- [Specific risks and challenges]
+- [Specific concerns raised]
 
 3. ROLE ALLOCATIONS & RESPONSIBILITIES
 
 Current Lead Responsibilities
-Dispensary Operations:
-- [Name]: [Specific responsibilities and expertise]
-
-Clinical Specialties:
-- [Specialty]: [Name] - [Specific responsibilities, background]
-
-Training & Development:
-- [Program]: [Details about people, timelines, status]
-
-Administrative:
-- [Role]: [Name and details]
-
-Training Developments
-[Person's Progress]:
-- [Specific training details, courses, timelines]
-
-Future Planning Considerations
-- [Succession planning, upcoming changes]
+[Specific Area]:
+- [Person's name]: [Specific responsibilities and background mentioned]
 
 4. KEY DECISIONS NEEDED
-   [List specific decisions that need to be made based on discussion]
-5. ACTION ITEMS
+[List specific decisions that need to be made]
 
+5. ACTION ITEMS
 - [Specific actions with people/dates where mentioned]
 
 6. NEXT STEPS
-
 - [Specific next steps discussed]
 
 Note: [Implementation guidance discussed]
 
-REMEMBER: If the transcript mentions someone's name, a place, a system, a cost, a date, a process, or a concern - include it exactly. Don't paraphrase or summarize. Capture the specific language used.
+=== STYLE 3: NHS FORMAL MINUTES FORMAT ===
 
-Detail preference: ${detailInstructions}
+${meetingTitle || '[PRACTICE NAME] PARTNERSHIP MEETING'}
 
-Extract and organize all key discussion points, decisions, action items, and follow-up requirements from the transcript.
+MINUTES OF MEETING
 
-Transcript to analyze:
-${transcript}`;
+Meeting: Partnership Meeting
+Date: ${meetingDate || '[Date]'}
+Time: ${meetingTime || '[Time]'}
+Venue: [Location]
+Present: [List of attendees with titles/roles]
+In Attendance: [Additional attendees]
+Apologies: [If mentioned]
+Chair: [Name]
+Minute Taker: [Name]
+
+ITEM 1: [AGENDA ITEM TITLE]
+
+1.1 [Name] presented the current position regarding [topic]. The key points highlighted were:
+    a) [Specific point with details]
+    b) [Next point with specifics]
+    c) [Continue with all details mentioned]
+
+1.2 Discussion ensued regarding [specific aspects]. The following concerns were raised:
+    a) [Specific concern with who raised it if mentioned]
+    b) [Next concern with details]
+
+1.3 [Name] outlined the proposed approach which would involve:
+    a) [Specific proposal elements]
+    b) [Implementation details]
+    c) [Resource requirements]
+
+1.4 The meeting noted the following benefits:
+    a) [Specific benefit]
+    b) [Next benefit with details]
+
+1.5 Alternative options considered included:
+    a) [Option 1 with pros/cons]
+    b) [Option 2 with analysis]
+
+ACTION: [Responsible person] to [specific action] by [date]
+
+ITEM 2: [NEXT AGENDA ITEM]
+
+[Continue same formal structure]
+
+DECISIONS MADE:
+Decision 1: [Specific decision with rationale]
+Decision 2: [Next decision]
+
+ACTIONS ARISING:
+Action 1: [Responsible person] - [Specific action] - [Deadline]
+Action 2: [Next action with details]
+
+ITEMS FOR NEXT MEETING:
+- [Carry forward items]
+- [New agenda items]
+
+NEXT MEETING:
+Date: [If specified]
+Time: [If specified]
+Venue: [If specified]
+
+Chair: [Signature line]
+Date: [Date line]
+
+Meeting closed at: [Time if mentioned]
+
+=== END OF STYLE OPTIONS ===
+
+REMEMBER: Regardless of style chosen, capture ALL specific details, names, technical information, quotes, and operational details exactly as mentioned in the transcript.
+
+Transcript: ${transcript}`;
 
     console.log('Generating Claude meeting minutes for:', meetingTitle);
 
@@ -153,15 +262,14 @@ ${transcript}`;
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'claude-sonnet-4-20250514',
         max_tokens: 4000,
         messages: [
           { 
             role: 'user', 
-            content: prompt 
+            content: meetingNotesPrompt 
           }
-        ],
-        temperature: 0.7
+        ]
       }),
     });
 
