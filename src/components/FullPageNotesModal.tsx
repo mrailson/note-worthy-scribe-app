@@ -881,7 +881,11 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       if (data?.meetingMinutes) {
         onNotesChange(data.meetingMinutes);
         saveSummaryToDatabase(data.meetingMinutes);
-        toast.success("Meeting notes regenerated successfully!");
+        
+        // Generate and save meeting overview for the history view
+        await generateAndSaveOverview(data.meetingMinutes);
+        
+        toast.success("Meeting notes and overview regenerated successfully!");
       }
     } catch (error) {
       console.error('Error regenerating meeting notes:', error);
@@ -889,6 +893,83 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const generateAndSaveOverview = async (meetingNotes: string) => {
+    if (!meeting?.id) return;
+    
+    try {
+      // Extract a concise overview from the detailed meeting notes
+      const overview = extractOverviewFromNotes(meetingNotes);
+      
+      // Check if overview already exists
+      const { data: existingOverview } = await supabase
+        .from('meeting_overviews')
+        .select('id')
+        .eq('meeting_id', meeting.id)
+        .maybeSingle();
+
+      if (existingOverview) {
+        // Update existing overview
+        const { error } = await supabase
+          .from('meeting_overviews')
+          .update({ overview: overview })
+          .eq('meeting_id', meeting.id);
+
+        if (error) throw error;
+      } else {
+        // Create new overview
+        const { error } = await supabase
+          .from('meeting_overviews')
+          .insert({
+            meeting_id: meeting.id,
+            overview: overview,
+            created_by: (await supabase.auth.getUser()).data.user?.id
+          });
+
+        if (error) throw error;
+      }
+    } catch (error) {
+      console.error('Error saving meeting overview:', error);
+      // Don't show error to user since the main notes were generated successfully
+    }
+  };
+
+  const extractOverviewFromNotes = (meetingNotes: string): string => {
+    // Extract a concise overview from the detailed meeting notes
+    const lines = meetingNotes.split('\n').filter(line => line.trim());
+    
+    // Look for executive summary or key points
+    const executiveSummaryIndex = lines.findIndex(line => 
+      line.toLowerCase().includes('executive summary') || 
+      line.toLowerCase().includes('meeting overview') ||
+      line.toLowerCase().includes('summary')
+    );
+    
+    if (executiveSummaryIndex !== -1) {
+      // Extract the executive summary section (next 5-10 lines)
+      const summaryLines = lines.slice(executiveSummaryIndex + 1, executiveSummaryIndex + 8)
+        .filter(line => line.trim() && !line.match(/^[A-Z\s]+$/)) // Filter out headers
+        .slice(0, 5); // Take first 5 meaningful lines
+      
+      if (summaryLines.length > 0) {
+        return summaryLines.join(' ').replace(/^[•\-\*]\s*/, '').trim();
+      }
+    }
+    
+    // Fallback: extract first meaningful paragraph or key decisions
+    const meaningfulLines = lines.filter(line => 
+      line.length > 50 && 
+      !line.match(/^(MEETING|Date:|Time:|Present:|Attendees:|Chair:)/i) &&
+      !line.match(/^[#\*\-•]/))
+      .slice(0, 3);
+    
+    if (meaningfulLines.length > 0) {
+      return meaningfulLines.join(' ').substring(0, 400) + (meaningfulLines.join(' ').length > 400 ? '...' : '');
+    }
+    
+    // Final fallback: create a simple overview
+    return `Meeting notes regenerated for ${meeting.title}. Detailed minutes available in the meeting notes.`;
   };
 
   const handleCustomInstructionSubmit = async () => {
