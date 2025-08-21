@@ -250,13 +250,15 @@ const PracticeImageMaker = () => {
         apiSize = "1792x1024";
       }
 
+      // Create FormData for the request
+      const formData = new FormData();
+      formData.append('prompt', finalPrompt);
+      formData.append('size', apiSize);
+      formData.append('quality', 'high');
+      formData.append('mode', 'generation');
+
       const { data, error } = await supabase.functions.invoke('advanced-image-generation', {
-        body: {
-          prompt: finalPrompt,
-          size: apiSize,
-          quality: 'high',
-          mode: 'generation'
-        }
+        body: formData
       });
 
       if (error) {
