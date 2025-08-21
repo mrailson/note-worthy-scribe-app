@@ -2344,14 +2344,14 @@ export type Database = {
           {
             foreignKeyName: "meeting_auto_notes_meeting_id_fkey"
             columns: ["meeting_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "accessible_meetings"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "meeting_auto_notes_meeting_id_fkey"
             columns: ["meeting_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "meetings"
             referencedColumns: ["id"]
           },
