@@ -763,9 +763,14 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
 
     // Save current version before reprocessing
     saveCurrentVersion('whisper-reprocess', 'transcript');
+    setIsLoadingTranscript(true);
     
     try {
-      toast.info('Reprocessing meeting audio with Whisper... This may take a few minutes.');
+      toast.info('🎙️ Getting audio data from meeting...');
+      
+      await new Promise(resolve => setTimeout(resolve, 500)); // Brief delay for UX
+      
+      toast.info('🔄 Processing audio with Whisper AI...');
 
       const { data, error } = await supabase.functions.invoke('reprocess-meeting-audio', {
         body: { meetingId: meeting.id },
@@ -777,12 +782,16 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
         return;
       }
 
+      toast.info('📝 Storing new transcript...');
+      
       setTranscript(data.transcript);
-      toast.success(`Audio reprocessed successfully! Generated ${data.length} characters of transcript.`);
+      toast.success(`✅ Audio reprocessed successfully! Generated ${data.length} characters of transcript.`);
       
     } catch (error) {
       console.error('Error reprocessing audio:', error);
       toast.error('Failed to reprocess audio');
+    } finally {
+      setIsLoadingTranscript(false);
     }
   };
 
@@ -795,8 +804,11 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
 
     // Save current version before cleaning
     saveCurrentVersion('gpt-clean-transcript', 'transcript');
+    setIsLoadingTranscript(true);
     
     try {
+      toast.info('🤖 Analyzing transcript with AI...');
+      
       const { data, error } = await supabase.functions.invoke('gpt-clean-transcript', {
         body: { transcript },
       });
@@ -807,12 +819,19 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
         return;
       }
 
+      if (!data?.cleanedTranscript) {
+        toast.error('GPT returned empty response - please check your OpenAI API key');
+        return;
+      }
+
       setTranscript(data.cleanedTranscript);
-      toast.success(`Transcript cleaned with GPT! Reduced from ${data.originalLength} to ${data.cleanedLength} characters.`);
+      toast.success(`✅ Transcript cleaned with GPT! Reduced from ${data.originalLength} to ${data.cleanedLength} characters.`);
       
     } catch (error) {
       console.error('Error cleaning transcript:', error);
       toast.error('Failed to clean transcript');
+    } finally {
+      setIsLoadingTranscript(false);
     }
   };
 
@@ -1503,11 +1522,11 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                         variant="outline"
                         size="sm"
                         className="gap-2"
-                        disabled={!meeting?.id}
+                        disabled={!meeting?.id || isLoadingTranscript}
                         title="Reprocess full meeting audio with Whisper for better transcription"
                       >
-                        <RefreshCw className="h-4 w-4" />
-                        Reprocess Audio
+                        <RefreshCw className={`h-4 w-4 ${isLoadingTranscript ? 'animate-spin' : ''}`} />
+                        {isLoadingTranscript ? 'Processing...' : 'Reprocess Audio'}
                       </Button>
                       <Button
                         onClick={handleCleanTranscript}
@@ -1525,11 +1544,11 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                         variant="outline"
                         size="sm"
                         className="gap-2"
-                        disabled={!transcript || transcript.trim().length === 0}
+                        disabled={!transcript || transcript.trim().length === 0 || isLoadingTranscript}
                         title="Deep clean transcript using GPT to remove duplicates and improve formatting"
                       >
-                        <Bot className="h-4 w-4" />
-                        Deep Clean
+                        <Bot className={`h-4 w-4 ${isLoadingTranscript ? 'animate-pulse' : ''}`} />
+                        {isLoadingTranscript ? 'AI Processing...' : 'Deep Clean'}
                       </Button>
                       <Button
                         onClick={handleUndo}
