@@ -3016,6 +3016,48 @@ export const MeetingRecorder = ({
     }
   }, [user]);
 
+  // Real-time updates for new meetings
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('meeting-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'meetings',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('🔄 New meeting inserted, refreshing history...', payload);
+          // Refresh meeting history when a new meeting is added
+          loadMeetingHistory();
+          toast.success('Meeting history updated automatically');
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'meetings',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('🔄 Meeting updated, refreshing history...', payload);
+          // Refresh meeting history when a meeting is updated
+          loadMeetingHistory();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
   // Filter meetings based on search query
   useEffect(() => {
     let filtered = meetings;

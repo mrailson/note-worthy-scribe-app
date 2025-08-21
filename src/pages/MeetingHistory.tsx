@@ -825,6 +825,62 @@ const MeetingHistory = () => {
     }
   }, [user]);
 
+  // Real-time updates for meeting changes
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('meeting-history-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'meetings',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('🔄 New meeting inserted, refreshing meeting history...', payload);
+          // Refresh meetings when a new meeting is added
+          fetchMeetings();
+          toast.success('New meeting detected - refreshing list');
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'meetings',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('🔄 Meeting updated, refreshing meeting history...', payload);
+          // Refresh meetings when a meeting is updated
+          fetchMeetings();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'meetings',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('🔄 Meeting deleted, refreshing meeting history...', payload);
+          // Refresh meetings when a meeting is deleted
+          fetchMeetings();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
   // Additional effect to ensure meetings are fetched when component mounts
   // This handles cases where user state might be available but the effect didn't trigger
   useEffect(() => {
