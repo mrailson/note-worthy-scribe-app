@@ -754,6 +754,36 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     return output.join(" ");
   };
 
+  // Handle GPT-based transcript cleaning
+  const handleGPTCleanTranscript = async () => {
+    if (!transcript || transcript.trim().length === 0) {
+      toast.error('No transcript content to clean');
+      return;
+    }
+
+    // Save current version before cleaning
+    saveCurrentVersion('gpt-clean-transcript', 'transcript');
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('gpt-clean-transcript', {
+        body: { transcript },
+      });
+
+      if (error) {
+        console.error('GPT cleaning error:', error);
+        toast.error('Failed to clean transcript with GPT: ' + error.message);
+        return;
+      }
+
+      setTranscript(data.cleanedTranscript);
+      toast.success(`Transcript cleaned with GPT! Reduced from ${data.originalLength} to ${data.cleanedLength} characters.`);
+      
+    } catch (error) {
+      console.error('Error cleaning transcript:', error);
+      toast.error('Failed to clean transcript');
+    }
+  };
+
   // Handle transcript cleaning to remove duplicates
   const handleCleanTranscript = () => {
     if (!transcript || transcript.trim().length === 0) {
@@ -1442,10 +1472,21 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                         size="sm"
                         className="gap-2"
                         disabled={!transcript || transcript.trim().length === 0}
-                        title="Clean transcript to remove duplicates and improve formatting"
+                        title="Quick clean transcript to remove duplicates"
                       >
                         <Wand2 className="h-4 w-4" />
                         Clean
+                      </Button>
+                      <Button
+                        onClick={handleGPTCleanTranscript}
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                        disabled={!transcript || transcript.trim().length === 0}
+                        title="Deep clean transcript using GPT to remove duplicates and improve formatting"
+                      >
+                        <Bot className="h-4 w-4" />
+                        Deep Clean
                       </Button>
                       <Button
                         onClick={handleUndo}
