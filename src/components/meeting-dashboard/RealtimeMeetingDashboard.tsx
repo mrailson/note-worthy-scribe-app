@@ -31,13 +31,22 @@ export const RealtimeMeetingDashboard = ({
 }: RealtimeMeetingDashboardProps) => {
   const [activeTab, setActiveTab] = useState("setup");
   const [isMinimized, setIsMinimized] = useState(false);
+  const [hasAutoSwitched, setHasAutoSwitched] = useState(false);
 
-  // Auto-switch to monitor tab when recording starts
+  // Auto-switch to monitor tab when recording starts (only once)
   useEffect(() => {
-    if (isRecording && activeTab === "setup") {
+    if (isRecording && activeTab === "setup" && !hasAutoSwitched) {
       setActiveTab("monitor");
+      setHasAutoSwitched(true);
     }
-  }, [isRecording, activeTab]);
+  }, [isRecording, activeTab, hasAutoSwitched]);
+
+  // Reset auto-switch flag when recording stops
+  useEffect(() => {
+    if (!isRecording) {
+      setHasAutoSwitched(false);
+    }
+  }, [isRecording]);
 
   const tabs = [
     { 
