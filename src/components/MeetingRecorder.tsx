@@ -129,14 +129,23 @@ export const MeetingRecorder = ({
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [isGeneratingNotes, setIsGeneratingNotes] = useState(false);
   
-  // Debug panel state
-  const [showDebugPanel, setShowDebugPanel] = useState(false);
+  // Debug panel state  
+  const [showDebugPanel, setShowDebugPanel] = useState(true);
+  const [debugMessages, setDebugMessages] = useState<string[]>([]);
   const [debugInfo, setDebugInfo] = useState({
     deviceInfo: detectDevice(),
     recordingState: 'idle',
     lastError: '',
     transcriptionEvents: [] as string[]
   });
+  
+  // Add debug message to screen
+  const addScreenDebug = (message: string) => {
+    const timestamp = new Date().toLocaleTimeString();
+    const fullMessage = `${timestamp}: ${message}`;
+    console.log(fullMessage);
+    setDebugMessages(prev => [...prev.slice(-10), fullMessage]); // Keep last 10 messages
+  };
   
   // Meeting settings
   const [meetingSettings, setMeetingSettings] = useState(() => initialSettings || {
@@ -2364,6 +2373,12 @@ export const MeetingRecorder = ({
 
   const stopRecording = async () => {
     // IMMEDIATE DEBUG - BEFORE ANYTHING ELSE
+    addScreenDebug('🔥🔥🔥 STOPRECORDING FUNCTION START');
+    addScreenDebug(`🔥🔥🔥 Current isRecording: ${isRecording}`);
+    addScreenDebug(`🔥🔥🔥 Current user: ${user?.id}`);
+    addScreenDebug(`🔥🔥🔥 Current duration: ${duration}`);
+    addScreenDebug(`🔥🔥🔥 Current transcript length: ${transcript?.length}`);
+    
     console.log('🔥🔥🔥 STOPRECORDING FUNCTION START - IMMEDIATE DEBUG');
     console.log('🔥🔥🔥 Function called at:', new Date().toISOString());
     console.log('🔥🔥🔥 Current isRecording state:', isRecording);
@@ -2485,6 +2500,7 @@ export const MeetingRecorder = ({
     
     // Relaxed validation - only require 5 seconds and any transcript content
     if (duration < 5) {
+      addScreenDebug(`🚨 VALIDATION FAILED - Duration too short: ${duration}s`);
       console.log('🚨 VALIDATION FAILED - Duration too short:', duration);
       updateDebugInfo({
         lastError: `Duration too short: ${duration}s (need 5s+)`,
@@ -2496,6 +2512,7 @@ export const MeetingRecorder = ({
 
     // For iPhone compatibility - accept any transcript content
     if (!transcript && wordCount < 5) {
+      addScreenDebug(`🚨 VALIDATION FAILED - No transcript content: ${transcript?.length} chars, ${wordCount} words`);
       console.log('🚨 VALIDATION FAILED - No transcript content:', { transcript: transcript.length, wordCount });
       updateDebugInfo({
         lastError: `No transcript content found`,
@@ -2505,6 +2522,7 @@ export const MeetingRecorder = ({
       return;
     }
     
+    addScreenDebug('🚨 VALIDATION PASSED - proceeding to save...');
     console.log('🚨 VALIDATION PASSED - proceeding to save...');
     
     // Check if audio backup is needed based on word count vs duration
@@ -2679,6 +2697,11 @@ export const MeetingRecorder = ({
       meeting_format: meetingData.meetingFormat
     }, null, 2));
     
+    addScreenDebug('🚨 SAVING MEETING TO DATABASE...');
+    addScreenDebug(`🚨 Meeting title: ${meetingData.title}`);
+    addScreenDebug(`🚨 User ID: ${user?.id}`);
+    addScreenDebug(`🚨 Duration: ${Math.ceil(duration / 60)} minutes`);
+    
     updateDebugInfo({
       recordingState: 'saving_to_database',
       transcriptionEvents: [`${new Date().toLocaleTimeString()}: Saving meeting to database...`]
@@ -2693,6 +2716,7 @@ export const MeetingRecorder = ({
     
     // Check if user is authenticated
     if (!user?.id) {
+      addScreenDebug('❌ User not authenticated - cannot save meeting');
       throw new Error('User not authenticated - cannot save meeting');
     }
     
@@ -2728,10 +2752,12 @@ export const MeetingRecorder = ({
       console.log('🚨 SavedMeeting:', savedMeeting);
 
       if (saveError) {
+        addScreenDebug(`❌ DATABASE SAVE FAILED: ${saveError.message}`);
         console.error('🚨 DATABASE SAVE FAILED:', saveError);
         throw saveError;
       }
 
+      addScreenDebug(`✅ MEETING SAVED TO DATABASE! ID: ${savedMeeting.id}`);
       console.log('🚨 MEETING SAVED TO DATABASE:', savedMeeting.id);
 
       // 2. Save transcript
@@ -2796,6 +2822,7 @@ export const MeetingRecorder = ({
       setIsGeneratingNotes(false);
       
       // Navigate to meeting history with a small delay to ensure the save is complete
+      addScreenDebug('🚀 Navigating to Meeting History...');
       setTimeout(() => {
         navigate('/meetings', { replace: true });
         // Force a page refresh to ensure the new meeting appears
@@ -2803,6 +2830,7 @@ export const MeetingRecorder = ({
       }, 1000);
 
     } catch (error) {
+      addScreenDebug(`❌ CRITICAL ERROR: ${error.message}`);
       console.error('❌ CRITICAL ERROR - Failed to save meeting:', error);
       updateDebugInfo({
         recordingState: 'save_error',
@@ -2814,6 +2842,7 @@ export const MeetingRecorder = ({
       toast.error('Failed to save meeting to database');
       
       // Still try to navigate to meeting history
+      addScreenDebug('🚀 Navigating to Meeting History (fallback)...');
       navigate('/meetings');
     }
   };
@@ -3506,6 +3535,7 @@ export const MeetingRecorder = ({
                       
                        <Button 
                         onClick={() => {
+                          addScreenDebug('🔥🔥🔥 STOP BUTTON CLICKED!');
                           console.log('🔥🔥🔥 STOP BUTTON CLICKED!');
                           console.log('🔥🔥🔥 About to call stopRecording()');
                           stopRecording();
@@ -3982,7 +4012,31 @@ export const MeetingRecorder = ({
 
       </Tabs>
       
-      <NotewellAIAnimation 
+      {/* Debug Panel for iPhone/Mobile */}
+      {showDebugPanel && debugMessages.length > 0 && (
+        <div className="fixed bottom-4 left-4 right-4 max-w-md mx-auto bg-black/90 text-white text-xs p-3 rounded-lg z-50 max-h-40 overflow-y-auto">
+          <div className="flex justify-between items-center mb-2">
+            <span className="font-bold text-green-400">Debug Log</span>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setShowDebugPanel(false)}
+              className="text-white hover:bg-white/20 h-6 w-6 p-0"
+            >
+              ×
+            </Button>
+          </div>
+          <div className="space-y-1 font-mono text-xs">
+            {debugMessages.map((msg, i) => (
+              <div key={i} className="break-words">
+                {msg}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      
+      <NotewellAIAnimation
         isVisible={isGeneratingNotes} 
         onDismiss={() => {
           updateDebugInfo({
