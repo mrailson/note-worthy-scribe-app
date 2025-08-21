@@ -149,21 +149,14 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                        AI 4 PM Assistant
                      </DropdownMenuItem>
                    )}
-                   <DropdownMenuItem 
-                     onClick={() => navigate('/ai4gp')}
-                     className="cursor-pointer py-3"
-                   >
-                     <Sparkles className="h-4 w-4 mr-2" />
-                     AI4GP Service
-                       </DropdownMenuItem>
-                        <DropdownMenuItem
-                         onClick={() => navigate('/api-testing')}
-                         className="cursor-pointer py-3"
-                       >
-                         <Wrench className="h-4 w-4 mr-2" />
-                         API Testing & Comparison
-                       </DropdownMenuItem>
-                    {hasModuleAccess('enhanced_access') && (
+                    <DropdownMenuItem 
+                      onClick={() => navigate('/ai4gp')}
+                      className="cursor-pointer py-3"
+                    >
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      AI4GP Service
+                        </DropdownMenuItem>
+                     {hasModuleAccess('enhanced_access') && (
                       <DropdownMenuItem 
                         onClick={() => navigate('/enhanced-access')}
                         className="cursor-pointer py-3"
@@ -387,19 +380,13 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                             </Button>
                           </DrawerClose>
                         )}
-                        <DrawerClose asChild>
-                          <Button variant="ghost" className="justify-start" onClick={() => navigate('/ai4gp')}>
-                            <Sparkles className="h-4 w-4 mr-2" />
-                            AI4GP Service
-                          </Button>
-                          </DrawerClose>
                           <DrawerClose asChild>
-                            <Button variant="ghost" className="justify-start" onClick={() => navigate('/api-testing')}>
-                              <Wrench className="h-4 w-4 mr-2" />
-                              API Testing & Comparison
+                            <Button variant="ghost" className="justify-start" onClick={() => navigate('/ai4gp')}>
+                              <Sparkles className="h-4 w-4 mr-2" />
+                              AI4GP Service
                             </Button>
-                          </DrawerClose>
-                        {hasModuleAccess('enhanced_access') && (
+                            </DrawerClose>
+                         {hasModuleAccess('enhanced_access') && (
                           <DrawerClose asChild>
                             <Button variant="ghost" className="justify-start" onClick={() => navigate('/enhanced-access')}>
                               <Clock className="h-4 w-4 mr-2" />
