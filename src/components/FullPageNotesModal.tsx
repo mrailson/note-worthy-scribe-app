@@ -441,6 +441,29 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     try {
       console.log('🔍 Fetching transcript for meeting:', meeting.id);
       
+      // First, try to fetch raw transcript from meeting_transcription_chunks
+      const { data: rawData, error: rawError } = await supabase
+        .from('meeting_transcription_chunks')
+        .select('transcription_text')
+        .eq('meeting_id', meeting.id)
+        .order('chunk_number', { ascending: true });
+
+      let rawTranscriptText = '';
+      if (rawError) {
+        console.error('Raw transcript error:', rawError);
+      } else if (rawData && rawData.length > 0) {
+        // Concatenate all raw transcript segments
+        rawTranscriptText = rawData.map(item => item.transcription_text).join(' ');
+        setRawTranscript(rawTranscriptText);
+        console.log('🔍 Raw transcript loaded with', rawData.length, 'segments');
+      } else {
+        console.log('🔍 No raw transcript data found in chunks');
+        setRawTranscript('');
+      }
+
+      // Then fetch or generate clean transcript
+      let cleanTranscriptText = '';
+      
       // Use secure RPC function that validates user access
       const { data: rpcRows, error: rpcError } = await supabase.rpc('get_meeting_full_transcript', { 
         p_meeting_id: meeting.id 
@@ -448,46 +471,57 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       
       if (rpcError) {
         console.error('RPC error:', rpcError);
-        throw rpcError;
-      }
-      
-      if (Array.isArray(rpcRows) && rpcRows.length > 0) {
+      } else if (Array.isArray(rpcRows) && rpcRows.length > 0) {
         const row = rpcRows[0] as { source: string; transcript: string; item_count: number };
         if (row?.transcript && row.transcript.trim().length > 0) {
-          console.log('🔍 Transcript loaded from source:', row.source, 'Items:', row.item_count);
-          setTranscript(row.transcript);
-        } else {
-          console.log('🔍 No transcript content found');
-          setTranscript('');
+          console.log('🔍 Clean transcript loaded from source:', row.source, 'Items:', row.item_count);
+          cleanTranscriptText = row.transcript;
         }
-      } else {
-        console.log('🔍 No transcript data returned');
-        setTranscript('');
       }
 
-      // Also fetch raw transcript from meeting_transcription_chunks
-      try {
-        const { data: rawData, error: rawError } = await supabase
-          .from('meeting_transcription_chunks')
-          .select('transcription_text')
-          .eq('meeting_id', meeting.id)
-          .order('chunk_number', { ascending: true });
+      // If no clean transcript but we have raw transcript, create and save clean transcript
+      if (!cleanTranscriptText && rawTranscriptText) {
+        console.log('🔍 No clean transcript found, creating from raw transcript');
+        try {
+          const { data: cleanData, error: cleanError } = await supabase.functions.invoke('clean-transcript', {
+            body: {
+              rawTranscript: rawTranscriptText,
+              meetingTitle: meeting.title
+            }
+          });
 
-        if (rawError) {
-          console.error('Raw transcript error:', rawError);
-        } else if (rawData && rawData.length > 0) {
-          // Concatenate all raw transcript segments
-          const fullRawTranscript = rawData.map(item => item.transcription_text).join(' ');
-          setRawTranscript(fullRawTranscript);
-          console.log('🔍 Raw transcript loaded with', rawData.length, 'segments');
-        } else {
-          setRawTranscript('');
-          console.log('🔍 No raw transcript data found');
+          if (cleanError) {
+            console.error('Error cleaning transcript:', cleanError);
+            cleanTranscriptText = rawTranscriptText; // Fallback to raw
+          } else if (cleanData?.cleanedTranscript) {
+            cleanTranscriptText = cleanData.cleanedTranscript;
+            
+            // Save cleaned transcript to database
+            const { error: saveError } = await supabase
+              .from('meeting_transcripts')
+              .upsert({
+                meeting_id: meeting.id,
+                content: cleanTranscriptText
+              });
+
+            if (saveError) {
+              console.error('Error saving clean transcript:', saveError);
+            } else {
+              console.log('🔍 Clean transcript saved to database');
+            }
+          }
+        } catch (cleanError) {
+          console.error('Error in clean transcript process:', cleanError);
+          cleanTranscriptText = rawTranscriptText; // Fallback to raw
         }
-      } catch (rawFetchError) {
-        console.error('Error fetching raw transcript:', rawFetchError);
-        setRawTranscript('');
       }
+
+      setTranscript(cleanTranscriptText);
+      
+      if (!rawTranscriptText && !cleanTranscriptText) {
+        console.log('🔍 No transcript data available for this meeting');
+      }
+
     } catch (error) {
       console.error('🚨 CRITICAL: Error fetching transcript:', error);
       toast.error('Failed to load transcript');
