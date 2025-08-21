@@ -36,6 +36,7 @@ import { RealtimeMeetingDashboard } from "@/components/meeting-dashboard/Realtim
 import { NotewellAIAnimation } from "@/components/NotewellAIAnimation";
 
 import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
@@ -732,6 +733,27 @@ export const MeetingRecorder = ({
             return updated;
           });
           setChunkCounter(prev => prev + 1);
+
+          // Save raw chunk to database
+          if (meetingId) {
+            console.log('🔍 Saving raw chunk to database...');
+            supabase
+              .from('raw_transcript_chunks')
+              .insert({
+                meeting_id: meetingId,
+                chunk_id: newChunk.id,
+                text: newChunk.text,
+                timestamp: chunkTimestamp,
+                confidence: confidence
+              })
+              .then(({ error }) => {
+                if (error) {
+                  console.error('Error saving raw chunk:', error);
+                } else {
+                  console.log('🔍 Raw chunk saved successfully');
+                }
+              });
+          }
 
           // Update the main transcript with immediate state update
           setTranscript(prev => {

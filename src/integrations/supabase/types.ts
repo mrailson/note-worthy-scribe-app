@@ -3039,6 +3039,54 @@ export type Database = {
         }
         Relationships: []
       }
+      raw_transcript_chunks: {
+        Row: {
+          chunk_id: number
+          confidence: number | null
+          created_at: string
+          id: string
+          meeting_id: string
+          text: string
+          timestamp: string
+          updated_at: string
+        }
+        Insert: {
+          chunk_id: number
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          meeting_id: string
+          text: string
+          timestamp: string
+          updated_at?: string
+        }
+        Update: {
+          chunk_id?: number
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          meeting_id?: string
+          text?: string
+          timestamp?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "raw_transcript_chunks_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "accessible_meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "raw_transcript_chunks_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       replacement_shifts: {
         Row: {
           assigned_at: string | null

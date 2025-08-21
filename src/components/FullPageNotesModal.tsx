@@ -118,21 +118,21 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
         setTranscript(fullTranscript);
       }
       
-      // Fetch raw chunks from audio_chunks table
+      // Fetch raw chunks from new raw_transcript_chunks table
       const { data: rawChunksData, error: chunksError } = await supabase
-        .from('audio_chunks')
-        .select('id, transcript, created_at, confidence')
+        .from('raw_transcript_chunks')
+        .select('chunk_id, text, timestamp, confidence')
         .eq('meeting_id', meeting.id)
-        .order('created_at');
+        .order('chunk_id');
       
       if (chunksError) {
         console.error('Error fetching raw chunks:', chunksError);
       } else if (rawChunksData) {
         console.log('🔍 Raw chunks fetched:', rawChunksData.length, 'chunks');
-        const formattedChunks = rawChunksData.map((chunk, index) => ({
-          id: index + 1,
-          text: chunk.transcript || '',
-          timestamp: new Date(chunk.created_at).toLocaleTimeString(),
+        const formattedChunks = rawChunksData.map(chunk => ({
+          id: chunk.chunk_id,
+          text: chunk.text,
+          timestamp: chunk.timestamp,
           confidence: chunk.confidence
         }));
         setRawChunks(formattedChunks);
@@ -1551,9 +1551,10 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                       </div>
                     )}
                   </div>
-                </div>
-              
-              <TabsContent value="transcript" className="flex-1 overflow-hidden mt-0 bg-white">
+                 </div>
+               </TabsContent>
+               
+               <TabsContent value="transcript" className="flex-1 overflow-hidden mt-0 bg-white">
                 <div className="h-full flex flex-col">
                   <div className="flex items-center justify-between p-6 pb-4 flex-shrink-0">
                     <div className="flex items-center gap-4">
@@ -1612,6 +1613,15 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                             <Undo2 className="h-4 w-4" />
                             Undo
                           </Button>
+                          <Button
+                            onClick={handleEditToggle}
+                            variant="outline"
+                            size="sm"
+                            className="gap-2"
+                          >
+                            <Edit3 className="h-4 w-4" />
+                            {isEditing ? 'Save' : 'Edit'}
+                          </Button>
                         </>
                       )}
                     </div>
@@ -1624,6 +1634,13 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                           <span className="ml-2">Loading transcript...</span>
                         </div>
+                      ) : isEditing ? (
+                        <Textarea
+                          value={editingContent}
+                          onChange={(e) => setEditingContent(e.target.value)}
+                          className="h-full w-full font-mono text-sm resize-none"
+                          placeholder="Meeting transcript will appear here..."
+                        />
                       ) : !transcript ? (
                         <div className="flex items-center justify-center h-32 text-muted-foreground">
                           No transcript available for this meeting.
@@ -1631,7 +1648,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                       ) : (
                         <div 
                           className="prose prose-sm max-w-none text-sm leading-relaxed transcript-content"
-                          dangerouslySetInnerHTML={{ __html: highlightedTranscript }}
+                          dangerouslySetInnerHTML={{ __html: searchTerm ? highlightedTranscript : transcript }}
                         />
                       )}
                     </div>
@@ -1645,8 +1662,13 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                         <div className="space-y-4">
                           {rawChunks.map((chunk, index) => (
                             <div key={chunk.id} className="border-l-2 border-muted pl-4 py-2">
-                              <div className="text-xs text-muted-foreground mb-1">
+                              <div className="text-xs text-muted-foreground mb-1 flex items-center gap-2">
                                 Chunk {chunk.id} • {chunk.timestamp}
+                                {chunk.confidence && (
+                                  <span className="text-xs bg-muted px-1 rounded">
+                                    {Math.round(chunk.confidence * 100)}%
+                                  </span>
+                                )}
                               </div>
                               <div className="text-sm leading-relaxed">
                                 {chunk.text}
@@ -1658,138 +1680,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                       )}
                     </div>
                   )}
-                </div>
-              </TabsContent>
-                <div className="h-full flex flex-col">
-                  <div className="flex items-center justify-between p-6 pb-4 flex-shrink-0">
-                    <h3 className="text-lg font-semibold">Meeting Transcript</h3>
-                    <div className="flex items-center gap-2">
-                      {!isEditing && transcript && (
-                        <div className="flex items-center gap-2 mr-4">
-                          <div className="relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input
-                              placeholder="Search transcript..."
-                              value={searchTerm}
-                              onChange={(e) => setSearchTerm(e.target.value)}
-                              className="pl-10 pr-4 h-8 w-48"
-                            />
-                          </div>
-                          {totalMatches > 0 && (
-                            <>
-                              <span className="text-sm text-muted-foreground">
-                                {currentMatchIndex + 1} of {totalMatches}
-                              </span>
-                              <div className="flex items-center">
-                                <Button
-                                  onClick={goToPreviousMatch}
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-8 w-8 p-0"
-                                  disabled={totalMatches === 0}
-                                >
-                                  <ChevronUp className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  onClick={goToNextMatch}
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-8 w-8 p-0 ml-1"
-                                  disabled={totalMatches === 0}
-                                >
-                                  <ChevronDownIcon className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </>
-                           )}
-                        </div>
-                      )}
-                      <Button
-                        onClick={handleReprocessAudio}
-                        variant="outline"
-                        size="sm"
-                        className="gap-2"
-                        disabled={!meeting?.id || isLoadingTranscript}
-                        title="Reprocess full meeting audio with Whisper for better transcription"
-                      >
-                        <RefreshCw className={`h-4 w-4 ${isLoadingTranscript ? 'animate-spin' : ''}`} />
-                        {isLoadingTranscript ? 'Processing...' : 'Reprocess Audio'}
-                      </Button>
-                      <Button
-                        onClick={handleCleanTranscript}
-                        variant="outline"
-                        size="sm"
-                        className="gap-2"
-                        disabled={!transcript || transcript.trim().length === 0}
-                        title="Quick clean transcript to remove duplicates"
-                      >
-                        <Wand2 className="h-4 w-4" />
-                        Clean
-                      </Button>
-                      <Button
-                        onClick={handleGPTCleanTranscript}
-                        variant="outline"
-                        size="sm"
-                        className="gap-2"
-                        disabled={!transcript || transcript.trim().length === 0 || isLoadingTranscript}
-                        title="Deep clean transcript using GPT to remove duplicates and improve formatting"
-                      >
-                        <Bot className={`h-4 w-4 ${isLoadingTranscript ? 'animate-pulse' : ''}`} />
-                        {isLoadingTranscript ? 'AI Processing...' : 'Deep Clean'}
-                      </Button>
-                      <Button
-                        onClick={handleUndo}
-                        variant="outline"
-                        size="sm"
-                        className="gap-2"
-                        disabled={transcriptVersions.length === 0}
-                        title={`Undo (${transcriptVersions.length} versions available)`}
-                      >
-                        <Undo2 className="h-4 w-4" />
-                        Undo
-                      </Button>
-                      <Button
-                        onClick={handleEditToggle}
-                        variant="outline"
-                        size="sm"
-                        className="gap-2"
-                      >
-                        <Edit3 className="h-4 w-4" />
-                        {isEditing ? 'Save' : 'Edit'}
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="flex-1 overflow-auto px-6 pb-6">
-                    {isLoadingTranscript ? (
-                      <div className="flex items-center justify-center h-40">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                        <span className="ml-2">Loading transcript...</span>
-                      </div>
-                    ) : isEditing ? (
-                      <Textarea
-                        value={editingContent}
-                        onChange={(e) => setEditingContent(e.target.value)}
-                        className="h-full w-full font-mono text-sm resize-none"
-                        placeholder="Meeting transcript will appear here..."
-                      />
-                    ) : (
-                      <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground">
-                        {transcript ? (
-                          <pre 
-                            className="whitespace-pre-wrap font-sans"
-                            dangerouslySetInnerHTML={{ 
-                              __html: searchTerm ? highlightedTranscript : transcript 
-                            }}
-                          />
-                        ) : (
-                          <p className="text-muted-foreground">No transcript available for this meeting.</p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </TabsContent>
+               </TabsContent>
             </Tabs>
           </div>
         </div>
