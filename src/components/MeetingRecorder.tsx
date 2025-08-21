@@ -99,6 +99,11 @@ export const MeetingRecorder = ({
   const [liveSummary, setLiveSummary] = useState<string>("");
   const [testTranscripts, setTestTranscripts] = useState<string[]>([]);
   
+  // No-op function to replace removed debug logging
+  const addDebugLog = (_message: string) => {
+    // Debug logging removed - function kept to avoid build errors
+  };
+  
   const [tickerText, setTickerText] = useState<string>("");
   const [showTicker, setShowTicker] = useState(false);
   const [tickerEnabled, setTickerEnabled] = useState(true);
@@ -175,7 +180,6 @@ export const MeetingRecorder = ({
     setLastPhrase("");
     setStartTime("");
     setLiveSummary("");
-    setDebugLog([]);
     setTickerText("");
     setShowTicker(false);
     setTranscriptSnippet("");
@@ -1188,12 +1192,6 @@ export const MeetingRecorder = ({
     addDebugLog(`❌ Error: ${error}`);
   };
 
-  const addDebugLog = (message: string) => {
-    const timestamp = new Date().toLocaleTimeString();
-    const logEntry = `[${timestamp}] ${message}`;
-    setDebugLog(prev => [...prev.slice(-19), logEntry]); // Keep last 20 entries
-    console.log(logEntry);
-  };
 
   const handleStatusChange = (status: string) => {
     // Use a more robust approach to avoid state updates during render
@@ -2248,10 +2246,6 @@ export const MeetingRecorder = ({
   const startRecording = async () => {
     try {
       console.log('Starting recording...');
-      
-      // Clear previous debug logs and test transcripts
-      setDebugLog([]);
-      setTestTranscripts([]);
       
       // Clear transcript handler
       if (transcriptHandler.current) {
