@@ -8,6 +8,7 @@ interface MeetingConfig {
   agendaFiles: any[];
   contextFiles: any[];
   contextText: string;
+  uploadingFiles: Set<string>;
 }
 
 interface DashboardContextType {
@@ -44,7 +45,8 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     agenda: "",
     agendaFiles: [],
     contextFiles: [],
-    contextText: ""
+    contextText: "",
+    uploadingFiles: new Set()
   });
 
   const [validationCorrections, setValidationCorrections] = useState(new Map<string, string>());

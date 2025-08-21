@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Users, FileText, Upload, Wand2, MapPin, Video, UserCheck, FolderOpen, Plus } from "lucide-react";
+import { Users, FileText, Upload, Wand2, MapPin, Video, UserCheck, FolderOpen, Plus, Clock, CheckCircle, AlertCircle } from "lucide-react";
 import { AttendeeManager } from "@/components/AttendeeManager";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { useDashboard } from "../utils/DashboardContext";
@@ -20,6 +20,31 @@ export const MeetingSetupTab = () => {
   const [agendaPreview, setAgendaPreview] = useState("");
   const [contextPreview, setContextPreview] = useState("");
 
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const validateFileSize = (file: File): boolean => {
+    const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+    return file.size <= maxSize;
+  };
+
+  const markFileAsUploading = (fileName: string) => {
+    const newUploadingFiles = new Set(meetingConfig.uploadingFiles);
+    newUploadingFiles.add(fileName);
+    updateMeetingConfig({ uploadingFiles: newUploadingFiles });
+  };
+
+  const markFileAsComplete = (fileName: string) => {
+    const newUploadingFiles = new Set(meetingConfig.uploadingFiles);
+    newUploadingFiles.delete(fileName);
+    updateMeetingConfig({ uploadingFiles: newUploadingFiles });
+  };
+
   const handleTitleChange = (title: string) => {
     // Enforce 100 character limit
     if (title.length <= 100) {
@@ -29,7 +54,20 @@ export const MeetingSetupTab = () => {
 
   const handleAgendaUpload = useCallback(async (files: FileList) => {
     try {
+      // Validate file sizes
+      const invalidFiles = Array.from(files).filter(file => !validateFileSize(file));
+      if (invalidFiles.length > 0) {
+        console.error(`Files exceed 10MB limit: ${invalidFiles.map(f => f.name).join(', ')}`);
+        return;
+      }
+
+      // Mark files as uploading
+      Array.from(files).forEach(file => markFileAsUploading(file.name));
+
       const processedFiles = await processFiles(files);
+      
+      // Mark files as complete
+      Array.from(files).forEach(file => markFileAsComplete(file.name));
       
       // Extract text content from processed files
       let combinedAgenda = "";
@@ -65,12 +103,27 @@ export const MeetingSetupTab = () => {
       setAgendaPreview(combinedAgenda);
     } catch (error) {
       console.error("Failed to process agenda files:", error);
+      // Mark files as complete even on error
+      Array.from(files).forEach(file => markFileAsComplete(file.name));
     }
   }, [processFiles, meetingConfig.agenda, meetingConfig.agendaFiles, updateMeetingConfig]);
 
   const handleContextUpload = useCallback(async (files: FileList) => {
     try {
+      // Validate file sizes
+      const invalidFiles = Array.from(files).filter(file => !validateFileSize(file));
+      if (invalidFiles.length > 0) {
+        console.error(`Files exceed 10MB limit: ${invalidFiles.map(f => f.name).join(', ')}`);
+        return;
+      }
+
+      // Mark files as uploading
+      Array.from(files).forEach(file => markFileAsUploading(file.name));
+
       const processedFiles = await processFiles(files);
+      
+      // Mark files as complete
+      Array.from(files).forEach(file => markFileAsComplete(file.name));
       
       // Extract text content from processed files
       let combinedContext = "";
@@ -103,6 +156,8 @@ export const MeetingSetupTab = () => {
       setContextPreview(combinedContext);
     } catch (error) {
       console.error("Failed to process context files:", error);
+      // Mark files as complete even on error
+      Array.from(files).forEach(file => markFileAsComplete(file.name));
     }
   }, [processFiles, meetingConfig.contextText, meetingConfig.contextFiles, updateMeetingConfig]);
 
@@ -352,17 +407,30 @@ export const MeetingSetupTab = () => {
               }}
             />
             <span className="text-xs text-muted-foreground">
-              Supports: PDF, Word, PowerPoint, Images, Text
+              Supports: PDF, Word, PowerPoint, Images, Text (Max 10MB each)
             </span>
           </div>
 
           {meetingConfig.agendaFiles.length > 0 && (
             <div className="flex flex-wrap gap-2">
-              {meetingConfig.agendaFiles.map((file, index) => (
-                <Badge key={index} variant="outline">
-                  {file.name}
-                </Badge>
-              ))}
+              {meetingConfig.agendaFiles.map((file, index) => {
+                const isUploading = meetingConfig.uploadingFiles.has(file.name);
+                return (
+                  <Badge key={index} variant="outline" className="flex items-center gap-1">
+                    {isUploading ? (
+                      <Clock className="h-3 w-3 animate-spin text-blue-500" />
+                    ) : (
+                      <CheckCircle className="h-3 w-3 text-green-500" />
+                    )}
+                    <span className="truncate max-w-[120px]">{file.name}</span>
+                    {file.size && (
+                      <span className="text-xs text-muted-foreground">
+                        ({formatFileSize(file.size)})
+                      </span>
+                    )}
+                  </Badge>
+                );
+              })}
             </div>
           )}
 
@@ -430,18 +498,30 @@ export const MeetingSetupTab = () => {
               }}
             />
             <span className="text-xs text-muted-foreground">
-              Presentations, Documents, Images, Spreadsheets
+              Presentations, Documents, Images, Spreadsheets (Max 10MB each)
             </span>
           </div>
 
           {meetingConfig.contextFiles && meetingConfig.contextFiles.length > 0 && (
             <div className="flex flex-wrap gap-2">
-              {meetingConfig.contextFiles.map((file, index) => (
-                <Badge key={index} variant="outline" className="flex items-center gap-1">
-                  <FolderOpen className="h-3 w-3" />
-                  {file.name}
-                </Badge>
-              ))}
+              {meetingConfig.contextFiles.map((file, index) => {
+                const isUploading = meetingConfig.uploadingFiles.has(file.name);
+                return (
+                  <Badge key={index} variant="outline" className="flex items-center gap-1">
+                    {isUploading ? (
+                      <Clock className="h-3 w-3 animate-spin text-blue-500" />
+                    ) : (
+                      <CheckCircle className="h-3 w-3 text-green-500" />
+                    )}
+                    <span className="truncate max-w-[120px]">{file.name}</span>
+                    {file.size && (
+                      <span className="text-xs text-muted-foreground">
+                        ({formatFileSize(file.size)})
+                      </span>
+                    )}
+                  </Badge>
+                );
+              })}
             </div>
           )}
 
