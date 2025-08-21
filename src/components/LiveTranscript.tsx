@@ -256,7 +256,7 @@ export const LiveTranscript = ({
       console.log('🚨 DEBUG: Raw transcript length:', transcript.length);
       console.log('🚨 DEBUG: Processed transcript length:', processedTranscript.length);
       
-      // APPEND new transcript content to growing raw transcript
+      // APPEND new transcript content to growing raw transcript with smart deduplication
       setGrowingRawTranscript(prev => {
         // If no previous content, use the new transcript
         if (!prev) return transcript;
@@ -264,12 +264,23 @@ export const LiveTranscript = ({
         // If the new transcript is exactly the same as previous, don't duplicate
         if (prev === transcript) return prev;
         
-        // If the new transcript contains the previous content plus more, replace completely
-        if (transcript.includes(prev) && transcript.length > prev.length) {
-          return transcript;
+        // If new transcript is significantly longer and likely contains the previous content
+        // (Whisper often returns cumulative transcripts with slight variations)
+        if (transcript.length > prev.length * 0.8 && transcript.length > prev.length + 50) {
+          // Check if most of the previous content exists in the new transcript (with tolerance for variations)
+          const prevWords = prev.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+          const newWords = transcript.toLowerCase().split(/\s+/);
+          const matchingWords = prevWords.filter(word => 
+            newWords.some(newWord => newWord.includes(word) || word.includes(newWord))
+          );
+          
+          // If 80% of significant words match, treat as cumulative update
+          if (matchingWords.length / prevWords.length > 0.8) {
+            return transcript;
+          }
         }
         
-        // Otherwise, append new content with a space (it's a new chunk)
+        // Otherwise, append as new content
         return prev + ' ' + transcript;
       });
       
