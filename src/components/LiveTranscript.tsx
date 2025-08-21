@@ -59,6 +59,7 @@ interface LiveTranscriptProps {
   };
   onMeetingSettingsChange?: (settings: { practiceId: string; meetingFormat: string }) => void;
   defaultOpen?: boolean;
+  onCleanedTranscriptChange?: (cleanedText: string) => void; // New callback prop
 }
 
 export const LiveTranscript = ({ 
@@ -69,7 +70,8 @@ export const LiveTranscript = ({
   attendees,
   meetingSettings,
   onMeetingSettingsChange,
-  defaultOpen
+  defaultOpen,
+  onCleanedTranscriptChange
 }: LiveTranscriptProps) => {
   const [isTranscriptOpen, setIsTranscriptOpen] = useState<boolean>(defaultOpen ?? true);
   const [isLiveUpdateOpen, setIsLiveUpdateOpen] = useState(false); // New state for live updates
@@ -247,6 +249,13 @@ export const LiveTranscript = ({
     }
     // NEVER clear liveTranscriptText - always preserve transcript history
   }, [transcript, isAutoCleaningEnabled, cleanedTranscript, isMedicalCorrectionsLoaded]);
+
+  // Notify parent when cleaned transcript changes
+  useEffect(() => {
+    if (onCleanedTranscriptChange && cleanedTranscript) {
+      onCleanedTranscriptChange(cleanedTranscript);
+    }
+  }, [cleanedTranscript, onCleanedTranscriptChange]);
 
   // Handle text selection for corrections
   const handleTextSelection = () => {

@@ -78,6 +78,7 @@ export const MeetingRecorder = ({
   const [isStoppingRecording, setIsStoppingRecording] = useState(false);
   const [duration, setDuration] = useState(0);
   const [transcript, setTranscript] = useState("");
+  const [cleanedMasterTranscript, setCleanedMasterTranscript] = useState(""); // AI-enhanced transcript from LiveTranscript
   const [realtimeTranscripts, setRealtimeTranscripts] = useState<TranscriptData[]>([]);
   const [removedSegments, setRemovedSegments] = useState<RemovedSegment[]>([]);
   
@@ -2778,14 +2779,22 @@ export const MeetingRecorder = ({
       setSavingSteps({ saving: true, securing: true, complete: false });
       await new Promise(resolve => setTimeout(resolve, 800));
 
-      // 2. Save transcript
-      if (meetingData.transcript) {
+      // 2. Save transcript - use AI-enhanced transcript if available, otherwise fallback to raw
+      const transcriptToSave = cleanedMasterTranscript || meetingData.transcript;
+      console.log('🚨 Saving transcript:', {
+        hasCleanedTranscript: !!cleanedMasterTranscript,
+        cleanedLength: cleanedMasterTranscript?.length || 0,
+        rawLength: meetingData.transcript?.length || 0,
+        usingCleaned: !!cleanedMasterTranscript
+      });
+      
+      if (transcriptToSave) {
         await supabase
           .from('meeting_transcripts')
           .insert({
             meeting_id: savedMeeting.id,
             speaker_name: 'Meeting Recording',
-            content: meetingData.transcript,
+            content: transcriptToSave,
             timestamp_seconds: 0,
             confidence_score: 1.0
           });
@@ -3834,6 +3843,7 @@ export const MeetingRecorder = ({
                   practiceId: (meetingSettings as any)?.practiceId || "",
                   meetingFormat: (meetingSettings as any)?.meetingFormat || "teams"
                 }}
+                onCleanedTranscriptChange={setCleanedMasterTranscript} // Pass callback to capture AI-enhanced transcript
                 onMeetingSettingsChange={(settings) => {
                   setMeetingSettings(prev => ({
                     ...prev,
