@@ -754,6 +754,38 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     return output.join(" ");
   };
 
+  // Handle full audio reprocessing with Whisper
+  const handleReprocessAudio = async () => {
+    if (!meeting?.id) {
+      toast.error('No meeting selected');
+      return;
+    }
+
+    // Save current version before reprocessing
+    saveCurrentVersion('whisper-reprocess', 'transcript');
+    
+    try {
+      toast.info('Reprocessing meeting audio with Whisper... This may take a few minutes.');
+
+      const { data, error } = await supabase.functions.invoke('reprocess-meeting-audio', {
+        body: { meetingId: meeting.id },
+      });
+
+      if (error) {
+        console.error('Audio reprocessing error:', error);
+        toast.error('Failed to reprocess audio: ' + error.message);
+        return;
+      }
+
+      setTranscript(data.transcript);
+      toast.success(`Audio reprocessed successfully! Generated ${data.length} characters of transcript.`);
+      
+    } catch (error) {
+      console.error('Error reprocessing audio:', error);
+      toast.error('Failed to reprocess audio');
+    }
+  };
+
   // Handle GPT-based transcript cleaning
   const handleGPTCleanTranscript = async () => {
     if (!transcript || transcript.trim().length === 0) {
@@ -1466,6 +1498,17 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                            )}
                         </div>
                       )}
+                      <Button
+                        onClick={handleReprocessAudio}
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                        disabled={!meeting?.id}
+                        title="Reprocess full meeting audio with Whisper for better transcription"
+                      >
+                        <RefreshCw className="h-4 w-4" />
+                        Reprocess Audio
+                      </Button>
                       <Button
                         onClick={handleCleanTranscript}
                         variant="outline"
