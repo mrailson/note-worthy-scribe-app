@@ -19,7 +19,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History, Search, Trash2, CheckSquare, SquareIcon, Monitor, Volume2, Waves, Video, Headphones, AlertCircle, Eye, EyeOff, RotateCcw, MonitorSpeaker, RefreshCw, Sparkles, Pause } from "lucide-react";
+import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History, Search, Trash2, CheckSquare, SquareIcon, Monitor, Volume2, Waves, Video, Headphones, AlertCircle, Eye, EyeOff, RotateCcw, MonitorSpeaker, RefreshCw, Sparkles, Pause, Calendar, Edit } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { MeetingSettings } from "@/components/MeetingSettings";
@@ -3811,30 +3811,18 @@ export const MeetingRecorder = ({
                           <AlertDialogHeader>
                             <AlertDialogTitle>Delete All Meetings</AlertDialogTitle>
                             <AlertDialogDescription className="text-sm">
-                              This action will permanently delete all {meetings.length} meetings, their transcripts, and summaries. This cannot be undone.
-                              <br /><br />
-                              To confirm, please type <strong>delete</strong> in the field below:
+                              This action will permanently delete all {meetings.length} meeting{meetings.length > 1 ? 's' : ''}, their transcripts, and summaries. This cannot be undone.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
-                          <Input
-                            placeholder="Type 'delete' to confirm"
-                            value={deleteConfirmation}
-                            onChange={(e) => setDeleteConfirmation(e.target.value)}
-                            className="touch-manipulation min-h-[44px]"
-                          />
                           <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-                            <AlertDialogCancel 
-                              onClick={() => setDeleteConfirmation("")}
-                              className="touch-manipulation min-h-[44px]"
-                            >
+                            <AlertDialogCancel className="touch-manipulation min-h-[44px]">
                               Cancel
                             </AlertDialogCancel>
                             <AlertDialogAction 
                               onClick={handleDeleteAll}
-                              disabled={deleteConfirmation.toLowerCase() !== 'delete'}
                               className="bg-destructive hover:bg-destructive/90 touch-manipulation min-h-[44px]"
                             >
-                              Delete All Meetings
+                              Delete All
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
@@ -3844,42 +3832,112 @@ export const MeetingRecorder = ({
                 </div>
               )}
 
-              {/* Meeting List */}
-              <MeetingHistoryList
-                meetings={filteredMeetings}
-                onEdit={handleEditMeeting}
-                onViewSummary={handleViewSummary}
-                onViewTranscript={handleViewTranscript}
-                onDelete={handleDeleteMeeting}
-                loading={loadingHistory}
-                isSelectMode={isSelectMode}
-                selectedMeetings={selectedMeetings}
-                onSelectMeeting={handleSelectMeeting}
-                onMeetingUpdate={(meetingId, updatedTitle) => {
-                  // Update the local meetings array
-                  setMeetings(prev => prev.map(meeting => 
-                    meeting.id === meetingId 
-                      ? { ...meeting, title: updatedTitle }
-                      : meeting
-                  ));
-                }}
-                onDocumentsUploaded={(meetingId, uploadedFiles) => {
-                  // Update the local meetings array with new documents
-                  setMeetings(prev => prev.map(meeting => {
-                    if (meeting.id === meetingId) {
-                      const existingDocuments = meeting.documents || [];
-                      const newDocuments = [...existingDocuments, ...uploadedFiles];
-                      return {
-                        ...meeting,
-                        document_count: newDocuments.length,
-                        documents: newDocuments
-                      };
-                    }
-                    return meeting;
-                  }));
-                 }}
-                showRecordingPlayback={micTestServiceVisible}
-               />
+              {/* Meetings List */}
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {filteredMeetings.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    {searchQuery ? 'No meetings match your search.' : 'No meetings recorded yet.'}
+                  </div>
+                ) : (
+                  filteredMeetings.map((meeting) => (
+                    <Card key={meeting.id} className="hover:shadow-medium transition-shadow">
+                      <CardContent className="p-3 sm:p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-start gap-3 flex-1 min-w-0">
+                            {isSelectMode && (
+                              <div className="flex-shrink-0 pt-1">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedMeetings.includes(meeting.id)}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setSelectedMeetings(prev => [...prev, meeting.id]);
+                                    } else {
+                                      setSelectedMeetings(prev => prev.filter(id => id !== meeting.id));
+                                    }
+                                  }}
+                                  className="rounded border-gray-300 text-primary focus:ring-primary focus:ring-offset-0 w-4 h-4"
+                                />
+                              </div>
+                            )}
+                            
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start gap-2 mb-2">
+                                <div className="flex-1 min-w-0">
+                                  <h3 className="font-semibold text-sm sm:text-base text-foreground truncate">
+                                    {meeting.title}
+                                  </h3>
+                                  <div className="flex flex-wrap items-center gap-1 sm:gap-2 text-xs text-muted-foreground mt-1">
+                                    <div className="flex items-center gap-1">
+                                      <Calendar className="h-3 w-3" />
+                                      <span>{new Date(meeting.start_time).toLocaleDateString()}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <Clock className="h-3 w-3" />
+                                      <span>{new Date(meeting.start_time).toLocaleTimeString()}</span>
+                                    </div>
+                                    {meeting.duration_minutes && (
+                                      <div className="flex items-center gap-1">
+                                        <Clock className="h-3 w-3" />
+                                        <span>{meeting.duration_minutes}m</span>
+                                      </div>
+                                    )}
+                                    {meeting.word_count && (
+                                      <span className="text-primary font-medium">
+                                        {meeting.word_count} words
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Action Buttons */}
+                              <div className="flex flex-wrap gap-1 sm:gap-2 mt-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => toast.info("Meeting notes will open in a future update. For now, use the standalone Meeting History page.")}
+                                  className="text-xs h-8 px-2 sm:px-3"
+                                >
+                                  <FileText className="h-3 w-3 mr-1" />
+                                  View Notes
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => toast.info("Transcript view will open in a future update. For now, use the standalone Meeting History page.")}
+                                  className="text-xs h-8 px-2 sm:px-3"
+                                >
+                                  <FileText className="h-3 w-3 mr-1" />
+                                  Transcript
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleEditMeeting(meeting.id)}
+                                  className="text-xs h-8 px-2 sm:px-3"
+                                >
+                                  <Edit className="h-3 w-3 mr-1" />
+                                  Edit
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleDeleteMeeting(meeting.id)}
+                                  className="text-xs h-8 px-2 sm:px-3 text-destructive hover:text-destructive"
+                                >
+                                  <Trash2 className="h-3 w-3 mr-1" />
+                                  Delete
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
