@@ -2809,7 +2809,7 @@ export const MeetingRecorder = ({
       
       // Step 1: Saving
       setSavingSteps({ saving: true, securing: false, complete: false });
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       console.log('🚨 ATTEMPTING DATABASE SAVE...');
     console.log('🚨 Auth user:', user);
