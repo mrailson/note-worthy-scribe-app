@@ -36,7 +36,6 @@ import { RealtimeMeetingDashboard } from "@/components/meeting-dashboard/Realtim
 import { NotewellAIAnimation } from "@/components/NotewellAIAnimation";
 
 import { supabase } from "@/integrations/supabase/client";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 

@@ -73,7 +73,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [activeTab, setActiveTab] = useState("notes");
   const [transcript, setTranscript] = useState("");
-  const [rawChunks, setRawChunks] = useState<Array<{id: number, text: string, timestamp: string}>>([]);
+  const [rawChunks, setRawChunks] = useState<Array<{id: number, text: string, timestamp: string, confidence?: number}>>([]);
   const [isLoadingTranscript, setIsLoadingTranscript] = useState(false);
   const [editingContent, setEditingContent] = useState(""); // Clean content for editing
   const [editingTab, setEditingTab] = useState<string>(""); // Track which tab is being edited
@@ -1679,7 +1679,8 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                         </div>
                       )}
                     </div>
-                  )}
+                   )}
+                 </div>
                </TabsContent>
             </Tabs>
           </div>
