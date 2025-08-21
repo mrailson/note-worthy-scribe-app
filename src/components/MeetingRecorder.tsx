@@ -142,15 +142,6 @@ export const MeetingRecorder = ({
     complete: false
   });
   
-  // Debug panel state  
-  const [showDebugPanel, setShowDebugPanel] = useState(true);
-  const [debugMessages, setDebugMessages] = useState<string[]>([]);
-  const [debugInfo, setDebugInfo] = useState({
-    deviceInfo: detectDevice(),
-    recordingState: 'idle',
-    lastError: '',
-    transcriptionEvents: [] as string[]
-  });
   
   // Meeting settings
   const [meetingSettings, setMeetingSettings] = useState(() => initialSettings || {
@@ -562,7 +553,7 @@ export const MeetingRecorder = ({
         // More robust check for recording state
         if (isRecording && isRecordingRef.current && chunksStream && chunksStream.active) {
           console.log(`🔄 Starting new chunk ${chunkId + 1} - system is active`);
-          addDebugLog(`🔄 Starting chunk ${chunkId + 1}`);
+          
           startNewChunk();
           
           // Force UI update to show transcription is active
@@ -576,7 +567,7 @@ export const MeetingRecorder = ({
             isRecordingRef: isRecordingRef.current,
             streamActive: chunksStream?.active
           });
-          addDebugLog('🛑 Stopping chunks - recording ended');
+          
           clearInterval(chunkInterval);
           
           // Clean up audio monitoring
@@ -597,7 +588,7 @@ export const MeetingRecorder = ({
       // Add a heartbeat to show recording is active every 5 seconds
       const heartbeatInterval = setInterval(() => {
         if (isRecording && isRecordingRef.current) {
-          addDebugLog(`💓 Recording active - chunk ${chunkId}`);
+          
           
           // Get current transcript length for user feedback
           const currentLength = transcript.length;
@@ -631,12 +622,12 @@ export const MeetingRecorder = ({
       
       if (!chunks || chunks.length === 0 || !startTime) {
         console.log(`⚠️ No data for chunk ${chunkId}`);
-        addDebugLog(`⚠️ Chunk ${chunkId}: no data`);
+        
         return;
       }
 
       console.log(`🎵 Processing chunk ${chunkId} (${chunks.length} audio chunks, total size: ${chunks.reduce((sum, chunk) => sum + chunk.size, 0)} bytes)...`);
-      addDebugLog(`🎵 Processing chunk ${chunkId}...`);
+      
       
       // Create blob from chunks
       const chunkBlob = new Blob(chunks, { type: 'audio/webm' });
@@ -669,7 +660,7 @@ export const MeetingRecorder = ({
         if (!response.ok) {
           const errorText = await response.text();
           console.error(`❌ Transcription failed for chunk ${chunkId}:`, response.status, errorText);
-          addDebugLog(`❌ Chunk ${chunkId}: ${response.status}`);
+          
           return;
         }
 
@@ -1180,7 +1171,7 @@ export const MeetingRecorder = ({
       isFinal: data.is_final
     };
     
-    addDebugLog(`🎙️ ${data.is_final ? 'Final' : 'Interim'}: "${data.text.substring(0, 50)}..." (${Math.round((data.confidence || 0.9) * 100)}%)`);
+    
     setTestTranscripts(prev => [...prev.slice(-9), data.text]);
     
     handleTranscript(transcriptData);
@@ -3201,68 +3192,8 @@ export const MeetingRecorder = ({
     setMeetingSettings(newSettings);
   };
               
-  // Clean up the stray line
   return (
     <div className="space-y-6">
-      {/* Debug Panel for iPhone/Mobile Testing */}
-      <Card className="bg-slate-50 border-dashed">
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <AlertCircle className="h-4 w-4" />
-              Debug Panel
-            </CardTitle>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowDebugPanel(!showDebugPanel)}
-            >
-              {showDebugPanel ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            </Button>
-          </div>
-        </CardHeader>
-        {showDebugPanel && (
-          <CardContent className="space-y-3 text-xs">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <div className="font-semibold">Device Info</div>
-                <div>iOS: {debugInfo.deviceInfo.isIOS ? '✅' : '❌'}</div>
-                <div>Safari: {debugInfo.deviceInfo.isSafari ? '✅' : '❌'}</div>
-                <div>Chromium: {debugInfo.deviceInfo.isChromium ? '✅' : '❌'}</div>
-                <div>Mobile: {debugInfo.deviceInfo.isMobile ? '✅' : '❌'}</div>
-                <div>Type: {debugInfo.deviceInfo.deviceType}</div>
-                <div>Transcriber: {getRecommendedTranscriber()}</div>
-              </div>
-              <div className="space-y-2">
-                <div className="font-semibold">Recording State</div>
-                <div>Status: {isRecording ? '🔴 Recording' : '⚫ Stopped'}</div>
-                <div>Duration: {Math.floor(duration / 60)}:{(duration % 60).toString().padStart(2, '0')}</div>
-                <div>Words: {wordCount}</div>
-                <div>Connection: {connectionStatus}</div>
-                <div>Paused: {isPaused ? '✅' : '❌'}</div>
-                <div>Mode: {recordingMode}</div>
-              </div>
-            </div>
-            {debugInfo.lastError && (
-              <div className="mt-3 p-2 bg-red-100 border border-red-200 rounded">
-                <div className="font-semibold text-red-800">Last Error:</div>
-                <div className="text-red-700">{debugInfo.lastError}</div>
-              </div>
-            )}
-            {debugInfo.transcriptionEvents.length > 0 && (
-              <div className="mt-3">
-                <div className="font-semibold mb-1">Recent Events:</div>
-                <div className="max-h-24 overflow-y-auto space-y-1">
-                  {debugInfo.transcriptionEvents.slice(-5).map((event, index) => (
-                    <div key={index} className="text-gray-600 bg-gray-100 p-1 rounded">{event}</div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </CardContent>
-        )}
-      </Card>
-
       {/* Tabbed Interface */}
       <Tabs defaultValue={initialActiveTab || "recorder"} className="w-full">
         <TabsList className={`grid w-full ${micTestServiceVisible ? 'grid-cols-5' : 'grid-cols-4'}`}>
@@ -3941,29 +3872,6 @@ export const MeetingRecorder = ({
 
       </Tabs>
       
-      {/* Debug Panel for iPhone/Mobile */}
-      {showDebugPanel && debugMessages.length > 0 && (
-        <div className="fixed bottom-4 left-4 right-4 max-w-md mx-auto bg-black/90 text-white text-xs p-3 rounded-lg z-50 max-h-40 overflow-y-auto">
-          <div className="flex justify-between items-center mb-2">
-            <span className="font-bold text-green-400">Debug Log</span>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => setShowDebugPanel(false)}
-              className="text-white hover:bg-white/20 h-6 w-6 p-0"
-            >
-              ×
-            </Button>
-          </div>
-          <div className="space-y-1 font-mono text-xs">
-            {debugMessages.map((msg, i) => (
-              <div key={i} className="break-words">
-                {msg}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
       
       {/* Processing Audio Modal */}
       {showProcessingAudio && (
