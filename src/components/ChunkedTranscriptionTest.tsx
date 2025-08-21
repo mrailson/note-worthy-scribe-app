@@ -231,14 +231,22 @@ const ChunkedTranscriptionTest = () => {
     }
   };
 
-  const stopChunkedRecording = () => {
+  const stopChunkedRecording = async () => {
+    console.log('🛑 Stopping recording and forcing final chunk...');
+    
+    // Clear the scheduled timeout first
     if (chunkTimerRef.current) {
       clearTimeout(chunkTimerRef.current);
       chunkTimerRef.current = null;
     }
 
+    // Force capture the current chunk if recording
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      console.log('📦 Forcing final chunk capture...');
       mediaRecorderRef.current.stop();
+      
+      // Wait a moment for the final chunk to be processed
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
 
     if (streamRef.current) {
@@ -250,10 +258,10 @@ const ChunkedTranscriptionTest = () => {
     setIsRecording(false);
     isRecordingRef.current = false;
     
-    console.log('🛑 Stopped chunked recording');
+    console.log('🛑 Recording stopped with final chunk captured');
     toast({
       title: "Recording Stopped",
-      description: `Processed ${currentChunk} chunks`
+      description: `Processed ${currentChunk} chunks (including final chunk)`
     });
   };
 
