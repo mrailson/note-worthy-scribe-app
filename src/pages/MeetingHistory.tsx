@@ -5,6 +5,7 @@ import { MeetingHistoryList } from "@/components/MeetingHistoryList";
 import { MeetingDocuments } from "@/components/MeetingDocuments";
 import { MeetingSearchBar, SearchFilters } from "@/components/MeetingSearchBar";
 import { FullPageNotesModal } from "@/components/FullPageNotesModal";
+import { MeetingGenerationAnimation } from "@/components/MeetingGenerationAnimation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1964,6 +1965,18 @@ const MeetingHistory = () => {
           meeting={modalMeeting}
           notes={modalNotes}
           onNotesChange={setModalNotes}
+        />
+
+        {/* Meeting Generation Animation Overlay */}
+        <MeetingGenerationAnimation
+          isVisible={isGeneratingNotes}
+          title="Generating Meeting Notes"
+          subtitle="Claude AI is analyzing your meeting transcript and generating comprehensive notes"
+          estimatedTime={60}
+          onDismiss={() => {
+            // Optional: Allow dismissing to see progress in background
+            console.log('Meeting generation animation dismissed');
+          }}
         />
 
       </div>

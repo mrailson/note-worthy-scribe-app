@@ -33,6 +33,7 @@ import {
   ChevronDown as ChevronDownIcon,
   Undo
 } from "lucide-react";
+import { MeetingGenerationAnimation } from './MeetingGenerationAnimation';
 
 interface Meeting {
   id: string;
@@ -1448,6 +1449,18 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
           </div>
         </div>
       </DialogContent>
+      
+      {/* Meeting Generation Animation Overlay */}
+      <MeetingGenerationAnimation
+        isVisible={isGenerating}
+        title="Generating Meeting Notes"
+        subtitle="Claude AI is analyzing your transcript and creating comprehensive meeting notes"
+        estimatedTime={45}
+        onDismiss={() => {
+          // Optional: Allow dismissing to see progress in background
+          console.log('Animation dismissed by user');
+        }}
+      />
     </Dialog>
   );
 };
