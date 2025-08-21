@@ -29,7 +29,7 @@ import { WhisperHallucinationTestSuite } from "@/components/WhisperHallucination
 import { MicInputRecordingTester } from "@/components/MicInputRecordingTester";
 import { SharedMeetingsManager } from "@/components/SharedMeetingsManager";
 import { LiveTranscript } from "@/components/LiveTranscript";
-import { RealtimeMeetingDashboard } from "@/components/meeting-dashboard/RealtimeMeetingDashboard";
+import { DashboardLauncher } from "@/components/meeting-dashboard/DashboardLauncher";
 
 import { NotewellAIAnimation } from "@/components/NotewellAIAnimation";
 
@@ -138,9 +138,6 @@ export const MeetingRecorder = ({
   const [editingMeetingId, setEditingMeetingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
   const [isSavingTitle, setIsSavingTitle] = useState(false);
-  
-  // Dashboard state
-  const [dashboardOpen, setDashboardOpen] = useState(false);
   
   // Modal states for viewing notes and transcripts
   const [fullPageModalOpen, setFullPageModalOpen] = useState(false);
@@ -3476,6 +3473,23 @@ export const MeetingRecorder = ({
                               <p>{isPaused ? "Resume Recording" : "Pause Recording"}</p>
                             </TooltipContent>
                           </Tooltip>
+
+                          {/* Dashboard Button */}
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                onClick={() => setDashboardOpen(true)}
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0 text-primary hover:bg-primary/10"
+                              >
+                                <Monitor className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Open Meeting Dashboard</p>
+                            </TooltipContent>
+                          </Tooltip>
                           
                           {/* Show/Hide Live Speech Toggle - Hidden on Edge */}
                           {!/Edg/.test(navigator.userAgent) && (
@@ -3729,8 +3743,17 @@ export const MeetingRecorder = ({
             </Card>
           </div>
           
-          {/* Reset Meeting Button - Bottom Center */}
-          <div className="flex justify-center pt-4">
+          {/* Meeting Controls - Bottom Center */}
+          <div className="flex justify-center items-center gap-3 pt-4">
+            <DashboardLauncher
+              isRecording={isRecording}
+              meetingData={{
+                transcript,
+                duration,
+                wordCount,
+                connectionStatus
+              }}
+            />
             <Button 
               onClick={resetMeeting}
               variant="outline"
@@ -4163,59 +4186,225 @@ export const MeetingRecorder = ({
                     onClick={() => setMeetingEndModal({ isOpen: false, stage: 'processing', savedData: null })}
                     className="w-full bg-primary text-primary-foreground py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors"
                   >
+                     Continue
+                   </button>
+                 </>
+               )}
+               
+               </div>
+             </div>
+           </div>
+         )}
+
+         {/* Full Page Notes Modal */}
+         {fullPageModalOpen && modalMeeting && (
+           <FullPageNotesModal
+             isOpen={fullPageModalOpen}
+             onClose={() => {
+               setFullPageModalOpen(false);
+               setModalMeeting(null);
+               setModalNotes('');
+             }}
+             meeting={modalMeeting}
+             notes={modalNotes}
+             onNotesChange={setModalNotes}
+           />
+         )}
+
+         {/* Transcript Modal */}
+         {transcriptModalOpen && currentMeetingForTranscript && (
+           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+             <div className="bg-background rounded-lg shadow-lg max-w-4xl w-full max-h-[80vh] overflow-hidden border border-border">
+               <div className="flex items-center justify-between p-6 border-b border-border">
+                 <div>
+                   <h2 className="text-xl font-bold text-foreground">{currentMeetingForTranscript.title}</h2>
+                   <p className="text-sm text-muted-foreground">Meeting Transcript</p>
+                 </div>
+                 <Button
+                   variant="ghost"
+                   size="sm"
+                   onClick={() => {
+                     setTranscriptModalOpen(false);
+                     setCurrentMeetingForTranscript(null);
+                   }}
+                   className="h-8 w-8 p-0"
+                 >
+                   ✕
+                 </Button>
+               </div>
+               <div className="p-6 overflow-y-auto max-h-[60vh]">
+                 <p className="text-sm text-muted-foreground mb-4">
+                   Transcript functionality is not fully implemented in this tab. Please use the standalone Meeting History page for full transcript features.
+                 </p>
+               </div>
+             </div>
+           </div>
+         )}
+      </Tabs>
+      
+      {/* Combined End-of-Meeting Modal */}
+      {meetingEndModal.isOpen && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="bg-background rounded-lg shadow-lg max-w-sm w-full mx-4 border border-border animate-scale-in">
+            <div className="p-6 space-y-6">
+              
+              {/* Processing Stage */}
+              {meetingEndModal.stage === 'processing' && (
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
+                    <RefreshCw className="h-6 w-6 text-primary-foreground animate-spin" />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <h3 className="text-lg font-semibold">Generating Meeting Notes</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Please wait while we process your meeting
+                      <span className="font-mono">{processingDots}</span>
+                    </p>
+                  </div>
+                  
+                  <div className="mt-6 space-y-4">
+                    <div className="bg-muted rounded-lg p-4">
+                      <div className="flex items-center gap-3 mb-2">
+                        <Sparkles className="h-5 w-5 text-primary" />
+                        <span className="text-sm font-medium">AI Processing Status</span>
+                      </div>
+                      <div className="text-xs text-muted-foreground space-y-1">
+                        <div>• Analyzing meeting transcript...</div>
+                        <div>• Identifying key discussion points...</div>
+                        <div>• Generating structured notes...</div>
+                        <div>• Creating meeting summary...</div>
+                      </div>
+                    </div>
+                    
+                    <div className="text-xs text-muted-foreground">
+                      Duration: {formatDuration(duration)} | Words: {wordCount.toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Saving Stage */}
+              {meetingEndModal.stage === 'saving' && (
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Save className="h-6 w-6 text-primary-foreground" />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <h3 className="text-lg font-semibold">Saving Meeting</h3>
+                    <p className="text-sm text-muted-foreground">Securing your meeting data...</p>
+                  </div>
+                  
+                  <div className="mt-6 space-y-3">
+                    <div className={`flex items-center gap-3 p-3 rounded-lg ${savingSteps.saving ? 'bg-primary/10 text-primary' : 'bg-muted/30'}`}>
+                      <div className={`w-4 h-4 rounded-full ${savingSteps.saving ? 'bg-primary' : 'bg-muted'} ${savingSteps.saving ? 'animate-pulse' : ''}`} />
+                      <span className="text-sm">Saving meeting data...</span>
+                    </div>
+                    <div className={`flex items-center gap-3 p-3 rounded-lg ${savingSteps.securing ? 'bg-primary/10 text-primary' : 'bg-muted/30'}`}>
+                      <div className={`w-4 h-4 rounded-full ${savingSteps.securing ? 'bg-primary' : 'bg-muted'} ${savingSteps.securing ? 'animate-pulse' : ''}`} />
+                      <span className="text-sm">Securing transcript...</span>
+                    </div>
+                    <div className={`flex items-center gap-3 p-3 rounded-lg ${savingSteps.complete ? 'bg-success/10 text-success' : 'bg-muted/30'}`}>
+                      <div className={`w-4 h-4 rounded-full ${savingSteps.complete ? 'bg-success' : 'bg-muted'}`} />
+                      <span className="text-sm">Complete!</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Success Stage */}
+              {meetingEndModal.stage === 'success' && meetingEndModal.savedData && (
+                <>
+                  <div className="text-center">
+                    <div className="w-12 h-12 bg-success rounded-full flex items-center justify-center mx-auto mb-4">
+                      <CheckSquare className="h-6 w-6 text-success-foreground" />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <h3 className="text-lg font-semibold text-success">Meeting Saved Successfully!</h3>
+                      <p className="text-sm text-muted-foreground">Your meeting notes have been generated and saved.</p>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-muted/30 rounded-lg p-4 space-y-3">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Title:</span>
+                      <span className="font-medium">{meetingEndModal.savedData.title}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Duration:</span>
+                      <span className="font-medium">{meetingEndModal.savedData.duration}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Words:</span>
+                      <span className="font-medium">{meetingEndModal.savedData.wordCount?.toLocaleString()}</span>
+                    </div>
+                    
+                    <div className="pt-2 text-center text-xs text-muted-foreground">
+                      This meeting is now available in your<br />
+                      <span className="font-medium">Meeting History</span> tab as:<br />
+                      <span className="font-medium text-primary">"{meetingEndModal.savedData.title}"</span>
+                    </div>
+                  </div>
+                  
+                  <button 
+                    onClick={() => setMeetingEndModal({ isOpen: false, stage: 'processing', savedData: null })}
+                    className="w-full bg-primary text-primary-foreground py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors"
+                  >
                     Continue
                   </button>
                 </>
               )}
               
-              </div>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Full Page Notes Modal */}
-        {fullPageModalOpen && modalMeeting && (
-          <FullPageNotesModal
-            isOpen={fullPageModalOpen}
-            onClose={() => {
-              setFullPageModalOpen(false);
-              setModalMeeting(null);
-              setModalNotes('');
-            }}
-            meeting={modalMeeting}
-            notes={modalNotes}
-            onNotesChange={setModalNotes}
-          />
-        )}
+      {/* Full Page Notes Modal */}
+      {fullPageModalOpen && modalMeeting && (
+        <FullPageNotesModal
+          isOpen={fullPageModalOpen}
+          onClose={() => {
+            setFullPageModalOpen(false);
+            setModalMeeting(null);
+            setModalNotes('');
+          }}
+          meeting={modalMeeting}
+          notes={modalNotes}
+          onNotesChange={setModalNotes}
+        />
+      )}
 
-        {/* Transcript Modal */}
-        {transcriptModalOpen && currentMeetingForTranscript && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-background rounded-lg shadow-lg max-w-4xl w-full max-h-[80vh] overflow-hidden border border-border">
-              <div className="flex items-center justify-between p-6 border-b border-border">
-                <div>
-                  <h2 className="text-xl font-bold text-foreground">{currentMeetingForTranscript.title}</h2>
-                  <p className="text-sm text-muted-foreground">Meeting Transcript</p>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setTranscriptModalOpen(false);
-                    setCurrentMeetingForTranscript(null);
-                  }}
-                  className="h-8 w-8 p-0"
-                >
-                  ✕
-                </Button>
+      {/* Transcript Modal */}
+      {transcriptModalOpen && currentMeetingForTranscript && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-background rounded-lg shadow-lg max-w-4xl w-full max-h-[80vh] overflow-hidden border border-border">
+            <div className="flex items-center justify-between p-6 border-b border-border">
+              <div>
+                <h2 className="text-xl font-bold text-foreground">{currentMeetingForTranscript.title}</h2>
+                <p className="text-sm text-muted-foreground">Meeting Transcript</p>
               </div>
-              <div className="p-6 overflow-y-auto max-h-[60vh]">
-                <p className="text-sm text-muted-foreground mb-4">
-                  Transcript functionality is not fully implemented in this tab. Please use the standalone Meeting History page for full transcript features.
-                </p>
-              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setTranscriptModalOpen(false);
+                  setCurrentMeetingForTranscript(null);
+                }}
+                className="h-8 w-8 p-0"
+              >
+                ✕
+              </Button>
+            </div>
+            <div className="p-6 overflow-y-auto max-h-[60vh]">
+              <p className="text-sm text-muted-foreground mb-4">
+                Transcript functionality is not fully implemented in this tab. Please use the standalone Meeting History page for full transcript features.
+              </p>
             </div>
           </div>
+        </div>
         )}
       </div>
     );
