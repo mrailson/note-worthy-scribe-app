@@ -19,7 +19,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History, Search, Trash2, CheckSquare, SquareIcon, Monitor, Volume2, Waves, Video, Headphones, AlertCircle, Eye, EyeOff, RotateCcw, MonitorSpeaker, RefreshCw, Sparkles, Pause, Calendar, Edit } from "lucide-react";
+import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History, Search, Trash2, CheckSquare, SquareIcon, Monitor, Volume2, Waves, Video, Headphones, AlertCircle, Eye, EyeOff, RotateCcw, MonitorSpeaker, RefreshCw, Sparkles, Pause, Calendar, Edit, Save } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { MeetingSettings } from "@/components/MeetingSettings";
@@ -131,6 +131,11 @@ export const MeetingRecorder = ({
   const [selectedMeetings, setSelectedMeetings] = useState<string[]>([]);
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
+  
+  // Meeting editing state
+  const [editingMeetingId, setEditingMeetingId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState("");
+  const [isSavingTitle, setIsSavingTitle] = useState(false);
   // Combined modal state for end-of-meeting process
   const [meetingEndModal, setMeetingEndModal] = useState<{
     isOpen: boolean;
@@ -3146,6 +3151,53 @@ export const MeetingRecorder = ({
     }
   };
 
+  // Save meeting title function
+  const handleSaveTitle = async (meetingId: string) => {
+    if (!editingTitle.trim() || editingTitle.length > 100) {
+      toast.error("Meeting title must be between 1 and 100 characters");
+      return;
+    }
+
+    setIsSavingTitle(true);
+    try {
+      const { error } = await supabase
+        .from('meetings')
+        .update({ title: editingTitle.trim() })
+        .eq('id', meetingId)
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+
+      // Update local state
+      setMeetings(prev => prev.map(meeting => 
+        meeting.id === meetingId 
+          ? { ...meeting, title: editingTitle.trim() }
+          : meeting
+      ));
+      
+      setEditingMeetingId(null);
+      setEditingTitle("");
+      toast.success("Meeting title updated successfully");
+    } catch (error: any) {
+      console.error("Error updating meeting title:", error.message);
+      toast.error("Failed to update meeting title");
+    } finally {
+      setIsSavingTitle(false);
+    }
+  };
+
+  // Start editing meeting title
+  const handleStartEdit = (meetingId: string, currentTitle: string) => {
+    setEditingMeetingId(meetingId);
+    setEditingTitle(currentTitle);
+  };
+
+  // Cancel editing meeting title
+  const handleCancelEdit = () => {
+    setEditingMeetingId(null);
+    setEditingTitle("");
+  };
+
   // Pause/Unpause recording functionality
   const pauseRecording = () => {
     try {
@@ -3840,7 +3892,7 @@ export const MeetingRecorder = ({
                   </div>
                 ) : (
                   filteredMeetings.map((meeting) => (
-                    <Card key={meeting.id} className="hover:shadow-medium transition-shadow">
+                    <Card key={meeting.id} className="hover:shadow-medium transition-shadow group">
                       <CardContent className="p-3 sm:p-4">
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -3861,35 +3913,93 @@ export const MeetingRecorder = ({
                               </div>
                             )}
                             
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-start gap-2 mb-2">
                                 <div className="flex-1 min-w-0">
-                                  <h3 className="font-semibold text-sm sm:text-base text-foreground truncate">
-                                    {meeting.title}
-                                  </h3>
-                                  <div className="flex flex-wrap items-center gap-1 sm:gap-2 text-xs text-muted-foreground mt-1">
-                                    <div className="flex items-center gap-1">
-                                      <Calendar className="h-3 w-3" />
-                                      <span>{new Date(meeting.start_time).toLocaleDateString()}</span>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                      <Clock className="h-3 w-3" />
-                                      <span>{new Date(meeting.start_time).toLocaleTimeString()}</span>
-                                    </div>
-                                    {meeting.duration_minutes && (
-                                      <div className="flex items-center gap-1">
-                                        <Clock className="h-3 w-3" />
-                                        <span>{meeting.duration_minutes}m</span>
+                                  <div className="flex items-start gap-2 mb-2">
+                                    <div className="flex-1 min-w-0">
+                                      {editingMeetingId === meeting.id ? (
+                                        <div className="space-y-2">
+                                          <Input
+                                            value={editingTitle}
+                                            onChange={(e) => {
+                                              const value = e.target.value;
+                                              if (value.length <= 100) {
+                                                setEditingTitle(value);
+                                              }
+                                            }}
+                                            maxLength={100}
+                                            placeholder="Meeting title"
+                                            className="text-sm font-semibold"
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter') {
+                                                handleSaveTitle(meeting.id);
+                                              } else if (e.key === 'Escape') {
+                                                handleCancelEdit();
+                                              }
+                                            }}
+                                            autoFocus
+                                          />
+                                          <div className="text-xs text-muted-foreground mb-2">
+                                            {editingTitle.length}/100 characters
+                                          </div>
+                                          <div className="flex gap-2">
+                                            <Button
+                                              size="sm"
+                                              onClick={() => handleSaveTitle(meeting.id)}
+                                              disabled={!editingTitle.trim() || isSavingTitle}
+                                              className="text-xs h-7 px-2"
+                                            >
+                                              {isSavingTitle ? "Saving..." : "Save"}
+                                            </Button>
+                                            <Button
+                                              variant="outline"
+                                              size="sm"
+                                              onClick={handleCancelEdit}
+                                              disabled={isSavingTitle}
+                                              className="text-xs h-7 px-2"
+                                            >
+                                              Cancel
+                                            </Button>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <div className="flex items-center gap-2">
+                                          <h3 className="font-semibold text-sm sm:text-base text-foreground truncate flex-1">
+                                            {meeting.title}
+                                          </h3>
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => handleStartEdit(meeting.id, meeting.title)}
+                                            className="text-xs h-7 px-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            title="Edit meeting name"
+                                          >
+                                            <Edit className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      )}
+                                      <div className="flex flex-wrap items-center gap-1 sm:gap-2 text-xs text-muted-foreground mt-1">
+                                        <div className="flex items-center gap-1">
+                                          <Calendar className="h-3 w-3" />
+                                          <span>{new Date(meeting.start_time).toLocaleDateString()}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                          <Clock className="h-3 w-3" />
+                                          <span>{new Date(meeting.start_time).toLocaleTimeString()}</span>
+                                        </div>
+                                        {meeting.duration_minutes && (
+                                          <div className="flex items-center gap-1">
+                                            <Clock className="h-3 w-3" />
+                                            <span>{meeting.duration_minutes}m</span>
+                                          </div>
+                                        )}
+                                        {meeting.word_count && (
+                                          <span className="text-primary font-medium">
+                                            {meeting.word_count} words
+                                          </span>
+                                        )}
                                       </div>
-                                    )}
-                                    {meeting.word_count && (
-                                      <span className="text-primary font-medium">
-                                        {meeting.word_count} words
-                                      </span>
-                                    )}
+                                    </div>
                                   </div>
-                                </div>
-                              </div>
 
                               {/* Action Buttons */}
                               <div className="flex flex-wrap gap-1 sm:gap-2 mt-2">
