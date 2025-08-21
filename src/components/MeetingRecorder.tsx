@@ -2363,6 +2363,14 @@ export const MeetingRecorder = ({
   };
 
   const stopRecording = async () => {
+    // IMMEDIATE DEBUG - BEFORE ANYTHING ELSE
+    console.log('🔥🔥🔥 STOPRECORDING FUNCTION START - IMMEDIATE DEBUG');
+    console.log('🔥🔥🔥 Function called at:', new Date().toISOString());
+    console.log('🔥🔥🔥 Current isRecording state:', isRecording);
+    console.log('🔥🔥🔥 Current user:', user?.id);
+    console.log('🔥🔥🔥 Current duration:', duration);
+    console.log('🔥🔥🔥 Current transcript length:', transcript?.length);
+    
     console.log('🚨 STOP RECORDING FUNCTION CALLED');
     console.log('🚨 User agent:', navigator.userAgent);
     console.log('🚨 Current state - isRecording:', isRecording);
@@ -2659,6 +2667,18 @@ export const MeetingRecorder = ({
     };
 
     console.log('🚨 SAVING MEETING TO DATABASE FIRST...');
+    console.log('🚨 STEP-BY-STEP DEBUG: About to save meeting');
+    console.log('🚨 STEP-BY-STEP DEBUG: Meeting data:', JSON.stringify({
+      title: meetingData.title,
+      duration_minutes: Math.ceil(duration / 60),
+      meeting_type: 'general',
+      start_time: meetingData.startTime,
+      status: 'completed',
+      user_id: user?.id,
+      practice_id: meetingData.practiceId,
+      meeting_format: meetingData.meetingFormat
+    }, null, 2));
+    
     updateDebugInfo({
       recordingState: 'saving_to_database',
       transcriptionEvents: [`${new Date().toLocaleTimeString()}: Saving meeting to database...`]
@@ -3485,7 +3505,11 @@ export const MeetingRecorder = ({
                       )}
                       
                        <Button 
-                        onClick={stopRecording}
+                        onClick={() => {
+                          console.log('🔥🔥🔥 STOP BUTTON CLICKED!');
+                          console.log('🔥🔥🔥 About to call stopRecording()');
+                          stopRecording();
+                        }}
                         variant="destructive"
                         size="lg"
                         disabled={isStoppingRecording}
