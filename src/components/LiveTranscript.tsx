@@ -795,29 +795,35 @@ export const LiveTranscript = ({
                       <div className="space-y-2">
                         <div className="text-foreground leading-relaxed whitespace-pre-wrap">
                           {showTimestamps ? (
-                            // Display with timestamps - split by sentences and add timestamps
-                            (cleanedTranscript || transcript).split(/[.!?]+/).filter(s => s.trim()).map((sentence, index) => {
-                              const timestamp = new Date();
-                              timestamp.setSeconds(timestamp.getSeconds() + (index * 10));
-                              const timeStr = timestamp.toLocaleTimeString('en-GB', { 
-                                hour: '2-digit', 
-                                minute: '2-digit' 
-                              });
+                            // Display with timestamps - split by sentences properly preserving punctuation
+                            (() => {
+                              const text = cleanedTranscript || transcript;
+                              // Split by sentence boundaries while preserving punctuation
+                              const sentences = text.match(/[^.!?]*[.!?]+/g) || [text];
                               
-                              return (
-                                <div key={index} className="flex items-start gap-3 p-2 hover:bg-accent/30 rounded-md transition-colors">
-                                  <div className="flex items-center gap-2 min-w-fit">
-                                    <Clock className="h-3 w-3 text-primary/70" />
-                                    <Badge variant="outline" className="text-xs px-2 py-0.5 font-mono">
-                                      {timeStr}
-                                    </Badge>
+                              return sentences.filter(s => s.trim()).map((sentence, index) => {
+                                const timestamp = new Date();
+                                timestamp.setSeconds(timestamp.getSeconds() + (index * 10));
+                                const timeStr = timestamp.toLocaleTimeString('en-GB', { 
+                                  hour: '2-digit', 
+                                  minute: '2-digit' 
+                                });
+                                
+                                return (
+                                  <div key={index} className="flex items-start gap-3 p-2 hover:bg-accent/30 rounded-md transition-colors">
+                                    <div className="flex items-center gap-2 min-w-fit">
+                                      <Clock className="h-3 w-3 text-primary/70" />
+                                      <Badge variant="outline" className="text-xs px-2 py-0.5 font-mono">
+                                        {timeStr}
+                                      </Badge>
+                                    </div>
+                                    <span className="text-foreground leading-relaxed">
+                                      {sentence.trim()}
+                                    </span>
                                   </div>
-                                  <span className="text-foreground leading-relaxed">
-                                    {sentence.trim()}.
-                                  </span>
-                                </div>
-                              );
-                            })
+                                );
+                              });
+                            })()
                           ) : (
                             // Display without timestamps - show full accumulated transcript
                             <div className="text-foreground leading-relaxed">
