@@ -667,12 +667,13 @@ export const LiveTranscript = ({
                   </div>
                   
                    <div 
-                     className="text-sm leading-relaxed whitespace-pre-wrap min-h-[200px] max-h-[80vh] overflow-y-auto p-4 bg-background/80 rounded-md border border-primary/10 shadow-sm select-text cursor-text"
+                     className="text-sm leading-relaxed whitespace-pre-wrap min-h-[200px] max-h-[80vh] overflow-y-auto p-4 bg-background/80 rounded-md border border-primary/10 shadow-sm select-text cursor-text scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40"
                      style={{ 
                        transition: 'all 0.2s ease-in-out',
                        wordWrap: 'break-word',
                        overflowWrap: 'break-word',
-                       userSelect: 'text'
+                       userSelect: 'text',
+                       scrollbarWidth: 'thin'
                      }}
                      onMouseUp={handleTextSelection}
                    >
