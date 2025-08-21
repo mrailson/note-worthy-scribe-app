@@ -134,7 +134,7 @@ export const LiveMonitorTab = ({ meetingData }: LiveMonitorTabProps) => {
   };
 
   return (
-    <div className="h-full flex flex-col space-y-6">
+    <div className="space-y-6">
       {/* Connection & Stats Header */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>

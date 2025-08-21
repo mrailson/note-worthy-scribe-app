@@ -226,7 +226,7 @@ NEXT STEPS:
   };
 
   return (
-    <div className="h-full flex flex-col space-y-6">
+    <div className="space-y-6">
       {/* Controls Header */}
       <Card>
         <CardHeader>

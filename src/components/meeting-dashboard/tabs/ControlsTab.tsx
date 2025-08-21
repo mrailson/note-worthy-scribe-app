@@ -106,7 +106,7 @@ export const ControlsTab = ({ isRecording }: ControlsTabProps) => {
   };
 
   return (
-    <div className="h-full flex flex-col space-y-6">
+    <div className="space-y-6">
       {/* Recording Controls */}
       <Card>
         <CardHeader>

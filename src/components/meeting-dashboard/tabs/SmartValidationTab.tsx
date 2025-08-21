@@ -152,7 +152,7 @@ export const SmartValidationTab = ({ meetingData }: SmartValidationTabProps) => 
   };
 
   return (
-    <div className="h-full flex flex-col space-y-6">
+    <div className="space-y-6">
       {/* Stats Overview */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>

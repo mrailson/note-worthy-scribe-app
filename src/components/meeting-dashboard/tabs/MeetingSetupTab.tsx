@@ -99,7 +99,7 @@ export const MeetingSetupTab = () => {
   };
 
   return (
-    <div className="h-full flex flex-col space-y-6">
+    <div className="space-y-6">
       {/* Meeting Title & Format */}
       <Card>
         <CardHeader>

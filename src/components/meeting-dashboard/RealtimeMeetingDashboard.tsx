@@ -89,8 +89,8 @@ export const RealtimeMeetingDashboard = ({
   return (
     <DashboardProvider>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-6xl h-[90vh] p-0">
-          <DialogHeader className="px-6 py-4 border-b">
+        <DialogContent className="max-w-6xl h-[90vh] p-0 flex flex-col">
+          <DialogHeader className="px-6 py-4 border-b shrink-0">
             <div className="flex items-center justify-between">
               <DialogTitle className="flex items-center gap-2">
                 <Monitor className="h-5 w-5 text-primary" />
@@ -117,13 +117,13 @@ export const RealtimeMeetingDashboard = ({
             </div>
           </DialogHeader>
 
-          <div className="flex-1 flex flex-col">
+          <div className="flex-1 flex flex-col min-h-0">
             <Tabs 
               value={activeTab} 
               onValueChange={setActiveTab}
-              className="flex-1 flex flex-col"
+              className="flex-1 flex flex-col min-h-0"
             >
-              <TabsList className="mx-6 mt-4 grid grid-cols-5 w-full">
+              <TabsList className="mx-6 mt-4 grid grid-cols-5 w-full shrink-0">
                 {tabs.map((tab) => (
                   <TabsTrigger 
                     key={tab.id}
@@ -140,25 +140,35 @@ export const RealtimeMeetingDashboard = ({
                 ))}
               </TabsList>
 
-              <div className="flex-1 p-6">
-                <TabsContent value="setup" className="h-full">
-                  <MeetingSetupTab />
+              <div className="flex-1 p-6 min-h-0 overflow-hidden">
+                <TabsContent value="setup" className="h-full m-0 data-[state=active]:flex data-[state=active]:flex-col">
+                  <div className="flex-1 overflow-y-auto">
+                    <MeetingSetupTab />
+                  </div>
                 </TabsContent>
                 
-                <TabsContent value="monitor" className="h-full">
-                  <LiveMonitorTab meetingData={meetingData} />
+                <TabsContent value="monitor" className="h-full m-0 data-[state=active]:flex data-[state=active]:flex-col">
+                  <div className="flex-1 overflow-y-auto">
+                    <LiveMonitorTab meetingData={meetingData} />
+                  </div>
                 </TabsContent>
                 
-                <TabsContent value="validation" className="h-full">
-                  <SmartValidationTab meetingData={meetingData} />
+                <TabsContent value="validation" className="h-full m-0 data-[state=active]:flex data-[state=active]:flex-col">
+                  <div className="flex-1 overflow-y-auto">
+                    <SmartValidationTab meetingData={meetingData} />
+                  </div>
                 </TabsContent>
                 
-                <TabsContent value="notes" className="h-full">
-                  <LiveNotesTab meetingData={meetingData} />
+                <TabsContent value="notes" className="h-full m-0 data-[state=active]:flex data-[state=active]:flex-col">
+                  <div className="flex-1 overflow-y-auto">
+                    <LiveNotesTab meetingData={meetingData} />
+                  </div>
                 </TabsContent>
                 
-                <TabsContent value="controls" className="h-full">
-                  <ControlsTab isRecording={isRecording} />
+                <TabsContent value="controls" className="h-full m-0 data-[state=active]:flex data-[state=active]:flex-col">
+                  <div className="flex-1 overflow-y-auto">
+                    <ControlsTab isRecording={isRecording} />
+                  </div>
                 </TabsContent>
               </div>
             </Tabs>
