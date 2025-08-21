@@ -32,17 +32,17 @@ import {
 const QUICK_PICKS = [
   {
     title: "DNA (Did Not Attend) poster",
-    prompt: "Design an A4 portrait poster for a GP practice about reducing DNAs (missed appointments). Audience: adult patients. Tone: supportive not blaming. Include: clear headline, 3–5 bullet tips to cancel/rebook, how to cancel (phone, online), gentle reminder of impact on others, {practice_name} branding. Layout clean NHS info style using {primary_colour}. Large readable text.",
+    prompt: "Create a clean NHS-style poster with large, bold, readable text. Main headline: 'Help Us Help You - Cancel Appointments You Cannot Attend'. Include these exact bullet points in large text: '• Call us as soon as possible' '• Use the NHS App to cancel' '• Book online at our website' '• Call reception for help'. Add text at bottom: 'When you don't attend, another patient misses out' and '{practice_name}' prominently displayed. Use {primary_colour} accents. Ensure ALL text is perfectly legible and not placeholder text.",
     options: {"size":"A4 Portrait","style":"Clean NHS info","large_text":true}
   },
   {
     title: "Flu clinic invite",
-    prompt: "A4 portrait poster inviting eligible patients to book their seasonal flu vaccine at {practice_name}. Include: who is eligible (concise), how to book, clinic dates placeholder, accessibility note, QR placeholder for booking link. NHS tone, friendly, legible.",
+    prompt: "Create an A4 NHS-style poster with large, clear text. Main headline: 'Book Your FREE Flu Vaccination'. Include exact text: 'Who is eligible:' followed by '• Over 65s' '• Pregnant women' '• Clinical risk groups' '• Carers'. Add: 'How to book:' '• Call {practice_name}' '• Use NHS App' '• Book online'. Include 'QR CODE' placeholder box labeled 'Scan to book appointment'. Use {primary_colour} for NHS branding. All text must be large and readable, not placeholder text.",
     options: {"size":"A4 Portrait","style":"Clean NHS info","qr":true,"large_text":true}
   },
   {
     title: "COVID autumn campaign",
-    prompt: "Square social tile for Facebook with concise message about autumn COVID vaccinations at {practice_name}. Include: eligibility summary, booking options, call to action. Strong contrast, clear hierarchy, {primary_colour} accent.",
+    prompt: "Square social media tile with bold, readable text. Main headline: 'Autumn COVID Vaccines Available'. Include exact text: 'Eligible patients:' '• Over 65s' '• Health conditions' '• Pregnant women'. Add: 'Book today:' 'Call {practice_name}' or 'Use NHS App'. Use {primary_colour} background with white text for high contrast. Ensure all text is perfectly legible and specific, not placeholder text.",
     options: {"size":"Square 1024","style":"Minimal","large_text":true}
   },
   {
