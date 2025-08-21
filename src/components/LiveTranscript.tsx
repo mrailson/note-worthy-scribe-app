@@ -238,19 +238,37 @@ export const LiveTranscript = ({
       console.log('🔄 Processing raw transcript update (length:', processedTranscript.length, ')');
       
       // Always keep the full transcript history - no clearing
-      // ONLY update liveTranscriptText, NOT cleanedTranscript (which is handled by AI chunks subscription)
+      // Update both live transcript AND cleaned transcript to ensure accumulation
       if (isAutoCleaningEnabled) {
         // Use streaming cleaner with confidence filtering for live display
         const cleanedNew = transcriptCleaner.cleanStreamingTranscript("", processedTranscript, confidence);
         setLiveTranscriptText(cleanedNew); // Show cleaned version for live display
         console.log('✨ Updated live transcript with cleaned version (length:', cleanedNew.length, ')');
+        
+        // Also update cleanedTranscript as a fallback if AI chunks aren't working
+        setCleanedTranscript(prev => {
+          // Only update if the new content is significantly different (to avoid duplicates from AI chunks)
+          if (cleanedNew.length > prev.length + 10) {
+            console.log('📋 Fallback: Updated AI enhanced transcript from live data');
+            return cleanedNew;
+          }
+          return prev;
+        });
       } else {
         setLiveTranscriptText(processedTranscript); // Show processed version
         console.log('📝 Updated live transcript with raw version (length:', processedTranscript.length, ')');
+        
+        // Also update cleanedTranscript as fallback
+        setCleanedTranscript(prev => {
+          if (processedTranscript.length > prev.length + 10) {
+            console.log('📋 Fallback: Updated AI enhanced transcript from raw data');
+            return processedTranscript;
+          }
+          return prev;
+        });
       }
     }
     // NEVER clear liveTranscriptText - always preserve transcript history
-    // NEVER update cleanedTranscript here - only AI chunks subscription should do that
   }, [transcript, isAutoCleaningEnabled, isMedicalCorrectionsLoaded]);
 
   // Handle text selection for corrections
