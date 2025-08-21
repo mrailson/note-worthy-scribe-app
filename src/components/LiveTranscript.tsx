@@ -256,38 +256,46 @@ export const LiveTranscript = ({
       console.log('🚨 DEBUG: Raw transcript length:', transcript.length);
       console.log('🚨 DEBUG: Processed transcript length:', processedTranscript.length);
       
-      // Smart sentence-level deduplication for overlapping Whisper chunks
+      // Simple and effective deduplication for Whisper's cumulative transcripts
       setGrowingRawTranscript(prev => {
         // If no previous content, use the new transcript
         if (!prev) return transcript;
         
-        // Split both transcripts into sentences for comparison
-        const prevSentences = prev.split(/[.!?]+/).map(s => s.trim()).filter(s => s.length > 10);
-        const newSentences = transcript.split(/[.!?]+/).map(s => s.trim()).filter(s => s.length > 10);
+        // If the new transcript is exactly the same, skip
+        if (prev === transcript) return prev;
         
-        // Find truly new sentences that aren't already in previous transcript
-        const uniqueNewSentences = newSentences.filter(newSentence => {
-          const newWords = newSentence.toLowerCase().split(/\s+/);
-          return !prevSentences.some(prevSentence => {
-            const prevWords = prevSentence.toLowerCase().split(/\s+/);
-            // Consider sentences similar if 80% of words match
-            const matchingWords = newWords.filter(word => 
-              prevWords.some(prevWord => 
-                Math.abs(word.length - prevWord.length) <= 2 && 
-                (word.includes(prevWord) || prevWord.includes(word) || word === prevWord)
-              )
-            );
-            return matchingWords.length / Math.max(newWords.length, 1) > 0.8;
-          });
-        });
+        // Check if new transcript contains most of the previous content (cumulative update)
+        const prevWords = prev.toLowerCase().split(/\s+/);
+        const newWords = transcript.toLowerCase().split(/\s+/);
         
-        // If we have new sentences, append them
-        if (uniqueNewSentences.length > 0) {
-          return prev + (prev.endsWith('.') ? ' ' : '. ') + uniqueNewSentences.join('. ') + '.';
+        // If new transcript is significantly longer and contains most previous words
+        if (newWords.length > prevWords.length && newWords.length > 10) {
+          let matchCount = 0;
+          const sampleSize = Math.min(prevWords.length, 20); // Check first 20 words
+          
+          for (let i = 0; i < sampleSize; i++) {
+            if (newWords.some(word => word.includes(prevWords[i]) || prevWords[i].includes(word))) {
+              matchCount++;
+            }
+          }
+          
+          // If 70% of sampled words match, treat as cumulative update
+          if (matchCount / sampleSize > 0.7) {
+            return transcript; // Replace entirely with new cumulative transcript
+          }
         }
         
-        // No new content found
-        return prev;
+        // Check if it's just a continuation (new content only)
+        const lastWords = prev.split(/\s+/).slice(-10).join(' ').toLowerCase();
+        const firstWords = transcript.split(/\s+/).slice(0, 10).join(' ').toLowerCase();
+        
+        // If first words of new transcript match last words of previous, it's likely overlap
+        if (lastWords.includes(firstWords.substring(0, Math.min(firstWords.length, 30)))) {
+          return transcript; // Replace with new transcript
+        }
+        
+        // Otherwise append as new content
+        return prev + ' ' + transcript;
       });
       
       // FIXED: Don't use streaming cleaner that accumulates - replace the entire cleaned transcript
