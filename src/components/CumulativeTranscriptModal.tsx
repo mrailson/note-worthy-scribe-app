@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Copy, Download, X, Clock, Users, Hash } from "lucide-react";
+import { Copy, Download, X, Clock, Users, Hash, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -36,6 +36,7 @@ export const CumulativeTranscriptModal = ({
   wordCount
 }: CumulativeTranscriptModalProps) => {
   const [autoScroll, setAutoScroll] = useState(true);
+  const [showSpeakers, setShowSpeakers] = useState(true);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -45,6 +46,30 @@ export const CumulativeTranscriptModal = ({
       bottomRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [sections, autoScroll]);
+
+  // Format timestamp from ISO string to readable format
+  const formatTimestamp = (isoString: string) => {
+    try {
+      const date = new Date(isoString);
+      
+      // Get ordinal suffix for day
+      const day = date.getDate();
+      const getOrdinal = (n: number) => {
+        const s = ["th", "st", "nd", "rd"];
+        const v = n % 100;
+        return n + (s[(v - 20) % 10] || s[v] || s[0]);
+      };
+      
+      const formattedDate = format(date, 'MMMM yyyy');
+      const time = format(date, 'HH:mm');
+      const seconds = date.getSeconds();
+      
+      return `${getOrdinal(day)} ${formattedDate} at ${time} and ${seconds} seconds`;
+    } catch (error) {
+      // Fallback to original timestamp if parsing fails
+      return isoString;
+    }
+  };
 
   const handleCopyAll = async () => {
     const fullTranscript = sections
@@ -117,8 +142,13 @@ export const CumulativeTranscriptModal = ({
               <Clock className="h-3 w-3" />
               {formatDuration(duration)}
             </Badge>
-            <Badge variant="secondary" className="flex items-center gap-1">
-              <Users className="h-3 w-3" />
+            <Badge 
+              variant="secondary" 
+              className="flex items-center gap-1 cursor-pointer hover:bg-accent transition-colors"
+              onClick={() => setShowSpeakers(!showSpeakers)}
+              title={showSpeakers ? "Hide speakers" : "Show speakers"}
+            >
+              {showSpeakers ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
               {speakerCount} speakers
             </Badge>
             <Badge variant="secondary" className="flex items-center gap-1">
@@ -182,14 +212,16 @@ export const CumulativeTranscriptModal = ({
                   >
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        <Badge 
-                          variant={section.isFinal ? "default" : "secondary"} 
-                          className="text-xs"
-                        >
-                          {section.speaker}
-                        </Badge>
+                        {showSpeakers && (
+                          <Badge 
+                            variant={section.isFinal ? "default" : "secondary"} 
+                            className="text-xs"
+                          >
+                            {section.speaker}
+                          </Badge>
+                        )}
                         <span className="text-xs text-muted-foreground">
-                          {section.timestamp}
+                          {formatTimestamp(section.timestamp)}
                         </span>
                         {!section.isFinal && (
                           <Badge variant="outline" className="text-xs">
@@ -210,7 +242,7 @@ export const CumulativeTranscriptModal = ({
                     <p className={`text-sm leading-relaxed ${
                       section.isFinal ? 'text-foreground' : 'text-muted-foreground italic'
                     }`}>
-                      {section.text}
+                      {showSpeakers ? section.text : `${section.speaker}: ${section.text}`}
                     </p>
                   </div>
                 ))
