@@ -226,15 +226,19 @@ export class TranscriptCleaner {
    * Also catches longer repetitive patterns like "unclear audio, music, or unclear audio"
    */
   private removeShortRepeats(text: string): string {
-    // Remove 2-3 word repeated segments  
-    let cleaned = text.replace(/\b(\w{1,6}(?:\s+\w{1,6}){0,2})(\s+\1){1,}/gi, '$1');
+    // FIXED: Only remove actual repeated words, not partial matches
+    // Remove complete word repetitions (e.g., "the the the" -> "the")
+    let cleaned = text.replace(/\b(\w+)(\s+\1){2,}\b/gi, '$1');
+    
+    // Remove two-word phrase repetitions (e.g., "you know you know" -> "you know")
+    cleaned = cleaned.replace(/\b(\w+\s+\w+)(\s+\1){1,}\b/gi, '$1');
     
     // Special case: remove repetitive "unclear audio, music" patterns
     cleaned = cleaned.replace(/(unclear audio[,\s]*music[,\s]*or\s+)+/gi, ' ');
     cleaned = cleaned.replace(/(music[,\s]*or\s+unclear audio[,\s]*)+/gi, ' ');
     
-    // Remove any phrase that repeats more than 3 times in a row
-    cleaned = cleaned.replace(/\b(.{5,20}?)\1{2,}/gi, '$1');
+    // DISABLED: This was causing word corruption
+    // cleaned = cleaned.replace(/\b(.{5,20}?)\1{2,}/gi, '$1');
     
     return cleaned;
   }
