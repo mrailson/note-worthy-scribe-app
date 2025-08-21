@@ -32,8 +32,8 @@ export class TranscriptCleaner {
   constructor() {
     // Common hallucination patterns
     this.hallucinationPatterns = [
-      // Repeated words (2+ times)
-      /\b(\w+)(\s+\1){1,}\b/gi,
+      // FIXED: Only remove actual repeated complete words (3+ times to be safe)
+      /\b(\w+)(\s+\1){2,}\b/gi, // Only match 3+ repetitions, not 2+
       // Audio instructions and technical terms
       /please use (earphones|headphones|headset|microphone)/gi,
       /check your (audio|microphone|speakers|headphones)/gi,

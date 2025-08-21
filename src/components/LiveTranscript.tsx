@@ -771,70 +771,49 @@ export const LiveTranscript = ({
                      }}
                      onMouseUp={handleTextSelection}
                    >
-                    {isEditingCleaned ? (
-                      <Textarea
-                        value={editedCleanedText}
-                        onChange={(e) => setEditedCleanedText(e.target.value)}
-                        rows={12}
-                      />
-                    ) : (cleanedTranscript || (transcript && isAutoCleaningEnabled)) ? (
-                      <div className="space-y-2">
-                        <div className="text-foreground leading-relaxed whitespace-pre-wrap">
-                          {showTimestamps ? (
-                            // Display with single timestamp at start
-                            <div className="space-y-3">
-                              <div className="flex items-center gap-3 p-2 bg-accent/20 rounded-md">
-                                <div className="flex items-center gap-2">
-                                  <Clock className="h-3 w-3 text-primary/70" />
-                                  <Badge variant="outline" className="text-xs px-2 py-0.5 font-mono">
-                                    {new Date().toLocaleTimeString('en-GB', { 
-                                      hour: '2-digit', 
-                                      minute: '2-digit' 
-                                    })}
-                                  </Badge>
-                                </div>
-                                <span className="text-xs text-muted-foreground">Recording started</span>
-                              </div>
-                              <div className="text-foreground leading-relaxed pl-4">
-                                {/* Use the same text that's used for copy/download to ensure consistency */}
-                                {cleanedTranscript || transcript}
-                              </div>
-                            </div>
-                          ) : (
-                            // Display without timestamps - show full transcript
-                            <div className="text-foreground leading-relaxed">
-                              {/* Ensure we show the exact same content that gets copied/downloaded */}
-                              {cleanedTranscript || transcript}
-                            </div>
-                          )}
-                         </div>
-                       </div>
-                     ) : (
-                       <span className="text-muted-foreground italic">
-                         AI-cleaned and formatted transcript will appear here with timestamps...
-                       </span>
-                     )}
-
-                    {/* Raw Transcript Backup Section */}
-                    {transcript && (
-                      <div className="mt-6 p-4 bg-muted/30 rounded-lg border border-muted">
-                        <div className="flex items-center gap-2 mb-3">
-                          <FileText className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                            Raw Transcript Backup
-                          </span>
-                          <Badge variant="outline" className="text-xs">Original</Badge>
-                        </div>
-                        <div className="space-y-2">
-                          <div className="text-xs text-muted-foreground mb-2">
-                            Complete unprocessed transcription for reference and backup purposes
-                          </div>
-                          <div className="max-h-32 overflow-y-auto p-3 bg-background/50 rounded border text-sm font-mono text-muted-foreground whitespace-pre-wrap">
-                            {transcript}
+                     {isEditingCleaned ? (
+                       <Textarea
+                         value={editedCleanedText}
+                         onChange={(e) => setEditedCleanedText(e.target.value)}
+                         rows={12}
+                       />
+                     ) : (cleanedTranscript || (transcript && isAutoCleaningEnabled)) ? (
+                       <div className="space-y-2">
+                         <div className="text-foreground leading-relaxed whitespace-pre-wrap">
+                           {showTimestamps ? (
+                             // Display with single timestamp at start
+                             <div className="space-y-3">
+                               <div className="flex items-center gap-3 p-2 bg-accent/20 rounded-md">
+                                 <div className="flex items-center gap-2">
+                                   <Clock className="h-3 w-3 text-primary/70" />
+                                   <Badge variant="outline" className="text-xs px-2 py-0.5 font-mono">
+                                     {new Date().toLocaleTimeString('en-GB', { 
+                                       hour: '2-digit', 
+                                       minute: '2-digit' 
+                                     })}
+                                   </Badge>
+                                 </div>
+                                 <span className="text-xs text-muted-foreground">Recording started</span>
+                               </div>
+                               <div className="text-foreground leading-relaxed pl-4">
+                                 {/* Use the same text that's used for copy/download to ensure consistency */}
+                                 {cleanedTranscript || transcript}
+                               </div>
+                             </div>
+                           ) : (
+                             // Display without timestamps - show full transcript
+                             <div className="text-foreground leading-relaxed">
+                               {/* Ensure we show the exact same content that gets copied/downloaded */}
+                               {cleanedTranscript || transcript}
+                             </div>
+                           )}
                           </div>
                         </div>
-                      </div>
-                    )}
+                      ) : (
+                        <span className="text-muted-foreground italic">
+                          AI-cleaned and formatted transcript will appear here with timestamps...
+                        </span>
+                      )}
                    </div>
                   
                   <div className="mt-3 space-y-2">
@@ -878,6 +857,31 @@ export const LiveTranscript = ({
           </CollapsibleContent>
         </Collapsible>
       </Card>
+
+      {/* Raw Transcript Backup - Separate Card */}
+      {transcript && (
+        <Card className="shadow-medium">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-muted-foreground" />
+              <span>Raw Transcript Backup</span>
+              <Badge variant="outline" className="text-xs">Original</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="text-sm text-muted-foreground">
+                Complete unprocessed transcription for reference and backup purposes
+              </div>
+              <div className="p-4 bg-muted/30 rounded-lg border border-muted">
+                <div className="text-sm font-mono text-foreground whitespace-pre-wrap leading-relaxed max-h-96 overflow-y-auto">
+                  {transcript}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
