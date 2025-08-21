@@ -4194,22 +4194,16 @@ export const MeetingRecorder = ({
                       </span>
                     </div>
 
-                    <div className="flex items-center space-x-3">
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all duration-500 ${
-                        savingSteps.complete ? 'bg-primary' : 'bg-muted border border-muted-foreground'
-                      }`}>
-                        {savingSteps.complete ? (
+                    {savingSteps.complete && (
+                      <div className="flex items-center space-x-3">
+                        <div className="w-6 h-6 rounded-full flex items-center justify-center bg-primary">
                           <CheckSquare className="w-4 h-4 text-primary-foreground animate-scale-in" />
-                        ) : (
-                          <div className="w-2 h-2 bg-muted-foreground rounded-full" />
-                        )}
+                        </div>
+                        <span className="text-sm text-foreground font-medium">
+                          All done!
+                        </span>
                       </div>
-                      <span className={`text-sm transition-colors duration-300 ${
-                        savingSteps.complete ? 'text-foreground font-medium' : 'text-muted-foreground'
-                      }`}>
-                        All done!
-                      </span>
-                    </div>
+                    )}
                   </div>
                 </>
               )}
