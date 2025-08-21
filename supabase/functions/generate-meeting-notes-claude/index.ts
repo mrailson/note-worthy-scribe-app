@@ -48,6 +48,11 @@ CONSOLIDATION REQUIREMENTS:
 - Create unified executive summary
 - Create consolidated action items section
 - Create consolidated decisions section
+- Only include "Chair:" line if a chairperson is explicitly identified
+- Only include "Secretary:" or "Minute Taker:" line if someone is explicitly identified in that role
+- Only include "Meeting Duration:" or "Duration:" if the meeting length can be determined
+- Do NOT include placeholder text like "[Not identified in transcript]" or "[Ongoing - transcript appears to be mid-meeting excerpt]"
+- If these roles/information are not identifiable, simply omit the lines entirely
 
 CHUNK RESULTS TO CONSOLIDATE:
 ${chunkResults.join('\n\n--- CHUNK SEPARATOR ---\n\n')}
@@ -120,6 +125,13 @@ CRITICAL EXTRACTION REQUIREMENTS (ALL STYLES):
 - ALL action items assigned to specific people
 - ALL follow-up meetings or deadlines mentioned
 
+CONDITIONAL FIELD REQUIREMENTS:
+- Only include "Chair:" line if a chairperson is explicitly identified in the transcript
+- Only include "Secretary:" or "Minute Taker:" line if someone is explicitly identified in that role
+- Only include "Meeting Duration:" or "Duration:" if the meeting length can be determined from the transcript
+- Do NOT include placeholder text like "[Not identified in transcript]" or "[Ongoing - transcript appears to be mid-meeting excerpt]"
+- If these roles/information are not identifiable, simply omit the lines entirely
+
 LONG MEETING STRUCTURE REQUIREMENTS:
 - Create as many main sections as needed (could be 10-15+ for long meetings)
 - Use clear topic transitions to show agenda progression
@@ -137,9 +149,6 @@ Date: ${meetingDate || '[Date if mentioned, otherwise "Not specified"]'}
 Time: ${meetingTime || '[Start-end time if mentioned, note duration]'}
 Location: [Location/Sites discussed]
 Attendees: [List ALL participants mentioned throughout meeting]
-Chair: [If identified]
-Secretary: [If identified]
-Meeting Duration: [If determinable from transcript]
 
 EXECUTIVE SUMMARY
 [3-5 bullet points summarizing key outcomes and major decisions from entire meeting]
@@ -222,7 +231,6 @@ FOLLOW-UP MEETINGS SCHEDULED
 ${meetingTitle || 'Partnership Meeting'} Notes
 
 Date: ${meetingDate || '[Meeting Date]'}
-Duration: [Meeting length if determinable]
 Attendees: [ALL participants mentioned throughout meeting]
 
 MEETING OVERVIEW
@@ -287,13 +295,10 @@ MINUTES OF MEETING
 Meeting: Partnership Meeting
 Date: ${meetingDate || '[Date]'}
 Time: ${meetingTime || '[Start time] - [End time]'}
-Duration: [Meeting length]
 Venue: [Location]
 Present: [List ALL attendees mentioned throughout meeting with titles/roles]
 In Attendance: [Additional attendees]
 Apologies: [If mentioned]
-Chair: [Name]
-Minute Taker: [Name]
 
 ITEM 1: [FIRST AGENDA ITEM TITLE]
 
@@ -352,9 +357,6 @@ NEXT MEETING:
 Date: [If specified]
 Time: [If specified]
 Venue: [If specified]
-
-Chair: [Signature line]
-Date: [Date line]
 
 Meeting closed at: [Time if mentioned]
 
