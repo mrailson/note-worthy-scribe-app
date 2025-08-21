@@ -143,9 +143,9 @@ const ChunkedTranscriptionTest = () => {
         return 45000; 
       };
 
-      // Reduced overlap to minimize duplicates - now 0.5s for all chunks
+      // Minimal overlap to prevent duplicates - now just 0.2s for all chunks
       const getOverlapDuration = (chunkNumber: number) => {
-        return 500; // 0.5 second overlap for all chunks
+        return 200; // 0.2 second overlap for all chunks
       };
 
       // Function to create and start a new recorder

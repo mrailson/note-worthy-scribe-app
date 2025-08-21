@@ -130,7 +130,7 @@ export class iPhoneWhisperTranscriber {
 
     const getInterval = (elapsed: number) => {
       if (elapsed < 15000) return 8000;     // Every 8s for first 15s
-      if (elapsed < 60000) return 20000;    // Every 20s until 1 min
+      if (elapsed < 60000) return 20000;    // Every 20s until 1 min  
       return 45000;                         // Then every 45s for longer context
     };
 
@@ -178,12 +178,12 @@ export class iPhoneWhisperTranscriber {
       // Combine chunks
       const audioBlob = new Blob(currentChunks, { type: this.audioChunks[0].type });
       
-      // Update overlap buffer only for longer segments - much smaller overlap now
+      // Update overlap buffer only for longer segments - minimal overlap now
       if (elapsed >= 10000) {
-        // Minimal overlap: max 0.5s equivalent regardless of chunk size
-        let overlapFraction = 0.02; // ~0.6s for 30s chunks
-        if (this.lastIntervalMs <= 5000) overlapFraction = 0.1; // ~0.5s for 5s chunks
-        else if (this.lastIntervalMs <= 10000) overlapFraction = 0.05; // ~0.5s for 10s chunks
+        // Very minimal overlap: max 0.2s equivalent regardless of chunk size
+        let overlapFraction = 0.01; // ~0.3s for 30s chunks  
+        if (this.lastIntervalMs <= 8000) overlapFraction = 0.025; // ~0.2s for 8s chunks
+        else if (this.lastIntervalMs <= 20000) overlapFraction = 0.01; // ~0.2s for 20s chunks
         const overlapSize = Math.max(1, Math.ceil(this.audioChunks.length * overlapFraction));
         this.overlapBuffer = this.audioChunks.slice(-overlapSize);
       } else {
