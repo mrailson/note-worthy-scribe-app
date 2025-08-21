@@ -161,6 +161,10 @@ export const MeetingRecorder = ({
   const [cumulativeTranscriptModalOpen, setCumulativeTranscriptModalOpen] = useState(false);
   const [cumulativeTranscriptSections, setCumulativeTranscriptSections] = useState<CumulativeTranscriptSection[]>([]);
   
+  // Silence detection state
+  const [consecutiveSilenceCount, setConsecutiveSilenceCount] = useState(0);
+  const [lastSilenceMessageShown, setLastSilenceMessageShown] = useState(false);
+  
   // Dashboard state
   const [dashboardOpen, setDashboardOpen] = useState(false);
   // Combined modal state for end-of-meeting process
@@ -1130,6 +1134,41 @@ export const MeetingRecorder = ({
   }, [onTranscriptUpdate, onWordCountUpdate, tickerEnabled]);
 
   const handleTranscript = (transcriptData: TranscriptData) => {
+    // Check for silence message pattern
+    const isSilenceMessage = transcriptData.text.toLowerCase().includes('if silence or background noise, return nothing');
+    
+    if (isSilenceMessage) {
+      setConsecutiveSilenceCount(prev => {
+        const newCount = prev + 1;
+        
+        // Only add a silence message after 3+ consecutive silence detections
+        if (newCount >= 3 && !lastSilenceMessageShown) {
+          setLastSilenceMessageShown(true);
+          
+          // Create a silence notification for cumulative transcript
+          const silenceSection: CumulativeTranscriptSection = {
+            id: `silence_${Date.now()}`,
+            text: "Silence or No Speech Detected",
+            speaker: "System",
+            timestamp: transcriptData.timestamp,
+            confidence: 1.0,
+            isFinal: true
+          };
+          
+          setCumulativeTranscriptSections(prev => [...prev, silenceSection]);
+        }
+        
+        return newCount;
+      });
+      
+      // Don't process silence messages further
+      return;
+    } else {
+      // Reset silence counter when we get actual speech
+      setConsecutiveSilenceCount(0);
+      setLastSilenceMessageShown(false);
+    }
+
     // Convert to incremental transcript format
     const incrementalData: IncrementalTranscriptData = {
       text: transcriptData.text,
