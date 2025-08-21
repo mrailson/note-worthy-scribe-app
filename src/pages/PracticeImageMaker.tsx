@@ -34,120 +34,140 @@ const QUICK_PICKS = [
     "title": "DNA (Did Not Attend)",
     "conciseText": "Headline: Please Cancel If You Can't Attend\nBody:\n- Last month, 132 patients missed appointments.\n- Over 20 hours of GP & nurse time lost.\n- If you can't attend, cancel:\n   Call: 01604 123456\n   NHS App\n   www.mysurgery.co.uk",
     "expandedText": "Headline: Missed Appointments Affect Everyone\nBody:\nLast month, 132 patients missed their appointments without telling us. That equals more than 20 hours of wasted GP and nurse time.\nWhat this means:\n- Longer waits for those who really need us\n- Fewer urgent appointments available\n- Increased pressure on our staff\nPlease cancel if you cannot attend:\n- Call 01604 123456\n- NHS App\n- Online: www.mysurgery.co.uk\nTogether we can improve access for everyone.",
+    "designPrompt": "Design an A4 portrait NHS-style poster layout. Use NHS blue and white. Large bold header area, 3 bullet icons, space for a text block. Leave grey placeholder rectangles for text, do NOT write words. Add a phone icon box and a QR placeholder.",
     "options": {"size":"A4 Portrait","style":"Clean NHS info","large_text":true}
   },
   {
     "title": "Flu Clinic Invite",
     "conciseText": "Headline: Book Your Flu Jab Today\nBody:\n- FREE for 65+, pregnant, long-term conditions, carers\n- Call 01604 123456 or NHS App\n- Clinics every Saturday in October",
     "expandedText": "Headline: Protect Yourself This Winter – Get Your Free Flu Jab\nBody:\nAnnual flu vaccination is the best way to protect yourself and those around you.\nEligible groups:\n- Age 65+\n- Pregnant women\n- People with asthma, COPD, diabetes, heart disease\n- Carers & health staff\nHow to book:\n- Call 01604 123456\n- NHS App\n- Ask at your pharmacy\nClinic dates: Sat 5 Oct, Sat 12 Oct\nHelp keep our community well this winter.",
+    "designPrompt": "Create an A4 portrait poster layout in NHS style with winter/health theme. Large bold header box at top, one side illustration of syringe/flu icon, 3 bullet sections with grey bars as placeholder text. Leave space for clinic dates and a QR code box.",
     "options": {"size":"A4 Portrait","style":"Clean NHS info","qr":true,"large_text":true}
   },
   {
     "title": "COVID Autumn Campaign",
     "conciseText": "Headline: Protect Yourself This Autumn\nBody:\n- COVID boosters now available\n- For: Over 65s, pregnant women, at-risk groups\n- Book: NHS App or 01604 123456",
     "expandedText": "Headline: Protect Yourself Against COVID This Autumn\nBody:\nCOVID booster vaccines are now available at {practice_name}.\nWho is eligible:\n- People aged 65+\n- Pregnant women\n- People with long-term conditions\nHow to book:\n- NHS App\n- Call 01604 123456\nStay well this winter. Vaccines save lives.",
+    "designPrompt": "Square social tile design in NHS style. Bold header banner, central vaccine icon, 2–3 rectangular boxes as placeholders for text. Use blue, white, and NHS accent colours. Leave QR code space.",
     "options": {"size":"Square 1024","style":"Minimal","large_text":true}
   },
   {
     "title": "Repeat Prescriptions",
     "conciseText": "Headline: Repeat Prescriptions\nBody:\n- NHS App (fastest)\n- Online: www.mysurgery.co.uk\n- Pharmacy app\n- Written slip\nAllow 2 working days before collection.",
     "expandedText": "Headline: How to Order Repeat Prescriptions Safely\nBody:\nPlease use one of the following:\n- NHS App (fastest)\n- Online via www.mysurgery.co.uk\n- Pharmacy app\n- Written slip at reception\nPlease allow 2 working days before collection. Pharmacies may need extra time.\nSafety notes:\n- Order 7 days before you run out\n- Do not wait until your medication has finished\n- Ask your pharmacist for a medication review if needed",
+    "designPrompt": "A4 landscape infographic layout. Flow with 4 icons (app, website, pharmacy, slip). Each icon has a grey placeholder box beneath for text. Add banner header area. Keep clean NHS colour scheme.",
     "options": {"size":"A4 Landscape","style":"Icon-led"}
   },
   {
     "title": "Care Navigation Explainer",
     "conciseText": "Headline: Our Reception Team Will Help You\nBody:\nReception may guide you to:\n- GP or Nurse\n- Pharmacist\n- Physio\n- Social Prescriber\n- NHS 111",
     "expandedText": "Headline: Our Reception Team Are Here to Help\nBody:\nOur trained receptionists will ask a few questions to guide you to the right service.\nOptions:\n- GP or Nurse: complex or ongoing problems\n- Clinical Pharmacist: medicines, repeat prescriptions\n- Physio: muscle, joint, back issues\n- Social Prescriber: wellbeing & community support\n- NHS 111: urgent advice when we're closed\nWhy we do this: quicker care, right place, right time.",
+    "designPrompt": "A4 poster layout with a simple flowchart. Icons: GP, Nurse, Pharmacist, Physio, Social Prescriber. Each icon has space beneath with placeholder grey bars. Large header space at top.",
     "options": {"size":"A4 Portrait","style":"Illustrated"}
   },
   {
     "title": "Opening Hours & Contact",
     "conciseText": "Headline: Opening Hours\nBody:\nMon–Fri: 8am–6:30pm\nSat/Sun: Closed\nContact:\n- Phone 01604 123456\n- NHS App\n- Online: www.mysurgery.co.uk",
     "expandedText": "Headline: Practice Opening Hours & Contact\nBody:\nOpening Hours:\n- Mon–Fri: 8am–6:30pm\n- Sat & Sun: Closed\nContact us:\n- Phone: 01604 123456\n- Online consultations: www.mysurgery.co.uk\n- NHS App: 24/7 for booking & prescriptions\nOut-of-hours:\n- Call NHS 111 for urgent advice\n- Dial 999 for emergencies\nNote: Phones busiest 8–10am. For non-urgent queries, call later in the day.",
+    "designPrompt": "A4 portrait NHS-style poster layout. Header bar, table-style boxes for Mon–Fri, Sat, Sun hours. Add phone icon, computer icon, NHS App icon each with placeholder text bar beneath. Leave space at bottom for emergency advice.",
     "options": {"size":"A4 Portrait","style":"Minimal","large_text":true}
   },
   {
     "title": "Bank Holiday Closure",
     "conciseText": "Headline: Bank Holiday Closure\nBody:\nClosed: Mon 25 Aug\nCall NHS 111 for urgent care\nDial 999 in emergencies",
     "expandedText": "Headline: Bank Holiday Closure Notice\nBody:\nThe practice will be CLOSED on Monday 25 August.\nIf you need urgent medical help:\n- Call NHS 111 (24/7)\n- Visit your local pharmacy for advice\n- Call 999 in an emergency\nNormal opening hours resume Tuesday 26 August.",
+    "designPrompt": "A4 notice board style. Large bold header bar saying NOTICE (only the word NOTICE is allowed). Beneath, 2–3 placeholder rectangles for text. Add icons for phone, pharmacy, NHS 111 with blank text boxes beside them.",
     "options": {"size":"A4 Portrait","style":"Clean NHS info","large_text":true}
   },
   {
     "title": "Zero Tolerance Poster",
     "conciseText": "Headline: Respect Our Staff\nBody:\nWe will not tolerate:\n- Verbal abuse\n- Aggression\n- Violence",
     "expandedText": "Headline: Please Treat Our Staff with Respect\nBody:\nWe have a zero-tolerance policy.\nUnacceptable behaviour includes:\n- Shouting or swearing\n- Threats or intimidation\n- Physical violence\nConsequences:\n- Asked to leave premises\n- Reported to NHS England\n- Police involvement\n- Removal from the practice list\nHelp us provide safe care for everyone.",
+    "designPrompt": "A4 poster layout with a bold red or NHS blue header box. Add warning/alert icon. Beneath, 3–4 grey rectangular placeholder text blocks. Layout should look official and simple.",
     "options": {"size":"A4 Portrait","style":"Minimal"}
   },
   {
     "title": "Chaperone Available",
     "conciseText": "Headline: Need a Chaperone?\nBody:\nChaperones are available. Please ask.",
     "expandedText": "Headline: Chaperones Are Available\nBody:\nYou are entitled to request a chaperone for any consultation, examination or procedure.\nChaperones provide reassurance, protection and support.\nPlease ask at reception or speak to your clinician if you would like a chaperone present.",
+    "designPrompt": "A4 poster layout with header banner, supportive illustration (nurse/patient abstract icons), and 2–3 placeholder grey text blocks. NHS style.",
     "options": {"size":"A4 Portrait","style":"Illustrated"}
   },
   {
     "title": "Interpreter & Accessibility",
     "conciseText": "Headline: Interpreter Services\nBody:\n- Translation available\n- BSL support\n- Large print\nAsk at reception.",
     "expandedText": "Headline: We're Here to Support All Patients\nBody:\nSupport includes:\n- Telephone & face-to-face interpreters\n- British Sign Language (BSL)\n- Easy Read leaflets\n- Large print materials\nHow to request:\n- Ask at reception\n- Call 01604 123456\n- Email practice@nhs.net\nWe will record your needs to support you at future visits.",
+    "designPrompt": "A4 NHS poster design with accessibility theme. Icons for language, BSL, large print. Each icon has grey placeholder bars underneath. Bold header box at top.",
     "options": {"size":"A4 Portrait","style":"Clean NHS info"}
   },
   {
     "title": "Complaints & Compliments",
     "conciseText": "Headline: Your Feedback Matters\nBody:\n- Write to Practice Manager\n- Email: practice@nhs.net\n- Call: 01604 123456",
     "expandedText": "Headline: Your Feedback Helps Us Improve\nBody:\nHow to share your views:\n- Write to the Practice Manager\n- Email: practice@nhs.net\n- Call 01604 123456\n- Feedback forms at reception\nWe aim to respond within 10 working days. If unsatisfied, you can escalate to NHS England or the Ombudsman.\nCompliments are shared with our staff team.",
+    "designPrompt": "A4 poster layout with NHS blue header. Two-column design: one side suggestion box icon, other side smiling patient icon. Add grey bars for text areas. Clean accessible style.",
     "options": {"size":"A4 Portrait","style":"Minimal"}
   },
   {
     "title": "Patient Participation Group",
     "conciseText": "Headline: Join Our PPG\nBody:\nShape local services.\nMeet quarterly.\nEmail: ppg@nhs.net",
     "expandedText": "Headline: Join Our Patient Participation Group\nBody:\nWe meet quarterly to discuss practice services & improvements. Your voice matters!\nHow to get involved:\n- Email: ppg@nhs.net\n- Ask at reception\n- Sign up via www.mysurgery.co.uk\nPatients from all backgrounds welcome.",
+    "designPrompt": "A4 poster layout with people/meeting icon. Large header box, 2–3 grey placeholder sections for text. NHS style, clean background.",
     "options": {"size":"A4 Portrait","style":"Illustrated"}
   },
   {
     "title": "Privacy Notice",
     "conciseText": "Headline: Your Data, Your Rights\nBody:\nWe collect data to provide care.\nYou have rights to access, correct, and know how data is used.",
     "expandedText": "Headline: Your Data, Your Rights\nBody:\nWe collect and store information to provide your care.\nYou have the right to:\n- See your medical record\n- Ask for corrections\n- Know how your data is used\nFor details visit www.mysurgery.co.uk/privacy or contact the Practice Manager.",
+    "designPrompt": "A4 poster layout with lock/security icon. Bold NHS header bar, 3 placeholder text blocks beneath. Keep minimal and accessible.",
     "options": {"size":"A4 Portrait","style":"Clean NHS info"}
   },
   {
     "title": "Online Services",
     "conciseText": "Headline: Sign Up Today\nBody:\n- Order repeats\n- View results\n- Book appointments\nDownload NHS App.",
     "expandedText": "Headline: Sign Up for Online Services\nBody:\nDid you know you can:\n- Order prescriptions\n- View test results\n- Book & cancel appointments\nSimply download the NHS App or visit www.mysurgery.co.uk/online",
+    "designPrompt": "Square tile design. Icons for phone, laptop, NHS App. Add 3 rectangular text placeholders below icons. Bold NHS header bar at top.",
     "options": {"size":"Square 1024","style":"Icon-led","qr":true}
   },
   {
     "title": "Results Turnaround",
     "conciseText": "Headline: Test Results\nBody:\nBloods: 5–7 days\nX-ray: 10–14 days\nCervical screening: 2–3 weeks",
     "expandedText": "Headline: Test Results – Please Allow Time\nBody:\nTypical result times:\n- Blood tests: 5–7 days\n- X-rays/Scans: 10–14 days\n- Cervical screening: 2–3 weeks\nWe will contact you if urgent. Otherwise, call after 11am for results.",
+    "designPrompt": "A4 landscape layout. Table-style boxes (Bloods, X-ray, Cervical). Leave grey bars as placeholders instead of text. NHS header bar at top.",
     "options": {"size":"A4 Landscape","style":"Clean NHS info"}
   },
   {
     "title": "Phone Queue Tips",
     "conciseText": "Headline: Calling the Practice\nBody:\nBest time: 11am–3pm\nRepeat prescriptions: after 2pm\nUse NHS App for results.",
     "expandedText": "Headline: Calling the Practice\nBody:\n- Best time to call: 11am–3pm (shorter waits)\n- Prescription queries: after 2pm\n- For results: after 11am\nTip: Use NHS App to save time.",
+    "designPrompt": "A4 poster design with phone icon header. Beneath, 3–4 grey rectangular text placeholders. Add clock icon and NHS App icon with space beside them.",
     "options": {"size":"A4 Portrait","style":"Icon-led"}
   },
   {
     "title": "New Patient Registration",
     "conciseText": "Headline: Register With Us\nBody:\nBring photo ID + proof of address\nOr register online at www.nhs.uk/find-a-gp",
     "expandedText": "Headline: Registering as a New Patient\nBody:\nTo register you will need:\n- Registration form\n- Photo ID\n- Proof of address\nHow to register:\n- Online at www.nhs.uk/find-a-gp\n- At reception (Mon–Fri)\nProcessing time: 5–7 working days\nYou may be invited for a health check.",
+    "designPrompt": "A4 NHS-style poster. Header bar at top, ID card icon, house icon, online icon, each with placeholder boxes for text beneath.",
     "options": {"size":"A4 Portrait","style":"Minimal","qr":true}
   },
   {
     "title": "Travel Vaccinations",
     "conciseText": "Headline: Travel Vaccines\nBody:\nBook 6–8 weeks before travel\nSome NHS-funded, some private\nCall 01604 123456",
     "expandedText": "Headline: Planning to Travel Abroad?\nBody:\nBook 6–8 weeks before you travel.\nSome vaccines are free (Hep A, Typhoid, Cholera). Others must be paid privately (Rabies, Yellow Fever).\nCall 01604 123456 or book online.\nBring details of your trip & past vaccinations.",
+    "designPrompt": "A4 portrait layout with globe/airplane icon. Header banner at top, 3–4 placeholder grey bars below. Add syringe icon to one side.",
     "options": {"size":"A4 Portrait","style":"Clean NHS info"}
   },
   {
     "title": "Same-Day Care Carousel",
     "conciseText": "Slide 1: Need help today?\nSlide 2: Pharmacy advice\nSlide 3: Nurse reviews\nSlide 4: GP complex problems\nSlide 5: NHS 111",
     "expandedText": "Slide 1: Need help today?\nSlide 2: Pharmacy: advice & medicines\nSlide 3: Nurse: dressings & reviews\nSlide 4: GP: ongoing or complex health issues\nSlide 5: NHS 111: urgent help when we're closed",
+    "designPrompt": "Square social carousel style. 5 slides, each with large icon (Pharmacy, Nurse, GP, NHS 111). Beneath each icon, grey bar placeholder text. Keep NHS style.",
     "options": {"size":"Square 1024","style":"Icon-led","large_text":true}
   },
   {
     "title": "Staff Vacancy Tile",
     "conciseText": "Headline: We're Recruiting!\nBody:\nReceptionist, Band 3, 25 hrs/week\nApply by 30 Sept\nEmail practice@nhs.net",
     "expandedText": "Headline: Join Our Team\nBody:\nPosition: Receptionist (Band 3)\nHours: 25 per week, flexible shifts\nClosing date: 30 Sept\nApply: CV & cover letter to practice@nhs.net\nWe are an equal opportunities employer.",
+    "designPrompt": "Square social tile. Bold header bar, person/briefcase icon, 3 rectangular placeholders for job details. NHS blue and white.",
     "options": {"size":"Square 1024","style":"Minimal"}
   }
 ];
@@ -226,6 +246,17 @@ const PracticeImageMaker = () => {
 
   const assemblePrompt = () => {
     let finalPrompt = prompt;
+    
+    // Check if this is a Quick-Pick with a design prompt
+    const quickPickUsed = QUICK_PICKS.find(qp => 
+      prompt.includes(qp.conciseText.split('\n')[0].replace('Headline: ', '')) ||
+      prompt.includes(qp.expandedText.split('\n')[0].replace('Headline: ', ''))
+    );
+    
+    if (quickPickUsed && quickPickUsed.designPrompt) {
+      // For Quick-Picks, use the design prompt as the base layout instruction
+      finalPrompt = quickPickUsed.designPrompt + "\n\n" + finalPrompt;
+    }
     
     // Add branding constraints if enabled
     if (applyBrand && practiceName) {
