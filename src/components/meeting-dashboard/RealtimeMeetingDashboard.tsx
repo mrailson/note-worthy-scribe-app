@@ -89,7 +89,7 @@ export const RealtimeMeetingDashboard = ({
   return (
     <DashboardProvider>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-6xl h-[90vh] p-0 flex flex-col">
+        <DialogContent className="max-w-6xl h-[90vh] p-0 flex flex-col [&>button]:hidden">
           <DialogHeader className="px-6 py-4 border-b shrink-0">
             <div className="flex items-center justify-between">
               <DialogTitle className="flex items-center gap-2">
