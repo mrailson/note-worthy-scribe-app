@@ -3894,15 +3894,17 @@ export const MeetingRecorder = ({
                 connectionStatus
               }}
             />
-            <Button 
-              onClick={resetMeeting}
-              variant="outline"
-              size="sm"
-              className="text-xs"
-            >
-              <RotateCcw className="h-3 w-3 mr-2" />
-              Reset Meeting
-            </Button>
+            {!isRecording && (
+              <Button 
+                onClick={resetMeeting}
+                variant="outline"
+                size="sm"
+                className="text-xs"
+              >
+                <RotateCcw className="h-3 w-3 mr-2" />
+                Reset Meeting
+              </Button>
+            )}
           </div>
         </TabsContent>
 
