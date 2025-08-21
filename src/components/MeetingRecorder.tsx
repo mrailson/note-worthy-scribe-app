@@ -2382,8 +2382,8 @@ export const MeetingRecorder = ({
       });
     }, 500);
     
-    // Wait 4 seconds while still recording to capture final chunks
-    await new Promise(resolve => setTimeout(resolve, 4000));
+    // Wait 3 seconds while still recording to capture final chunks
+    await new Promise(resolve => setTimeout(resolve, 3000));
     clearInterval(phase1Interval);
     
     // Phase 2: Finalizing transcription (3 seconds)
