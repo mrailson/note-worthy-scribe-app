@@ -240,10 +240,22 @@ export const LiveTranscript = ({
         processedTranscript = medicalTermCorrector.applyCorrections(transcript);
       }
       
-      // Always keep the full transcript history - no clearing
+      console.log('🚨 DEBUG: Processing new transcript');
+      console.log('🚨 DEBUG: Raw transcript length:', transcript.length);
+      console.log('🚨 DEBUG: Processed transcript length:', processedTranscript.length);
+      
+      // FIXED: Don't use streaming cleaner that accumulates - replace the entire cleaned transcript
       if (isAutoCleaningEnabled) {
-        // Use streaming cleaner with confidence filtering
-        const cleanedNew = transcriptCleaner.cleanStreamingTranscript(cleanedTranscript, processedTranscript, confidence);
+        // Clean the entire processed transcript fresh each time
+        const cleanedNew = transcriptCleaner.cleanTranscript(processedTranscript, {
+          removeHallucinations: true,
+          fixGrammar: true,
+          addPunctuation: true,
+          removeFiller: false,
+          mergeFragments: true
+        });
+        
+        console.log('🚨 DEBUG: Cleaned transcript length:', cleanedNew.length);
         setCleanedTranscript(cleanedNew);
         setLiveTranscriptText(cleanedNew); // Show cleaned version
       } else {
@@ -251,14 +263,17 @@ export const LiveTranscript = ({
       }
     }
     // NEVER clear liveTranscriptText - always preserve transcript history
-  }, [transcript, isAutoCleaningEnabled, cleanedTranscript, isMedicalCorrectionsLoaded]);
+  }, [transcript, isAutoCleaningEnabled, isMedicalCorrectionsLoaded]);
 
   // Notify parent when cleaned transcript changes with formatted version
   useEffect(() => {
     if (onCleanedTranscriptChange && cleanedTranscript) {
       // Send formatted transcript that matches what users see in the display
       const formattedTranscript = getFormattedTranscriptForHistory();
-      console.log('🔍 Sending formatted transcript to parent:', formattedTranscript.length, 'chars');
+      console.log('🚨 DEBUG: Sending formatted transcript to parent');
+      console.log('🚨 DEBUG: Cleaned transcript length:', cleanedTranscript.length);
+      console.log('🚨 DEBUG: Formatted transcript length:', formattedTranscript.length);
+      console.log('🚨 DEBUG: Formatted preview:', formattedTranscript.substring(0, 200) + '...');
       onCleanedTranscriptChange(formattedTranscript);
     }
   }, [cleanedTranscript, onCleanedTranscriptChange, showTimestampsInCopy]);
@@ -341,17 +356,27 @@ export const LiveTranscript = ({
     return text.split(/[.!?]+/).filter(s => s.trim()).map(s => s.trim() + '.').join('\n\n');
   };
 
-  // Format transcript for copy/download with proper formatting and optional timestamps
+  // Format transcript for copy/download - get the COMPLETE displayed content
   const getFormattedCleanedText = () => {
+    // Get the exact same content that's displayed in the AI-Enhanced section
     const sourceText = cleanedTranscript || transcript || "";
-    if (!sourceText) return "";
+    if (!sourceText) {
+      console.log('🚨 DEBUG: No source text available for copy/download');
+      return "";
+    }
 
-    console.log('🔍 Formatting transcript for copy/download:', sourceText.length, 'chars');
+    console.log('🔍 DEBUG: Formatting transcript for copy/download');
+    console.log('🔍 DEBUG: Source text length:', sourceText.length);
+    console.log('🔍 DEBUG: Source text preview:', sourceText.substring(0, 200) + '...');
+    console.log('🔍 DEBUG: showTimestampsInCopy:', showTimestampsInCopy);
 
-    // Apply the same formatting logic used in display (lines 720-749)
+    // Return the complete source text with proper formatting
     if (showTimestampsInCopy) {
       // Format with timestamps - split by sentences and add timestamps
-      return sourceText.split(/[.!?]+/).filter(s => s.trim()).map((sentence, index) => {
+      const sentences = sourceText.split(/[.!?]+/).filter(s => s.trim());
+      console.log('🔍 DEBUG: Split into', sentences.length, 'sentences');
+      
+      const formatted = sentences.map((sentence, index) => {
         const timestamp = new Date();
         timestamp.setSeconds(timestamp.getSeconds() + (index * 10));
         const timeStr = timestamp.toLocaleTimeString('en-GB', { 
@@ -360,9 +385,16 @@ export const LiveTranscript = ({
         });
         return `[${timeStr}] ${sentence.trim()}.`;
       }).join('\n\n');
+      
+      console.log('🔍 DEBUG: Formatted with timestamps length:', formatted.length);
+      return formatted;
     } else {
       // Format without timestamps but maintain line spacing for readability
-      return sourceText.split(/[.!?]+/).filter(s => s.trim()).map(s => s.trim() + '.').join('\n\n');
+      const sentences = sourceText.split(/[.!?]+/).filter(s => s.trim());
+      const formatted = sentences.map(s => s.trim() + '.').join('\n\n');
+      
+      console.log('🔍 DEBUG: Formatted without timestamps length:', formatted.length);
+      return formatted;
     }
   };
 
