@@ -29,6 +29,7 @@ import { WhisperHallucinationTestSuite } from "@/components/WhisperHallucination
 import { MicInputRecordingTester } from "@/components/MicInputRecordingTester";
 import { SharedMeetingsManager } from "@/components/SharedMeetingsManager";
 import { LiveTranscript } from "@/components/LiveTranscript";
+import { RealtimeMeetingDashboard } from "@/components/meeting-dashboard/RealtimeMeetingDashboard";
 
 import { NotewellAIAnimation } from "@/components/NotewellAIAnimation";
 
@@ -137,6 +138,9 @@ export const MeetingRecorder = ({
   const [editingMeetingId, setEditingMeetingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
   const [isSavingTitle, setIsSavingTitle] = useState(false);
+  
+  // Dashboard state
+  const [dashboardOpen, setDashboardOpen] = useState(false);
   
   // Modal states for viewing notes and transcripts
   const [fullPageModalOpen, setFullPageModalOpen] = useState(false);
