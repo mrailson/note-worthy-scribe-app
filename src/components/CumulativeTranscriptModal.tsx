@@ -3,9 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Copy, Download, X, Clock, Users, Hash, Eye, EyeOff } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Copy, Download, X, Clock, Users, Hash, Eye, EyeOff, Settings, Sparkles, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { DeduplicationSettings, CleaningStats } from "@/hooks/useTranscriptDeduplication";
 
 interface TranscriptSection {
   id: string;
@@ -21,9 +25,13 @@ interface CumulativeTranscriptModalProps {
   onClose: () => void;
   title: string;
   sections: TranscriptSection[];
+  rawSections?: TranscriptSection[];
   duration: number;
   speakerCount: number;
   wordCount: number;
+  cleaningStats?: CleaningStats;
+  deduplicationSettings?: DeduplicationSettings;
+  onUpdateSettings?: (settings: Partial<DeduplicationSettings>) => void;
 }
 
 export const CumulativeTranscriptModal = ({
@@ -31,13 +39,18 @@ export const CumulativeTranscriptModal = ({
   onClose,
   title,
   sections,
+  rawSections,
   duration,
   speakerCount,
-  wordCount
+  wordCount,
+  cleaningStats,
+  deduplicationSettings,
+  onUpdateSettings
 }: CumulativeTranscriptModalProps) => {
   const [autoScroll, setAutoScroll] = useState(true);
   const [showSpeakers, setShowSpeakers] = useState(true);
   const [showTimestamps, setShowTimestamps] = useState(true);
+  const [showSettings, setShowSettings] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -138,7 +151,7 @@ export const CumulativeTranscriptModal = ({
           </div>
           
           {/* Stats Bar */}
-          <div className="flex items-center gap-4 mt-3">
+          <div className="flex items-center gap-4 mt-3 flex-wrap">
             <Badge 
               variant="secondary" 
               className="flex items-center gap-1 cursor-pointer hover:bg-accent transition-colors"
@@ -161,11 +174,29 @@ export const CumulativeTranscriptModal = ({
               <Hash className="h-3 w-3" />
               {wordCount} words
             </Badge>
+            
+            {/* Cleaning Stats */}
+            {cleaningStats && cleaningStats.duplicatesRemoved > 0 && (
+              <Badge variant="outline" className="flex items-center gap-1 text-green-600 border-green-200">
+                <Sparkles className="h-3 w-3" />
+                {cleaningStats.duplicatesRemoved} cleaned
+              </Badge>
+            )}
+            
+            {/* Raw vs Cleaned indicator */}
+            {deduplicationSettings && (
+              <Badge 
+                variant={deduplicationSettings.showRawTranscript ? "destructive" : "default"} 
+                className="flex items-center gap-1"
+              >
+                {deduplicationSettings.showRawTranscript ? "Raw" : "Enhanced"}
+              </Badge>
+            )}
           </div>
 
           {/* Controls */}
-          <div className="flex items-center justify-between mt-3">
-            <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between mt-3 gap-4">
+            <div className="flex items-center gap-2 flex-wrap">
               <Button
                 variant="outline"
                 size="sm"
@@ -184,18 +215,130 @@ export const CumulativeTranscriptModal = ({
                 <Download className="h-3 w-3 mr-1" />
                 Download
               </Button>
+              
+              {onUpdateSettings && (
+                <Button
+                  variant={showSettings ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setShowSettings(!showSettings)}
+                  className="h-8"
+                >
+                  <Settings className="h-3 w-3 mr-1" />
+                  Settings
+                </Button>
+              )}
             </div>
             
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-muted-foreground">Auto-scroll:</label>
-              <input
-                type="checkbox"
-                checked={autoScroll}
-                onChange={(e) => setAutoScroll(e.target.checked)}
-                className="w-4 h-4"
-              />
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Label htmlFor="auto-scroll" className="text-sm">Auto-scroll</Label>
+                <Switch
+                  id="auto-scroll"
+                  checked={autoScroll}
+                  onCheckedChange={setAutoScroll}
+                />
+              </div>
             </div>
           </div>
+          
+          {/* Deduplication Settings Panel */}
+          {showSettings && onUpdateSettings && deduplicationSettings && (
+            <div className="mt-4 p-4 bg-muted/50 rounded-lg border">
+              <h4 className="font-medium mb-3 flex items-center gap-2">
+                <Sparkles className="h-4 w-4" />
+                Transcript Enhancement Settings
+              </h4>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="cleaning-enabled">Enable Enhancement</Label>
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      id="cleaning-enabled"
+                      checked={deduplicationSettings.enabled}
+                      onCheckedChange={(checked) => onUpdateSettings({ enabled: checked })}
+                    />
+                    <span className="text-sm text-muted-foreground">
+                      {deduplicationSettings.enabled ? "Enhanced" : "Raw transcript"}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="cleaning-level">Enhancement Level</Label>
+                  <Select
+                    value={deduplicationSettings.cleaningLevel}
+                    onValueChange={(level: 'light' | 'medium' | 'aggressive') => 
+                      onUpdateSettings({ cleaningLevel: level })
+                    }
+                  >
+                    <SelectTrigger className="h-8">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="light">Light (Remove obvious duplicates)</SelectItem>
+                      <SelectItem value="medium">Medium (Grammar + deduplication)</SelectItem>
+                      <SelectItem value="aggressive">Aggressive (Full cleaning)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="real-time-dedup">Real-time Deduplication</Label>
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      id="real-time-dedup"
+                      checked={deduplicationSettings.realTimeDeduplication}
+                      onCheckedChange={(checked) => onUpdateSettings({ realTimeDeduplication: checked })}
+                    />
+                    <span className="text-sm text-muted-foreground">
+                      Live duplicate removal
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="show-raw">View Mode</Label>
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      id="show-raw"
+                      checked={deduplicationSettings.showRawTranscript}
+                      onCheckedChange={(checked) => onUpdateSettings({ showRawTranscript: checked })}
+                    />
+                    <span className="text-sm text-muted-foreground">
+                      {deduplicationSettings.showRawTranscript ? "Show raw" : "Show enhanced"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Cleaning Statistics */}
+              {cleaningStats && (
+                <div className="mt-4 pt-3 border-t">
+                  <h5 className="font-medium mb-2">Enhancement Statistics</h5>
+                  <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">Total Sections:</span>
+                      <div className="font-mono">{cleaningStats.totalSections}</div>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Duplicates Removed:</span>
+                      <div className="font-mono text-green-600">{cleaningStats.duplicatesRemoved}</div>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Characters Saved:</span>
+                      <div className="font-mono text-blue-600">{cleaningStats.bytesReduced.toLocaleString()}</div>
+                    </div>
+                  </div>
+                  {cleaningStats.lastCleaningTime && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Last processed: {format(new Date(cleaningStats.lastCleaningTime), 'HH:mm:ss')}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </CardHeader>
 
         <CardContent className="flex-1 overflow-hidden p-0">

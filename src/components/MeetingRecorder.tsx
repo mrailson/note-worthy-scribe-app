@@ -45,6 +45,7 @@ import { DesktopWhisperTranscriber, TranscriptData as DesktopTranscriptData } fr
 import { IncrementalTranscriptHandler, IncrementalTranscriptData } from '@/utils/IncrementalTranscriptHandler';
 import { StereoAudioCapture } from '@/utils/StereoAudioCapture';
 import { transcriptCleaner, RemovedSegment } from '@/utils/TranscriptCleaner';
+import { useTranscriptDeduplication } from '@/hooks/useTranscriptDeduplication';
 import { detectDevice, logDeviceInfo, getRecommendedTranscriber } from '@/utils/DeviceDetection';
 
 interface TranscriptData {
@@ -159,7 +160,9 @@ export const MeetingRecorder = ({
   
   // Cumulative transcript modal state
   const [cumulativeTranscriptModalOpen, setCumulativeTranscriptModalOpen] = useState(false);
-  const [cumulativeTranscriptSections, setCumulativeTranscriptSections] = useState<CumulativeTranscriptSection[]>([]);
+  
+  // Enhanced transcript deduplication
+  const transcriptDeduplication = useTranscriptDeduplication();
   
   // Silence detection state
   const [consecutiveSilenceCount, setConsecutiveSilenceCount] = useState(0);
@@ -227,6 +230,9 @@ export const MeetingRecorder = ({
     setSelectedMeetings([]);
     setIsSelectMode(false);
     setDeleteConfirmation("");
+    
+    // Clear transcript deduplication
+    transcriptDeduplication.clearSections();
     setMeetingSettings({
       title: "General Meeting",
       description: "",
@@ -1146,7 +1152,7 @@ export const MeetingRecorder = ({
           setLastSilenceMessageShown(true);
           
           // Create a silence notification for cumulative transcript
-          const silenceSection: CumulativeTranscriptSection = {
+          const silenceSection = {
             id: `silence_${Date.now()}`,
             text: "Silence or No Speech Detected",
             speaker: "System",
@@ -1155,7 +1161,7 @@ export const MeetingRecorder = ({
             isFinal: true
           };
           
-          setCumulativeTranscriptSections(prev => [...prev, silenceSection]);
+          transcriptDeduplication.addSection(silenceSection);
         }
         
         return newCount;
@@ -1184,8 +1190,8 @@ export const MeetingRecorder = ({
       transcriptHandler.current.processTranscript(incrementalData);
     }
 
-    // Add to cumulative transcript sections
-    const cumulativeSection: CumulativeTranscriptSection = {
+    // Add to enhanced cumulative transcript with deduplication
+    const cumulativeSection = {
       id: `${transcriptData.speaker}_${transcriptData.timestamp}_${Date.now()}`,
       text: transcriptData.text,
       speaker: transcriptData.speaker,
@@ -1194,29 +1200,8 @@ export const MeetingRecorder = ({
       isFinal: transcriptData.isFinal
     };
 
-    setCumulativeTranscriptSections(prev => {
-      // Find and replace interim sections, or add new final sections
-      const existingIndex = prev.findIndex(section => 
-        section.speaker === cumulativeSection.speaker && 
-        section.timestamp === cumulativeSection.timestamp &&
-        !section.isFinal
-      );
-
-      if (existingIndex >= 0 && transcriptData.isFinal) {
-        // Replace interim with final
-        const updated = [...prev];
-        updated[existingIndex] = cumulativeSection;
-        return updated;
-      } else if (existingIndex >= 0 && !transcriptData.isFinal) {
-        // Update existing interim
-        const updated = [...prev];
-        updated[existingIndex] = cumulativeSection;
-        return updated;
-      } else {
-        // Add new section
-        return [...prev, cumulativeSection];
-      }
-    });
+    // Use the deduplication hook to manage sections
+    transcriptDeduplication.addSection(cumulativeSection);
 
     // Progressive pre-summaries: ingest transcript chunks for long sessions
     if (transcriptData.isFinal) {
@@ -4383,10 +4368,14 @@ export const MeetingRecorder = ({
         isOpen={cumulativeTranscriptModalOpen}
         onClose={() => setCumulativeTranscriptModalOpen(false)}
         title={meetingSettings.title || "Meeting Transcript"}
-        sections={cumulativeTranscriptSections}
+        sections={transcriptDeduplication.sections}
+        rawSections={transcriptDeduplication.rawSections}
         duration={duration}
         speakerCount={speakerCount}
         wordCount={wordCount}
+        cleaningStats={transcriptDeduplication.cleaningStats}
+        deduplicationSettings={transcriptDeduplication.settings}
+        onUpdateSettings={transcriptDeduplication.updateSettings}
       />
 
       {/* Real-time Meeting Dashboard */}
