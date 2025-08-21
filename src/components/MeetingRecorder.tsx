@@ -2432,6 +2432,30 @@ export const MeetingRecorder = ({
     addScreenDebug(`📊 Final transcript length: ${finalTranscriptLength} (+${finalTranscriptLength - initialTranscriptLength} chars)`);
     
     setShowProcessingAudio(false);
+    
+    // NOW stop the transcribers after the processing delay
+    addScreenDebug('🛑 Now stopping transcribers after processing delay...');
+    
+    // Stop browser transcriber
+    if (browserTranscriberRef.current) {
+      browserTranscriberRef.current.stopTranscription();
+      browserTranscriberRef.current = null;
+    }
+    
+    // Stop iPhone transcriber
+    if (iPhoneTranscriberRef.current) {
+      iPhoneTranscriberRef.current.stopTranscription();
+      iPhoneTranscriberRef.current = null;
+    }
+    
+    // Stop desktop transcriber and wait for final processing
+    if (desktopTranscriberRef.current) {
+      await desktopTranscriberRef.current.stopTranscription();
+      // Give extra time for final transcription to be processed and combined
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      desktopTranscriberRef.current = null;
+    }
+    
     console.log('🔥🔥🔥 Current isRecording state:', isRecording);
     console.log('🔥🔥🔥 Current user:', user?.id);
     console.log('🔥🔥🔥 Current duration:', duration);
@@ -2476,26 +2500,6 @@ export const MeetingRecorder = ({
     if (screenStreamRef.current) {
       screenStreamRef.current.getTracks().forEach(track => track.stop());
       screenStreamRef.current = null;
-    }
-    
-    // Stop browser transcriber
-    if (browserTranscriberRef.current) {
-      browserTranscriberRef.current.stopTranscription();
-      browserTranscriberRef.current = null;
-    }
-    
-    // Stop iPhone transcriber
-    if (iPhoneTranscriberRef.current) {
-      iPhoneTranscriberRef.current.stopTranscription();
-      iPhoneTranscriberRef.current = null;
-    }
-    
-    // Stop desktop transcriber and wait for final processing
-    if (desktopTranscriberRef.current) {
-      await desktopTranscriberRef.current.stopTranscription();
-      // Give extra time for final transcription to be processed and combined
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      desktopTranscriberRef.current = null;
     }
     
     // Stop enhanced audio capture
