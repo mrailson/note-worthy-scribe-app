@@ -149,6 +149,7 @@ export default function TranscriptCleaner() {
     overlapThreshold: 0.5
   });
   const [isProcessing, setIsProcessing] = useState(false);
+  const [savedPresets, setSavedPresets] = useState<any[]>([]);
   
   // Audio import states
   const [audioFile, setAudioFile] = useState<File | null>(null);
@@ -159,7 +160,57 @@ export default function TranscriptCleaner() {
 
   useEffect(() => {
     setRawTranscript(defaultTranscript);
+    // Load saved presets from localStorage
+    const saved = localStorage.getItem('transcriptPresets');
+    if (saved) {
+      setSavedPresets(JSON.parse(saved));
+    }
   }, []);
+
+  const savePreset = (name: string) => {
+    const preset = {
+      name,
+      settings: { ...settings },
+      timestamp: new Date().toISOString()
+    };
+    const updated = [...savedPresets, preset];
+    setSavedPresets(updated);
+    localStorage.setItem('transcriptPresets', JSON.stringify(updated));
+    toast.success(`Preset "${name}" saved successfully`);
+  };
+
+  const loadPreset = (preset: any) => {
+    setSettings(preset.settings);
+    toast.success(`Loaded preset "${preset.name}"`);
+  };
+
+  const deletePreset = (index: number) => {
+    const updated = savedPresets.filter((_, i) => i !== index);
+    setSavedPresets(updated);
+    localStorage.setItem('transcriptPresets', JSON.stringify(updated));
+    toast.success('Preset deleted');
+  };
+
+  const exportSettings = () => {
+    const data = {
+      currentSettings: settings,
+      algorithmDescription: {
+        similarityThreshold: "Jaccard similarity threshold for duplicate detection (0-1)",
+        maxBufferSize: "Number of recent chunks to compare against",
+        minChunkLength: "Minimum characters required for chunk processing",
+        overlapThreshold: "Threshold for overlap detection and removal"
+      },
+      implementation: "Uses Jaccard similarity with word-based comparison and rolling buffer for duplicate detection"
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'transcript-deduplication-settings.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Settings exported to JSON file');
+  };
 
   const processTranscript = () => {
     setIsProcessing(true);
@@ -329,6 +380,63 @@ export default function TranscriptCleaner() {
               className="w-full px-3 py-2 border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
+        </div>
+        
+        {/* Preset Management */}
+        <div className="mt-6 pt-6 border-t border-border">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-medium text-foreground">Presets</h3>
+            <div className="space-x-2">
+              <Button
+                onClick={() => {
+                  const name = prompt('Enter preset name:');
+                  if (name) savePreset(name);
+                }}
+                variant="secondary"
+                size="sm"
+              >
+                Save Current
+              </Button>
+              <Button
+                onClick={exportSettings}
+                variant="outline"
+                size="sm"
+              >
+                Export for ChatGPT
+              </Button>
+            </div>
+          </div>
+          
+          {savedPresets.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {savedPresets.map((preset, index) => (
+                <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-lg border">
+                  <div>
+                    <div className="font-medium text-sm text-foreground">{preset.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {new Date(preset.timestamp).toLocaleDateString()}
+                    </div>
+                  </div>
+                  <div className="space-x-1">
+                    <Button
+                      onClick={() => loadPreset(preset)}
+                      variant="secondary"
+                      size="sm"
+                    >
+                      Load
+                    </Button>
+                    <Button
+                      onClick={() => deletePreset(index)}
+                      variant="destructive"
+                      size="sm"
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
