@@ -19,7 +19,7 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, Dr
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { UserProfileModal } from "@/components/UserProfileModal";
 interface HeaderProps {
-  onNewMeeting: () => void;
+  onNewMeeting?: () => void;
 }
 
 export const Header = ({ onNewMeeting }: HeaderProps) => {
@@ -79,7 +79,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
           {/* Navigation */}
           <div className="hidden sm:flex gap-2">
             <Button 
-              onClick={() => isHomePage ? onNewMeeting() : navigate('/')}
+              onClick={() => isHomePage && onNewMeeting ? onNewMeeting() : navigate('/')}
               variant="secondary"
               size="sm"
               className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs sm:text-sm px-2 sm:px-4"
@@ -325,14 +325,14 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                 <div className="px-4 pb-4 space-y-2">
                   <nav className="grid gap-2">
                     <DrawerClose asChild>
-                      <Button 
-                        variant="ghost" 
-                        className="justify-start"
-                        onClick={() => isHomePage ? onNewMeeting() : navigate('/')}
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        New
-                      </Button>
+                       <Button 
+                         variant="ghost" 
+                         className="justify-start"
+                         onClick={() => isHomePage && onNewMeeting ? onNewMeeting() : navigate('/')}
+                       >
+                         <Plus className="h-4 w-4 mr-2" />
+                         New
+                       </Button>
                     </DrawerClose>
 
                     <DrawerClose asChild>

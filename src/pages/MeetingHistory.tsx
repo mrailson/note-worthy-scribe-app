@@ -5,7 +5,6 @@ import { MeetingHistoryList } from "@/components/MeetingHistoryList";
 import { MeetingDocuments } from "@/components/MeetingDocuments";
 import { MeetingSearchBar, SearchFilters } from "@/components/MeetingSearchBar";
 import { FullPageNotesModal } from "@/components/FullPageNotesModal";
-import { MeetingRecordingInterface } from "@/components/MeetingRecordingInterface";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Plus, Clock, FileText, Trash2, Edit, Edit2, Mail, RefreshCw, Square, CheckSquare, ChevronDown, Copy, Sparkles, Save, Download } from "lucide-react";
+import { Clock, FileText, Trash2, Edit, Edit2, Mail, RefreshCw, Square, CheckSquare, ChevronDown, Copy, Sparkles, Save, Download } from "lucide-react";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
 import {
   AlertDialog,
@@ -191,13 +190,6 @@ const MeetingHistory = () => {
   
   // Mic test service visibility state
   const [micTestServiceVisible, setMicTestServiceVisible] = useState<boolean>(true);
-  
-  // Recording interface state
-  const [showRecordingInterface, setShowRecordingInterface] = useState(false);
-
-  const handleNewMeeting = () => {
-    setShowRecordingInterface(true);
-  };
 
   const handleViewMeetingSummary = async (meetingId: string) => {
     console.log('🔍 handleViewMeetingSummary called with meetingId:', meetingId);
@@ -1223,7 +1215,7 @@ const MeetingHistory = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-background">
-        <Header onNewMeeting={handleNewMeeting} />
+        <Header />
         <div className="container mx-auto px-4 py-8 flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
@@ -1236,28 +1228,18 @@ const MeetingHistory = () => {
 
   return (
     <div className="min-h-screen bg-gradient-background">
-      <Header onNewMeeting={handleNewMeeting} />
+      <Header />
       
       <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 lg:py-8 space-y-4 sm:space-y-6 max-w-6xl">
         {/* Header Section */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Meeting History</h1>
-              <p className="text-sm sm:text-base text-muted-foreground">
-                View, edit, and manage your saved meetings
-              </p>
-            </div>
+        <div className="flex items-center gap-3">
+          <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Meeting History</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">
+              View, edit, and manage your saved meetings
+            </p>
           </div>
-          
-          <Button 
-            onClick={handleNewMeeting}
-            className="bg-gradient-primary hover:bg-primary-hover shadow-medium w-full sm:w-auto touch-manipulation min-h-[48px]"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            New Meeting
-          </Button>
         </div>
 
         {/* Stats Cards - Hidden on mobile, collapsible on larger screens */}
@@ -1928,17 +1910,6 @@ const MeetingHistory = () => {
           onNotesChange={setModalNotes}
         />
 
-        {/* Recording Interface Modal */}
-        {showRecordingInterface && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <MeetingRecordingInterface 
-              onClose={() => {
-                setShowRecordingInterface(false);
-                fetchMeetings(); // Refresh the meetings list
-              }} 
-            />
-          </div>
-        )}
       </div>
     </div>
   );
