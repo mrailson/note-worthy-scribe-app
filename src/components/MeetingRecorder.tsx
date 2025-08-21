@@ -2764,13 +2764,8 @@ export const MeetingRecorder = ({
 
       setIsGeneratingNotes(false);
       
-      // Navigate to meeting summary
-      navigate('/meeting-summary', { 
-        state: { 
-          ...meetingData, 
-          id: savedMeeting.id 
-        } 
-      });
+      // Navigate to meeting history instead of summary
+      navigate('/meetings');
 
     } catch (error) {
       console.error('❌ CRITICAL ERROR - Failed to save meeting:', error);
@@ -2783,8 +2778,8 @@ export const MeetingRecorder = ({
       setIsGeneratingNotes(false);
       toast.error('Failed to save meeting to database');
       
-      // Still try to navigate with local data
-      navigate('/meeting-summary', { state: meetingData });
+      // Still try to navigate to meeting history
+      navigate('/meetings');
     }
   };
 
