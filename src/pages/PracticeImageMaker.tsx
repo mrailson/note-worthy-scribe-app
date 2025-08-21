@@ -32,7 +32,8 @@ import {
 const QUICK_PICKS = [
   {
     title: "DNA (Did Not Attend) poster",
-    prompt: "Create a clean NHS-style poster with large, bold, readable text. Main headline: 'Help Us Help You - Cancel Appointments You Cannot Attend'. Include these exact bullet points in large text: '• Call us as soon as possible' '• Use the NHS App to cancel' '• Book online at our website' '• Call reception for help'. Add text at bottom: 'When you don't attend, another patient misses out' and '{practice_name}' prominently displayed. Use {primary_colour} accents. Ensure ALL text is perfectly legible and not placeholder text.",
+    prompt: "Create a clean NHS-style poster layout with the following exact text content. Do not use placeholder text or lorem ipsum - use only the text specified below.",
+    textBlock: "HELP US HELP YOU\nCancel Appointments You Cannot Attend\n\n• Call us as soon as possible\n• Use the NHS App to cancel\n• Book online at our website\n• Call reception for help\n\nWhen you don't attend, another patient misses out\n\n{practice_name}",
     options: {"size":"A4 Portrait","style":"Clean NHS info","large_text":true}
   },
   {
@@ -187,6 +188,15 @@ const PracticeImageMaker = () => {
     let processedPrompt = quickPick.prompt
       .replace(/{practice_name}/g, practiceName || "[Practice Name]")
       .replace(/{primary_colour}/g, primaryColour);
+    
+    // Add textBlock if present
+    if (quickPick.textBlock) {
+      const processedTextBlock = quickPick.textBlock
+        .replace(/{practice_name}/g, practiceName || "[Practice Name]")
+        .replace(/{primary_colour}/g, primaryColour);
+      
+      processedPrompt += `\n\ntextBlock: "${processedTextBlock}"`;
+    }
     
     setPrompt(processedPrompt);
     
