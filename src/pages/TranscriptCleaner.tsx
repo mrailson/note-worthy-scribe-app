@@ -1,4 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Upload, FileAudio, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 // Deduplication class (same as before but optimized for testing)
 class TranscriptDeduplicator {
@@ -144,6 +149,10 @@ export default function TranscriptCleaner() {
     overlapThreshold: 0.6
   });
   const [isProcessing, setIsProcessing] = useState(false);
+  
+  // Audio import states
+  const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [isTranscribing, setIsTranscribing] = useState(false);
 
   // Default messy transcript for testing
   const defaultTranscript = `We'll try to keep this to about half an hour if we can, though there are quite a few things to get through today. ...though there are quite a few things to get through today. First, just to check, does anyone have any urgent items to add to the agenda before we start? First, just to check, does anyone have any urgent items to add to the agenda before we start? No? Okay, great. Let's begin. No? Okay, great. Let's begin. So the first thing is patient list numbers. We've seen a small increase again this month. Around 120 new registrations. Mostly younger families... We've seen a small increase again this month, around 120 new registrations, mostly younger families and a few moving in from nearby practices.`;
@@ -192,6 +201,63 @@ export default function TranscriptCleaner() {
     setCleanedTranscript('');
     setProcessingLog([]);
     setStats(null);
+    setAudioFile(null);
+  };
+
+  const handleAudioFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0];
+    if (selectedFile) {
+      // Check file size (20MB limit)
+      if (selectedFile.size > 20 * 1024 * 1024) {
+        toast.error('File size must be under 20MB');
+        return;
+      }
+      
+      // Check if it's an audio file
+      if (selectedFile.type.startsWith('audio/') || 
+          selectedFile.name.match(/\.(mp3|wav|m4a|ogg|webm|aac|flac)$/i)) {
+        setAudioFile(selectedFile);
+        toast.success(`Selected: ${selectedFile.name}`);
+      } else {
+        toast.error('Please select an audio file (MP3, WAV, M4A, etc.)');
+      }
+    }
+  };
+
+  const transcribeAudio = async () => {
+    if (!audioFile) return;
+
+    setIsTranscribing(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('audio', audioFile);
+
+      const { data, error: supabaseError } = await supabase.functions.invoke('test-mp3-transcription', {
+        body: formData,
+      });
+
+      if (supabaseError) {
+        throw new Error(supabaseError.message);
+      }
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      if (data.text) {
+        setRawTranscript(data.text);
+        toast.success('Audio transcribed successfully! Text loaded into the editor.');
+      } else {
+        toast.error('No text was transcribed from the audio');
+      }
+
+    } catch (err) {
+      console.error('Transcription error:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to transcribe audio file');
+    } finally {
+      setIsTranscribing(false);
+    }
   };
 
   return (
@@ -266,38 +332,96 @@ export default function TranscriptCleaner() {
         </div>
       </div>
 
+      {/* Audio Import Section */}
+      <div className="bg-card rounded-lg shadow-lg p-6 mb-6 border">
+        <h2 className="text-xl font-semibold text-foreground mb-4">Import Audio File</h2>
+        <p className="text-muted-foreground mb-4">
+          Upload an audio file (up to 20MB) to transcribe it automatically and load the text for deduplication testing.
+        </p>
+        
+        <div className="space-y-4">
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <input
+                type="file"
+                accept="audio/*,.mp3,.wav,.m4a,.ogg,.webm,.aac,.flac"
+                onChange={handleAudioFileSelect}
+                className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-md file:border file:border-border file:text-sm file:font-medium file:bg-secondary file:text-secondary-foreground hover:file:bg-secondary/80"
+              />
+            </div>
+            {audioFile && (
+              <Button 
+                onClick={transcribeAudio} 
+                disabled={isTranscribing}
+                className="min-w-[140px]"
+              >
+                {isTranscribing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Transcribing...
+                  </>
+                ) : (
+                  <>
+                    <FileAudio className="mr-2 h-4 w-4" />
+                    Transcribe Audio
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
+          
+          {audioFile && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted p-3 rounded-md">
+              <FileAudio className="h-4 w-4" />
+              <span>
+                Selected: {audioFile.name} ({(audioFile.size / (1024 * 1024)).toFixed(2)} MB)
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Input Section */}
       <div className="bg-card rounded-lg shadow-lg p-6 mb-6 border">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold text-foreground">Raw Transcript Input</h2>
           <div className="space-x-2">
-            <button
+            <Button
               onClick={loadSampleTranscript}
-              className="px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors"
+              variant="secondary"
+              size="sm"
             >
               Load Sample
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={clearAll}
-              className="px-4 py-2 bg-destructive text-destructive-foreground rounded-md hover:bg-destructive/90 transition-colors"
+              variant="destructive"
+              size="sm"
             >
               Clear All
-            </button>
+            </Button>
           </div>
         </div>
         <textarea
           value={rawTranscript}
           onChange={(e) => setRawTranscript(e.target.value)}
-          placeholder="Paste your messy transcript here..."
+          placeholder="Paste your messy transcript here or use the audio import above..."
           className="w-full h-40 px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
         />
-        <button
+        <Button
           onClick={processTranscript}
           disabled={!rawTranscript.trim() || isProcessing}
-          className="mt-4 px-6 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="mt-4"
         >
-          {isProcessing ? 'Processing...' : 'Clean Transcript'}
-        </button>
+          {isProcessing ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Processing...
+            </>
+          ) : (
+            'Clean Transcript'
+          )}
+        </Button>
       </div>
 
       {/* Results Section */}
