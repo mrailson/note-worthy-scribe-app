@@ -130,6 +130,8 @@ export const MeetingRecorder = ({
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [savedMeetingData, setSavedMeetingData] = useState<{title: string, duration: string, wordCount: number} | null>(null);
   const [showSavingProgress, setShowSavingProgress] = useState(false);
+  const [showProcessingAudio, setShowProcessingAudio] = useState(false);
+  const [processingDots, setProcessingDots] = useState('');
   const [savingSteps, setSavingSteps] = useState({
     saving: false,
     securing: false,
@@ -2390,8 +2392,24 @@ export const MeetingRecorder = ({
     console.log('🔥🔥🔥 Function called at:', new Date().toISOString());
     
     // Allow time for final audio chunk to be processed by Whisper
-    addScreenDebug('⏳ Allowing 3 seconds for final audio chunk to process...');
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    addScreenDebug('⏳ Processing final audio chunk...');
+    
+    // Show processing animation
+    setShowProcessingAudio(true);
+    
+    // Animate dots for 4 seconds
+    const dotInterval = setInterval(() => {
+      setProcessingDots(prev => {
+        if (prev.length >= 3) return '';
+        return prev + '.';
+      });
+    }, 500);
+    
+    // Wait 4 seconds for processing
+    await new Promise(resolve => setTimeout(resolve, 4000));
+    
+    clearInterval(dotInterval);
+    setShowProcessingAudio(false);
     console.log('🔥🔥🔥 Current isRecording state:', isRecording);
     console.log('🔥🔥🔥 Current user:', user?.id);
     console.log('🔥🔥🔥 Current duration:', duration);
@@ -2839,6 +2857,7 @@ export const MeetingRecorder = ({
       });
       
       setShowSavingProgress(false);
+      setShowProcessingAudio(false);
       toast.error('Failed to save meeting to database');
       
       // Don't navigate automatically - let user check debug panel  
@@ -4036,6 +4055,25 @@ export const MeetingRecorder = ({
         </div>
       )}
       
+      {/* Processing Audio Modal */}
+      {showProcessingAudio && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="bg-background rounded-lg shadow-lg max-w-sm w-full mx-4 border border-border">
+            <div className="p-6 space-y-6">
+              <div className="text-center">
+                <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Waves className="w-6 h-6 text-primary-foreground animate-pulse" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground">Processing Audio Transcript</h3>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Finalizing your transcription{processingDots}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Saving Progress Modal */}
       {showSavingProgress && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
