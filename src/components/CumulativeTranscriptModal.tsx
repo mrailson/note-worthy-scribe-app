@@ -37,6 +37,7 @@ export const CumulativeTranscriptModal = ({
 }: CumulativeTranscriptModalProps) => {
   const [autoScroll, setAutoScroll] = useState(true);
   const [showSpeakers, setShowSpeakers] = useState(true);
+  const [showTimestamps, setShowTimestamps] = useState(true);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -138,7 +139,12 @@ export const CumulativeTranscriptModal = ({
           
           {/* Stats Bar */}
           <div className="flex items-center gap-4 mt-3">
-            <Badge variant="secondary" className="flex items-center gap-1">
+            <Badge 
+              variant="secondary" 
+              className="flex items-center gap-1 cursor-pointer hover:bg-accent transition-colors"
+              onClick={() => setShowTimestamps(!showTimestamps)}
+              title={showTimestamps ? "Hide timestamps" : "Show timestamps"}
+            >
               <Clock className="h-3 w-3" />
               {formatDuration(duration)}
             </Badge>
@@ -212,17 +218,19 @@ export const CumulativeTranscriptModal = ({
                   >
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        {showSpeakers && (
-                          <Badge 
-                            variant={section.isFinal ? "default" : "secondary"} 
-                            className="text-xs"
-                          >
-                            {section.speaker}
-                          </Badge>
-                        )}
-                        <span className="text-xs text-muted-foreground">
-                          {formatTimestamp(section.timestamp)}
-                        </span>
+                         {showSpeakers && (
+                           <Badge 
+                             variant={section.isFinal ? "default" : "secondary"} 
+                             className="text-xs"
+                           >
+                             {section.speaker}
+                           </Badge>
+                         )}
+                         {showTimestamps && (
+                           <span className="text-xs text-muted-foreground">
+                             {formatTimestamp(section.timestamp)}
+                           </span>
+                         )}
                         {!section.isFinal && (
                           <Badge variant="outline" className="text-xs">
                             Processing...
