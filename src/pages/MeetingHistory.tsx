@@ -833,6 +833,19 @@ const MeetingHistory = () => {
     }
   }, [user]);
 
+  // Additional effect to ensure meetings are fetched when component mounts
+  // This handles cases where user state might be available but the effect didn't trigger
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (user && meetings.length === 0 && !loading) {
+        console.log('🔄 Backup fetchMeetings triggered - ensuring data is loaded');
+        fetchMeetings();
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   // Handle auto-opening transcript dialog when navigated from MeetingRecorder
   useEffect(() => {
     const state = location.state as any;
