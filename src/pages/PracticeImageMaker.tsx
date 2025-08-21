@@ -252,6 +252,9 @@ const PracticeImageMaker = () => {
     try {
       const finalPrompt = assemblePrompt();
       
+      // Add instruction for exact text usage to prevent lorem ipsum
+      const enhancedPrompt = finalPrompt + "\n\nIMPORTANT: Insert the following text exactly as written, in clear large lettering, using the chosen style. Do not change or invent words.";
+      
       // Determine size for API
       let apiSize = "1024x1024";
       if (selectedSize.includes("A4")) {
@@ -272,7 +275,7 @@ const PracticeImageMaker = () => {
 
       // Create FormData for the advanced-image-generation function
       const formData = new FormData();
-      formData.append('prompt', finalPrompt);
+      formData.append('prompt', enhancedPrompt);
       formData.append('size', validApiSize);
       formData.append('quality', 'high');
       formData.append('mode', 'generation');
