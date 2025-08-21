@@ -2788,7 +2788,7 @@ export const MeetingRecorder = ({
 
       // Step 3: Complete
       setSavingSteps({ saving: true, securing: true, complete: true });
-      await new Promise(resolve => setTimeout(resolve, 800));
+      await new Promise(resolve => setTimeout(resolve, 1500)); // Increased from 800ms to 1500ms
 
       // Show final success modal with meeting details
       const formattedTitle = meetingData.title || `Meeting - ${new Date().toLocaleDateString()}`;
@@ -4210,9 +4210,9 @@ export const MeetingRecorder = ({
 
               {/* Success Stage */}
               {meetingEndModal.stage === 'success' && meetingEndModal.savedData && (
-                <>
+                <div className="animate-fade-in">
                   <div className="text-center">
-                    <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
+                    <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center mx-auto mb-4 animate-scale-in">
                       <CheckSquare className="w-6 h-6 text-primary-foreground" />
                     </div>
                     <h3 className="text-lg font-semibold text-foreground">Meeting Saved Successfully!</h3>
@@ -4247,8 +4247,8 @@ export const MeetingRecorder = ({
                   >
                      Continue
                    </button>
-                 </>
-               )}
+                  </div>
+                )}
                
                </div>
              </div>
