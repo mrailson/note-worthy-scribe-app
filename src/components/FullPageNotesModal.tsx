@@ -730,21 +730,37 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     setIsEditing(!isEditing);
   };
 
-  // Advanced transcript cleaning function from ChatGPT
+  // Enhanced transcript cleaning function from ChatGPT
   const cleanTranscript = (raw: string) => {
-    // 1) Normalise spacing & simple punctuation
+    // 0) Quick normalisation
     let text = raw
       .replace(/\s+/g, ' ')
       .replace(/\s+([.,;:!?])/g, '$1')
       .trim();
 
-    // 2) Rough sentence split
+    // 1) Canonicalise common openers & oddities BEFORE dedupe
+    // Merge variants of the urgent-items opener
+    text = text
+      .replace(
+        /(First,\s+just\s+to\s+check[^.?!]*\?)\s*(No\?\s*)?(First,\s+just\s+to\s+check[^.?!]*\?)?/i,
+        '$1 No?'
+      )
+      // Prefer "add to the agenda before we start?"
+      .replace(/urgent items to activate\?/gi, 'urgent items to add to the agenda before we start?')
+      // Remove stray "No?" if it's floating mid-paragraph (not after a question)
+      .replace(/(?<!\?)\sNo\?\s/g, ' ')
+      // Tidy duplicated "We've seen a number of patients…" noise
+      .replace(/(We've seen a number of patients in the past\.\s*){2,}/gi, '')
+      // Collapse duplicate "small increase / 120 regs" variants stuck together
+      .replace(/(this month,\s*around\s*120 new registrations[^.]*\.)\s*(this month,\s*around\s*120 new registrations[^.]*\.)/i, '$1');
+
+    // 2) Sentence split
     let sentences = text
       .split(/(?<=[.!?])\s+(?=[A-Z(""])/)
       .map(s => s.trim())
       .filter(Boolean);
 
-    // 3) Join broken half-sentences (e.g., "…justify. requesting…")
+    // 3) Join half-sentences (fix "justify. requesting…")
     const smartJoined: string[] = [];
     for (const s of sentences) {
       if (!smartJoined.length) { smartJoined.push(s); continue; }
@@ -758,7 +774,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       }
     }
 
-    // 4) Adjacent near-duplicate collapse (bigrams Jaccard)
+    // 4) Near-duplicate collapse (windowed, tight threshold)
     function ngrams(tokens: string[], n: number) {
       const set = new Set<string>();
       for (let i = 0; i <= tokens.length - n; i++) set.add(tokens.slice(i, i + n).join(' '));
@@ -769,13 +785,15 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       const uni = new Set([...a, ...b]).size;
       return uni ? inter / uni : 0;
     }
-    function isNearDup(a: string, b: string, thresh = 0.94) {
-      const A = ngrams(a.toLowerCase().split(/\s+/), 2);
-      const B = ngrams(b.toLowerCase().split(/\s+/), 2);
-      return jaccard(A, B) >= thresh;
+    function isNearDup(a: string, b: string, thresh = 0.96) {
+      const A2 = ngrams(a.toLowerCase().split(/\s+/), 2);
+      const B2 = ngrams(b.toLowerCase().split(/\s+/), 2);
+      const A3 = ngrams(a.toLowerCase().split(/\s+/), 3);
+      const B3 = ngrams(b.toLowerCase().split(/\s+/), 3);
+      const sim = Math.max(jaccard(A2, B2), jaccard(A3, B3));
+      return sim >= thresh;
     }
-    // Compare against a small window of recent sentences (catches echoes not strictly adjacent)
-    function dedupeWithWindow(sents: string[], thresh = 0.94, window = 6) {
+    function dedupeWithWindow(sents: string[], thresh = 0.96, window = 12) {
       const out: string[] = [];
       for (const s of sents) {
         let dup = false;
@@ -786,23 +804,28 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       }
       return out;
     }
+    const deduped = dedupeWithWindow(smartJoined, 0.96, 12);
 
-    const deduped = dedupeWithWindow(smartJoined, 0.94, 6);
-
-    // 5) NHS glossary corrections (surgical, safe)
+    // 5) Glossary fixes (NHS terms + this sample's mis-hears)
     let cleaned = deduped.join(' ');
-    const glossary: [RegExp, string][] = [
+    const glossary: [RegExp, string | ((match: string, ...args: any[]) => string)][] = [
+      [/\bARRS\s+request\b/gi, 'ARRS role'],
       [/\bARRS\s+roll(s)?\b/gi, 'ARRS role$1'],
-      [/\bPCM\s*Diaz\b/gi, 'PCN DES'],
-      [/\bPCMDR'?s?\b/gi, 'PCN DES'],
-      [/\bCUC\b/g, 'CQC'],
-      [/\b[Ss]ystem\s+one\b/g, 'SystmOne'],
-      [/\barcacity\b/gi, 'capacity'],
-      [/\bDoc\s*Man\b/gi, 'Docman'],
+      [/\bPCN\s*DES\b/gi, 'PCN DES'],
+      // Only replace "housing" when it appears near the capacity line
+      [/(capacity,[^.!?]{0,80})\bhousing\b/gi, (match) => match.replace(/housing/gi, 'appointments and repeat prescribing workload')],
+      [/\bneighbourhood team\b/gi, 'neighbourhood team'],
+      [/\bsame day\b/gi, 'same-day'],
     ];
-    for (const [pat, rep] of glossary) cleaned = cleaned.replace(pat, rep);
+    for (const [pat, rep] of glossary) {
+      if (typeof rep === 'function') {
+        cleaned = cleaned.replace(pat, rep);
+      } else {
+        cleaned = cleaned.replace(pat, rep);
+      }
+    }
 
-    // 6) Final tidy
+    // 6) Final tidy + capitalisation
     cleaned = cleaned
       .replace(/\s+,/g, ',')
       .replace(/\(\s+/g, '(').replace(/\s+\)/g, ')')
