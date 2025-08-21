@@ -1005,10 +1005,10 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       switch (formatType) {
         case 'remove-bullets':
           formattedContent = currentContent
-            .replace(/^[\s]*[•▪▫‣⁃]\s*/gm, '')
-            .replace(/^[\s]*[-*]\s*/gm, '')
-            .replace(/^[\s]*\d+\.\s*/gm, '');
-          toast.success("All bullet points removed");
+            .replace(/^(\s*)[•▪▫‣⁃]\s*/gm, '$1')
+            .replace(/^(\s*)[-*]\s*/gm, '$1')
+            .replace(/^(\s*)\d+\.\s*/gm, '$1');
+          toast.success("All bullet points removed (spacing preserved)");
           break;
 
         case 'bullets-to-dashes':
