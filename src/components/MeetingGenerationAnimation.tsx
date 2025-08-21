@@ -15,7 +15,7 @@ export const MeetingGenerationAnimation = ({
   isVisible, 
   onDismiss, 
   estimatedTime = 45,
-  title = "AI Meeting Notes",
+  title = "Notewell AI",
   subtitle = "Analyzing transcript and generating comprehensive meeting notes"
 }: MeetingGenerationAnimationProps) => {
   const [dots, setDots] = useState("");
