@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Upload, FileAudio, Loader2 } from 'lucide-react';
+import { Upload, FileAudio, Loader2, Zap, Settings } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { AdvancedTranscriptCleaner } from '@/utils/AdvancedTranscriptCleaner';
 
 // Deduplication class (same as before but optimized for testing)
 class TranscriptDeduplicator {
@@ -150,6 +151,13 @@ export default function TranscriptCleaner() {
   });
   const [isProcessing, setIsProcessing] = useState(false);
   const [savedPresets, setSavedPresets] = useState<any[]>([]);
+  const [useAdvancedPipeline, setUseAdvancedPipeline] = useState(false);
+  const [advancedSettings, setAdvancedSettings] = useState({
+    overlapSimilarity: 0.93,
+    duplicateSimilarity: 0.94,
+    maxLookbackSec: 3.0,
+    minOverlapWords: 6,
+  });
   
   // Audio import states
   const [audioFile, setAudioFile] = useState<File | null>(null);
@@ -217,30 +225,47 @@ export default function TranscriptCleaner() {
     setProcessingLog([]);
     setCleanedTranscript('');
     
-    const deduplicator = new TranscriptDeduplicator(settings);
-    const log: any[] = [];
-    
-    // Split transcript into sentences to simulate chunks
-    const sentences = rawTranscript.split(/[.!?]+/).filter(s => s.trim().length > 0);
-    
-    sentences.forEach((sentence, index) => {
-      const chunk = sentence.trim() + '.';
-      const result = deduplicator.processChunk(chunk);
-      
-      log.push({
-        index: index + 1,
-        original: chunk,
-        processed: result,
-        action: result ? 'ADDED' : 'DUPLICATE/FILTERED'
+    if (useAdvancedPipeline) {
+      // Use advanced pipeline
+      const advancedCleaner = new AdvancedTranscriptCleaner();
+      const result = advancedCleaner.processPlainText(rawTranscript, {
+        duplicateSimilarity: advancedSettings.duplicateSimilarity,
       });
-    });
-    
-    setTimeout(() => {
-      setProcessingLog(log);
-      setCleanedTranscript(deduplicator.getCleanTranscript());
-      setStats(deduplicator.getStats());
-      setIsProcessing(false);
-    }, 500);
+      
+      setTimeout(() => {
+        setCleanedTranscript(result.text);
+        setStats(result.stats);
+        setProcessingLog([]);
+        setIsProcessing(false);
+        toast.success('Advanced pipeline processing complete!');
+      }, 500);
+    } else {
+      // Use basic deduplicator
+      const deduplicator = new TranscriptDeduplicator(settings);
+      const log: any[] = [];
+      
+      // Split transcript into sentences to simulate chunks
+      const sentences = rawTranscript.split(/[.!?]+/).filter(s => s.trim().length > 0);
+      
+      sentences.forEach((sentence, index) => {
+        const chunk = sentence.trim() + '.';
+        const result = deduplicator.processChunk(chunk);
+        
+        log.push({
+          index: index + 1,
+          original: chunk,
+          processed: result,
+          action: result ? 'ADDED' : 'DUPLICATE/FILTERED'
+        });
+      });
+      
+      setTimeout(() => {
+        setProcessingLog(log);
+        setCleanedTranscript(deduplicator.getCleanTranscript());
+        setStats(deduplicator.getStats());
+        setIsProcessing(false);
+      }, 500);
+    }
   };
 
   const loadSampleTranscript = () => {
@@ -324,63 +349,157 @@ export default function TranscriptCleaner() {
 
       {/* Settings Panel */}
       <div className="bg-card rounded-lg shadow-lg p-6 mb-6 border">
-        <h2 className="text-xl font-semibold mb-4 text-foreground">Algorithm Settings</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1">
-              Similarity Threshold
-            </label>
-            <input
-              type="number"
-              min="0"
-              max="1"
-              step="0.1"
-              value={settings.similarityThreshold}
-              onChange={(e) => setSettings({...settings, similarityThreshold: parseFloat(e.target.value)})}
-              className="w-full px-3 py-2 border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1">
-              Buffer Size
-            </label>
-            <input
-              type="number"
-              min="1"
-              max="20"
-              value={settings.maxBufferSize}
-              onChange={(e) => setSettings({...settings, maxBufferSize: parseInt(e.target.value)})}
-              className="w-full px-3 py-2 border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1">
-              Min Chunk Length
-            </label>
-            <input
-              type="number"
-              min="5"
-              max="50"
-              value={settings.minChunkLength}
-              onChange={(e) => setSettings({...settings, minChunkLength: parseInt(e.target.value)})}
-              className="w-full px-3 py-2 border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-1">
-              Overlap Threshold
-            </label>
-            <input
-              type="number"
-              min="0"
-              max="1"
-              step="0.1"
-              value={settings.overlapThreshold}
-              onChange={(e) => setSettings({...settings, overlapThreshold: parseFloat(e.target.value)})}
-              className="w-full px-3 py-2 border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
-            />
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-semibold text-foreground">Processing Pipeline</h2>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Settings className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Basic Mode</span>
+              <input
+                type="checkbox"
+                checked={useAdvancedPipeline}
+                onChange={(e) => setUseAdvancedPipeline(e.target.checked)}
+                className="toggle-checkbox"
+              />
+              <span className="text-sm text-muted-foreground">Advanced Mode</span>
+              <Zap className="h-4 w-4 text-yellow-500" />
+            </div>
           </div>
         </div>
+
+        {!useAdvancedPipeline ? (
+          // Basic Settings
+          <>
+            <h3 className="text-lg font-medium text-foreground mb-4">Basic Algorithm Settings</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Similarity Threshold
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="1"
+                  step="0.1"
+                  value={settings.similarityThreshold}
+                  onChange={(e) => setSettings({...settings, similarityThreshold: parseFloat(e.target.value)})}
+                  className="w-full px-3 py-2 border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Buffer Size
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="20"
+                  value={settings.maxBufferSize}
+                  onChange={(e) => setSettings({...settings, maxBufferSize: parseInt(e.target.value)})}
+                  className="w-full px-3 py-2 border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Min Chunk Length
+                </label>
+                <input
+                  type="number"
+                  min="5"
+                  max="50"
+                  value={settings.minChunkLength}
+                  onChange={(e) => setSettings({...settings, minChunkLength: parseInt(e.target.value)})}
+                  className="w-full px-3 py-2 border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Overlap Threshold
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="1"
+                  step="0.1"
+                  value={settings.overlapThreshold}
+                  onChange={(e) => setSettings({...settings, overlapThreshold: parseFloat(e.target.value)})}
+                  className="w-full px-3 py-2 border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+            </div>
+          </>
+        ) : (
+          // Advanced Settings
+          <>
+            <h3 className="text-lg font-medium text-foreground mb-4">
+              <Zap className="inline h-5 w-5 mr-2 text-yellow-500" />
+              Advanced Pipeline Settings
+            </h3>
+            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mb-4">
+              <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                <strong>Battle-tested pipeline</strong> with NHS terminology correction, word-timestamp aware overlap removal, 
+                n-gram similarity, and intelligent sentence rejoining.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Overlap Similarity
+                </label>
+                <input
+                  type="number"
+                  min="0.8"
+                  max="1"
+                  step="0.01"
+                  value={advancedSettings.overlapSimilarity}
+                  onChange={(e) => setAdvancedSettings({...advancedSettings, overlapSimilarity: parseFloat(e.target.value)})}
+                  className="w-full px-3 py-2 border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Duplicate Similarity
+                </label>
+                <input
+                  type="number"
+                  min="0.8"
+                  max="1"
+                  step="0.01"
+                  value={advancedSettings.duplicateSimilarity}
+                  onChange={(e) => setAdvancedSettings({...advancedSettings, duplicateSimilarity: parseFloat(e.target.value)})}
+                  className="w-full px-3 py-2 border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Lookback (sec)
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="10"
+                  step="0.5"
+                  value={advancedSettings.maxLookbackSec}
+                  onChange={(e) => setAdvancedSettings({...advancedSettings, maxLookbackSec: parseFloat(e.target.value)})}
+                  className="w-full px-3 py-2 border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">
+                  Min Overlap Words
+                </label>
+                <input
+                  type="number"
+                  min="3"
+                  max="15"
+                  value={advancedSettings.minOverlapWords}
+                  onChange={(e) => setAdvancedSettings({...advancedSettings, minOverlapWords: parseInt(e.target.value)})}
+                  className="w-full px-3 py-2 border border-border rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+            </div>
+          </>
+        )}
         
         {/* Preset Management */}
         <div className="mt-6 pt-6 border-t border-border">
@@ -527,7 +646,14 @@ export default function TranscriptCleaner() {
               Processing...
             </>
           ) : (
-            'Clean Transcript'
+            <>
+              {useAdvancedPipeline ? (
+                <Zap className="mr-2 h-4 w-4" />
+              ) : (
+                <Settings className="mr-2 h-4 w-4" />
+              )}
+              {useAdvancedPipeline ? 'Advanced Clean' : 'Basic Clean'}
+            </>
           )}
         </Button>
       </div>
@@ -535,24 +661,70 @@ export default function TranscriptCleaner() {
       {/* Results Section */}
       {stats && (
         <div className="bg-card rounded-lg shadow-lg p-6 mb-6 border">
-          <h2 className="text-xl font-semibold mb-4 text-foreground">Processing Statistics</h2>
-          <div className="grid grid-cols-3 gap-4">
-            <div className="bg-muted p-4 rounded-lg border">
-              <div className="text-2xl font-bold text-primary">{stats.totalChunks}</div>
-              <div className="text-sm text-muted-foreground">Total Chunks</div>
+          <h2 className="text-xl font-semibold mb-4 text-foreground">
+            {useAdvancedPipeline ? 'Advanced Pipeline Statistics' : 'Basic Processing Statistics'}
+          </h2>
+          
+          {useAdvancedPipeline ? (
+            // Advanced stats
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              <div className="bg-muted p-4 rounded-lg border">
+                <div className="text-2xl font-bold text-blue-600">{stats.originalChunks || 0}</div>
+                <div className="text-sm text-muted-foreground">Original Chunks</div>
+              </div>
+              <div className="bg-muted p-4 rounded-lg border">
+                <div className="text-2xl font-bold text-orange-600">{stats.overlapTrimmed || 0}</div>
+                <div className="text-sm text-muted-foreground">Overlaps Trimmed</div>
+              </div>
+              <div className="bg-muted p-4 rounded-lg border">
+                <div className="text-2xl font-bold text-red-600">{stats.duplicatesRemoved || 0}</div>
+                <div className="text-sm text-muted-foreground">Duplicates Removed</div>
+              </div>
+              <div className="bg-muted p-4 rounded-lg border">
+                <div className="text-2xl font-bold text-purple-600">{stats.fragmentsJoined || 0}</div>
+                <div className="text-sm text-muted-foreground">Fragments Joined</div>
+              </div>
+              <div className="bg-muted p-4 rounded-lg border">
+                <div className="text-2xl font-bold text-green-600">{stats.glossaryFixes || 0}</div>
+                <div className="text-sm text-muted-foreground">NHS Fixes</div>
+              </div>
+              <div className="bg-muted p-4 rounded-lg border">
+                <div className="text-2xl font-bold text-emerald-600">{stats.finalSentences || 0}</div>
+                <div className="text-sm text-muted-foreground">Final Sentences</div>
+              </div>
             </div>
-            <div className="bg-muted p-4 rounded-lg border">
-              <div className="text-2xl font-bold text-emerald-600">{stats.processedChunks}</div>
-              <div className="text-sm text-muted-foreground">Processed Chunks</div>
+          ) : (
+            // Basic stats
+            <div className="grid grid-cols-3 gap-4">
+              <div className="bg-muted p-4 rounded-lg border">
+                <div className="text-2xl font-bold text-primary">{stats.totalChunks}</div>
+                <div className="text-sm text-muted-foreground">Total Chunks</div>
+              </div>
+              <div className="bg-muted p-4 rounded-lg border">
+                <div className="text-2xl font-bold text-emerald-600">{stats.processedChunks}</div>
+                <div className="text-sm text-muted-foreground">Processed Chunks</div>
+              </div>
+              <div className="bg-muted p-4 rounded-lg border">
+                <div className="text-2xl font-bold text-red-600">{stats.duplicatesRemoved}</div>
+                <div className="text-sm text-muted-foreground">Duplicates Removed</div>
+              </div>
             </div>
-            <div className="bg-muted p-4 rounded-lg border">
-              <div className="text-2xl font-bold text-red-600">{stats.duplicatesRemoved}</div>
-              <div className="text-sm text-muted-foreground">Duplicates Removed</div>
-            </div>
-          </div>
+          )}
+          
           <div className="mt-4 p-4 bg-muted rounded-lg border">
             <div className="text-sm text-muted-foreground">
-              Efficiency: {stats.totalChunks > 0 ? Math.round((stats.duplicatesRemoved / stats.totalChunks) * 100) : 0}% duplicates removed
+              {useAdvancedPipeline ? (
+                <>
+                  Advanced Pipeline: Word-timestamp aware overlap removal, n-gram similarity, NHS terminology fixes, and smart sentence joining.
+                  {stats.originalChunks > 0 && (
+                    <> Efficiency: {Math.round(((stats.duplicatesRemoved + stats.overlapTrimmed) / stats.originalChunks) * 100)}% reduction.</>
+                  )}
+                </>
+              ) : (
+                <>
+                  Basic Algorithm: Efficiency: {stats.totalChunks > 0 ? Math.round((stats.duplicatesRemoved / stats.totalChunks) * 100) : 0}% duplicates removed
+                </>
+              )}
             </div>
           </div>
         </div>
