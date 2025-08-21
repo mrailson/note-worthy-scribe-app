@@ -199,27 +199,35 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
             {user && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button 
+                  <Button
                     variant="secondary"
                     size="sm"
                     className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs sm:text-sm px-2 sm:px-4"
                   >
-                    <Settings className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
-                    <span className="hidden sm:inline">Settings</span>
+                    <User className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">{user?.email?.split('@')[0] || 'Profile'}</span>
                     <ChevronDown className="h-3 w-3 ml-1" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent 
-                  align="end" 
-                  className="bg-background border border-border shadow-lg w-48"
-                >
-                  <DropdownMenuItem 
-                    onClick={() => navigate('/settings')}
-                    className="cursor-pointer py-3"
-                  >
-                    <Settings className="h-4 w-4 mr-2" />
-                    User Settings
-                  </DropdownMenuItem>
+                 <DropdownMenuContent 
+                   align="end" 
+                   className="bg-background border border-border shadow-lg w-48 z-50"
+                 >
+                   <DropdownMenuItem 
+                     onClick={() => setShowProfileModal(true)}
+                     className="cursor-pointer py-3"
+                   >
+                     <User className="h-4 w-4 mr-2" />
+                     My Profile
+                   </DropdownMenuItem>
+                   <DropdownMenuSeparator />
+                   <DropdownMenuItem 
+                     onClick={() => navigate('/settings')}
+                     className="cursor-pointer py-3"
+                   >
+                     <Settings className="h-4 w-4 mr-2" />
+                     User Settings
+                   </DropdownMenuItem>
                    {/* Practice Manager Menu */}
                    {hasModuleAccess('practice_manager_access') && (
                      <DropdownMenuItem 
@@ -238,7 +246,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                          <Shield className="h-4 w-4 mr-2" />
                          System Admin
                        </DropdownMenuSubTrigger>
-                       <DropdownMenuSubContent className="bg-background border border-border shadow-lg">
+                       <DropdownMenuSubContent className="bg-background border border-border shadow-lg z-50">
                          <DropdownMenuItem 
                            onClick={() => navigate('/admin')}
                            className="cursor-pointer py-3"
@@ -256,43 +264,15 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                        </DropdownMenuSubContent>
                      </DropdownMenuSub>
                    )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-            
-            {user && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs sm:text-sm px-2 sm:px-4"
-                  >
-                    <User className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
-                    <span className="hidden sm:inline">{user?.email?.split('@')[0] || 'Profile'}</span>
-                    <ChevronDown className="h-3 w-3 ml-1" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent 
-                  align="end" 
-                  className="bg-background border border-border shadow-lg w-48"
-                >
-                  <DropdownMenuItem 
-                    onClick={() => setShowProfileModal(true)}
-                    className="cursor-pointer py-3"
-                  >
-                    <User className="h-4 w-4 mr-2" />
-                    My Profile
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem 
-                    onClick={signOut}
-                    className="cursor-pointer py-3 text-destructive focus:text-destructive"
-                  >
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Logout
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
+                   <DropdownMenuSeparator />
+                   <DropdownMenuItem 
+                     onClick={signOut}
+                     className="cursor-pointer py-3 text-destructive focus:text-destructive"
+                   >
+                     <LogOut className="h-4 w-4 mr-2" />
+                     Logout
+                   </DropdownMenuItem>
+                 </DropdownMenuContent>
               </DropdownMenu>
             )}
           </div>
@@ -424,53 +404,53 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                     {/* Settings and Admin */}
                     {user && (
                       <>
-                        <DrawerClose asChild>
-                          <Button variant="ghost" className="justify-start" onClick={() => navigate('/settings')}>
-                            <Settings className="h-4 w-4 mr-2" />
-                            User Settings
-                          </Button>
-                        </DrawerClose>
-                        
-                        {/* Practice Manager Menu - Mobile */}
-                        {hasModuleAccess('practice_manager_access') && (
+                         {/* Practice Manager Menu - Mobile */}
+                         {hasModuleAccess('practice_manager_access') && (
+                           <DrawerClose asChild>
+                             <Button variant="ghost" className="justify-start" onClick={() => navigate('/practice-admin')}>
+                               <Users className="h-4 w-4 mr-2" />
+                               Practice Management
+                             </Button>
+                           </DrawerClose>
+                         )}
+                         
+                         {isSystemAdmin && (
+                           <>
+                             <DrawerClose asChild>
+                               <Button variant="ghost" className="justify-start" onClick={() => navigate('/admin')}>
+                                 <Wrench className="h-4 w-4 mr-2" />
+                                 Admin Dashboard
+                               </Button>
+                             </DrawerClose>
+                             <DrawerClose asChild>
+                               <Button variant="ghost" className="justify-start" onClick={() => navigate('/compliance-docs')}>
+                                 <BookOpen className="h-4 w-4 mr-2" />
+                                 Security Documentation
+                               </Button>
+                             </DrawerClose>
+                           </>
+                          )}
+
                           <DrawerClose asChild>
-                            <Button variant="ghost" className="justify-start" onClick={() => navigate('/practice-admin')}>
-                              <Users className="h-4 w-4 mr-2" />
-                              Practice Management
+                            <Button variant="ghost" className="justify-start" onClick={() => setShowProfileModal(true)}>
+                              <User className="h-4 w-4 mr-2" />
+                              My Profile
                             </Button>
                           </DrawerClose>
-                        )}
-                        
-                        {isSystemAdmin && (
-                          <>
-                            <DrawerClose asChild>
-                              <Button variant="ghost" className="justify-start" onClick={() => navigate('/admin')}>
-                                <Wrench className="h-4 w-4 mr-2" />
-                                Admin Dashboard
-                              </Button>
-                            </DrawerClose>
-                            <DrawerClose asChild>
-                              <Button variant="ghost" className="justify-start" onClick={() => navigate('/compliance-docs')}>
-                                <BookOpen className="h-4 w-4 mr-2" />
-                                Security Documentation
-                              </Button>
-                            </DrawerClose>
-                          </>
-                         )}
 
-                         <DrawerClose asChild>
-                           <Button variant="ghost" className="justify-start" onClick={() => setShowProfileModal(true)}>
-                             <User className="h-4 w-4 mr-2" />
-                             My Profile
+                          <DrawerClose asChild>
+                            <Button variant="ghost" className="justify-start" onClick={() => navigate('/settings')}>
+                              <Settings className="h-4 w-4 mr-2" />
+                              User Settings
+                            </Button>
+                          </DrawerClose>
+
+                          <DrawerClose asChild>
+                           <Button variant="destructive" className="justify-start" onClick={signOut}>
+                             <LogOut className="h-4 w-4 mr-2" />
+                             Logout
                            </Button>
                          </DrawerClose>
-
-                         <DrawerClose asChild>
-                          <Button variant="destructive" className="justify-start" onClick={signOut}>
-                            <LogOut className="h-4 w-4 mr-2" />
-                            Logout
-                          </Button>
-                        </DrawerClose>
                       </>
                     )}
                   </nav>
