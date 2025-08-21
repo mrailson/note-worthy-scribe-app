@@ -236,28 +236,41 @@ export const LiveTranscript = ({
       }
       
       console.log('🔄 Processing raw transcript update (length:', processedTranscript.length, ')');
+      console.log('🔄 Current cleanedTranscript length:', cleanedTranscript.length);
+      console.log('🔄 New transcript chunk:', processedTranscript.substring(0, 100) + '...');
       
-      // Always keep the full transcript history - no clearing
-      // Update both live transcript AND cleaned transcript to ensure accumulation
+      // Always accumulate transcript history - NEVER overwrite
       if (isAutoCleaningEnabled) {
         // Use streaming cleaner with confidence filtering for live display
         const cleanedNew = transcriptCleaner.cleanStreamingTranscript("", processedTranscript, confidence);
-        setLiveTranscriptText(cleanedNew); // Show cleaned version for live display
-        console.log('✨ Updated live transcript with cleaned version (length:', cleanedNew.length, ')');
+        setLiveTranscriptText(prev => {
+          const accumulated = prev + (prev ? ' ' : '') + cleanedNew;
+          console.log('✨ Accumulated live transcript (length:', accumulated.length, ')');
+          return accumulated;
+        });
         
-        // Always update cleanedTranscript to ensure AI Enhanced section shows full content
-        setCleanedTranscript(cleanedNew);
-        console.log('📋 Updated AI enhanced transcript from live data (length:', cleanedNew.length, ')');
+        // Always accumulate cleanedTranscript to ensure AI Enhanced section shows full content
+        setCleanedTranscript(prev => {
+          const accumulated = prev + (prev ? ' ' : '') + cleanedNew;
+          console.log('📋 Accumulated AI enhanced transcript (length:', accumulated.length, ')');
+          return accumulated;
+        });
       } else {
-        setLiveTranscriptText(processedTranscript); // Show processed version
-        console.log('📝 Updated live transcript with raw version (length:', processedTranscript.length, ')');
+        setLiveTranscriptText(prev => {
+          const accumulated = prev + (prev ? ' ' : '') + processedTranscript;
+          console.log('📝 Accumulated live transcript raw (length:', accumulated.length, ')');
+          return accumulated;
+        });
         
-        // Always update cleanedTranscript to ensure AI Enhanced section shows full content
-        setCleanedTranscript(processedTranscript);
-        console.log('📋 Updated AI enhanced transcript from raw data (length:', processedTranscript.length, ')');
+        // Always accumulate cleanedTranscript to ensure AI Enhanced section shows full content
+        setCleanedTranscript(prev => {
+          const accumulated = prev + (prev ? ' ' : '') + processedTranscript;
+          console.log('📋 Accumulated AI enhanced transcript raw (length:', accumulated.length, ')');
+          return accumulated;
+        });
       }
     }
-    // NEVER clear liveTranscriptText - always preserve transcript history
+    // NEVER clear transcript states - always preserve transcript history
   }, [transcript, isAutoCleaningEnabled, isMedicalCorrectionsLoaded]);
 
   // Handle text selection for corrections
