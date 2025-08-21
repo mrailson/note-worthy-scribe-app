@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import { AdvancedTranscriptCleaner } from "@/utils/AdvancedTranscriptCleaner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -91,11 +90,12 @@ export const LiveNotesTab = ({ meetingData }: LiveNotesTabProps) => {
 
     const raw = meetingData.transcript;
     
-    // Use advanced transcript cleaning
-    const advancedCleaner = new AdvancedTranscriptCleaner();
-    const cleaned = advancedCleaner.processPlainText(raw, {
-      duplicateSimilarity: 0.94
-    }).text;
+    // Simulate cleaned transcript (basic corrections)
+    const cleaned = raw
+      .replace(/\b(um|uh|er)\b/gi, '')
+      .replace(/\s+/g, ' ')
+      .replace(/([.!?])\s*([a-z])/g, (match, punct, letter) => `${punct} ${letter.toUpperCase()}`)
+      .trim();
 
     // Simulate AI-enhanced version
     const processed = `Meeting Discussion Summary:
