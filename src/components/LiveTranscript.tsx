@@ -20,6 +20,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { 
   MessageSquare, 
   ChevronDown, 
+  ChevronUp,
   Clock,
   Users,
   Edit3,
@@ -40,6 +41,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx";
 import { saveAs } from "file-saver";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 interface Speaker {
   id: string;
@@ -95,6 +97,9 @@ export const LiveTranscript = ({
   
   // NEW: Growing raw transcript that accumulates all segments
   const [growingRawTranscript, setGrowingRawTranscript] = useState<string>("");
+  
+  // Modal state for Latest Transcription
+  const [isLatestTranscriptModalOpen, setIsLatestTranscriptModalOpen] = useState(false);
   
   // Meeting settings state
   const { user } = useAuth();
@@ -430,6 +435,17 @@ export const LiveTranscript = ({
     }
   }, [cleanedTranscript]);
 
+  // Copy raw transcript function
+  const handleCopyRawTranscript = async () => {
+    try {
+      const textToCopy = transcript || 'No transcript available';
+      await navigator.clipboard.writeText(textToCopy);
+      toast({ title: "Copied", description: "Raw transcript copied to clipboard." });
+    } catch (error) {
+      toast({ title: "Copy failed", description: "Could not copy to clipboard.", variant: "destructive" });
+    }
+  };
+
   const buildCleanedHtml = () => {
     const text = getFormattedCleanedText();
     const paras = text
@@ -697,31 +713,36 @@ export const LiveTranscript = ({
                 </div>
               )}
 
-             {/* Latest Transcript Section */}
-             <div className="space-y-4">
+              {/* Latest Transcript Section */}
+              <div className="space-y-4">
                 <div className="min-h-[120px] p-4 bg-accent/20 rounded-lg border">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                    <span className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                      Latest Transcription
-                    </span>
-                    <Badge variant="outline" className="text-xs">Raw</Badge>
+                  <div className="flex items-center justify-between gap-2 mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                      <span className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                        Latest Transcription
+                      </span>
+                      <Badge variant="outline" className="text-xs">Raw</Badge>
+                    </div>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => setIsLatestTranscriptModalOpen(true)}
+                      className="text-xs"
+                    >
+                      <Copy className="h-3 w-3 mr-1" />
+                      View Full
+                    </Button>
                   </div>
                   
-                  <div 
-                    ref={latestTranscriptRef}
-                    className="text-sm leading-relaxed whitespace-pre-wrap min-h-[60px] max-h-96 overflow-y-auto p-3 bg-background/50 rounded-md border scroll-smooth scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40"
-                    style={{ 
-                      transition: 'all 0.2s ease-in-out',
-                      wordWrap: 'break-word',
-                      overflowWrap: 'break-word',
-                      scrollbarWidth: 'thin'
-                    }}
-                  >
+                  <div className="text-sm leading-relaxed whitespace-pre-wrap min-h-[60px] max-h-20 overflow-hidden p-3 bg-background/50 rounded-md border relative">
                     {transcript ? (
-                      <span className="text-foreground font-mono">
-                        {transcript}
-                      </span>
+                      <>
+                        <span className="text-foreground font-mono">
+                          {transcript.slice(-200)}...
+                        </span>
+                        <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-background/80 to-transparent pointer-events-none" />
+                      </>
                     ) : (
                       <span className="text-muted-foreground italic">
                         Listening for speech... raw transcription will appear here
@@ -916,6 +937,80 @@ export const LiveTranscript = ({
           </CardContent>
         </Card>
       )}
+
+      {/* Latest Transcription Modal */}
+      <Dialog open={isLatestTranscriptModalOpen} onOpenChange={setIsLatestTranscriptModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+              Latest Transcription (Raw)
+              <Badge variant="outline" className="text-xs">Live</Badge>
+            </DialogTitle>
+            <DialogDescription>
+              Full meeting transcript with all historic content - scroll to see everything from the beginning
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex gap-2 mb-4">
+            <Button size="sm" variant="outline" onClick={handleCopyRawTranscript}>
+              <Copy className="h-4 w-4 mr-2" />
+              Copy All Text
+            </Button>
+            <Button 
+              size="sm" 
+              variant="outline"
+              onClick={() => {
+                if (latestTranscriptRef.current) {
+                  latestTranscriptRef.current.scrollTop = latestTranscriptRef.current.scrollHeight;
+                }
+              }}
+            >
+              <ChevronDown className="h-4 w-4 mr-2" />
+              Jump to Latest
+            </Button>
+            <Button 
+              size="sm" 
+              variant="outline"
+              onClick={() => {
+                if (latestTranscriptRef.current) {
+                  latestTranscriptRef.current.scrollTop = 0;
+                }
+              }}
+            >
+              <ChevronUp className="h-4 w-4 mr-2" />
+              Jump to Start
+            </Button>
+          </div>
+
+          <div 
+            ref={latestTranscriptRef}
+            className="h-96 overflow-y-auto p-4 bg-background/50 rounded-md border scroll-smooth font-mono text-sm leading-relaxed whitespace-pre-wrap select-text"
+            style={{ 
+              scrollbarWidth: 'thin',
+              wordWrap: 'break-word',
+              overflowWrap: 'break-word'
+            }}
+          >
+            {transcript ? (
+              <div className="text-foreground">
+                {transcript}
+              </div>
+            ) : (
+              <div className="text-muted-foreground italic text-center py-8">
+                No transcript available yet. Start recording to see content here.
+              </div>
+            )}
+          </div>
+          
+          {confidence && (
+            <div className="mt-2 flex items-center gap-4 text-xs text-muted-foreground">
+              <span>Confidence: {Math.round(confidence * 100)}%</span>
+              <span>Length: {transcript?.length || 0} characters</span>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
