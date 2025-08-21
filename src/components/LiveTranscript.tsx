@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { transcriptCleaner } from "@/utils/TranscriptCleaner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { medicalTermCorrector } from "@/utils/MedicalTermCorrector";
@@ -436,18 +437,30 @@ export const LiveTranscript = ({
                      Meeting Settings
                    </Button>
                    
-                   <MedicalTermCorrectionDialog
-                     selectedText={selectedText}
-                     onCorrectionAdded={async () => {
-                       // Refresh corrections when new ones are added
-                       const { data: user } = await supabase.auth.getUser();
-                       if (user.user) {
-                         await medicalTermCorrector.refreshCorrections(user.user.id);
-                       }
-                       setIsMedicalCorrectionsLoaded(true);
-                     }}
-                     buttonText="Update Medical Terms, Acronyms & Missheard Names"
-                   />
+                    <MedicalTermCorrectionDialog
+                      selectedText={selectedText}
+                      onCorrectionAdded={async () => {
+                        // Refresh corrections when new ones are added
+                        const { data: user } = await supabase.auth.getUser();
+                        if (user.user) {
+                          await medicalTermCorrector.refreshCorrections(user.user.id);
+                        }
+                        setIsMedicalCorrectionsLoaded(true);
+                      }}
+                      buttonText="Update Medical Terms, Acronyms & Missheard Names"
+                    />
+                    
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        id="timestamps-toggle"
+                        checked={showTimestamps}
+                        onCheckedChange={onTimestampsToggle}
+                      />
+                      <Label htmlFor="timestamps-toggle" className="flex items-center gap-1 text-sm">
+                        <Clock className="h-3 w-3" />
+                        Show Timestamps
+                      </Label>
+                    </div>
                  </div>
                  
                  {transcript && speakers.length > 0 && (

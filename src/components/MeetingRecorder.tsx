@@ -176,6 +176,13 @@ export const MeetingRecorder = ({
     meetingFormat: "teams"
   });
 
+  // Timestamp toggle state
+  const [showTimestamps, setShowTimestamps] = useState(true);
+
+  const handleTimestampsToggle = (show: boolean) => {
+    setShowTimestamps(show);
+  };
+
 
   // Reset meeting function
   const resetMeeting = async () => {
@@ -3820,8 +3827,8 @@ export const MeetingRecorder = ({
               <LiveTranscript
                 transcript={realtimeTranscripts.length > 0 ? realtimeTranscripts[realtimeTranscripts.length - 1]?.text || "" : ""}
                 confidence={realtimeTranscripts.length > 0 ? realtimeTranscripts[realtimeTranscripts.length - 1]?.confidence : undefined}
-                showTimestamps={true}
-                onTimestampsToggle={() => {}}
+                showTimestamps={showTimestamps}
+                onTimestampsToggle={handleTimestampsToggle}
                 attendees={""}
                 meetingSettings={{
                   practiceId: (meetingSettings as any)?.practiceId || "",
