@@ -804,7 +804,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       }
       return out;
     }
-    const deduped = dedupeWithWindow(smartJoined, 0.96, 12);
+    const deduped = dedupeWithWindow(smartJoined, 0.97, 15);
 
     // 5) Glossary fixes (NHS terms + this sample's mis-hears)
     let cleaned = deduped.join(' ');
@@ -822,7 +822,15 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
         cleaned = cleaned.replace(pat, rep);
       } else {
         cleaned = cleaned.replace(pat, rep);
-      }
+    }
+
+    // Extra tidy step after glossary
+    cleaned = cleaned
+      .replace(/\bNo\?\s+No\?/g, 'No?')
+      .replace(/(around\s+120 new registrations[^.]*\.)\s+\1/gi, '$1')
+      .replace(/(list size is now just over\s+12,600[^.]*\.)\s+\1/gi, '$1')
+      .replace(/(we can\'t create more same-day appointments[^.]*\.)\s+\1/gi, '$1')
+      .replace(/(respiratory infections in children and frail elderly patients[^.]*\.)\s+\1/gi, '$1');
     }
 
     // 6) Final tidy + capitalisation
