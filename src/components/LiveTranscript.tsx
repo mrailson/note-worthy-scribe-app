@@ -735,11 +735,11 @@ export const LiveTranscript = ({
                     </Button>
                   </div>
                   
-                  <div className="text-sm leading-relaxed whitespace-pre-wrap min-h-[60px] max-h-20 overflow-hidden p-3 bg-background/50 rounded-md border relative">
+                  <div className="text-sm leading-relaxed whitespace-pre-wrap min-h-[60px] h-[2500px] overflow-hidden p-3 bg-background/50 rounded-md border relative">
                     {transcript ? (
                       <>
                         <span className="text-foreground font-mono">
-                          {transcript.slice(-200)}...
+                          {transcript}
                         </span>
                         <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-background/80 to-transparent pointer-events-none" />
                       </>
