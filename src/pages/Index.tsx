@@ -8,7 +8,6 @@ import { LiveTranscript } from "@/components/LiveTranscript";
 import { MeetingSummary } from "@/components/MeetingSummary";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { TranscriptRecovery } from "@/components/TranscriptRecovery";
 
 import { toast } from "sonner";
 import { ImportedTranscript } from "@/utils/FileImporter";
@@ -208,14 +207,6 @@ const Index = () => {
   return (
     <div className="min-h-[100dvh] bg-gradient-background">
       <Header onNewMeeting={handleNewMeeting} />
-      
-      {/* Auto-recovery for the specific meeting */}
-      <TranscriptRecovery 
-        meetingId="f0d0d35b-85a1-4e59-9186-8c33e79d8b24" 
-        onRecoveryComplete={() => {
-          toast.success('Meeting transcript data recovered!');
-        }} 
-      />
       
       <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 lg:py-8 space-y-4 sm:space-y-6 max-w-4xl">
         <>

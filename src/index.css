@@ -305,25 +305,4 @@ tbody tr:hover {
     -webkit-overflow-scrolling: touch;
     transform: translateZ(0); /* Force GPU acceleration for smooth scrolling */
   }
-
-  /* Custom toggle checkbox styling */
-  .toggle-checkbox {
-    @apply relative inline-block w-12 h-6 transition-colors duration-200 ease-in-out bg-gray-300 rounded-full cursor-pointer;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-  }
-
-  .toggle-checkbox:checked {
-    @apply bg-yellow-500;
-  }
-
-  .toggle-checkbox::before {
-    @apply absolute top-0.5 left-0.5 w-5 h-5 transition-transform duration-200 ease-in-out bg-white rounded-full shadow-md;
-    content: '';
-  }
-
-  .toggle-checkbox:checked::before {
-    @apply transform translate-x-6;
-  }
 }

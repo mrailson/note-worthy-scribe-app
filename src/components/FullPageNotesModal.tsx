@@ -11,7 +11,6 @@ import EnhancedFindReplacePanel from "@/components/EnhancedFindReplacePanel";
 import { SpeechToText } from "@/components/SpeechToText";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { recoverMeetingTranscript } from "@/utils/recoverTranscript";
 import { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel } from 'docx';
 import { saveAs } from 'file-saver';
 import jsPDF from 'jspdf';
@@ -73,8 +72,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [activeTab, setActiveTab] = useState("notes");
   const [transcript, setTranscript] = useState("");
-  const [rawTranscript, setRawTranscript] = useState("");
-  const [transcriptView, setTranscriptView] = useState<'clean' | 'raw'>('clean');
   const [isLoadingTranscript, setIsLoadingTranscript] = useState(false);
   const [editingContent, setEditingContent] = useState(""); // Clean content for editing
   const [editingTab, setEditingTab] = useState<string>(""); // Track which tab is being edited
@@ -442,29 +439,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     try {
       console.log('🔍 Fetching transcript for meeting:', meeting.id);
       
-      // First, try to fetch raw transcript from meeting_transcription_chunks
-      const { data: rawData, error: rawError } = await supabase
-        .from('meeting_transcription_chunks')
-        .select('transcription_text')
-        .eq('meeting_id', meeting.id)
-        .order('chunk_number', { ascending: true });
-
-      let rawTranscriptText = '';
-      if (rawError) {
-        console.error('Raw transcript error:', rawError);
-      } else if (rawData && rawData.length > 0) {
-        // Concatenate all raw transcript segments
-        rawTranscriptText = rawData.map(item => item.transcription_text).join(' ');
-        setRawTranscript(rawTranscriptText);
-        console.log('🔍 Raw transcript loaded with', rawData.length, 'segments');
-      } else {
-        console.log('🔍 No raw transcript data found in chunks');
-        setRawTranscript('');
-      }
-
-      // Then fetch or generate clean transcript
-      let cleanTranscriptText = '';
-      
       // Use secure RPC function that validates user access
       const { data: rpcRows, error: rpcError } = await supabase.rpc('get_meeting_full_transcript', { 
         p_meeting_id: meeting.id 
@@ -472,88 +446,26 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       
       if (rpcError) {
         console.error('RPC error:', rpcError);
-      } else if (Array.isArray(rpcRows) && rpcRows.length > 0) {
+        throw rpcError;
+      }
+      
+      if (Array.isArray(rpcRows) && rpcRows.length > 0) {
         const row = rpcRows[0] as { source: string; transcript: string; item_count: number };
         if (row?.transcript && row.transcript.trim().length > 0) {
-          console.log('🔍 Clean transcript loaded from source:', row.source, 'Items:', row.item_count);
-          cleanTranscriptText = row.transcript;
+          console.log('🔍 Transcript loaded from source:', row.source, 'Items:', row.item_count);
+          setTranscript(row.transcript);
+        } else {
+          console.log('🔍 No transcript content found');
+          setTranscript('');
         }
+      } else {
+        console.log('🔍 No transcript data returned');
+        setTranscript('');
       }
-
-      // If no clean transcript but we have raw transcript, create and save clean transcript
-      if (!cleanTranscriptText && rawTranscriptText) {
-        console.log('🔍 No clean transcript found, creating from raw transcript');
-        try {
-          const { data: cleanData, error: cleanError } = await supabase.functions.invoke('clean-transcript', {
-            body: {
-              rawTranscript: rawTranscriptText,
-              meetingTitle: meeting.title
-            }
-          });
-
-          if (cleanError) {
-            console.error('Error cleaning transcript:', cleanError);
-            cleanTranscriptText = rawTranscriptText; // Fallback to raw
-          } else if (cleanData?.cleanedTranscript) {
-            cleanTranscriptText = cleanData.cleanedTranscript;
-            
-            // Save cleaned transcript to database
-            const { error: saveError } = await supabase
-              .from('meeting_transcripts')
-              .upsert({
-                meeting_id: meeting.id,
-                content: cleanTranscriptText
-              });
-
-            if (saveError) {
-              console.error('Error saving clean transcript:', saveError);
-            } else {
-              console.log('🔍 Clean transcript saved to database');
-            }
-          }
-        } catch (cleanError) {
-          console.error('Error in clean transcript process:', cleanError);
-          cleanTranscriptText = rawTranscriptText; // Fallback to raw
-        }
-      }
-
-      // If no raw transcript chunks but we have a clean transcript, try recovery
-      if (!rawTranscriptText && cleanTranscriptText) {
-        console.log('🔄 No raw transcript chunks found, attempting recovery...');
-        try {
-          const recoveryResult = await recoverMeetingTranscript(meeting.id);
-          if (recoveryResult?.success && recoveryResult?.chunksCreated > 0) {
-            console.log('✅ Recovery successful, refetching raw transcript');
-            // Refetch the raw transcript after recovery
-            const { data: recoveredRawData, error: recoveredRawError } = await supabase
-              .from('meeting_transcription_chunks')
-              .select('transcription_text')
-              .eq('meeting_id', meeting.id)
-              .order('chunk_number', { ascending: true });
-
-            if (!recoveredRawError && recoveredRawData && recoveredRawData.length > 0) {
-              rawTranscriptText = recoveredRawData.map(item => item.transcription_text).join(' ');
-              setRawTranscript(rawTranscriptText);
-              console.log('🔍 Raw transcript recovered with', recoveredRawData.length, 'segments');
-              toast.success('Transcript data recovered successfully!');
-            }
-          }
-        } catch (recoveryError) {
-          console.error('Recovery failed:', recoveryError);
-        }
-      }
-
-      setTranscript(cleanTranscriptText);
-      
-      if (!rawTranscriptText && !cleanTranscriptText) {
-        console.log('🔍 No transcript data available for this meeting');
-      }
-
     } catch (error) {
       console.error('🚨 CRITICAL: Error fetching transcript:', error);
       toast.error('Failed to load transcript');
       setTranscript('');
-      setRawTranscript('');
     } finally {
       setIsLoadingTranscript(false);
     }
@@ -561,33 +473,30 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
 
   // Search functionality for transcript
   const performSearch = React.useCallback(() => {
-    const currentTranscript = transcriptView === 'raw' ? rawTranscript : transcript;
-    
-    if (!searchTerm || !currentTranscript) {
-      setHighlightedTranscript(currentTranscript);
+    if (!searchTerm || !transcript) {
+      setHighlightedTranscript(transcript);
       setTotalMatches(0);
       setCurrentMatchIndex(0);
       return;
     }
 
     const regex = new RegExp(searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-    const matches = [...currentTranscript.matchAll(regex)];
+    const matches = [...transcript.matchAll(regex)];
     setTotalMatches(matches.length);
     
     if (matches.length === 0) {
-      setHighlightedTranscript(currentTranscript);
+      setHighlightedTranscript(transcript);
       setCurrentMatchIndex(0);
       return;
     }
 
-    let highlighted = currentTranscript;
+    let highlighted = transcript;
     let offset = 0;
     
     matches.forEach((match, index) => {
       const start = match.index! + offset;
       const end = start + match[0].length;
       const isCurrentMatch = index === currentMatchIndex;
-      
       
       const replacement = isCurrentMatch 
         ? `<mark style="background-color: #fbbf24; padding: 2px 4px; border-radius: 2px; color: #000; font-weight: bold;">${match[0]}</mark>`
@@ -598,7 +507,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     });
     
     setHighlightedTranscript(highlighted);
-  }, [searchTerm, transcript, rawTranscript, transcriptView, currentMatchIndex]);
+  }, [searchTerm, transcript, currentMatchIndex]);
 
   React.useEffect(() => {
     performSearch();
@@ -642,31 +551,18 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     }
   }, [isOpen, meeting?.id]);
 
-  // Clear search when switching transcript views
-  React.useEffect(() => {
-    setSearchTerm("");
-    setCurrentMatchIndex(0);
-    setTotalMatches(0);
-    setHighlightedTranscript("");
-  }, [transcriptView]);
-
   // Get current content based on active tab
   const getCurrentContent = () => {
-    if (activeTab === "notes") {
-      return notes;
-    } else {
-      return transcriptView === 'raw' ? rawTranscript : transcript;
-    }
+    return activeTab === "notes" ? notes : transcript;
   };
 
   // Get current content setter based on active tab  
   const setCurrentContent = (content: string) => {
     if (activeTab === "notes") {
       onNotesChange(content);
-    } else if (transcriptView === 'clean') {
+    } else {
       setTranscript(content);
     }
-    // Raw transcript is read-only, so we don't update it
   };
 
   // Version history management functions
@@ -1453,29 +1349,9 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
               <TabsContent value="transcript" className="flex-1 overflow-hidden mt-0 bg-white">
                 <div className="h-full flex flex-col">
                   <div className="flex items-center justify-between p-6 pb-4 flex-shrink-0">
-                    <div className="flex items-center gap-4">
-                      <h3 className="text-lg font-semibold">Meeting Transcript</h3>
-                      <div className="flex items-center gap-1 bg-muted rounded-md p-1">
-                        <Button
-                          variant={transcriptView === 'clean' ? 'default' : 'ghost'}
-                          size="sm"
-                          onClick={() => setTranscriptView('clean')}
-                          className="h-7 px-3 text-xs"
-                        >
-                          Clean Transcript
-                        </Button>
-                        <Button
-                          variant={transcriptView === 'raw' ? 'default' : 'ghost'}
-                          size="sm"
-                          onClick={() => setTranscriptView('raw')}
-                          className="h-7 px-3 text-xs"
-                        >
-                          Raw Transcript
-                        </Button>
-                      </div>
-                    </div>
+                    <h3 className="text-lg font-semibold">Meeting Transcript</h3>
                     <div className="flex items-center gap-2">
-                      {!isEditing && (transcriptView === 'clean' ? transcript : rawTranscript) && (
+                      {!isEditing && transcript && (
                         <div className="flex items-center gap-2 mr-4">
                           <div className="relative">
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -1526,17 +1402,15 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                         <Undo className="h-4 w-4" />
                         Undo
                       </Button>
-                      {transcriptView === 'clean' && (
-                        <Button
-                          onClick={handleEditToggle}
-                          variant="outline"
-                          size="sm"
-                          className="gap-2"
-                        >
-                          <Edit3 className="h-4 w-4" />
-                          {isEditing ? 'Save' : 'Edit'}
-                        </Button>
-                      )}
+                      <Button
+                        onClick={handleEditToggle}
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                      >
+                        <Edit3 className="h-4 w-4" />
+                        {isEditing ? 'Save' : 'Edit'}
+                      </Button>
                     </div>
                   </div>
 
@@ -1546,7 +1420,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                         <span className="ml-2">Loading transcript...</span>
                       </div>
-                    ) : isEditing && transcriptView === 'clean' ? (
+                    ) : isEditing ? (
                       <Textarea
                         value={editingContent}
                         onChange={(e) => setEditingContent(e.target.value)}
@@ -1555,28 +1429,15 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                       />
                     ) : (
                       <div className="prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground">
-                        {transcriptView === 'clean' ? (
-                          transcript ? (
-                            <pre 
-                              className="whitespace-pre-wrap font-sans"
-                              dangerouslySetInnerHTML={{ 
-                                __html: searchTerm ? highlightedTranscript : transcript 
-                              }}
-                            />
-                          ) : (
-                            <p className="text-muted-foreground">No clean transcript available for this meeting.</p>
-                          )
+                        {transcript ? (
+                          <pre 
+                            className="whitespace-pre-wrap font-sans"
+                            dangerouslySetInnerHTML={{ 
+                              __html: searchTerm ? highlightedTranscript : transcript 
+                            }}
+                          />
                         ) : (
-                          rawTranscript ? (
-                            <pre 
-                              className="whitespace-pre-wrap font-mono text-sm bg-muted/50 p-4 rounded-lg border"
-                              dangerouslySetInnerHTML={{ 
-                                __html: searchTerm ? highlightedTranscript : rawTranscript 
-                              }}
-                            />
-                          ) : (
-                            <p className="text-muted-foreground">No raw transcript available for this meeting.</p>
-                          )
+                          <p className="text-muted-foreground">No transcript available for this meeting.</p>
                         )}
                       </div>
                     )}

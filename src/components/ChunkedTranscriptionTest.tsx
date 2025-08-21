@@ -134,18 +134,18 @@ const ChunkedTranscriptionTest = () => {
         description: "5s chunks for first 20s, then 30s chunks"
       });
 
-      // Longer chunks for better context and fewer API calls
+      // ChatGPT recommended chunk durations: 12-20s with 2.0s overlap
       const getChunkDuration = (chunkNumber: number) => {
         // Quick feedback: shorter chunks initially
-        if (chunkNumber <= 1) return 8000;  // 8s for immediate feedback
-        if (chunkNumber <= 2) return 20000; // 20s chunks
-        // Then switch to longer 45-second chunks for better context
-        return 45000; 
+        if (chunkNumber <= 2) return 5000;  // 5s for immediate feedback
+        if (chunkNumber <= 4) return 12000; // 12s - ChatGPT minimum
+        // Then switch to optimal 18-second chunks 
+        return 18000; 
       };
 
-      // Minimal overlap to prevent duplicates - now just 0.2s for all chunks
+      // ChatGPT recommended: consistent 2.0s overlap (10-15% of chunk)
       const getOverlapDuration = (chunkNumber: number) => {
-        return 200; // 0.2 second overlap for all chunks
+        return 2000; // 2 second overlap for all chunks
       };
 
       // Function to create and start a new recorder
@@ -231,22 +231,14 @@ const ChunkedTranscriptionTest = () => {
     }
   };
 
-  const stopChunkedRecording = async () => {
-    console.log('🛑 Stopping recording and forcing final chunk...');
-    
-    // Clear the scheduled timeout first
+  const stopChunkedRecording = () => {
     if (chunkTimerRef.current) {
       clearTimeout(chunkTimerRef.current);
       chunkTimerRef.current = null;
     }
 
-    // Force capture the current chunk if recording
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-      console.log('📦 Forcing final chunk capture...');
       mediaRecorderRef.current.stop();
-      
-      // Wait a moment for the final chunk to be processed
-      await new Promise(resolve => setTimeout(resolve, 500));
     }
 
     if (streamRef.current) {
@@ -258,10 +250,10 @@ const ChunkedTranscriptionTest = () => {
     setIsRecording(false);
     isRecordingRef.current = false;
     
-    console.log('🛑 Recording stopped with final chunk captured');
+    console.log('🛑 Stopped chunked recording');
     toast({
       title: "Recording Stopped",
-      description: `Processed ${currentChunk} chunks (including final chunk)`
+      description: `Processed ${currentChunk} chunks`
     });
   };
 

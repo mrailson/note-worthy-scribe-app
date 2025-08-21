@@ -20,7 +20,6 @@ import EnhancedAccess from "./pages/EnhancedAccess";
 import CQCCompliance from "./pages/CQCCompliance";
 import ComplianceDocumentation from "./pages/ComplianceDocumentation";
 import SecurityCompliance from "./pages/SecurityCompliance";
-import TranscriptCleaner from "./pages/TranscriptCleaner";
 import AIAnimationPreview from "./pages/AIAnimationPreview";
 import APITesting from "./pages/APITesting";
 import ImageCreate from "./pages/ImageCreate";
@@ -66,7 +65,6 @@ const App = () => (
       } />
       <Route path="/compliance-docs" element={<ComplianceDocumentation />} />
       <Route path="/security-compliance" element={<SecurityCompliance />} />
-      <Route path="/transcript-cleaner" element={<TranscriptCleaner />} />
       <Route path="/ai-animation-preview" element={<AIAnimationPreview />} />
       <Route path="/api-testing" element={<APITesting />} />
       <Route path="/image-create" element={<ImageCreate />} />

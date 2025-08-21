@@ -78,56 +78,6 @@ export const MeetingRecorder = ({
   const [isStoppingRecording, setIsStoppingRecording] = useState(false);
   const [duration, setDuration] = useState(0);
   const [transcript, setTranscript] = useState("");
-  const [cleanedMasterTranscript, setCleanedMasterTranscript] = useState(""); // AI-enhanced transcript from LiveTranscript
-  
-  // Debug logging for cleaned transcript changes
-  useEffect(() => {
-    console.log('🚨 DEBUG: Cleaned master transcript updated');
-    console.log('🚨 DEBUG: Has value:', !!cleanedMasterTranscript);
-    console.log('🚨 DEBUG: Length:', cleanedMasterTranscript?.length || 0);
-    console.log('🚨 DEBUG: Full preview:', cleanedMasterTranscript?.substring(0, 300) + (cleanedMasterTranscript?.length > 300 ? '...' : ''));
-    
-    // Check for duplicate content patterns
-    if (cleanedMasterTranscript) {
-      const lines = cleanedMasterTranscript.split('\n');
-      console.log('🚨 DEBUG: Number of lines:', lines.length);
-      console.log('🚨 DEBUG: First few lines:', lines.slice(0, 3));
-      
-      // Check for repeated content
-      const words = cleanedMasterTranscript.split(/\s+/);
-      const uniqueWords = new Set(words);
-      console.log('🚨 DEBUG: Total words:', words.length, 'Unique words:', uniqueWords.size);
-    }
-  }, [cleanedMasterTranscript]);
-
-  // Update word count every 15 seconds from cleaned transcript
-  useEffect(() => {
-    const updateWordCount = () => {
-      // Use cleanedMasterTranscript when available, fall back to raw transcript
-      const sourceText = cleanedMasterTranscript || transcript || "";
-      if (sourceText) {
-        const words = sourceText.split(/\s+/).filter(word => word.length > 0);
-        const actualWordCount = words.length;
-        
-        console.log('🚨 DEBUG: Word count calculation');
-        console.log('🚨 DEBUG: Source text type:', cleanedMasterTranscript ? 'cleaned' : 'raw');
-        console.log('🚨 DEBUG: Source text length:', sourceText.length);
-        console.log('🚨 DEBUG: Source preview:', sourceText.substring(0, 200) + '...');
-        console.log('🚨 DEBUG: Word count:', actualWordCount);
-        
-        setWordCount(actualWordCount);
-        onWordCountUpdate(actualWordCount);
-      }
-    };
-
-    // Update immediately
-    updateWordCount();
-
-    // Then update every 15 seconds
-    const interval = setInterval(updateWordCount, 15000);
-
-    return () => clearInterval(interval);
-  }, [cleanedMasterTranscript, transcript, onWordCountUpdate]);
   const [realtimeTranscripts, setRealtimeTranscripts] = useState<TranscriptData[]>([]);
   const [removedSegments, setRemovedSegments] = useState<RemovedSegment[]>([]);
   
@@ -476,14 +426,6 @@ export const MeetingRecorder = ({
     return needsBackup && durationSeconds > 300; // Only for meetings longer than 5 minutes
   };
 
-  // Callback to receive cleaned transcript from LiveTranscript
-  const handleCleanedTranscriptChange = (cleanedText: string) => {
-    console.log('🚨 DEBUG: Received cleaned transcript callback');
-    console.log('🚨 DEBUG: Received length:', cleanedText.length);
-    console.log('🚨 DEBUG: Received preview:', cleanedText.substring(0, 200) + '...');
-    setCleanedMasterTranscript(cleanedText);
-  };
-
   // Upload audio backup to Supabase storage
   const uploadAudioBackup = async (audioBlob: Blob, meetingId: string, duration: number, wordCount: number, expectedWords: number): Promise<string | null> => {
     try {
@@ -777,6 +719,15 @@ export const MeetingRecorder = ({
             console.log(`📝 Transcript updated: ${newTranscript.length} chars, chunk ${chunkId}`);
             onTranscriptUpdate(newTranscript);
             return newTranscript;
+          });
+
+          // Update word count with immediate feedback
+          const words = transcriptionText.split(/\s+/).filter(word => word.length > 0);
+          setWordCount(prev => {
+            const newCount = prev + words.length;
+            console.log(`📊 Word count updated: ${newCount} words (+${words.length})`);
+            onWordCountUpdate(newCount);
+            return newCount;
           });
 
           // Create transcript data for live display
@@ -2827,22 +2778,14 @@ export const MeetingRecorder = ({
       setSavingSteps({ saving: true, securing: true, complete: false });
       await new Promise(resolve => setTimeout(resolve, 800));
 
-      // 2. Save transcript - use AI-enhanced transcript if available, otherwise fallback to raw
-      const transcriptToSave = cleanedMasterTranscript || meetingData.transcript;
-      console.log('🚨 Saving transcript:', {
-        hasCleanedTranscript: !!cleanedMasterTranscript,
-        cleanedLength: cleanedMasterTranscript?.length || 0,
-        rawLength: meetingData.transcript?.length || 0,
-        usingCleaned: !!cleanedMasterTranscript
-      });
-      
-      if (transcriptToSave) {
+      // 2. Save transcript
+      if (meetingData.transcript) {
         await supabase
           .from('meeting_transcripts')
           .insert({
             meeting_id: savedMeeting.id,
             speaker_name: 'Meeting Recording',
-            content: transcriptToSave,
+            content: meetingData.transcript,
             timestamp_seconds: 0,
             confidence_score: 1.0
           });
@@ -3891,7 +3834,6 @@ export const MeetingRecorder = ({
                   practiceId: (meetingSettings as any)?.practiceId || "",
                   meetingFormat: (meetingSettings as any)?.meetingFormat || "teams"
                 }}
-                onCleanedTranscriptChange={handleCleanedTranscriptChange} // Pass callback to capture AI-enhanced transcript
                 onMeetingSettingsChange={(settings) => {
                   setMeetingSettings(prev => ({
                     ...prev,

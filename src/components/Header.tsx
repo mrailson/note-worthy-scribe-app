@@ -11,7 +11,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning, Sparkles, Mail, Users, Clock, FolderOpen, Wrench, BookOpen, Menu, ChevronsDown, Stars, ImageIcon, User, Scissors } from "lucide-react";
+import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning, Sparkles, Mail, Users, Clock, FolderOpen, Wrench, BookOpen, Menu, ChevronsDown, Stars, ImageIcon, User } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -174,23 +174,16 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                            CQC Compliance
                          </DropdownMenuItem>
                        )}
-                       {hasModuleAccess('shared_drive_access') && (
-                         <DropdownMenuItem 
-                           onClick={() => navigate('/shared-drive')}
-                           className="cursor-pointer py-3"
-                         >
-                           <FolderOpen className="h-4 w-4 mr-2" />
-                           Shared Drive
-                         </DropdownMenuItem>
-                       )}
-                       <DropdownMenuItem 
-                         onClick={() => navigate('/transcript-cleaner')}
-                         className="cursor-pointer py-3"
-                       >
-                         <Scissors className="h-4 w-4 mr-2" />
-                         Transcript Cleaner
-                       </DropdownMenuItem>
-                       {hasModuleAccess('mic_test_service_access') && (
+                      {hasModuleAccess('shared_drive_access') && (
+                        <DropdownMenuItem 
+                          onClick={() => navigate('/shared-drive')}
+                          className="cursor-pointer py-3"
+                        >
+                          <FolderOpen className="h-4 w-4 mr-2" />
+                          Shared Drive
+                        </DropdownMenuItem>
+                      )}
+                      {hasModuleAccess('mic_test_service_access') && (
                         <DropdownMenuItem 
                           onClick={() => navigate('/meetings')}
                           className="cursor-pointer py-3"
@@ -389,21 +382,15 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                              </Button>
                            </DrawerClose>
                          )}
-                          {hasModuleAccess('shared_drive_access') && (
-                            <DrawerClose asChild>
-                              <Button variant="ghost" className="justify-start" onClick={() => navigate('/shared-drive')}>
-                                <FolderOpen className="h-4 w-4 mr-2" />
-                                Shared Drive
-                              </Button>
-                            </DrawerClose>
-                          )}
-                          <DrawerClose asChild>
-                            <Button variant="ghost" className="justify-start" onClick={() => navigate('/transcript-cleaner')}>
-                              <Scissors className="h-4 w-4 mr-2" />
-                              Transcript Cleaner
-                            </Button>
-                          </DrawerClose>
-                          {hasModuleAccess('mic_test_service_access') && (
+                         {hasModuleAccess('shared_drive_access') && (
+                           <DrawerClose asChild>
+                             <Button variant="ghost" className="justify-start" onClick={() => navigate('/shared-drive')}>
+                               <FolderOpen className="h-4 w-4 mr-2" />
+                               Shared Drive
+                             </Button>
+                           </DrawerClose>
+                         )}
+                         {hasModuleAccess('mic_test_service_access') && (
                            <DrawerClose asChild>
                              <Button variant="ghost" className="justify-start" onClick={() => navigate('/meetings')}>
                                <Wrench className="h-4 w-4 mr-2" />
