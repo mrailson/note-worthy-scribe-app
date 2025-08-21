@@ -725,7 +725,12 @@ export const MeetingRecorder = ({
             timestamp: chunkTimestamp,
             confidence: confidence
           };
-          setRawChunks(prev => [...prev, newChunk]);
+          console.log('🔍 Adding raw chunk:', newChunk);
+          setRawChunks(prev => {
+            const updated = [...prev, newChunk];
+            console.log('🔍 Raw chunks updated, total:', updated.length);
+            return updated;
+          });
           setChunkCounter(prev => prev + 1);
 
           // Update the main transcript with immediate state update

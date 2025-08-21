@@ -21,6 +21,8 @@ export const RawChunksDisplay: React.FC<RawChunksDisplayProps> = ({
 }) => {
   const [autoScroll, setAutoScroll] = useState(true);
 
+  console.log('🔍 RawChunksDisplay render - chunks:', chunks.length, 'isRecording:', isRecording);
+
   // Auto scroll to bottom when new chunks arrive
   useEffect(() => {
     if (autoScroll && chunks.length > 0) {
