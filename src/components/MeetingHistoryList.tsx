@@ -136,6 +136,8 @@ export const MeetingHistoryList = ({
 }: MeetingHistoryListProps) => {
   console.log('🚨 MeetingHistoryList render - meetings:', meetings.length);
   console.log('🚨 MeetingHistoryList meetings data:', meetings.slice(0, 3).map(m => ({ id: m.id, title: m.title })));
+  console.log('🚨 Loading state:', loading);
+  console.log('🚨 About to render:', meetings.length === 0 ? 'NO MEETINGS MESSAGE' : 'MEETINGS LIST');
   
   const [editingMeetingId, setEditingMeetingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState<string>("");
