@@ -2754,7 +2754,17 @@ export const MeetingRecorder = ({
       await new Promise(resolve => setTimeout(resolve, 800));
 
       // Show final success modal with meeting details
-      // This is handled in the new combined modal flow
+      const formattedTitle = meetingData.title || `Meeting - ${new Date().toLocaleDateString()}`;
+      setMeetingEndModal(prev => ({
+        ...prev,
+        stage: 'success',
+        savedData: {
+          title: formattedTitle,
+          duration: formatDuration(duration),
+          wordCount: wordCount,
+          id: savedMeeting.id
+        }
+      }));
 
     } catch (error) {
       console.error('❌ CRITICAL ERROR - Failed to save meeting:', error);
