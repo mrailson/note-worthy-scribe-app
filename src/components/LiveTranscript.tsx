@@ -179,6 +179,51 @@ export const LiveTranscript = ({
     loadMedicalCorrections();
   }, []);
 
+  // Subscribe to transcription chunks for AI enhancement updates
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const currentSessionId = sessionStorage.getItem('currentSessionId');
+    if (!currentSessionId) return;
+
+    console.log('🔄 Setting up transcription chunks subscription for session:', currentSessionId);
+
+    const channel = supabase
+      .channel('transcription-chunks')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'meeting_transcription_chunks',
+          filter: `session_id=eq.${currentSessionId}`
+        },
+        (payload) => {
+          console.log('📝 New transcription chunk received:', payload);
+          const chunk = payload.new;
+          if (chunk.transcription_text) {
+            // Apply medical corrections if loaded
+            let processedText = chunk.transcription_text;
+            if (isMedicalCorrectionsLoaded && medicalTermCorrector.hasCorrections()) {
+              processedText = medicalTermCorrector.applyCorrections(processedText);
+            }
+            
+            // Update cleaned transcript with new chunk
+            setCleanedTranscript(prev => {
+              const newText = prev + (prev ? ' ' : '') + processedText;
+              console.log('✨ Updated AI enhanced transcript with new chunk');
+              return newText;
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, isMedicalCorrectionsLoaded]);
+
   // Update live transcript text when transcript prop changes
   useEffect(() => {
     if (transcript && transcript.trim()) {
