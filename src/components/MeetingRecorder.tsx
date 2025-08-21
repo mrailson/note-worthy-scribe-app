@@ -2397,18 +2397,40 @@ export const MeetingRecorder = ({
     // Show processing animation
     setShowProcessingAudio(true);
     
-    // Animate dots for 4 seconds
-    const dotInterval = setInterval(() => {
+    // Track initial transcript length
+    const initialTranscriptLength = transcript?.length || 0;
+    addScreenDebug(`📊 Initial transcript length: ${initialTranscriptLength}`);
+    
+    // Phase 1: Continue recording while processing (4 seconds)
+    setProcessingDots('');
+    const phase1Interval = setInterval(() => {
       setProcessingDots(prev => {
         if (prev.length >= 3) return '';
         return prev + '.';
       });
     }, 500);
     
-    // Wait 4 seconds for processing
+    // Wait 4 seconds while still recording to capture final chunks
     await new Promise(resolve => setTimeout(resolve, 4000));
+    clearInterval(phase1Interval);
     
-    clearInterval(dotInterval);
+    // Phase 2: Finalizing transcription (3 seconds)
+    setProcessingDots('');
+    const phase2Interval = setInterval(() => {
+      setProcessingDots(prev => {
+        if (prev.length >= 3) return '';
+        return prev + '.';
+      });
+    }, 500);
+    
+    // Wait additional 3 seconds for final processing
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    clearInterval(phase2Interval);
+    
+    // Check final transcript length
+    const finalTranscriptLength = transcript?.length || 0;
+    addScreenDebug(`📊 Final transcript length: ${finalTranscriptLength} (+${finalTranscriptLength - initialTranscriptLength} chars)`);
+    
     setShowProcessingAudio(false);
     console.log('🔥🔥🔥 Current isRecording state:', isRecording);
     console.log('🔥🔥🔥 Current user:', user?.id);
@@ -4067,6 +4089,9 @@ export const MeetingRecorder = ({
                 <h3 className="text-lg font-semibold text-foreground">Processing Audio Transcript</h3>
                 <p className="text-sm text-muted-foreground mt-2">
                   Finalizing your transcription{processingDots}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1 opacity-75">
+                  Capturing final audio segments...
                 </p>
               </div>
             </div>
