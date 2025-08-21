@@ -740,13 +740,13 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       const trimmed = s.trim();
       if (!trimmed) continue;
 
-      const last = output[output.length - 1] || "";
-      const sim = stringSimilarity.compareTwoStrings(
-        trimmed.toLowerCase(),
-        last.toLowerCase()
+      // Compare against last 3 kept sentences for safety
+      const recent = output.slice(-3);
+      const isDup = recent.some(r =>
+        stringSimilarity.compareTwoStrings(trimmed.toLowerCase(), r.toLowerCase()) > 0.92
       );
 
-      if (sim < 0.92) {   // tighter threshold than before
+      if (!isDup) {
         output.push(trimmed);
       }
     }
