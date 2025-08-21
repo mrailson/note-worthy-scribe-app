@@ -131,10 +131,16 @@ export const MeetingRecorder = ({
   const [selectedMeetings, setSelectedMeetings] = useState<string[]>([]);
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [savedMeetingData, setSavedMeetingData] = useState<{title: string, duration: string, wordCount: number} | null>(null);
-  const [showSavingProgress, setShowSavingProgress] = useState(false);
-  const [showProcessingAudio, setShowProcessingAudio] = useState(false);
+  // Combined modal state for end-of-meeting process
+  const [meetingEndModal, setMeetingEndModal] = useState<{
+    isOpen: boolean;
+    stage: 'processing' | 'saving' | 'success';
+    savedData?: any;
+  }>({
+    isOpen: false,
+    stage: 'processing',
+    savedData: null
+  });
   const [processingDots, setProcessingDots] = useState('');
   const [savingSteps, setSavingSteps] = useState({
     saving: false,
@@ -2332,8 +2338,12 @@ export const MeetingRecorder = ({
 
   const stopRecording = async () => {
     
-    // Show processing animation
-    setShowProcessingAudio(true);
+    // Show combined modal starting with processing stage
+    setMeetingEndModal({
+      isOpen: true,
+      stage: 'processing',
+      savedData: null
+    });
     
     // Track initial transcript length
     const initialTranscriptLength = transcript?.length || 0;
@@ -2367,7 +2377,11 @@ export const MeetingRecorder = ({
     // Check final transcript length
     const finalTranscriptLength = transcript?.length || 0;
     
-    setShowProcessingAudio(false);
+    // Move to saving stage
+    setMeetingEndModal(prev => ({
+      ...prev,
+      stage: 'saving'
+    }));
     
     // NOW stop the transcribers after the processing delay
     
@@ -2661,8 +2675,6 @@ export const MeetingRecorder = ({
     console.log('🚨 SAVING MEETING TO DATABASE...');
     
     try {
-      // Show saving progress modal
-      setShowSavingProgress(true);
       
       // Step 1: Saving
       setSavingSteps({ saving: true, securing: false, complete: false });
@@ -2742,24 +2754,17 @@ export const MeetingRecorder = ({
       await new Promise(resolve => setTimeout(resolve, 800));
 
       // Show final success modal with meeting details
-      const meetingDuration = `${Math.floor(duration / 60).toString().padStart(2, '0')}:${(duration % 60).toString().padStart(2, '0')}`;
-      setSavedMeetingData({
-        title: savedMeeting.title || 'Untitled Meeting',
-        duration: meetingDuration,
-        wordCount: wordCount
-      });
-      
-      // Hide progress modal and show success modal
-      setTimeout(() => {
-        setShowSavingProgress(false);
-        setShowSuccessModal(true);
-      }, 1000);
+      // This is handled in the new combined modal flow
 
     } catch (error) {
       console.error('❌ CRITICAL ERROR - Failed to save meeting:', error);
       
-      setShowSavingProgress(false);
-      setShowProcessingAudio(false);
+      // Close modal on error
+      setMeetingEndModal({
+        isOpen: false,
+        stage: 'processing',
+        savedData: null
+      });
       toast.error('Failed to save meeting to database');
     }
   };
@@ -3397,11 +3402,11 @@ export const MeetingRecorder = ({
                          }}
                          variant="destructive"
                          size="lg"
-                         disabled={isStoppingRecording || showProcessingAudio}
+                          disabled={isStoppingRecording || meetingEndModal.isOpen}
                          className="shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 px-8 py-4 text-base font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                        >
                          <Square className="h-5 w-5 mr-2" />
-                         {showProcessingAudio ? "Processing..." : (isStoppingRecording ? "Ending Recording..." : (isPaused ? "Meeting Paused" : "Stop Recording"))}
+                         {meetingEndModal.isOpen ? "Processing..." : (isStoppingRecording ? "Ending Recording..." : (isPaused ? "Meeting Paused" : "Stop Recording"))}
                        </Button>
                       </div>
                    )}
@@ -3530,11 +3535,11 @@ export const MeetingRecorder = ({
                     <button
                       type="button"
                       onClick={() => { 
-                        if (!isStoppingRecording && !showProcessingAudio) {
+                        if (!isStoppingRecording && !meetingEndModal.isOpen) {
                           isRecording ? stopRecording() : startRecording(); 
                         }
                       }}
-                      disabled={isStoppingRecording || showProcessingAudio}
+                      disabled={isStoppingRecording || meetingEndModal.isOpen}
                       className="p-2 rounded-full bg-primary/5 w-12 h-12 mx-auto mb-2 flex items-center justify-center transition-colors cursor-pointer hover:bg-primary/10 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-primary/5"
                       aria-label={isRecording ? 'Stop recording' : 'Start recording'}
                       title={isRecording ? 'Stop recording' : 'Start recording'}
@@ -3873,138 +3878,135 @@ export const MeetingRecorder = ({
       </Tabs>
       
       
-      {/* Processing Audio Modal */}
-      {showProcessingAudio && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-background rounded-lg shadow-lg max-w-sm w-full mx-4 border border-border">
-            <div className="p-6 space-y-6">
-              <div className="text-center">
-                <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Waves className="w-6 h-6 text-primary-foreground animate-pulse" />
-                </div>
-                <h3 className="text-lg font-semibold text-foreground">Processing Audio Transcript</h3>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Finalizing your transcription{processingDots}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1 opacity-75">
-                  Capturing final audio segments...
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Saving Progress Modal */}
-      {showSavingProgress && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-background rounded-lg shadow-lg max-w-sm w-full mx-4 border border-border">
-            <div className="p-6 space-y-6">
-              <div className="text-center">
-                <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Sparkles className="w-6 h-6 text-primary-foreground animate-pulse" />
-                </div>
-                <h3 className="text-lg font-semibold text-foreground">Processing Your Meeting</h3>
-              </div>
-              
-              <div className="space-y-4">
-                <div className="flex items-center space-x-3">
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all duration-500 ${
-                    savingSteps.saving ? 'bg-primary' : 'bg-muted border border-muted-foreground'
-                  }`}>
-                    {savingSteps.saving ? (
-                      <CheckSquare className="w-4 h-4 text-primary-foreground animate-scale-in" />
-                    ) : (
-                      <div className="w-2 h-2 bg-muted-foreground rounded-full" />
-                    )}
-                  </div>
-                  <span className={`text-sm transition-colors duration-300 ${
-                    savingSteps.saving ? 'text-foreground font-medium' : 'text-muted-foreground'
-                  }`}>
-                    Saving the meeting...
-                  </span>
-                </div>
-
-                <div className="flex items-center space-x-3">
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all duration-500 ${
-                    savingSteps.securing ? 'bg-primary' : 'bg-muted border border-muted-foreground'
-                  }`}>
-                    {savingSteps.securing ? (
-                      <CheckSquare className="w-4 h-4 text-primary-foreground animate-scale-in" />
-                    ) : (
-                      <div className="w-2 h-2 bg-muted-foreground rounded-full" />
-                    )}
-                  </div>
-                  <span className={`text-sm transition-colors duration-300 ${
-                    savingSteps.securing ? 'text-foreground font-medium' : 'text-muted-foreground'
-                  }`}>
-                    Securing your data...
-                  </span>
-                </div>
-
-                <div className="flex items-center space-x-3">
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all duration-500 ${
-                    savingSteps.complete ? 'bg-primary' : 'bg-muted border border-muted-foreground'
-                  }`}>
-                    {savingSteps.complete ? (
-                      <CheckSquare className="w-4 h-4 text-primary-foreground animate-scale-in" />
-                    ) : (
-                      <div className="w-2 h-2 bg-muted-foreground rounded-full" />
-                    )}
-                  </div>
-                  <span className={`text-sm transition-colors duration-300 ${
-                    savingSteps.complete ? 'text-foreground font-medium' : 'text-muted-foreground'
-                  }`}>
-                    All done!
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Success Modal */}
-      {showSuccessModal && savedMeetingData && (
+      {/* Combined End-of-Meeting Modal */}
+      {meetingEndModal.isOpen && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
           <div className="bg-background rounded-lg shadow-lg max-w-sm w-full mx-4 border border-border animate-scale-in">
-            <div className="p-6 space-y-4">
-              <div className="text-center">
-                <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
-                  <CheckSquare className="w-6 h-6 text-primary-foreground" />
-                </div>
-                <h3 className="text-lg font-semibold text-foreground">Meeting Saved Successfully!</h3>
-              </div>
+            <div className="p-6 space-y-6">
               
-              <div className="space-y-3 text-sm">
-                <div className="flex justify-between items-center py-2 border-b border-border">
-                  <span className="text-muted-foreground">Meeting Name:</span>
-                  <span className="font-medium text-foreground">{savedMeetingData.title}</span>
+              {/* Processing Stage */}
+              {meetingEndModal.stage === 'processing' && (
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Waves className="w-6 h-6 text-primary-foreground animate-pulse" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-foreground">Processing Audio Transcript</h3>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Finalizing your transcription{processingDots}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1 opacity-75">
+                    Capturing final audio segments...
+                  </p>
                 </div>
-                
-                <div className="flex justify-between items-center py-2 border-b border-border">
-                  <span className="text-muted-foreground">Duration:</span>
-                  <span className="font-medium text-foreground">{savedMeetingData.duration}</span>
-                </div>
-                
-                <div className="flex justify-between items-center py-2 border-b border-border">
-                  <span className="text-muted-foreground">Words Transcribed:</span>
-                  <span className="font-medium text-foreground">{savedMeetingData.wordCount}</span>
-                </div>
-                
-                <div className="pt-2 text-center text-xs text-muted-foreground">
-                  This meeting is now available in your<br />
-                  <span className="font-medium">Meeting History</span> tab as:<br />
-                  <span className="font-medium text-primary">"{savedMeetingData.title}"</span>
-                </div>
-              </div>
+              )}
+
+              {/* Saving Stage */}
+              {meetingEndModal.stage === 'saving' && (
+                <>
+                  <div className="text-center">
+                    <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Sparkles className="w-6 h-6 text-primary-foreground animate-pulse" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-foreground">Processing Your Meeting</h3>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all duration-500 ${
+                        savingSteps.saving ? 'bg-primary' : 'bg-muted border border-muted-foreground'
+                      }`}>
+                        {savingSteps.saving ? (
+                          <CheckSquare className="w-4 h-4 text-primary-foreground animate-scale-in" />
+                        ) : (
+                          <div className="w-2 h-2 bg-muted-foreground rounded-full" />
+                        )}
+                      </div>
+                      <span className={`text-sm transition-colors duration-300 ${
+                        savingSteps.saving ? 'text-foreground font-medium' : 'text-muted-foreground'
+                      }`}>
+                        Saving the meeting...
+                      </span>
+                    </div>
+
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all duration-500 ${
+                        savingSteps.securing ? 'bg-primary' : 'bg-muted border border-muted-foreground'
+                      }`}>
+                        {savingSteps.securing ? (
+                          <CheckSquare className="w-4 h-4 text-primary-foreground animate-scale-in" />
+                        ) : (
+                          <div className="w-2 h-2 bg-muted-foreground rounded-full" />
+                        )}
+                      </div>
+                      <span className={`text-sm transition-colors duration-300 ${
+                        savingSteps.securing ? 'text-foreground font-medium' : 'text-muted-foreground'
+                      }`}>
+                        Securing your data...
+                      </span>
+                    </div>
+
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all duration-500 ${
+                        savingSteps.complete ? 'bg-primary' : 'bg-muted border border-muted-foreground'
+                      }`}>
+                        {savingSteps.complete ? (
+                          <CheckSquare className="w-4 h-4 text-primary-foreground animate-scale-in" />
+                        ) : (
+                          <div className="w-2 h-2 bg-muted-foreground rounded-full" />
+                        )}
+                      </div>
+                      <span className={`text-sm transition-colors duration-300 ${
+                        savingSteps.complete ? 'text-foreground font-medium' : 'text-muted-foreground'
+                      }`}>
+                        All done!
+                      </span>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Success Stage */}
+              {meetingEndModal.stage === 'success' && meetingEndModal.savedData && (
+                <>
+                  <div className="text-center">
+                    <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
+                      <CheckSquare className="w-6 h-6 text-primary-foreground" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-foreground">Meeting Saved Successfully!</h3>
+                  </div>
+                  
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between items-center py-2 border-b border-border">
+                      <span className="text-muted-foreground">Meeting Name:</span>
+                      <span className="font-medium text-foreground">{meetingEndModal.savedData.title}</span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center py-2 border-b border-border">
+                      <span className="text-muted-foreground">Duration:</span>
+                      <span className="font-medium text-foreground">{meetingEndModal.savedData.duration}</span>
+                    </div>
+                    
+                    <div className="flex justify-between items-center py-2 border-b border-border">
+                      <span className="text-muted-foreground">Words Transcribed:</span>
+                      <span className="font-medium text-foreground">{meetingEndModal.savedData.wordCount}</span>
+                    </div>
+                    
+                    <div className="pt-2 text-center text-xs text-muted-foreground">
+                      This meeting is now available in your<br />
+                      <span className="font-medium">Meeting History</span> tab as:<br />
+                      <span className="font-medium text-primary">"{meetingEndModal.savedData.title}"</span>
+                    </div>
+                  </div>
+                  
+                  <button 
+                    onClick={() => setMeetingEndModal({ isOpen: false, stage: 'processing', savedData: null })}
+                    className="w-full bg-primary text-primary-foreground py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors"
+                  >
+                    Continue
+                  </button>
+                </>
+              )}
               
-              <button 
-                onClick={() => setShowSuccessModal(false)}
-                className="w-full bg-primary text-primary-foreground py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors"
-              >
-                Continue
-              </button>
             </div>
           </div>
         </div>
