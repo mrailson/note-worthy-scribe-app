@@ -730,6 +730,55 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     setIsEditing(!isEditing);
   };
 
+  // Handle transcript cleaning to remove duplicates
+  const handleCleanTranscript = () => {
+    if (!transcript || transcript.trim().length === 0) {
+      toast.error('No transcript content to clean');
+      return;
+    }
+
+    // Save current version before cleaning
+    saveCurrentVersion('clean-transcript', 'transcript');
+    
+    try {
+      // Basic duplicate removal logic - user will provide ChatGPT code
+      let cleanedTranscript = transcript;
+      
+      // Remove exact duplicate lines
+      const lines = cleanedTranscript.split('\n');
+      const uniqueLines: string[] = [];
+      const seenLines = new Set<string>();
+      
+      for (const line of lines) {
+        const trimmedLine = line.trim();
+        if (trimmedLine && !seenLines.has(trimmedLine.toLowerCase())) {
+          seenLines.add(trimmedLine.toLowerCase());
+          uniqueLines.push(line);
+        } else if (!trimmedLine) {
+          // Keep empty lines for formatting
+          uniqueLines.push(line);
+        }
+      }
+      
+      // Remove duplicate phrases within sentences
+      cleanedTranscript = uniqueLines.join('\n');
+      
+      // Remove repetitive phrases (basic pattern matching)
+      cleanedTranscript = cleanedTranscript
+        .replace(/(\b\w+\s+\w+\b)(\s+\1)+/gi, '$1') // Remove repeated two-word phrases
+        .replace(/(\b\w+\b)(\s+\1){2,}/gi, '$1') // Remove words repeated 3+ times
+        .replace(/\n\s*\n\s*\n+/g, '\n\n') // Clean up excessive line breaks
+        .trim();
+      
+      setTranscript(cleanedTranscript);
+      toast.success('Transcript cleaned successfully!');
+      
+    } catch (error) {
+      console.error('Error cleaning transcript:', error);
+      toast.error('Failed to clean transcript');
+    }
+  };
+
   const copyToClipboard = (content: string) => {
     navigator.clipboard.writeText(content).then(() => {
       toast.success('Content copied to clipboard!');
@@ -1388,9 +1437,20 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                                 </Button>
                               </div>
                             </>
-                          )}
+                           )}
                         </div>
                       )}
+                      <Button
+                        onClick={handleCleanTranscript}
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                        disabled={!transcript || transcript.trim().length === 0}
+                        title="Clean transcript to remove duplicates and improve formatting"
+                      >
+                        <Wand2 className="h-4 w-4" />
+                        Clean
+                      </Button>
                       <Button
                         onClick={handleUndo}
                         variant="outline"
