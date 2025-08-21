@@ -107,13 +107,22 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                   className="bg-background border border-border shadow-lg w-48"
                 >
                    {hasModuleAccess('meeting_recorder') && (
-                     <DropdownMenuItem 
-                       onClick={() => navigate('/')}
-                       className="cursor-pointer py-3"
-                     >
-                       <FileText className="h-4 w-4 mr-2" />
-                       Meeting Notes
-                     </DropdownMenuItem>
+                     <>
+                       <DropdownMenuItem 
+                         onClick={() => navigate('/')}
+                         className="cursor-pointer py-3"
+                       >
+                         <FileText className="h-4 w-4 mr-2" />
+                         Meeting Notes
+                       </DropdownMenuItem>
+                       <DropdownMenuItem 
+                         onClick={() => navigate('/meetings')}
+                         className="cursor-pointer py-3"
+                       >
+                         <Clock className="h-4 w-4 mr-2" />
+                         Meeting History
+                       </DropdownMenuItem>
+                     </>
                    )}
                    {hasModuleAccess('gp_scribe') && (
                      <DropdownMenuItem 
@@ -349,14 +358,22 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                     {/* Services */}
                     {user && (
                       <>
-                        {hasModuleAccess('meeting_recorder') && (
-                          <DrawerClose asChild>
-                            <Button variant="ghost" className="justify-start" onClick={() => navigate('/')}> 
-                              <FileText className="h-4 w-4 mr-2" />
-                              Meeting Notes
-                            </Button>
-                          </DrawerClose>
-                        )}
+                         {hasModuleAccess('meeting_recorder') && (
+                           <>
+                             <DrawerClose asChild>
+                               <Button variant="ghost" className="justify-start" onClick={() => navigate('/')}> 
+                                 <FileText className="h-4 w-4 mr-2" />
+                                 Meeting Notes
+                               </Button>
+                             </DrawerClose>
+                             <DrawerClose asChild>
+                               <Button variant="ghost" className="justify-start" onClick={() => navigate('/meetings')}>
+                                 <Clock className="h-4 w-4 mr-2" />
+                                 Meeting History
+                               </Button>
+                             </DrawerClose>
+                           </>
+                         )}
                          {hasModuleAccess('gp_scribe') && (
                            <DrawerClose asChild>
                              <Button variant="ghost" className="justify-start" onClick={() => navigate('/gp-scribe')}>
