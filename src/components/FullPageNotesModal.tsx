@@ -91,6 +91,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
 
   // Fetch transcript and raw chunks when modal opens
   useEffect(() => {
+    console.log('🔍 FullPageNotesModal useEffect - isOpen:', isOpen, 'meeting?.id:', meeting?.id);
     if (isOpen && meeting?.id) {
       console.log('🔍 FullPageNotesModal fetching data for meeting:', meeting.id);
       fetchTranscriptData();
@@ -102,7 +103,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     
     setIsLoadingTranscript(true);
     try {
-      console.log('🔍 Fetching transcript data...');
+      console.log('🔍 Fetching transcript data for meeting:', meeting.id);
       
       // Fetch processed transcript
       const { data: transcriptData, error: transcriptError } = await supabase.rpc('get_meeting_full_transcript', {
@@ -110,15 +111,18 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       });
       
       if (transcriptError) {
-        console.error('Error fetching transcript:', transcriptError);
+        console.error('❌ Error fetching transcript:', transcriptError);
       } else if (transcriptData && Array.isArray(transcriptData) && transcriptData.length > 0) {
-        console.log('🔍 Transcript fetched:', transcriptData.length, 'segments');
+        console.log('✅ Transcript fetched:', transcriptData.length, 'segments');
         // Combine all transcript segments
         const fullTranscript = transcriptData.map(segment => segment.transcript).join(' ');
         setTranscript(fullTranscript);
+      } else {
+        console.log('📝 No transcript data found');
       }
       
       // Fetch raw chunks from new raw_transcript_chunks table
+      console.log('🔍 Fetching raw chunks for meeting:', meeting.id);
       const { data: rawChunksData, error: chunksError } = await supabase
         .from('raw_transcript_chunks')
         .select('chunk_id, text, timestamp, confidence')
@@ -126,9 +130,9 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
         .order('chunk_id');
       
       if (chunksError) {
-        console.error('Error fetching raw chunks:', chunksError);
+        console.error('❌ Error fetching raw chunks:', chunksError);
       } else if (rawChunksData) {
-        console.log('🔍 Raw chunks fetched:', rawChunksData.length, 'chunks');
+        console.log('✅ Raw chunks fetched:', rawChunksData.length, 'chunks', rawChunksData);
         const formattedChunks = rawChunksData.map(chunk => ({
           id: chunk.chunk_id,
           text: chunk.text,
@@ -136,6 +140,8 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
           confidence: chunk.confidence
         }));
         setRawChunks(formattedChunks);
+      } else {
+        console.log('📝 No raw chunks data found');
       }
       
     } catch (error) {
