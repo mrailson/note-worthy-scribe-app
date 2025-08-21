@@ -32,7 +32,7 @@ import {
   RefreshCw,
   ChevronUp,
   ChevronDown as ChevronDownIcon,
-  Undo
+  Undo2
 } from "lucide-react";
 
 interface Meeting {
@@ -1466,7 +1466,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                         disabled={notesVersions.length === 0}
                         title={`Undo (${notesVersions.length} versions available)`}
                       >
-                        <Undo className="h-4 w-4" />
+                        <Undo2 className="h-4 w-4" />
                         Undo
                       </Button>
                       <Button
@@ -1689,7 +1689,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                         disabled={transcriptVersions.length === 0}
                         title={`Undo (${transcriptVersions.length} versions available)`}
                       >
-                        <Undo className="h-4 w-4" />
+                        <Undo2 className="h-4 w-4" />
                         Undo
                       </Button>
                       <Button
