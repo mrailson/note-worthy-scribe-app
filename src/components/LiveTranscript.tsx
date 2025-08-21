@@ -225,7 +225,7 @@ export const LiveTranscript = ({
     };
   }, [user?.id, isMedicalCorrectionsLoaded]);
 
-  // Update live transcript text when transcript prop changes
+  // Update live transcript text when transcript prop changes (RAW TRANSCRIPT ONLY)
   useEffect(() => {
     if (transcript && transcript.trim()) {
       let processedTranscript = transcript;
@@ -235,18 +235,23 @@ export const LiveTranscript = ({
         processedTranscript = medicalTermCorrector.applyCorrections(transcript);
       }
       
+      console.log('🔄 Processing raw transcript update (length:', processedTranscript.length, ')');
+      
       // Always keep the full transcript history - no clearing
+      // ONLY update liveTranscriptText, NOT cleanedTranscript (which is handled by AI chunks subscription)
       if (isAutoCleaningEnabled) {
-        // Use streaming cleaner with confidence filtering
-        const cleanedNew = transcriptCleaner.cleanStreamingTranscript(cleanedTranscript, processedTranscript, confidence);
-        setCleanedTranscript(cleanedNew);
-        setLiveTranscriptText(cleanedNew); // Show cleaned version
+        // Use streaming cleaner with confidence filtering for live display
+        const cleanedNew = transcriptCleaner.cleanStreamingTranscript("", processedTranscript, confidence);
+        setLiveTranscriptText(cleanedNew); // Show cleaned version for live display
+        console.log('✨ Updated live transcript with cleaned version (length:', cleanedNew.length, ')');
       } else {
         setLiveTranscriptText(processedTranscript); // Show processed version
+        console.log('📝 Updated live transcript with raw version (length:', processedTranscript.length, ')');
       }
     }
     // NEVER clear liveTranscriptText - always preserve transcript history
-  }, [transcript, isAutoCleaningEnabled, cleanedTranscript, isMedicalCorrectionsLoaded]);
+    // NEVER update cleanedTranscript here - only AI chunks subscription should do that
+  }, [transcript, isAutoCleaningEnabled, isMedicalCorrectionsLoaded]);
 
   // Handle text selection for corrections
   const handleTextSelection = () => {
