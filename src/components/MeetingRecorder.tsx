@@ -3738,318 +3738,219 @@ export const MeetingRecorder = ({
 
         {/* Meeting History Tab */}
         <TabsContent value="history" className="space-y-4 mt-6">
-          <Card className="border-accent/30">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <History className="h-5 w-5" />
-                Meeting History
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Search Bar */}
-              <div className="flex items-center gap-2">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search meetings..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-                {filteredMeetings.length > 0 && (
-                  <span className="text-sm text-muted-foreground whitespace-nowrap">
-                    {filteredMeetings.length} meeting{filteredMeetings.length > 1 ? 's' : ''}
-                  </span>
-                )}
-              </div>
+          <div className="flex items-center gap-3 mb-4">
+            <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
+            <div>
+              <h2 className="text-2xl sm:text-3xl font-bold text-foreground">Meeting History</h2>
+              <p className="text-sm sm:text-base text-muted-foreground">
+                View, edit, and manage your saved meetings
+              </p>
+            </div>
+          </div>
 
-              {/* Multi-select and Delete Controls */}
-              {meetings.length > 0 && (
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  {/* Multi-select controls */}
-                  <div className="flex items-center gap-3">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setIsSelectMode(!isSelectMode);
-                        setSelectedMeetings([]);
-                      }}
-                      className="touch-manipulation min-h-[44px]"
-                    >
-                      {isSelectMode ? (
-                        <>
-                          <SquareIcon className="h-4 w-4 mr-2" />
-                          Cancel Selection
-                        </>
-                      ) : (
-                        <>
-                          <CheckSquare className="h-4 w-4 mr-2" />
-                          Select Multiple
-                        </>
-                      )}
-                    </Button>
-                    
-                    {isSelectMode && (
+          {/* Stats Cards */}
+          <div className="grid grid-cols-3 gap-4 mb-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Meetings</CardTitle>
+                <FileText className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{meetings.length}</div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">This Month</CardTitle>
+                <Clock className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {meetings.filter(m => 
+                    new Date(m.created_at || m.start_time).getMonth() === new Date().getMonth()
+                  ).length}
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">With Summaries</CardTitle>
+                <FileText className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {meetings.filter(m => m.summary_exists || m.generatedNotes).length}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Search and Filter Controls */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search meetings by title, description, or type..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              {filteredMeetings.length > 0 && (
+                <span className="text-sm text-muted-foreground whitespace-nowrap">
+                  {filteredMeetings.length} meeting{filteredMeetings.length > 1 ? 's' : ''}
+                </span>
+              )}
+            </div>
+
+            {/* Multi-select and Delete Controls */}
+            {meetings.length > 0 && (
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setIsSelectMode(!isSelectMode);
+                      setSelectedMeetings([]);
+                    }}
+                    className="touch-manipulation min-h-[44px]"
+                  >
+                    {isSelectMode ? (
                       <>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleSelectAll}
-                          className="touch-manipulation min-h-[44px] text-xs sm:text-sm"
-                        >
-                          {selectedMeetings.length === filteredMeetings.length ? 'Deselect All' : 'Select All'}
-                        </Button>
-                        
-                        {selectedMeetings.length > 0 && (
-                          <span className="text-sm text-muted-foreground">
-                            {selectedMeetings.length} selected
-                          </span>
-                        )}
+                        <SquareIcon className="h-4 w-4 mr-2" />
+                        Cancel Selection
+                      </>
+                    ) : (
+                      <>
+                        <CheckSquare className="h-4 w-4 mr-2" />
+                        Select Multiple
                       </>
                     )}
-                  </div>
-
-                  {/* Delete actions */}
-                  <div className="flex gap-2">
-                    {isSelectMode && selectedMeetings.length > 0 && (
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button 
-                            variant="destructive" 
-                            size="sm"
-                            className="touch-manipulation min-h-[44px] text-xs sm:text-sm"
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete Selected ({selectedMeetings.length})
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent className="mx-4 max-w-md">
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete Selected Meetings</AlertDialogTitle>
-                            <AlertDialogDescription className="text-sm">
-                              This action will permanently delete {selectedMeetings.length} meeting{selectedMeetings.length > 1 ? 's' : ''}, their transcripts, and summaries. This cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-                            <AlertDialogCancel className="touch-manipulation min-h-[44px]">
-                              Cancel
-                            </AlertDialogCancel>
-                            <AlertDialogAction 
-                              onClick={handleDeleteSelected}
-                              className="bg-destructive hover:bg-destructive/90 touch-manipulation min-h-[44px]"
-                            >
-                              Delete Selected
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    )}
-
-                    {meetings.length > 0 && (
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button 
-                            variant="destructive" 
-                            size="sm"
-                            className="touch-manipulation min-h-[44px] text-xs sm:text-sm"
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete All
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent className="mx-4 max-w-md">
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete All Meetings</AlertDialogTitle>
-                            <AlertDialogDescription className="text-sm">
-                              This action will permanently delete all {meetings.length} meeting{meetings.length > 1 ? 's' : ''}, their transcripts, and summaries. This cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-                            <AlertDialogCancel className="touch-manipulation min-h-[44px]">
-                              Cancel
-                            </AlertDialogCancel>
-                            <AlertDialogAction 
-                              onClick={handleDeleteAll}
-                              className="bg-destructive hover:bg-destructive/90 touch-manipulation min-h-[44px]"
-                            >
-                              Delete All
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    )}
-                  </div>
+                  </Button>
+                  
+                  {isSelectMode && (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleSelectAll}
+                        className="touch-manipulation min-h-[44px] text-xs sm:text-sm"
+                      >
+                        {selectedMeetings.length === filteredMeetings.length ? 'Deselect All' : 'Select All'}
+                      </Button>
+                      
+                      {selectedMeetings.length > 0 && (
+                        <span className="text-sm text-muted-foreground">
+                          {selectedMeetings.length} selected
+                        </span>
+                      )}
+                    </>
+                  )}
                 </div>
-              )}
 
-              {/* Meetings List */}
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {filteredMeetings.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    {searchQuery ? 'No meetings match your search.' : 'No meetings recorded yet.'}
-                  </div>
-                ) : (
-                  filteredMeetings.map((meeting) => (
-                    <Card key={meeting.id} className="hover:shadow-medium transition-shadow group">
-                      <CardContent className="p-3 sm:p-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex items-start gap-3 flex-1 min-w-0">
-                            {isSelectMode && (
-                              <div className="flex-shrink-0 pt-1">
-                                <input
-                                  type="checkbox"
-                                  checked={selectedMeetings.includes(meeting.id)}
-                                  onChange={(e) => {
-                                    if (e.target.checked) {
-                                      setSelectedMeetings(prev => [...prev, meeting.id]);
-                                    } else {
-                                      setSelectedMeetings(prev => prev.filter(id => id !== meeting.id));
-                                    }
-                                  }}
-                                  className="rounded border-gray-300 text-primary focus:ring-primary focus:ring-offset-0 w-4 h-4"
-                                />
-                              </div>
-                            )}
-                            
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-start gap-2 mb-2">
-                                    <div className="flex-1 min-w-0">
-                                      {editingMeetingId === meeting.id ? (
-                                        <div className="space-y-2">
-                                          <Input
-                                            value={editingTitle}
-                                            onChange={(e) => {
-                                              const value = e.target.value;
-                                              if (value.length <= 100) {
-                                                setEditingTitle(value);
-                                              }
-                                            }}
-                                            maxLength={100}
-                                            placeholder="Meeting title"
-                                            className="text-sm font-semibold"
-                                            onKeyDown={(e) => {
-                                              if (e.key === 'Enter') {
-                                                handleSaveTitle(meeting.id);
-                                              } else if (e.key === 'Escape') {
-                                                handleCancelEdit();
-                                              }
-                                            }}
-                                            autoFocus
-                                          />
-                                          <div className="text-xs text-muted-foreground mb-2">
-                                            {editingTitle.length}/100 characters
-                                          </div>
-                                          <div className="flex gap-2">
-                                            <Button
-                                              size="sm"
-                                              onClick={() => handleSaveTitle(meeting.id)}
-                                              disabled={!editingTitle.trim() || isSavingTitle}
-                                              className="text-xs h-7 px-2"
-                                            >
-                                              {isSavingTitle ? "Saving..." : "Save"}
-                                            </Button>
-                                            <Button
-                                              variant="outline"
-                                              size="sm"
-                                              onClick={handleCancelEdit}
-                                              disabled={isSavingTitle}
-                                              className="text-xs h-7 px-2"
-                                            >
-                                              Cancel
-                                            </Button>
-                                          </div>
-                                        </div>
-                                      ) : (
-                                        <div className="flex items-center gap-2">
-                                          <h3 className="font-semibold text-sm sm:text-base text-foreground truncate flex-1">
-                                            {meeting.title}
-                                          </h3>
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => handleStartEdit(meeting.id, meeting.title)}
-                                            className="text-xs h-7 px-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                                            title="Edit meeting name"
-                                          >
-                                            <Edit className="h-3 w-3" />
-                                          </Button>
-                                        </div>
-                                      )}
-                                      <div className="flex flex-wrap items-center gap-1 sm:gap-2 text-xs text-muted-foreground mt-1">
-                                        <div className="flex items-center gap-1">
-                                          <Calendar className="h-3 w-3" />
-                                          <span>{new Date(meeting.start_time).toLocaleDateString()}</span>
-                                        </div>
-                                        <div className="flex items-center gap-1">
-                                          <Clock className="h-3 w-3" />
-                                          <span>{new Date(meeting.start_time).toLocaleTimeString()}</span>
-                                        </div>
-                                        {meeting.duration_minutes && (
-                                          <div className="flex items-center gap-1">
-                                            <Clock className="h-3 w-3" />
-                                            <span>{meeting.duration_minutes}m</span>
-                                          </div>
-                                        )}
-                                        {meeting.word_count && (
-                                          <span className="text-primary font-medium">
-                                            {meeting.word_count} words
-                                          </span>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </div>
+                <div className="flex gap-2">
+                  {isSelectMode && selectedMeetings.length > 0 && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button 
+                          variant="destructive" 
+                          size="sm"
+                          className="touch-manipulation min-h-[44px] text-xs sm:text-sm"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete Selected ({selectedMeetings.length})
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="mx-4 max-w-md">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Selected Meetings</AlertDialogTitle>
+                          <AlertDialogDescription className="text-sm">
+                            This action will permanently delete {selectedMeetings.length} meeting{selectedMeetings.length > 1 ? 's' : ''}, their transcripts, and summaries. This cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                          <AlertDialogCancel className="touch-manipulation min-h-[44px]">
+                            Cancel
+                          </AlertDialogCancel>
+                          <AlertDialogAction 
+                            onClick={handleDeleteSelected}
+                            className="bg-destructive hover:bg-destructive/90 touch-manipulation min-h-[44px]"
+                          >
+                            Delete Selected
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
 
-                              {/* Action Buttons */}
-                              <div className="flex flex-wrap gap-1 sm:gap-2 mt-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => toast.info("Meeting notes will open in a future update. For now, use the standalone Meeting History page.")}
-                                  className="text-xs h-8 px-2 sm:px-3"
-                                >
-                                  <FileText className="h-3 w-3 mr-1" />
-                                  View Notes
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => toast.info("Transcript view will open in a future update. For now, use the standalone Meeting History page.")}
-                                  className="text-xs h-8 px-2 sm:px-3"
-                                >
-                                  <FileText className="h-3 w-3 mr-1" />
-                                  Transcript
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleEditMeeting(meeting.id)}
-                                  className="text-xs h-8 px-2 sm:px-3"
-                                >
-                                  <Edit className="h-3 w-3 mr-1" />
-                                  Edit
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleDeleteMeeting(meeting.id)}
-                                  className="text-xs h-8 px-2 sm:px-3 text-destructive hover:text-destructive"
-                                >
-                                  <Trash2 className="h-3 w-3 mr-1" />
-                                  Delete
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))
-                )}
+                  {meetings.length > 0 && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button 
+                          variant="destructive" 
+                          size="sm"
+                          className="touch-manipulation min-h-[44px] text-xs sm:text-sm"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete All
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="mx-4 max-w-md">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete All Meetings</AlertDialogTitle>
+                          <AlertDialogDescription className="text-sm">
+                            This action will permanently delete all {meetings.length} meeting{meetings.length > 1 ? 's' : ''}, their transcripts, and summaries. This cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                          <AlertDialogCancel className="touch-manipulation min-h-[44px]">
+                            Cancel
+                          </AlertDialogCancel>
+                          <AlertDialogAction 
+                            onClick={handleDeleteAll}
+                            className="bg-destructive hover:bg-destructive/90 touch-manipulation min-h-[44px]"
+                          >
+                            Delete All
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
+                </div>
               </div>
-            </CardContent>
-          </Card>
+            )}
+          </div>
+
+          {/* Meetings List */}
+          <MeetingHistoryList 
+            meetings={filteredMeetings}
+            onEdit={(meetingId) => navigate(`/meeting-summary`, { state: { id: meetingId } })}
+            onViewSummary={(meetingId) => toast.info("Meeting notes will open in a future update. For now, use the standalone Meeting History page.")}
+            onViewTranscript={(meetingId) => toast.info("Transcript view will open in a future update. For now, use the standalone Meeting History page.")}
+            onDelete={handleDeleteMeeting}
+            loading={loadingHistory}
+            isSelectMode={isSelectMode}
+            selectedMeetings={selectedMeetings}
+            onSelectMeeting={(meetingId, isSelected) => {
+              if (isSelected) {
+                setSelectedMeetings(prev => [...prev, meetingId]);
+              } else {
+                setSelectedMeetings(prev => prev.filter(id => id !== meetingId));
+              }
+            }}
+            onMeetingUpdate={(meetingId, updatedTitle) => {
+              setMeetings(prev => prev.map(meeting => 
+                meeting.id === meetingId 
+                  ? { ...meeting, title: updatedTitle }
+                  : meeting
+              ));
+            }}
+            showRecordingPlayback={false}
+          />
         </TabsContent>
 
         {/* Mic Test Service Tab */}
