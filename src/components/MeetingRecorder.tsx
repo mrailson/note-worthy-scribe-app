@@ -3931,6 +3931,25 @@ export const MeetingRecorder = ({
                   className="pl-10"
                 />
               </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={loadMeetingHistory}
+                className="whitespace-nowrap"
+                disabled={loadingHistory}
+              >
+                {loadingHistory ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Refreshing...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Check Latest
+                  </>
+                )}
+              </Button>
               {filteredMeetings.length > 0 && (
                 <span className="text-sm text-muted-foreground whitespace-nowrap">
                   {filteredMeetings.length} meeting{filteredMeetings.length > 1 ? 's' : ''}
@@ -4111,7 +4130,7 @@ export const MeetingRecorder = ({
       {/* Combined End-of-Meeting Modal */}
       {meetingEndModal.isOpen && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-background rounded-lg shadow-lg max-w-sm w-full mx-4 border border-border animate-scale-in">
+          <div className="bg-background rounded-lg shadow-lg max-w-md w-full mx-4 border border-border animate-scale-in">
             <div className="p-6 space-y-6">
               
               {/* Processing Stage */}
@@ -4206,9 +4225,9 @@ export const MeetingRecorder = ({
                   </div>
                   
                   <div className="space-y-3 text-sm">
-                    <div className="flex justify-between items-center py-2 border-b border-border">
+                    <div className="flex flex-col gap-2 py-2 border-b border-border">
                       <span className="text-muted-foreground">Meeting Name:</span>
-                      <span className="font-medium text-foreground">{meetingEndModal.savedData.title}</span>
+                      <span className="font-medium text-foreground text-wrap break-words">{meetingEndModal.savedData.title}</span>
                     </div>
                     
                     <div className="flex justify-between items-center py-2 border-b border-border">
