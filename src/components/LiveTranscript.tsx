@@ -256,11 +256,8 @@ export const LiveTranscript = ({
       console.log('🚨 DEBUG: Raw transcript length:', transcript.length);
       console.log('🚨 DEBUG: Processed transcript length:', processedTranscript.length);
       
-      // APPEND to growing raw transcript (this is the complete backup record)
-      setGrowingRawTranscript(prev => {
-        const newSegment = prev ? ` ${transcript}` : transcript;
-        return prev + newSegment;
-      });
+      // Simply use the transcript as is (it's already the full accumulated transcript from the parent)
+      setGrowingRawTranscript(transcript);
       
       // FIXED: Don't use streaming cleaner that accumulates - replace the entire cleaned transcript
       if (isAutoCleaningEnabled) {
