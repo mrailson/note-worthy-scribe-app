@@ -227,6 +227,37 @@ const PracticeImageMaker = () => {
   const [useTextOverlay, setUseTextOverlay] = useState(true);
   const [currentQuickPick, setCurrentQuickPick] = useState<typeof QUICK_PICKS[0] | null>(null);
   const [layoutOnlyImage, setLayoutOnlyImage] = useState<string | null>(null);
+  
+  // Photo Editing State
+  const [editMode, setEditMode] = useState(false);
+  const [editPhoto, setEditPhoto] = useState<File | null>(null);
+  const [editPhotoPreview, setEditPhotoPreview] = useState<string | null>(null);
+
+  const handleEditPhotoUpload = (file: File | null) => {
+    setEditPhoto(file);
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setEditPhotoPreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setEditPhotoPreview(null);
+    }
+  };
+
+  const handleEditModeToggle = (enabled: boolean) => {
+    setEditMode(enabled);
+    if (!enabled) {
+      setEditPhoto(null);
+      setEditPhotoPreview(null);
+      setPrompt("");
+    } else {
+      setUseTextOverlay(false); // Disable text overlay in edit mode
+      setCurrentQuickPick(null);
+      setPrompt("Transform this image with AI. Describe how you want to modify it.");
+    }
+  };
 
   const handleQuickPick = (quickPick: typeof QUICK_PICKS[0]) => {
     // Store the quickpick data for overlay mode
@@ -308,22 +339,17 @@ const PracticeImageMaker = () => {
       return;
     }
 
+    // Check if in edit mode but no photo uploaded
+    if (editMode && !editPhoto) {
+      toast.error("Please upload a photo to edit");
+      return;
+    }
+
     setIsGenerating(true);
     setCurrentImage(null);
     setLayoutOnlyImage(null);
 
     try {
-      const finalPrompt = assemblePrompt();
-      
-      // For overlay mode with quick picks, generate layout-only image
-      let enhancedPrompt;
-      if (useTextOverlay && currentQuickPick) {
-        enhancedPrompt = finalPrompt + "\n\nIMPORTANT: Generate layout only with grey placeholder rectangles. NO TEXT CONTENT. Use NHS colors and professional layout.";
-      } else {
-        // Add instruction for exact text usage to prevent lorem ipsum
-        enhancedPrompt = finalPrompt + "\n\nIMPORTANT: Insert the following text exactly as written, in clear large lettering, using the chosen style. Do not change or invent words.";
-      }
-      
       // Determine size for API
       let apiSize = "1024x1024";
       if (selectedSize.includes("A4")) {
@@ -344,10 +370,32 @@ const PracticeImageMaker = () => {
 
       // Create FormData for the advanced-image-generation function
       const formData = new FormData();
-      formData.append('prompt', enhancedPrompt);
-      formData.append('size', validApiSize);
-      formData.append('quality', 'high');
-      formData.append('mode', 'generation');
+      
+      if (editMode && editPhoto) {
+        // Photo editing mode
+        formData.append('prompt', prompt);
+        formData.append('image', editPhoto);
+        formData.append('mode', 'edit');
+        formData.append('size', validApiSize);
+        formData.append('quality', 'high');
+      } else {
+        // Normal generation mode
+        const finalPrompt = assemblePrompt();
+        
+        // For overlay mode with quick picks, generate layout-only image
+        let enhancedPrompt;
+        if (useTextOverlay && currentQuickPick) {
+          enhancedPrompt = finalPrompt + "\n\nIMPORTANT: Generate layout only with grey placeholder rectangles. NO TEXT CONTENT. Use NHS colors and professional layout.";
+        } else {
+          // Add instruction for exact text usage to prevent lorem ipsum
+          enhancedPrompt = finalPrompt + "\n\nIMPORTANT: Insert the following text exactly as written, in clear large lettering, using the chosen style. Do not change or invent words.";
+        }
+        
+        formData.append('prompt', enhancedPrompt);
+        formData.append('size', validApiSize);
+        formData.append('quality', 'high');
+        formData.append('mode', 'generation');
+      }
 
       const { data, error } = await supabase.functions.invoke('advanced-image-generation', {
         body: formData
@@ -358,7 +406,7 @@ const PracticeImageMaker = () => {
       }
 
       if (data.success) {
-        if (useTextOverlay && currentQuickPick) {
+        if (useTextOverlay && currentQuickPick && !editMode) {
           // Store as layout-only image for overlay mode
           setLayoutOnlyImage(data.imageData);
           setCurrentImage(data.imageData); // Also set as current for fallback
@@ -368,21 +416,23 @@ const PracticeImageMaker = () => {
         
         // Add to history
         const newResult: ImageResult = {
-          prompt: finalPrompt,
-          options: { size: selectedSize, style: selectedStyle },
+          prompt: editMode ? `Edit: ${prompt}` : prompt,
+          options: { size: selectedSize, style: selectedStyle, editMode },
           imageUrl: data.imageData,
           createdAt: new Date(),
-          altText: `Poster for ${practiceName || 'GP practice'} about ${prompt.split('.')[0]}. ${selectedStyle} layout, high-contrast colours.`
+          altText: editMode 
+            ? `Edited image: ${prompt}`
+            : `Poster for ${practiceName || 'GP practice'} about ${prompt.split('.')[0]}. ${selectedStyle} layout, high-contrast colours.`
         };
         
         setImageHistory(prev => [newResult, ...prev].slice(0, 12));
-        toast.success("Image generated successfully!");
+        toast.success(editMode ? "Photo edited successfully!" : "Image generated successfully!");
       } else {
         throw new Error(data.error || "Failed to generate image");
       }
     } catch (error: any) {
       console.error("Error generating image:", error);
-      toast.error(error.message || "Failed to generate image");
+      toast.error(error.message || (editMode ? "Failed to edit photo" : "Failed to generate image"));
     } finally {
       setIsGenerating(false);
     }
@@ -541,6 +591,102 @@ const PracticeImageMaker = () => {
               </Collapsible>
             </Card>
 
+            {/* Photo Editing Mode */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <ImageIcon className="h-5 w-5" />
+                    <CardTitle>Photo Editing Mode</CardTitle>
+                  </div>
+                  <Switch
+                    id="edit-mode"
+                    checked={editMode}
+                    onCheckedChange={handleEditModeToggle}
+                  />
+                </div>
+                {editMode && (
+                  <p className="text-sm text-muted-foreground">
+                    Upload a photo and transform it with AI prompts like "turn this into a cartoon" or "make it look vintage"
+                  </p>
+                )}
+              </CardHeader>
+              {editMode && (
+                <CardContent className="space-y-4">
+                  {/* Photo Upload */}
+                  <div>
+                    <Label>Upload Photo to Edit</Label>
+                    <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4 text-center">
+                      <input
+                        type="file"
+                        accept=".png,.jpg,.jpeg,.webp"
+                        onChange={(e) => handleEditPhotoUpload(e.target.files?.[0] || null)}
+                        className="hidden"
+                        id="edit-photo-upload"
+                      />
+                      <label htmlFor="edit-photo-upload" className="cursor-pointer">
+                        {editPhotoPreview ? (
+                          <div className="space-y-2">
+                            <img
+                              src={editPhotoPreview}
+                              alt="Photo to edit"
+                              className="max-h-32 mx-auto rounded"
+                            />
+                            <p className="text-sm text-muted-foreground">{editPhoto?.name}</p>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handleEditPhotoUpload(null);
+                              }}
+                            >
+                              <X className="h-4 w-4 mr-1" />
+                              Remove
+                            </Button>
+                          </div>
+                        ) : (
+                          <>
+                            <Upload className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
+                            <p className="text-sm text-muted-foreground">
+                              Click to upload a photo to transform
+                            </p>
+                            <p className="text-xs text-muted-foreground/70 mt-1">
+                              PNG/JPG/WebP up to 4MB
+                            </p>
+                          </>
+                        )}
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Edit Prompt Examples */}
+                  <div className="space-y-2">
+                    <Label>Try these editing prompts:</Label>
+                    <div className="grid grid-cols-1 gap-1">
+                      {[
+                        "Turn this into a cartoon style",
+                        "Make it look like a vintage poster",
+                        "Transform into a watercolor painting", 
+                        "Create a professional headshot version",
+                        "Add NHS branding elements"
+                      ].map((example, idx) => (
+                        <Button
+                          key={idx}
+                          variant="ghost"
+                          size="sm"
+                          className="h-auto p-2 text-left justify-start text-xs"
+                          onClick={() => setPrompt(example)}
+                        >
+                          "{example}"
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              )}
+            </Card>
+
             {/* Create Your Own */}
             <Card>
               <CardHeader>
@@ -554,7 +700,9 @@ const PracticeImageMaker = () => {
                   <Label htmlFor="prompt">Describe what you need</Label>
                   <Textarea
                     id="prompt"
-                    placeholder="What do you need? e.g., 'A4 poster: Phone queue tips with best times to call, clear steps, friendly tone.'"
+                    placeholder={editMode 
+                      ? "Describe how you want to transform your photo (e.g., 'Turn this into a professional NHS poster style', 'Make it look like a cartoon', 'Add vintage filter effects')" 
+                      : "What do you need? e.g., 'A4 poster: Phone queue tips with best times to call, clear steps, friendly tone.'"}
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
                     rows={4}
@@ -672,17 +820,20 @@ const PracticeImageMaker = () => {
 
                 <Button 
                   onClick={handleGenerate}
-                  disabled={isGenerating || !prompt.trim()}
+                  disabled={isGenerating || !prompt.trim() || (editMode && !editPhoto)}
                   className="w-full"
                   size="lg"
                 >
                   {isGenerating ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Generating...
+                      {editMode ? "Editing..." : "Generating..."}
                     </>
                   ) : (
-                    "Generate"
+                    <>
+                      <ImageIcon className="mr-2 h-4 w-4" />
+                      {editMode ? "Transform Photo" : "Generate Image"}
+                    </>
                   )}
                 </Button>
 
