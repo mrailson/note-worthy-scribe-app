@@ -890,7 +890,15 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       }
     } catch (error) {
       console.error('Error regenerating meeting notes:', error);
-      toast.error("Failed to regenerate meeting notes");
+      
+      // Check for specific Claude API overload error
+      if (error?.message?.includes('Overloaded') || error?.message?.includes('overloaded')) {
+        toast.error("Claude AI is currently overloaded. Please try again in a few moments.");
+      } else if (error?.message?.includes('timeout')) {
+        toast.error("Request timed out. Please try again.");
+      } else {
+        toast.error("Failed to regenerate meeting notes. Please try again.");
+      }
     } finally {
       setIsGenerating(false);
     }
