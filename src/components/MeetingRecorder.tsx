@@ -88,6 +88,29 @@ export const MeetingRecorder = ({
       preview: cleanedMasterTranscript?.substring(0, 100) + (cleanedMasterTranscript?.length > 100 ? '...' : '')
     });
   }, [cleanedMasterTranscript]);
+
+  // Update word count every 15 seconds from cleaned transcript
+  useEffect(() => {
+    const updateWordCount = () => {
+      // Use cleanedMasterTranscript when available, fall back to raw transcript
+      const sourceText = cleanedMasterTranscript || transcript || "";
+      if (sourceText) {
+        const words = sourceText.split(/\s+/).filter(word => word.length > 0);
+        const actualWordCount = words.length;
+        console.log('🔍 Word count updated from cleaned transcript:', actualWordCount, 'words');
+        setWordCount(actualWordCount);
+        onWordCountUpdate(actualWordCount);
+      }
+    };
+
+    // Update immediately
+    updateWordCount();
+
+    // Then update every 15 seconds
+    const interval = setInterval(updateWordCount, 15000);
+
+    return () => clearInterval(interval);
+  }, [cleanedMasterTranscript, transcript, onWordCountUpdate]);
   const [realtimeTranscripts, setRealtimeTranscripts] = useState<TranscriptData[]>([]);
   const [removedSegments, setRemovedSegments] = useState<RemovedSegment[]>([]);
   
@@ -731,14 +754,8 @@ export const MeetingRecorder = ({
             return newTranscript;
           });
 
-          // Update word count with immediate feedback
-          const words = transcriptionText.split(/\s+/).filter(word => word.length > 0);
-          setWordCount(prev => {
-            const newCount = prev + words.length;
-            console.log(`📊 Word count updated: ${newCount} words (+${words.length})`);
-            onWordCountUpdate(newCount);
-            return newCount;
-          });
+          // Skip individual word count updates - let the 15-second interval handle it
+          console.log(`📊 Skipping individual word count update - handled by interval from cleaned transcript`);
 
           // Create transcript data for live display
           const transcriptData: TranscriptData = {

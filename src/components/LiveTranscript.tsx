@@ -103,6 +103,9 @@ export const LiveTranscript = ({
   const [isEditingCleaned, setIsEditingCleaned] = useState(false);
   const [editedCleanedText, setEditedCleanedText] = useState("");
   
+  // Separate timestamp toggle for copy/download functions
+  const [showTimestampsInCopy, setShowTimestampsInCopy] = useState(true);
+  
   // Load user's practices (with refetch when selector opens)
   const fetchUserPractices = async () => {
     if (!user?.id) return;
@@ -250,13 +253,15 @@ export const LiveTranscript = ({
     // NEVER clear liveTranscriptText - always preserve transcript history
   }, [transcript, isAutoCleaningEnabled, cleanedTranscript, isMedicalCorrectionsLoaded]);
 
-  // Notify parent when cleaned transcript changes
+  // Notify parent when cleaned transcript changes with formatted version
   useEffect(() => {
     if (onCleanedTranscriptChange && cleanedTranscript) {
-      console.log('🔍 Sending cleaned transcript to parent:', cleanedTranscript.length, 'chars');
-      onCleanedTranscriptChange(cleanedTranscript);
+      // Send formatted transcript that matches what users see in the display
+      const formattedTranscript = getFormattedTranscriptForHistory();
+      console.log('🔍 Sending formatted transcript to parent:', formattedTranscript.length, 'chars');
+      onCleanedTranscriptChange(formattedTranscript);
     }
-  }, [cleanedTranscript, onCleanedTranscriptChange]);
+  }, [cleanedTranscript, onCleanedTranscriptChange, showTimestampsInCopy]);
 
   // Handle text selection for corrections
   const handleTextSelection = () => {
@@ -336,18 +341,48 @@ export const LiveTranscript = ({
     return text.split(/[.!?]+/).filter(s => s.trim()).map(s => s.trim() + '.').join('\n\n');
   };
 
-  // Build formatted cleaned text (paragraphs separated by blank lines)
+  // Format transcript for copy/download with proper formatting and optional timestamps
   const getFormattedCleanedText = () => {
-    // If we have a cleaned transcript, use it directly without further processing
-    if (cleanedTranscript) {
-      console.log('🔍 Using cleaned transcript directly:', cleanedTranscript.length, 'chars');
-      return cleanedTranscript;
+    const sourceText = cleanedTranscript || transcript || "";
+    if (!sourceText) return "";
+
+    console.log('🔍 Formatting transcript for copy/download:', sourceText.length, 'chars');
+
+    // Apply the same formatting logic used in display (lines 720-749)
+    if (showTimestampsInCopy) {
+      // Format with timestamps - split by sentences and add timestamps
+      return sourceText.split(/[.!?]+/).filter(s => s.trim()).map((sentence, index) => {
+        const timestamp = new Date();
+        timestamp.setSeconds(timestamp.getSeconds() + (index * 10));
+        const timeStr = timestamp.toLocaleTimeString('en-GB', { 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        });
+        return `[${timeStr}] ${sentence.trim()}.`;
+      }).join('\n\n');
+    } else {
+      // Format without timestamps but maintain line spacing for readability
+      return sourceText.split(/[.!?]+/).filter(s => s.trim()).map(s => s.trim() + '.').join('\n\n');
     }
-    
-    // Otherwise, format the raw transcript
-    const base = transcript || "";
-    console.log('🔍 Formatting raw transcript:', base.length, 'chars');
-    return formatTranscriptWithTimestamps(base);
+  };
+
+  // Format transcript for meeting history (always with timestamps for professional records)
+  const getFormattedTranscriptForHistory = () => {
+    const sourceText = cleanedTranscript || transcript || "";
+    if (!sourceText) return "";
+
+    console.log('🔍 Formatting transcript for meeting history:', sourceText.length, 'chars');
+
+    // Always include timestamps in meeting history for professional documentation
+    return sourceText.split(/[.!?]+/).filter(s => s.trim()).map((sentence, index) => {
+      const timestamp = new Date();
+      timestamp.setSeconds(timestamp.getSeconds() + (index * 10));
+      const timeStr = timestamp.toLocaleTimeString('en-GB', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
+      return `[${timeStr}] ${sentence.trim()}.`;
+    }).join('\n\n');
   };
 
   // Build simple HTML preserving paragraph spacing
@@ -668,17 +703,27 @@ export const LiveTranscript = ({
                     </Badge>
                   </div>
 
-                  {/* Action buttons */}
-                  <div className="mb-2 flex items-center gap-2 flex-wrap">
-                    {/* Copy and Download buttons (always visible when transcript exists) */}
-                    <>
-                      <Button size="sm" variant="outline" onClick={handleCopyCleaned}>
-                        <Copy className="h-4 w-4 mr-2" /> Copy Cleaned
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={handleDownloadWord}>
-                        <FileDown className="h-4 w-4 mr-2" /> Download Word
-                      </Button>
-                    </>
+                   {/* Action buttons */}
+                   <div className="mb-2 flex items-center gap-2 flex-wrap">
+                     {/* Timestamp toggle for copy/download */}
+                     <Button 
+                       size="sm" 
+                       variant={showTimestampsInCopy ? "default" : "outline"}
+                       onClick={() => setShowTimestampsInCopy(!showTimestampsInCopy)}
+                     >
+                       <Clock className="h-4 w-4 mr-2" />
+                       {showTimestampsInCopy ? 'Hide' : 'Show'} Timestamps
+                     </Button>
+                     
+                     {/* Copy and Download buttons (always visible when transcript exists) */}
+                     <>
+                       <Button size="sm" variant="outline" onClick={handleCopyCleaned}>
+                         <Copy className="h-4 w-4 mr-2" /> Copy Cleaned
+                       </Button>
+                       <Button size="sm" variant="outline" onClick={handleDownloadWord}>
+                         <FileDown className="h-4 w-4 mr-2" /> Download Word
+                       </Button>
+                     </>
                     
                     {/* Edit controls */}
                     {!isEditingCleaned ? (
