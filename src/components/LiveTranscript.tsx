@@ -225,7 +225,7 @@ export const LiveTranscript = ({
     };
   }, [user?.id, isMedicalCorrectionsLoaded]);
 
-  // Update live transcript text when transcript prop changes (RAW TRANSCRIPT ONLY)
+  // Update live transcript text when transcript prop changes
   useEffect(() => {
     if (transcript && transcript.trim()) {
       let processedTranscript = transcript;
@@ -235,43 +235,18 @@ export const LiveTranscript = ({
         processedTranscript = medicalTermCorrector.applyCorrections(transcript);
       }
       
-      console.log('🔄 Processing raw transcript update (length:', processedTranscript.length, ')');
-      console.log('🔄 Current cleanedTranscript length:', cleanedTranscript.length);
-      console.log('🔄 New transcript chunk:', processedTranscript.substring(0, 100) + '...');
-      
-      // Always accumulate transcript history - NEVER overwrite
+      // Always keep the full transcript history - no clearing
       if (isAutoCleaningEnabled) {
-        // Use streaming cleaner with confidence filtering for live display
-        const cleanedNew = transcriptCleaner.cleanStreamingTranscript("", processedTranscript, confidence);
-        setLiveTranscriptText(prev => {
-          const accumulated = prev + (prev ? ' ' : '') + cleanedNew;
-          console.log('✨ Accumulated live transcript (length:', accumulated.length, ')');
-          return accumulated;
-        });
-        
-        // Always accumulate cleanedTranscript to ensure AI Enhanced section shows full content
-        setCleanedTranscript(prev => {
-          const accumulated = prev + (prev ? ' ' : '') + cleanedNew;
-          console.log('📋 Accumulated AI enhanced transcript (length:', accumulated.length, ')');
-          return accumulated;
-        });
+        // Use streaming cleaner with confidence filtering
+        const cleanedNew = transcriptCleaner.cleanStreamingTranscript(cleanedTranscript, processedTranscript, confidence);
+        setCleanedTranscript(cleanedNew);
+        setLiveTranscriptText(cleanedNew); // Show cleaned version
       } else {
-        setLiveTranscriptText(prev => {
-          const accumulated = prev + (prev ? ' ' : '') + processedTranscript;
-          console.log('📝 Accumulated live transcript raw (length:', accumulated.length, ')');
-          return accumulated;
-        });
-        
-        // Always accumulate cleanedTranscript to ensure AI Enhanced section shows full content
-        setCleanedTranscript(prev => {
-          const accumulated = prev + (prev ? ' ' : '') + processedTranscript;
-          console.log('📋 Accumulated AI enhanced transcript raw (length:', accumulated.length, ')');
-          return accumulated;
-        });
+        setLiveTranscriptText(processedTranscript); // Show processed version
       }
     }
-    // NEVER clear transcript states - always preserve transcript history
-  }, [transcript, isAutoCleaningEnabled, isMedicalCorrectionsLoaded]);
+    // NEVER clear liveTranscriptText - always preserve transcript history
+  }, [transcript, isAutoCleaningEnabled, cleanedTranscript, isMedicalCorrectionsLoaded]);
 
   // Handle text selection for corrections
   const handleTextSelection = () => {
@@ -644,11 +619,11 @@ export const LiveTranscript = ({
                       overflowWrap: 'break-word'
                     }}
                   >
-                     {transcript ? (
-                       <span className="text-foreground font-mono">
-                         {transcript.replace(/If silence or background noise, return nothing\.?\s*/gi, '').trim() || 'Processing...'}
-                       </span>
-                     ) : (
+                    {transcript ? (
+                      <span className="text-foreground font-mono">
+                        {transcript}
+                      </span>
+                    ) : (
                       <span className="text-muted-foreground italic">
                         Listening for speech... raw transcription will appear here
                       </span>
@@ -721,41 +696,41 @@ export const LiveTranscript = ({
                         onChange={(e) => setEditedCleanedText(e.target.value)}
                         rows={12}
                       />
-                     ) : (cleanedTranscript || liveTranscriptText) ? (
-                       <div className="space-y-2">
-                         <div className="text-foreground leading-relaxed whitespace-pre-wrap">
-                           {showTimestamps ? (
-                             // Display with timestamps - split by sentences and add timestamps
-                             (cleanedTranscript || liveTranscriptText).split(/[.!?]+/).filter(s => s.trim()).map((sentence, index) => {
-                               const timestamp = new Date();
-                               timestamp.setSeconds(timestamp.getSeconds() + (index * 10));
-                               const timeStr = timestamp.toLocaleTimeString('en-GB', { 
-                                 hour: '2-digit', 
-                                 minute: '2-digit' 
-                               });
-                               
-                               return (
-                                 <div key={index} className="flex items-start gap-3 p-2 hover:bg-accent/30 rounded-md transition-colors">
-                                   <div className="flex items-center gap-2 min-w-fit">
-                                     <Clock className="h-3 w-3 text-primary/70" />
-                                     <Badge variant="outline" className="text-xs px-2 py-0.5 font-mono">
-                                       {timeStr}
-                                     </Badge>
-                                   </div>
-                                   <span className="text-foreground leading-relaxed">
-                                     {sentence.trim()}.
-                                   </span>
-                                 </div>
-                               );
-                             })
-                           ) : (
-                             // Display without timestamps - show full accumulated transcript
-                             <div className="text-foreground leading-relaxed">
-                               {cleanedTranscript || liveTranscriptText}
-                             </div>
-                           )}
-                          </div>
-                        </div>
+                    ) : (cleanedTranscript || (transcript && isAutoCleaningEnabled)) ? (
+                      <div className="space-y-2">
+                        <div className="text-foreground leading-relaxed whitespace-pre-wrap">
+                          {showTimestamps ? (
+                            // Display with timestamps - split by sentences and add timestamps
+                            (cleanedTranscript || transcript).split(/[.!?]+/).filter(s => s.trim()).map((sentence, index) => {
+                              const timestamp = new Date();
+                              timestamp.setSeconds(timestamp.getSeconds() + (index * 10));
+                              const timeStr = timestamp.toLocaleTimeString('en-GB', { 
+                                hour: '2-digit', 
+                                minute: '2-digit' 
+                              });
+                              
+                              return (
+                                <div key={index} className="flex items-start gap-3 p-2 hover:bg-accent/30 rounded-md transition-colors">
+                                  <div className="flex items-center gap-2 min-w-fit">
+                                    <Clock className="h-3 w-3 text-primary/70" />
+                                    <Badge variant="outline" className="text-xs px-2 py-0.5 font-mono">
+                                      {timeStr}
+                                    </Badge>
+                                  </div>
+                                  <span className="text-foreground leading-relaxed">
+                                    {sentence.trim()}.
+                                  </span>
+                                </div>
+                              );
+                            })
+                          ) : (
+                            // Display without timestamps - show full accumulated transcript
+                            <div className="text-foreground leading-relaxed">
+                              {cleanedTranscript || transcript}
+                            </div>
+                          )}
+                         </div>
+                       </div>
                      ) : (
                        <span className="text-muted-foreground italic">
                          AI-cleaned and formatted transcript will appear here with timestamps...

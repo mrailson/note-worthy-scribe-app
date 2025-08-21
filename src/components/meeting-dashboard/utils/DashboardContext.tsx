@@ -6,9 +6,6 @@ interface MeetingConfig {
   attendees: any[];
   agenda: string;
   agendaFiles: any[];
-  contextFiles: any[];
-  contextText: string;
-  uploadingFiles: Set<string>;
 }
 
 interface DashboardContextType {
@@ -30,23 +27,11 @@ const DashboardContext = createContext<DashboardContextType | undefined>(undefin
 
 export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   const [meetingConfig, setMeetingConfig] = useState<MeetingConfig>({
-    title: `Meeting - ${new Date().toLocaleDateString('en-GB', { 
-      weekday: 'short', 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    })} (${new Date().toLocaleTimeString('en-GB', { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: true 
-    })})`,
-    format: "f2f",
+    title: "",
+    format: "teams",
     attendees: [],
     agenda: "",
-    agendaFiles: [],
-    contextFiles: [],
-    contextText: "",
-    uploadingFiles: new Set()
+    agendaFiles: []
   });
 
   const [validationCorrections, setValidationCorrections] = useState(new Map<string, string>());

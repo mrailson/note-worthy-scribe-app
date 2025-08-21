@@ -31,7 +31,6 @@ import { SharedMeetingsManager } from "@/components/SharedMeetingsManager";
 import { LiveTranscript } from "@/components/LiveTranscript";
 import { DashboardLauncher } from "@/components/meeting-dashboard/DashboardLauncher";
 import { RealtimeMeetingDashboard } from "@/components/meeting-dashboard/RealtimeMeetingDashboard";
-import { CumulativeTranscriptModal } from "@/components/CumulativeTranscriptModal";
 
 import { NotewellAIAnimation } from "@/components/NotewellAIAnimation";
 
@@ -45,7 +44,6 @@ import { DesktopWhisperTranscriber, TranscriptData as DesktopTranscriptData } fr
 import { IncrementalTranscriptHandler, IncrementalTranscriptData } from '@/utils/IncrementalTranscriptHandler';
 import { StereoAudioCapture } from '@/utils/StereoAudioCapture';
 import { transcriptCleaner, RemovedSegment } from '@/utils/TranscriptCleaner';
-import { useTranscriptDeduplication } from '@/hooks/useTranscriptDeduplication';
 import { detectDevice, logDeviceInfo, getRecommendedTranscriber } from '@/utils/DeviceDetection';
 
 interface TranscriptData {
@@ -53,15 +51,6 @@ interface TranscriptData {
   speaker: string;
   confidence: number;
   timestamp: string;
-  isFinal: boolean;
-}
-
-interface CumulativeTranscriptSection {
-  id: string;
-  text: string;
-  speaker: string;
-  timestamp: string;
-  confidence: number;
   isFinal: boolean;
 }
 
@@ -158,16 +147,6 @@ export const MeetingRecorder = ({
   const [transcriptModalOpen, setTranscriptModalOpen] = useState(false);
   const [currentMeetingForTranscript, setCurrentMeetingForTranscript] = useState<any>(null);
   
-  // Cumulative transcript modal state
-  const [cumulativeTranscriptModalOpen, setCumulativeTranscriptModalOpen] = useState(false);
-  
-  // Enhanced transcript deduplication
-  const transcriptDeduplication = useTranscriptDeduplication();
-  
-  // Silence detection state
-  const [consecutiveSilenceCount, setConsecutiveSilenceCount] = useState(0);
-  const [lastSilenceMessageShown, setLastSilenceMessageShown] = useState(false);
-  
   // Dashboard state
   const [dashboardOpen, setDashboardOpen] = useState(false);
   // Combined modal state for end-of-meeting process
@@ -230,9 +209,6 @@ export const MeetingRecorder = ({
     setSelectedMeetings([]);
     setIsSelectMode(false);
     setDeleteConfirmation("");
-    
-    // Clear transcript deduplication
-    transcriptDeduplication.clearSections();
     setMeetingSettings({
       title: "General Meeting",
       description: "",
@@ -1140,41 +1116,6 @@ export const MeetingRecorder = ({
   }, [onTranscriptUpdate, onWordCountUpdate, tickerEnabled]);
 
   const handleTranscript = (transcriptData: TranscriptData) => {
-    // Check for silence message pattern
-    const isSilenceMessage = transcriptData.text.toLowerCase().includes('if silence or background noise, return nothing');
-    
-    if (isSilenceMessage) {
-      setConsecutiveSilenceCount(prev => {
-        const newCount = prev + 1;
-        
-        // Only add a silence message after 3+ consecutive silence detections
-        if (newCount >= 3 && !lastSilenceMessageShown) {
-          setLastSilenceMessageShown(true);
-          
-          // Create a silence notification for cumulative transcript
-          const silenceSection = {
-            id: `silence_${Date.now()}`,
-            text: "Silence or No Speech Detected",
-            speaker: "System",
-            timestamp: transcriptData.timestamp,
-            confidence: 1.0,
-            isFinal: true
-          };
-          
-          transcriptDeduplication.addSection(silenceSection);
-        }
-        
-        return newCount;
-      });
-      
-      // Don't process silence messages further
-      return;
-    } else {
-      // Reset silence counter when we get actual speech
-      setConsecutiveSilenceCount(0);
-      setLastSilenceMessageShown(false);
-    }
-
     // Convert to incremental transcript format
     const incrementalData: IncrementalTranscriptData = {
       text: transcriptData.text,
@@ -1189,19 +1130,6 @@ export const MeetingRecorder = ({
     if (transcriptHandler.current) {
       transcriptHandler.current.processTranscript(incrementalData);
     }
-
-    // Add to enhanced cumulative transcript with deduplication
-    const cumulativeSection = {
-      id: `${transcriptData.speaker}_${transcriptData.timestamp}_${Date.now()}`,
-      text: transcriptData.text,
-      speaker: transcriptData.speaker,
-      timestamp: transcriptData.timestamp,
-      confidence: transcriptData.confidence,
-      isFinal: transcriptData.isFinal
-    };
-
-    // Use the deduplication hook to manage sections
-    transcriptDeduplication.addSection(cumulativeSection);
 
     // Progressive pre-summaries: ingest transcript chunks for long sessions
     if (transcriptData.isFinal) {
@@ -2454,8 +2382,8 @@ export const MeetingRecorder = ({
       });
     }, 500);
     
-    // Wait 3 seconds while still recording to capture final chunks
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    // Wait 4 seconds while still recording to capture final chunks
+    await new Promise(resolve => setTimeout(resolve, 4000));
     clearInterval(phase1Interval);
     
     // Phase 2: Finalizing transcription (3 seconds)
@@ -3893,20 +3821,6 @@ export const MeetingRecorder = ({
 
 
         <TabsContent value="transcript" className="space-y-4 mt-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-lg font-semibold">Live Transcript</h3>
-              <p className="text-sm text-muted-foreground">Real-time transcription of the current meeting</p>
-            </div>
-            <Button
-              onClick={() => setCumulativeTranscriptModalOpen(true)}
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              <FileText className="h-4 w-4" />
-              View Full Transcript
-            </Button>
-          </div>
           <Card className="border-accent/30">
               <CardContent className="space-y-4">
               {/* Live Transcript with Enhanced Two-Section Layout */}
@@ -4363,20 +4277,35 @@ export const MeetingRecorder = ({
            />
          )}
 
-      {/* Cumulative Transcript Modal */}
-      <CumulativeTranscriptModal
-        isOpen={cumulativeTranscriptModalOpen}
-        onClose={() => setCumulativeTranscriptModalOpen(false)}
-        title={meetingSettings.title || "Meeting Transcript"}
-        sections={transcriptDeduplication.sections}
-        rawSections={transcriptDeduplication.rawSections}
-        duration={duration}
-        speakerCount={speakerCount}
-        wordCount={wordCount}
-        cleaningStats={transcriptDeduplication.cleaningStats}
-        deduplicationSettings={transcriptDeduplication.settings}
-        onUpdateSettings={transcriptDeduplication.updateSettings}
-      />
+      {/* Transcript Modal */}
+      {transcriptModalOpen && currentMeetingForTranscript && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-background rounded-lg shadow-lg max-w-4xl w-full max-h-[80vh] overflow-hidden border border-border">
+            <div className="flex items-center justify-between p-6 border-b border-border">
+              <div>
+                <h2 className="text-xl font-bold text-foreground">{currentMeetingForTranscript.title}</h2>
+                <p className="text-sm text-muted-foreground">Meeting Transcript</p>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setTranscriptModalOpen(false);
+                  setCurrentMeetingForTranscript(null);
+                }}
+                className="h-8 w-8 p-0"
+              >
+                ✕
+              </Button>
+            </div>
+            <div className="p-6 overflow-y-auto max-h-[60vh]">
+              <p className="text-sm text-muted-foreground mb-4">
+                Transcript functionality is not fully implemented in this tab. Please use the standalone Meeting History page for full transcript features.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Real-time Meeting Dashboard */}
       <RealtimeMeetingDashboard

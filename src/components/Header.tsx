@@ -104,7 +104,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent 
                   align="end" 
-                  className="bg-background border border-border shadow-lg w-48 max-w-[calc(100vw-1rem)] mr-2 sm:mr-0"
+                  className="bg-background border border-border shadow-lg w-48"
                 >
                    {hasModuleAccess('meeting_recorder') && (
                       <DropdownMenuItem 
@@ -211,7 +211,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                 </DropdownMenuTrigger>
                  <DropdownMenuContent 
                    align="end" 
-                   className="bg-background border border-border shadow-lg w-48 max-w-[calc(100vw-1rem)] mr-2 sm:mr-0 z-50"
+                   className="bg-background border border-border shadow-lg w-48 z-50"
                  >
                    <DropdownMenuItem 
                      onClick={() => setShowProfileModal(true)}

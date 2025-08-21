@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { SafeMessageRenderer } from "@/components/SafeMessageRenderer";
 import { ClaudeEnhancementModal } from "@/components/ClaudeEnhancementModal";
 import EnhancedFindReplacePanel from "@/components/EnhancedFindReplacePanel";
@@ -31,19 +31,8 @@ import {
   RefreshCw,
   ChevronUp,
   ChevronDown as ChevronDownIcon,
-  Undo,
-  List,
-  Minus,
-  Hash,
-  Dot,
-  Bold,
-  AlignCenter,
-  AlignLeft,
-  Space,
-  Minimize2,
-  Eraser
+  Undo
 } from "lucide-react";
-import { MeetingGenerationAnimation } from './MeetingGenerationAnimation';
 
 interface Meeting {
   id: string;
@@ -900,15 +889,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       }
     } catch (error) {
       console.error('Error regenerating meeting notes:', error);
-      
-      // Check for specific Claude API overload error
-      if (error?.message?.includes('Overloaded') || error?.message?.includes('overloaded')) {
-        toast.error("Claude AI is currently overloaded. Please try again in a few moments.");
-      } else if (error?.message?.includes('timeout')) {
-        toast.error("Request timed out. Please try again.");
-      } else {
-        toast.error("Failed to regenerate meeting notes. Please try again.");
-      }
+      toast.error("Failed to regenerate meeting notes");
     } finally {
       setIsGenerating(false);
     }
@@ -989,136 +970,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     
     // Final fallback: create a simple overview
     return `Meeting notes regenerated for ${meeting.title}. Detailed minutes available in the meeting notes.`;
-  };
-
-  // Format content based on the selected formatting type
-  const formatContent = (formatType: string) => {
-    const currentContent = getCurrentContent();
-    if (!currentContent) {
-      toast.error("No content to format");
-      return;
-    }
-
-    let formattedContent = currentContent;
-
-    try {
-      switch (formatType) {
-        case 'remove-bullets':
-          formattedContent = currentContent
-            .replace(/^(\s*)[•▪▫‣⁃]\s*/gm, '$1')
-            .replace(/^(\s*)[-*]\s*/gm, '$1')
-            .replace(/^(\s+)\d+\.\s+(?=[A-Za-z])/gm, '$1');
-          toast.success("All bullet points removed (spacing preserved)");
-          break;
-
-        case 'bullets-to-dashes':
-          formattedContent = currentContent
-            .replace(/^([\s]*)[•▪▫‣⁃]\s*/gm, '$1- ')
-            .replace(/^([\s]*)\d+\.\s*/gm, '$1- ');
-          toast.success("Changed bullets to dashes");
-          break;
-
-        case 'bullets-to-numbers':
-          let counter = 1;
-          formattedContent = currentContent.replace(/^([\s]*)[•▪▫‣⁃-]\s*/gm, () => {
-            return `${counter++}. `;
-          });
-          toast.success("Changed bullets to numbers");
-          break;
-
-        case 'dashes-to-bullets':
-          formattedContent = currentContent
-            .replace(/^([\s]*)[-]\s*/gm, '$1• ')
-            .replace(/^([\s]*)\d+\.\s*/gm, '$1• ');
-          toast.success("Changed dashes to bullets");
-          break;
-
-        case 'bold-titles':
-          // Bold common title patterns
-          formattedContent = currentContent
-            .replace(/^([A-Z][A-Z\s&]+):?$/gm, '**$1**')
-            .replace(/^(AGENDA ITEMS?|EXECUTIVE SUMMARY|MEETING DETAILS?|ACTION ITEMS?|DECISIONS?|NEXT STEPS?|FOLLOW[- ]?UP)([:\s]|$)/gm, '**$1**$2')
-            .replace(/^(\d+\.\s*[A-Z][A-Z\s&]+)$/gm, '**$1**')
-            .replace(/^([A-Z][a-z]+(?: [A-Z][a-z]+)*):$/gm, '**$1:**');
-          toast.success("Added bold formatting to titles");
-          break;
-
-        case 'unbold-titles':
-          formattedContent = currentContent
-            .replace(/\*\*([^*]+)\*\*/g, '$1')
-            .replace(/__([^_]+)__/g, '$1');
-          toast.success("Removed bold formatting from titles");
-          break;
-
-        case 'uppercase-titles':
-          formattedContent = currentContent.replace(/^([A-Z][a-z]+(?: [A-Z][a-z]+)*):(.*)$/gm, (match, title, rest) => {
-            return title.toUpperCase() + ':' + rest;
-          });
-          toast.success("Changed titles to uppercase");
-          break;
-
-        case 'sentence-case-titles':
-          formattedContent = currentContent.replace(/^([A-Z][A-Z\s&]+):(.*)$/gm, (match, title, rest) => {
-            const sentenceCase = title.charAt(0) + title.slice(1).toLowerCase();
-            return sentenceCase + ':' + rest;
-          });
-          toast.success("Changed titles to sentence case");
-          break;
-
-        case 'add-spacing':
-          formattedContent = currentContent
-            .replace(/\n\n/g, '\n\n\n')
-            .replace(/^([A-Z][A-Z\s&]+):?$/gm, '\n$1\n')
-            .replace(/\n{4,}/g, '\n\n\n');
-          toast.success("Added extra spacing between sections");
-          break;
-
-        case 'reduce-spacing':
-          formattedContent = currentContent
-            .replace(/\n{3,}/g, '\n\n')
-            .replace(/[ \t]+\n/g, '\n')
-            .replace(/\n[ \t]+/g, '\n');
-          toast.success("Reduced spacing between sections");
-          break;
-
-        case 'add-separators':
-          formattedContent = currentContent.replace(/^([A-Z][A-Z\s&]+):?$/gm, '\n---\n\n$1\n');
-          toast.success("Added section separators");
-          break;
-
-        case 'clean-format':
-          formattedContent = currentContent
-            .replace(/\*\*([^*]+)\*\*/g, '$1')
-            .replace(/__([^_]+)__/g, '$1')
-            .replace(/\*([^*]+)\*/g, '$1')
-            .replace(/`([^`]+)`/g, '$1')
-            .replace(/^#+\s*/gm, '')
-            .replace(/---+/g, '')
-            .replace(/\n{3,}/g, '\n\n')
-            .trim();
-          toast.success("Cleaned all formatting");
-          break;
-
-        default:
-          toast.error("Unknown formatting option");
-          return;
-      }
-
-      // Save current version before applying changes
-      saveCurrentVersion('format-' + formatType, activeTab as "notes" | "transcript");
-      
-      // Apply the formatted content
-      setCurrentContent(formattedContent);
-      
-      // Save to database if it's notes
-      if (activeTab === "notes") {
-        saveSummaryToDatabase(formattedContent);
-      }
-
-    } catch (error) {
-      console.error('Formatting error:', error);
-      toast.error("Failed to apply formatting");
-    }
   };
 
   const handleCustomInstructionSubmit = async () => {
@@ -1266,95 +1117,22 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                     </DropdownMenuSubContent>
                   </DropdownMenuSub>
                   
-                   <DropdownMenuSub>
-                     <DropdownMenuSubTrigger className="cursor-pointer">
-                       <Edit3 className="h-4 w-4 mr-2" />
-                       Edit
-                     </DropdownMenuSubTrigger>
-                     <DropdownMenuSubContent>
-                       <DropdownMenuItem onClick={() => setShowFindReplace(!showFindReplace)}>
-                         <Search className="h-4 w-4 mr-2" />
-                         Find and Replace
-                       </DropdownMenuItem>
-                       <DropdownMenuItem onClick={() => setShowCustomInstruction(!showCustomInstruction)}>
-                         <Mic className="h-4 w-4 mr-2" />
-                         Update Names and Terms
-                       </DropdownMenuItem>
-                       <DropdownMenuSeparator />
-                       <DropdownMenuSub>
-                         <DropdownMenuSubTrigger className="cursor-pointer">
-                           <List className="h-4 w-4 mr-2" />
-                           Format Lists
-                         </DropdownMenuSubTrigger>
-                         <DropdownMenuSubContent>
-                           <DropdownMenuItem onClick={() => formatContent('remove-bullets')}>
-                             <Minus className="h-4 w-4 mr-2" />
-                             Remove All Bullet Points
-                           </DropdownMenuItem>
-                           <DropdownMenuItem onClick={() => formatContent('bullets-to-dashes')}>
-                             <Minus className="h-4 w-4 mr-2" />
-                             Change Bullets to Dashes (-)
-                           </DropdownMenuItem>
-                           <DropdownMenuItem onClick={() => formatContent('bullets-to-numbers')}>
-                             <Hash className="h-4 w-4 mr-2" />
-                             Change Bullets to Numbers (1. 2. 3.)
-                           </DropdownMenuItem>
-                           <DropdownMenuItem onClick={() => formatContent('dashes-to-bullets')}>
-                             <Dot className="h-4 w-4 mr-2" />
-                             Change Dashes to Bullets (•)
-                           </DropdownMenuItem>
-                         </DropdownMenuSubContent>
-                       </DropdownMenuSub>
-                       <DropdownMenuSub>
-                         <DropdownMenuSubTrigger className="cursor-pointer">
-                           <Bold className="h-4 w-4 mr-2" />
-                           Format Text
-                         </DropdownMenuSubTrigger>
-                         <DropdownMenuSubContent>
-                           <DropdownMenuItem onClick={() => formatContent('bold-titles')}>
-                             <Bold className="h-4 w-4 mr-2" />
-                             Bold All Titles & Headers
-                           </DropdownMenuItem>
-                           <DropdownMenuItem onClick={() => formatContent('unbold-titles')}>
-                             <Type className="h-4 w-4 mr-2" />
-                             Remove Bold from Titles
-                           </DropdownMenuItem>
-                           <DropdownMenuItem onClick={() => formatContent('uppercase-titles')}>
-                             <AlignCenter className="h-4 w-4 mr-2" />
-                             UPPERCASE All Titles
-                           </DropdownMenuItem>
-                           <DropdownMenuItem onClick={() => formatContent('sentence-case-titles')}>
-                             <AlignLeft className="h-4 w-4 mr-2" />
-                             Sentence Case Titles
-                           </DropdownMenuItem>
-                         </DropdownMenuSubContent>
-                       </DropdownMenuSub>
-                       <DropdownMenuSub>
-                         <DropdownMenuSubTrigger className="cursor-pointer">
-                           <AlignLeft className="h-4 w-4 mr-2" />
-                           Format Structure
-                         </DropdownMenuSubTrigger>
-                         <DropdownMenuSubContent>
-                           <DropdownMenuItem onClick={() => formatContent('add-spacing')}>
-                             <Space className="h-4 w-4 mr-2" />
-                             Add More Spacing
-                           </DropdownMenuItem>
-                           <DropdownMenuItem onClick={() => formatContent('reduce-spacing')}>
-                             <Minimize2 className="h-4 w-4 mr-2" />
-                             Reduce Spacing
-                           </DropdownMenuItem>
-                           <DropdownMenuItem onClick={() => formatContent('add-separators')}>
-                             <Minus className="h-4 w-4 mr-2" />
-                             Add Section Separators
-                           </DropdownMenuItem>
-                           <DropdownMenuItem onClick={() => formatContent('clean-format')}>
-                             <Eraser className="h-4 w-4 mr-2" />
-                             Clean All Formatting
-                           </DropdownMenuItem>
-                         </DropdownMenuSubContent>
-                       </DropdownMenuSub>
-                     </DropdownMenuSubContent>
-                   </DropdownMenuSub>
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger className="cursor-pointer">
+                      <Edit3 className="h-4 w-4 mr-2" />
+                      Edit
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent>
+                      <DropdownMenuItem onClick={() => setShowFindReplace(!showFindReplace)}>
+                        <Search className="h-4 w-4 mr-2" />
+                        Find and Replace
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setShowCustomInstruction(!showCustomInstruction)}>
+                        <Mic className="h-4 w-4 mr-2" />
+                        Update Names and Terms
+                      </DropdownMenuItem>
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
                   
                   <DropdownMenuSub>
                     <DropdownMenuSubTrigger className="cursor-pointer">
@@ -1670,17 +1448,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
           </div>
         </div>
       </DialogContent>
-      
-      {/* Meeting Generation Animation Overlay */}
-      <MeetingGenerationAnimation
-        isVisible={isGenerating}
-        title="Generating Meeting Notes"
-        subtitle="Notewell AI is analyzing your transcript and creating comprehensive meeting notes"
-        estimatedTime={45}
-        onDismiss={() => {
-          setIsGenerating(false);
-        }}
-      />
     </Dialog>
   );
 };
