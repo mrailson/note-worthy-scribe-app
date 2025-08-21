@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -108,6 +108,10 @@ export const LiveTranscript = ({
   
   // Separate timestamp toggle for copy/download functions
   const [showTimestampsInCopy, setShowTimestampsInCopy] = useState(true);
+  
+  // Scroll refs for auto-scroll functionality
+  const latestTranscriptRef = useRef<HTMLDivElement>(null);
+  const enhancedTranscriptRef = useRef<HTMLDivElement>(null);
   
   // Load user's practices (with refetch when selector opens)
   const fetchUserPractices = async () => {
@@ -692,11 +696,13 @@ export const LiveTranscript = ({
                   </div>
                   
                   <div 
-                    className="text-sm leading-relaxed whitespace-pre-wrap min-h-[60px] p-3 bg-background/50 rounded-md border"
+                    ref={latestTranscriptRef}
+                    className="text-sm leading-relaxed whitespace-pre-wrap min-h-[60px] max-h-96 overflow-y-auto p-3 bg-background/50 rounded-md border scroll-smooth scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40"
                     style={{ 
                       transition: 'all 0.2s ease-in-out',
                       wordWrap: 'break-word',
-                      overflowWrap: 'break-word'
+                      overflowWrap: 'break-word',
+                      scrollbarWidth: 'thin'
                     }}
                   >
                     {transcript ? (
@@ -770,7 +776,8 @@ export const LiveTranscript = ({
                   </div>
                   
                    <div 
-                     className="text-sm leading-relaxed whitespace-pre-wrap min-h-[200px] max-h-[80vh] overflow-y-auto p-4 bg-background/80 rounded-md border border-primary/10 shadow-sm select-text cursor-text scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40"
+                     ref={enhancedTranscriptRef}
+                     className="text-sm leading-relaxed whitespace-pre-wrap min-h-[200px] max-h-96 lg:max-h-[32rem] overflow-y-auto p-4 bg-background/80 rounded-md border border-primary/10 shadow-sm select-text cursor-text scroll-smooth scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40"
                      style={{ 
                        transition: 'all 0.2s ease-in-out',
                        wordWrap: 'break-word',
