@@ -1007,7 +1007,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
           formattedContent = currentContent
             .replace(/^(\s*)[•▪▫‣⁃]\s*/gm, '$1')
             .replace(/^(\s*)[-*]\s*/gm, '$1')
-            .replace(/^(\s*)\d+\.\s+(?=[A-Za-z])/gm, '$1');
+            .replace(/^(\s+)\d+\.\s+(?=[A-Za-z])/gm, '$1');
           toast.success("All bullet points removed (spacing preserved)");
           break;
 
