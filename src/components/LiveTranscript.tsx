@@ -256,32 +256,38 @@ export const LiveTranscript = ({
       console.log('🚨 DEBUG: Raw transcript length:', transcript.length);
       console.log('🚨 DEBUG: Processed transcript length:', processedTranscript.length);
       
-      // APPEND new transcript content to growing raw transcript with smart deduplication
+      // Smart sentence-level deduplication for overlapping Whisper chunks
       setGrowingRawTranscript(prev => {
         // If no previous content, use the new transcript
         if (!prev) return transcript;
         
-        // If the new transcript is exactly the same as previous, don't duplicate
-        if (prev === transcript) return prev;
+        // Split both transcripts into sentences for comparison
+        const prevSentences = prev.split(/[.!?]+/).map(s => s.trim()).filter(s => s.length > 10);
+        const newSentences = transcript.split(/[.!?]+/).map(s => s.trim()).filter(s => s.length > 10);
         
-        // If new transcript is significantly longer and likely contains the previous content
-        // (Whisper often returns cumulative transcripts with slight variations)
-        if (transcript.length > prev.length * 0.8 && transcript.length > prev.length + 50) {
-          // Check if most of the previous content exists in the new transcript (with tolerance for variations)
-          const prevWords = prev.toLowerCase().split(/\s+/).filter(w => w.length > 3);
-          const newWords = transcript.toLowerCase().split(/\s+/);
-          const matchingWords = prevWords.filter(word => 
-            newWords.some(newWord => newWord.includes(word) || word.includes(newWord))
-          );
-          
-          // If 80% of significant words match, treat as cumulative update
-          if (matchingWords.length / prevWords.length > 0.8) {
-            return transcript;
-          }
+        // Find truly new sentences that aren't already in previous transcript
+        const uniqueNewSentences = newSentences.filter(newSentence => {
+          const newWords = newSentence.toLowerCase().split(/\s+/);
+          return !prevSentences.some(prevSentence => {
+            const prevWords = prevSentence.toLowerCase().split(/\s+/);
+            // Consider sentences similar if 80% of words match
+            const matchingWords = newWords.filter(word => 
+              prevWords.some(prevWord => 
+                Math.abs(word.length - prevWord.length) <= 2 && 
+                (word.includes(prevWord) || prevWord.includes(word) || word === prevWord)
+              )
+            );
+            return matchingWords.length / Math.max(newWords.length, 1) > 0.8;
+          });
+        });
+        
+        // If we have new sentences, append them
+        if (uniqueNewSentences.length > 0) {
+          return prev + (prev.endsWith('.') ? ' ' : '. ') + uniqueNewSentences.join('. ') + '.';
         }
         
-        // Otherwise, append as new content
-        return prev + ' ' + transcript;
+        // No new content found
+        return prev;
       });
       
       // FIXED: Don't use streaming cleaner that accumulates - replace the entire cleaned transcript
