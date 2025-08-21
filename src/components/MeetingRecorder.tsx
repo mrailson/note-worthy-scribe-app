@@ -29,6 +29,7 @@ import { WhisperHallucinationTestSuite } from "@/components/WhisperHallucination
 import { MicInputRecordingTester } from "@/components/MicInputRecordingTester";
 import { SharedMeetingsManager } from "@/components/SharedMeetingsManager";
 import { LiveTranscript } from "@/components/LiveTranscript";
+import { RawChunksDisplay } from "@/components/RawChunksDisplay";
 import { DashboardLauncher } from "@/components/meeting-dashboard/DashboardLauncher";
 import { RealtimeMeetingDashboard } from "@/components/meeting-dashboard/RealtimeMeetingDashboard";
 
@@ -79,6 +80,8 @@ export const MeetingRecorder = ({
   const [duration, setDuration] = useState(0);
   const [transcript, setTranscript] = useState("");
   const [realtimeTranscripts, setRealtimeTranscripts] = useState<TranscriptData[]>([]);
+  const [rawChunks, setRawChunks] = useState<Array<{id: number, text: string, timestamp: string, confidence?: number}>>([]);
+  const [chunkCounter, setChunkCounter] = useState(0);
   const [removedSegments, setRemovedSegments] = useState<RemovedSegment[]>([]);
   
   // Update removed segments periodically
@@ -196,6 +199,8 @@ export const MeetingRecorder = ({
     setDuration(0);
     setTranscript("");
     setRealtimeTranscripts([]);
+    setRawChunks([]);
+    setChunkCounter(0);
     setConnectionStatus("Disconnected");
     setSpeakerCount(0);
     setWordCount(0);
@@ -713,6 +718,16 @@ export const MeetingRecorder = ({
           
           const chunkTimestamp = new Date(startTime.getTime()).toLocaleTimeString();
           
+          // Add to raw chunks for display
+          const newChunk = {
+            id: chunkCounter + 1,
+            text: transcriptionText,
+            timestamp: chunkTimestamp,
+            confidence: confidence
+          };
+          setRawChunks(prev => [...prev, newChunk]);
+          setChunkCounter(prev => prev + 1);
+
           // Update the main transcript with immediate state update
           setTranscript(prev => {
             const newTranscript = prev + (prev ? ' ' : '') + transcriptionText;
@@ -3841,6 +3856,12 @@ export const MeetingRecorder = ({
                     meetingFormat: settings.meetingFormat
                   }));
                 }}
+              />
+              
+              {/* Raw Chunks Display */}
+              <RawChunksDisplay
+                chunks={rawChunks}
+                isRecording={isRecording}
               />
             </CardContent>
           </Card>
