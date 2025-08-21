@@ -51,10 +51,17 @@ serve(async (req) => {
 
     console.log('🎵 Audio file received:', audioFile.size, 'bytes, type:', audioFile.type);
 
-    // Create form data for OpenAI
+    // Create form data for OpenAI with ChatGPT's recommended settings
     const whisperFormData = new FormData();
     whisperFormData.append('file', audioFile, 'audio.webm');
     whisperFormData.append('model', 'whisper-1');
+    whisperFormData.append('language', 'en');
+    whisperFormData.append('temperature', '0.1'); // Low temperature for deterministic results
+    whisperFormData.append('response_format', 'verbose_json'); // Get word timestamps and confidence
+    
+    // Anti-hallucination prompt
+    const safetyPrompt = "Transcribe only clearly audible speech. If silence or background noise, return nothing.";
+    whisperFormData.append('prompt', safetyPrompt);
     
     console.log('📤 Sending to OpenAI Whisper...');
     
@@ -85,12 +92,41 @@ serve(async (req) => {
     const whisperResult = await whisperResponse.json();
     console.log('✅ Transcription successful:', whisperResult.text);
 
+    // Extract quality metrics and word timestamps
+    const segments = whisperResult.segments || [];
+    let avgLogprob = 0;
+    let noSpeechProb = 0;
+    let words: any[] = [];
+
+    if (segments.length > 0) {
+      avgLogprob = segments.reduce((sum: number, seg: any) => sum + (seg.avg_logprob || 0), 0) / segments.length;
+      noSpeechProb = segments.reduce((max: number, seg: any) => Math.max(max, seg.no_speech_prob ?? 0), 0);
+      
+      // Extract word-level timestamps
+      words = segments.flatMap((seg: any) => seg.words || []).map((w: any) => ({
+        word: w.word || w.text || '',
+        start: w.start || 0,
+        end: w.end || 0,
+        confidence: 1 - (w.probability || 0)
+      }));
+    }
+
+    // Filter out low-confidence transcriptions (ChatGPT's recommendation)
+    let cleanText = whisperResult.text || '';
+    if (noSpeechProb > 0.5 || avgLogprob < -1.0 || cleanText.length < 10) {
+      console.log('🤫 Filtering low-confidence transcription:', { noSpeechProb, avgLogprob, textLength: cleanText.length });
+      cleanText = '';
+      words = [];
+    }
+
     return new Response(JSON.stringify({
       success: true,
-      transcript: whisperResult.text || '',
-      confidence: 1.0,
-      words: [],
-      is_final: true
+      transcript: cleanText,
+      confidence: Math.max(0, 1 + avgLogprob), // Convert logprob to confidence score
+      words: words,
+      is_final: true,
+      no_speech_prob: noSpeechProb,
+      avg_logprob: avgLogprob
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

@@ -9,6 +9,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { transcriptCleaner } from "@/utils/TranscriptCleaner";
+import { streamingTranscriptCleaner } from "@/utils/StreamingTranscriptCleaner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { medicalTermCorrector } from "@/utils/MedicalTermCorrector";
 import { MedicalTermCorrectionDialog } from "@/components/MedicalTermCorrectionDialog";
@@ -298,20 +299,20 @@ export const LiveTranscript = ({
         return prev + ' ' + transcript;
       });
       
-      // FIXED: Don't use streaming cleaner that accumulates - replace the entire cleaned transcript
+      // ENHANCED: Use ChatGPT's advanced streaming cleaner with robust overlap detection
       if (isAutoCleaningEnabled) {
-        // Clean the entire processed transcript fresh each time
-        const cleanedNew = transcriptCleaner.cleanTranscript(processedTranscript, {
-          removeHallucinations: true,
-          fixGrammar: true,
-          addPunctuation: true,
-          removeFiller: false,
-          mergeFragments: true
+        const result = streamingTranscriptCleaner.processStreamingSegment({
+          text: processedTranscript,
+          timestamp: Date.now(),
+          confidence: 1.0,
+          is_final: true
         });
         
-        console.log('🚨 DEBUG: Cleaned transcript length:', cleanedNew.length);
-        setCleanedTranscript(cleanedNew);
-        setLiveTranscriptText(cleanedNew); // Show cleaned version
+        console.log('🧹 Advanced cleaning stats:', result.stats);
+        console.log('🚨 DEBUG: Cleaned transcript length:', result.text.length);
+        
+        setCleanedTranscript(result.text);
+        setLiveTranscriptText(result.text); // Show cleaned version
       } else {
         setLiveTranscriptText(processedTranscript); // Show processed version
       }

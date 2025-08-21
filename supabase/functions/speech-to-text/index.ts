@@ -40,9 +40,13 @@ serve(async (req) => {
     formData.append('file', audioBlob, 'audio.webm');
     formData.append('model', 'whisper-1');
     
-    // ChatGPT recommended parameters - use passed values or defaults
+    // ChatGPT recommended parameters - enhanced for better accuracy
     formData.append('language', language || 'en');  // UK accents + noisy rooms benefit from explicit language
-    formData.append('temperature', String(temperature ?? 0.0)); // Deterministic by default
+    formData.append('temperature', String(temperature ?? 0.1)); // Slightly higher for natural speech variation
+    
+    // Request word timestamps for advanced overlap detection
+    formData.append('response_format', 'verbose_json');
+    formData.append('timestamp_granularities[]', 'word');
     
     // Silence-safe prompt to reduce boilerplate hallucinations
     const safetyPrompt = "Transcribe only clearly audible speech. If silence or background noise, return nothing. Never output: 'This is a recording of the meeting recording in English.'";
@@ -111,15 +115,25 @@ serve(async (req) => {
       }
     }
     
+    // Extract word-level timestamps for advanced processing
+    const words = segments.flatMap((seg: any) => seg.words || []).map((w: any) => ({
+      word: w.word || w.text || '',
+      start: w.start || 0,
+      end: w.end || 0,
+      confidence: 1 - Math.abs(w.probability || 0)
+    }));
+
     return new Response(JSON.stringify({ 
       text: cleanText,
       avg_logprob: avg_logprob,
       no_speech_prob: no_speech_prob,
+      words: words, // Include word timestamps for overlap detection
       segments: segments.map((seg: any) => ({
         start: seg.start,
         end: seg.end,
         text: seg.text,
-        avg_logprob: seg.avg_logprob
+        avg_logprob: seg.avg_logprob,
+        words: seg.words || []
       }))
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
