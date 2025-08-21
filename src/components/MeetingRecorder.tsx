@@ -19,7 +19,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History, Search, Trash2, CheckSquare, SquareIcon, Monitor, Volume2, Waves, Video, Headphones, AlertCircle, RotateCcw, MonitorSpeaker, RefreshCw, Sparkles, Pause, Calendar, Edit, Save } from "lucide-react";
+import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History, Search, Trash2, CheckSquare, SquareIcon, Monitor, Volume2, Waves, Video, Headphones, AlertCircle, Eye, EyeOff, RotateCcw, MonitorSpeaker, RefreshCw, Sparkles, Pause, Calendar, Edit, Save } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { MeetingSettings } from "@/components/MeetingSettings";
@@ -117,6 +117,13 @@ export const MeetingRecorder = ({
     // Debug logging removed - function kept to avoid build errors
   };
   
+  const [tickerText, setTickerText] = useState<string>("");
+  const [showTicker, setShowTicker] = useState(false);
+  const [tickerEnabled, setTickerEnabled] = useState(true);
+  
+  // Transcript snippet state
+  const [transcriptSnippet, setTranscriptSnippet] = useState<string>("");
+  const [showTranscriptSnippet, setShowTranscriptSnippet] = useState(false);
   const [firstTranscriptionReceived, setFirstTranscriptionReceived] = useState(false);
   const transcriptSnippetIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
@@ -213,6 +220,10 @@ export const MeetingRecorder = ({
     setLastPhrase("");
     setStartTime("");
     setLiveSummary("");
+    setTickerText("");
+    setShowTicker(false);
+    setTranscriptSnippet("");
+    setShowTranscriptSnippet(false);
     setSelectedMeetings([]);
     setIsSelectMode(false);
     setDeleteConfirmation("");
@@ -1104,10 +1115,23 @@ export const MeetingRecorder = ({
         console.log('📝 Transcript updated:', fullTranscript.length, 'chars');
       },
       (interimText: string) => {
-        // Handle interim updates - removed ticker functionality
+        // Handle interim updates for ticker
+        if (interimText.trim() && tickerEnabled) {
+          const truncatedText = interimText.length > 100 
+            ? interimText.substring(0, 100) + "..." 
+            : interimText;
+          
+          setTickerText(truncatedText);
+          setShowTicker(true);
+          
+          // Auto-hide ticker after 3 seconds
+          setTimeout(() => {
+            setShowTicker(false);
+          }, 3000);
+        }
       }
     );
-  }, [onTranscriptUpdate, onWordCountUpdate]);
+  }, [onTranscriptUpdate, onWordCountUpdate, tickerEnabled]);
 
   const handleTranscript = (transcriptData: TranscriptData) => {
     // Check for silence message pattern
@@ -2114,9 +2138,29 @@ export const MeetingRecorder = ({
     }
   };
 
-  // Transcript monitoring - removed snippet functionality
+  // Start transcript snippet monitoring
   const startTranscriptSnippetMonitoring = () => {
-    // Functionality removed
+    if (transcriptSnippetIntervalRef.current) {
+      clearInterval(transcriptSnippetIntervalRef.current);
+    }
+    
+    transcriptSnippetIntervalRef.current = setInterval(() => {
+      // Get the last 5 seconds worth of transcript from the accumulated transcript
+      const words = latestCompleteTranscriptRef.current.split(' ');
+      const recentWords = words.slice(-50); // Approximate last 5 seconds (10 words per second avg)
+      const snippet = recentWords.join(' ');
+      
+      if (snippet.trim().length > 0) {
+        setTranscriptSnippet(snippet);
+        setShowTranscriptSnippet(true);
+        console.log('📝 Transcript snippet (last 5s):', snippet);
+        
+        // Hide the snippet after 3 seconds
+        setTimeout(() => {
+          setShowTranscriptSnippet(false);
+        }, 3000);
+      }
+    }, 5000); // Every 5 seconds
   };
 
   const startStereoRecording = async () => {
@@ -3587,23 +3631,58 @@ export const MeetingRecorder = ({
                             </TooltipContent>
                           </Tooltip>
                           
+                          {/* Show/Hide Live Speech Toggle - Hidden on Edge */}
+                          {!/Edg/.test(navigator.userAgent) && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  onClick={() => setTickerEnabled(prev => { const next = !prev; if (!next) setShowTranscriptSnippet(false); return next; })}
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 text-primary hover:bg-primary/10"
+                                >
+                                  {tickerEnabled ? (
+                                    <Eye className="h-4 w-4" />
+                                  ) : (
+                                    <EyeOff className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>{tickerEnabled ? "Hide Live Speech" : "Show Live Speech"}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
                         </div>
                       </div>
-                       
-                        
-                          
-                              
-                                
-                                
-                                  
                       
-                        
-                          
-                              
-                              
-                                
-                                
-                                 
+                      {/* Ticker tape for live transcription - Hidden on Edge */}
+                      {!/Edg/.test(navigator.userAgent) && (
+                        <div className={`transition-all duration-500 ${tickerEnabled ? (showTicker ? 'opacity-100 animate-fade-in' : 'hidden') : 'hidden'}`}>
+                          <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                            <div className="flex items-center gap-2">
+                              <Waves className="h-4 w-4 text-blue-600 dark:text-blue-400 animate-pulse" />
+                              <div className="flex-1 overflow-hidden">
+                                <div className="text-sm text-blue-700 dark:text-blue-300 font-medium">Live Speech:</div>
+                                <div className="text-sm text-blue-600 dark:text-blue-400 truncate">
+                                  {tickerText || "Listening..."}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Transcript snippet display - Hidden on Edge */}
+                      {!/Edg/.test(navigator.userAgent) && (
+                        <div className={`transition-all duration-500 ${showTranscriptSnippet && tickerEnabled ? 'opacity-100 animate-fade-in' : tickerEnabled ? 'opacity-100' : 'hidden'}`}>
+                          <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg p-3">
+                            <div className="flex items-center gap-2">
+                              <FileText className="h-4 w-4 text-green-600 dark:text-green-400" />
+                              <div className="flex-1 overflow-hidden">
+                                <div className="text-sm text-green-700 dark:text-green-300 font-medium">Most recent transcribed...</div>
+                                <div className="text-xs text-green-600 dark:text-green-400">
+                                {transcriptSnippet ? 
                                   `“${transcriptSnippet.split(' ').slice(0, 20).join(' ')}${transcriptSnippet.split(' ').length > 20 ? '...' : ''}”`
                                   : "No speech detected yet..."
                                 }
