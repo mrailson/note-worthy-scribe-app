@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { X, Settings, Monitor, CheckSquare, FileText } from "lucide-react";
-import { MeetingSetupTab } from "./tabs/MeetingSetupTab";
+import { X, Monitor, CheckSquare, FileText } from "lucide-react";
+
 import { LiveMonitorTab } from "./tabs/LiveMonitorTab";
 import { SmartValidationTab } from "./tabs/SmartValidationTab";
 import { LiveNotesTab } from "./tabs/LiveNotesTab";
@@ -28,17 +28,17 @@ export const RealtimeMeetingDashboard = ({
   isRecording,
   meetingData
 }: RealtimeMeetingDashboardProps) => {
-  const [activeTab, setActiveTab] = useState("setup");
+  const [activeTab, setActiveTab] = useState("monitor");
   const [isMinimized, setIsMinimized] = useState(false);
   const [hasAutoSwitched, setHasAutoSwitched] = useState(false);
 
   // Auto-switch to monitor tab when recording starts (only once)
   useEffect(() => {
-    if (isRecording && activeTab === "setup" && !hasAutoSwitched) {
+    if (isRecording && !hasAutoSwitched) {
       setActiveTab("monitor");
       setHasAutoSwitched(true);
     }
-  }, [isRecording, activeTab, hasAutoSwitched]);
+  }, [isRecording, hasAutoSwitched]);
 
   // Reset auto-switch flag when recording stops
   useEffect(() => {
@@ -48,12 +48,6 @@ export const RealtimeMeetingDashboard = ({
   }, [isRecording]);
 
   const tabs = [
-    { 
-      id: "setup", 
-      label: "Setup", 
-      icon: Settings, 
-      disabled: false 
-    },
     { 
       id: "monitor", 
       label: "Monitor", 
@@ -125,7 +119,7 @@ export const RealtimeMeetingDashboard = ({
               onValueChange={setActiveTab}
               className="flex-1 flex flex-col min-h-0"
             >
-              <TabsList className="mx-6 mt-4 grid grid-cols-4 w-full shrink-0">
+              <TabsList className="mx-6 mt-4 grid grid-cols-3 w-full shrink-0">
                 {tabs.map((tab) => (
                   <TabsTrigger 
                     key={tab.id}
@@ -143,12 +137,6 @@ export const RealtimeMeetingDashboard = ({
               </TabsList>
 
               <div className="flex-1 p-6 min-h-0 overflow-hidden">
-                <TabsContent value="setup" className="h-full m-0 data-[state=active]:flex data-[state=active]:flex-col">
-                  <div className="flex-1 overflow-y-auto overflow-x-hidden max-w-full">
-                    <MeetingSetupTab />
-                  </div>
-                </TabsContent>
-                
                 <TabsContent value="monitor" className="h-full m-0 data-[state=active]:flex data-[state=active]:flex-col">
                   <div className="flex-1 overflow-y-auto overflow-x-hidden max-w-full">
                     <LiveMonitorTab meetingData={meetingData} />
