@@ -24,6 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { MeetingSettings } from "@/components/MeetingSettings";
 import { MeetingHistoryList } from "@/components/MeetingHistoryList";
+import { FullPageNotesModal } from "@/components/FullPageNotesModal";
 import { WhisperHallucinationTestSuite } from "@/components/WhisperHallucinationTestSuite";
 import { MicInputRecordingTester } from "@/components/MicInputRecordingTester";
 import { SharedMeetingsManager } from "@/components/SharedMeetingsManager";
@@ -136,6 +137,13 @@ export const MeetingRecorder = ({
   const [editingMeetingId, setEditingMeetingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
   const [isSavingTitle, setIsSavingTitle] = useState(false);
+  
+  // Modal states for viewing notes and transcripts
+  const [fullPageModalOpen, setFullPageModalOpen] = useState(false);
+  const [modalMeeting, setModalMeeting] = useState<any>(null);
+  const [modalNotes, setModalNotes] = useState("");
+  const [transcriptModalOpen, setTranscriptModalOpen] = useState(false);
+  const [currentMeetingForTranscript, setCurrentMeetingForTranscript] = useState<any>(null);
   // Combined modal state for end-of-meeting process
   const [meetingEndModal, setMeetingEndModal] = useState<{
     isOpen: boolean;
@@ -3025,11 +3033,20 @@ export const MeetingRecorder = ({
   };
 
   const handleViewSummary = (meetingId: string) => {
-    navigate('/meeting-history', { state: { viewNotes: meetingId, openModal: true } });
+    handleViewMeetingSummary(meetingId);
   };
 
   const handleViewTranscript = (meetingId: string) => {
-    navigate('/meeting-history', { state: { viewTranscript: meetingId, openDialog: true } });
+    try {
+      const meeting = meetings.find(m => m.id === meetingId);
+      if (meeting) {
+        setCurrentMeetingForTranscript(meeting);
+        setTranscriptModalOpen(true);
+      }
+    } catch (error: any) {
+      console.error("Error viewing transcript:", error.message);
+      toast.error("Failed to load transcript");
+    }
   };
 
   const handleDeleteMeeting = async (meetingId: string) => {
@@ -3196,6 +3213,48 @@ export const MeetingRecorder = ({
   const handleCancelEdit = () => {
     setEditingMeetingId(null);
     setEditingTitle("");
+  };
+
+  // Handle viewing meeting summary
+  const handleViewMeetingSummary = async (meetingId: string) => {
+    console.log('🔍 handleViewMeetingSummary called with meetingId:', meetingId);
+    console.log('🔍 Current fullPageModalOpen state:', fullPageModalOpen);
+    
+    try {
+      // Fetch meeting details
+      const { data: meeting, error: meetingError } = await supabase
+        .from('meetings')
+        .select('*, audio_backup_path, audio_backup_created_at, requires_audio_backup')
+        .eq('id', meetingId)
+        .eq('user_id', user?.id)
+        .single();
+
+      if (meetingError) throw meetingError;
+      console.log('🔍 Meeting data fetched:', meeting);
+
+      // Fetch existing summary if available
+      const { data: summaryData, error: summaryError } = await supabase
+        .from('meeting_summaries')
+        .select('*')
+        .eq('meeting_id', meetingId)
+        .maybeSingle();
+      
+      console.log('🔍 Summary data fetched:', summaryData?.summary ? 'Summary exists' : 'No summary');
+      
+      // Set all modal states together
+      setModalMeeting(meeting);
+      setModalNotes(summaryData?.summary || '');
+      
+      // Use setTimeout to ensure state updates are applied before opening modal
+      setTimeout(() => {
+        console.log('📝 Opening modal with meeting:', meeting?.title);
+        setFullPageModalOpen(true);
+      }, 100);
+      
+    } catch (error: any) {
+      console.error("❌ Error Loading Meeting:", error.message);
+      toast.error("Failed to load meeting notes");
+    }
   };
 
   // Pause/Unpause recording functionality
@@ -3929,8 +3988,8 @@ export const MeetingRecorder = ({
           <MeetingHistoryList 
             meetings={filteredMeetings}
             onEdit={(meetingId) => navigate(`/meeting-summary`, { state: { id: meetingId } })}
-            onViewSummary={(meetingId) => toast.info("Meeting notes will open in a future update. For now, use the standalone Meeting History page.")}
-            onViewTranscript={(meetingId) => toast.info("Transcript view will open in a future update. For now, use the standalone Meeting History page.")}
+            onViewSummary={handleViewSummary}
+            onViewTranscript={handleViewTranscript}
             onDelete={handleDeleteMeeting}
             loading={loadingHistory}
             isSelectMode={isSelectMode}
@@ -4105,10 +4164,55 @@ export const MeetingRecorder = ({
                 </>
               )}
               
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
-  );
-};
+        )}
+
+        {/* Full Page Notes Modal */}
+        {fullPageModalOpen && modalMeeting && (
+          <FullPageNotesModal
+            isOpen={fullPageModalOpen}
+            onClose={() => {
+              setFullPageModalOpen(false);
+              setModalMeeting(null);
+              setModalNotes('');
+            }}
+            meeting={modalMeeting}
+            notes={modalNotes}
+            onNotesChange={setModalNotes}
+          />
+        )}
+
+        {/* Transcript Modal */}
+        {transcriptModalOpen && currentMeetingForTranscript && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-background rounded-lg shadow-lg max-w-4xl w-full max-h-[80vh] overflow-hidden border border-border">
+              <div className="flex items-center justify-between p-6 border-b border-border">
+                <div>
+                  <h2 className="text-xl font-bold text-foreground">{currentMeetingForTranscript.title}</h2>
+                  <p className="text-sm text-muted-foreground">Meeting Transcript</p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setTranscriptModalOpen(false);
+                    setCurrentMeetingForTranscript(null);
+                  }}
+                  className="h-8 w-8 p-0"
+                >
+                  ✕
+                </Button>
+              </div>
+              <div className="p-6 overflow-y-auto max-h-[60vh]">
+                <p className="text-sm text-muted-foreground mb-4">
+                  Transcript functionality is not fully implemented in this tab. Please use the standalone Meeting History page for full transcript features.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
