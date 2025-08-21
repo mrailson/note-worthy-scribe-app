@@ -209,9 +209,10 @@ export class TranscriptCleaner {
       cleaned = cleaned.replace(pattern, ' ');
     });
 
-    // Remove specific phrases (case insensitive)
+    // Remove specific phrases (case insensitive) - FIXED: Use word boundaries to prevent partial matches
     this.commonHallucinations.forEach(phrase => {
-      const regex = new RegExp(phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+      // Only match complete standalone words/phrases, not parts of other words
+      const regex = new RegExp(`\\b${phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
       cleaned = cleaned.replace(regex, ' ');
     });
 
