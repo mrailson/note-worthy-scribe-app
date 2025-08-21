@@ -3915,14 +3915,24 @@ export const MeetingRecorder = ({
               <h3 className="text-lg font-semibold">Live Transcript</h3>
               <p className="text-sm text-muted-foreground">Real-time transcription of the current meeting</p>
             </div>
-            <Button
-              onClick={() => setCumulativeTranscriptModalOpen(true)}
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              <FileText className="h-4 w-4" />
-              View Full Transcript
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={() => setDashboardOpen(true)}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <Monitor className="h-4 w-4" />
+                Dashboard
+              </Button>
+              <Button
+                onClick={() => setCumulativeTranscriptModalOpen(true)}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <FileText className="h-4 w-4" />
+                View Full Transcript
+              </Button>
+            </div>
           </div>
           <Card className="border-accent/30">
               <CardContent className="space-y-4">
