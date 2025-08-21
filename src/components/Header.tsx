@@ -68,7 +68,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
           {user && (
             <h1 
               className="text-sm sm:text-xl font-bold leading-tight max-w-[200px] sm:max-w-none cursor-pointer hover:opacity-80 transition-opacity flex items-center"
-              onClick={() => navigate('/')}
+              onClick={() => window.location.href = '/'}
             >
               <span className="hidden sm:inline">Notewell AI</span>
               <span className="sm:hidden">Notewell AI</span>
@@ -79,7 +79,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
           {/* Navigation */}
           <div className="hidden sm:flex gap-2">
             <Button 
-              onClick={() => navigate('/')}
+              onClick={() => window.location.href = '/'}
               variant="secondary"
               size="sm"
               className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs sm:text-sm px-2 sm:px-4"
@@ -107,14 +107,14 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                   className="bg-background border border-border shadow-lg w-48"
                 >
                    {hasModuleAccess('meeting_recorder') && (
-                     <DropdownMenuItem 
-                       onClick={() => navigate('/')}
-                       className="cursor-pointer py-3"
-                     >
-                       <FileText className="h-4 w-4 mr-2" />
-                       Meeting Notes
-                     </DropdownMenuItem>
-                   )}
+                      <DropdownMenuItem 
+                        onClick={() => window.location.href = '/'}
+                        className="cursor-pointer py-3"
+                      >
+                        <FileText className="h-4 w-4 mr-2" />
+                        Meeting Notes
+                      </DropdownMenuItem>
+                    )}
                    {hasModuleAccess('gp_scribe') && (
                      <DropdownMenuItem 
                        onClick={() => navigate('/gp-scribe')}
@@ -301,7 +301,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                        <Button 
                          variant="ghost" 
                          className="justify-start"
-                         onClick={() => navigate('/')}
+                         onClick={() => window.location.href = '/'}
                        >
                          <Plus className="h-4 w-4 mr-2" />
                          New
@@ -312,7 +312,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                       <Button 
                         variant="ghost" 
                         className="justify-start"
-                        onClick={() => navigate('/')}
+                        onClick={() => window.location.href = '/'}
                       >
                         <Home className="h-4 w-4 mr-2" />
                         Home
@@ -324,7 +324,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                       <>
                          {hasModuleAccess('meeting_recorder') && (
                            <DrawerClose asChild>
-                             <Button variant="ghost" className="justify-start" onClick={() => navigate('/')}> 
+                             <Button variant="ghost" className="justify-start" onClick={() => window.location.href = '/'}> 
                                <FileText className="h-4 w-4 mr-2" />
                                Meeting Notes
                              </Button>
