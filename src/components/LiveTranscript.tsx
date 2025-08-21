@@ -256,8 +256,22 @@ export const LiveTranscript = ({
       console.log('🚨 DEBUG: Raw transcript length:', transcript.length);
       console.log('🚨 DEBUG: Processed transcript length:', processedTranscript.length);
       
-      // Simply use the transcript as is (it's already the full accumulated transcript from the parent)
-      setGrowingRawTranscript(transcript);
+      // APPEND new transcript content to growing raw transcript
+      setGrowingRawTranscript(prev => {
+        // If no previous content, use the new transcript
+        if (!prev) return transcript;
+        
+        // If the new transcript is exactly the same as previous, don't duplicate
+        if (prev === transcript) return prev;
+        
+        // If the new transcript contains the previous content plus more, replace completely
+        if (transcript.includes(prev) && transcript.length > prev.length) {
+          return transcript;
+        }
+        
+        // Otherwise, append new content with a space (it's a new chunk)
+        return prev + ' ' + transcript;
+      });
       
       // FIXED: Don't use streaming cleaner that accumulates - replace the entire cleaned transcript
       if (isAutoCleaningEnabled) {
@@ -421,10 +435,10 @@ export const LiveTranscript = ({
   // Build simple HTML preserving paragraph spacing
   // Auto-scroll to bottom when transcript updates
   useEffect(() => {
-    if (latestTranscriptRef.current && transcript) {
+    if (latestTranscriptRef.current && growingRawTranscript) {
       latestTranscriptRef.current.scrollTop = latestTranscriptRef.current.scrollHeight;
     }
-  }, [transcript]);
+  }, [growingRawTranscript]);
 
   useEffect(() => {
     if (enhancedTranscriptRef.current && cleanedTranscript) {
