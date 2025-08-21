@@ -2629,9 +2629,20 @@ export const MeetingRecorder = ({
       stereoBlob: stereoBlob?.size || 'null'
     });
 
-    // Prepare meeting data with available audio blobs
+    // Prepare meeting data with default title based on date/time and word count
+    const currentDate = new Date();
+    const defaultTitle = `Meeting - ${currentDate.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric' 
+    })} ${currentDate.toLocaleTimeString('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit',
+      hour12: true 
+    })} (${wordCount} words)`;
+    
     const meetingData = {
-      title: meetingSettings?.title || initialSettings?.title || 'General Meeting',
+      title: meetingSettings?.title?.trim() || initialSettings?.title?.trim() || defaultTitle,
       duration: formatDuration(duration),
       wordCount: wordCount,
       transcript: currentTranscript,
@@ -2764,8 +2775,12 @@ export const MeetingRecorder = ({
 
       setIsGeneratingNotes(false);
       
-      // Navigate to meeting history instead of summary
-      navigate('/meetings');
+      // Navigate to meeting history with a small delay to ensure the save is complete
+      setTimeout(() => {
+        navigate('/meetings', { replace: true });
+        // Force a page refresh to ensure the new meeting appears
+        window.location.reload();
+      }, 1000);
 
     } catch (error) {
       console.error('❌ CRITICAL ERROR - Failed to save meeting:', error);
