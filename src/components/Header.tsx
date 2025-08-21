@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerTrigger, DrawerClose, DrawerFooter } from "@/components/ui/drawer";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { UserProfileModal } from "@/components/UserProfileModal";
+import { ConsultationSummaryPreview } from "@/components/ConsultationSummaryPreview";
 interface HeaderProps {
   onNewMeeting?: () => void;
 }
@@ -124,13 +125,15 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                        GP Scribe
                      </DropdownMenuItem>
                    )}
-                   <DropdownMenuItem 
-                     onClick={() => navigate('/consultation/summary')}
-                     className="cursor-pointer py-3"
-                   >
-                     <FileText className="h-4 w-4 mr-2" />
-                     Consultation Summary
-                   </DropdownMenuItem>
+                   <DropdownMenuSub>
+                      <DropdownMenuSubTrigger className="cursor-pointer py-3">
+                        <FileText className="h-4 w-4 mr-2" />
+                        Consultation Summary
+                      </DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent className="bg-background border border-border shadow-lg z-50 p-0">
+                        <ConsultationSummaryPreview />
+                      </DropdownMenuSubContent>
+                    </DropdownMenuSub>
                    {hasModuleAccess('complaints_system') && (
                      <DropdownMenuItem 
                        onClick={() => navigate('/complaints')}
