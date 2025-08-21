@@ -323,7 +323,7 @@ export const LiveTranscript = ({
     }
     
     // Format as paragraphs for better readability
-    return cleanedText.split(/[.!?]+/).filter(s => s.trim()).map(s => s.trim() + '.').join('\n\n');
+    return text.split(/[.!?]+/).filter(s => s.trim()).map(s => s.trim() + '.').join('\n\n');
   };
 
   // Build formatted cleaned text (paragraphs separated by blank lines)
