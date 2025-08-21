@@ -11,6 +11,7 @@ import EnhancedFindReplacePanel from "@/components/EnhancedFindReplacePanel";
 import { SpeechToText } from "@/components/SpeechToText";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { recoverMeetingTranscript } from "@/utils/recoverTranscript";
 import { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel } from 'docx';
 import { saveAs } from 'file-saver';
 import jsPDF from 'jspdf';
@@ -513,6 +514,32 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
         } catch (cleanError) {
           console.error('Error in clean transcript process:', cleanError);
           cleanTranscriptText = rawTranscriptText; // Fallback to raw
+        }
+      }
+
+      // If no raw transcript chunks but we have a clean transcript, try recovery
+      if (!rawTranscriptText && cleanTranscriptText) {
+        console.log('🔄 No raw transcript chunks found, attempting recovery...');
+        try {
+          const recoveryResult = await recoverMeetingTranscript(meeting.id);
+          if (recoveryResult?.success && recoveryResult?.chunksCreated > 0) {
+            console.log('✅ Recovery successful, refetching raw transcript');
+            // Refetch the raw transcript after recovery
+            const { data: recoveredRawData, error: recoveredRawError } = await supabase
+              .from('meeting_transcription_chunks')
+              .select('transcription_text')
+              .eq('meeting_id', meeting.id)
+              .order('chunk_number', { ascending: true });
+
+            if (!recoveredRawError && recoveredRawData && recoveredRawData.length > 0) {
+              rawTranscriptText = recoveredRawData.map(item => item.transcription_text).join(' ');
+              setRawTranscript(rawTranscriptText);
+              console.log('🔍 Raw transcript recovered with', recoveredRawData.length, 'segments');
+              toast.success('Transcript data recovered successfully!');
+            }
+          }
+        } catch (recoveryError) {
+          console.error('Recovery failed:', recoveryError);
         }
       }
 
