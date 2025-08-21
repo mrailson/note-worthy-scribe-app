@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel } from 'docx';
 import { saveAs } from 'file-saver';
 import jsPDF from 'jspdf';
+import stringSimilarity from "string-similarity";
 import { 
   Bot, 
   ChevronDown, 
@@ -730,118 +731,27 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     setIsEditing(!isEditing);
   };
 
-  // Enhanced transcript cleaning function from ChatGPT
-  const cleanTranscript = (raw: string) => {
-    // 0) Quick normalisation
-    let text = raw
-      .replace(/\s+/g, ' ')
-      .replace(/\s+([.,;:!?])/g, '$1')
-      .trim();
+  // Simple transcript cleaning function using string similarity
+  const cleanTranscript = (text: string): string => {
+    const sentences = text.split(/(?<=[.?!])\s+/);
+    const output: string[] = [];
 
-    // 1) Canonicalise common openers & oddities BEFORE dedupe
-    // Merge variants of the urgent-items opener
-    text = text
-      .replace(
-        /(First,\s+just\s+to\s+check[^.?!]*\?)\s*(No\?\s*)?(First,\s+just\s+to\s+check[^.?!]*\?)?/i,
-        '$1 No?'
-      )
-      // Prefer "add to the agenda before we start?"
-      .replace(/urgent items to activate\?/gi, 'urgent items to add to the agenda before we start?')
-      // Remove stray "No?" if it's floating mid-paragraph (not after a question)
-      .replace(/(?<!\?)\sNo\?\s/g, ' ')
-      // Tidy duplicated "We've seen a number of patients…" noise
-      .replace(/(We've seen a number of patients in the past\.\s*){2,}/gi, '')
-      // Collapse duplicate "small increase / 120 regs" variants stuck together
-      .replace(/(this month,\s*around\s*120 new registrations[^.]*\.)\s*(this month,\s*around\s*120 new registrations[^.]*\.)/i, '$1');
-
-    // 2) Sentence split
-    let sentences = text
-      .split(/(?<=[.!?])\s+(?=[A-Z(""])/)
-      .map(s => s.trim())
-      .filter(Boolean);
-
-    // 3) Join half-sentences (fix "justify. requesting…")
-    const smartJoined: string[] = [];
     for (const s of sentences) {
-      if (!smartJoined.length) { smartJoined.push(s); continue; }
-      const prev = smartJoined[smartJoined.length - 1];
-      const prevOpen = !/[.!?…]$/.test(prev);
-      const startsLower = /^[a-z"(]/.test(s);
-      if (prevOpen && startsLower) {
-        smartJoined[smartJoined.length - 1] = (prev + ' ' + s).replace(/\s+/g, ' ');
-      } else {
-        smartJoined.push(s);
+      const trimmed = s.trim();
+      if (!trimmed) continue;
+
+      const last = output[output.length - 1] || "";
+      const sim = stringSimilarity.compareTwoStrings(
+        trimmed.toLowerCase(),
+        last.toLowerCase()
+      );
+
+      if (sim < 0.92) {   // tighter threshold than before
+        output.push(trimmed);
       }
     }
 
-    // 4) Near-duplicate collapse (windowed, tight threshold)
-    function ngrams(tokens: string[], n: number) {
-      const set = new Set<string>();
-      for (let i = 0; i <= tokens.length - n; i++) set.add(tokens.slice(i, i + n).join(' '));
-      return set;
-    }
-    function jaccard(a: Set<string>, b: Set<string>) {
-      const inter = [...a].filter(x => b.has(x)).length;
-      const uni = new Set([...a, ...b]).size;
-      return uni ? inter / uni : 0;
-    }
-    function isNearDup(a: string, b: string, thresh = 0.96) {
-      const A2 = ngrams(a.toLowerCase().split(/\s+/), 2);
-      const B2 = ngrams(b.toLowerCase().split(/\s+/), 2);
-      const A3 = ngrams(a.toLowerCase().split(/\s+/), 3);
-      const B3 = ngrams(b.toLowerCase().split(/\s+/), 3);
-      const sim = Math.max(jaccard(A2, B2), jaccard(A3, B3));
-      return sim >= thresh;
-    }
-    function dedupeWithWindow(sents: string[], thresh = 0.96, window = 12) {
-      const out: string[] = [];
-      for (const s of sents) {
-        let dup = false;
-        for (const prev of out.slice(-window)) {
-          if (isNearDup(prev, s, thresh)) { dup = true; break; }
-        }
-        if (!dup) out.push(s);
-      }
-      return out;
-    }
-    const deduped = dedupeWithWindow(smartJoined, 0.97, 15);
-
-    // 5) Glossary fixes (NHS terms + this sample's mis-hears)
-    let cleaned = deduped.join(' ');
-    const glossary: [RegExp, string | ((match: string, ...args: any[]) => string)][] = [
-      [/\bARRS\s+request\b/gi, 'ARRS role'],
-      [/\bARRS\s+roll(s)?\b/gi, 'ARRS role$1'],
-      [/\bPCN\s*DES\b/gi, 'PCN DES'],
-      // Only replace "housing" when it appears near the capacity line
-      [/(capacity,[^.!?]{0,80})\bhousing\b/gi, (match) => match.replace(/housing/gi, 'appointments and repeat prescribing workload')],
-      [/\bneighbourhood team\b/gi, 'neighbourhood team'],
-      [/\bsame day\b/gi, 'same-day'],
-    ];
-    for (const [pat, rep] of glossary) {
-      if (typeof rep === 'function') {
-        cleaned = cleaned.replace(pat, rep);
-      } else {
-        cleaned = cleaned.replace(pat, rep);
-    }
-
-    // Extra tidy step after glossary
-    cleaned = cleaned
-      .replace(/\bNo\?\s+No\?/g, 'No?')
-      .replace(/(around\s+120 new registrations[^.]*\.)\s+\1/gi, '$1')
-      .replace(/(list size is now just over\s+12,600[^.]*\.)\s+\1/gi, '$1')
-      .replace(/(we can\'t create more same-day appointments[^.]*\.)\s+\1/gi, '$1')
-      .replace(/(respiratory infections in children and frail elderly patients[^.]*\.)\s+\1/gi, '$1');
-    }
-
-    // 6) Final tidy + capitalisation
-    cleaned = cleaned
-      .replace(/\s+,/g, ',')
-      .replace(/\(\s+/g, '(').replace(/\s+\)/g, ')')
-      .replace(/\s{2,}/g, ' ')
-      .replace(/(^|[.!?]\s+)([a-z])/g, (_m, p, c) => p + c.toUpperCase())
-      .trim();
-
-    return cleaned;
+    return output.join(" ");
   };
 
   // Handle transcript cleaning to remove duplicates
