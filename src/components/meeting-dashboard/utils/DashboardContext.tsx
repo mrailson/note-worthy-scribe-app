@@ -6,6 +6,8 @@ interface MeetingConfig {
   attendees: any[];
   agenda: string;
   agendaFiles: any[];
+  contextFiles: any[];
+  contextText: string;
 }
 
 interface DashboardContextType {
@@ -31,7 +33,9 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     format: "teams",
     attendees: [],
     agenda: "",
-    agendaFiles: []
+    agendaFiles: [],
+    contextFiles: [],
+    contextText: ""
   });
 
   const [validationCorrections, setValidationCorrections] = useState(new Map<string, string>());

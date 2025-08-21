@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Users, FileText, Upload, Wand2, MapPin, Video, UserCheck } from "lucide-react";
+import { Users, FileText, Upload, Wand2, MapPin, Video, UserCheck, FolderOpen, Plus } from "lucide-react";
 import { AttendeeManager } from "@/components/AttendeeManager";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { useDashboard } from "../utils/DashboardContext";
@@ -18,6 +18,7 @@ export const MeetingSetupTab = () => {
   const { processFiles, isProcessing } = useFileUpload();
   const [showAttendeeManager, setShowAttendeeManager] = useState(false);
   const [agendaPreview, setAgendaPreview] = useState("");
+  const [contextPreview, setContextPreview] = useState("");
 
   const handleTitleChange = (title: string) => {
     // Enforce 100 character limit
@@ -66,6 +67,44 @@ export const MeetingSetupTab = () => {
       console.error("Failed to process agenda files:", error);
     }
   }, [processFiles, meetingConfig.agenda, meetingConfig.agendaFiles, updateMeetingConfig]);
+
+  const handleContextUpload = useCallback(async (files: FileList) => {
+    try {
+      const processedFiles = await processFiles(files);
+      
+      // Extract text content from processed files
+      let combinedContext = "";
+      processedFiles.forEach(file => {
+        let content = file.content;
+        
+        if (content.startsWith('POWERPOINT_DATA_URL:') || 
+            content.startsWith('PDF_DATA_URL:') ||
+            content.startsWith('IMAGE_DATA_URL:')) {
+          combinedContext += `\n\n[${file.name} - Content will be processed]\n`;
+        } else {
+          const textStart = content.indexOf('\n\n');
+          const textEnd = content.lastIndexOf('\n\n[');
+          if (textStart !== -1 && textEnd !== -1) {
+            combinedContext += content.substring(textStart + 2, textEnd).trim() + "\n\n";
+          } else {
+            combinedContext += content + "\n\n";
+          }
+        }
+      });
+
+      const currentContext = meetingConfig.contextText || "";
+      const newContext = currentContext + combinedContext;
+      
+      updateMeetingConfig({ 
+        contextText: newContext,
+        contextFiles: [...(meetingConfig.contextFiles || []), ...processedFiles]
+      });
+      
+      setContextPreview(combinedContext);
+    } catch (error) {
+      console.error("Failed to process context files:", error);
+    }
+  }, [processFiles, meetingConfig.contextText, meetingConfig.contextFiles, updateMeetingConfig]);
 
   const generateSmartTitle = () => {
     const { attendees, agenda, format } = meetingConfig;
@@ -296,8 +335,87 @@ export const MeetingSetupTab = () => {
         </CardContent>
       </Card>
 
+      {/* Context Management */}
+      <Card className="flex-1">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FolderOpen className="h-5 w-5 text-primary" />
+            Meeting Context & Supporting Documents
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 h-full">
+          <div className="text-sm text-muted-foreground mb-4">
+            Upload presentations, previous meeting minutes, reports, and other context that will help create better meeting notes
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => document.getElementById('context-upload')?.click()}
+              disabled={isProcessing}
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              {isProcessing ? "Processing..." : "Upload Documents"}
+            </Button>
+            <input
+              id="context-upload"
+              type="file"
+              multiple
+              accept=".txt,.pdf,.doc,.docx,.ppt,.pptx,.png,.jpg,.jpeg,.xlsx,.xls"
+              className="hidden"
+              onChange={(e) => {
+                if (e.target.files) {
+                  handleContextUpload(e.target.files);
+                }
+              }}
+            />
+            <span className="text-xs text-muted-foreground">
+              Presentations, Documents, Images, Spreadsheets
+            </span>
+          </div>
+
+          {meetingConfig.contextFiles && meetingConfig.contextFiles.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {meetingConfig.contextFiles.map((file, index) => (
+                <Badge key={index} variant="outline" className="flex items-center gap-1">
+                  <FolderOpen className="h-3 w-3" />
+                  {file.name}
+                </Badge>
+              ))}
+            </div>
+          )}
+
+          <Separator />
+
+          <div className="space-y-2 flex-1">
+            <Label htmlFor="context">Additional Context</Label>
+            <Textarea
+              id="context"
+              value={meetingConfig.contextText}
+              onChange={(e) => updateMeetingConfig({ contextText: e.target.value })}
+              placeholder="Paste or type additional context: previous minutes, key decisions, background information, relevant policies..."
+              className="min-h-[150px] resize-none"
+            />
+            <div className="text-xs text-muted-foreground">
+              Examples: "Follow-up from last month's budget discussion", "New NHS guidelines to review", "Action items from Q3 planning"
+            </div>
+          </div>
+
+          {contextPreview && (
+            <Card className="border-dashed">
+              <CardContent className="p-3">
+                <div className="text-sm font-medium mb-2">Preview from uploaded documents:</div>
+                <div className="text-xs text-muted-foreground max-h-20 overflow-y-auto">
+                  {contextPreview.substring(0, 200)}...
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Context Preview */}
-      {(meetingConfig.title || meetingConfig.attendees.length > 0 || meetingConfig.agenda) && (
+      {(meetingConfig.title || meetingConfig.attendees.length > 0 || meetingConfig.agenda || meetingConfig.contextText || (meetingConfig.contextFiles && meetingConfig.contextFiles.length > 0)) && (
         <Card>
           <CardHeader>
             <CardTitle className="text-sm">AI Context Preview</CardTitle>
@@ -311,6 +429,12 @@ export const MeetingSetupTab = () => {
             )}
             {meetingConfig.agenda && (
               <div><strong>Agenda:</strong> {meetingConfig.agenda.length} characters of context</div>
+            )}
+            {meetingConfig.contextFiles && meetingConfig.contextFiles.length > 0 && (
+              <div><strong>Context Files:</strong> {meetingConfig.contextFiles.length} supporting documents</div>
+            )}
+            {meetingConfig.contextText && (
+              <div><strong>Additional Context:</strong> {meetingConfig.contextText.length} characters of background info</div>
             )}
             <div className="text-success text-xs mt-2">
               ✓ This context will enhance AI-generated meeting notes
