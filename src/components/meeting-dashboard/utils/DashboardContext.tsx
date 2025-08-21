@@ -29,8 +29,17 @@ const DashboardContext = createContext<DashboardContextType | undefined>(undefin
 
 export const DashboardProvider = ({ children }: { children: ReactNode }) => {
   const [meetingConfig, setMeetingConfig] = useState<MeetingConfig>({
-    title: "",
-    format: "teams",
+    title: `Meeting - ${new Date().toLocaleDateString('en-GB', { 
+      weekday: 'short', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    })} (${new Date().toLocaleTimeString('en-GB', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true 
+    })})`,
+    format: "f2f",
     attendees: [],
     agenda: "",
     agendaFiles: [],

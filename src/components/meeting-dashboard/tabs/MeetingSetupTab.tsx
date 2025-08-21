@@ -107,27 +107,87 @@ export const MeetingSetupTab = () => {
   }, [processFiles, meetingConfig.contextText, meetingConfig.contextFiles, updateMeetingConfig]);
 
   const generateSmartTitle = () => {
-    const { attendees, agenda, format } = meetingConfig;
+    const { attendees, agenda, format, contextText, contextFiles } = meetingConfig;
     
     let title = "";
     
-    if (agenda && agenda.length > 10) {
-      // Extract key topics from agenda
-      const lines = agenda.split('\n').filter(line => line.trim().length > 5);
-      const firstTopic = lines[0]?.trim();
-      if (firstTopic) {
-        title = firstTopic.length > 50 ? firstTopic.substring(0, 47) + "..." : firstTopic;
+    // Combine all available text for analysis
+    const allText = [
+      agenda || "",
+      contextText || "",
+      ...(contextFiles || []).map(file => file.content || "")
+    ].join(" ").trim();
+    
+    if (allText && allText.length > 10) {
+      // Look for key meeting-related keywords and phrases
+      const keywordPatterns = [
+        /(?:meeting|discussion|review|planning)\s+(?:about|for|on)\s+([^.!?]+)/gi,
+        /(?:quarterly|monthly|weekly|annual)\s+([^.!?]+)(?:\s+(?:meeting|review|discussion))?/gi,
+        /(?:budget|finance|hr|clinical|governance|strategy)\s+([^.!?]+)/gi,
+        /([^.!?]*(?:partnership|collaboration|merger|acquisition)[^.!?]*)/gi,
+        /([^.!?]*(?:training|workshop|seminar)[^.!?]*)/gi,
+        /([^.!?]*(?:audit|inspection|assessment)[^.!?]*)/gi,
+        /([^.!?]*(?:policy|guideline|protocol)\s+(?:review|update|discussion)[^.!?]*)/gi
+      ];
+      
+      for (const pattern of keywordPatterns) {
+        const matches = allText.match(pattern);
+        if (matches && matches[0]) {
+          let match = matches[0].trim();
+          // Clean up the match
+          match = match.replace(/^\W+|\W+$/g, ''); // Remove leading/trailing punctuation
+          match = match.charAt(0).toUpperCase() + match.slice(1); // Capitalize first letter
+          
+          if (match.length > 5 && match.length <= 80) {
+            title = match.length > 77 ? match.substring(0, 77) + "..." : match;
+            break;
+          }
+        }
       }
-    } else if (attendees.length > 0) {
+      
+      // If no specific patterns found, try to extract first meaningful topic
+      if (!title) {
+        const lines = allText.split(/[.\n!?]/).filter(line => line.trim().length > 10);
+        const firstMeaningfulLine = lines.find(line => 
+          !line.toLowerCase().includes('agenda') && 
+          !line.toLowerCase().includes('meeting') &&
+          line.trim().length > 15
+        );
+        
+        if (firstMeaningfulLine) {
+          const cleaned = firstMeaningfulLine.trim();
+          title = cleaned.length > 50 ? cleaned.substring(0, 47) + "..." : cleaned;
+        }
+      }
+    }
+    
+    // Fallback to attendee-based titles
+    if (!title && attendees.length > 0) {
       const organizations = [...new Set(attendees.map(a => a.organization).filter(Boolean))];
       if (organizations.length > 0) {
-        title = `${organizations[0]} ${format === "f2f" ? "Meeting" : "Virtual Meeting"}`;
+        title = `${organizations[0]} ${format === "teams" ? "Virtual" : format === "f2f" ? "Face-to-Face" : "Hybrid"} Meeting`;
       } else {
-        title = `${attendees.length} Person ${format.toUpperCase()} Meeting`;
+        const roles = [...new Set(attendees.map(a => a.title || a.role).filter(Boolean))];
+        if (roles.length > 0 && roles[0]) {
+          title = `${roles[0]} Meeting`;
+        } else {
+          title = `${attendees.length} Person ${format === "teams" ? "Virtual" : format === "f2f" ? "Face-to-Face" : "Hybrid"} Meeting`;
+        }
       }
-    } else {
-      const formatLabels = { teams: "Teams", f2f: "Face-to-Face", hybrid: "Hybrid" };
-      title = `${formatLabels[format]} Meeting`;
+    }
+    
+    // Final fallback with current date/time
+    if (!title) {
+      const formatLabels = { 
+        teams: "Virtual Meeting", 
+        f2f: "Face-to-Face Meeting", 
+        hybrid: "Hybrid Meeting" 
+      };
+      title = `${formatLabels[format]} - ${new Date().toLocaleDateString('en-GB', { 
+        weekday: 'short', 
+        day: 'numeric', 
+        month: 'short' 
+      })}`;
     }
 
     if (title.length > 97) {
