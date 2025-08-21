@@ -3578,20 +3578,20 @@ export const MeetingRecorder = ({
                         </div>
                       )}
                       
-                       <Button 
-                        onClick={() => {
-                          addScreenDebug('🔥🔥🔥 STOP BUTTON CLICKED!');
-                          console.log('🔥🔥🔥 STOP BUTTON CLICKED!');
-                          console.log('🔥🔥🔥 About to call stopRecording()');
-                          stopRecording();
-                        }}
-                        variant="destructive"
-                        size="lg"
-                        disabled={isStoppingRecording}
-                        className="shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 px-8 py-4 text-base font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                      >
-                        <Square className="h-5 w-5 mr-2" />
-                        {isStoppingRecording ? "Ending Recording..." : (isPaused ? "Meeting Paused" : "Stop Recording")}
+                        <Button 
+                         onClick={() => {
+                           addScreenDebug('🔥🔥🔥 STOP BUTTON CLICKED!');
+                           console.log('🔥🔥🔥 STOP BUTTON CLICKED!');
+                           console.log('🔥🔥🔥 About to call stopRecording()');
+                           stopRecording();
+                         }}
+                         variant="destructive"
+                         size="lg"
+                         disabled={isStoppingRecording || showProcessingAudio}
+                         className="shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 px-8 py-4 text-base font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                       >
+                         <Square className="h-5 w-5 mr-2" />
+                         {showProcessingAudio ? "Processing..." : (isStoppingRecording ? "Ending Recording..." : (isPaused ? "Meeting Paused" : "Stop Recording"))}
                        </Button>
                       </div>
                    )}
@@ -3719,8 +3719,13 @@ export const MeetingRecorder = ({
                   <div className="max-w-sm mx-auto">
                     <button
                       type="button"
-                      onClick={() => { isRecording ? stopRecording() : startRecording(); }}
-                      className="p-2 rounded-full bg-primary/5 w-12 h-12 mx-auto mb-2 flex items-center justify-center transition-colors cursor-pointer hover:bg-primary/10"
+                      onClick={() => { 
+                        if (!isStoppingRecording && !showProcessingAudio) {
+                          isRecording ? stopRecording() : startRecording(); 
+                        }
+                      }}
+                      disabled={isStoppingRecording || showProcessingAudio}
+                      className="p-2 rounded-full bg-primary/5 w-12 h-12 mx-auto mb-2 flex items-center justify-center transition-colors cursor-pointer hover:bg-primary/10 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-primary/5"
                       aria-label={isRecording ? 'Stop recording' : 'Start recording'}
                       title={isRecording ? 'Stop recording' : 'Start recording'}
                     >
