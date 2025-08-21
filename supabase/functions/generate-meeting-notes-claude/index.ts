@@ -111,7 +111,6 @@ LARGE MEETING HANDLING:
 - Group related discussions that may be scattered throughout the meeting
 - Capture decisions made at different points in the meeting
 - Note when topics are revisited or decisions are modified
-- Include timing indicators if mentioned ("after lunch", "at the start", etc.)
 
 STYLE OPTIONS:
 Style 1 (Default - Professional Business): Modern business format with executive structure
@@ -146,7 +145,6 @@ LONG MEETING STRUCTURE REQUIREMENTS:
 - Create as many main sections as needed (could be 10-15+ for long meetings)
 - Use clear topic transitions to show agenda progression
 - Group sub-discussions under appropriate main topics
-- Include "Meeting Flow" section if topics are revisited multiple times
 - Consolidate action items from throughout the entire meeting
 - Note any agenda items deferred or postponed
 
@@ -162,12 +160,6 @@ Attendees: [List ALL participants mentioned throughout meeting]
 
 EXECUTIVE SUMMARY
 [3-5 bullet points summarizing key outcomes and major decisions from entire meeting]
-
-MEETING FLOW OVERVIEW
-[Brief timeline of main topics covered - useful for long meetings]
-• [Time/sequence]: [Major topic]
-• [Next sequence]: [Next major topic]
-[Continue for all major agenda items]
 
 AGENDA ITEMS DISCUSSED
 
