@@ -698,35 +698,45 @@ export const LiveTranscript = ({
                       />
                     ) : (cleanedTranscript || (transcript && isAutoCleaningEnabled)) ? (
                       <div className="space-y-2">
-                        {(cleanedTranscript || transcript).split(/[.!?]+/).filter(s => s.trim()).map((sentence, index) => {
-                          const timestamp = new Date();
-                          timestamp.setSeconds(timestamp.getSeconds() + (index * 10));
-                          const timeStr = timestamp.toLocaleTimeString('en-GB', { 
-                            hour: '2-digit', 
-                            minute: '2-digit' 
-                          });
-                          
-                          return (
-                            <div key={index} className="flex items-start gap-3 p-2 hover:bg-accent/30 rounded-md transition-colors">
-                              <div className="flex items-center gap-2 min-w-fit">
-                                <Clock className="h-3 w-3 text-primary/70" />
-                                <Badge variant="outline" className="text-xs px-2 py-0.5 font-mono">
-                                  {timeStr}
-                                </Badge>
-                              </div>
-                              <span className="text-foreground leading-relaxed">
-                                {sentence.trim()}.
-                              </span>
+                        <div className="text-foreground leading-relaxed whitespace-pre-wrap">
+                          {showTimestamps ? (
+                            // Display with timestamps - split by sentences and add timestamps
+                            (cleanedTranscript || transcript).split(/[.!?]+/).filter(s => s.trim()).map((sentence, index) => {
+                              const timestamp = new Date();
+                              timestamp.setSeconds(timestamp.getSeconds() + (index * 10));
+                              const timeStr = timestamp.toLocaleTimeString('en-GB', { 
+                                hour: '2-digit', 
+                                minute: '2-digit' 
+                              });
+                              
+                              return (
+                                <div key={index} className="flex items-start gap-3 p-2 hover:bg-accent/30 rounded-md transition-colors">
+                                  <div className="flex items-center gap-2 min-w-fit">
+                                    <Clock className="h-3 w-3 text-primary/70" />
+                                    <Badge variant="outline" className="text-xs px-2 py-0.5 font-mono">
+                                      {timeStr}
+                                    </Badge>
+                                  </div>
+                                  <span className="text-foreground leading-relaxed">
+                                    {sentence.trim()}.
+                                  </span>
+                                </div>
+                              );
+                            })
+                          ) : (
+                            // Display without timestamps - show full accumulated transcript
+                            <div className="text-foreground leading-relaxed">
+                              {cleanedTranscript || transcript}
                             </div>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground italic">
-                        AI-cleaned and formatted transcript will appear here with timestamps...
-                      </span>
-                    )}
-                  </div>
+                          )}
+                         </div>
+                       </div>
+                     ) : (
+                       <span className="text-muted-foreground italic">
+                         AI-cleaned and formatted transcript will appear here with timestamps...
+                       </span>
+                     )}
+                   </div>
                   
                   <div className="mt-3 space-y-2">
                     <div className="text-xs text-muted-foreground flex items-center gap-2">
