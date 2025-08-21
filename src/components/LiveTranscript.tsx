@@ -253,6 +253,7 @@ export const LiveTranscript = ({
   // Notify parent when cleaned transcript changes
   useEffect(() => {
     if (onCleanedTranscriptChange && cleanedTranscript) {
+      console.log('🔍 Sending cleaned transcript to parent:', cleanedTranscript.length, 'chars');
       onCleanedTranscriptChange(cleanedTranscript);
     }
   }, [cleanedTranscript, onCleanedTranscriptChange]);
@@ -337,7 +338,15 @@ export const LiveTranscript = ({
 
   // Build formatted cleaned text (paragraphs separated by blank lines)
   const getFormattedCleanedText = () => {
-    const base = cleanedTranscript || transcript || "";
+    // If we have a cleaned transcript, use it directly without further processing
+    if (cleanedTranscript) {
+      console.log('🔍 Using cleaned transcript directly:', cleanedTranscript.length, 'chars');
+      return cleanedTranscript;
+    }
+    
+    // Otherwise, format the raw transcript
+    const base = transcript || "";
+    console.log('🔍 Formatting raw transcript:', base.length, 'chars');
     return formatTranscriptWithTimestamps(base);
   };
 

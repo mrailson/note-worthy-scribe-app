@@ -79,6 +79,15 @@ export const MeetingRecorder = ({
   const [duration, setDuration] = useState(0);
   const [transcript, setTranscript] = useState("");
   const [cleanedMasterTranscript, setCleanedMasterTranscript] = useState(""); // AI-enhanced transcript from LiveTranscript
+  
+  // Debug logging for cleaned transcript changes
+  useEffect(() => {
+    console.log('🔍 Cleaned master transcript updated:', {
+      hasValue: !!cleanedMasterTranscript,
+      length: cleanedMasterTranscript?.length || 0,
+      preview: cleanedMasterTranscript?.substring(0, 100) + (cleanedMasterTranscript?.length > 100 ? '...' : '')
+    });
+  }, [cleanedMasterTranscript]);
   const [realtimeTranscripts, setRealtimeTranscripts] = useState<TranscriptData[]>([]);
   const [removedSegments, setRemovedSegments] = useState<RemovedSegment[]>([]);
   
