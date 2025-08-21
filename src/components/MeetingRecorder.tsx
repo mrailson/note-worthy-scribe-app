@@ -2731,7 +2731,7 @@ export const MeetingRecorder = ({
       meeting_format: meetingData.meetingFormat
     });
 
-      // 1. Save main meeting record FIRST
+      // 1. Save main meeting record FIRST - fix empty practice_id issue
       const { data: savedMeeting, error: saveError } = await supabase
         .from('meetings')
         .insert({
@@ -2741,11 +2741,13 @@ export const MeetingRecorder = ({
           start_time: meetingData.startTime,
           status: 'completed',
           user_id: user?.id,
-          practice_id: meetingData.practiceId,
+          practice_id: meetingData.practiceId || null, // Convert empty string to null
           meeting_format: meetingData.meetingFormat
         })
         .select()
         .single();
+
+      addScreenDebug(`🔍 Database insert - practice_id: ${meetingData.practiceId || 'NULL'}`);
 
       console.log('🚨 DATABASE SAVE RESULT:');
       console.log('🚨 SaveError:', saveError);
