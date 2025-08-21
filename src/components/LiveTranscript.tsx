@@ -796,12 +796,14 @@ export const LiveTranscript = ({
                                 <span className="text-xs text-muted-foreground">Recording started</span>
                               </div>
                               <div className="text-foreground leading-relaxed pl-4">
+                                {/* Use the same text that's used for copy/download to ensure consistency */}
                                 {cleanedTranscript || transcript}
                               </div>
                             </div>
                           ) : (
                             // Display without timestamps - show full transcript
                             <div className="text-foreground leading-relaxed">
+                              {/* Ensure we show the exact same content that gets copied/downloaded */}
                               {cleanedTranscript || transcript}
                             </div>
                           )}
@@ -812,6 +814,27 @@ export const LiveTranscript = ({
                          AI-cleaned and formatted transcript will appear here with timestamps...
                        </span>
                      )}
+
+                    {/* Raw Transcript Backup Section */}
+                    {transcript && (
+                      <div className="mt-6 p-4 bg-muted/30 rounded-lg border border-muted">
+                        <div className="flex items-center gap-2 mb-3">
+                          <FileText className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                            Raw Transcript Backup
+                          </span>
+                          <Badge variant="outline" className="text-xs">Original</Badge>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="text-xs text-muted-foreground mb-2">
+                            Complete unprocessed transcription for reference and backup purposes
+                          </div>
+                          <div className="max-h-32 overflow-y-auto p-3 bg-background/50 rounded border text-sm font-mono text-muted-foreground whitespace-pre-wrap">
+                            {transcript}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                    </div>
                   
                   <div className="mt-3 space-y-2">
