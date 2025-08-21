@@ -73,8 +73,16 @@ serve(async (req) => {
       throw new Error('Meeting not found or access denied');
     }
 
+    console.log('📊 Meeting data:', {
+      id: meeting.id,
+      title: meeting.title,
+      hasAudioBlob: !!meeting.audio_blob,
+      audioBlobSize: meeting.audio_blob ? meeting.audio_blob.length : 0
+    });
+
     // Try to get audio from meeting_audio_backups first
     let audioData = null;
+    let audioSource = '';
     const { data: audioBackup, error: backupError } = await supabase
       .from('meeting_audio_backups')
       .select('audio_data')
@@ -83,22 +91,52 @@ serve(async (req) => {
       .limit(1)
       .single();
 
+    console.log('📦 Audio backup check:', {
+      hasBackup: !!audioBackup,
+      backupError: backupError?.message || 'none',
+      backupSize: audioBackup?.audio_data ? audioBackup.audio_data.length : 0
+    });
+
     if (!backupError && audioBackup?.audio_data) {
-      console.log('📦 Found audio backup data');
+      console.log('📦 Found audio backup data, size:', audioBackup.audio_data.length);
       audioData = audioBackup.audio_data;
+      audioSource = 'backup';
     } else {
       // Fallback to meeting audio_blob if available
       if (meeting.audio_blob) {
-        console.log('📦 Using meeting audio_blob');
+        console.log('📦 Using meeting audio_blob, size:', meeting.audio_blob.length);
         audioData = meeting.audio_blob;
+        audioSource = 'meeting_blob';
       } else {
-        throw new Error('No audio data found for this meeting');
+        // Let's check what audio-related data exists
+        const { data: transcripts } = await supabase
+          .from('meeting_transcripts')
+          .select('id, source, created_at')
+          .eq('meeting_id', meetingId)
+          .order('created_at', { ascending: false });
+
+        console.log('📄 Available transcripts:', transcripts?.map(t => ({ 
+          source: t.source, 
+          created_at: t.created_at 
+        })) || []);
+
+        throw new Error(`No audio data found for this meeting. Available data: ${JSON.stringify({
+          meeting_title: meeting.title,
+          has_audio_blob: !!meeting.audio_blob,
+          has_backup: !!audioBackup,
+          backup_error: backupError?.message,
+          available_transcripts: transcripts?.length || 0
+        })}`);
       }
     }
 
     // Process audio data
-    console.log('🔄 Processing audio data...');
     const binaryAudio = processBase64Chunks(audioData);
+    console.log('🔄 Processing audio data...', {
+      source: audioSource,
+      sizeBytes: binaryAudio.length,
+      sizeMB: Math.round(binaryAudio.length / 1024 / 1024 * 100) / 100
+    });
     
     // Prepare form data for Whisper
     const formData = new FormData();
@@ -109,7 +147,10 @@ serve(async (req) => {
     formData.append('timestamp_granularities[]', 'word');
     formData.append('prompt', 'This is a healthcare meeting recording. Please transcribe medical terms, NHS terminology, and proper nouns accurately.');
 
-    console.log('🎯 Sending to OpenAI Whisper...');
+    console.log('🎯 Sending to OpenAI Whisper...', {
+      fileSize: blob.size,
+      model: 'whisper-1'
+    });
 
     // Send to OpenAI Whisper
     const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
@@ -129,7 +170,11 @@ serve(async (req) => {
     const result = await response.json();
     const transcript = result.text || '';
 
-    console.log('✅ Whisper transcription completed, length:', transcript.length);
+    console.log('✅ Whisper transcription completed:', {
+      transcriptLength: transcript.length,
+      wordCount: transcript.split(' ').length,
+      processingTime: Date.now() - Date.now() // This would need start time tracking
+    });
 
     // Store the new transcript
     const { error: updateError } = await supabase
@@ -149,7 +194,14 @@ serve(async (req) => {
     return new Response(JSON.stringify({ 
       transcript,
       length: transcript.length,
-      source: 'whisper_reprocess'
+      source: 'whisper_reprocess',
+      audioSource: audioSource,
+      processingDetails: {
+        audioSizeBytes: binaryAudio.length,
+        audioSizeMB: Math.round(binaryAudio.length / 1024 / 1024 * 100) / 100,
+        transcriptLength: transcript.length,
+        wordCount: transcript.split(' ').length
+      }
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
