@@ -466,6 +466,7 @@ serve(async (req) => {
     }
 
     console.log('Claude meeting minutes generated successfully');
+    console.log('Generated minutes preview:', meetingMinutes.substring(0, 500));
 
     return new Response(JSON.stringify({ 
       success: true,
