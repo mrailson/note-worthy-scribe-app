@@ -735,14 +735,11 @@ export const LiveTranscript = ({
                     </Button>
                   </div>
                   
-                  <div className="text-sm leading-relaxed whitespace-pre-wrap min-h-[60px] h-[2500px] overflow-hidden p-3 bg-background/50 rounded-md border relative">
-                    {transcript ? (
-                      <>
-                        <span className="text-foreground font-mono">
-                          {transcript}
-                        </span>
-                        <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-background/80 to-transparent pointer-events-none" />
-                      </>
+                  <div className="text-sm leading-relaxed whitespace-pre-wrap min-h-[60px] h-[2500px] overflow-y-auto p-3 bg-background/50 rounded-md border relative">
+                    {growingRawTranscript ? (
+                      <span className="text-foreground font-mono">
+                        {growingRawTranscript}
+                      </span>
                     ) : (
                       <span className="text-muted-foreground italic">
                         Listening for speech... raw transcription will appear here
@@ -992,9 +989,9 @@ export const LiveTranscript = ({
               overflowWrap: 'break-word'
             }}
           >
-            {transcript ? (
+            {growingRawTranscript ? (
               <div className="text-foreground">
-                {transcript}
+                {growingRawTranscript}
               </div>
             ) : (
               <div className="text-muted-foreground italic text-center py-8">
@@ -1006,7 +1003,7 @@ export const LiveTranscript = ({
           {confidence && (
             <div className="mt-2 flex items-center gap-4 text-xs text-muted-foreground">
               <span>Confidence: {Math.round(confidence * 100)}%</span>
-              <span>Length: {transcript?.length || 0} characters</span>
+              <span>Length: {growingRawTranscript?.length || 0} characters</span>
             </div>
           )}
         </DialogContent>
