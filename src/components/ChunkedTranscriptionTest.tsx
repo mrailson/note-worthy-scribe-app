@@ -134,13 +134,13 @@ const ChunkedTranscriptionTest = () => {
         description: "5s chunks for first 20s, then 30s chunks"
       });
 
-      // ChatGPT recommended chunk durations: 12-20s with 2.0s overlap
+      // Longer chunks for better context and fewer API calls
       const getChunkDuration = (chunkNumber: number) => {
         // Quick feedback: shorter chunks initially
-        if (chunkNumber <= 2) return 5000;  // 5s for immediate feedback
-        if (chunkNumber <= 4) return 12000; // 12s - ChatGPT minimum
-        // Then switch to optimal 18-second chunks 
-        return 18000; 
+        if (chunkNumber <= 1) return 8000;  // 8s for immediate feedback
+        if (chunkNumber <= 2) return 20000; // 20s chunks
+        // Then switch to longer 45-second chunks for better context
+        return 45000; 
       };
 
       // Reduced overlap to minimize duplicates - now 0.5s for all chunks

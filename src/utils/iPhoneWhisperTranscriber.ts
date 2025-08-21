@@ -129,9 +129,9 @@ export class iPhoneWhisperTranscriber {
     this.mediaRecorder.start();
 
     const getInterval = (elapsed: number) => {
-      if (elapsed < 20000) return 5000;     // Every 5s for first 20s
-      if (elapsed < 60000) return 10000;    // Every 10s until 1 min
-      return 30000;                         // Then every 30s for balance
+      if (elapsed < 15000) return 8000;     // Every 8s for first 15s
+      if (elapsed < 60000) return 20000;    // Every 20s until 1 min
+      return 45000;                         // Then every 45s for longer context
     };
 
     const scheduleNext = () => {
