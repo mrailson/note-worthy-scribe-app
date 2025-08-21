@@ -17,11 +17,14 @@ import {
   Heart,
   RotateCcw,
   ChevronDown,
-  AlertTriangle
+  AlertTriangle,
+  Edit3,
+  Check
 } from "lucide-react";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { UploadedFile } from "@/types/ai4gp";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { VoiceRecorder } from "@/components/VoiceRecorder";
 
 
 const ImageCreate = () => {
@@ -30,6 +33,8 @@ const ImageCreate = () => {
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [revisedPrompt, setRevisedPrompt] = useState<string | null>(null);
+  const [editedPrompt, setEditedPrompt] = useState("");
+  const [isEditingPrompt, setIsEditingPrompt] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<UploadedFile | null>(null);
   const [imageHistory, setImageHistory] = useState<string[]>([]);
   const [isImageUploadOpen, setIsImageUploadOpen] = useState(false);
@@ -143,6 +148,90 @@ const ImageCreate = () => {
     handleGenerateImage();
   };
 
+  const handleVoiceTranscription = (text: string) => {
+    if (prompt.trim()) {
+      setPrompt(prev => prev + " " + text);
+    } else {
+      setPrompt(text);
+    }
+  };
+
+  const handleGenerateWithEditedPrompt = async () => {
+    if (!editedPrompt.trim()) {
+      toast.error("Please enter a prompt to generate an image");
+      return;
+    }
+
+    setIsGenerating(true);
+    setGeneratedImage(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('prompt', editedPrompt.trim());
+      formData.append('size', '1024x1024');
+      formData.append('quality', 'high');
+
+      if (uploadedImage) {
+        let imageBlob: Blob;
+        if (uploadedImage.content.startsWith('data:')) {
+          const response = await fetch(uploadedImage.content);
+          imageBlob = await response.blob();
+        } else {
+          imageBlob = uploadedImage as any;
+        }
+        formData.append('image', imageBlob, uploadedImage.name || 'reference.png');
+        formData.append('mode', 'generation');
+      } else {
+        formData.append('mode', 'generation');
+      }
+
+      const { data, error } = await supabase.functions.invoke('advanced-image-generation', {
+        body: formData
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Failed to generate image');
+      }
+
+      if (data.success) {
+        setGeneratedImage(data.imageData);
+        setRevisedPrompt(data.revisedPrompt);
+        setEditedPrompt(data.revisedPrompt || editedPrompt);
+        
+        setImageHistory(prev => {
+          const newHistory = [data.imageData, ...prev];
+          return newHistory.slice(0, 3);
+        });
+        
+        setIsEditingPrompt(false);
+        toast.success("Image generated successfully with edited prompt!");
+      } else {
+        throw new Error(data.error || "Failed to generate image");
+      }
+    } catch (error: any) {
+      console.error("Error generating image:", error);
+      toast.error(error.message || "Failed to generate image");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const startEditingPrompt = () => {
+    setEditedPrompt(revisedPrompt || "");
+    setIsEditingPrompt(true);
+  };
+
+  const saveEditedPrompt = () => {
+    setRevisedPrompt(editedPrompt);
+    setIsEditingPrompt(false);
+    toast.success("Prompt updated!");
+  };
+
+  const cancelEditingPrompt = () => {
+    setEditedPrompt(revisedPrompt || "");
+    setIsEditingPrompt(false);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -179,9 +268,15 @@ const ImageCreate = () => {
             <CardContent className="space-y-4">
               {/* Description */}
               <div className="space-y-2">
-                <label htmlFor="prompt" className="text-sm font-medium">
-                  Description
-                </label>
+                <div className="flex items-center justify-between">
+                  <label htmlFor="prompt" className="text-sm font-medium">
+                    Description
+                  </label>
+                  <VoiceRecorder 
+                    onTranscription={handleVoiceTranscription}
+                    disabled={isGenerating}
+                  />
+                </div>
                 <Textarea
                   id="prompt"
                   placeholder="e.g. A professional infographic showing flu vaccination statistics with NHS branding, or a diagram explaining appointment booking process for patients"
@@ -263,12 +358,72 @@ const ImageCreate = () => {
 
               {revisedPrompt && (
                 <div className="space-y-2">
-                  <Badge variant="secondary" className="text-xs">
-                    AI Enhanced Prompt
-                  </Badge>
-                  <p className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-md">
-                    {revisedPrompt}
-                  </p>
+                  <div className="flex items-center justify-between">
+                    <Badge variant="secondary" className="text-xs">
+                      AI Enhanced Prompt
+                    </Badge>
+                    <div className="flex gap-1">
+                      {!isEditingPrompt ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={startEditingPrompt}
+                          className="h-6 px-2"
+                        >
+                          <Edit3 className="h-3 w-3" />
+                        </Button>
+                      ) : (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={saveEditedPrompt}
+                            className="h-6 px-2"
+                          >
+                            <Check className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={cancelEditingPrompt}
+                            className="h-6 px-2"
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  {isEditingPrompt ? (
+                    <div className="space-y-2">
+                      <Textarea
+                        value={editedPrompt}
+                        onChange={(e) => setEditedPrompt(e.target.value)}
+                        rows={3}
+                        className="text-sm resize-none"
+                        placeholder="Edit the AI enhanced prompt..."
+                      />
+                      <Button
+                        onClick={handleGenerateWithEditedPrompt}
+                        disabled={isGenerating || !editedPrompt.trim()}
+                        className="w-full bg-[#005EB8] hover:bg-[#005EB8]/90"
+                        size="sm"
+                      >
+                        {isGenerating ? (
+                          <>
+                            <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                            Generating...
+                          </>
+                        ) : (
+                          "Generate with Edited Prompt"
+                        )}
+                      </Button>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-md">
+                      {revisedPrompt}
+                    </p>
+                  )}
                 </div>
               )}
             </CardContent>
