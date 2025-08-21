@@ -2636,15 +2636,30 @@ export const MeetingRecorder = ({
 
     // Prepare meeting data with default title based on date/time and word count
     const currentDate = new Date();
-    const defaultTitle = `Meeting - ${currentDate.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric', 
-      year: 'numeric' 
-    })} ${currentDate.toLocaleTimeString('en-US', { 
+    
+    // Helper function to add ordinal suffix to day
+    const getOrdinalSuffix = (day: number) => {
+      if (day >= 11 && day <= 13) return 'th';
+      switch (day % 10) {
+        case 1: return 'st';
+        case 2: return 'nd';
+        case 3: return 'rd';
+        default: return 'th';
+      }
+    };
+    
+    const dayOfWeek = currentDate.toLocaleDateString('en-US', { weekday: 'short' });
+    const day = currentDate.getDate();
+    const dayWithSuffix = `${day}${getOrdinalSuffix(day)}`;
+    const month = currentDate.toLocaleDateString('en-US', { month: 'long' });
+    const year = currentDate.getFullYear();
+    const time = currentDate.toLocaleTimeString('en-US', { 
       hour: 'numeric', 
       minute: '2-digit',
       hour12: true 
-    })} (${wordCount} words)`;
+    }).toLowerCase();
+    
+    const defaultTitle = `Meeting - ${dayOfWeek}, ${dayWithSuffix} ${month} ${year} (${time})`;
     
     const meetingData = {
       title: meetingSettings?.title?.trim() || initialSettings?.title?.trim() || defaultTitle,
