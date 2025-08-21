@@ -250,15 +250,23 @@ const PracticeImageMaker = () => {
         apiSize = "1792x1024";
       }
 
-      // Create FormData for the request
-      const formData = new FormData();
-      formData.append('prompt', finalPrompt);
-      formData.append('size', apiSize);
-      formData.append('quality', 'high');
-      formData.append('mode', 'generation');
+      // Fix size mapping - OpenAI only supports specific sizes
+      let validApiSize = apiSize;
+      if (apiSize === "2480x3508" || apiSize === "1024x1536") {
+        validApiSize = "1024x1792"; // A4 Portrait -> closest supported
+      } else if (apiSize === "3508x2480") {
+        validApiSize = "1792x1024"; // A4 Landscape -> closest supported
+      } else if (apiSize !== "1024x1024" && apiSize !== "1024x1792" && apiSize !== "1792x1024") {
+        validApiSize = "1024x1024"; // Default fallback
+      }
 
       const { data, error } = await supabase.functions.invoke('advanced-image-generation', {
-        body: formData
+        body: {
+          prompt: finalPrompt,
+          size: validApiSize,
+          quality: 'high',
+          mode: 'generation'
+        }
       });
 
       if (error) {
