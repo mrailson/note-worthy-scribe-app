@@ -2382,6 +2382,10 @@ export const MeetingRecorder = ({
     
     console.log('🔥🔥🔥 STOPRECORDING FUNCTION START - IMMEDIATE DEBUG');
     console.log('🔥🔥🔥 Function called at:', new Date().toISOString());
+    
+    // Allow time for final audio chunk to be processed by Whisper
+    addScreenDebug('⏳ Allowing 2 seconds for final audio chunk to process...');
+    await new Promise(resolve => setTimeout(resolve, 2000));
     console.log('🔥🔥🔥 Current isRecording state:', isRecording);
     console.log('🔥🔥🔥 Current user:', user?.id);
     console.log('🔥🔥🔥 Current duration:', duration);
