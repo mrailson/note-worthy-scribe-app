@@ -631,11 +631,11 @@ export const LiveTranscript = ({
                       overflowWrap: 'break-word'
                     }}
                   >
-                    {transcript ? (
-                      <span className="text-foreground font-mono">
-                        {transcript}
-                      </span>
-                    ) : (
+                     {transcript ? (
+                       <span className="text-foreground font-mono">
+                         {transcript.replace(/If silence or background noise, return nothing\.?\s*/gi, '').trim() || 'Processing...'}
+                       </span>
+                     ) : (
                       <span className="text-muted-foreground italic">
                         Listening for speech... raw transcription will appear here
                       </span>
