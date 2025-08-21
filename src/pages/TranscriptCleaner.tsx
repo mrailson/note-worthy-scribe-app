@@ -143,10 +143,10 @@ export default function TranscriptCleaner() {
   const [processingLog, setProcessingLog] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
   const [settings, setSettings] = useState({
-    similarityThreshold: 0.8,
-    maxBufferSize: 10,
+    similarityThreshold: 0.88,
+    maxBufferSize: 6,
     minChunkLength: 20,
-    overlapThreshold: 0.6
+    overlapThreshold: 0.5
   });
   const [isProcessing, setIsProcessing] = useState(false);
   
