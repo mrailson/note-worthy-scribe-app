@@ -143,9 +143,9 @@ const ChunkedTranscriptionTest = () => {
         return 18000; 
       };
 
-      // ChatGPT recommended: consistent 2.0s overlap (10-15% of chunk)
+      // Reduced overlap to minimize duplicates - now 0.5s for all chunks
       const getOverlapDuration = (chunkNumber: number) => {
-        return 2000; // 2 second overlap for all chunks
+        return 500; // 0.5 second overlap for all chunks
       };
 
       // Function to create and start a new recorder

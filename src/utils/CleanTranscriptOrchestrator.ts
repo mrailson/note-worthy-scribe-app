@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { transcriptCleaner } from '@/utils/TranscriptCleaner';
+import { simpleTranscriptCleaner } from '@/utils/simpleTranscriptCleaner';
 
 export type ProgressCallback = (done: number, total: number) => void;
 
@@ -32,22 +32,44 @@ function splitTextIntoChunks(text: string, target = 3500, overlap = 200): string
 }
 
 function dedupeBoundary(prev: string, next: string): string {
-  // Remove duplicated overlap from start of next if present
-  const tail = prev.slice(-220);
+  // Enhanced deduplication - remove duplicated overlap from start of next if present
+  const tail = prev.slice(-100);
   if (!tail) return next;
+  
   const normalizedTail = tail.replace(/\s+/g, ' ').trim();
-  let candidate = next;
-  for (let k = 220; k >= 80; k -= 20) {
-    const t = normalizedTail.slice(-k);
-    const re = new RegExp('^' + escapeRegExp(t).replace(/\s+/g, '\\s+'));
-    if (re.test(candidate.replace(/\s+/g, ' ').trim())) {
-      // strip the matching prefix (approximate)
-      const idx = candidate.toLowerCase().indexOf(t.toLowerCase());
-      if (idx === 0) {
-        return candidate.slice(t.length).trimStart();
+  const normalizedNext = next.replace(/\s+/g, ' ').trim();
+  
+  // Try progressively shorter matches to find overlap
+  for (let k = Math.min(100, normalizedTail.length); k >= 20; k -= 10) {
+    const searchText = normalizedTail.slice(-k);
+    const searchPattern = escapeRegExp(searchText).replace(/\s+/g, '\\s+');
+    const regex = new RegExp('^' + searchPattern, 'i');
+    
+    if (regex.test(normalizedNext)) {
+      // Find the actual match position and remove it
+      const matchIndex = normalizedNext.toLowerCase().indexOf(searchText.toLowerCase());
+      if (matchIndex === 0) {
+        const remainingText = next.slice(searchText.length).trimStart();
+        return remainingText;
       }
     }
   }
+  
+  // Also check for sentence-level duplicates at the boundary
+  const prevSentences = prev.split(/[.!?]+/).filter(s => s.trim().length > 10);
+  const nextSentences = next.split(/[.!?]+/).filter(s => s.trim().length > 10);
+  
+  if (prevSentences.length > 0 && nextSentences.length > 0) {
+    const lastPrevSentence = prevSentences[prevSentences.length - 1].trim().toLowerCase();
+    const firstNextSentence = nextSentences[0].trim().toLowerCase();
+    
+    // Remove exact sentence duplicates
+    if (lastPrevSentence === firstNextSentence && lastPrevSentence.length > 15) {
+      const sentenceEnd = next.indexOf(nextSentences[0]) + nextSentences[0].length;
+      return next.slice(sentenceEnd).trimStart();
+    }
+  }
+  
   return next;
 }
 
@@ -71,7 +93,7 @@ export async function cleanLargeTranscript(
   onProgress?: ProgressCallback,
   options: { concurrency?: number; chunkSize?: number; overlap?: number } = {}
 ): Promise<string> {
-  const { concurrency = 3, chunkSize = 3500, overlap = 200 } = options;
+  const { concurrency = 3, chunkSize = 3500, overlap = 50 } = options;
 
   // Small transcripts: use existing single-call function
   if (rawTranscript.length <= 7000) {
@@ -102,12 +124,7 @@ export async function cleanLargeTranscript(
       } catch (e) {
         // Fallback to local rule-based cleaner if AI fails
         try {
-          results[i] = transcriptCleaner.cleanTranscript(chunks[i], {
-            removeHallucinations: true,
-            fixGrammar: true,
-            addPunctuation: true,
-            mergeFragments: true,
-          } as any);
+          results[i] = simpleTranscriptCleaner.quickClean(chunks[i]);
         } catch {
           results[i] = chunks[i];
         }
