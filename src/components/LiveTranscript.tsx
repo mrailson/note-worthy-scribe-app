@@ -245,27 +245,16 @@ export const LiveTranscript = ({
         setLiveTranscriptText(cleanedNew); // Show cleaned version for live display
         console.log('✨ Updated live transcript with cleaned version (length:', cleanedNew.length, ')');
         
-        // Also update cleanedTranscript as a fallback if AI chunks aren't working
-        setCleanedTranscript(prev => {
-          // Only update if the new content is significantly different (to avoid duplicates from AI chunks)
-          if (cleanedNew.length > prev.length + 10) {
-            console.log('📋 Fallback: Updated AI enhanced transcript from live data');
-            return cleanedNew;
-          }
-          return prev;
-        });
+        // Always update cleanedTranscript to ensure AI Enhanced section shows full content
+        setCleanedTranscript(cleanedNew);
+        console.log('📋 Updated AI enhanced transcript from live data (length:', cleanedNew.length, ')');
       } else {
         setLiveTranscriptText(processedTranscript); // Show processed version
         console.log('📝 Updated live transcript with raw version (length:', processedTranscript.length, ')');
         
-        // Also update cleanedTranscript as fallback
-        setCleanedTranscript(prev => {
-          if (processedTranscript.length > prev.length + 10) {
-            console.log('📋 Fallback: Updated AI enhanced transcript from raw data');
-            return processedTranscript;
-          }
-          return prev;
-        });
+        // Always update cleanedTranscript to ensure AI Enhanced section shows full content
+        setCleanedTranscript(processedTranscript);
+        console.log('📋 Updated AI enhanced transcript from raw data (length:', processedTranscript.length, ')');
       }
     }
     // NEVER clear liveTranscriptText - always preserve transcript history
