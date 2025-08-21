@@ -730,6 +730,89 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     setIsEditing(!isEditing);
   };
 
+  // Advanced transcript cleaning function from ChatGPT
+  const cleanTranscript = (raw: string) => {
+    // 1) Normalise spacing & simple punctuation
+    let text = raw
+      .replace(/\s+/g, ' ')
+      .replace(/\s+([.,;:!?])/g, '$1')
+      .trim();
+
+    // 2) Rough sentence split
+    let sentences = text
+      .split(/(?<=[.!?])\s+(?=[A-Z(""])/)
+      .map(s => s.trim())
+      .filter(Boolean);
+
+    // 3) Join broken half-sentences (e.g., "…justify. requesting…")
+    const smartJoined: string[] = [];
+    for (const s of sentences) {
+      if (!smartJoined.length) { smartJoined.push(s); continue; }
+      const prev = smartJoined[smartJoined.length - 1];
+      const prevOpen = !/[.!?…]$/.test(prev);
+      const startsLower = /^[a-z"(]/.test(s);
+      if (prevOpen && startsLower) {
+        smartJoined[smartJoined.length - 1] = (prev + ' ' + s).replace(/\s+/g, ' ');
+      } else {
+        smartJoined.push(s);
+      }
+    }
+
+    // 4) Adjacent near-duplicate collapse (bigrams Jaccard)
+    function ngrams(tokens: string[], n: number) {
+      const set = new Set<string>();
+      for (let i = 0; i <= tokens.length - n; i++) set.add(tokens.slice(i, i + n).join(' '));
+      return set;
+    }
+    function jaccard(a: Set<string>, b: Set<string>) {
+      const inter = [...a].filter(x => b.has(x)).length;
+      const uni = new Set([...a, ...b]).size;
+      return uni ? inter / uni : 0;
+    }
+    function isNearDup(a: string, b: string, thresh = 0.94) {
+      const A = ngrams(a.toLowerCase().split(/\s+/), 2);
+      const B = ngrams(b.toLowerCase().split(/\s+/), 2);
+      return jaccard(A, B) >= thresh;
+    }
+    // Compare against a small window of recent sentences (catches echoes not strictly adjacent)
+    function dedupeWithWindow(sents: string[], thresh = 0.94, window = 6) {
+      const out: string[] = [];
+      for (const s of sents) {
+        let dup = false;
+        for (const prev of out.slice(-window)) {
+          if (isNearDup(prev, s, thresh)) { dup = true; break; }
+        }
+        if (!dup) out.push(s);
+      }
+      return out;
+    }
+
+    const deduped = dedupeWithWindow(smartJoined, 0.94, 6);
+
+    // 5) NHS glossary corrections (surgical, safe)
+    let cleaned = deduped.join(' ');
+    const glossary: [RegExp, string][] = [
+      [/\bARRS\s+roll(s)?\b/gi, 'ARRS role$1'],
+      [/\bPCM\s*Diaz\b/gi, 'PCN DES'],
+      [/\bPCMDR'?s?\b/gi, 'PCN DES'],
+      [/\bCUC\b/g, 'CQC'],
+      [/\b[Ss]ystem\s+one\b/g, 'SystmOne'],
+      [/\barcacity\b/gi, 'capacity'],
+      [/\bDoc\s*Man\b/gi, 'Docman'],
+    ];
+    for (const [pat, rep] of glossary) cleaned = cleaned.replace(pat, rep);
+
+    // 6) Final tidy
+    cleaned = cleaned
+      .replace(/\s+,/g, ',')
+      .replace(/\(\s+/g, '(').replace(/\s+\)/g, ')')
+      .replace(/\s{2,}/g, ' ')
+      .replace(/(^|[.!?]\s+)([a-z])/g, (_m, p, c) => p + c.toUpperCase())
+      .trim();
+
+    return cleaned;
+  };
+
   // Handle transcript cleaning to remove duplicates
   const handleCleanTranscript = () => {
     if (!transcript || transcript.trim().length === 0) {
@@ -741,35 +824,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     saveCurrentVersion('clean-transcript', 'transcript');
     
     try {
-      // Basic duplicate removal logic - user will provide ChatGPT code
-      let cleanedTranscript = transcript;
-      
-      // Remove exact duplicate lines
-      const lines = cleanedTranscript.split('\n');
-      const uniqueLines: string[] = [];
-      const seenLines = new Set<string>();
-      
-      for (const line of lines) {
-        const trimmedLine = line.trim();
-        if (trimmedLine && !seenLines.has(trimmedLine.toLowerCase())) {
-          seenLines.add(trimmedLine.toLowerCase());
-          uniqueLines.push(line);
-        } else if (!trimmedLine) {
-          // Keep empty lines for formatting
-          uniqueLines.push(line);
-        }
-      }
-      
-      // Remove duplicate phrases within sentences
-      cleanedTranscript = uniqueLines.join('\n');
-      
-      // Remove repetitive phrases (basic pattern matching)
-      cleanedTranscript = cleanedTranscript
-        .replace(/(\b\w+\s+\w+\b)(\s+\1)+/gi, '$1') // Remove repeated two-word phrases
-        .replace(/(\b\w+\b)(\s+\1){2,}/gi, '$1') // Remove words repeated 3+ times
-        .replace(/\n\s*\n\s*\n+/g, '\n\n') // Clean up excessive line breaks
-        .trim();
-      
+      const cleanedTranscript = cleanTranscript(transcript);
       setTranscript(cleanedTranscript);
       toast.success('Transcript cleaned successfully!');
       
