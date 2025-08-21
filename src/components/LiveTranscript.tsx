@@ -417,6 +417,19 @@ export const LiveTranscript = ({
   };
 
   // Build simple HTML preserving paragraph spacing
+  // Auto-scroll to bottom when transcript updates
+  useEffect(() => {
+    if (latestTranscriptRef.current && transcript) {
+      latestTranscriptRef.current.scrollTop = latestTranscriptRef.current.scrollHeight;
+    }
+  }, [transcript]);
+
+  useEffect(() => {
+    if (enhancedTranscriptRef.current && cleanedTranscript) {
+      enhancedTranscriptRef.current.scrollTop = enhancedTranscriptRef.current.scrollHeight;
+    }
+  }, [cleanedTranscript]);
+
   const buildCleanedHtml = () => {
     const text = getFormattedCleanedText();
     const paras = text
