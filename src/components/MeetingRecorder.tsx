@@ -2385,15 +2385,19 @@ export const MeetingRecorder = ({
     
     // NOW stop the transcribers after the processing delay
     
-    // Stop browser transcriber
+    // Stop browser transcriber and wait for final processing
     if (browserTranscriberRef.current) {
       browserTranscriberRef.current.stopTranscription();
+      // Give browser speech recognition time to process final audio segments
+      await new Promise(resolve => setTimeout(resolve, 3000));
       browserTranscriberRef.current = null;
     }
     
-    // Stop iPhone transcriber
+    // Stop iPhone transcriber and wait for final processing  
     if (iPhoneTranscriberRef.current) {
       iPhoneTranscriberRef.current.stopTranscription();
+      // Give iPhone transcriber time to process final audio segments
+      await new Promise(resolve => setTimeout(resolve, 3000));
       iPhoneTranscriberRef.current = null;
     }
     
