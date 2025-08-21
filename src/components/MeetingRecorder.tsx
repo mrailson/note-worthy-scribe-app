@@ -129,6 +129,12 @@ export const MeetingRecorder = ({
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [savedMeetingData, setSavedMeetingData] = useState<{title: string, duration: string, wordCount: number} | null>(null);
+  const [showSavingProgress, setShowSavingProgress] = useState(false);
+  const [savingSteps, setSavingSteps] = useState({
+    saving: false,
+    securing: false,
+    complete: false
+  });
   
   // Debug panel state  
   const [showDebugPanel, setShowDebugPanel] = useState(true);
@@ -2384,8 +2390,8 @@ export const MeetingRecorder = ({
     console.log('🔥🔥🔥 Function called at:', new Date().toISOString());
     
     // Allow time for final audio chunk to be processed by Whisper
-    addScreenDebug('⏳ Allowing 2 seconds for final audio chunk to process...');
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    addScreenDebug('⏳ Allowing 3 seconds for final audio chunk to process...');
+    await new Promise(resolve => setTimeout(resolve, 3000));
     console.log('🔥🔥🔥 Current isRecording state:', isRecording);
     console.log('🔥🔥🔥 Current user:', user?.id);
     console.log('🔥🔥🔥 Current duration:', duration);
@@ -2713,7 +2719,14 @@ export const MeetingRecorder = ({
     });
 
     try {
-    console.log('🚨 ATTEMPTING DATABASE SAVE...');
+      // Show saving progress modal
+      setShowSavingProgress(true);
+      
+      // Step 1: Saving
+      setSavingSteps({ saving: true, securing: false, complete: false });
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      console.log('🚨 ATTEMPTING DATABASE SAVE...');
     console.log('🚨 Auth user:', user);
     console.log('🚨 User ID:', user?.id);
     console.log('🚨 User email:', user?.email);
@@ -2767,6 +2780,10 @@ export const MeetingRecorder = ({
       addScreenDebug(`✅ MEETING SAVED TO DATABASE! ID: ${savedMeeting.id}`);
       console.log('🚨 MEETING SAVED TO DATABASE:', savedMeeting.id);
 
+      // Step 2: Securing data
+      setSavingSteps({ saving: true, securing: true, complete: false });
+      await new Promise(resolve => setTimeout(resolve, 800));
+
       // 2. Save transcript
       if (meetingData.transcript) {
         await supabase
@@ -2786,14 +2803,23 @@ export const MeetingRecorder = ({
       
       toast.success('Meeting saved successfully!');
 
-      // Show success modal with meeting details
+      // Step 3: Complete
+      setSavingSteps({ saving: true, securing: true, complete: true });
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      // Show final success modal with meeting details
       const meetingDuration = `${Math.floor(duration / 60).toString().padStart(2, '0')}:${(duration % 60).toString().padStart(2, '0')}`;
       setSavedMeetingData({
         title: savedMeeting.title || 'Untitled Meeting',
         duration: meetingDuration,
         wordCount: wordCount
       });
-      setShowSuccessModal(true);
+      
+      // Hide progress modal and show success modal
+      setTimeout(() => {
+        setShowSavingProgress(false);
+        setShowSuccessModal(true);
+      }, 1000);
       
       // Don't navigate automatically - let user check debug panel and manually go to history
       addScreenDebug('✅ RECORDING STOPPED - Check debug above, then manually go to Meeting History to verify');
@@ -2812,6 +2838,7 @@ export const MeetingRecorder = ({
         transcriptionEvents: [`${new Date().toLocaleTimeString()}: ❌ SAVE FAILED - ${error.message}`]
       });
       
+      setShowSavingProgress(false);
       toast.error('Failed to save meeting to database');
       
       // Don't navigate automatically - let user check debug panel  
@@ -4009,14 +4036,83 @@ export const MeetingRecorder = ({
         </div>
       )}
       
+      {/* Saving Progress Modal */}
+      {showSavingProgress && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="bg-background rounded-lg shadow-lg max-w-sm w-full mx-4 border border-border">
+            <div className="p-6 space-y-6">
+              <div className="text-center">
+                <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Sparkles className="w-6 h-6 text-primary-foreground animate-pulse" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground">Processing Your Meeting</h3>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="flex items-center space-x-3">
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all duration-500 ${
+                    savingSteps.saving ? 'bg-primary' : 'bg-muted border border-muted-foreground'
+                  }`}>
+                    {savingSteps.saving ? (
+                      <CheckSquare className="w-4 h-4 text-primary-foreground animate-scale-in" />
+                    ) : (
+                      <div className="w-2 h-2 bg-muted-foreground rounded-full" />
+                    )}
+                  </div>
+                  <span className={`text-sm transition-colors duration-300 ${
+                    savingSteps.saving ? 'text-foreground font-medium' : 'text-muted-foreground'
+                  }`}>
+                    Saving the meeting...
+                  </span>
+                </div>
+
+                <div className="flex items-center space-x-3">
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all duration-500 ${
+                    savingSteps.securing ? 'bg-primary' : 'bg-muted border border-muted-foreground'
+                  }`}>
+                    {savingSteps.securing ? (
+                      <CheckSquare className="w-4 h-4 text-primary-foreground animate-scale-in" />
+                    ) : (
+                      <div className="w-2 h-2 bg-muted-foreground rounded-full" />
+                    )}
+                  </div>
+                  <span className={`text-sm transition-colors duration-300 ${
+                    savingSteps.securing ? 'text-foreground font-medium' : 'text-muted-foreground'
+                  }`}>
+                    Securing your data...
+                  </span>
+                </div>
+
+                <div className="flex items-center space-x-3">
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all duration-500 ${
+                    savingSteps.complete ? 'bg-primary' : 'bg-muted border border-muted-foreground'
+                  }`}>
+                    {savingSteps.complete ? (
+                      <CheckSquare className="w-4 h-4 text-primary-foreground animate-scale-in" />
+                    ) : (
+                      <div className="w-2 h-2 bg-muted-foreground rounded-full" />
+                    )}
+                  </div>
+                  <span className={`text-sm transition-colors duration-300 ${
+                    savingSteps.complete ? 'text-foreground font-medium' : 'text-muted-foreground'
+                  }`}>
+                    All done!
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Success Modal */}
       {showSuccessModal && savedMeetingData && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-background rounded-lg shadow-lg max-w-sm w-full mx-4 border border-border">
+          <div className="bg-background rounded-lg shadow-lg max-w-sm w-full mx-4 border border-border animate-scale-in">
             <div className="p-6 space-y-4">
               <div className="text-center">
-                <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <CheckSquare className="w-6 h-6 text-white" />
+                <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CheckSquare className="w-6 h-6 text-primary-foreground" />
                 </div>
                 <h3 className="text-lg font-semibold text-foreground">Meeting Saved Successfully!</h3>
               </div>
@@ -4038,9 +4134,9 @@ export const MeetingRecorder = ({
                 </div>
                 
                 <div className="pt-2 text-center text-xs text-muted-foreground">
-                  This meeting will appear in your<br />
+                  This meeting is now available in your<br />
                   <span className="font-medium">Meeting History</span> tab as:<br />
-                  <span className="font-medium text-foreground">"{savedMeetingData.title}"</span>
+                  <span className="font-medium text-primary">"{savedMeetingData.title}"</span>
                 </div>
               </div>
               
