@@ -2482,8 +2482,8 @@ export const MeetingRecorder = ({
       });
     }, 500);
     
-    // Wait additional 3 seconds for final processing
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    // Wait additional 0.5 seconds for final processing
+    await new Promise(resolve => setTimeout(resolve, 500));
     clearInterval(phase2Interval);
     
     // Check final transcript length
