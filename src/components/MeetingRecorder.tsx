@@ -127,7 +127,8 @@ export const MeetingRecorder = ({
   const [selectedMeetings, setSelectedMeetings] = useState<string[]>([]);
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
-  const [isGeneratingNotes, setIsGeneratingNotes] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [savedMeetingData, setSavedMeetingData] = useState<{title: string, duration: string, wordCount: number} | null>(null);
   
   // Debug panel state  
   const [showDebugPanel, setShowDebugPanel] = useState(true);
@@ -2781,47 +2782,14 @@ export const MeetingRecorder = ({
       
       toast.success('Meeting saved successfully!');
 
-      // Now try to generate AI notes (optional)
-      setIsGeneratingNotes(true);
-      updateDebugInfo({
-        recordingState: 'generating_notes',
-        transcriptionEvents: [`${new Date().toLocaleTimeString()}: Starting AI note generation...`]
+      // Show success modal with meeting details
+      const meetingDuration = `${Math.floor(duration / 60).toString().padStart(2, '0')}:${(duration % 60).toString().padStart(2, '0')}`;
+      setSavedMeetingData({
+        title: savedMeeting.title || 'Untitled Meeting',
+        duration: meetingDuration,
+        wordCount: wordCount
       });
-
-      try {
-        // Generate AI notes (optional enhancement)
-        const { data: minutesData, error } = await supabase.functions.invoke('generate-meeting-notes-claude', {
-          body: {
-            transcript: currentTranscript,
-            meetingTitle: meetingData.title,
-            meetingDate: new Date().toLocaleDateString(),
-            meetingTime: new Date().toLocaleTimeString(),
-            detailLevel: 'standard'
-          }
-        });
-
-        if (!error && minutesData?.success && minutesData?.meetingMinutes) {
-          // Save AI-generated notes to the already saved meeting
-          await supabase
-            .from('meeting_summaries')
-            .insert({
-              meeting_id: savedMeeting.id,
-              summary: minutesData.meetingMinutes,
-              ai_generated: true
-            });
-
-          updateDebugInfo({
-            transcriptionEvents: [`${new Date().toLocaleTimeString()}: ✅ AI notes generated and saved!`]
-          });
-        }
-      } catch (aiError) {
-        console.warn('AI note generation failed (meeting already saved):', aiError);
-        updateDebugInfo({
-          transcriptionEvents: [`${new Date().toLocaleTimeString()}: ⚠️ AI notes failed but meeting is saved`]
-        });
-      }
-
-      setIsGeneratingNotes(false);
+      setShowSuccessModal(true);
       
       // Don't navigate automatically - let user check debug panel and manually go to history
       addScreenDebug('✅ RECORDING STOPPED - Check debug above, then manually go to Meeting History to verify');
@@ -2840,7 +2808,6 @@ export const MeetingRecorder = ({
         transcriptionEvents: [`${new Date().toLocaleTimeString()}: ❌ SAVE FAILED - ${error.message}`]
       });
       
-      setIsGeneratingNotes(false);
       toast.error('Failed to save meeting to database');
       
       // Don't navigate automatically - let user check debug panel  
@@ -4038,14 +4005,51 @@ export const MeetingRecorder = ({
         </div>
       )}
       
-      <NotewellAIAnimation
-        isVisible={isGeneratingNotes} 
-        onDismiss={() => {
-          updateDebugInfo({
-            transcriptionEvents: [`${new Date().toLocaleTimeString()}: Animation dismissed by user`]
-          });
-        }}
-      />
+      {/* Success Modal */}
+      {showSuccessModal && savedMeetingData && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="bg-background rounded-lg shadow-lg max-w-sm w-full mx-4 border border-border">
+            <div className="p-6 space-y-4">
+              <div className="text-center">
+                <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CheckSquare className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground">Meeting Saved Successfully!</h3>
+              </div>
+              
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between items-center py-2 border-b border-border">
+                  <span className="text-muted-foreground">Meeting Name:</span>
+                  <span className="font-medium text-foreground">{savedMeetingData.title}</span>
+                </div>
+                
+                <div className="flex justify-between items-center py-2 border-b border-border">
+                  <span className="text-muted-foreground">Duration:</span>
+                  <span className="font-medium text-foreground">{savedMeetingData.duration}</span>
+                </div>
+                
+                <div className="flex justify-between items-center py-2 border-b border-border">
+                  <span className="text-muted-foreground">Words Transcribed:</span>
+                  <span className="font-medium text-foreground">{savedMeetingData.wordCount}</span>
+                </div>
+                
+                <div className="pt-2 text-center text-xs text-muted-foreground">
+                  This meeting will appear in your<br />
+                  <span className="font-medium">Meeting History</span> tab as:<br />
+                  <span className="font-medium text-foreground">"{savedMeetingData.title}"</span>
+                </div>
+              </div>
+              
+              <button 
+                onClick={() => setShowSuccessModal(false)}
+                className="w-full bg-primary text-primary-foreground py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors"
+              >
+                Continue
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
