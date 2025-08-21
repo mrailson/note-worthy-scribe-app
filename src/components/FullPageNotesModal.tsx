@@ -89,6 +89,62 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [highlightedTranscript, setHighlightedTranscript] = useState("");
   const [transcriptSubTab, setTranscriptSubTab] = useState<"processed" | "raw">("processed");
 
+  // Fetch transcript and raw chunks when modal opens
+  useEffect(() => {
+    if (isOpen && meeting?.id) {
+      console.log('🔍 FullPageNotesModal fetching data for meeting:', meeting.id);
+      fetchTranscriptData();
+    }
+  }, [isOpen, meeting?.id]);
+
+  const fetchTranscriptData = async () => {
+    if (!meeting?.id) return;
+    
+    setIsLoadingTranscript(true);
+    try {
+      console.log('🔍 Fetching transcript data...');
+      
+      // Fetch processed transcript
+      const { data: transcriptData, error: transcriptError } = await supabase.rpc('get_meeting_full_transcript', {
+        p_meeting_id: meeting.id
+      });
+      
+      if (transcriptError) {
+        console.error('Error fetching transcript:', transcriptError);
+      } else if (transcriptData && Array.isArray(transcriptData) && transcriptData.length > 0) {
+        console.log('🔍 Transcript fetched:', transcriptData.length, 'segments');
+        // Combine all transcript segments
+        const fullTranscript = transcriptData.map(segment => segment.transcript).join(' ');
+        setTranscript(fullTranscript);
+      }
+      
+      // Fetch raw chunks from audio_chunks table
+      const { data: rawChunksData, error: chunksError } = await supabase
+        .from('audio_chunks')
+        .select('id, transcript, created_at, confidence')
+        .eq('meeting_id', meeting.id)
+        .order('created_at');
+      
+      if (chunksError) {
+        console.error('Error fetching raw chunks:', chunksError);
+      } else if (rawChunksData) {
+        console.log('🔍 Raw chunks fetched:', rawChunksData.length, 'chunks');
+        const formattedChunks = rawChunksData.map((chunk, index) => ({
+          id: index + 1,
+          text: chunk.transcript || '',
+          timestamp: new Date(chunk.created_at).toLocaleTimeString(),
+          confidence: chunk.confidence
+        }));
+        setRawChunks(formattedChunks);
+      }
+      
+    } catch (error) {
+      console.error('Error fetching transcript data:', error);
+    } finally {
+      setIsLoadingTranscript(false);
+    }
+  };
+
   // Create a mock meeting data object for the export hook
   const mockMeetingData = meeting ? {
     id: meeting.id,
