@@ -1,12 +1,127 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+/**
+ * Simple duplicate word removal function
+ * Only removes exact duplicate words that appear consecutively
+ */
+function removeDuplicateWords(text: string): string {
+  if (!text || typeof text !== 'string') {
+    return text || '';
+  }
+
+  console.log('🔍 Starting deduplication process');
+  console.log('🔍 Input length:', text.length);
+  
+  // Split into words while preserving spaces and punctuation context
+  const words = text.split(/(\s+)/); // This preserves whitespace in the array
+  const result: string[] = [];
+  
+  for (let i = 0; i < words.length; i++) {
+    const currentWord = words[i];
+    
+    // Always keep whitespace and punctuation
+    if (/^\s+$/.test(currentWord)) {
+      result.push(currentWord);
+      continue;
+    }
+    
+    // For actual words, check for consecutive duplicates
+    const prevWord = i > 1 ? words[i - 2] : null; // Skip whitespace
+    const normalizedCurrent = currentWord.toLowerCase().replace(/[^\w]/g, '');
+    const normalizedPrev = prevWord ? prevWord.toLowerCase().replace(/[^\w]/g, '') : null;
+    
+    // Only skip if it's an exact duplicate of the previous word
+    if (normalizedCurrent && normalizedPrev && normalizedCurrent === normalizedPrev && normalizedCurrent.length > 2) {
+      console.log('🔍 Removing duplicate word:', currentWord);
+      continue;
+    }
+    
+    result.push(currentWord);
+  }
+  
+  let cleaned = result.join('');
+  
+  // Remove common repeated phrases that are obviously duplicated
+  const commonDuplicates = [
+    /(\b[Tt]his meeting is being recorded\b.*?)(\b[Tt]his meeting is being recorded\b)/gi,
+    /(\b[Tt]his is a recording of the meeting\b.*?)(\b[Tt]his is a recording of the meeting\b)/gi,
+    /(\b[Tt]his is a recording\b.*?)(\b[Tt]his is a recording\b)/gi,
+  ];
+  
+  commonDuplicates.forEach(pattern => {
+    cleaned = cleaned.replace(pattern, '$1');
+  });
+  
+  // Clean up multiple spaces but preserve single spaces
+  cleaned = cleaned.replace(/[ ]{3,}/g, ' ');
+  cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
+  
+  console.log('🔍 Deduplication complete');
+  console.log('🔍 Output length:', cleaned.length);
+  console.log('🔍 Reduction:', text.length - cleaned.length, 'characters');
+  
+  return cleaned.trim();
+}
+
+/**
+ * Remove only obvious phrase repetitions
+ */
+function removeRepeatedPhrases(text: string): string {
+  // Split into sentences
+  const sentences = text.split(/([.!?]+)/).filter(s => s.trim());
+  const result: string[] = [];
+  
+  for (let i = 0; i < sentences.length; i++) {
+    const current = sentences[i].trim().toLowerCase();
+    
+    // Skip if it's just punctuation
+    if (/^[.!?]+$/.test(current)) {
+      result.push(sentences[i]);
+      continue;
+    }
+    
+    // Check if this sentence is a near-duplicate of the previous one
+    let isDuplicate = false;
+    for (let j = Math.max(0, i - 4); j < i; j++) {
+      const previous = sentences[j].trim().toLowerCase();
+      if (previous.length > 10 && current.length > 10) {
+        // Calculate similarity
+        const similarity = calculateSimilarity(current, previous);
+        if (similarity > 0.85) {
+          console.log('🔍 Removing duplicate phrase:', sentences[i].substring(0, 50));
+          isDuplicate = true;
+          break;
+        }
+      }
+    }
+    
+    if (!isDuplicate) {
+      result.push(sentences[i]);
+    }
+  }
+  
+  return result.join('');
+}
+
+/**
+ * Simple similarity calculation
+ */
+function calculateSimilarity(str1: string, str2: string): number {
+  const words1 = str1.split(/\s+/);
+  const words2 = str2.split(/\s+/);
+  const set1 = new Set(words1);
+  const set2 = new Set(words2);
+  
+  const intersection = new Set([...set1].filter(x => set2.has(x)));
+  const union = new Set([...set1, ...set2]);
+  
+  return intersection.size / union.size;
+}
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -15,105 +130,38 @@ serve(async (req) => {
   }
 
   try {
-    if (!openAIApiKey) {
-      throw new Error('OpenAI API key not configured');
-    }
-
     const { rawTranscript, meetingTitle } = await req.json();
 
     if (!rawTranscript) {
       throw new Error('Missing required field: rawTranscript');
     }
 
-    console.log('Cleaning transcript for:', meetingTitle || 'Meeting');
-    console.log('🔍 Input transcript length:', rawTranscript.length);
-    console.log('🔍 Input transcript ending:', rawTranscript.slice(-200));
+    console.log('🧹 Cleaning transcript for:', meetingTitle || 'Meeting');
+    console.log('🧹 Input transcript length:', rawTranscript.length);
+    console.log('🧹 Input transcript preview:', rawTranscript.substring(0, 200));
 
-    const systemPrompt = `You are a professional transcript cleaner for meeting transcriptions. Your job is to clean and format transcripts while preserving the original meaning and content.
-
-CLEANING TASKS YOU MUST PERFORM:
-1. Remove obvious duplications and repetitive phrases
-2. Remove overlapping speech and hallucinated content that doesn't make sense
-3. Fix grammar, punctuation, and apostrophes (its vs it's, your vs you're, etc.)
-4. Fix capitalization and sentence structure
-5. Remove excessive filler words (um, uh, er, ah) but keep occasional ones for natural flow
-6. Fix word spacing issues (e.g., "howcan" → "how can", "goodmorning" → "good morning")
-7. Create clear speaker sections when multiple speakers are identified
-8. Add proper paragraph breaks for better readability
-9. Standardize formatting for numbers, dates, and times
-10. Remove technical artifacts like "[Music]", "[Background noise]", repetitive phrases
-
-FORMATTING REQUIREMENTS:
-- Use proper paragraphs with line breaks between topics or speakers
-- Capitalize proper nouns, names, and sentence beginnings
-- Use correct punctuation: periods, commas, question marks, exclamation points
-- Format contractions properly (don't, won't, it's, etc.)
-- When multiple speakers are detected, separate them with clear sections
-- Remove obvious repetitions like "This meeting is being recorded" appearing multiple times
-
-WHAT TO PRESERVE:
-- The actual content and meaning of what was said
-- Technical terms and medical terminology
-- Numbers, dates, and specific details mentioned
-- Natural speech patterns (don't make it overly formal)
-- All substantive content
-
-EXAMPLE OF WHAT TO DO:
-Input: "um so we need to we need to discuss the budget um the budget for next quarter next quarter and also also the staffing levels staffing levels This meeting is being recorded This meeting is being recorded"
-Output: "So we need to discuss the budget for next quarter and also the staffing levels."
-
-Return a clean, well-formatted transcript with proper paragraphs and spacing.`;
-
-    const userPrompt = `Please clean and format this raw transcript:
-
-${rawTranscript}`;
-
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o', // Use latest GPT-4 model for best results
-        messages: [
-          {
-            role: 'system',
-            content: systemPrompt
-          },
-          {
-            role: 'user',
-            content: userPrompt
-          }
-        ],
-        temperature: 0.3, // Lower temperature for more consistent formatting
-        max_tokens: 16384 // Maximum output tokens
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('OpenAI API error:', errorData);
-      throw new Error(`OpenAI API error: ${errorData.error?.message || 'Unknown error'}`);
-    }
-
-    const data = await response.json();
-    const cleanedTranscript = data.choices[0].message.content;
-
-    console.log('Successfully cleaned transcript');
-    console.log('🔍 Output transcript length:', cleanedTranscript.length);
-    console.log('🔍 Output transcript ending:', cleanedTranscript.slice(-200));
+    // Step 1: Remove duplicate words
+    let cleaned = removeDuplicateWords(rawTranscript);
+    
+    // Step 2: Remove repeated phrases
+    cleaned = removeRepeatedPhrases(cleaned);
+    
+    console.log('🧹 Successfully cleaned transcript');
+    console.log('🧹 Output transcript length:', cleaned.length);
+    console.log('🧹 Output transcript preview:', cleaned.substring(0, 200));
+    console.log('🧹 Compression ratio:', ((rawTranscript.length - cleaned.length) / rawTranscript.length * 100).toFixed(1) + '%');
 
     return new Response(JSON.stringify({ 
-      cleanedTranscript,
+      cleanedTranscript: cleaned,
       originalLength: rawTranscript.length,
-      cleanedLength: cleanedTranscript.length
+      cleanedLength: cleaned.length,
+      compressionRatio: ((rawTranscript.length - cleaned.length) / rawTranscript.length * 100).toFixed(1) + '%'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('Error in clean-transcript function:', error);
+    console.error('❌ Error in clean-transcript function:', error);
     return new Response(JSON.stringify({ 
       error: error.message 
     }), {
