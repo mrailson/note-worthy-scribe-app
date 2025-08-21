@@ -88,7 +88,17 @@ Please create a single, comprehensive meeting minutes document following Style $
 }
 
 async function processChunk(transcript, meetingTitle, meetingDate, meetingTime, styleChoice) {
+  console.log('🎯 Processing chunk with updated rules - NO PLACEHOLDERS for Chair/Secretary/Duration');
+  
   const meetingNotesPrompt = `Create comprehensive meeting notes from the transcript. This is a LONG MEETING (potentially 3+ hours, 30,000+ words) - ensure ALL agenda items and discussions are captured.
+
+CRITICAL PLACEHOLDER REMOVAL:
+- NEVER include "Chair: [Not identified in transcript]" 
+- NEVER include "Secretary: [Not identified in transcript]"
+- NEVER include "Meeting Duration: [Ongoing - transcript appears to be mid-meeting excerpt]"
+- NEVER include "Duration: [Meeting length if determinable]"
+- If Chair/Secretary/Duration cannot be determined from transcript, OMIT the lines completely
+- Do NOT add any placeholder text in brackets like [Not identified] or [To be confirmed]
 
 LANGUAGE AND SPELLING REQUIREMENTS:
 - Use British English spelling throughout (e.g., organised, realise, colour, centre, recognised, specialise, summarise, prioritise)
