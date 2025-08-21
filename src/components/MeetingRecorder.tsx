@@ -2821,13 +2821,13 @@ export const MeetingRecorder = ({
 
       setIsGeneratingNotes(false);
       
-      // Navigate to meeting history with a small delay to ensure the save is complete
-      addScreenDebug('🚀 Navigating to Meeting History...');
-      setTimeout(() => {
-        navigate('/meetings', { replace: true });
-        // Force a page refresh to ensure the new meeting appears
-        window.location.reload();
-      }, 1000);
+      // Don't navigate automatically - let user check debug panel and manually go to history
+      addScreenDebug('✅ RECORDING STOPPED - Check debug above, then manually go to Meeting History to verify');
+      // setTimeout(() => {
+      //   navigate('/meetings', { replace: true });
+      //   // Force a page refresh to ensure the new meeting appears
+      //   window.location.reload();
+      // }, 1000);
 
     } catch (error) {
       addScreenDebug(`❌ CRITICAL ERROR: ${error.message}`);
@@ -2841,9 +2841,9 @@ export const MeetingRecorder = ({
       setIsGeneratingNotes(false);
       toast.error('Failed to save meeting to database');
       
-      // Still try to navigate to meeting history
-      addScreenDebug('🚀 Navigating to Meeting History (fallback)...');
-      navigate('/meetings');
+      // Don't navigate automatically - let user check debug panel  
+      addScreenDebug('⚠️ SAVE FAILED - Check debug above for error details');
+      // navigate('/meetings');
     }
   };
 
