@@ -2297,6 +2297,66 @@ export type Database = {
         }
         Relationships: []
       }
+      meeting_auto_notes: {
+        Row: {
+          created_at: string
+          detail_level: string | null
+          error_message: string | null
+          generated_notes: string | null
+          generation_completed_at: string | null
+          generation_started_at: string | null
+          id: string
+          meeting_id: string
+          retry_count: number | null
+          status: string
+          updated_at: string
+          word_count: number | null
+        }
+        Insert: {
+          created_at?: string
+          detail_level?: string | null
+          error_message?: string | null
+          generated_notes?: string | null
+          generation_completed_at?: string | null
+          generation_started_at?: string | null
+          id?: string
+          meeting_id: string
+          retry_count?: number | null
+          status?: string
+          updated_at?: string
+          word_count?: number | null
+        }
+        Update: {
+          created_at?: string
+          detail_level?: string | null
+          error_message?: string | null
+          generated_notes?: string | null
+          generation_completed_at?: string | null
+          generation_started_at?: string | null
+          id?: string
+          meeting_id?: string
+          retry_count?: number | null
+          status?: string
+          updated_at?: string
+          word_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_auto_notes_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "accessible_meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_auto_notes_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meeting_documents: {
         Row: {
           created_at: string
