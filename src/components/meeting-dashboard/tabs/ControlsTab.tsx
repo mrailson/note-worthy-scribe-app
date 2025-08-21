@@ -169,7 +169,7 @@ export const ControlsTab = ({ isRecording }: ControlsTabProps) => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Mic className="h-4 w-4" />
@@ -300,7 +300,7 @@ export const ControlsTab = ({ isRecording }: ControlsTabProps) => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -330,7 +330,7 @@ export const ControlsTab = ({ isRecording }: ControlsTabProps) => {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <Network className="h-4 w-4" />
@@ -359,13 +359,13 @@ export const ControlsTab = ({ isRecording }: ControlsTabProps) => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="grid grid-cols-2 gap-2">
-            <Button variant="outline" size="sm" onClick={exportSettings}>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Button variant="outline" size="sm" onClick={exportSettings} className="flex-1">
               <Download className="h-4 w-4 mr-2" />
               Export Settings
             </Button>
             
-            <Button variant="outline" size="sm" disabled>
+            <Button variant="outline" size="sm" disabled className="flex-1">
               <Share2 className="h-4 w-4 mr-2" />
               Share Session
             </Button>

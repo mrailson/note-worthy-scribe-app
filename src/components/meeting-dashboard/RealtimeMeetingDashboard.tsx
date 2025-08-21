@@ -142,31 +142,31 @@ export const RealtimeMeetingDashboard = ({
 
               <div className="flex-1 p-6 min-h-0 overflow-hidden">
                 <TabsContent value="setup" className="h-full m-0 data-[state=active]:flex data-[state=active]:flex-col">
-                  <div className="flex-1 overflow-y-auto">
+                  <div className="flex-1 overflow-y-auto overflow-x-hidden max-w-full">
                     <MeetingSetupTab />
                   </div>
                 </TabsContent>
                 
                 <TabsContent value="monitor" className="h-full m-0 data-[state=active]:flex data-[state=active]:flex-col">
-                  <div className="flex-1 overflow-y-auto">
+                  <div className="flex-1 overflow-y-auto overflow-x-hidden max-w-full">
                     <LiveMonitorTab meetingData={meetingData} />
                   </div>
                 </TabsContent>
                 
                 <TabsContent value="validation" className="h-full m-0 data-[state=active]:flex data-[state=active]:flex-col">
-                  <div className="flex-1 overflow-y-auto">
+                  <div className="flex-1 overflow-y-auto overflow-x-hidden max-w-full">
                     <SmartValidationTab meetingData={meetingData} />
                   </div>
                 </TabsContent>
                 
                 <TabsContent value="notes" className="h-full m-0 data-[state=active]:flex data-[state=active]:flex-col">
-                  <div className="flex-1 overflow-y-auto">
+                  <div className="flex-1 overflow-y-auto overflow-x-hidden max-w-full">
                     <LiveNotesTab meetingData={meetingData} />
                   </div>
                 </TabsContent>
                 
                 <TabsContent value="controls" className="h-full m-0 data-[state=active]:flex data-[state=active]:flex-col">
-                  <div className="flex-1 overflow-y-auto">
+                  <div className="flex-1 overflow-y-auto overflow-x-hidden max-w-full">
                     <ControlsTab isRecording={isRecording} />
                   </div>
                 </TabsContent>
