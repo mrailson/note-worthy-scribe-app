@@ -71,11 +71,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [showCustomInstruction, setShowCustomInstruction] = useState(false);
   const [customInstruction, setCustomInstruction] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
-  
-  // Debug logging for animation
-  useEffect(() => {
-    console.log('🎬 Animation state changed - isGenerating:', isGenerating);
-  }, [isGenerating]);
   const [activeTab, setActiveTab] = useState("notes");
   const [transcript, setTranscript] = useState("");
   const [isLoadingTranscript, setIsLoadingTranscript] = useState(false);
@@ -1459,22 +1454,12 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       <MeetingGenerationAnimation
         isVisible={isGenerating}
         title="Generating Meeting Notes"
-        subtitle="Claude AI is analyzing your transcript and creating comprehensive meeting notes"
+        subtitle="Notewell AI is analyzing your transcript and creating comprehensive meeting notes"
         estimatedTime={45}
         onDismiss={() => {
-          // Optional: Allow dismissing to see progress in background
-          console.log('Animation dismissed by user');
+          setIsGenerating(false);
         }}
       />
-      
-      {/* Fallback debug overlay when generating */}
-      {isGenerating && (
-        <div className="fixed inset-0 bg-red-500/20 z-[10000] flex items-center justify-center">
-          <div className="bg-white p-4 rounded text-black">
-            DEBUG: Animation should show here - isGenerating: {isGenerating.toString()}
-          </div>
-        </div>
-      )}
     </Dialog>
   );
 };

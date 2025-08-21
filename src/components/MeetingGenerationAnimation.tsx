@@ -68,8 +68,6 @@ export const MeetingGenerationAnimation = ({
 
   const CurrentPhaseIcon = phases[phase]?.icon || FileText;
 
-  console.log('🎬 MeetingGenerationAnimation rendering - isVisible:', isVisible);
-
   return (
     <div className="fixed inset-0 bg-background/95 backdrop-blur-md z-[9999] flex items-center justify-center animate-fade-in">
       <div className="bg-card rounded-2xl p-8 shadow-2xl border max-w-lg mx-4 text-center relative animate-scale-in">
