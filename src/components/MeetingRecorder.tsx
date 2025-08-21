@@ -97,7 +97,6 @@ export const MeetingRecorder = ({
   const [micTestServiceVisible, setMicTestServiceVisible] = useState<boolean>(true);
   const [startTime, setStartTime] = useState<string>("");
   const [liveSummary, setLiveSummary] = useState<string>("");
-  const [debugLog, setDebugLog] = useState<string[]>([]);
   const [testTranscripts, setTestTranscripts] = useState<string[]>([]);
   
   const [tickerText, setTickerText] = useState<string>("");
@@ -148,14 +147,6 @@ export const MeetingRecorder = ({
     transcriptionEvents: [] as string[]
   });
   
-  // Add debug message to screen
-  const addScreenDebug = (message: string) => {
-    const timestamp = new Date().toLocaleTimeString();
-    const fullMessage = `${timestamp}: ${message}`;
-    console.log(fullMessage);
-    setDebugMessages(prev => [...prev.slice(-10), fullMessage]); // Keep last 10 messages
-  };
-  
   // Meeting settings
   const [meetingSettings, setMeetingSettings] = useState(() => initialSettings || {
     title: "General Meeting",
@@ -165,16 +156,6 @@ export const MeetingRecorder = ({
     meetingFormat: "teams"
   });
 
-  // Function to update debug info
-  const updateDebugInfo = (updates: Partial<typeof debugInfo>) => {
-    setDebugInfo(prev => ({
-      ...prev,
-      ...updates,
-      transcriptionEvents: updates.transcriptionEvents 
-        ? [...prev.transcriptionEvents, ...updates.transcriptionEvents].slice(-10)
-        : prev.transcriptionEvents
-    }));
-  };
 
   // Reset meeting function
   const resetMeeting = async () => {
@@ -195,7 +176,6 @@ export const MeetingRecorder = ({
     setStartTime("");
     setLiveSummary("");
     setDebugLog([]);
-    setTestTranscripts([]);
     setTickerText("");
     setShowTicker(false);
     setTranscriptSnippet("");
@@ -259,7 +239,6 @@ export const MeetingRecorder = ({
     }
     
     console.log('🔄 Meeting reset completed');
-    toast.success("Meeting reset - ready for new recording");
     
     // Refresh page after a short delay to let the toast display
     setTimeout(() => {
@@ -1963,8 +1942,7 @@ export const MeetingRecorder = ({
       console.log('Starting test recording with microphone...');
       
       // Clear previous debug logs and test transcripts
-      setDebugLog([]);
-      setTestTranscripts([]);
+    setTestTranscripts([]);
       
       // Always use microphone transcription
       await startMicrophoneTranscription();
@@ -2269,13 +2247,6 @@ export const MeetingRecorder = ({
 
   const startRecording = async () => {
     try {
-      // Update debug info
-      updateDebugInfo({ 
-        recordingState: 'starting',
-        transcriptionEvents: [`${new Date().toLocaleTimeString()}: Starting recording...`]
-      });
-      
-      addDebugLog('🚀 Starting recording...');
       console.log('Starting recording...');
       
       // Clear previous debug logs and test transcripts
@@ -2318,13 +2289,7 @@ export const MeetingRecorder = ({
     setStartTime(generateMeetingTimestamp());
     setConnectionStatus("Connected");
     
-    // Update debug info
-    updateDebugInfo({ 
-      recordingState: 'active',
-      transcriptionEvents: [`${new Date().toLocaleTimeString()}: Recording started successfully`]
-    });
-      
-      // Generate and store temporary meeting ID for this session
+    // Generate and store temporary meeting ID for this session
       const tempMeetingId = crypto.randomUUID();
       sessionStorage.setItem('currentSessionId', tempMeetingId); // Store for later retrieval
       if (desktopTranscriberRef.current) {
@@ -2381,25 +2346,12 @@ export const MeetingRecorder = ({
   };
 
   const stopRecording = async () => {
-    // IMMEDIATE DEBUG - BEFORE ANYTHING ELSE
-    addScreenDebug('🔥🔥🔥 STOPRECORDING FUNCTION START');
-    addScreenDebug(`🔥🔥🔥 Current isRecording: ${isRecording}`);
-    addScreenDebug(`🔥🔥🔥 Current user: ${user?.id}`);
-    addScreenDebug(`🔥🔥🔥 Current duration: ${duration}`);
-    addScreenDebug(`🔥🔥🔥 Current transcript length: ${transcript?.length}`);
-    
-    console.log('🔥🔥🔥 STOPRECORDING FUNCTION START - IMMEDIATE DEBUG');
-    console.log('🔥🔥🔥 Function called at:', new Date().toISOString());
-    
-    // Allow time for final audio chunk to be processed by Whisper
-    addScreenDebug('⏳ Processing final audio chunk...');
     
     // Show processing animation
     setShowProcessingAudio(true);
     
     // Track initial transcript length
     const initialTranscriptLength = transcript?.length || 0;
-    addScreenDebug(`📊 Initial transcript length: ${initialTranscriptLength}`);
     
     // Phase 1: Continue recording while processing (4 seconds)
     setProcessingDots('');
@@ -2429,12 +2381,10 @@ export const MeetingRecorder = ({
     
     // Check final transcript length
     const finalTranscriptLength = transcript?.length || 0;
-    addScreenDebug(`📊 Final transcript length: ${finalTranscriptLength} (+${finalTranscriptLength - initialTranscriptLength} chars)`);
     
     setShowProcessingAudio(false);
     
     // NOW stop the transcribers after the processing delay
-    addScreenDebug('🛑 Now stopping transcribers after processing delay...');
     
     // Stop browser transcriber
     if (browserTranscriberRef.current) {
@@ -2456,27 +2406,9 @@ export const MeetingRecorder = ({
       desktopTranscriberRef.current = null;
     }
     
-    console.log('🔥🔥🔥 Current isRecording state:', isRecording);
-    console.log('🔥🔥🔥 Current user:', user?.id);
-    console.log('🔥🔥🔥 Current duration:', duration);
-    console.log('🔥🔥🔥 Current transcript length:', transcript?.length);
-    
     console.log('🚨 STOP RECORDING FUNCTION CALLED');
-    console.log('🚨 User agent:', navigator.userAgent);
-    console.log('🚨 Current state - isRecording:', isRecording);
-    console.log('🚨 Current state - duration:', duration);
-    console.log('🚨 Current state - wordCount:', wordCount);
-    console.log('🚨 Current state - transcript length:', transcript.length);
-    
-    // Update debug info
-    updateDebugInfo({ 
-      recordingState: 'stopping',
-      transcriptionEvents: [`${new Date().toLocaleTimeString()}: STOP RECORDING CALLED - duration: ${duration}s, words: ${wordCount}`]
-    });
     
     setIsStoppingRecording(true);
-    addDebugLog('🛑 Stopping recording...');
-    console.log('Stopping recording...');
     
     // Stop duration timer
     if (intervalRef.current) {
@@ -2555,29 +2487,18 @@ export const MeetingRecorder = ({
     
     // Relaxed validation - only require 5 seconds and any transcript content
     if (duration < 5) {
-      addScreenDebug(`🚨 VALIDATION FAILED - Duration too short: ${duration}s`);
       console.log('🚨 VALIDATION FAILED - Duration too short:', duration);
-      updateDebugInfo({
-        lastError: `Duration too short: ${duration}s (need 5s+)`,
-        transcriptionEvents: [`${new Date().toLocaleTimeString()}: ERROR - Recording too short: ${duration}s`]
-      });
       toast.error('Recording too short. Minimum 5 seconds required.');
       return;
     }
 
     // For iPhone compatibility - accept any transcript content
     if (!transcript && wordCount < 5) {
-      addScreenDebug(`🚨 VALIDATION FAILED - No transcript content: ${transcript?.length} chars, ${wordCount} words`);
-      console.log('🚨 VALIDATION FAILED - No transcript content:', { transcript: transcript.length, wordCount });
-      updateDebugInfo({
-        lastError: `No transcript content found`,
-        transcriptionEvents: [`${new Date().toLocaleTimeString()}: ERROR - No transcript content`]
-      });
+      console.log('🚨 VALIDATION FAILED - No transcript content:', { transcript: transcript?.length, wordCount });
       toast.error('No transcript content detected.');
       return;
     }
     
-    addScreenDebug('🚨 VALIDATION PASSED - proceeding to save...');
     console.log('🚨 VALIDATION PASSED - proceeding to save...');
     
     // Check if audio backup is needed based on word count vs duration
@@ -2752,16 +2673,8 @@ export const MeetingRecorder = ({
       meeting_format: meetingData.meetingFormat
     }, null, 2));
     
-    addScreenDebug('🚨 SAVING MEETING TO DATABASE...');
-    addScreenDebug(`🚨 Meeting title: ${meetingData.title}`);
-    addScreenDebug(`🚨 User ID: ${user?.id}`);
-    addScreenDebug(`🚨 Duration: ${Math.ceil(duration / 60)} minutes`);
+    console.log('🚨 SAVING MEETING TO DATABASE...');
     
-    updateDebugInfo({
-      recordingState: 'saving_to_database',
-      transcriptionEvents: [`${new Date().toLocaleTimeString()}: Saving meeting to database...`]
-    });
-
     try {
       // Show saving progress modal
       setShowSavingProgress(true);
@@ -2778,7 +2691,7 @@ export const MeetingRecorder = ({
     
     // Check if user is authenticated
     if (!user?.id) {
-      addScreenDebug('❌ User not authenticated - cannot save meeting');
+      toast.error('User not authenticated - cannot save meeting');
       throw new Error('User not authenticated - cannot save meeting');
     }
     
@@ -2809,19 +2722,15 @@ export const MeetingRecorder = ({
         .select()
         .single();
 
-      addScreenDebug(`🔍 Database insert - practice_id: ${meetingData.practiceId || 'NULL'}`);
-
       console.log('🚨 DATABASE SAVE RESULT:');
       console.log('🚨 SaveError:', saveError);
       console.log('🚨 SavedMeeting:', savedMeeting);
 
       if (saveError) {
-        addScreenDebug(`❌ DATABASE SAVE FAILED: ${saveError.message}`);
         console.error('🚨 DATABASE SAVE FAILED:', saveError);
         throw saveError;
       }
 
-      addScreenDebug(`✅ MEETING SAVED TO DATABASE! ID: ${savedMeeting.id}`);
       console.log('🚨 MEETING SAVED TO DATABASE:', savedMeeting.id);
 
       // Step 2: Securing data
@@ -2841,10 +2750,6 @@ export const MeetingRecorder = ({
           });
       }
 
-      updateDebugInfo({
-        transcriptionEvents: [`${new Date().toLocaleTimeString()}: ✅ Meeting saved! ID: ${savedMeeting.id}`]
-      });
-      
       toast.success('Meeting saved successfully!');
 
       // Step 3: Complete
@@ -2864,31 +2769,13 @@ export const MeetingRecorder = ({
         setShowSavingProgress(false);
         setShowSuccessModal(true);
       }, 1000);
-      
-      // Don't navigate automatically - let user check debug panel and manually go to history
-      addScreenDebug('✅ RECORDING STOPPED - Check debug above, then manually go to Meeting History to verify');
-      // setTimeout(() => {
-      //   navigate('/meetings', { replace: true });
-      //   // Force a page refresh to ensure the new meeting appears
-      //   window.location.reload();
-      // }, 1000);
 
     } catch (error) {
-      addScreenDebug(`❌ CRITICAL ERROR: ${error.message}`);
       console.error('❌ CRITICAL ERROR - Failed to save meeting:', error);
-      updateDebugInfo({
-        recordingState: 'save_error',
-        lastError: `Save failed: ${error.message}`,
-        transcriptionEvents: [`${new Date().toLocaleTimeString()}: ❌ SAVE FAILED - ${error.message}`]
-      });
       
       setShowSavingProgress(false);
       setShowProcessingAudio(false);
       toast.error('Failed to save meeting to database');
-      
-      // Don't navigate automatically - let user check debug panel  
-      addScreenDebug('⚠️ SAVE FAILED - Check debug above for error details');
-      // navigate('/meetings');
     }
   };
 
@@ -3580,9 +3467,7 @@ export const MeetingRecorder = ({
                       
                         <Button 
                          onClick={() => {
-                           addScreenDebug('🔥🔥🔥 STOP BUTTON CLICKED!');
                            console.log('🔥🔥🔥 STOP BUTTON CLICKED!');
-                           console.log('🔥🔥🔥 About to call stopRecording()');
                            stopRecording();
                          }}
                          variant="destructive"
