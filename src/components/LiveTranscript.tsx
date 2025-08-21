@@ -93,6 +93,9 @@ export const LiveTranscript = ({
   const [selectedText, setSelectedText] = useState<string>("");
   const [isMedicalCorrectionsLoaded, setIsMedicalCorrectionsLoaded] = useState<boolean>(false);
   
+  // NEW: Growing raw transcript that accumulates all segments
+  const [growingRawTranscript, setGrowingRawTranscript] = useState<string>("");
+  
   // Meeting settings state
   const { user } = useAuth();
   const { toast } = useToast();
@@ -243,6 +246,12 @@ export const LiveTranscript = ({
       console.log('🚨 DEBUG: Processing new transcript');
       console.log('🚨 DEBUG: Raw transcript length:', transcript.length);
       console.log('🚨 DEBUG: Processed transcript length:', processedTranscript.length);
+      
+      // APPEND to growing raw transcript (this is the complete backup record)
+      setGrowingRawTranscript(prev => {
+        const newSegment = prev ? ` ${transcript}` : transcript;
+        return prev + newSegment;
+      });
       
       // FIXED: Don't use streaming cleaner that accumulates - replace the entire cleaned transcript
       if (isAutoCleaningEnabled) {
@@ -859,24 +868,29 @@ export const LiveTranscript = ({
       </Card>
 
       {/* Raw Transcript Backup - Separate Card */}
-      {transcript && (
+      {growingRawTranscript && (
         <Card className="shadow-medium">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5 text-muted-foreground" />
               <span>Raw Transcript Backup</span>
-              <Badge variant="outline" className="text-xs">Original</Badge>
+              <Badge variant="outline" className="text-xs">Complete Record</Badge>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               <div className="text-sm text-muted-foreground">
-                Complete unprocessed transcription for reference and backup purposes
+                Complete unprocessed transcription accumulating all segments for reference and backup purposes
               </div>
               <div className="p-4 bg-muted/30 rounded-lg border border-muted">
                 <div className="text-sm font-mono text-foreground whitespace-pre-wrap leading-relaxed max-h-96 overflow-y-auto">
-                  {transcript}
+                  {growingRawTranscript}
                 </div>
+              </div>
+              <div className="text-xs text-muted-foreground flex items-center gap-2">
+                <span>Total characters: {growingRawTranscript.length}</span>
+                <span>•</span>
+                <span>Words: ~{growingRawTranscript.split(/\s+/).length}</span>
               </div>
             </div>
           </CardContent>
