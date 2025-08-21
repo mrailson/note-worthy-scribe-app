@@ -4,7 +4,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { X, Settings, Monitor, CheckSquare, FileText } from "lucide-react";
 import { MeetingSetupTab } from "./tabs/MeetingSetupTab";
-
 import { LiveMonitorTab } from "./tabs/LiveMonitorTab";
 import { SmartValidationTab } from "./tabs/SmartValidationTab";
 import { LiveNotesTab } from "./tabs/LiveNotesTab";

@@ -49,7 +49,7 @@ interface ActionItem {
 
 export const LiveNotesTab = ({ meetingData }: LiveNotesTabProps) => {
   const { liveNotes, updateLiveNotes, meetingConfig } = useDashboard();
-  const [selectedLevel, setSelectedLevel] = useState("cleaned");
+  const [selectedLevel, setSelectedLevel] = useState("processed");
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState("");
   const [actionItems, setActionItems] = useState<ActionItem[]>([]);
@@ -84,76 +84,23 @@ export const LiveNotesTab = ({ meetingData }: LiveNotesTabProps) => {
     }
   ]);
 
-  // Function to format text into readable paragraphs
-  const formatTextIntoParagraphs = (text: string): string => {
-    if (!text) return "";
-    
-    // Clean up the text first
-    let formatted = text
-      .replace(/\s+/g, ' ') // Replace multiple spaces with single space
-      .trim();
-    
-    // Split on natural paragraph indicators
-    const paragraphBreaks = [
-      /\.\s+(?=[A-Z].*?(?:meeting|discuss|agenda|topic|point|issue|question|concern|update|report|review|plan|decision|action|next|first|second|third|finally|also|however|therefore|additionally|furthermore|moreover|in conclusion|to summarize))/gi,
-      /\.\s+(?=(?:So|Now|Next|First|Second|Third|Also|However|Therefore|Additionally|Furthermore|Moreover|In conclusion|To summarize|Speaking of|Regarding|About|Concerning|Moving on|Let's|We need|We should|I think|I believe|The issue|The problem|The main|A key|Another))/gi,
-      /\.\s+(?=[A-Z].*?(?:list|size|numbers|patients|registrations|practices|capacity|appointments|winter|planning|feedback|complaints|telephony|training))/gi
-    ];
-    
-    // Apply paragraph breaks
-    for (const breakPattern of paragraphBreaks) {
-      formatted = formatted.replace(breakPattern, (match) => {
-        return match.replace(/\.\s+/, ".\n\n");
-      });
-    }
-    
-    // Break very long sentences (over 200 characters) at natural points
-    const sentences = formatted.split(/\n\n/);
-    const processedSentences = sentences.map(sentence => {
-      if (sentence.length > 200) {
-        // Look for natural breaking points within long sentences
-        const breakPoints = [
-          /,\s+(?=and|but|however|also|particularly|specifically|especially|meanwhile|therefore|moreover|furthermore)/gi,
-          /;\s+/g,
-          /\.\s+(?=[a-z])/g // Lowercase letter after period (likely continuation)
-        ];
-        
-        for (const breakPoint of breakPoints) {
-          sentence = sentence.replace(breakPoint, (match) => {
-            return match.trim() + "\n\n";
-          });
-        }
-      }
-      return sentence;
-    });
-    
-    return processedSentences
-      .join("\n\n")
-      .replace(/\n\n+/g, "\n\n") // Remove excessive line breaks
-      .trim();
-  };
-  
   // Generate processed versions of transcript
   useEffect(() => {
     if (!meetingData.transcript) return;
 
     const raw = meetingData.transcript;
     
-    // Simulate cleaned transcript (basic corrections) 
-    const cleanedBase = raw
+    // Simulate cleaned transcript (basic corrections)
+    const cleaned = raw
       .replace(/\b(um|uh|er)\b/gi, '')
       .replace(/\s+/g, ' ')
       .replace(/([.!?])\s*([a-z])/g, (match, punct, letter) => `${punct} ${letter.toUpperCase()}`)
       .trim();
-      
-    // Apply paragraph formatting to cleaned version
-    const cleaned = formatTextIntoParagraphs(cleanedBase);
 
-    // Simulate AI-enhanced version with formatted paragraphs
-    const processedContent = formatTextIntoParagraphs(cleanedBase);
+    // Simulate AI-enhanced version
     const processed = `Meeting Discussion Summary:
 
-${processedContent}
+${cleaned}
 
 Key Topics Covered:
 • ${meetingConfig.agenda ? 'Agenda items as discussed' : 'Various business matters'}
@@ -247,132 +194,13 @@ NEXT STEPS:
     setEditContent("");
   };
 
-  const [isGeneratingNotes, setIsGeneratingNotes] = useState(false);
-
-  // Generate meeting notes using AI when "Meeting Notes" is selected
-  const generateMeetingNotes = async () => {
-    if (!meetingData.transcript) {
-      console.log('No transcript available for meeting notes generation');
-      return;
-    }
-
-    setIsGeneratingNotes(true);
-    
-    try {
-      console.log('Generating meeting notes with AI...');
-      
-      const meetingContext = {
-        title: meetingConfig.title,
-        format: meetingConfig.format,
-        attendees: meetingConfig.attendees,
-        agenda: meetingConfig.agenda,
-        contextText: meetingConfig.contextText || '',
-        contextFiles: meetingConfig.contextFiles || [],
-        transcript: meetingData.transcript,
-        duration: meetingData.duration
-      };
-
-      const response = await fetch('/functions/v1/generate-live-meeting-notes', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ meetingContext }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to generate meeting notes');
-      }
-
-      const result = await response.json();
-      
-      // Update the final transcript level with generated notes
-      setTranscriptLevels(prev => prev.map(level => 
-        level.id === 'final' ? { ...level, content: result.notes } : level
-      ));
-      
-      updateLiveNotes(result.notes);
-      
-      console.log('Meeting notes generated successfully');
-      
-    } catch (error) {
-      console.error('Error generating meeting notes:', error);
-      // Fallback to structured template
-      const fallbackNotes = generateFallbackNotes();
-      setTranscriptLevels(prev => prev.map(level => 
-        level.id === 'final' ? { ...level, content: fallbackNotes } : level
-      ));
-      updateLiveNotes(fallbackNotes);
-    } finally {
-      setIsGeneratingNotes(false);
-    }
-  };
-
-  // Fallback notes generator
-  const generateFallbackNotes = () => {
-    const cleanedTranscript = meetingData.transcript
-      .replace(/\b(um|uh|er)\b/gi, '')
-      .replace(/\s+/g, ' ')
-      .trim();
-
-    const formattedTranscript = formatTextIntoParagraphs(cleanedTranscript);
-    
-    return `# MEETING NOTES
-
-**Meeting:** ${meetingConfig.title}
-**Date:** ${new Date().toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-**Duration:** ${Math.floor(meetingData.duration / 60)} minutes
-**Format:** ${meetingConfig.format?.toUpperCase()}
-
-## ATTENDEES
-${meetingConfig.attendees.map(a => `• ${a.name}${a.title ? ` - ${a.title}` : ''}${a.organization ? ` (${a.organization})` : ''}`).join('\n') || '• No attendees recorded'}
-
-## AGENDA
-${meetingConfig.agenda || 'No formal agenda provided'}
-
-${meetingConfig.contextText ? `## BACKGROUND CONTEXT
-${meetingConfig.contextText}` : ''}
-
-## DISCUSSION SUMMARY
-${formattedTranscript}
-
-## ACTION ITEMS
-• Review and distribute meeting notes
-• Schedule follow-up meeting if required
-• Address any unresolved items
-
-## NEXT STEPS
-• To be determined based on discussion outcomes
-• Follow up on key decisions made during the meeting
-
----
-*Generated on ${new Date().toLocaleString('en-GB')}*`;
-  };
-
-  // Auto-generate meeting notes when switching to "Meeting Notes" and when key content changes
-  useEffect(() => {
-    if (selectedLevel === 'final' && meetingData.transcript && !isGeneratingNotes) {
-      const currentFinalContent = transcriptLevels.find(l => l.id === 'final')?.content || '';
-      
-      // Check if we need to regenerate (no content or basic template)
-      if (!currentFinalContent || 
-          currentFinalContent.includes('To be determined based on discussion outcomes') ||
-          currentFinalContent.length < 200) {
-        generateMeetingNotes();
-      }
-    }
-  }, [selectedLevel, meetingData.transcript, meetingConfig.title, meetingConfig.attendees, meetingConfig.agenda, meetingConfig.contextText]);
-
   const enhanceWithAI = () => {
-    if (selectedLevel === 'final') {
-      generateMeetingNotes();
-    } else {
-      setIsProcessing(true);
-      // Simulate AI processing for other levels
-      setTimeout(() => {
-        setIsProcessing(false);
-      }, 2000);
-    }
+    setIsProcessing(true);
+    // Simulate AI processing
+    setTimeout(() => {
+      setIsProcessing(false);
+      // Would normally call AI enhancement service
+    }, 2000);
   };
 
   const exportNotes = () => {
@@ -412,7 +240,7 @@ ${formattedTranscript}
                 <SelectTrigger className="w-48">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-background border border-border shadow-lg z-50">
+                <SelectContent>
                   {transcriptLevels.map((level) => (
                     <SelectItem key={level.id} value={level.id}>
                       <div className="flex flex-col">
@@ -436,10 +264,10 @@ ${formattedTranscript}
                     variant="outline" 
                     size="sm" 
                     onClick={enhanceWithAI}
-                    disabled={isProcessing || isGeneratingNotes}
+                    disabled={isProcessing}
                   >
-                    <Sparkles className={cn("h-4 w-4 mr-2", (isProcessing || isGeneratingNotes) && "animate-pulse")} />
-                    {isGeneratingNotes ? 'Generating...' : selectedLevel === 'final' ? 'Regenerate' : 'Enhance'}
+                    <Sparkles className={cn("h-4 w-4 mr-2", isProcessing && "animate-pulse")} />
+                    Enhance
                   </Button>
                   <Button variant="outline" size="sm" onClick={exportNotes}>
                     <Download className="h-4 w-4 mr-2" />
@@ -492,11 +320,54 @@ ${formattedTranscript}
         </CardContent>
       </Card>
 
+      {/* Action Items Sidebar */}
+      {actionItems.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CheckSquare className="h-5 w-5 text-primary" />
+              Detected Action Items ({actionItems.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {actionItems.map((item) => (
+              <div key={item.id} className="p-3 border rounded-lg space-y-2">
+                <div className="flex items-start justify-between">
+                  <p className="text-sm flex-1">{item.text}</p>
+                  <Badge 
+                    variant={
+                      item.priority === "high" ? "destructive" :
+                      item.priority === "medium" ? "default" : "secondary"
+                    }
+                    className="text-xs ml-2"
+                  >
+                    {item.priority}
+                  </Badge>
+                </div>
+                
+                {item.assignee && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Users className="h-3 w-3" />
+                    Assigned to: {item.assignee}
+                  </div>
+                )}
+                
+                {item.detected && (
+                  <Badge variant="outline" className="text-xs">
+                    <Sparkles className="h-3 w-3 mr-1" />
+                    Auto-detected
+                  </Badge>
+                )}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats Footer */}
       <Card>
         <CardContent className="p-4">
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div>
               <div className="text-muted-foreground">Processing Level</div>
               <div className="font-medium">{currentLevel?.label}</div>
@@ -504,6 +375,10 @@ ${formattedTranscript}
             <div>
               <div className="text-muted-foreground">Content Length</div>
               <div className="font-medium">{currentLevel?.content.length || 0} chars</div>
+            </div>
+            <div>
+              <div className="text-muted-foreground">Action Items</div>
+              <div className="font-medium">{actionItems.length} detected</div>
             </div>
             <div>
               <div className="text-muted-foreground">Last Updated</div>

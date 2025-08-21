@@ -2482,8 +2482,8 @@ export const MeetingRecorder = ({
       });
     }, 500);
     
-    // Wait additional 0.5 seconds for final processing
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Wait additional 3 seconds for final processing
+    await new Promise(resolve => setTimeout(resolve, 3000));
     clearInterval(phase2Interval);
     
     // Check final transcript length
@@ -2809,7 +2809,7 @@ export const MeetingRecorder = ({
       
       // Step 1: Saving
       setSavingSteps({ saving: true, securing: false, complete: false });
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 800));
       
       console.log('🚨 ATTEMPTING DATABASE SAVE...');
     console.log('🚨 Auth user:', user);
@@ -3894,17 +3894,15 @@ export const MeetingRecorder = ({
                 connectionStatus
               }}
             />
-            {!isRecording && (
-              <Button 
-                onClick={resetMeeting}
-                variant="outline"
-                size="sm"
-                className="text-xs"
-              >
-                <RotateCcw className="h-3 w-3 mr-2" />
-                Reset Meeting
-              </Button>
-            )}
+            <Button 
+              onClick={resetMeeting}
+              variant="outline"
+              size="sm"
+              className="text-xs"
+            >
+              <RotateCcw className="h-3 w-3 mr-2" />
+              Reset Meeting
+            </Button>
           </div>
         </TabsContent>
 
@@ -3915,24 +3913,14 @@ export const MeetingRecorder = ({
               <h3 className="text-lg font-semibold">Live Transcript</h3>
               <p className="text-sm text-muted-foreground">Real-time transcription of the current meeting</p>
             </div>
-            <div className="flex items-center gap-2">
-              <Button
-                onClick={() => setDashboardOpen(true)}
-                variant="outline"
-                className="flex items-center gap-2"
-              >
-                <Monitor className="h-4 w-4" />
-                Dashboard
-              </Button>
-              <Button
-                onClick={() => setCumulativeTranscriptModalOpen(true)}
-                variant="outline"
-                className="flex items-center gap-2"
-              >
-                <FileText className="h-4 w-4" />
-                View Full Transcript
-              </Button>
-            </div>
+            <Button
+              onClick={() => setCumulativeTranscriptModalOpen(true)}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <FileText className="h-4 w-4" />
+              View Full Transcript
+            </Button>
           </div>
           <Card className="border-accent/30">
               <CardContent className="space-y-4">
