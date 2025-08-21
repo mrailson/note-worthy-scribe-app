@@ -49,7 +49,7 @@ interface ActionItem {
 
 export const LiveNotesTab = ({ meetingData }: LiveNotesTabProps) => {
   const { liveNotes, updateLiveNotes, meetingConfig } = useDashboard();
-  const [selectedLevel, setSelectedLevel] = useState("processed");
+  const [selectedLevel, setSelectedLevel] = useState("cleaned");
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState("");
   const [actionItems, setActionItems] = useState<ActionItem[]>([]);
@@ -247,13 +247,132 @@ NEXT STEPS:
     setEditContent("");
   };
 
+  const [isGeneratingNotes, setIsGeneratingNotes] = useState(false);
+
+  // Generate meeting notes using AI when "Meeting Notes" is selected
+  const generateMeetingNotes = async () => {
+    if (!meetingData.transcript) {
+      console.log('No transcript available for meeting notes generation');
+      return;
+    }
+
+    setIsGeneratingNotes(true);
+    
+    try {
+      console.log('Generating meeting notes with AI...');
+      
+      const meetingContext = {
+        title: meetingConfig.title,
+        format: meetingConfig.format,
+        attendees: meetingConfig.attendees,
+        agenda: meetingConfig.agenda,
+        contextText: meetingConfig.contextText || '',
+        contextFiles: meetingConfig.contextFiles || [],
+        transcript: meetingData.transcript,
+        duration: meetingData.duration
+      };
+
+      const response = await fetch('/functions/v1/generate-live-meeting-notes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ meetingContext }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate meeting notes');
+      }
+
+      const result = await response.json();
+      
+      // Update the final transcript level with generated notes
+      setTranscriptLevels(prev => prev.map(level => 
+        level.id === 'final' ? { ...level, content: result.notes } : level
+      ));
+      
+      updateLiveNotes(result.notes);
+      
+      console.log('Meeting notes generated successfully');
+      
+    } catch (error) {
+      console.error('Error generating meeting notes:', error);
+      // Fallback to structured template
+      const fallbackNotes = generateFallbackNotes();
+      setTranscriptLevels(prev => prev.map(level => 
+        level.id === 'final' ? { ...level, content: fallbackNotes } : level
+      ));
+      updateLiveNotes(fallbackNotes);
+    } finally {
+      setIsGeneratingNotes(false);
+    }
+  };
+
+  // Fallback notes generator
+  const generateFallbackNotes = () => {
+    const cleanedTranscript = meetingData.transcript
+      .replace(/\b(um|uh|er)\b/gi, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    const formattedTranscript = formatTextIntoParagraphs(cleanedTranscript);
+    
+    return `# MEETING NOTES
+
+**Meeting:** ${meetingConfig.title}
+**Date:** ${new Date().toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+**Duration:** ${Math.floor(meetingData.duration / 60)} minutes
+**Format:** ${meetingConfig.format?.toUpperCase()}
+
+## ATTENDEES
+${meetingConfig.attendees.map(a => `• ${a.name}${a.title ? ` - ${a.title}` : ''}${a.organization ? ` (${a.organization})` : ''}`).join('\n') || '• No attendees recorded'}
+
+## AGENDA
+${meetingConfig.agenda || 'No formal agenda provided'}
+
+${meetingConfig.contextText ? `## BACKGROUND CONTEXT
+${meetingConfig.contextText}` : ''}
+
+## DISCUSSION SUMMARY
+${formattedTranscript}
+
+## ACTION ITEMS
+• Review and distribute meeting notes
+• Schedule follow-up meeting if required
+• Address any unresolved items
+
+## NEXT STEPS
+• To be determined based on discussion outcomes
+• Follow up on key decisions made during the meeting
+
+---
+*Generated on ${new Date().toLocaleString('en-GB')}*`;
+  };
+
+  // Auto-generate meeting notes when switching to "Meeting Notes" and when key content changes
+  useEffect(() => {
+    if (selectedLevel === 'final' && meetingData.transcript && !isGeneratingNotes) {
+      const currentFinalContent = transcriptLevels.find(l => l.id === 'final')?.content || '';
+      
+      // Check if we need to regenerate (no content or basic template)
+      if (!currentFinalContent || 
+          currentFinalContent.includes('To be determined based on discussion outcomes') ||
+          currentFinalContent.length < 200) {
+        generateMeetingNotes();
+      }
+    }
+  }, [selectedLevel, meetingData.transcript, meetingConfig.title, meetingConfig.attendees, meetingConfig.agenda, meetingConfig.contextText]);
+
   const enhanceWithAI = () => {
-    setIsProcessing(true);
-    // Simulate AI processing
-    setTimeout(() => {
-      setIsProcessing(false);
-      // Would normally call AI enhancement service
-    }, 2000);
+    if (selectedLevel === 'final') {
+      generateMeetingNotes();
+    } else {
+      setIsProcessing(true);
+      // Simulate AI processing for other levels
+      setTimeout(() => {
+        setIsProcessing(false);
+      }, 2000);
+    }
   };
 
   const exportNotes = () => {
@@ -293,7 +412,7 @@ NEXT STEPS:
                 <SelectTrigger className="w-48">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-background border border-border shadow-lg z-50">
                   {transcriptLevels.map((level) => (
                     <SelectItem key={level.id} value={level.id}>
                       <div className="flex flex-col">
@@ -317,10 +436,10 @@ NEXT STEPS:
                     variant="outline" 
                     size="sm" 
                     onClick={enhanceWithAI}
-                    disabled={isProcessing}
+                    disabled={isProcessing || isGeneratingNotes}
                   >
-                    <Sparkles className={cn("h-4 w-4 mr-2", isProcessing && "animate-pulse")} />
-                    Enhance
+                    <Sparkles className={cn("h-4 w-4 mr-2", (isProcessing || isGeneratingNotes) && "animate-pulse")} />
+                    {isGeneratingNotes ? 'Generating...' : selectedLevel === 'final' ? 'Regenerate' : 'Enhance'}
                   </Button>
                   <Button variant="outline" size="sm" onClick={exportNotes}>
                     <Download className="h-4 w-4 mr-2" />
