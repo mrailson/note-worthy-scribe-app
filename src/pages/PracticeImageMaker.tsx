@@ -27,6 +27,7 @@ import {
   ImageIcon,
   Settings
 } from "lucide-react";
+import { TextOverlayPoster } from "@/components/TextOverlayPoster";
 
 // Quick-Pick library with structured content
 const QUICK_PICKS = [
@@ -221,27 +222,40 @@ const PracticeImageMaker = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentImage, setCurrentImage] = useState<string | null>(null);
   const [imageHistory, setImageHistory] = useState<ImageResult[]>([]);
+  
+  // Text Overlay State
+  const [useTextOverlay, setUseTextOverlay] = useState(true);
+  const [currentQuickPick, setCurrentQuickPick] = useState<typeof QUICK_PICKS[0] | null>(null);
+  const [layoutOnlyImage, setLayoutOnlyImage] = useState<string | null>(null);
 
   const handleQuickPick = (quickPick: typeof QUICK_PICKS[0]) => {
-    // Determine which text to use based on size
-    const useExpandedText = selectedSize.includes("A4") || selectedSize === "Banner";
-    const selectedText = useExpandedText ? quickPick.expandedText : quickPick.conciseText;
-    
-    // Replace tokens with brand kit values
-    const processedText = selectedText
-      .replace(/{practice_name}/g, practiceName || "[Practice Name]")
-      .replace(/{primary_colour}/g, primaryColour);
-    
-    // Create prompt with exact text instruction
-    const finalPrompt = `Create a professional NHS-style poster/image layout. Insert the following text exactly as written, in clear large lettering, using the chosen style. Do not change or invent words.\n\nExact text to include:\n${processedText}`;
-    
-    setPrompt(finalPrompt);
+    // Store the quickpick data for overlay mode
+    setCurrentQuickPick(quickPick);
     
     // Apply options
     if (quickPick.options.size) setSelectedSize(quickPick.options.size);
     if (quickPick.options.style) setSelectedStyle(quickPick.options.style);
     if (quickPick.options.large_text) setLargeText(quickPick.options.large_text);
     if (quickPick.options.qr) setIncludeQR(quickPick.options.qr);
+    
+    if (useTextOverlay && quickPick.designPrompt) {
+      // For overlay mode, use just the design prompt for layout generation
+      setPrompt(quickPick.designPrompt);
+    } else {
+      // Legacy mode: Determine which text to use based on size
+      const useExpandedText = selectedSize.includes("A4") || selectedSize === "Banner";
+      const selectedText = useExpandedText ? quickPick.expandedText : quickPick.conciseText;
+      
+      // Replace tokens with brand kit values
+      const processedText = selectedText
+        .replace(/{practice_name}/g, practiceName || "[Practice Name]")
+        .replace(/{primary_colour}/g, primaryColour);
+      
+      // Create prompt with exact text instruction
+      const finalPrompt = `Create a professional NHS-style poster/image layout. Insert the following text exactly as written, in clear large lettering, using the chosen style. Do not change or invent words.\n\nExact text to include:\n${processedText}`;
+      
+      setPrompt(finalPrompt);
+    }
   };
 
   const assemblePrompt = () => {
@@ -296,12 +310,19 @@ const PracticeImageMaker = () => {
 
     setIsGenerating(true);
     setCurrentImage(null);
+    setLayoutOnlyImage(null);
 
     try {
       const finalPrompt = assemblePrompt();
       
-      // Add instruction for exact text usage to prevent lorem ipsum
-      const enhancedPrompt = finalPrompt + "\n\nIMPORTANT: Insert the following text exactly as written, in clear large lettering, using the chosen style. Do not change or invent words.";
+      // For overlay mode with quick picks, generate layout-only image
+      let enhancedPrompt;
+      if (useTextOverlay && currentQuickPick) {
+        enhancedPrompt = finalPrompt + "\n\nIMPORTANT: Generate layout only with grey placeholder rectangles. NO TEXT CONTENT. Use NHS colors and professional layout.";
+      } else {
+        // Add instruction for exact text usage to prevent lorem ipsum
+        enhancedPrompt = finalPrompt + "\n\nIMPORTANT: Insert the following text exactly as written, in clear large lettering, using the chosen style. Do not change or invent words.";
+      }
       
       // Determine size for API
       let apiSize = "1024x1024";
@@ -337,7 +358,13 @@ const PracticeImageMaker = () => {
       }
 
       if (data.success) {
-        setCurrentImage(data.imageData);
+        if (useTextOverlay && currentQuickPick) {
+          // Store as layout-only image for overlay mode
+          setLayoutOnlyImage(data.imageData);
+          setCurrentImage(data.imageData); // Also set as current for fallback
+        } else {
+          setCurrentImage(data.imageData);
+        }
         
         // Add to history
         const newResult: ImageResult = {
@@ -591,49 +618,57 @@ const PracticeImageMaker = () => {
                 </div>
 
                 {/* Options */}
-                <div className="space-y-4">
-                  <div>
-                    <Label>Text Heaviness</Label>
-                    <Slider
-                      value={textHeaviness}
-                      onValueChange={setTextHeaviness}
-                      max={100}
-                      step={1}
-                      className="mt-2"
-                    />
-                    <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                      <span>Low</span>
-                      <span>High</span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex flex-wrap gap-4">
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id="large-text"
-                        checked={largeText}
-                        onCheckedChange={setLargeText}
-                      />
-                      <Label htmlFor="large-text">Large readable text</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id="include-qr"
-                        checked={includeQR}
-                        onCheckedChange={setIncludeQR}
-                      />
-                      <Label htmlFor="include-qr">Include QR placeholder</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id="transparent-bg"
-                        checked={transparentBg}
-                        onCheckedChange={setTransparentBg}
-                      />
-                      <Label htmlFor="transparent-bg">Transparent background</Label>
-                    </div>
-                  </div>
-                </div>
+                 <div className="space-y-4">
+                   <div>
+                     <Label>Text Heaviness</Label>
+                     <Slider
+                       value={textHeaviness}
+                       onValueChange={setTextHeaviness}
+                       max={100}
+                       step={1}
+                       className="mt-2"
+                     />
+                     <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                       <span>Low</span>
+                       <span>High</span>
+                     </div>
+                   </div>
+                   
+                   <div className="flex flex-wrap gap-4">
+                     <div className="flex items-center space-x-2">
+                       <Switch
+                         id="use-overlay"
+                         checked={useTextOverlay}
+                         onCheckedChange={setUseTextOverlay}
+                       />
+                       <Label htmlFor="use-overlay">Text overlay mode (recommended)</Label>
+                     </div>
+                     <div className="flex items-center space-x-2">
+                       <Switch
+                         id="large-text"
+                         checked={largeText}
+                         onCheckedChange={setLargeText}
+                       />
+                       <Label htmlFor="large-text">Large readable text</Label>
+                     </div>
+                     <div className="flex items-center space-x-2">
+                       <Switch
+                         id="include-qr"
+                         checked={includeQR}
+                         onCheckedChange={setIncludeQR}
+                       />
+                       <Label htmlFor="include-qr">Include QR placeholder</Label>
+                     </div>
+                     <div className="flex items-center space-x-2">
+                       <Switch
+                         id="transparent-bg"
+                         checked={transparentBg}
+                         onCheckedChange={setTransparentBg}
+                       />
+                       <Label htmlFor="transparent-bg">Transparent background</Label>
+                     </div>
+                   </div>
+                 </div>
 
                 <Button 
                   onClick={handleGenerate}
@@ -700,6 +735,16 @@ const PracticeImageMaker = () => {
                       <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
                       <p className="text-sm text-muted-foreground">Creating your image...</p>
                     </div>
+                  ) : useTextOverlay && layoutOnlyImage && currentQuickPick ? (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <TextOverlayPoster
+                        backgroundImage={layoutOnlyImage}
+                        headline={currentQuickPick.expandedText.split('\n')[0] || currentQuickPick.conciseText.split('\n')[0]}
+                        body={currentQuickPick.expandedText.split('\n').slice(1).join('\n') || currentQuickPick.conciseText.split('\n').slice(1).join('\n')}
+                        size={selectedSize}
+                        className="max-w-full max-h-full"
+                      />
+                    </div>
                   ) : currentImage ? (
                     <img 
                       src={currentImage} 
@@ -713,6 +758,11 @@ const PracticeImageMaker = () => {
                       <p className="text-sm text-muted-foreground">
                         Your generated image will appear here
                       </p>
+                      {useTextOverlay && (
+                        <p className="text-xs text-muted-foreground">
+                          Select a Quick-Pick to see text overlay preview
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>
