@@ -39,8 +39,8 @@ serve(async (req) => {
       throw new Error('OpenAI API key not found');
     }
 
-    // Ultra-minimal system prompt (<200 chars)
-    const clinicalPrompt = systemPrompt || "NHS GP assistant. BNF/NICE/MHRA. Bullet points. UK terms.";
+    // Ultra-minimal system prompt (≤200 chars)
+    const clinicalPrompt = systemPrompt || "NHS GP assistant. Use BNF/NICE/MHRA/NHS.uk/Green Book/ICB only. Concise UK GP bullet points.";
     
     // Build messages for Chat Completions API
     const chatMessages = [
@@ -65,7 +65,7 @@ serve(async (req) => {
         model: model,
         messages: chatMessages, // Correct parameter for Chat Completions
         stream: true,
-        max_tokens: 700, // Chat API uses max_tokens (not max_output_tokens)
+        max_tokens: 450, // Reduced from 700 for faster responses
         temperature: 0.2
       }),
       signal: controller.signal,
