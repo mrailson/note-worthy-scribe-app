@@ -9,7 +9,8 @@ import { BankHolidayManager } from "@/components/BankHolidayManager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Calendar, Clock, MapPin, Users, AlertTriangle, CheckCircle, Settings, Activity, Droplets, UserCheck, BarChart3, FileText, TrendingUp } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Calendar, Clock, MapPin, Users, AlertTriangle, CheckCircle, Settings, Activity, Droplets, UserCheck, BarChart3, FileText, TrendingUp, ChevronDown, ChevronRight } from "lucide-react";
 import { format, startOfWeek, addDays, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, getDay } from "date-fns";
 
 const formatDateWithOrdinal = (date: Date) => {
@@ -36,6 +37,7 @@ const EnhancedAccess = () => {
   const [weeklyAssignments, setWeeklyAssignments] = useState<any[]>([]);
   const [shiftTemplates, setShiftTemplates] = useState<any[]>([]);
   const [bankHolidays, setBankHolidays] = useState<Set<string>>(new Set());
+  const [isStatsOpen, setIsStatsOpen] = useState(false); // Collapsed by default
 
   // Calculate Hub delivery and spoke requirements for current month
   const calculateSpokeRequirements = (date: Date) => {
@@ -726,124 +728,147 @@ const EnhancedAccess = () => {
               </CardContent>
             </Card>
             
-            {/* Core Hours Info */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Clock className="h-5 w-5" />
-                  Core Hours Requirements
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <h4 className="font-medium">Monday - Friday</h4>
-                    <p className="text-sm text-muted-foreground flex items-center gap-2">
-                      <Clock className="h-4 w-4" />
-                      6:30 PM - 8:00 PM
-                    </p>
-                    <p className="text-sm text-muted-foreground flex items-start gap-2">
-                      <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                      <span>Remote GP (2 Hours shifts. 0.5 Hrs over minimum required GP hours each day)</span>
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <h4 className="font-medium">Saturday</h4>
-                    <p className="text-sm text-muted-foreground flex items-center gap-2">
-                      <Clock className="h-4 w-4" />
-                      9:00 AM - 5:00 PM
-                    </p>
-                    <p className="text-sm text-muted-foreground flex items-center gap-2">
-                      <MapPin className="h-4 w-4" />
-                      Kings Heath Health Centre (On-site)
-                    </p>
-                  </div>
+            {/* Collapsible Stats Section */}
+            <Collapsible open={isStatsOpen} onOpenChange={setIsStatsOpen}>
+              <Card className="border-2 border-dashed border-muted-foreground/20">
+                <CardHeader className="pb-2">
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" className="w-full justify-between p-3 text-left font-medium">
+                      <span className="flex items-center gap-2">
+                        <BarChart3 className="h-4 w-4" />
+                        Service Statistics & Breakdown
+                      </span>
+                      {isStatsOpen ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </CollapsibleTrigger>
+                </CardHeader>
+              </Card>
+              
+              <CollapsibleContent className="space-y-6">
+                {/* Core Hours Info */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Clock className="h-5 w-5" />
+                      Core Hours Requirements
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <h4 className="font-medium">Monday - Friday</h4>
+                        <p className="text-sm text-muted-foreground flex items-center gap-2">
+                          <Clock className="h-4 w-4" />
+                          6:30 PM - 8:00 PM
+                        </p>
+                        <p className="text-sm text-muted-foreground flex items-start gap-2">
+                          <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                          <span>Remote GP (2 Hours shifts. 0.5 Hrs over minimum required GP hours each day)</span>
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <h4 className="font-medium">Saturday</h4>
+                        <p className="text-sm text-muted-foreground flex items-center gap-2">
+                          <Clock className="h-4 w-4" />
+                          9:00 AM - 5:00 PM
+                        </p>
+                        <p className="text-sm text-muted-foreground flex items-center gap-2">
+                          <MapPin className="h-4 w-4" />
+                          Kings Heath Health Centre (On-site)
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Quick Stats */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium">Required Hours</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-xl sm:text-2xl font-bold">237.25</div>
+                      <p className="text-xs text-muted-foreground">Monthly Target</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium">Hub Delivery</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-xl sm:text-2xl font-bold">{spokeData.hubHours}</div>
+                      <p className="text-xs text-muted-foreground">{format(currentWeek, "MMMM yyyy")}</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium">Spoke Balance</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-xl sm:text-2xl font-bold text-orange-600">{spokeData.spokeBalance}</div>
+                      <p className="text-xs text-muted-foreground">Hours Required</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="col-span-2 lg:col-span-1">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-medium">Default Staffing</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-xs sm:text-sm space-y-1">
+                        <div>Saturday GP (On Site): 9AM-5PM</div>
+                        <div>Saturday Phlebotomist: 9AM-5PM</div>
+                        <div>Saturday Receptionist: 9AM-5PM</div>
+                        <div className="text-xs text-muted-foreground">Kings Heath Health Centre</div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
-              </CardContent>
-            </Card>
 
-            {/* Quick Stats */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium">Required Hours</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-xl sm:text-2xl font-bold">237.25</div>
-                  <p className="text-xs text-muted-foreground">Monthly Target</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium">Hub Delivery</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-xl sm:text-2xl font-bold">{spokeData.hubHours}</div>
-                  <p className="text-xs text-muted-foreground">{format(currentWeek, "MMMM yyyy")}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium">Spoke Balance</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-xl sm:text-2xl font-bold text-orange-600">{spokeData.spokeBalance}</div>
-                  <p className="text-xs text-muted-foreground">Hours Required</p>
-                </CardContent>
-              </Card>
-              <Card className="col-span-2 lg:col-span-1">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium">Default Staffing</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-xs sm:text-sm space-y-1">
-                    <div>Saturday GP (On Site): 9AM-5PM</div>
-                    <div>Saturday Phlebotomist: 9AM-5PM</div>
-                    <div>Saturday Receptionist: 9AM-5PM</div>
-                    <div className="text-xs text-muted-foreground">Kings Heath Health Centre</div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Spoke Requirements Breakdown */}
-            {spokeData.spokeBalance > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5" />
-                    Individual Practice Spoke Requirements - {format(currentWeek, "MMMM yyyy")}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                      {spokeData.practiceRequirements.map((practice) => (
-                        <div key={practice.practice} className="bg-orange-50 p-3 rounded-lg border">
-                          <div className="font-medium text-sm">{practice.practice}</div>
-                          <div className="text-lg font-bold text-orange-600">{practice.hours} hrs</div>
-                          <div className="text-xs text-muted-foreground">{practice.percentage}% of balance</div>
+                {/* Spoke Requirements Breakdown */}
+                {spokeData.spokeBalance > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <BarChart3 className="h-5 w-5" />
+                        Individual Practice Spoke Requirements - {format(currentWeek, "MMMM yyyy")}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                          {spokeData.practiceRequirements.map((practice) => (
+                            <div key={practice.practice} className="bg-orange-50 p-3 rounded-lg border">
+                              <div className="font-medium text-sm">{practice.practice}</div>
+                              <div className="text-lg font-bold text-orange-600">{practice.hours} hrs</div>
+                              <div className="text-xs text-muted-foreground">{practice.percentage}% of balance</div>
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
-                    <div className="bg-blue-50 p-3 rounded-lg text-sm">
-                      <div className="font-semibold mb-2">Monthly Breakdown:</div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-xs">
-                        <div>Mon: {spokeData.dayCounts.monday} days × 2hrs = {spokeData.dayCounts.monday * 2}hrs</div>
-                        <div>Tue: {spokeData.dayCounts.tuesday} days × 4hrs = {spokeData.dayCounts.tuesday * 4}hrs</div>
-                        <div>Wed: {spokeData.dayCounts.wednesday} days × 2hrs = {spokeData.dayCounts.wednesday * 2}hrs</div>
-                        <div>Thu: {spokeData.dayCounts.thursday} days × 2hrs = {spokeData.dayCounts.thursday * 2}hrs</div>
-                        <div>Fri: {spokeData.dayCounts.friday} days × 4hrs = {spokeData.dayCounts.friday * 4}hrs</div>
-                        
+                        <div className="bg-blue-50 p-3 rounded-lg text-sm">
+                          <div className="font-semibold mb-2">Monthly Breakdown:</div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-xs">
+                            <div>Mon: {spokeData.dayCounts.monday} days × 2hrs = {spokeData.dayCounts.monday * 2}hrs</div>
+                            <div>Tue: {spokeData.dayCounts.tuesday} days × 4hrs = {spokeData.dayCounts.tuesday * 4}hrs</div>
+                            <div>Wed: {spokeData.dayCounts.wednesday} days × 2hrs = {spokeData.dayCounts.wednesday * 2}hrs</div>
+                            <div>Thu: {spokeData.dayCounts.thursday} days × 2hrs = {spokeData.dayCounts.thursday * 2}hrs</div>
+                            <div>Fri: {spokeData.dayCounts.friday} days × 4hrs = {spokeData.dayCounts.friday * 4}hrs</div>
+                            
+                          </div>
+                          <div className="mt-2 pt-2 border-t border-blue-200">
+                            <strong>Hub Total: {spokeData.hubHours} hours | Spoke Balance: {spokeData.spokeBalance} hours</strong>
+                          </div>
+                        </div>
                       </div>
-                      <div className="mt-2 pt-2 border-t border-blue-200">
-                        <strong>Hub Total: {spokeData.hubHours} hours | Spoke Balance: {spokeData.spokeBalance} hours</strong>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+                    </CardContent>
+                  </Card>
+                )}
+              </CollapsibleContent>
+            </Collapsible>
           </TabsContent>
           
           <TabsContent value="schedule" className="space-y-6 mt-6">
