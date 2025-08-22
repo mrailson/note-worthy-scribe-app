@@ -102,11 +102,6 @@ export const LiveNotesTab = ({ meetingData }: LiveNotesTabProps) => {
 
 ${cleaned}
 
-Key Topics Covered:
-• ${meetingConfig.agenda ? 'Agenda items as discussed' : 'Various business matters'}
-• Participant feedback and insights
-• Action items and next steps
-
 Attendees Present:
 ${meetingConfig.attendees.map(a => `• ${a.name}${a.title ? ` (${a.title})` : ''}`).join('\n')}`;
 
@@ -320,54 +315,10 @@ NEXT STEPS:
         </CardContent>
       </Card>
 
-      {/* Action Items Sidebar */}
-      {actionItems.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CheckSquare className="h-5 w-5 text-primary" />
-              Detected Action Items ({actionItems.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {actionItems.map((item) => (
-              <div key={item.id} className="p-3 border rounded-lg space-y-2">
-                <div className="flex items-start justify-between">
-                  <p className="text-sm flex-1">{item.text}</p>
-                  <Badge 
-                    variant={
-                      item.priority === "high" ? "destructive" :
-                      item.priority === "medium" ? "default" : "secondary"
-                    }
-                    className="text-xs ml-2"
-                  >
-                    {item.priority}
-                  </Badge>
-                </div>
-                
-                {item.assignee && (
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Users className="h-3 w-3" />
-                    Assigned to: {item.assignee}
-                  </div>
-                )}
-                
-                {item.detected && (
-                  <Badge variant="outline" className="text-xs">
-                    <Sparkles className="h-3 w-3 mr-1" />
-                    Auto-detected
-                  </Badge>
-                )}
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
-
       {/* Stats Footer */}
       <Card>
         <CardContent className="p-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
             <div>
               <div className="text-muted-foreground">Processing Level</div>
               <div className="font-medium">{currentLevel?.label}</div>
@@ -375,10 +326,6 @@ NEXT STEPS:
             <div>
               <div className="text-muted-foreground">Content Length</div>
               <div className="font-medium">{currentLevel?.content.length || 0} chars</div>
-            </div>
-            <div>
-              <div className="text-muted-foreground">Action Items</div>
-              <div className="font-medium">{actionItems.length} detected</div>
             </div>
             <div>
               <div className="text-muted-foreground">Last Updated</div>

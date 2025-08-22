@@ -2,12 +2,11 @@ import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { X, Settings, Monitor, CheckSquare, FileText, Sliders } from "lucide-react";
+import { X, Settings, Monitor, CheckSquare, FileText } from "lucide-react";
 import { MeetingSetupTab } from "./tabs/MeetingSetupTab";
 import { LiveMonitorTab } from "./tabs/LiveMonitorTab";
 import { SmartValidationTab } from "./tabs/SmartValidationTab";
 import { LiveNotesTab } from "./tabs/LiveNotesTab";
-import { ControlsTab } from "./tabs/ControlsTab";
 import { DashboardProvider } from "./utils/DashboardContext";
 import { cn } from "@/lib/utils";
 
@@ -63,12 +62,6 @@ export const RealtimeMeetingDashboard = ({
       label: "Live Notes", 
       icon: FileText, 
       disabled: !isRecording 
-    },
-    { 
-      id: "controls", 
-      label: "Controls", 
-      icon: Sliders, 
-      disabled: false 
     }
   ];
 
@@ -123,7 +116,7 @@ export const RealtimeMeetingDashboard = ({
               onValueChange={setActiveTab}
               className="flex-1 flex flex-col min-h-0"
             >
-              <TabsList className="mx-6 mt-4 grid grid-cols-5 w-full shrink-0">
+              <TabsList className="mx-6 mt-4 grid grid-cols-4 w-full shrink-0">
                 {tabs.map((tab) => (
                   <TabsTrigger 
                     key={tab.id}
@@ -162,12 +155,6 @@ export const RealtimeMeetingDashboard = ({
                 <TabsContent value="notes" className="h-full m-0 data-[state=active]:flex data-[state=active]:flex-col">
                   <div className="flex-1 overflow-y-auto overflow-x-hidden max-w-full">
                     <LiveNotesTab meetingData={meetingData} />
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="controls" className="h-full m-0 data-[state=active]:flex data-[state=active]:flex-col">
-                  <div className="flex-1 overflow-y-auto overflow-x-hidden max-w-full">
-                    <ControlsTab isRecording={isRecording} />
                   </div>
                 </TabsContent>
               </div>
