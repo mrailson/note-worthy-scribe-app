@@ -960,7 +960,7 @@ const EnhancedAccess = () => {
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2">
                           <BarChart3 className="h-5 w-5" />
-                          <span className="text-sm font-medium">Jun 2025</span>
+                          <span className="text-sm font-medium">July 2025</span>
                         </div>
                         <TabsList className="grid grid-cols-6">
                           <TabsTrigger value="overview">Overview</TabsTrigger>
