@@ -26,18 +26,23 @@ serve(async (req) => {
   }
 
   const t0 = Date.now();
+  console.log('=== GPT5-Fast-Clinical Function Started ===');
 
   try {
     const { messages = [], model = 'gpt-5-mini-2025-08-07', systemPrompt }: RequestBody = await req.json();
+    console.log(`Received request - messages count: ${messages.length}, model: ${model}`);
 
     if (!messages?.length) {
+      console.error('ERROR: No messages provided');
       throw new Error('No messages provided');
     }
 
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openaiApiKey) {
+      console.error('ERROR: OpenAI API key not found');
       throw new Error('OpenAI API key not found');
     }
+    console.log('OpenAI API key found');
 
     // Ultra-minimal system prompt (≤200 chars)
     const clinicalPrompt = systemPrompt || "NHS GP assistant. Use BNF/NICE/MHRA/NHS.uk/Green Book/ICB only. Concise UK GP bullet points.";
@@ -50,10 +55,23 @@ serve(async (req) => {
 
     const t1 = Date.now();
     console.log(`t0->t1 (prep): ${t1-t0}ms`);
+    console.log(`System prompt length: ${clinicalPrompt.length} chars`);
+    console.log(`Total chat messages: ${chatMessages.length}`);
 
     // Use OpenAI Chat Completions API with streaming
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 65000);
+
+    const requestBody = {
+      model: model,
+      messages: chatMessages,
+      stream: true,
+      max_tokens: 450,
+      temperature: 0.2
+    };
+    
+    console.log('Making OpenAI API call...');
+    console.log(`Request body: ${JSON.stringify(requestBody, null, 2)}`);
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -61,13 +79,7 @@ serve(async (req) => {
         'Authorization': `Bearer ${openaiApiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        model: model,
-        messages: chatMessages, // Correct parameter for Chat Completions
-        stream: true,
-        max_tokens: 450, // Reduced from 700 for faster responses
-        temperature: 0.2
-      }),
+      body: JSON.stringify(requestBody),
       signal: controller.signal,
     });
 
@@ -91,7 +103,9 @@ serve(async (req) => {
 
   } catch (error) {
     const totalTime = Date.now() - t0;
-    console.log(`Error after ${totalTime}ms: ${error.message}`);
+    console.error(`=== ERROR after ${totalTime}ms ===`);
+    console.error(`Error message: ${error.message}`);
+    console.error(`Error stack: ${error.stack}`);
     
     // Return SSE format even for errors to maintain streaming UX
     const errorStream = new ReadableStream({
