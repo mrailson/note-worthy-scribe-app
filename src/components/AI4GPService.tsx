@@ -61,6 +61,10 @@ const AI4GPService = () => {
     setSelectedModel,
     useOpenAI,
     setUseOpenAI,
+    showRenderTimes,
+    setShowRenderTimes,
+    showAIService,
+    setShowAIService,
     handleSend,
     handleNewSearch,
     handleQuickResponse
@@ -335,6 +339,8 @@ const AI4GPService = () => {
                         onExportWord={generateWordDocument}
                         onExportPowerPoint={generatePowerPoint}
                         showResponseMetrics={showResponseMetrics}
+                        showRenderTimes={showRenderTimes}
+                        showAIService={showAIService}
                         onQuickResponse={(response) => handleQuickResponse(response, practiceContext, selectedModel)}
                       />
                     </div>
@@ -414,6 +420,10 @@ const AI4GPService = () => {
         onModelChange={setSelectedModel}
         showResponseMetrics={showResponseMetrics}
         onShowResponseMetricsChange={setShowResponseMetrics}
+        showRenderTimes={showRenderTimes}
+        onShowRenderTimesChange={setShowRenderTimes}
+        showAIService={showAIService}
+        onShowAIServiceChange={setShowAIService}
         useOpenAI={useOpenAI}
         onUseOpenAIChange={setUseOpenAI}
       />

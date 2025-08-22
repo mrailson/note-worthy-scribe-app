@@ -16,6 +16,8 @@ export const useAI4GPService = () => {
   const [showResponseMetrics, setShowResponseMetrics] = useState(false);
   const [selectedModel, setSelectedModel] = useState('grok-beta');
   const [useOpenAI, setUseOpenAI] = useState(false);
+  const [showRenderTimes, setShowRenderTimes] = useState(false);
+  const [showAIService, setShowAIService] = useState(false);
 
   const buildSystemPrompt = useCallback((practiceContext: any, uploadedFiles: UploadedFile[], verificationLevel: string) => {
     let prompt = `You are "AI 4 GP Service", an AI Assistant built specifically to help General Practitioners (GPs) in the UK NHS.
@@ -412,6 +414,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           setShowResponseMetrics(preferences.showResponseMetrics ?? false);
           setSelectedModel(preferences.selectedModel ?? 'grok-beta');
           setUseOpenAI(preferences.useOpenAI ?? false);
+          setShowRenderTimes(preferences.showRenderTimes ?? false);
+          setShowAIService(preferences.showAIService ?? false);
         }
       } catch (error) {
         console.error('Error loading user settings:', error);
@@ -431,7 +435,9 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         verificationLevel,
         showResponseMetrics,
         selectedModel,
-        useOpenAI
+        useOpenAI,
+        showRenderTimes,
+        showAIService
       };
 
       await supabase
@@ -446,14 +452,14 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     } catch (error) {
       console.error('Error saving user settings:', error);
     }
-  }, [user, sessionMemory, verificationLevel, showResponseMetrics, selectedModel, useOpenAI]);
+  }, [user, sessionMemory, verificationLevel, showResponseMetrics, selectedModel, useOpenAI, showRenderTimes, showAIService]);
 
   // Save settings when they change
   useEffect(() => {
     if (user) {
       saveUserSettings();
     }
-  }, [sessionMemory, verificationLevel, showResponseMetrics, selectedModel, useOpenAI, saveUserSettings]);
+  }, [sessionMemory, verificationLevel, showResponseMetrics, selectedModel, useOpenAI, showRenderTimes, showAIService, saveUserSettings]);
 
   const handleNewSearch = useCallback(() => {
     setMessages([]);
@@ -655,6 +661,10 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     setSelectedModel,
     useOpenAI,
     setUseOpenAI,
+    showRenderTimes,
+    setShowRenderTimes,
+    showAIService,
+    setShowAIService,
     handleSend,
     handleNewSearch,
     saveSearchAutomatically,

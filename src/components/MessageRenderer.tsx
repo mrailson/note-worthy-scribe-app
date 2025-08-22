@@ -59,6 +59,8 @@ interface MessageRendererProps {
   isModal?: boolean; // New prop to indicate if rendering in modal
   onCloseModal?: () => void; // New prop to close modal
   showResponseMetrics?: boolean; // New prop to show response metrics
+  showRenderTimes?: boolean; // New prop to show render times separately
+  showAIService?: boolean; // New prop to show AI service separately
   onQuickResponse?: (response: string) => void; // New prop for quick responses
 }
 
@@ -70,6 +72,8 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   isModal = false,
   onCloseModal,
   showResponseMetrics = false,
+  showRenderTimes = false,
+  showAIService = false,
   onQuickResponse
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -607,26 +611,28 @@ Please fetch these and retry. No corrections made."`;
           )}
           
           {/* Response metrics for assistant messages */}
-          {showResponseMetrics && message.role === 'assistant' && message.responseTime && (
+          {(showResponseMetrics || showRenderTimes || showAIService) && message.role === 'assistant' && (
             <div className="mt-2 pt-2 border-t border-border/20">
-              <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                <div className="flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  <span>{(message.responseTime / 1000).toFixed(1)}s total</span>
-                </div>
-                {message.apiResponseTime && (
+              <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+                {showRenderTimes && message.responseTime && (
+                  <div className="flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    <span>{(message.responseTime / 1000).toFixed(1)}s total</span>
+                  </div>
+                )}
+                {showRenderTimes && message.apiResponseTime && (
                   <div className="flex items-center gap-1">
                     <Clock className="h-3 w-3" />
                     <span>{(message.apiResponseTime / 1000).toFixed(1)}s API</span>
                   </div>
                 )}
-                {message.timeToFirstWords && (
+                {showRenderTimes && message.timeToFirstWords && (
                   <div className="flex items-center gap-1">
                     <Clock className="h-3 w-3" />
                     <span>{(message.timeToFirstWords / 1000).toFixed(1)}s first words</span>
                   </div>
                 )}
-                {message.model && (
+                {showAIService && message.model && (
                   <div className="flex items-center gap-1">
                     <Bot className="h-3 w-3" />
                     <span>{message.model}</span>

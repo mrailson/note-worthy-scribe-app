@@ -12,6 +12,8 @@ interface MessagesListProps {
   onExportWord?: (content: string, title?: string) => void;
   onExportPowerPoint?: (content: string, title?: string) => void;
   showResponseMetrics?: boolean;
+  showRenderTimes?: boolean;
+  showAIService?: boolean;
   onQuickResponse?: (response: string) => void;
 }
 
@@ -23,6 +25,8 @@ export const MessagesList: React.FC<MessagesListProps> = ({
   onExportWord,
   onExportPowerPoint,
   showResponseMetrics = false,
+  showRenderTimes = false,
+  showAIService = false,
   onQuickResponse
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -97,6 +101,8 @@ export const MessagesList: React.FC<MessagesListProps> = ({
               onExportWord={onExportWord}
               onExportPowerPoint={onExportPowerPoint}
               showResponseMetrics={showResponseMetrics}
+              showRenderTimes={showRenderTimes}
+              showAIService={showAIService}
               onQuickResponse={onQuickResponse}
             />
         ))}

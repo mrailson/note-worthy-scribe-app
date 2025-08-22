@@ -18,6 +18,10 @@ interface SettingsModalProps {
   onModelChange: (model: string) => void;
   showResponseMetrics: boolean;
   onShowResponseMetricsChange: (enabled: boolean) => void;
+  showRenderTimes: boolean;
+  onShowRenderTimesChange: (enabled: boolean) => void;
+  showAIService: boolean;
+  onShowAIServiceChange: (enabled: boolean) => void;
   useOpenAI: boolean;
   onUseOpenAIChange: (enabled: boolean) => void;
 }
@@ -61,6 +65,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onModelChange,
   showResponseMetrics,
   onShowResponseMetricsChange,
+  showRenderTimes,
+  onShowRenderTimesChange,
+  showAIService,
+  onShowAIServiceChange,
   useOpenAI,
   onUseOpenAIChange
 }) => {
@@ -239,6 +247,38 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   id="response-metrics"
                   checked={showResponseMetrics}
                   onCheckedChange={onShowResponseMetricsChange}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label htmlFor="render-times" className="text-sm font-medium">
+                    Show Render Times
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Display response timing metrics
+                  </p>
+                </div>
+                <Switch
+                  id="render-times"
+                  checked={showRenderTimes}
+                  onCheckedChange={onShowRenderTimesChange}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label htmlFor="ai-service" className="text-sm font-medium">
+                    Show AI Service
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Display which AI model was used
+                  </p>
+                </div>
+                <Switch
+                  id="ai-service"
+                  checked={showAIService}
+                  onCheckedChange={onShowAIServiceChange}
                 />
               </div>
             </CardContent>
