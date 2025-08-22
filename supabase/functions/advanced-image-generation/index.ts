@@ -6,6 +6,71 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Function to convert image to RGBA format for OpenAI edit API
+async function convertToRGBAFormat(imageBuffer: ArrayBuffer): Promise<Blob> {
+  try {
+    // Try to use imagescript for image processing in Deno
+    const { Image } = await import('https://deno.land/x/imagescript@1.2.15/mod.ts');
+    
+    // Decode the image
+    const image = await Image.decode(new Uint8Array(imageBuffer));
+    
+    // Ensure the image has an alpha channel
+    let rgbaImage = image;
+    if (image.bitmap.length === image.width * image.height * 3) {
+      // RGB format - need to add alpha channel
+      console.log('Converting RGB to RGBA format');
+      const rgbaData = new Uint8Array(image.width * image.height * 4);
+      
+      for (let i = 0, j = 0; i < image.bitmap.length; i += 3, j += 4) {
+        rgbaData[j] = image.bitmap[i];     // R
+        rgbaData[j + 1] = image.bitmap[i + 1]; // G
+        rgbaData[j + 2] = image.bitmap[i + 2]; // B
+        rgbaData[j + 3] = 255; // A (fully opaque)
+      }
+      
+      // Create new image with RGBA data
+      rgbaImage = new Image(image.width, image.height);
+      rgbaImage.bitmap = rgbaData;
+    }
+    
+    // Encode as PNG (which preserves alpha channel)
+    const pngBuffer = await rgbaImage.encode();
+    console.log(`Image converted to RGBA PNG format: ${pngBuffer.length} bytes`);
+    
+    return new Blob([pngBuffer], { type: 'image/png' });
+    
+  } catch (imagescriptError) {
+    console.log('ImageScript not available, trying simpler approach:', imagescriptError.message);
+    
+    // Fallback approach - check PNG format and add basic validation
+    const uint8Array = new Uint8Array(imageBuffer);
+    const isPNG = uint8Array[0] === 0x89 && uint8Array[1] === 0x50 && 
+                  uint8Array[2] === 0x4E && uint8Array[3] === 0x47;
+    
+    if (!isPNG) {
+      throw new Error('Image must be in PNG format for editing. Please convert your image to PNG format first.');
+    }
+    
+    // For PNG files, check if they have an alpha channel by examining the color type
+    // PNG color type is at byte 25 (0x19)
+    if (uint8Array.length > 25) {
+      const colorType = uint8Array[25];
+      // Color types 4 and 6 have alpha channels
+      const hasAlpha = colorType === 4 || colorType === 6;
+      
+      if (!hasAlpha) {
+        console.log('PNG image does not have alpha channel, this may cause OpenAI API issues');
+        // We could try to add an alpha channel here, but it's complex without image processing library
+        throw new Error('Image must have transparency support (RGBA format) for editing. Please use an image editor to add an alpha channel.');
+      }
+    }
+    
+    console.log(`PNG image appears to have alpha channel support`);
+    return new Blob([imageBuffer], { type: 'image/png' });
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -107,24 +172,17 @@ serve(async (req) => {
       editFormData.append('prompt', prompt);
       editFormData.append('size', editSize);
       
-      // Download the image and append directly (frontend should already convert to PNG)
+      // Download the image and convert it to proper format for OpenAI edit API
       const imageResponse = await fetch(imageUrl);
-      const imageBlob = await imageResponse.blob();
+      const imageBuffer = await imageResponse.arrayBuffer();
       
-      console.log(`Downloaded image: type=${imageBlob.type}, size=${imageBlob.size} bytes`);
+      console.log(`Downloaded image: size=${imageBuffer.byteLength} bytes`);
       
-      // Ensure we have a PNG file (frontend should handle this, but double-check)
-      if (imageBlob.type !== 'image/png') {
-        console.error(`Invalid image type for editing: ${imageBlob.type}. OpenAI edit API requires PNG format.`);
-        return new Response(
-          JSON.stringify({ 
-            error: 'Image must be in PNG format for editing. Please ensure your image is converted to PNG before uploading.' 
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-        );
-      }
+      // Convert image to RGBA format using Canvas API
+      // This ensures the image has the alpha channel required by OpenAI
+      const processedImageBlob = await convertToRGBAFormat(imageBuffer);
       
-      editFormData.append('image', imageBlob, 'image.png');
+      editFormData.append('image', processedImageBlob, 'image.png');
 
       const editResponse = await fetch(endpoint, {
         method: 'POST',
