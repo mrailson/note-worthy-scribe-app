@@ -291,12 +291,20 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
     const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5; // Mon-Fri
     const isBankHoliday = bankHolidays.has(format(day, 'yyyy-MM-dd'));
     
+    console.log(`Enhanced Access check for ${format(day, 'MMM dd')}:`, {
+      dayOfWeek,
+      isSaturday,
+      isWeekday,
+      isBankHoliday,
+      shiftsCount: shifts.length
+    });
+    
     // Exclude bank holidays or shut days
     if (isBankHoliday || dayOfWeek === 0) return false;
     
     if (isWeekday) {
       // Mon-Fri: Need GP booked between 18:30-20:00 (or 18:30-20:30)
-      return shifts.some(shift => {
+      const hasEveningGP = shifts.some(shift => {
         const shiftAssignments = assignments.filter(a => 
           a.shift_template_id === shift.id && 
           a.assignment_date === format(day, 'yyyy-MM-dd') &&
@@ -307,11 +315,26 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
         const isEveningShift = shift.start_time === '18:30:00' && 
           (shift.end_time === '20:00:00' || shift.end_time === '20:30:00');
         const hasGP = shiftAssignments.some(assignment => 
-          assignment.staff_member.role === 'GP'
+          assignment.staff_member.role.toLowerCase() === 'gp'
         );
+        
+        console.log(`  Shift check:`, {
+          shiftName: shift.name,
+          startTime: shift.start_time,
+          isEveningShift,
+          assignmentsCount: shiftAssignments.length,
+          hasGP,
+          assignments: shiftAssignments.map(a => ({ 
+            name: a.staff_member.name, 
+            role: a.staff_member.role 
+          }))
+        });
         
         return isEveningShift && hasGP;
       });
+      
+      console.log(`  Weekday result: hasEveningGP = ${hasEveningGP}`);
+      return hasEveningGP;
     } else if (isSaturday) {
       // Saturday: Need both GP AND Receptionist booked
       const hasGP = shifts.some(shift => {
@@ -320,7 +343,7 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
           a.assignment_date === format(day, 'yyyy-MM-dd') &&
           a.status !== 'cancelled_late_notice'
         );
-        return shiftAssignments.some(assignment => assignment.staff_member.role === 'GP');
+        return shiftAssignments.some(assignment => assignment.staff_member.role.toLowerCase() === 'gp');
       });
       
       const hasReceptionist = shifts.some(shift => {
@@ -329,9 +352,10 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
           a.assignment_date === format(day, 'yyyy-MM-dd') &&
           a.status !== 'cancelled_late_notice'
         );
-        return shiftAssignments.some(assignment => assignment.staff_member.role === 'Receptionist');
+        return shiftAssignments.some(assignment => assignment.staff_member.role.toLowerCase() === 'receptionist');
       });
       
+      console.log(`  Saturday result: hasGP = ${hasGP}, hasReceptionist = ${hasReceptionist}`);
       return hasGP && hasReceptionist;
     }
     
