@@ -327,61 +327,82 @@ const EnhancedAccess = () => {
           </TabsList>
           
           <TabsContent value="overview" className="space-y-6 mt-6">
-            {/* View Toggle */}
-            <Card>
-              <CardHeader>
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <CardTitle className="flex items-center gap-2">
-                    <Calendar className="h-5 w-5" />
-                    <span className="text-lg sm:text-xl">
-                      {isMonthlyView ? `${format(currentWeek, "MMMM yyyy")}` : `This Week - ${formatDateWithOrdinal(weekStart)}`}
-                    </span>
-                  </CardTitle>
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
-                    <div className="flex items-center space-x-2">
-                      <Label htmlFor="view-toggle" className="text-xs sm:text-sm">Weekly</Label>
-                      <Switch
-                        id="view-toggle"
-                        checked={isMonthlyView}
-                        onCheckedChange={setIsMonthlyView}
-                      />
-                      <Label htmlFor="view-toggle" className="text-xs sm:text-sm">Monthly</Label>
-                    </div>
-                    {isMonthlyView && (
-                      <div className="flex items-center space-x-2">
-                        <Label htmlFor="detail-toggle" className="text-xs sm:text-sm">Summary</Label>
-                        <Switch
-                          id="detail-toggle"
-                          checked={isDetailedView}
-                          onCheckedChange={setIsDetailedView}
-                        />
-                        <Label htmlFor="detail-toggle" className="text-xs sm:text-sm">Detailed</Label>
+            {/* Collapsible Calendar View */}
+            <Collapsible open={isStatsOpen} onOpenChange={setIsStatsOpen}>
+              <Card className="border-2 border-dashed border-muted-foreground/20">
+                <CardHeader className="pb-2">
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" className="w-full justify-between p-3 text-left font-medium">
+                      <span className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4" />
+                        {isMonthlyView ? `${format(currentWeek, "MMMM yyyy")} Calendar View` : `This Week - ${formatDateWithOrdinal(weekStart)} Calendar View`}
+                      </span>
+                      {isStatsOpen ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </CollapsibleTrigger>
+                </CardHeader>
+              </Card>
+
+              <CollapsibleContent>
+                {/* View Toggle */}
+                <Card>
+                  <CardHeader>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                      <CardTitle className="flex items-center gap-2">
+                        <Calendar className="h-5 w-5" />
+                        <span className="text-lg sm:text-xl">
+                          {isMonthlyView ? `${format(currentWeek, "MMMM yyyy")}` : `This Week - ${formatDateWithOrdinal(weekStart)}`}
+                        </span>
+                      </CardTitle>
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+                        <div className="flex items-center space-x-2">
+                          <Label htmlFor="view-toggle" className="text-xs sm:text-sm">Weekly</Label>
+                          <Switch
+                            id="view-toggle"
+                            checked={isMonthlyView}
+                            onCheckedChange={setIsMonthlyView}
+                          />
+                          <Label htmlFor="view-toggle" className="text-xs sm:text-sm">Monthly</Label>
+                        </div>
+                        {isMonthlyView && (
+                          <div className="flex items-center space-x-2">
+                            <Label htmlFor="detail-toggle" className="text-xs sm:text-sm">Summary</Label>
+                            <Switch
+                              id="detail-toggle"
+                              checked={isDetailedView}
+                              onCheckedChange={setIsDetailedView}
+                            />
+                            <Label htmlFor="detail-toggle" className="text-xs sm:text-sm">Detailed</Label>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => navigateWeek('prev')}
+                            className="flex-1 sm:flex-none min-h-[44px] touch-manipulation"
+                          >
+                            <span className="hidden sm:inline">{isMonthlyView ? 'Previous Month' : 'Previous'}</span>
+                            <span className="sm:hidden">Prev</span>
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => navigateWeek('next')}
+                            className="flex-1 sm:flex-none min-h-[44px] touch-manipulation"
+                          >
+                            <span className="hidden sm:inline">{isMonthlyView ? 'Next Month' : 'Next'}</span>
+                            <span className="sm:hidden">Next</span>
+                          </Button>
+                        </div>
                       </div>
-                    )}
-                    <div className="flex items-center gap-2 w-full sm:w-auto">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => navigateWeek('prev')}
-                        className="flex-1 sm:flex-none min-h-[44px] touch-manipulation"
-                      >
-                        <span className="hidden sm:inline">{isMonthlyView ? 'Previous Month' : 'Previous'}</span>
-                        <span className="sm:hidden">Prev</span>
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => navigateWeek('next')}
-                        className="flex-1 sm:flex-none min-h-[44px] touch-manipulation"
-                      >
-                        <span className="hidden sm:inline">{isMonthlyView ? 'Next Month' : 'Next'}</span>
-                        <span className="sm:hidden">Next</span>
-                      </Button>
                     </div>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
+                  </CardHeader>
+                  <CardContent>
                  {isMonthlyView ? (
                   <>
                     {isDetailedView ? (
@@ -724,31 +745,29 @@ const EnhancedAccess = () => {
                       );
                     })}
                   </div>
-                )}
-              </CardContent>
-            </Card>
+                 )}
+               </CardContent>
+             </Card>
+           </CollapsibleContent>
+         </Collapsible>
             
-            {/* Collapsible Stats Section */}
-            <Collapsible open={isStatsOpen} onOpenChange={setIsStatsOpen}>
-              <Card className="border-2 border-dashed border-muted-foreground/20">
-                <CardHeader className="pb-2">
-                  <CollapsibleTrigger asChild>
-                    <Button variant="ghost" className="w-full justify-between p-3 text-left font-medium">
-                      <span className="flex items-center gap-2">
-                        <BarChart3 className="h-4 w-4" />
-                        Service Statistics & Breakdown
-                      </span>
-                      {isStatsOpen ? (
-                        <ChevronDown className="h-4 w-4" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </CollapsibleTrigger>
-                </CardHeader>
-              </Card>
-              
-              <CollapsibleContent className="space-y-6">
+         {/* Collapsible Stats Section */}
+         <Collapsible open={false} onOpenChange={() => {}}>
+           <Card className="border-2 border-dashed border-muted-foreground/20">
+             <CardHeader className="pb-2">
+               <CollapsibleTrigger asChild>
+                 <Button variant="ghost" className="w-full justify-between p-3 text-left font-medium">
+                   <span className="flex items-center gap-2">
+                     <BarChart3 className="h-4 w-4" />
+                     Service Statistics & Breakdown
+                   </span>
+                   <ChevronRight className="h-4 w-4" />
+                 </Button>
+               </CollapsibleTrigger>
+             </CardHeader>
+           </Card>
+           
+           <CollapsibleContent className="space-y-6">
                 {/* Core Hours Info */}
                 <Card>
                   <CardHeader>
