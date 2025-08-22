@@ -1112,7 +1112,10 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
 
           const finalData = await final.json();
           console.log('Final completion received');
-          return finalData.choices[0].message.content;
+          const finalResponse = finalData.choices[0]?.message?.content;
+          console.log('Final response length:', finalResponse?.length || 0);
+          console.log('Final response preview:', finalResponse?.substring(0, 100) + '...');
+          return finalResponse || 'No response received from GPT-5';
           
         } catch (searchError) {
           console.error('Tavily search error:', searchError);
@@ -1123,7 +1126,11 @@ CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
   }
 
   // No tool calls or non-tavily tool calls
-  return choice?.message?.content || 'No response received';
+  const finalContent = choice?.message?.content || 'No response received';
+  console.log('No tool calls made, returning direct response');
+  console.log('Direct response length:', finalContent.length);
+  console.log('Direct response preview:', finalContent.substring(0, 100) + '...');
+  return finalContent;
 }
 
 async function callGPT4Turbo(messages: Message[], systemPrompt: string, files?: UploadedFile[]): Promise<string> {
@@ -1561,6 +1568,8 @@ serve(async (req) => {
 
     // Initialize response variable
     let response: string;
+    
+    console.log('About to route to model:', selectedModel);
 
     // Model routing with proper mapping
     if (selectedModel === 'claude' || selectedModel === 'claude-4-opus' || selectedModel === 'claude-4-sonnet') {
@@ -1587,6 +1596,11 @@ serve(async (req) => {
       console.log(`Unsupported model ${selectedModel}, falling back to GPT-4 Turbo`);
       response = await callGPT4Turbo(processedMessages, finalSystemPrompt, files);
     }
+    
+    console.log('Model call completed successfully');
+    console.log('Response received:', !!response);
+    console.log('Response length:', response?.length || 0);
+    console.log('Response preview:', response?.substring(0, 200) + '...');
 
     return new Response(
       JSON.stringify({ response }),
