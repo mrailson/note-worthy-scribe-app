@@ -33,6 +33,7 @@ export interface VerificationSource {
 
 export interface LLMConsensusData {
   model: string;
+  service?: string;
   assessment: string;
   agreementLevel: number; // 0-100
   concerns?: string[];

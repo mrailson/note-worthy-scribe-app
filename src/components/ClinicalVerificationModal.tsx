@@ -136,7 +136,10 @@ export const ClinicalVerificationModal: React.FC<ClinicalVerificationModalProps>
                 {verificationData.llmConsensus.map((llm, index) => (
                   <div key={index} className="p-3 border rounded-lg">
                     <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-medium text-sm">{llm.model}</h4>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline">{llm.service || 'OpenAI'}</Badge>
+                        <span className="text-xs text-muted-foreground">{llm.model}</span>
+                      </div>
                       <div className="flex items-center gap-2">
                         <span className={`text-xs px-2 py-1 rounded ${
                           llm.agreementLevel >= 80 ? 'bg-green-100 text-green-800' :

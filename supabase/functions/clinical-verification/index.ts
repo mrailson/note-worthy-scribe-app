@@ -22,9 +22,92 @@ interface VerificationSource {
 
 interface LLMConsensusData {
   model: string;
+  service: string;
   assessment: string;
   agreementLevel: number;
   concerns?: string[];
+}
+
+// Helper function to extract medical terms from text
+function extractMedicalTerms(text: string): string[] {
+  const commonMedicalTerms = [
+    'metformin', 'insulin', 'statins', 'aspirin', 'paracetamol', 'ibuprofen', 
+    'antibiotics', 'blood pressure', 'diabetes', 'asthma', 'copd', 'heart disease',
+    'vaccination', 'covid', 'flu', 'pneumonia', 'hypertension', 'cholesterol',
+    'contraception', 'pregnancy', 'mental health', 'depression', 'anxiety'
+  ];
+  
+  const words = text.toLowerCase().split(/\s+/);
+  const foundTerms = words.filter(word => 
+    commonMedicalTerms.some(term => word.includes(term) || term.includes(word))
+  );
+  
+  // Also extract potential drug names (words ending in common drug suffixes)
+  const drugSuffixes = ['pril', 'olol', 'ine', 'ide', 'cin', 'max', 'tol'];
+  const potentialDrugs = words.filter(word => 
+    drugSuffixes.some(suffix => word.endsWith(suffix)) && word.length > 4
+  );
+  
+  return [...new Set([...foundTerms, ...potentialDrugs])];
+}
+
+// Helper function to find relevant sources based on key terms
+async function findRelevantSources(keyTerms: string[]): Promise<string[]> {
+  const sources: string[] = [];
+  
+  // Base authoritative sources
+  sources.push(
+    'https://www.nice.org.uk/guidance',
+    'https://bnf.nice.org.uk/',
+    'https://www.england.nhs.uk/'
+  );
+  
+  // Add specific sources based on key terms
+  for (const term of keyTerms) {
+    if (term.includes('metformin') || term.includes('diabetes')) {
+      sources.push(
+        'https://www.nhs.uk/medicines/metformin/',
+        'https://www.diabetes.org.uk/',
+        'https://www.nice.org.uk/guidance/ng28'
+      );
+    }
+    if (term.includes('statin') || term.includes('cholesterol')) {
+      sources.push(
+        'https://www.nhs.uk/conditions/high-cholesterol/',
+        'https://www.nice.org.uk/guidance/cg181'
+      );
+    }
+    if (term.includes('blood pressure') || term.includes('hypertension')) {
+      sources.push(
+        'https://www.nhs.uk/conditions/high-blood-pressure-hypertension/',
+        'https://www.nice.org.uk/guidance/ng136'
+      );
+    }
+    if (term.includes('vaccination') || term.includes('vaccine')) {
+      sources.push(
+        'https://www.nhs.uk/vaccinations/',
+        'https://www.gov.uk/government/collections/immunisation-against-infectious-disease-the-green-book'
+      );
+    }
+  }
+  
+  return [...new Set(sources)];
+}
+
+// Helper function to extract relevant content from HTML
+function extractRelevantContent(html: string, keyTerms: string[]): string {
+  // Simple content extraction - in a real implementation, you'd use a proper HTML parser
+  const textContent = html.replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  
+  // Find paragraphs containing key terms
+  const paragraphs = textContent.split(/\.\s+/);
+  const relevantParagraphs = paragraphs.filter(paragraph => 
+    keyTerms.some(term => paragraph.toLowerCase().includes(term.toLowerCase()))
+  );
+  
+  return relevantParagraphs.slice(0, 10).join('. ') || textContent.substring(0, 2000);
 }
 
 serve(async (req) => {
@@ -38,23 +121,23 @@ serve(async (req) => {
     console.log(`Clinical verification for message: ${messageId}`);
 
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
-    if (!openaiApiKey) {
-      throw new Error('OpenAI API key not configured');
-    }
+    const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
+    const googleApiKey = Deno.env.get('GOOGLE_API_KEY');
+    const grokApiKey = Deno.env.get('GROK_API_KEY');
 
-    // Define authoritative sources to check
-    const sources = [
-      'https://www.england.nhs.uk/long-read/flu-and-covid-19-seasonal-vaccination-programme-autumn-winter-2025-26/',
-      'https://www.nice.org.uk/guidance',
-      'https://bnf.nice.org.uk/',
-      'https://www.gov.uk/government/organisations/medicines-and-healthcare-products-regulatory-agency'
-    ];
+    // Smart source finding - extract key terms to find more relevant pages
+    const keyTerms = extractMedicalTerms(originalPrompt + ' ' + aiResponse);
+    console.log('Extracted key terms:', keyTerms);
 
     const verificationSources: VerificationSource[] = [];
     
-    // Fetch content from key sources
-    for (const sourceUrl of sources) {
+    // Search for specific sources based on extracted terms
+    const specificSources = await findRelevantSources(keyTerms);
+    
+    // Fetch content from specific sources
+    for (const sourceUrl of specificSources) {
       try {
+        console.log(`Fetching source: ${sourceUrl}`);
         const response = await fetch(sourceUrl, {
           headers: {
             'User-Agent': 'NHS-AI-Verification-Service/1.0'
@@ -63,13 +146,13 @@ serve(async (req) => {
         
         if (response.ok) {
           const html = await response.text();
-          // Extract relevant content (simplified)
-          const relevantContent = html.substring(0, 5000);
+          // Extract more relevant content by looking for key terms
+          const relevantContent = extractRelevantContent(html, keyTerms);
           
           verificationSources.push({
             name: new URL(sourceUrl).hostname,
             url: sourceUrl,
-            relevantContent,
+            relevantContent: relevantContent.substring(0, 3000),
             trustLevel: 'high'
           });
         }
@@ -78,13 +161,10 @@ serve(async (req) => {
       }
     }
 
-    // Use multiple LLMs for consensus
-    const llmModels = ['gpt-5-2025-08-07', 'gpt-4.1-2025-04-14'];
+    // Use multiple AI services for comprehensive consensus
     const llmConsensus: LLMConsensusData[] = [];
 
-    for (const model of llmModels) {
-      try {
-        const verificationPrompt = `You are a clinical verification expert for NHS primary care. 
+    const verificationPrompt = `You are a clinical verification expert for NHS primary care. 
 
 TASK: Verify the accuracy of an AI response against authoritative UK medical sources.
 
@@ -107,6 +187,10 @@ Format as JSON: {
   "riskLevel": "low|medium|high"
 }`;
 
+    // OpenAI verification
+    if (openaiApiKey) {
+      try {
+        console.log('Running OpenAI verification...');
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -114,7 +198,7 @@ Format as JSON: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: model,
+            model: 'gpt-5-2025-08-07',
             messages: [
               { role: 'system', content: 'You are a clinical verification assistant for NHS primary care.' },
               { role: 'user', content: verificationPrompt }
@@ -129,14 +213,139 @@ Format as JSON: {
           const result = JSON.parse(data.choices[0].message.content);
           
           llmConsensus.push({
-            model: model,
+            model: 'gpt-5-2025-08-07',
+            service: 'OpenAI',
             assessment: result.assessment,
             agreementLevel: result.agreementLevel,
             concerns: result.concerns || []
           });
         }
       } catch (error) {
-        console.error(`LLM verification failed for ${model}:`, error);
+        console.error('OpenAI verification failed:', error);
+      }
+    }
+
+    // Claude verification  
+    if (anthropicApiKey) {
+      try {
+        console.log('Running Claude verification...');
+        const response = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${anthropicApiKey}`,
+            'Content-Type': 'application/json',
+            'anthropic-version': '2023-06-01'
+          },
+          body: JSON.stringify({
+            model: 'claude-3-5-sonnet-20241022',
+            max_tokens: 500,
+            messages: [
+              { role: 'user', content: `You are a clinical verification assistant for NHS primary care.\n\n${verificationPrompt}` }
+            ]
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const result = JSON.parse(data.content[0].text);
+          
+          llmConsensus.push({
+            model: 'claude-3-5-sonnet-20241022',
+            service: 'Claude',
+            assessment: result.assessment,
+            agreementLevel: result.agreementLevel,
+            concerns: result.concerns || []
+          });
+        }
+      } catch (error) {
+        console.error('Claude verification failed:', error);
+      }
+    }
+
+    // Gemini verification
+    if (googleApiKey) {
+      try {
+        console.log('Running Gemini verification...');
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${googleApiKey}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{
+                text: `You are a clinical verification assistant for NHS primary care.\n\n${verificationPrompt}`
+              }]
+            }],
+            generationConfig: {
+              temperature: 0.3,
+              maxOutputTokens: 500
+            }
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const textContent = data.candidates[0].content.parts[0].text;
+          // Extract JSON from response
+          const jsonMatch = textContent.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const result = JSON.parse(jsonMatch[0]);
+            
+            llmConsensus.push({
+              model: 'gemini-pro',
+              service: 'Google Gemini',
+              assessment: result.assessment,
+              agreementLevel: result.agreementLevel,
+              concerns: result.concerns || []
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Gemini verification failed:', error);
+      }
+    }
+
+    // Grok verification
+    if (grokApiKey) {
+      try {
+        console.log('Running Grok verification...');
+        const response = await fetch('https://api.x.ai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${grokApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'grok-beta',
+            messages: [
+              { role: 'system', content: 'You are a clinical verification assistant for NHS primary care.' },
+              { role: 'user', content: verificationPrompt }
+            ],
+            max_tokens: 500,
+            temperature: 0.3
+          })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const textContent = data.choices[0].message.content;
+          // Extract JSON from response
+          const jsonMatch = textContent.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const result = JSON.parse(jsonMatch[0]);
+            
+            llmConsensus.push({
+              model: 'grok-beta',
+              service: 'Grok',
+              assessment: result.assessment,
+              agreementLevel: result.agreementLevel,
+              concerns: result.concerns || []
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Grok verification failed:', error);
       }
     }
 
