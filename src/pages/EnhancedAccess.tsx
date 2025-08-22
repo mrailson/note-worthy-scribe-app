@@ -38,6 +38,7 @@ const EnhancedAccess = () => {
   const [shiftTemplates, setShiftTemplates] = useState<any[]>([]);
   const [bankHolidays, setBankHolidays] = useState<Set<string>>(new Set());
   const [isStatsOpen, setIsStatsOpen] = useState(false); // Collapsed by default
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false); // Calendar collapsed by default
 
   // Calculate Hub delivery and spoke requirements for current month
   const calculateSpokeRequirements = (date: Date) => {
@@ -328,7 +329,7 @@ const EnhancedAccess = () => {
           
           <TabsContent value="overview" className="space-y-6 mt-6">
             {/* Collapsible Calendar View */}
-            <Collapsible open={isStatsOpen} onOpenChange={setIsStatsOpen}>
+            <Collapsible open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
               <Card className="border-2 border-dashed border-muted-foreground/20">
                 <CardHeader className="pb-2">
                   <CollapsibleTrigger asChild>
@@ -337,7 +338,7 @@ const EnhancedAccess = () => {
                         <Calendar className="h-4 w-4" />
                         {isMonthlyView ? `${format(currentWeek, "MMMM yyyy")} Calendar View` : `This Week - ${formatDateWithOrdinal(weekStart)} Calendar View`}
                       </span>
-                      {isStatsOpen ? (
+                      {isCalendarOpen ? (
                         <ChevronDown className="h-4 w-4" />
                       ) : (
                         <ChevronRight className="h-4 w-4" />
@@ -752,7 +753,7 @@ const EnhancedAccess = () => {
          </Collapsible>
             
          {/* Collapsible Stats Section */}
-         <Collapsible open={false} onOpenChange={() => {}}>
+         <Collapsible open={isStatsOpen} onOpenChange={setIsStatsOpen}>
            <Card className="border-2 border-dashed border-muted-foreground/20">
              <CardHeader className="pb-2">
                <CollapsibleTrigger asChild>
@@ -761,7 +762,11 @@ const EnhancedAccess = () => {
                      <BarChart3 className="h-4 w-4" />
                      Service Statistics & Breakdown
                    </span>
-                   <ChevronRight className="h-4 w-4" />
+                   {isStatsOpen ? (
+                     <ChevronDown className="h-4 w-4" />
+                   ) : (
+                     <ChevronRight className="h-4 w-4" />
+                   )}
                  </Button>
                </CollapsibleTrigger>
              </CardHeader>
