@@ -290,10 +290,10 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-background overflow-x-hidden relative">
+    <div className="min-h-screen bg-gradient-background mobile-container safe-area-top safe-area-bottom">
       <Header onNewMeeting={() => {}} />
       
-      <div className="container mx-auto px-2 py-2 sm:px-4 sm:py-6 lg:py-8 space-y-3 sm:space-y-6 max-w-6xl">
+      <div className="container mx-auto px-2 py-2 sm:px-4 sm:py-6 lg:py-8 space-y-3 sm:space-y-6 max-w-6xl mobile-scroll">
         {/* Mobile Quick Actions Drawer */}
         {isMobile && (
           <Drawer open={showMobileMenu} onOpenChange={setShowMobileMenu}>
@@ -301,12 +301,12 @@ const Index = () => {
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="fixed top-20 right-4 z-50 bg-background/95 backdrop-blur-sm border-primary/20"
+                className="fixed top-20 right-4 z-50 bg-background/95 backdrop-blur-sm border-primary/20 mobile-touch-target"
               >
                 <Menu className="h-4 w-4" />
               </Button>
             </DrawerTrigger>
-            <DrawerContent className="max-h-[80vh]">
+            <DrawerContent className="max-h-[80vh] mobile-scroll">
               <DrawerHeader>
                 <DrawerTitle>Quick Actions</DrawerTitle>
                 <DrawerDescription>Access GP Scribe features</DrawerDescription>
@@ -314,7 +314,7 @@ const Index = () => {
               <div className="p-4 space-y-3">
                 <Button 
                   variant="outline" 
-                  className="w-full justify-start"
+                  className="w-full justify-start mobile-touch-target"
                   onClick={() => {
                     setActiveTab("consultation");
                     setShowMobileMenu(false);
@@ -324,7 +324,7 @@ const Index = () => {
                 </Button>
                 <Button 
                   variant="outline" 
-                  className="w-full justify-start"
+                  className="w-full justify-start mobile-touch-target"
                   onClick={() => {
                     setActiveTab("summary");
                     setShowMobileMenu(false);
@@ -334,7 +334,7 @@ const Index = () => {
                 </Button>
                 <Button 
                   variant="outline" 
-                  className="w-full justify-start"
+                  className="w-full justify-start mobile-touch-target"
                   onClick={() => {
                     setActiveTab("examples");
                     setShowMobileMenu(false);
@@ -344,7 +344,7 @@ const Index = () => {
                 </Button>
                 <Button 
                   variant="outline" 
-                  className="w-full justify-start"
+                  className="w-full justify-start mobile-touch-target"
                   onClick={() => {
                     setShowAIChat(true);
                     setShowMobileMenu(false);
@@ -359,7 +359,7 @@ const Index = () => {
         
         {/* Tab Navigation - Sticky on Mobile */}
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as ActiveTab)} className="w-full">
-          <div className={`${isMobile ? 'sticky top-16 z-40 bg-background/95 backdrop-blur-sm border-b pb-2 mb-4' : ''}`}>
+          <div className={`${isMobile ? 'sticky top-16 z-40 bg-background/95 backdrop-blur-sm border-b pb-2 mb-4 safe-area-left safe-area-right' : ''}`}>
             <TabNavigation 
               activeTab={activeTab} 
               onTabChange={setActiveTab} 
@@ -370,12 +370,12 @@ const Index = () => {
           {/* AI Chat Display - Drawer on Mobile */}
           {showAIChat && isMobile ? (
             <Drawer open={showAIChat} onOpenChange={setShowAIChat}>
-              <DrawerContent className="max-h-[90vh]">
+              <DrawerContent className="max-h-[90vh] mobile-scroll">
                 <DrawerHeader>
                   <DrawerTitle>GP Genie AI Assistant</DrawerTitle>
                   <DrawerDescription>Your AI consultation assistant</DrawerDescription>
                 </DrawerHeader>
-                <div className="p-4 overflow-y-auto">
+                <div className="p-4 overflow-y-auto ios-momentum-scroll">
                   <GPGenieVoiceAgent />
                 </div>
               </DrawerContent>
@@ -386,7 +386,7 @@ const Index = () => {
                 <h3 className="text-lg font-semibold">GP Genie</h3>
                 <button
                   onClick={() => setShowAIChat(false)}
-                  className="text-muted-foreground hover:text-foreground transition-colors"
+                  className="text-muted-foreground hover:text-foreground transition-colors mobile-touch-target"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -431,28 +431,28 @@ const Index = () => {
 
           {/* Summary Tab */}
           <TabsContent value="summary" className={`space-y-4 sm:space-y-6 ${isMobile ? 'mt-2' : 'mt-6'} ${isMobile ? 'pb-20' : ''}`}>
-            <div className={`${isMobile ? 'h-[calc(100vh-200px)] overflow-y-auto' : ''}`}>
+            <div className={`${isMobile ? 'h-[calc(100vh-200px)] overflow-y-auto ios-momentum-scroll' : ''}`}>
               <GPScribeSoapMock />
             </div>
           </TabsContent>
 
           {/* Examples Tab */}
           <TabsContent value="examples" className={`space-y-4 sm:space-y-6 ${isMobile ? 'mt-2' : 'mt-6'} ${isMobile ? 'pb-20' : ''}`}>
-            <div className={`${isMobile ? 'h-[calc(100vh-200px)] overflow-y-auto' : ''}`}>
+            <div className={`${isMobile ? 'h-[calc(100vh-200px)] overflow-y-auto ios-momentum-scroll' : ''}`}>
               <ExamplesPanel onLoadExample={handleLoadExample} />
             </div>
           </TabsContent>
 
           {/* History Tab */}
           <TabsContent value="history" className={`space-y-4 sm:space-y-6 ${isMobile ? 'mt-2' : 'mt-6'} ${isMobile ? 'pb-20' : ''}`}>
-            <div className={`${isMobile ? 'h-[calc(100vh-200px)] overflow-y-auto' : ''}`}>
+            <div className={`${isMobile ? 'h-[calc(100vh-200px)] overflow-y-auto ios-momentum-scroll' : ''}`}>
               <ConsultationHistory />
             </div>
           </TabsContent>
 
           {/* Chat Tab */}
           <TabsContent value="chat" className={`space-y-4 sm:space-y-6 ${isMobile ? 'mt-2' : 'mt-6'} ${isMobile ? 'pb-20' : ''}`}>
-            <div className={`${isMobile ? 'h-[calc(100vh-200px)] overflow-y-auto' : ''}`}>
+            <div className={`${isMobile ? 'h-[calc(100vh-200px)] overflow-y-auto ios-momentum-scroll' : ''}`}>
               <GPGenieVoiceAgent />
             </div>
           </TabsContent>
@@ -460,7 +460,7 @@ const Index = () => {
         </Tabs>
 
         {/* Mobile Bottom Safe Area */}
-        {isMobile && <div className="h-20" />}
+        {isMobile && <div className="h-20 safe-area-bottom" />}
 
         {/* Translation Modal */}
         {msg && (

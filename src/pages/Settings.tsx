@@ -352,45 +352,45 @@ export default function Settings() {
   console.log('Settings page loaded, user:', user);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background mobile-container safe-area-top safe-area-bottom">
       <Header onNewMeeting={() => {}} />
       
-      <div className="container mx-auto p-6">
-        <div className="max-w-6xl mx-auto space-y-6">
+      <div className="container mx-auto p-4 sm:p-6 mobile-scroll">
+        <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6">
           {/* Header */}
           <div className="flex items-center gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-foreground">Settings</h1>
-              <p className="text-muted-foreground">Notewell AI - System Settings Area</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Settings</h1>
+              <p className="text-sm sm:text-base text-muted-foreground">Notewell AI - System Settings Area</p>
             </div>
           </div>
 
           {/* Settings Tabs */}
-          <Tabs defaultValue="general" className="space-y-6">
-            <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-5' : 'grid-cols-3'}`}>
-              <TabsTrigger value="general" className="flex items-center gap-2">
+          <Tabs defaultValue="general" className="space-y-4 sm:space-y-6">
+            <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-5' : 'grid-cols-3'} overflow-x-auto`}>
+              <TabsTrigger value="general" className="flex items-center gap-2 mobile-touch-target">
                 <SettingsIcon className="h-4 w-4" />
-                General
+                <span className="hidden sm:inline">General</span>
               </TabsTrigger>
               {isAdmin && (
-                <TabsTrigger value="practices" className="flex items-center gap-2">
+                <TabsTrigger value="practices" className="flex items-center gap-2 mobile-touch-target">
                   <Building className="h-4 w-4" />
-                  Practices
+                  <span className="hidden sm:inline">Practices</span>
                 </TabsTrigger>
               )}
               {isAdmin && (
-                <TabsTrigger value="nhs-terms" className="flex items-center gap-2">
+                <TabsTrigger value="nhs-terms" className="flex items-center gap-2 mobile-touch-target">
                   <BookOpen className="h-4 w-4" />
-                  NHS Terms
+                  <span className="hidden sm:inline">NHS Terms</span>
                 </TabsTrigger>
               )}
-              <TabsTrigger value="security" className="flex items-center gap-2">
+              <TabsTrigger value="security" className="flex items-center gap-2 mobile-touch-target">
                 <Shield className="h-4 w-4" />
-                Security & NHS IT
+                <span className="hidden sm:inline">Security</span>
               </TabsTrigger>
-              <TabsTrigger value="help" className="flex items-center gap-2">
+              <TabsTrigger value="help" className="flex items-center gap-2 mobile-touch-target">
                 <HelpCircle className="h-4 w-4" />
-                Help & About
+                <span className="hidden sm:inline">Help</span>
               </TabsTrigger>
             </TabsList>
 
