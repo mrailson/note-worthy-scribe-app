@@ -95,10 +95,13 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
   // Floating toggle button
   if (!isExpanded) {
     return (
-      <div className="fixed z-50" style={{
-        bottom: 'max(16px, env(safe-area-inset-bottom, 0px))',
-        right: '16px'
-      }}>
+      <div 
+        className="fixed z-[9999]" 
+        style={{
+          bottom: `calc(16px + env(safe-area-inset-bottom, 0px))`,
+          right: '16px'
+        }}
+      >
         <Button
           onClick={toggleExpanded}
           size="lg"
@@ -114,9 +117,9 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
   // Expanded input interface
   return (
     <div 
-      className="fixed inset-x-0 bottom-0 z-50 bg-background border-t border-border shadow-2xl"
+      className="fixed inset-x-0 bottom-0 z-[9999] bg-background border-t border-border shadow-2xl"
       style={{
-        paddingBottom: 'max(16px, env(safe-area-inset-bottom, 0px))'
+        paddingBottom: `calc(16px + env(safe-area-inset-bottom, 0px))`
       }}
     >
       <div className="max-w-full mx-auto">
