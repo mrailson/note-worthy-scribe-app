@@ -14,8 +14,8 @@ export const useAI4GPService = () => {
   const [sessionMemory, setSessionMemory] = useState(true);
   const [verificationLevel, setVerificationLevel] = useState('standard');
   const [showResponseMetrics, setShowResponseMetrics] = useState(false);
-  const [selectedModel, setSelectedModel] = useState('grok-beta');
-  const [useOpenAI, setUseOpenAI] = useState(false);
+  const [selectedModel, setSelectedModel] = useState('gpt-5-2025-08-07');
+  const [useOpenAI, setUseOpenAI] = useState(true);
   const [showRenderTimes, setShowRenderTimes] = useState(false);
   const [showAIService, setShowAIService] = useState(false);
   const [isClinical, setIsClinical] = useState(false);
@@ -150,11 +150,11 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     return prompt;
   }, []);
 
-  const handleSend = useCallback(async (practiceContext: any, selectedModel: string = 'gpt-5') => {
+  const handleSend = useCallback(async (practiceContext: any, selectedModel: string = 'gpt-5-2025-08-07') => {
     if (!input.trim() && uploadedFiles.length === 0) return;
     
     // Use appropriate model based on useOpenAI setting
-    const modelToUse = useOpenAI ? 'gpt-4-turbo' : selectedModel;
+    const modelToUse = useOpenAI ? 'gpt-5-2025-08-07' : selectedModel;
     
     // Enhance the message content when files are attached
     let messageContent = input;
@@ -471,8 +471,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           setSessionMemory(preferences.sessionMemory ?? true);
           setVerificationLevel(preferences.verificationLevel ?? 'standard');
           setShowResponseMetrics(preferences.showResponseMetrics ?? false);
-          setSelectedModel(preferences.selectedModel ?? 'grok-beta');
-          setUseOpenAI(preferences.useOpenAI ?? false);
+          setSelectedModel(preferences.selectedModel ?? 'gpt-5-2025-08-07');
+          setUseOpenAI(preferences.useOpenAI ?? true);
           setShowRenderTimes(preferences.showRenderTimes ?? false);
           setShowAIService(preferences.showAIService ?? false);
         }

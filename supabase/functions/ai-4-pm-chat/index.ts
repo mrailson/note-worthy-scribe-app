@@ -870,6 +870,186 @@ async function callGPT(messages: Message[], systemPrompt: string, files?: Upload
   return data.choices[0].message.content;
 }
 
+async function callGPT5(messages: Message[], systemPrompt: string, files?: UploadedFile[]): Promise<string> {
+  const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+  if (!openaiApiKey) {
+    throw new Error('OpenAI API key not configured');
+  }
+
+  console.log('Calling GPT-5 with web search tools...');
+
+  const today = new Date().toLocaleDateString('en-GB', {
+    timeZone: 'Europe/London',
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+
+  const enhancedSystemPrompt = `You are "AI 4 GP Service" for UK NHS primary care.
+Today is ${today} (Europe/London).
+
+If a question is time-sensitive (BNF/NICE updates, DHSC/NHSE policy, Wes Streeting announcements, ARRS, vaccination programmes),
+CALL tavily_search first with a recency window and an allow-list:
+["gov.uk","england.nhs.uk","nhs.uk","nice.org.uk","bnf.nice.org.uk","ukhsa.gov.uk"].
+
+Never write "I will search now" unless you actually call tavily_search.
+Always include dates + sources. If nothing recent is found, say what you searched.
+
+${systemPrompt}
+
+CRITICAL INSTRUCTIONS FOR IMAGE ANALYSIS:
+- When analyzing uploaded images with handwritten or printed text, you MUST transcribe ONLY the actual visible text
+- DO NOT generate fictional content, clinical scenarios, or patient information
+- DO NOT hallucinate or invent details not visible in the image
+- Only describe what you can actually see written or printed in the image
+- If text is unclear, state that it's unclear rather than guessing`;
+
+  // Define the tavily_search tool
+  const tools = [{
+    type: "function",
+    function: {
+      name: "tavily_search",
+      description: "Search trusted UK health sources for recent items",
+      parameters: {
+        type: "object",
+        properties: {
+          q: { type: "string" },
+          recencyDays: { type: "integer", default: 180 },
+          siteLimit: {
+            type: "array",
+            items: { type: "string" },
+            description: "Allowed domains"
+          }
+        },
+        required: ["q"]
+      }
+    }
+  }];
+
+  const gptMessages = [
+    { role: 'system', content: enhancedSystemPrompt }
+  ];
+
+  messages.forEach(msg => {
+    let content = msg.content || '';
+    
+    if (msg.files && msg.files.length > 0) {
+      const fileContent = msg.files.map(file => 
+        `\n\n--- File: ${file.name} ---\n${file.content}\n--- End of ${file.name} ---`
+      ).join('');
+      content += fileContent;
+    }
+    
+    if (!content.trim()) {
+      content = '[No message content]';
+    }
+    
+    gptMessages.push({
+      role: msg.role,
+      content
+    });
+  });
+
+  // First completion - check for tool calls
+  const initial = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${openaiApiKey}`
+    },
+    body: JSON.stringify({
+      model: 'gpt-5-2025-08-07',
+      max_completion_tokens: 4000, // GPT-5 uses max_completion_tokens
+      // Note: GPT-5 doesn't support temperature parameter
+      tools,
+      tool_choice: "auto",
+      messages: gptMessages
+    })
+  });
+
+  if (!initial.ok) {
+    const error = await initial.text();
+    console.error('OpenAI API error:', error);
+    
+    // Check for quota exceeded error specifically
+    if (initial.status === 429 || error.includes('insufficient_quota')) {
+      throw new Error(`OpenAI API quota exceeded (429): ${error}`);
+    }
+    
+    throw new Error(`OpenAI API error: ${initial.status}`);
+  }
+
+  const initialData = await initial.json();
+  const choice = initialData.choices?.[0];
+  const toolCalls = choice?.message?.tool_calls ?? [];
+
+  console.log('Initial completion result:', JSON.stringify({
+    choices: initialData.choices?.length,
+    hasToolCalls: !!toolCalls.length,
+    toolCallDetails: toolCalls.map(tc => ({ name: tc.function?.name, args: tc.function?.arguments }))
+  }));
+  console.log('Tool calls detected:', toolCalls.length);
+
+  if (toolCalls.length > 0) {
+    // Handle tool calls
+    for (const call of toolCalls) {
+      if (call.function.name === "tavily_search") {
+        console.log('Executing tavily_search...');
+        const args = JSON.parse(call.function.arguments);
+        console.log('Search args:', args);
+        
+        try {
+          const searchResult = await runTavilySearch(args.q, args.recencyDays || 180, args.siteLimit);
+          console.log('Tavily search result:', searchResult);
+          
+          gptMessages.push(choice.message);
+          gptMessages.push({
+            tool_call_id: call.id,
+            role: "tool",
+            name: "tavily_search",
+            content: JSON.stringify(searchResult)
+          });
+
+          console.log('Tool call result added, making final completion...');
+          
+          const final = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${openaiApiKey}`
+            },
+            body: JSON.stringify({
+              model: 'gpt-5-2025-08-07',
+              max_completion_tokens: 4000, // GPT-5 uses max_completion_tokens
+              // Note: GPT-5 doesn't support temperature parameter
+              tools,
+              messages: gptMessages
+            })
+          });
+
+          if (!final.ok) {
+            const error = await final.text();
+            console.error('OpenAI final API error:', error);
+            throw new Error(`OpenAI API error: ${final.status}`);
+          }
+
+          const finalData = await final.json();
+          console.log('Final completion received');
+          return finalData.choices[0].message.content;
+          
+        } catch (searchError) {
+          console.error('Tavily search error:', searchError);
+          return choice.message.content || "Sorry, I encountered an error while searching for the latest information. Please try again or ask your question without requiring real-time data.";
+        }
+      }
+    }
+  }
+
+  // No tool calls or non-tavily tool calls
+  return choice?.message?.content || 'No response received';
+}
+
 async function callGPT4Turbo(messages: Message[], systemPrompt: string, files?: UploadedFile[]): Promise<string> {
   const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
   if (!openaiApiKey) {
@@ -1280,14 +1460,15 @@ serve(async (req) => {
       }
     }
 
-    let response: string;
-
     const finalSystemPrompt = enhancedSystemPrompt + sourceContext;
-    // Model routing with proper mapping - default to gpt-4-turbo if unsupported
+    // Model routing with proper mapping
     if (selectedModel === 'claude' || selectedModel === 'claude-4-opus' || selectedModel === 'claude-4-sonnet') {
       response = await callClaude(processedMessages, finalSystemPrompt, files);
-    } else if (selectedModel === 'gpt' || selectedModel === 'gpt-4-turbo' || selectedModel === 'gpt-5' || !selectedModel) {
-      // Default to GPT-4 Turbo for gpt-5 or any unsupported model
+    } else if (selectedModel === 'gpt-5-2025-08-07' || selectedModel === 'gpt-5' || selectedModel === 'gpt-5-mini-2025-08-07' || selectedModel === 'gpt-5-nano-2025-08-07') {
+      // Use GPT-5 function for GPT-5 models
+      response = await callGPT5(processedMessages, finalSystemPrompt, files);
+    } else if (selectedModel === 'gpt' || selectedModel === 'gpt-4-turbo' || selectedModel === 'gpt-4o' || selectedModel === 'gpt-4o-mini' || !selectedModel) {
+      // Use GPT-4 Turbo for legacy models
       response = await callGPT4Turbo(processedMessages, finalSystemPrompt, files);
     } else if (selectedModel === 'grok-beta') {
       response = await callGrok(processedMessages, finalSystemPrompt, files);
@@ -1296,9 +1477,9 @@ serve(async (req) => {
     } else if (selectedModel === 'gemini-1.5-flash') {
       response = await callGemini(processedMessages, finalSystemPrompt, 'gemini-1.5-flash', files);
     } else {
-      // Fallback to GPT-4 Turbo for any unsupported model
-      console.log(`Unsupported model ${selectedModel}, falling back to GPT-4 Turbo`);
-      response = await callGPT4Turbo(processedMessages, finalSystemPrompt, files);
+      // Fallback to GPT-5 for any unsupported model
+      console.log(`Unsupported model ${selectedModel}, falling back to GPT-5`);
+      response = await callGPT5(processedMessages, finalSystemPrompt, files);
     }
 
     return new Response(
