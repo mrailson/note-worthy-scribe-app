@@ -86,6 +86,47 @@ export const ClinicalVerificationModal: React.FC<ClinicalVerificationModalProps>
 
             <Separator />
 
+            {/* LLM Consensus */}
+            <div>
+              <h3 className="font-semibold mb-3">AI Model Consensus ({verificationData.llmConsensus.length})</h3>
+              <div className="space-y-3">
+                {verificationData.llmConsensus.map((llm, index) => (
+                  <div key={index} className="p-3 border rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline">{llm.service || 'OpenAI'}</Badge>
+                        <span className="text-xs text-muted-foreground">{llm.model}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-xs px-2 py-1 rounded ${
+                          llm.agreementLevel >= 80 ? 'bg-green-100 text-green-800' :
+                          llm.agreementLevel >= 60 ? 'bg-amber-100 text-amber-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>
+                          {llm.agreementLevel}% agreement
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      {llm.assessment}
+                    </p>
+                    {llm.concerns && llm.concerns.length > 0 && (
+                      <div className="mt-2">
+                        <p className="text-xs font-medium text-amber-700 mb-1">Concerns:</p>
+                        <ul className="text-xs text-amber-600 list-disc list-inside">
+                          {llm.concerns.map((concern, i) => (
+                            <li key={i}>{concern}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <Separator />
+
             {/* Sources Used */}
             <div>
               <h3 className="font-semibold mb-3 flex items-center gap-2">
@@ -122,47 +163,6 @@ export const ClinicalVerificationModal: React.FC<ClinicalVerificationModalProps>
                     <p className="text-xs text-muted-foreground">
                       {source.relevantContent.substring(0, 200)}...
                     </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* LLM Consensus */}
-            <div>
-              <h3 className="font-semibold mb-3">AI Model Consensus ({verificationData.llmConsensus.length})</h3>
-              <div className="space-y-3">
-                {verificationData.llmConsensus.map((llm, index) => (
-                  <div key={index} className="p-3 border rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline">{llm.service || 'OpenAI'}</Badge>
-                        <span className="text-xs text-muted-foreground">{llm.model}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`text-xs px-2 py-1 rounded ${
-                          llm.agreementLevel >= 80 ? 'bg-green-100 text-green-800' :
-                          llm.agreementLevel >= 60 ? 'bg-amber-100 text-amber-800' :
-                          'bg-red-100 text-red-800'
-                        }`}>
-                          {llm.agreementLevel}% agreement
-                        </span>
-                      </div>
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-2">
-                      {llm.assessment}
-                    </p>
-                    {llm.concerns && llm.concerns.length > 0 && (
-                      <div className="mt-2">
-                        <p className="text-xs font-medium text-amber-700 mb-1">Concerns:</p>
-                        <ul className="text-xs text-amber-600 list-disc list-inside">
-                          {llm.concerns.map((concern, i) => (
-                            <li key={i}>{concern}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>
