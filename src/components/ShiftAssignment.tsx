@@ -80,6 +80,15 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
   const [assignmentToRemove, setAssignmentToRemove] = useState<StaffAssignment | null>(null);
   const [isRemoveUnassignedOpen, setIsRemoveUnassignedOpen] = useState(false);
   const [isRemovingUnassigned, setIsRemovingUnassigned] = useState(false);
+  const [isAddShiftDialogOpen, setIsAddShiftDialogOpen] = useState(false);
+  const [newShift, setNewShift] = useState({
+    name: '',
+    day_of_week: 1,
+    start_time: '',
+    end_time: '',
+    location: 'remote' as 'remote' | 'kings_heath' | 'various_practices',
+    required_role: 'gp' as 'gp' | 'phlebotomist' | 'hca' | 'nurse' | 'paramedic' | 'receptionist'
+  });
 
   const weekStart = startOfWeek(currentWeek, { weekStartsOn: 1 });
   const monthStart = startOfMonth(currentWeek);
@@ -536,6 +545,47 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
     }
   };
 
+  const handleAddShift = async () => {
+    if (!newShift.name || !newShift.start_time || !newShift.end_time) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      const shiftData = {
+        name: newShift.name,
+        day_of_week: newShift.day_of_week,
+        start_time: newShift.start_time,
+        end_time: newShift.end_time,
+        location: newShift.location,
+        required_role: newShift.required_role,
+        is_active: true
+      };
+
+      const { error } = await supabase
+        .from('shift_templates')
+        .insert([shiftData]);
+
+      if (error) throw error;
+
+      toast.success('Shift template created successfully');
+      setIsAddShiftDialogOpen(false);
+      setNewShift({
+        name: '',
+        day_of_week: 1,
+        start_time: '',
+        end_time: '',
+        location: 'remote',
+        required_role: 'gp'
+      });
+      fetchShiftTemplates();
+      onAssignmentChange();
+    } catch (error) {
+      toast.error('Failed to create shift template');
+      console.error('Error:', error);
+    }
+  };
+
   return (
     <>
       <Card>
@@ -549,6 +599,15 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
               }
             </CardTitle>
             <div className="flex items-center gap-2">
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => setIsAddShiftDialogOpen(true)}
+                className="flex items-center gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Add Shift
+              </Button>
               {!isMonthlyView && getUnassignedWeekdayShiftsCount() > 0 && (
                 <Button
                   variant="destructive"
@@ -1056,6 +1115,119 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
                 disabled={isRemovingUnassigned}
               >
                 {isRemovingUnassigned ? 'Removing...' : 'Remove Unassigned Shifts'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Shift Dialog */}
+      <Dialog open={isAddShiftDialogOpen} onOpenChange={setIsAddShiftDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Shift Template</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Shift Name</label>
+              <input 
+                type="text" 
+                className="w-full p-2 border border-input rounded-md"
+                placeholder="e.g. Evening GP Session"
+                value={newShift.name}
+                onChange={(e) => setNewShift(prev => ({ ...prev, name: e.target.value }))}
+              />
+            </div>
+            
+            <div>
+              <label className="text-sm font-medium">Day of Week</label>
+              <Select 
+                value={newShift.day_of_week.toString()} 
+                onValueChange={(value) => setNewShift(prev => ({ ...prev, day_of_week: parseInt(value) }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">Monday</SelectItem>
+                  <SelectItem value="2">Tuesday</SelectItem>
+                  <SelectItem value="3">Wednesday</SelectItem>
+                  <SelectItem value="4">Thursday</SelectItem>
+                  <SelectItem value="5">Friday</SelectItem>
+                  <SelectItem value="6">Saturday</SelectItem>
+                  <SelectItem value="7">Sunday</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium">Start Time</label>
+                <input 
+                  type="time" 
+                  className="w-full p-2 border border-input rounded-md"
+                  value={newShift.start_time}
+                  onChange={(e) => setNewShift(prev => ({ ...prev, start_time: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">End Time</label>
+                <input 
+                  type="time" 
+                  className="w-full p-2 border border-input rounded-md"
+                  value={newShift.end_time}
+                  onChange={(e) => setNewShift(prev => ({ ...prev, end_time: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Location</label>
+              <Select 
+                value={newShift.location} 
+                onValueChange={(value: 'remote' | 'kings_heath' | 'various_practices') => 
+                  setNewShift(prev => ({ ...prev, location: value }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="remote">Remote</SelectItem>
+                  <SelectItem value="kings_heath">Kings Heath</SelectItem>
+                  <SelectItem value="various_practices">Various Practices</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Required Role</label>
+              <Select 
+                value={newShift.required_role} 
+                onValueChange={(value: 'gp' | 'phlebotomist' | 'hca' | 'nurse' | 'paramedic' | 'receptionist') => 
+                  setNewShift(prev => ({ ...prev, required_role: value }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="gp">GP/Doctor</SelectItem>
+                  <SelectItem value="phlebotomist">Phlebotomist</SelectItem>
+                  <SelectItem value="hca">HCA</SelectItem>
+                  <SelectItem value="nurse">Nurse</SelectItem>
+                  <SelectItem value="paramedic">Paramedic</SelectItem>
+                  <SelectItem value="receptionist">Receptionist</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setIsAddShiftDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleAddShift}>
+                Add Shift
               </Button>
             </div>
           </div>
