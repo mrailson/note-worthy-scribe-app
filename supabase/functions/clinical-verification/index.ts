@@ -297,6 +297,93 @@ Format as JSON: {
       );
     }
 
+    // Google Gemini verification
+    if (googleApiKey) {
+      verificationPromises.push(
+        Promise.race([
+          fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${googleApiKey}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              contents: [{
+                parts: [{
+                  text: `You are a clinical verification assistant for NHS primary care.\n\n${verificationPrompt}`
+                }]
+              }],
+              generationConfig: {
+                temperature: 0.3,
+                maxOutputTokens: 400,
+                responseMimeType: "application/json"
+              }
+            })
+          }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Gemini timeout')), 15000))
+        ]).then(async (response: any) => {
+          if (response.ok) {
+            const data = await response.json();
+            const result = JSON.parse(data.candidates[0].content.parts[0].text);
+            
+            return {
+              model: 'gemini-1.5-flash',
+              service: 'Google',
+              assessment: result.assessment,
+              agreementLevel: result.agreementLevel,
+              concerns: result.concerns || []
+            };
+          }
+          return null;
+        }).catch(error => {
+          console.error('Gemini verification failed:', error);
+          return null;
+        })
+      );
+    }
+
+    // Grok verification
+    if (grokApiKey) {
+      verificationPromises.push(
+        Promise.race([
+          fetch('https://api.x.ai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${grokApiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'grok-beta',
+              messages: [
+                { role: 'system', content: 'You are a clinical verification assistant for NHS primary care.' },
+                { role: 'user', content: verificationPrompt }
+              ],
+              max_tokens: 400,
+              temperature: 0.3,
+              response_format: { type: "json_object" }
+            })
+          }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Grok timeout')), 15000))
+        ]).then(async (response: any) => {
+          if (response.ok) {
+            const data = await response.json();
+            const result = JSON.parse(data.choices[0].message.content);
+            
+            return {
+              model: 'grok-beta',
+              service: 'Grok',
+              assessment: result.assessment,
+              agreementLevel: result.agreementLevel,
+              concerns: result.concerns || []
+            };
+          }
+          return null;
+        }).catch(error => {
+          console.error('Grok verification failed:', error);
+          return null;
+        })
+      );
+    }
+
     // Execute all verifications in parallel with overall timeout
     try {
       console.log('Running parallel AI verifications...');
