@@ -23,16 +23,28 @@ serve(async (req) => {
   // Try GPT-5 with streaming, then fall back on policy error
   const tryModel = async (m: string, stream: boolean) => {
     console.log(`Trying model: ${m}, stream: ${stream}`);
+    
+    // Use correct parameter names based on model
+    const isNewerModel = m.startsWith('gpt-5') || m.startsWith('o3') || m.startsWith('o4');
+    const requestBody: any = {
+      model: m,
+      messages: chatMessages,
+      stream,
+    };
+    
+    // Use correct parameter names based on model
+    if (isNewerModel) {
+      requestBody.max_completion_tokens = 450; // Newer models use this
+      // Don't include temperature - newer models don't support it
+    } else {
+      requestBody.max_tokens = 450; // Legacy models use this
+      requestBody.temperature = 0.2;
+    }
+    
     const r = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: m,
-        messages: chatMessages,
-        stream,
-        max_tokens: 450,
-        temperature: 0.2,
-      }),
+      body: JSON.stringify(requestBody),
     });
     return r;
   };
