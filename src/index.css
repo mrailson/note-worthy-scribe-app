@@ -381,6 +381,23 @@ tbody tr:hover {
     transition: height 0.3s ease;
   }
 
+  /* Floating mobile input */
+  .floating-mobile-input {
+    max-height: 70vh;
+    z-index: 9999;
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  /* Prevent body scroll when floating input is open */
+  .floating-input-open {
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+  }
+
   /* Mobile-friendly focus states */
   @media (pointer: coarse) {
     .focus\:ring-2:focus {

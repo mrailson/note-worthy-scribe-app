@@ -11,6 +11,8 @@ import { Sparkles, History, Plus, Settings, Sparkles as GenieIcon, Newspaper, Mo
 import { LoginForm } from '@/components/LoginForm';
 import { MessagesList } from '@/components/ai4gp/MessagesList';
 import { InputArea, InputAreaRef } from '@/components/ai4gp/InputArea';
+import { FloatingMobileInput } from '@/components/ai4gp/FloatingMobileInput';
+import { useIsMobile } from '@/hooks/use-mobile';
 import MessageRenderer from '@/components/MessageRenderer';
 import { QuickActionsPanel } from '@/components/ai4gp/QuickActionsPanel';
 import { SettingsModal } from '@/components/ai4gp/SettingsModal';
@@ -30,6 +32,7 @@ import { QuickImageModal } from '@/components/QuickImageModal';
 const AI4GPService = () => {
   const inputRef = useRef<InputAreaRef>(null);
   const { user, loading } = useAuth();
+  const isMobile = useIsMobile();
   const [showSearchHistory, setShowSearchHistory] = useState(false);
   const [showAllQuickActions, setShowAllQuickActions] = useState(false);
   const [expandedMessage, setExpandedMessage] = useState<Message | null>(null);
@@ -349,8 +352,8 @@ const AI4GPService = () => {
                     </div>
                   )}
                   
-                  {/* Input Area at Bottom */}
-                  {!showNews && !showAIChat && !showSettings && !showImageService && (
+                  {/* Input Area at Bottom - Desktop only */}
+                  {!showNews && !showAIChat && !showSettings && !showImageService && !isMobile && (
                     <div className="border-t bg-background">
                       <InputArea
                         ref={inputRef}
@@ -371,6 +374,21 @@ const AI4GPService = () => {
           </div>
         </div>
       </div>
+
+      {/* Mobile Floating Input */}
+      {isMobile && !showNews && !showAIChat && !showSettings && !showImageService && (
+        <FloatingMobileInput
+          ref={inputRef}
+          input={input}
+          setInput={setInput}
+          uploadedFiles={uploadedFiles}
+          setUploadedFiles={setUploadedFiles}
+          onSend={handleSendWithContext}
+          isLoading={isLoading}
+          isClinical={isClinical}
+          setIsClinical={setIsClinical}
+        />
+      )}
 
 
       {/* Expanded Message Dialog */}
