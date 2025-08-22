@@ -295,7 +295,7 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
     if (isBankHoliday || dayOfWeek === 0) return false;
     
     if (isWeekday) {
-      // Mon-Fri: Need GP booked between 18:30-20:00
+      // Mon-Fri: Need GP booked between 18:30-20:00 (or 18:30-20:30)
       return shifts.some(shift => {
         const shiftAssignments = assignments.filter(a => 
           a.shift_template_id === shift.id && 
@@ -303,8 +303,9 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
           a.status !== 'cancelled_late_notice'
         );
         
-        // Check if shift is 18:30-20:00 and has GP assigned
-        const isEveningShift = shift.start_time === '18:30:00' && shift.end_time === '20:30:00';
+        // Check if shift is evening shift (18:30 start) and has GP assigned
+        const isEveningShift = shift.start_time === '18:30:00' && 
+          (shift.end_time === '20:00:00' || shift.end_time === '20:30:00');
         const hasGP = shiftAssignments.some(assignment => 
           assignment.staff_member.role === 'GP'
         );
@@ -736,15 +737,15 @@ export const ShiftAssignment = ({ currentWeek, onAssignmentChange, isMonthlyView
                         return (
                           <div 
                             key={shift.id}
-                            className={`p-2 rounded border text-xs space-y-1 ${
-                              hasAssignments 
-                                ? shiftAssignments.some(a => a.status === 'cancelled_late_notice')
-                                  ? "border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-900/20"
-                                  : enhancedAccessMet || hasAssignments
-                                  ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20"
-                                  : "border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-900/20"
-                                : "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20"
-                            }`}
+                           className={`p-2 rounded border text-xs space-y-1 ${
+                             hasAssignments 
+                               ? shiftAssignments.some(a => a.status === 'cancelled_late_notice')
+                                 ? "border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-900/20"
+                                 : enhancedAccessMet
+                                 ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20"
+                                 : "border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-900/20"
+                               : "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20"
+                           }`}
                           >
                           <div className="font-medium">{shift.name}</div>
                           <div className="flex items-center gap-1">
