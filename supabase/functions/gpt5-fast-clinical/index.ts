@@ -4,6 +4,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Cache-Control': 'no-cache, no-transform',
+  'Connection': 'keep-alive',
 };
 
 interface Message {
@@ -17,49 +19,12 @@ interface RequestBody {
   systemPrompt?: string;
 }
 
-async function callGPT5Fast(messages: Message[], systemPrompt: string, model: string): Promise<string> {
-  const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
-  if (!openaiApiKey) {
-    throw new Error('OpenAI API key not found');
-  }
-
-  // Ultra-minimal system prompt for speed
-  const clinicalSystemPrompt = systemPrompt || `Clinical AI assistant. UK NHS guidelines. Evidence-based. ${new Date().toISOString().split('T')[0]}`;
-
-  // Minimal message array
-  const apiMessages = [
-    { role: 'system', content: clinicalSystemPrompt },
-    ...messages
-  ];
-
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${openaiApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: model,
-      messages: apiMessages,
-      max_completion_tokens: 2000, // Reduced for speed
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
-  }
-
-  const data = await response.json();
-  return data.choices[0]?.message?.content || 'No response generated';
-}
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const startTime = Date.now();
+  const t0 = Date.now();
 
   try {
     const { messages, model = 'gpt-5-mini-2025-08-07', systemPrompt }: RequestBody = await req.json();
@@ -68,31 +33,67 @@ serve(async (req) => {
       throw new Error('No messages provided');
     }
 
-    const response = await callGPT5Fast(messages, systemPrompt, model);
-    const totalTime = Date.now() - startTime;
+    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+    if (!openaiApiKey) {
+      throw new Error('OpenAI API key not found');
+    }
 
-    return new Response(
-      JSON.stringify({ 
-        response,
-        responseTime: totalTime,
-        model,
-        success: true,
-        service: 'gpt5-fast-clinical'
+    // Ultra-minimal system prompt (<200 chars)
+    const clinicalPrompt = systemPrompt || "NHS GP assistant. BNF/NICE/MHRA. Bullet points. UK terms.";
+    
+    // Build minimal input for Responses API
+    const input = [
+      { role: 'system', content: clinicalPrompt },
+      ...messages
+    ];
+
+    const t1 = Date.now();
+    console.log(`t0->t1 (prep): ${t1-t0}ms`);
+
+    // Use OpenAI Responses API with streaming
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 65000);
+
+    const response = await fetch('https://api.openai.com/v1/responses', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openaiApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: model,
+        input: input,
+        stream: true,
+        max_output_tokens: 700, // Optimal for clinical summaries
+        temperature: 0.2
       }),
-      { 
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json' 
-        } 
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeout);
+
+    const t2 = Date.now();
+    console.log(`t1->t2 (TTFB): ${t2-t1}ms`);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
+    }
+
+    // Stream the response directly to client
+    return new Response(response.body, {
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'text/event-stream',
       }
-    );
+    });
 
   } catch (error) {
-    const totalTime = Date.now() - startTime;
+    const totalTime = Date.now() - t0;
+    console.log(`Error after ${totalTime}ms: ${error.message}`);
     
     return new Response(
       JSON.stringify({ 
-        response: `Error: ${error.message}`,
         error: error.message,
         success: false,
         responseTime: totalTime

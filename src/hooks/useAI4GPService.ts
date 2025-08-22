@@ -53,6 +53,67 @@ export const useAI4GPService = () => {
     }
   }, []);
 
+  const handleGPT5FastClinical = async (
+    messages: { role: 'user' | 'assistant' | 'system'; content: string }[],
+    systemPrompt?: string,
+    onStream?: (chunk: string) => void
+  ): Promise<string> => {
+    try {
+      const response = await fetch(
+        `https://dphcnbricafkbtizkoal.supabase.co/functions/v1/gpt5-fast-clinical`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwaGNuYnJpY2Fma2J0aXprb2FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MzIyMzIsImV4cCI6MjA2ODMwODIzMn0.U3bJI6P1yzgRBz_k2s0zlJGu1GWiVRTHjYgv9QQggPs`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            messages,
+            model: 'gpt-5-mini-2025-08-07',
+            systemPrompt
+          })
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error('No response stream');
+
+      let fullResponse = '';
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+        
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              if (data.content) {
+                fullResponse += data.content;
+                onStream?.(data.content);
+              }
+            } catch (e) {
+              // Skip invalid JSON
+            }
+          }
+        }
+      }
+
+      return fullResponse || 'No response received';
+    } catch (error) {
+      console.error('GPT-5 Fast Clinical error:', error);
+      throw error;
+    }
+  };
+
   const buildSystemPrompt = useCallback((practiceContext: any, uploadedFiles: UploadedFile[], verificationLevel: string) => {
     let prompt = `You are "AI 4 GP Service", an AI Assistant built specifically to help General Practitioners (GPs) in the UK NHS.
 
@@ -248,6 +309,63 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           content: content
         };
       });
+
+      // For simple text queries with GPT-5, use the fast clinical function with streaming
+      if (modelToUse === 'gpt-5-2025-08-07' && (!uploadedFiles || uploadedFiles.length === 0)) {
+        console.log('🚀 Using GPT-5 Fast Clinical for text-only query');
+        
+        try {
+          let accumulatedContent = '';
+          let timeToFirstWords: number | undefined;
+          
+          const streamHandler = (chunk: string) => {
+            accumulatedContent += chunk;
+            
+            if (!timeToFirstWords) {
+              timeToFirstWords = Date.now() - startTime;
+            }
+            
+            setMessages(prev => prev.map(msg => 
+              msg.id === assistantMessageId 
+                ? { ...msg, content: accumulatedContent, isStreaming: true, timeToFirstWords }
+                : msg
+            ));
+          };
+          
+          const response = await handleGPT5FastClinical(messagesForAPI, systemPrompt, streamHandler);
+          
+          const endTime = Date.now();
+          const responseTime = endTime - startTime;
+          
+          const finalAssistantMessage = {
+            ...assistantMessage,
+            content: response,
+            isStreaming: false,
+            responseTime,
+            timeToFirstWords,
+            apiResponseTime: responseTime
+          };
+
+          setMessages(prev => prev.map(msg => 
+            msg.id === assistantMessageId 
+              ? finalAssistantMessage
+              : msg
+          ));
+
+          // Auto-save the search
+          setTimeout(async () => {
+            const finalMessages = [...newMessages, finalAssistantMessage];
+            await saveSearchAutomatically(finalMessages);
+          }, 100);
+          
+          setIsLoading(false);
+          return;
+          
+        } catch (error) {
+          console.error('GPT-5 Fast Clinical failed, falling back to standard:', error);
+          // Fall through to standard processing
+        }
+      }
 
       const requestBody = {
         messages: messagesForAPI,
