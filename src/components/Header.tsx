@@ -159,13 +159,6 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                        <Sparkles className="h-4 w-4 mr-2" />
                        AI4GP Service
                          </DropdownMenuItem>
-                     <DropdownMenuItem 
-                       onClick={() => navigate('/practice-image-maker')}
-                       className="cursor-pointer py-3"
-                     >
-                       <ImageIcon className="h-4 w-4 mr-2" />
-                       Practice Image Maker
-                     </DropdownMenuItem>
                      {hasModuleAccess('enhanced_access') && (
                       <DropdownMenuItem 
                         onClick={() => navigate('/enhanced-access')}
@@ -376,12 +369,6 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                               AI4GP Service
                             </Button>
                             </DrawerClose>
-                          <DrawerClose asChild>
-                            <Button variant="ghost" className="justify-start" onClick={() => navigate('/practice-image-maker')}>
-                              <ImageIcon className="h-4 w-4 mr-2" />
-                              Practice Image Maker
-                            </Button>
-                          </DrawerClose>
                          {hasModuleAccess('enhanced_access') && (
                           <DrawerClose asChild>
                             <Button variant="ghost" className="justify-start" onClick={() => navigate('/enhanced-access')}>
